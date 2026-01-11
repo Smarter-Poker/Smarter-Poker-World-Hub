@@ -1,4 +1,4 @@
-// Club Arena Listener:
+// Training Listener:
 export const xpListener = (amount) => {
-  console.log("Club Arena sending XP to Master-Bus:", amount);
+  console.log("Training Project sending XP to Master-Bus:", amount);
 };
