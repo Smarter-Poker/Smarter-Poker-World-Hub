@@ -556,7 +556,6 @@ export default function MemoryGamesPage() {
                                             </div>
                                         </div>
                                     </div>
-                            )}
                                 </>
                             )}
 
