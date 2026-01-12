@@ -1,7 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SMARTER.POKER — SIGN UP REGISTRATION NODE
-   Simplified Email/Password Registration (No OTP for testing)
+   Email/Password Registration with Supabase OTP Email Verification
    Cyan/Electric Blue Aesthetic | Deep Navy Background
+   Last Deploy: 2026-01-12 01:18:00 - OTP Code Input Active
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
