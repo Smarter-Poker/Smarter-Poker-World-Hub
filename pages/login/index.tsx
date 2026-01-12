@@ -1,6 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { useState } from 'react'
-import { Phone, Facebook, Chrome } from 'lucide-react'
 
 export default function LoginPage() {
   const supabase = createBrowserClient(
@@ -16,19 +15,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ backgroundColor: 'black', minHeight: '100 screen', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontFamily: 'sans-serif' }}>
-      <div style={{ backgroundColor: '#18181b', padding: '40px', borderRadius: '24px', border: '1px solid #27272a', textAlign: 'center', width: '100%', maxWidth: '400px' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: '900', marginBottom: '8px', letterSpacing: '-1px' }}>SMARTER.POKER</h1>
-        <p style={{ color: '#71717a', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '32px' }}>Access Node</p>
+    <div style={{ backgroundColor: 'black', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+      <div style={{ backgroundColor: '#18181b', padding: '40px', borderRadius: '24px', textAlign: 'center', width: '100%', maxWidth: '400px', border: '1px solid #27272a' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: '900', marginBottom: '32px' }}>SMARTER.POKER</h1>
         <input 
           type="tel" 
-          placeholder="+1 (555) 000-0000" 
+          placeholder="+15550000000" 
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          style={{ width: '100%', backgroundColor: 'black', border: '1px solid #27272a', color: 'white', padding: '16px', borderRadius: '12px', marginBottom: '16px', outline: 'none' }}
+          style={{ width: '100%', backgroundColor: 'black', border: '1px solid #27272a', color: 'white', padding: '16px', borderRadius: '12px', marginBottom: '16px' }}
         />
-        <button onClick={sendSMS} style={{ width: '100%', backgroundColor: '#ea580c', color: 'white', padding: '16px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', border: 'none' }}>
-          Verify via SMS
+        <button onClick={sendSMS} style={{ width: '100%', backgroundColor: '#ea580c', color: 'white', padding: '16px', borderRadius: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}>
+          VERIFY VIA SMS
         </button>
       </div>
     </div>
