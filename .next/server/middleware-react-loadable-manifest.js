@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST='{"node_modules/@react-three/drei/core/FaceLandmarker.js -> @mediapipe/tasks-vision":{"id":null,"files":[]},"node_modules/@react-three/drei/core/Text.js -> troika-three-text":{"id":9240,"files":["static/chunks/240.3f6060be2de0b735.js"]},"pages/hub/index.js -> ../../src/world/WorldHub":{"id":3509,"files":["static/chunks/fb7d5399.46b1b3c3458b7fd8.js","static/chunks/629-fe6972f484e4624a.js","static/chunks/634.b224bd91af5cb5b7.js","static/chunks/509.f1204e48f27f3e8b.js"]}}';
+self.__REACT_LOADABLE_MANIFEST="{}"

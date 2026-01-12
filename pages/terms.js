@@ -481,6 +481,7 @@ function GamingSection() {
                     <li>Completing training modules and social tasks earns Diamonds at no cost</li>
                     <li>XP progression is based solely on skill and activity, not purchases</li>
                     <li>Leaderboard rankings are determined by performance, not spending</li>
+                    <li><strong>Free Roll Hourly Tournaments:</strong> Enter the Diamond Arena every hour with ZERO entry fee</li>
                 </ul>
                 <p style={styles.consentText}>
                     Free methods of earning Diamonds are always available to all users. Premium purchases

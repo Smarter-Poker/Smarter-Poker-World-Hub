@@ -30,7 +30,7 @@ const RESTRICTED_STATES = ['WA', 'ID', 'MI', 'NV', 'CA'];
 export default function SignUpPage() {
     const router = useRouter();
 
-    // Step: 'info' → 'success' → redirect
+    // Step: 'info' → 'email_pending' → 'success' → redirect
     const [step, setStep] = useState('info');
 
     // Form data
@@ -186,8 +186,8 @@ export default function SignUpPage() {
                         city: formData.city,
                         state: formData.state,
                     },
-                    // Skip email confirmation for testing
-                    emailRedirectTo: undefined,
+                    // Enable email confirmation - redirect to /auth/callback after verification
+                    emailRedirectTo: `${window.location.origin}/auth/callback`,
                 },
             });
 
@@ -263,8 +263,14 @@ export default function SignUpPage() {
                 }
             }
 
-            // Show success
-            setStep('success');
+            // Check if email confirmation is required
+            if (authData.user && !authData.session) {
+                // Email confirmation required - show pending screen
+                setStep('email_pending');
+            } else {
+                // Email already confirmed or auto-confirmed - show success
+                setStep('success');
+            }
 
         } catch (err) {
             console.error('Signup error:', err);
@@ -310,10 +316,12 @@ export default function SignUpPage() {
                         <BrainIcon size={48} />
                         <h1 style={styles.title}>
                             {step === 'info' && 'Create Account'}
+                            {step === 'email_pending' && 'Verify Your Email'}
                             {step === 'success' && 'Welcome!'}
                         </h1>
                         <p style={styles.subtitle}>
                             {step === 'info' && 'Start your GTO training journey'}
+                            {step === 'email_pending' && 'Check your inbox to complete registration'}
                             {step === 'success' && 'Your account has been created'}
                         </p>
                     </div>
@@ -518,6 +526,54 @@ export default function SignUpPage() {
                     )}
 
                     {/* ═══════════════════════════════════════════════════════════════
+                        EMAIL PENDING — CHECK YOUR INBOX
+                        ═══════════════════════════════════════════════════════════════ */}
+                    {step === 'email_pending' && (
+                        <div style={styles.successContainer}>
+                            <div style={styles.successIcon}>📧</div>
+
+                            <h2 style={styles.successTitle}>Check Your Email</h2>
+
+                            <p style={styles.emailPendingText}>
+                                We've sent a verification link to:
+                            </p>
+                            <p style={styles.emailHighlight}>{formData.email}</p>
+
+                            <div style={styles.emailInstructions}>
+                                <p>Click the link in your email to activate your account and complete registration.</p>
+                            </div>
+
+                            <div style={styles.profileSummary}>
+                                <div style={styles.profileRow}>
+                                    <span style={styles.profileLabel}>Alias Reserved</span>
+                                    <span style={styles.profileValue}>{formData.pokerAlias}</span>
+                                </div>
+                                <div style={styles.profileRow}>
+                                    <span style={styles.profileLabel}>Location</span>
+                                    <span style={styles.profileValue}>{formData.city}, {formData.state}</span>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => window.location.reload()}
+                                style={{ ...styles.submitButton, background: 'rgba(0, 212, 255, 0.2)' }}
+                            >
+                                I've verified my email →
+                            </button>
+
+                            <p style={styles.emailHint}>
+                                Didn't receive it? Check your spam folder or{' '}
+                                <button
+                                    onClick={() => setStep('info')}
+                                    style={styles.resendLink}
+                                >
+                                    try again
+                                </button>
+                            </p>
+                        </div>
+                    )}
+
+                    {/* ═══════════════════════════════════════════════════════════════
                         SUCCESS — ACCOUNT CREATED
                         ═══════════════════════════════════════════════════════════════ */}
                     {step === 'success' && (
@@ -568,7 +624,7 @@ export default function SignUpPage() {
                         </div>
                     )}
 
-                    {step !== 'success' && (
+                    {step !== 'success' && step !== 'email_pending' && (
                         <>
                             <div style={styles.divider}>
                                 <span>or</span>
@@ -988,5 +1044,48 @@ const styles = {
         fontSize: '12px',
         lineHeight: 1.5,
         color: 'rgba(255, 255, 255, 0.7)',
+    },
+    // ─────────────────────────────────────────────────────────────────────────
+    // EMAIL PENDING STYLES
+    // ─────────────────────────────────────────────────────────────────────────
+    emailPendingText: {
+        fontFamily: 'Inter, sans-serif',
+        fontSize: '14px',
+        color: 'rgba(255, 255, 255, 0.6)',
+        textAlign: 'center',
+        marginBottom: '8px',
+    },
+    emailHighlight: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: '16px',
+        fontWeight: 600,
+        color: '#00D4FF',
+        textAlign: 'center',
+        marginBottom: '20px',
+    },
+    emailInstructions: {
+        padding: '16px',
+        background: 'rgba(0, 212, 255, 0.1)',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
+        borderRadius: '12px',
+        marginBottom: '20px',
+        textAlign: 'center',
+        fontSize: '13px',
+        color: 'rgba(255, 255, 255, 0.8)',
+    },
+    emailHint: {
+        marginTop: '16px',
+        fontSize: '12px',
+        color: 'rgba(255, 255, 255, 0.5)',
+        textAlign: 'center',
+    },
+    resendLink: {
+        background: 'none',
+        border: 'none',
+        color: '#00D4FF',
+        fontSize: '12px',
+        cursor: 'pointer',
+        textDecoration: 'underline',
+        padding: 0,
     },
 };

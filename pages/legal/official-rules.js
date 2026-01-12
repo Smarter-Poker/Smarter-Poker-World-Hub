@@ -83,6 +83,7 @@ export default function OfficialRules() {
                                 <li><strong>Social Tasks:</strong> Post, share, and engage with the community</li>
                                 <li><strong>Referral Program:</strong> Invite friends to earn bonus Diamonds</li>
                                 <li><strong>Leaderboard Ranking:</strong> Top performers on weekly leaderboards receive Diamond bonuses</li>
+                                <li><strong>Free Roll Hourly Tournaments:</strong> Enter the Diamond Arena every hour with <strong>ZERO entry fee</strong> — winners receive Diamond prizes</li>
                             </ul>
 
                             <h3 style={styles.subheading}>Premium Features (Optional)</h3>
