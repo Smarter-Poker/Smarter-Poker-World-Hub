@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST="{\"pages/_app.js -> ../src/components/diamonds/CelebrationManager\":{\"id\":\"pages/_app.js -> ../src/components/diamonds/CelebrationManager\",\"files\":[\"static/chunks/src_components_diamonds_CelebrationManager_tsx.js\"]}}"

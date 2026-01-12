@@ -22,15 +22,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/auth/signin": [
+    "/hub/social-media": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/auth/signin.js"
-    ],
-    "/terms": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/terms.js"
+      "static/chunks/pages/hub/social-media.js"
     ]
   },
   "ampFirstPages": []

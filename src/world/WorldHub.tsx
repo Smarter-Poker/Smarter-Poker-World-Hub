@@ -5,6 +5,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { Suspense, useMemo, useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import { Canvas } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import * as THREE from 'three';
@@ -318,6 +319,9 @@ export default function WorldHub() {
     const selectOrb = useWorldStore((state) => state.selectOrb);
     const exitOrb = useWorldStore((state) => state.exitOrb);
 
+    // Next.js router for actual page navigation
+    const router = useRouter();
+
     // Get the 6 footer cards (most visited or defaults)
     const footerCards = useMemo(() => getFooterCards(), []);
 
@@ -328,9 +332,15 @@ export default function WorldHub() {
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const profileOrbRef = useRef<HTMLDivElement>(null);
 
-    // Mock notification counts (TODO: Replace with real data)
-    const [messageCount] = useState(3);
-    const [notificationCount] = useState(7);
+    // Notification counts - users start with 0 (no seed data)
+    const [messageCount] = useState(0);
+    const [notificationCount] = useState(0);
+
+    // Handle buy diamonds click - navigate to store
+    const handleBuyDiamonds = () => {
+        console.log('Buy diamonds clicked — navigating to diamond store');
+        router.push('/hub/diamond-store');
+    };
 
     // Live Help state
     const liveHelp = useLiveHelp();
@@ -350,44 +360,47 @@ export default function WorldHub() {
     // Navigate to settings page
     const handleSettings = () => {
         console.log('Settings clicked — navigating to settings page');
-        // TODO: Navigate to /settings when page is created
+        router.push('/hub/settings');
     };
 
     // ═══════════════════════════════════════════════════════════════════════
-    // NAVIGATION HANDLERS
+    // NAVIGATION HANDLERS — Use Next.js router for actual page navigation
     // ═══════════════════════════════════════════════════════════════════════
 
-    // Handle logo click → Return to home (this page)
+    // Handle logo click → Return to hub home
     const handleLogoClick = () => {
         console.log('Logo clicked — Returning to World Hub home');
-        exitOrb(); // Return to World Hub home view
+        exitOrb();
+        router.push('/hub');
     };
 
-    // Handle footer card click → Navigate to that world
+    // Handle footer card click → Navigate to that world page
     const handleCardSelect = (cardId: string) => {
         console.log(`Footer card clicked: ${cardId}`);
         recordCardVisit(cardId);
-        selectOrb(cardId as any); // Navigate to the card's world page
+        selectOrb(cardId as any);
+        router.push(`/hub/${cardId}`);
     };
 
-    // Handle main carousel card click → Navigate to that world
+    // Handle main carousel card click → Navigate to that world page
     const handleOrbSelect = (orbId: string) => {
         console.log(`Main card selected: ${orbId}`);
         recordCardVisit(orbId);
-        selectOrb(orbId as any); // Navigate to the card's world page
+        selectOrb(orbId as any);
+        router.push(`/hub/${orbId}`);
     };
 
     // Handle HUD icon navigation
     const handleNavigate = (destination: string) => {
         console.log(`Navigating to: ${destination}`);
-        // Map destination names to orb IDs
-        const destinationMap: Record<string, string> = {
-            'profile': 'social-media',
-            'messages': 'social-media', // Messages is part of Social Media
-            'notifications': 'social-media', // Notifications is part of Social Media
+        // Map destination names to page routes
+        const routeMap: Record<string, string> = {
+            'profile': '/hub/social-media',
+            'messages': '/hub/social-media?tab=messages',
+            'notifications': '/hub/social-media?tab=notifications',
         };
-        const orbId = destinationMap[destination] || destination;
-        selectOrb(orbId as any);
+        const route = routeMap[destination] || `/hub/${destination}`;
+        router.push(route);
     };
 
     // Toggle profile dropdown
@@ -513,7 +526,7 @@ export default function WorldHub() {
 
                     {/* CENTER SECTION: Stats (evenly spaced) */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <DiamondStat />
+                        <DiamondStat onBuyClick={handleBuyDiamonds} />
                         <XPStat />
                     </div>
 
