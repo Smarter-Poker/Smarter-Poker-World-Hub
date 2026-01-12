@@ -143,7 +143,7 @@ export function redactPaymentTerms(content: string): RedactionResult {
     return {
         wasRedacted,
         cleanContent,
-        flaggedTerms: [...new Set(flaggedTerms)], // Deduplicate
+        flaggedTerms: Array.from(new Set(flaggedTerms)), // Deduplicate
     };
 }
 
@@ -179,7 +179,7 @@ export function extractBannedTerms(content: string): string[] {
         terms.push(...paymentMatches);
     }
 
-    return [...new Set(terms)];
+    return Array.from(new Set(terms));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
