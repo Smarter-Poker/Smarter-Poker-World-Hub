@@ -327,6 +327,151 @@ export const MIXED_SCENARIOS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SPOT TRAINER SCENARIOS (Tree-based hands)
+// ═══════════════════════════════════════════════════════════════════════════
+export const SPOT_SCENARIOS = [
+    {
+        id: 'spot-1',
+        title: 'BTN vs BB - Single Raised Pot',
+        heroHand: 'AsKd',
+        heroPos: 'BTN',
+        villainPos: 'BB',
+        initialPot: 5.5,
+        stackDepth: 100,
+        blinds: '0.5/1',
+        history: ['Hero (BTN) raises to 2.5bb', 'Villain (BB) calls 1.5bb'],
+        tree: {
+            id: 'root',
+            street: 'flop',
+            board: ['Ks', '7h', '2d'],
+            villainAction: 'check',
+            description: 'You flop Top Pair Top Kicker on a dry board. BB checks.',
+            options: [
+                {
+                    label: 'Check',
+                    score: 40,
+                    feedback: 'Too passive. You miss value and let them realize equity.',
+                    next: null // End of line for bad move in this trainer
+                },
+                {
+                    label: 'Bet 1.8bb (33%)',
+                    score: 100,
+                    feedback: 'Perfect. Small sizing works well on this dry texture.',
+                    next: {
+                        id: 'turn-1',
+                        street: 'turn',
+                        card: '9s',
+                        villainAction: 'call',
+                        pot: 9.1,
+                        description: 'Villain calls. Turn is 9s. BB checks.',
+                        options: [
+                            {
+                                label: 'Check',
+                                score: 70,
+                                feedback: 'Acceptable pot control, but you can get more value.',
+                                next: null
+                            },
+                            {
+                                label: 'Bet 6.5bb (75%)',
+                                score: 100,
+                                feedback: 'Great. Charging draws and worse Kx.',
+                                next: {
+                                    id: 'river-1',
+                                    street: 'river',
+                                    card: '3h',
+                                    villainAction: 'call',
+                                    pot: 22.1,
+                                    description: 'Villain calls. River is 3h (Brick). BB checks.',
+                                    options: [
+                                        { label: 'Check', score: 50, feedback: 'Missed value. Villain has many worse Kings.' },
+                                        { label: 'Bet 15bb (66%)', score: 100, feedback: 'Maximize value! Target KQ, KJ, KT.' },
+                                        { label: 'All-In', score: 60, feedback: 'Too ambitious. Folds out everything you beat.' }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    label: 'Bet 4bb (75%)',
+                    score: 75,
+                    feedback: 'A bit large for this dry board. Folds out hands you want to call.',
+                    next: null
+                }
+            ]
+        }
+    },
+    {
+        id: 'spot-2',
+        title: 'SB 3-Bet Pot vs BTN',
+        heroHand: 'QhQs',
+        heroPos: 'SB',
+        villainPos: 'BTN',
+        initialPot: 20,
+        stackDepth: 100,
+        blinds: '0.5/1',
+        history: ['Villain (BTN) raises 2.5bb', 'Hero (SB) raises to 9bb', 'Villain calls'],
+        tree: {
+            id: 'root',
+            street: 'flop',
+            board: ['Jc', '8d', '4s'],
+            villainAction: null, // Hero is first to act
+            description: '3-Bet pot. You have an overpair on a disconnected board.',
+            options: [
+                {
+                    label: 'Check',
+                    score: 60,
+                    feedback: 'Not terrible, but betting is standard to deny equity.',
+                    next: null
+                },
+                {
+                    label: 'Bet 6bb (30%)',
+                    score: 95,
+                    feedback: 'Good size. Keeps their range wide.',
+                    next: {
+                        id: 'turn-2',
+                        street: 'turn',
+                        card: 'Ac',
+                        villainAction: 'call',
+                        pot: 32,
+                        description: 'Villain calls. Turn is the Ace of clubs. You act first.',
+                        options: [
+                            {
+                                label: 'Check',
+                                score: 100,
+                                feedback: 'Correct. The Ace favors the caller (BTN). Pot control mode.',
+                                next: {
+                                    id: 'river-2',
+                                    street: 'river',
+                                    card: '2d',
+                                    villainAction: 'check',
+                                    pot: 32,
+                                    description: 'Villain checks back. River is 2d. You act first.',
+                                    options: [
+                                        { label: 'Check', score: 90, feedback: 'Good to check-call or check-fold depending on size.' },
+                                        { label: 'Bet 10bb', score: 100, feedback: 'Thin value/blocker bet. Tries to get value from JJ/TT.' }
+                                    ]
+                                }
+                            },
+                            {
+                                label: 'Bet 16bb (50%)',
+                                score: 40,
+                                feedback: 'Dangerous. You act into the Ace which connects with their float range.'
+                            }
+                        ]
+                    }
+                },
+                {
+                    label: 'Bet 15bb (75%)',
+                    score: 70,
+                    feedback: 'Slightly too big. Isolates you against sets and better overpairs.'
+                }
+            ]
+        }
+    }
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
 // EXPORT ALL
 // ═══════════════════════════════════════════════════════════════════════════
 export const ALL_SCENARIOS = [

@@ -73,11 +73,24 @@ function FBAvatar({ src, size = 40, online = false }) {
 // ═══════════════════════════════════════════════════════════════════════════
 function CreatePostBox({ user, onSubmit }) {
     const [content, setContent] = useState('');
+    const [mediaFile, setMediaFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const fileInputRef = useRef(null);
+
+    const handleFileSelect = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setMediaFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
 
     const handleSubmit = () => {
-        if (content.trim()) {
-            onSubmit?.(content);
+        if (content.trim() || mediaFile) {
+            onSubmit?.(content, mediaFile);
             setContent('');
+            setMediaFile(null);
+            setPreviewUrl(null);
         }
     };
 
@@ -94,11 +107,57 @@ function CreatePostBox({ user, onSubmit }) {
                     onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                 />
             </div>
+
+            {/* Media Preview */}
+            {previewUrl && (
+                <div style={{ padding: '0 16px 12px 16px' }}>
+                    <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden' }}>
+                        {mediaFile?.type?.startsWith('video') ? (
+                            <video src={previewUrl} style={{ width: '100%', maxHeight: 300, background: '#000' }} controls />
+                        ) : (
+                            <img src={previewUrl} alt="Preview" style={{ width: '100%', maxHeight: 300, objectFit: 'cover' }} />
+                        )}
+                        <button
+                            onClick={() => { setMediaFile(null); setPreviewUrl(null); }}
+                            style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer' }}
+                        >✕</button>
+                    </div>
+                </div>
+            )}
+
             <div style={styles.createPostDivider} />
+
             <div style={styles.createPostActions}>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    accept="image/*,video/*"
+                    style={{ display: 'none' }}
+                />
                 <button style={styles.createPostAction}>🎮 Live Video</button>
-                <button style={styles.createPostAction}>📷 Photo/Video</button>
+                <button
+                    style={styles.createPostAction}
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    📷 Photo/Video
+                </button>
                 <button style={styles.createPostAction}>🃏 Hand History</button>
+                <button
+                    onClick={handleSubmit}
+                    style={{
+                        marginLeft: 'auto',
+                        background: (content || mediaFile) ? FB_COLORS.blue : '#e4e6eb',
+                        color: (content || mediaFile) ? '#fff' : '#bcc0c4',
+                        padding: '6px 24px',
+                        border: 'none',
+                        borderRadius: 6,
+                        fontWeight: 600,
+                        cursor: (content || mediaFile) ? 'pointer' : 'default'
+                    }}
+                >
+                    Post
+                </button>
             </div>
         </div>
     );
@@ -132,6 +191,19 @@ function FBPostCard({ post, onLike }) {
             {/* Content */}
             <div style={styles.postContent}>
                 <p style={styles.postText}>{post.content || post.text}</p>
+                {post.mediaUrl && (
+                    <div style={{ marginTop: 12 }}>
+                        {post.mediaType === 'video' ? (
+                            <div style={{ width: '100%', background: '#000', borderRadius: 8, overflow: 'hidden' }}>
+                                <video src={post.mediaUrl} style={{ width: '100%', maxHeight: 500, display: 'block' }} controls />
+                            </div>
+                        ) : (
+                            <div style={{ width: '100%', borderRadius: 8, overflow: 'hidden', border: '1px solid #ddd' }}>
+                                <img src={post.mediaUrl} alt="Post media" style={{ width: '100%', maxHeight: 600, objectFit: 'cover', display: 'block' }} />
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Hand Display */}
@@ -877,8 +949,16 @@ export default function SocialMediaPage() {
         return `${Math.floor(seconds / 86400)}d`;
     };
 
-    const handleCreatePost = async (content) => {
+    const handleCreatePost = async (content, mediaFile) => {
         if (!currentUser) return;
+
+        let mediaUrl = null;
+        let mediaType = null;
+
+        if (mediaFile) {
+            mediaUrl = URL.createObjectURL(mediaFile);
+            mediaType = mediaFile.type.startsWith('video') ? 'video' : 'image';
+        }
 
         const newPost = {
             id: Date.now(),
@@ -887,18 +967,28 @@ export default function SocialMediaPage() {
             likeCount: 0,
             commentCount: 0,
             timeAgo: 'Just now',
+            mediaUrl,
+            mediaType
         };
 
         setPosts([newPost, ...posts]);
 
-        // Save to database
+        // Attempt to save to database (will fail until migration runs)
         try {
-            await supabase.from('social_posts').insert({
+            if (mediaFile) {
+                // Mock upload for now - in production this would upload to Supabase Storage
+                console.log('Would upload file:', mediaFile.name);
+            }
+
+            const { error } = await supabase.from('social_posts').insert({
                 author_id: currentUser.id,
                 content,
+                // meta_data: { mediaUrl, mediaType } // Schema dependent
             });
+
+            if (error) throw error;
         } catch (error) {
-            console.error('Error creating post:', error);
+            console.warn('Post saved locally only (backend pending):', error.message);
         }
     };
 

@@ -110,7 +110,7 @@ class XPEngine {
         return event;
     }
 
-    recordIncorrect() {
+    recordIncorrect(context = {}) {
         const lostStreak = this.state.currentStreak;
         this.state.currentStreak = 0;
         this.state.comboLevel = 0;
@@ -122,10 +122,11 @@ class XPEngine {
             multiplier: 1,
             totalXP: 0,
             streak: lostStreak,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            ...context
         };
 
-        eventBus.emit(EventType.DECISION_INCORRECT, { lostStreak }, 'XPEngine');
+        eventBus.emit(EventType.DECISION_INCORRECT, { lostStreak, ...context }, 'XPEngine');
 
         if (lostStreak >= 3) {
             eventBus.emit(EventType.STREAK_LOST, { lostStreak }, 'XPEngine');

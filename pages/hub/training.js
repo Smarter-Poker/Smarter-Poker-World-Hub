@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { xpEngine } from '../../src/engine/XPEngine';
+import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
 import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 
 // Initialize Supabase
@@ -558,6 +559,7 @@ export default function TrainingPage() {
 
     // Subscribe to XP engine updates
     useEffect(() => {
+        leakAnalyzer.start();
         const unsub = xpEngine.subscribe((state) => {
             setXPState(state);
             setStreak(state.currentStreak);
@@ -663,7 +665,16 @@ export default function TrainingPage() {
             }
         } else {
             // ❌ Wrong answer - XP Engine handles streak reset
-            xpEngine.recordIncorrect();
+            const bestAction = currentScenario.options.find(o => o.isGTO)?.text || 'Unknown';
+            xpEngine.recordIncorrect({
+                userAction: option.text,
+                bestAction: bestAction,
+                scenario: {
+                    id: currentScenario.id,
+                    title: currentScenario.title,
+                    situation: currentScenario.situation
+                }
+            });
         }
     };
 
