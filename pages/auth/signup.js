@@ -233,8 +233,8 @@ export default function SignUpPage() {
                             city: formData.city,
                             state: formData.state,
                             username: formData.pokerAlias,
-                            xp_total: 0,
-                            diamonds: 100, // Starting bonus
+                            xp_total: 50, // Starting XP bonus
+                            diamonds: 300, // Starting diamonds bonus (NO PURCHASE NECESSARY)
                             diamond_multiplier: 1.0,
                             streak_days: 0,
                             skill_tier: 'Newcomer',
@@ -547,7 +547,11 @@ export default function SignUpPage() {
                                 </div>
                                 <div style={styles.profileRow}>
                                     <span style={styles.profileLabel}>Starting Diamonds</span>
-                                    <span style={styles.profileValue}>💎 100</span>
+                                    <span style={styles.profileValue}>💎 300</span>
+                                </div>
+                                <div style={styles.profileRow}>
+                                    <span style={styles.profileLabel}>Starting XP</span>
+                                    <span style={styles.profileValue}>⬆️ 50 XP • LV 1</span>
                                 </div>
                                 <div style={styles.profileRow}>
                                     <span style={styles.profileLabel}>Skill Tier</span>

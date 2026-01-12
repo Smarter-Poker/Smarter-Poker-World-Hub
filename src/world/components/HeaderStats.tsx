@@ -1,24 +1,135 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    HEADER STATS — Inline Diamond and XP displays for top bar
-   Both bars have same height (32px) and font size (13px)
+   LIVE DATA: Fetches real user profile from Supabase
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 📊 MOCK USER DATA (Replace with real data from store/API)
+// 📊 DEFAULT NEW USER STATS
+// These are the starting values for new users (300 diamonds, 50 XP, Level 1)
 // ─────────────────────────────────────────────────────────────────────────────
-const MOCK_USER_STATS = {
-    diamonds: 12450,
-    xp: 8750,
-    level: 12,
-    streak: 7,
-    streakMultiplier: 1.5,
+const DEFAULT_USER_STATS = {
+    diamonds: 300,
+    xp: 50,
+    level: 1,
+    streak: 0,
+    streakMultiplier: 1.0,
 };
+
+// Calculate level from XP (every 500 XP = 1 level, minimum level 1)
+function calculateLevel(xp: number): number {
+    return Math.max(1, Math.floor(xp / 500) + 1);
+}
 
 // Shared bar height for consistency
 const BAR_HEIGHT = 32;
 const FONT_SIZE = 13;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 🔄 USER PROFILE HOOK — Fetches real data from Supabase
+// ─────────────────────────────────────────────────────────────────────────────
+function useUserProfile() {
+    const [profile, setProfile] = useState<{
+        diamonds: number;
+        xp: number;
+        level: number;
+        streak: number;
+        streakMultiplier: number;
+        isLoading: boolean;
+        error: string | null;
+    }>({
+        ...DEFAULT_USER_STATS,
+        isLoading: true,
+        error: null,
+    });
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchProfile = async () => {
+            try {
+                // Get current user
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+                if (authError) {
+                    console.log('Auth error:', authError);
+                    // Not logged in, use defaults
+                    if (isMounted) {
+                        setProfile(prev => ({ ...prev, isLoading: false }));
+                    }
+                    return;
+                }
+
+                if (!user) {
+                    // Not logged in, use defaults
+                    if (isMounted) {
+                        setProfile(prev => ({ ...prev, isLoading: false }));
+                    }
+                    return;
+                }
+
+                // Fetch user profile from Supabase
+                const { data: profileData, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('diamonds, xp_total, streak_days, diamond_multiplier')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profileError) {
+                    console.log('Profile fetch error:', profileError);
+                    // Profile might not exist yet, use defaults
+                    if (isMounted) {
+                        setProfile(prev => ({ ...prev, isLoading: false }));
+                    }
+                    return;
+                }
+
+                if (profileData && isMounted) {
+                    const xp = profileData.xp_total || 0;
+                    setProfile({
+                        diamonds: profileData.diamonds || DEFAULT_USER_STATS.diamonds,
+                        xp: xp,
+                        level: calculateLevel(xp),
+                        streak: profileData.streak_days || 0,
+                        streakMultiplier: profileData.diamond_multiplier || 1.0,
+                        isLoading: false,
+                        error: null,
+                    });
+                }
+            } catch (err) {
+                console.error('Profile fetch error:', err);
+                if (isMounted) {
+                    setProfile(prev => ({
+                        ...prev,
+                        isLoading: false,
+                        error: err instanceof Error ? err.message : 'Unknown error'
+                    }));
+                }
+            }
+        };
+
+        fetchProfile();
+
+        // Subscribe to auth changes to refresh profile
+        const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                fetchProfile();
+            } else {
+                // User logged out, reset to defaults
+                setProfile({ ...DEFAULT_USER_STATS, isLoading: false, error: null });
+            }
+        });
+
+        return () => {
+            isMounted = false;
+            authListener.subscription.unsubscribe();
+        };
+    }, []);
+
+    return profile;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 💎 DIAMOND STAT — With + button to buy more
@@ -28,7 +139,7 @@ interface DiamondStatProps {
 }
 
 export function DiamondStat({ onBuyClick }: DiamondStatProps) {
-    const [count] = useState(MOCK_USER_STATS.diamonds);
+    const { diamonds, isLoading } = useUserProfile();
     const [isPlusHovered, setIsPlusHovered] = useState(false);
 
     const handleBuyClick = () => {
@@ -56,9 +167,10 @@ export function DiamondStat({ onBuyClick }: DiamondStatProps) {
                     fontSize: FONT_SIZE,
                     fontWeight: 600,
                     color: '#00d4ff',
+                    opacity: isLoading ? 0.5 : 1,
                 }}
             >
-                {count.toLocaleString()}
+                {isLoading ? '...' : diamonds.toLocaleString()}
             </span>
             {/* + Button to buy more */}
             <button
@@ -103,7 +215,7 @@ export function DiamondStat({ onBuyClick }: DiamondStatProps) {
 // ⬆️ XP STAT — Shows "XP: total • LV level" (same height as Diamond)
 // ─────────────────────────────────────────────────────────────────────────────
 export function XPStat() {
-    const { xp, level } = MOCK_USER_STATS;
+    const { xp, level, isLoading } = useUserProfile();
 
     return (
         <div
@@ -135,9 +247,10 @@ export function XPStat() {
                     fontSize: FONT_SIZE,
                     fontWeight: 600,
                     color: '#00d4ff',
+                    opacity: isLoading ? 0.5 : 1,
                 }}
             >
-                {xp.toLocaleString()}
+                {isLoading ? '...' : xp.toLocaleString()}
             </span>
             <span
                 style={{
@@ -154,9 +267,10 @@ export function XPStat() {
                     fontSize: FONT_SIZE,
                     fontWeight: 600,
                     color: '#ffffff',
+                    opacity: isLoading ? 0.5 : 1,
                 }}
             >
-                LV {level}
+                LV {isLoading ? '...' : level}
             </span>
         </div>
     );
@@ -166,7 +280,7 @@ export function XPStat() {
 // 🔥 STREAK STAT (kept for compatibility)
 // ─────────────────────────────────────────────────────────────────────────────
 export function StreakStat() {
-    const { streak, streakMultiplier } = MOCK_USER_STATS;
+    const { streak, streakMultiplier, isLoading } = useUserProfile();
     const [isFlaming, setIsFlaming] = useState(false);
 
     useEffect(() => {
@@ -204,9 +318,10 @@ export function StreakStat() {
                     fontSize: FONT_SIZE,
                     fontWeight: 600,
                     color: streak >= 5 ? '#ff6600' : '#00d4ff',
+                    opacity: isLoading ? 0.5 : 1,
                 }}
             >
-                {streak}
+                {isLoading ? '...' : streak}
             </span>
             {streakMultiplier > 1 && (
                 <span
