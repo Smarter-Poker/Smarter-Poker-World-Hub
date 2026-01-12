@@ -10,11 +10,11 @@
     ]
   },
   "pages/hub/index.js -> ../../src/world/WorldHub": {
-    "id": 5131,
+    "id": 3509,
     "files": [
       "static/chunks/fb7d5399.46b1b3c3458b7fd8.js",
       "static/chunks/634.347c02eb3fa88a8f.js",
-      "static/chunks/131.2cbce4fcd173cc48.js"
+      "static/chunks/509.df90ad9945128f37.js"
     ]
   }
 }

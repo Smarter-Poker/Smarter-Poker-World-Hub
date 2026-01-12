@@ -20,9 +20,10 @@ import { WelcomeBack } from './components/WelcomeMessage';
 import { StreakPopup } from './components/StreakPopup';
 import { SearchOrb, SearchOverlay } from './components/GlobalSearch';
 import { ProfileDropdown } from './components/ProfileDropdown';
-import { OnboardingOverlay } from './components/OnboardingOverlay';
 import { LiveHelpOrb } from './components/LiveHelpOrb';
 import { useLiveHelp, LiveHelpPanel } from './components/LiveHelp';
+import { SettingsOrb } from './components/SettingsOrb';
+
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -325,12 +326,6 @@ export default function WorldHub() {
     // ═══════════════════════════════════════════════════════════════════════
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-    const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
-        // Check if user has completed onboarding
-        if (typeof window === 'undefined') return false;
-        const hasOnboarded = localStorage.getItem('hub-onboarding-complete');
-        return !hasOnboarded;
-    });
     const profileOrbRef = useRef<HTMLDivElement>(null);
 
     // Mock notification counts (TODO: Replace with real data)
@@ -352,10 +347,10 @@ export default function WorldHub() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // Complete onboarding
-    const handleOnboardingComplete = () => {
-        localStorage.setItem('hub-onboarding-complete', 'true');
-        setIsOnboardingOpen(false);
+    // Navigate to settings page
+    const handleSettings = () => {
+        console.log('Settings clicked — navigating to settings page');
+        // TODO: Navigate to /settings when page is created
     };
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -555,6 +550,9 @@ export default function WorldHub() {
                         {/* SEARCH ORB */}
                         <SearchOrb onClick={() => setIsSearchOpen(true)} size={48} />
 
+                        {/* SETTINGS ORB — Gear icon to settings page */}
+                        <SettingsOrb onClick={handleSettings} size={48} />
+
                         {/* LIVE HELP ORB — Far right, opens expert assistance panel */}
                         <LiveHelpOrb onClick={liveHelp.openHelp} size={48} />
                     </div>
@@ -595,10 +593,9 @@ export default function WorldHub() {
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════
-                OVERLAYS — Search, Onboarding, Live Help (highest z-index)
+                OVERLAYS — Search, Live Help (highest z-index)
                 ═══════════════════════════════════════════════════════════════ */}
             <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-            <OnboardingOverlay isOpen={isOnboardingOpen} onComplete={handleOnboardingComplete} />
 
             {/* Live Help Panel */}
             <LiveHelpPanel

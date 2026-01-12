@@ -23,7 +23,6 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     { id: 'diamond-arcade', color: '#9900ff', label: 'Diamond Arcade', gradient: ['#ce93d8', '#7b1fa2'], imageUrl: '/cards/diamond-arcade.jpg' },
     { id: 'bankroll-manager', color: '#ff00ff', label: 'Bankroll Manager', gradient: ['#f48fb1', '#c2185b'], imageUrl: '/cards/bankroll-manager.jpg' },
     { id: 'poker-near-me', color: '#ffffff', label: 'Poker Near Me', gradient: ['#e0e0e0', '#9e9e9e'], imageUrl: '/cards/poker-near-me.jpg' },
-    { id: 'marketplace', color: '#888888', label: 'Marketplace & Settings', gradient: ['#78909c', '#455a64'], imageUrl: '/cards/marketplace-settings.jpg' },
     { id: 'trivia', color: '#00ccff', label: 'Trivia', gradient: ['#4dd0e1', '#0097a7'], imageUrl: '/cards/trivia.jpg' },
 ];
 
