@@ -62,6 +62,10 @@ export default function SignUpPage() {
     // Player number assigned after successful registration
     const [assignedPlayerNumber, setAssignedPlayerNumber] = useState(null);
 
+    // Email verification code state
+    const [verificationCode, setVerificationCode] = useState('');
+    const [verifying, setVerifying] = useState(false);
+
     // Animated glow effect
     useEffect(() => {
         let frame;
@@ -281,6 +285,60 @@ export default function SignUpPage() {
     };
 
     // ─────────────────────────────────────────────────────────────────────────
+    // VERIFY: Submit email OTP verification code
+    // ─────────────────────────────────────────────────────────────────────────
+    const handleVerifyCode = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        if (verificationCode.length < 6) {
+            setError('Please enter the complete verification code');
+            return;
+        }
+
+        setVerifying(true);
+
+        try {
+            // Verify the OTP code with Supabase
+            const { data, error: verifyError } = await supabase.auth.verifyOtp({
+                email: formData.email,
+                token: verificationCode,
+                type: 'signup',
+            });
+
+            if (verifyError) throw verifyError;
+
+            console.log('Email verified:', data);
+
+            // Try to get player number if available
+            if (data.user) {
+                try {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('player_number')
+                        .eq('id', data.user.id)
+                        .single();
+
+                    if (profile?.player_number) {
+                        setAssignedPlayerNumber(profile.player_number);
+                    }
+                } catch (err) {
+                    console.log('Could not fetch player number:', err);
+                }
+            }
+
+            // Email verified successfully - show success
+            setStep('success');
+
+        } catch (err) {
+            console.error('Verification error:', err);
+            setError(err.message || 'Invalid verification code. Please try again.');
+        } finally {
+            setVerifying(false);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
     // RENDER
     // ─────────────────────────────────────────────────────────────────────────
     return (
@@ -321,7 +379,7 @@ export default function SignUpPage() {
                         </h1>
                         <p style={styles.subtitle}>
                             {step === 'info' && 'Start your GTO training journey'}
-                            {step === 'email_pending' && 'Check your inbox to complete registration'}
+                            {step === 'email_pending' && 'Enter the code from your email'}
                             {step === 'success' && 'Your account has been created'}
                         </p>
                     </div>
@@ -526,22 +584,51 @@ export default function SignUpPage() {
                     )}
 
                     {/* ═══════════════════════════════════════════════════════════════
-                        EMAIL PENDING — CHECK YOUR INBOX
+                        EMAIL PENDING — ENTER VERIFICATION CODE
                         ═══════════════════════════════════════════════════════════════ */}
                     {step === 'email_pending' && (
                         <div style={styles.successContainer}>
                             <div style={styles.successIcon}>📧</div>
 
-                            <h2 style={styles.successTitle}>Check Your Email</h2>
+                            <h2 style={styles.successTitle}>Verify Your Email</h2>
 
                             <p style={styles.emailPendingText}>
-                                We've sent a verification link to:
+                                We've sent a verification code to:
                             </p>
                             <p style={styles.emailHighlight}>{formData.email}</p>
 
-                            <div style={styles.emailInstructions}>
-                                <p>Click the link in your email to activate your account and complete registration.</p>
-                            </div>
+                            <form onSubmit={handleVerifyCode} style={styles.otpForm}>
+                                <div style={styles.inputGroup}>
+                                    <label style={styles.label}>Enter Verification Code</label>
+                                    <input
+                                        type="text"
+                                        value={verificationCode}
+                                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                                        placeholder="Enter 6-8 digit code"
+                                        style={{
+                                            ...styles.inputSingle,
+                                            textAlign: 'center',
+                                            fontSize: '24px',
+                                            fontFamily: 'Orbitron, monospace',
+                                            letterSpacing: '8px',
+                                        }}
+                                        maxLength={8}
+                                        autoComplete="one-time-code"
+                                        autoFocus
+                                    />
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    style={{
+                                        ...styles.submitButton,
+                                        opacity: verifying || verificationCode.length < 6 ? 0.7 : 1,
+                                    }}
+                                    disabled={verifying || verificationCode.length < 6}
+                                >
+                                    {verifying ? 'Verifying...' : 'Verify Email'}
+                                </button>
+                            </form>
 
                             <div style={styles.profileSummary}>
                                 <div style={styles.profileRow}>
@@ -553,13 +640,6 @@ export default function SignUpPage() {
                                     <span style={styles.profileValue}>{formData.city}, {formData.state}</span>
                                 </div>
                             </div>
-
-                            <button
-                                onClick={() => window.location.reload()}
-                                style={{ ...styles.submitButton, background: 'rgba(0, 212, 255, 0.2)' }}
-                            >
-                                I've verified my email →
-                            </button>
 
                             <p style={styles.emailHint}>
                                 Didn't receive it? Check your spam folder or{' '}
@@ -769,6 +849,14 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
+    },
+    otpForm: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        width: '100%',
+        marginTop: '12px',
+        marginBottom: '20px',
     },
     inputGroup: {
         display: 'flex',
