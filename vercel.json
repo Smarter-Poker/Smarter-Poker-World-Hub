@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/login", "destination": "/login/page.tsx" },
+    { "source": "/auth/callback", "destination": "/auth/callback/route.ts" }
+  ]
+}
