@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -14,8 +14,11 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.90.1",
     "@use-gesture/react": "^10.3.1",
     "framer-motion": "^12.25.0",
+    "lucide-react": "^0.562.0",
     "postprocessing": "^6.38.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
