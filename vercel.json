@@ -1,5 +1,15 @@
 {
   "framework": "nextjs",
   "buildCommand": "next build",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "rewrites": [
+    {
+      "source": "/hub/club-arena/:path*",
+      "destination": "https://club-arena.vercel.app/hub/club-arena/:path*"
+    },
+    {
+      "source": "/hub/club-arena",
+      "destination": "https://club-arena.vercel.app/hub/club-arena/"
+    }
+  ]
 }
