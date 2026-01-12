@@ -311,6 +311,22 @@ export const LEVEL_10_SCENARIOS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
+// MIXED STRATEGY SCENARIOS (for Mixed Strategy Trainer)
+// ═══════════════════════════════════════════════════════════════════════════
+export const MIXED_SCENARIOS = [
+    { id: 'mix-1', title: 'BTN Open vs SB 3bet', hand: 'A5s', context: 'You are BTN facing a 3bet from SB', frequencies: { call: 45, raise: 55, fold: 0 } },
+    { id: 'mix-2', title: 'BB Defense vs BTN', hand: 'KJo', context: 'You are BB facing a 2.5x Open', frequencies: { call: 60, raise: 0, fold: 40 } },
+    { id: 'mix-3', title: 'SB vs BB Limp', hand: 'Q9o', context: 'You are SB, BB checks', frequencies: { raise: 50, fold: 10, call: 40 } }, // Limp strategy mocked
+    { id: 'mix-4', title: 'UTG vs MP 3bet', hand: 'QQ', context: 'You are UTG facing MP 3bet', frequencies: { call: 50, raise: 50, fold: 0 } },
+    { id: 'mix-5', title: 'Flop C-Bet', hand: 'Bottom Set', context: 'As PFR on Wet Board', frequencies: { check: 30, bet: 70 } },
+    { id: 'mix-6', title: 'River Bluff', hand: 'Missed Draw', context: 'Triple barrel spot', frequencies: { check: 25, bet: 75 } },
+    { id: 'mix-7', title: 'Turn Probe', hand: 'Middle Pair', context: 'OOP vs IP Checkback', frequencies: { check: 60, bet: 40 } },
+    { id: 'mix-8', title: 'BTN Open', hand: 'K6o', context: 'Opening range boundary', frequencies: { raise: 40, fold: 60 } },
+    { id: 'mix-9', title: 'BB Defense vs UTG', hand: '76s', context: 'Facing 2.2x Open', frequencies: { call: 85, raise: 15, fold: 0 } },
+    { id: 'mix-10', title: 'SB Steal', hand: 'Q3s', context: 'Folded to you in SB', frequencies: { raise: 70, fold: 0, call: 30 } },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
 // EXPORT ALL
 // ═══════════════════════════════════════════════════════════════════════════
 export const ALL_SCENARIOS = [
@@ -332,4 +348,4 @@ export function getLevelConfig(level) {
     return LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
 }
 
-export default { ALL_SCENARIOS, getScenariosByLevel, getRandomScenario, getLevelConfig, RANKS, getHandName };
+export default { ALL_SCENARIOS, getScenariosByLevel, getRandomScenario, getLevelConfig, RANKS, getHandName, MIXED_SCENARIOS };

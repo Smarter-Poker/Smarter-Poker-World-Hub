@@ -206,6 +206,13 @@ function LeftSidebar({ user, onNavigate }) {
                     <span>{item.label}</span>
                 </div>
             ))}
+            <div
+                style={styles.sidebarItem}
+                onClick={() => window.open('https://social.smarter.poker', '_blank')}
+            >
+                <span style={styles.sidebarIcon}>🌐</span>
+                <span>Full Social Site</span>
+            </div>
         </aside>
     );
 }
