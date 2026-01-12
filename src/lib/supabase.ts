@@ -1,4 +1,16 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUPABASE CLIENT — Singleton for browser-side auth
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 import { createClient } from '@supabase/supabase-js';
-const supabaseUrl = 'YOUR_SUPABASE_URL';
-const supabaseKey = 'YOUR_SUPABASE_KEY';
-export const supabase = createClient(supabaseUrl, supabaseKey);
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables');
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export default supabase;

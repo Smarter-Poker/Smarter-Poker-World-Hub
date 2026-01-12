@@ -6,6 +6,37 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 🚪 GATEWAY NODES (PUBLIC FACING)
+// ─────────────────────────────────────────────────────────────────────────────
+export const GATEWAY_NODES = {
+    landingPage: {
+        path: 'pages/index.js',
+        type: 'gateway',
+        description: 'Marketing Landing Page — Video game aesthetic, Orange Ball accents',
+        features: ['Hero Section', 'Orb Study Previews', 'Diamond Multiplier Preview', 'Stats Bar'],
+    },
+    signIn: {
+        path: 'pages/auth/signin.js',
+        type: 'gateway',
+        description: 'Sign-In Access Node — Phone OTP via Supabase + Twilio',
+        redirectTo: '/hub',
+    },
+    signUp: {
+        path: 'pages/auth/signup.js',
+        type: 'gateway',
+        description: 'Sign-Up Registration Node — Profile initialization (XP=0, Multiplier=1x)',
+        redirectTo: '/hub',
+        initializesProfile: true,
+    },
+    callback: {
+        path: 'pages/auth/callback.js',
+        type: 'gateway',
+        description: 'OAuth Callback Handler',
+        redirectTo: '/hub',
+    },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 🧠 CORE ENGINE SYSTEMS
 // ─────────────────────────────────────────────────────────────────────────────
 export const MASTER_REGISTRY = {
@@ -35,11 +66,23 @@ export const MASTER_REGISTRY = {
         description: 'Status indicators, orb navigator, and instructions',
     },
 
-    // Orb Manifest — Registry of all 11 orbs
+    // Orb Manifest — Registry of all 10 orbs (Marketplace removed)
     orbManifest: {
         path: 'src/orbs/manifest/registry.ts',
         type: 'core',
-        description: '11-orb configuration with colors, labels, and images',
+        description: '10-orb configuration with colors, labels, and images',
+        orbs: [
+            'social-media',
+            'club-arena',
+            'diamond-arena',
+            'training',
+            'memory-games',
+            'personal-assistant',
+            'diamond-arcade',
+            'bankroll-manager',
+            'poker-near-me',
+            'trivia',
+        ],
     },
 };
 
@@ -62,10 +105,10 @@ export const UI_COMPONENTS = {
     streakPopup: 'src/world/components/StreakPopup.tsx',
     globalSearch: 'src/world/components/GlobalSearch.tsx',
     profileDropdown: 'src/world/components/ProfileDropdown.tsx',
-    onboardingOverlay: 'src/world/components/OnboardingOverlay.tsx',
     liveHelpOrb: 'src/world/components/LiveHelpOrb.tsx',
     liveHelpPanel: 'src/world/components/LiveHelp/',
     neuronLights: 'src/world/components/NeuronLights.tsx',
+    settingsOrb: 'src/world/components/SettingsOrb.tsx',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,6 +120,22 @@ export const STATE_STORES = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 🔐 AUTHENTICATION & SERVICES
+// ─────────────────────────────────────────────────────────────────────────────
+export const SERVICES = {
+    supabaseClient: 'src/lib/supabase.ts',
+    authMethod: 'Phone OTP via Twilio',
+    profileTable: 'profiles',
+    profileInitialization: {
+        xp_total: 0,
+        diamonds: 0,
+        diamond_multiplier: 1.0,
+        streak_days: 0,
+        skill_tier: 'Newcomer',
+    },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 🃏 CARD ASSETS (public/cards)
 // ─────────────────────────────────────────────────────────────────────────────
 export const CARD_ASSETS = [
@@ -84,7 +143,6 @@ export const CARD_ASSETS = [
     'club-arena.jpg',
     'diamond-arcade.jpg',
     'diamond-arena.jpg',
-    'marketplace-settings.jpg',
     'memory-games.jpg',
     'personal-assistant.jpg',
     'poker-near-me.jpg',
@@ -97,10 +155,14 @@ export const CARD_ASSETS = [
 // 📄 NEXT.JS PAGES
 // ─────────────────────────────────────────────────────────────────────────────
 export const PAGES = {
-    root: 'pages/index.js',
+    // Gateway
+    landing: 'pages/index.js',
+    signIn: 'pages/auth/signin.js',
+    signUp: 'pages/auth/signup.js',
+    callback: 'pages/auth/callback.js',
+    // Core
     hub: 'pages/hub/index.js',
-    login: 'pages/auth/login.js',
-    callback: 'pages/auth/callback.ts',
+    // Framework
     app: 'pages/_app.js',
 };
 
@@ -113,9 +175,11 @@ export const BUILD_CONFIG = {
     deployment: 'Vercel',
     projectRef: 'hub-vanguard',
     supabaseRef: 'kuklfnapbkmacvwxktbh',
+    domain: 'smarter.poker',
 };
 
 console.log('📋 Vanguard Silver Master Registry Loaded');
+console.log(`   ${Object.keys(GATEWAY_NODES).length} Gateway Nodes`);
 console.log(`   ${Object.keys(MASTER_REGISTRY).length} Core Systems`);
 console.log(`   ${Object.keys(WORLD_COMPONENTS).length} World Components`);
 console.log(`   ${Object.keys(UI_COMPONENTS).length} UI Components`);
