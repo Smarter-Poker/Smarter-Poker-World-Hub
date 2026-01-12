@@ -390,30 +390,73 @@ function GamingSection() {
             <h1 style={styles.title}>Gaming & Fair Play Policy</h1>
             <p style={styles.intro}>
                 Smarter.Poker is committed to providing a fair, educational, and enjoyable experience for all users.
+                This policy outlines our "Skill-Access, Prize-Lock" dual infrastructure for compliance across all jurisdictions.
             </p>
 
-            <h2 style={styles.heading}>1. Educational Purpose</h2>
+            <h2 style={styles.heading}>1. Educational Purpose & Platform Nature</h2>
             <p style={styles.paragraph}>
-                Smarter.Poker is an <strong>educational poker training platform</strong>. All games, challenges, and
-                competitions on the Platform are for entertainment and educational purposes only. No real money is
-                wagered, and no real money can be won or lost through the Platform.
+                Smarter.Poker is an <strong>educational poker training platform</strong> (also known as a "Social Casino"
+                for entertainment and skill development). All games, challenges, and competitions on the Platform are
+                for entertainment and educational purposes only. No real money is wagered, and no real money can be
+                won or lost through the Platform.
+            </p>
+            <p style={styles.paragraph}>
+                <strong>Train from anywhere. Win prizes where legal.</strong> Users in all 50 states can sign up
+                and access our training, social, and AI-powered coaching features. Real-world prize redemptions
+                are strictly limited to eligible jurisdictions.
             </p>
 
-            <h2 style={styles.heading}>2. Virtual Currency Policy</h2>
+            <h2 style={styles.heading}>2. Tiered Access System</h2>
+            <p style={styles.paragraph}>
+                Smarter.Poker operates a <strong>"Skill-Access, Prize-Lock"</strong> infrastructure. Users in
+                certain states have restricted access to prize redemption features while maintaining full access
+                to all training and social features.
+            </p>
+
+            <h3 style={styles.subheading}>Full Access States</h3>
+            <p style={styles.paragraph}>
+                Users in unrestricted states have complete access to all Platform features, including:
+            </p>
+            <ul style={styles.list}>
+                <li><strong>PokerIQ Hub:</strong> Full access with training and rewards</li>
+                <li><strong>GTO Training:</strong> Skill development with Diamond rewards</li>
+                <li><strong>Social Media:</strong> Full integration, posting, and sharing</li>
+                <li><strong>Diamond Arena:</strong> Prize redemptions enabled</li>
+                <li><strong>Cash Out Prizes:</strong> Eligible for prizes up to $1,100 per redemption</li>
+            </ul>
+
+            <h3 style={styles.subheading}>Restricted States (WA, ID, MI, NV, CA)</h3>
+            <p style={styles.paragraph}>
+                Users in Washington, Idaho, Michigan, Nevada, and California maintain full access to training
+                and social features but are restricted from prize redemption:
+            </p>
+            <ul style={styles.list}>
+                <li><strong>PokerIQ Hub:</strong> ✅ ENABLED (Training/Study only)</li>
+                <li><strong>GTO Training:</strong> ✅ ENABLED (Skill development)</li>
+                <li><strong>Social Media:</strong> ✅ ENABLED (Posting/Sharing)</li>
+                <li><strong>Diamond Arena:</strong> ❌ DISABLED (No prize entry)</li>
+                <li><strong>Cash Out Prizes:</strong> ❌ BLOCKED (Physical Lock)</li>
+            </ul>
+            <p style={styles.paragraph}>
+                <em>Diamond Redemptions are not available in your region if you reside in a restricted state.
+                    Your Diamonds remain active for in-world upgrades, leaderboard standing, and platform enhancements.</em>
+            </p>
+
+            <h2 style={styles.heading}>3. Virtual Currency Policy</h2>
             <p style={styles.paragraph}>
                 <strong>Diamonds</strong> are virtual tokens used within the Platform. They:
             </p>
             <ul style={styles.list}>
                 <li>Have no direct cash value and cannot be exchanged for cash</li>
                 <li>Can be transferred between accounts with other users</li>
-                <li>Can be redeemed in the Diamond Store for real-world prizes and rewards</li>
+                <li>Can be redeemed in the Diamond Store for real-world prizes and rewards (where eligible)</li>
                 <li>Are subject to expiration as outlined in specific promotions</li>
                 <li>May be forfeited upon account termination for Terms violations</li>
             </ul>
 
             <h3 style={styles.subheading}>Diamond Store Redemptions</h3>
             <p style={styles.paragraph}>
-                Diamonds can be redeemed in our Diamond Store for a variety of rewards, including:
+                In eligible jurisdictions, Diamonds can be redeemed in our Diamond Store for a variety of rewards, including:
             </p>
             <ul style={styles.list}>
                 <li><strong>Merchandise:</strong> Official Smarter.Poker branded apparel and accessories</li>
@@ -423,9 +466,29 @@ function GamingSection() {
             </ul>
             <p style={styles.paragraph}>
                 Redemption options and Diamond values are subject to change. All redemptions are final and non-refundable.
+                <strong> Redemptions are VOID in WA, ID, MI, NV, and CA.</strong>
             </p>
 
-            <h2 style={styles.heading}>3. Fair Play Requirements</h2>
+            <h2 style={styles.heading}>4. No Purchase Necessary (AMOE)</h2>
+            <div style={styles.consentBox}>
+                <h3 style={styles.consentTitle}>⚖️ Alternative Method of Entry</h3>
+                <p style={styles.consentText}>
+                    <strong>NO PURCHASE NECESSARY.</strong> A purchase of upgrades, premium features, or any
+                    in-app items will NOT improve your chances of winning prizes or receiving rewards.
+                </p>
+                <ul style={styles.consentList}>
+                    <li>Daily login streaks generate "Entry Diamonds" for all eligible users</li>
+                    <li>Completing training modules and social tasks earns Diamonds at no cost</li>
+                    <li>XP progression is based solely on skill and activity, not purchases</li>
+                    <li>Leaderboard rankings are determined by performance, not spending</li>
+                </ul>
+                <p style={styles.consentText}>
+                    Free methods of earning Diamonds are always available to all users. Premium purchases
+                    enhance your experience but do not provide competitive advantages in prize eligibility.
+                </p>
+            </div>
+
+            <h2 style={styles.heading}>5. Fair Play Requirements</h2>
             <p style={styles.paragraph}>
                 All users must adhere to fair play standards:
             </p>
@@ -436,7 +499,7 @@ function GamingSection() {
                 <li><strong>No Exploitation:</strong> Exploiting bugs or glitches for advantage is prohibited</li>
             </ul>
 
-            <h2 style={styles.heading}>4. Leaderboard Integrity</h2>
+            <h2 style={styles.heading}>6. Leaderboard Integrity</h2>
             <p style={styles.paragraph}>
                 We actively monitor leaderboards and competitive features for suspicious activity. Violations may result in:
             </p>
@@ -446,7 +509,7 @@ function GamingSection() {
                 <li>Temporary or permanent account suspension</li>
             </ul>
 
-            <h2 style={styles.heading}>5. Responsible Gaming</h2>
+            <h2 style={styles.heading}>7. Responsible Gaming</h2>
             <p style={styles.paragraph}>
                 While Smarter.Poker does not involve real-money gambling, we encourage responsible use of the Platform:
             </p>
@@ -457,13 +520,23 @@ function GamingSection() {
                 <li>Seek help if you feel your gaming habits are becoming problematic</li>
             </ul>
 
-            <h2 style={styles.heading}>6. Age Restriction</h2>
+            <h2 style={styles.heading}>8. Age Restriction</h2>
             <p style={styles.paragraph}>
                 You must be at least <strong>18 years of age</strong> to use Smarter.Poker. We reserve the right to
                 verify your age and may terminate accounts of users who do not meet this requirement.
             </p>
 
-            <h2 style={styles.heading}>7. Reporting Violations</h2>
+            <h2 style={styles.heading}>9. Legal Compliance</h2>
+            <p style={styles.paragraph}>
+                This tiered access structure ensures compliance with state-specific regulations:
+            </p>
+            <ul style={styles.list}>
+                <li><strong>Entertainment Shield:</strong> Training and social features operate as a Social Casino platform, legal in all states</li>
+                <li><strong>Redemption Guard:</strong> Prize redemptions are only enabled in jurisdictions where such activities are permitted</li>
+                <li><strong>Skill-Based Classification:</strong> Smarter.Poker operates as a skill-based training platform with an optional promotional rewards layer for eligible users</li>
+            </ul>
+
+            <h2 style={styles.heading}>10. Reporting Violations</h2>
             <p style={styles.paragraph}>
                 If you witness or suspect any violations of this policy, please report them to{' '}
                 <a href="mailto:support@smarter.poker" style={styles.link}>support@smarter.poker</a>
