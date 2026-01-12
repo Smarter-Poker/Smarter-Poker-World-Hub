@@ -19,6 +19,12 @@ const US_STATES = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 🚫 RESTRICTED STATES — Diamond Arena Prize Redemptions BLOCKED
+// Per 2026 AB 831 Standard & State-Specific Regulations
+// ─────────────────────────────────────────────────────────────────────────────
+const RESTRICTED_STATES = ['WA', 'ID', 'MI', 'NV', 'CA'];
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 📝 SIGN UP PAGE — SIMPLIFIED EMAIL/PASSWORD FLOW
 // ─────────────────────────────────────────────────────────────────────────────
 export default function SignUpPage() {
@@ -46,6 +52,12 @@ export default function SignUpPage() {
     const [aliasChecking, setAliasChecking] = useState(false);
     const [aliasAvailable, setAliasAvailable] = useState(null);
     const [glowPulse, setGlowPulse] = useState(0);
+
+    // 18+ Age Verification (2026 AB 831 Compliance)
+    const [ageConfirmed, setAgeConfirmed] = useState(false);
+
+    // Check if selected state is restricted
+    const isRestrictedState = RESTRICTED_STATES.includes(formData.state);
 
     // Player number assigned after successful registration
     const [assignedPlayerNumber, setAssignedPlayerNumber] = useState(null);
@@ -148,6 +160,12 @@ export default function SignUpPage() {
             return;
         }
 
+        // 18+ Age Verification Check
+        if (!ageConfirmed) {
+            setError('You must confirm you are 18+ years of age');
+            return;
+        }
+
         const cleanPhone = formData.phone.replace(/\D/g, '');
         if (cleanPhone.length !== 10) {
             setError('Please enter a valid 10-digit phone number');
@@ -220,6 +238,8 @@ export default function SignUpPage() {
                             diamond_multiplier: 1.0,
                             streak_days: 0,
                             skill_tier: 'Newcomer',
+                            // Restricted Tier flagging for WA, ID, MI, NV, CA
+                            access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
                             created_at: new Date().toISOString(),
                             last_login: new Date().toISOString(),
                         }, {
@@ -446,13 +466,44 @@ export default function SignUpPage() {
                                 </div>
                             </div>
 
+                            {/* RESTRICTED STATE NOTICE */}
+                            {isRestrictedState && (
+                                <div style={styles.restrictedNotice}>
+                                    <span style={styles.restrictedIcon}>⚠️</span>
+                                    <div>
+                                        <strong style={styles.restrictedTitle}>Restricted State Notice</strong>
+                                        <p style={styles.restrictedText}>
+                                            Residents of {formData.state} have full access to Training, Social, and Hub features.
+                                            Diamond Arena prize redemptions are not available in your state.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 18+ AGE VERIFICATION CHECKBOX */}
+                            <div style={styles.ageCheckbox}>
+                                <label style={styles.ageLabel}>
+                                    <input
+                                        type="checkbox"
+                                        checked={ageConfirmed}
+                                        onChange={(e) => setAgeConfirmed(e.target.checked)}
+                                        style={styles.checkbox}
+                                        required
+                                    />
+                                    <span style={styles.ageLabelText}>
+                                        I confirm that I am <strong>18 years of age or older</strong> and agree
+                                        to the platform's terms.
+                                    </span>
+                                </label>
+                            </div>
+
                             <button
                                 type="submit"
                                 style={{
                                     ...styles.submitButton,
-                                    opacity: loading || aliasAvailable === false ? 0.7 : 1,
+                                    opacity: loading || aliasAvailable === false || !ageConfirmed ? 0.7 : 1,
                                 }}
-                                disabled={loading || aliasAvailable === false}
+                                disabled={loading || aliasAvailable === false || !ageConfirmed}
                             >
                                 {loading ? 'Creating Account...' : 'Create Account'}
                             </button>
@@ -882,5 +933,56 @@ const styles = {
         fontSize: '13px',
         fontWeight: 600,
         color: '#ffffff',
+    },
+    // ─────────────────────────────────────────────────────────────────────────
+    // RESTRICTED STATE NOTICE STYLES
+    // ─────────────────────────────────────────────────────────────────────────
+    restrictedNotice: {
+        display: 'flex',
+        gap: '12px',
+        padding: '16px',
+        background: 'rgba(255, 200, 0, 0.1)',
+        border: '1px solid rgba(255, 200, 0, 0.3)',
+        borderRadius: '12px',
+        marginTop: '8px',
+    },
+    restrictedIcon: {
+        fontSize: '20px',
+    },
+    restrictedTitle: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: '12px',
+        fontWeight: 600,
+        color: '#ffc800',
+        marginBottom: '4px',
+    },
+    restrictedText: {
+        fontSize: '12px',
+        lineHeight: 1.5,
+        color: 'rgba(255, 255, 255, 0.7)',
+        margin: 0,
+    },
+    // ─────────────────────────────────────────────────────────────────────────
+    // 18+ AGE VERIFICATION STYLES
+    // ─────────────────────────────────────────────────────────────────────────
+    ageCheckbox: {
+        marginTop: '8px',
+    },
+    ageLabel: {
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '12px',
+        cursor: 'pointer',
+    },
+    checkbox: {
+        width: '18px',
+        height: '18px',
+        marginTop: '2px',
+        accentColor: '#00D4FF',
+    },
+    ageLabelText: {
+        fontSize: '12px',
+        lineHeight: 1.5,
+        color: 'rgba(255, 255, 255, 0.7)',
     },
 };

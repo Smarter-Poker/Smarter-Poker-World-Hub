@@ -2,7 +2,7 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/terms": "pages/terms.js",
   "/auth/signin": "pages/auth/signin.js",
+  "/terms": "pages/terms.js",
   "/auth/signup": "pages/auth/signup.js"
 }

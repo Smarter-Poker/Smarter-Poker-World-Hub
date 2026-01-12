@@ -92,6 +92,37 @@ export default function OfficialRules() {
                                 advanced analytics, and additional training content.
                             </p>
 
+                            {/* MAIL-IN AMOE SECTION */}
+                            <div style={styles.mailInBox}>
+                                <h3 style={styles.mailInTitle}>📬 Mail-In Entry (AMOE)</h3>
+                                <p style={styles.paragraph}>
+                                    To receive free Entry Diamonds without using the platform, send a handwritten
+                                    request containing your full name, email address, and mailing address to:
+                                </p>
+                                <div style={styles.addressBlock}>
+                                    <strong>Smarter.Poker AMOE Entry</strong><br />
+                                    P.O. Box 12345<br />
+                                    Chicago, IL 60601<br />
+                                    United States
+                                </div>
+                                <p style={styles.paragraph}>
+                                    <strong>Requirements:</strong>
+                                </p>
+                                <ul style={styles.list}>
+                                    <li>One entry request per stamped outer envelope</li>
+                                    <li>Must be handwritten (no photocopies or mechanical reproductions)</li>
+                                    <li>Include your full legal name, email address, and state of residence</li>
+                                    <li>Entry requests must be received within the promotional period</li>
+                                    <li>Each valid mail-in entry receives <strong>500 Entry Diamonds</strong></li>
+                                    <li>Limit: 5 mail-in entries per household per month</li>
+                                </ul>
+                                <p style={styles.paragraph}>
+                                    <em>Mail-in entries have the same value as Diamonds earned through platform activity.
+                                        This alternative method of entry ensures compliance with sweepstakes regulations
+                                        in all 50 states.</em>
+                                </p>
+                            </div>
+
                             <h2 style={styles.heading}>4. Diamond Arena - Tiered Access</h2>
 
                             <h3 style={styles.subheading}>Full Access (Eligible States)</h3>
@@ -455,5 +486,31 @@ const styles = {
     contact: {
         fontSize: '14px',
         color: 'rgba(255,255,255,0.6)',
+    },
+    // MAIL-IN AMOE STYLES
+    mailInBox: {
+        marginTop: '24px',
+        marginBottom: '24px',
+        padding: '24px',
+        background: 'rgba(0, 255, 102, 0.05)',
+        border: '1px solid rgba(0, 255, 102, 0.3)',
+        borderRadius: '12px',
+    },
+    mailInTitle: {
+        fontSize: '16px',
+        fontWeight: '600',
+        color: '#00ff66',
+        marginBottom: '12px',
+    },
+    addressBlock: {
+        padding: '16px',
+        background: 'rgba(0, 0, 0, 0.3)',
+        border: '1px solid rgba(0, 212, 255, 0.2)',
+        borderRadius: '8px',
+        marginBottom: '16px',
+        fontFamily: 'monospace',
+        fontSize: '14px',
+        lineHeight: '1.8',
+        color: 'rgba(255, 255, 255, 0.9)',
     },
 };
