@@ -96,8 +96,8 @@ export default function OfficialRules() {
                             <div style={styles.mailInBox}>
                                 <h3 style={styles.mailInTitle}>📬 Mail-In Entry (AMOE)</h3>
                                 <p style={styles.paragraph}>
-                                    To receive free Entry Diamonds without using the platform, send a handwritten
-                                    request containing your full name, email address, and mailing address to:
+                                    To receive free Entry Diamonds without using the platform, mail a handwritten
+                                    3×5 index card to the address below:
                                 </p>
                                 <div style={styles.addressBlock}>
                                     <strong>Smarter.Poker AMOE Entry</strong><br />
@@ -106,16 +106,21 @@ export default function OfficialRules() {
                                     United States
                                 </div>
                                 <p style={styles.paragraph}>
-                                    <strong>Requirements:</strong>
+                                    <strong>Physical Standards:</strong>
                                 </p>
                                 <ul style={styles.list}>
-                                    <li>One entry request per stamped outer envelope</li>
-                                    <li>Must be handwritten (no photocopies or mechanical reproductions)</li>
-                                    <li>Include your full legal name, email address, and state of residence</li>
-                                    <li>Entry requests must be received within the promotional period</li>
-                                    <li>Each valid mail-in entry receives <strong>500 Entry Diamonds</strong></li>
-                                    <li>Limit: 5 mail-in entries per household per month</li>
+                                    <li>Must be a <strong>handwritten 3×5 index card</strong></li>
+                                    <li>Include: Your <strong>Full Legal Name</strong>, <strong>Email Address</strong>, and <strong>State of Residence</strong></li>
+                                    <li>Place the card in a <strong>hand-addressed #10 envelope</strong> with a <strong>First-Class stamp</strong></li>
+                                    <li>No photocopies, mechanical reproductions, or printed labels allowed</li>
                                 </ul>
+                                <p style={styles.paragraph}>
+                                    <strong>Entry Limit:</strong> <strong>ONE (1)</strong> mail-in request per person per week.
+                                </p>
+                                <p style={styles.paragraph}>
+                                    <strong>Reward:</strong> Each valid mail-in entry receives <strong>500 Entry Diamonds</strong> —
+                                    equivalent to the maximum a player can earn in a day through free platform activity.
+                                </p>
                                 <p style={styles.paragraph}>
                                     <em>Mail-in entries have the same value as Diamonds earned through platform activity.
                                         This alternative method of entry ensures compliance with sweepstakes regulations
