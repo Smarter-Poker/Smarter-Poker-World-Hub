@@ -662,6 +662,274 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 🧩 PATTERN RECOGNITION GAME COMPONENT
+// Identify the pattern - what action does this range shape represent?
+// ═══════════════════════════════════════════════════════════════════════════
+function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
+    const [gameState, setGameState] = useState('ready'); // ready | playing | revealed | gameover
+    const [currentPattern, setCurrentPattern] = useState(null);
+    const [score, setScore] = useState(0);
+    const [streak, setStreak] = useState(0);
+    const [round, setRound] = useState(0);
+    const [maxRounds] = useState(8);
+    const [userAnswer, setUserAnswer] = useState(null);
+    const [correctAnswers, setCorrectAnswers] = useState(0);
+
+    // Generate a partial range pattern from a scenario
+    const generatePattern = useCallback(() => {
+        const scenario = getRandomScenario(level);
+        if (!scenario) return null;
+
+        // Get hands from solution
+        const solution = scenario.solution || {};
+        const hands = Object.keys(solution);
+
+        // Show 70% of the hands (randomly selected)
+        const visibleCount = Math.floor(hands.length * 0.7);
+        const shuffled = hands.sort(() => Math.random() - 0.5);
+        const visibleHands = shuffled.slice(0, visibleCount);
+
+        // Determine the dominant action
+        const actionCounts = { raise: 0, call: 0, fold: 0 };
+        Object.values(solution).forEach(action => {
+            if (actionCounts[action] !== undefined) actionCounts[action]++;
+        });
+        const dominantAction = Object.entries(actionCounts).sort((a, b) => b[1] - a[1])[0][0];
+
+        return {
+            scenario,
+            visibleHands,
+            allHands: hands,
+            solution,
+            correctAnswer: dominantAction,
+            actionCounts,
+        };
+    }, [level]);
+
+    const startGame = useCallback(() => {
+        const pattern = generatePattern();
+        if (!pattern) return;
+        setCurrentPattern(pattern);
+        setGameState('playing');
+        setScore(0);
+        setStreak(0);
+        setRound(1);
+        setCorrectAnswers(0);
+        setUserAnswer(null);
+        SoundEngine.play('levelUp');
+    }, [generatePattern]);
+
+    const nextRound = useCallback(() => {
+        if (round >= maxRounds) {
+            setGameState('gameover');
+            const diamondReward = correctAnswers * 2 + Math.floor(score / 100);
+            if (DiamondEngine && diamondReward > 0) {
+                const newBalance = DiamondEngine.award(diamondReward);
+                onScoreUpdate?.(newBalance);
+            }
+            return;
+        }
+        const pattern = generatePattern();
+        if (!pattern) return;
+        setCurrentPattern(pattern);
+        setGameState('playing');
+        setRound(prev => prev + 1);
+        setUserAnswer(null);
+    }, [round, maxRounds, generatePattern, correctAnswers, score, DiamondEngine, onScoreUpdate]);
+
+    const handleAnswer = useCallback((action) => {
+        if (gameState !== 'playing' || !currentPattern) return;
+        setUserAnswer(action);
+
+        const isCorrect = action === currentPattern.correctAnswer;
+
+        if (isCorrect) {
+            setScore(prev => prev + 100 + (streak * 25));
+            setStreak(prev => prev + 1);
+            setCorrectAnswers(prev => prev + 1);
+            SoundEngine.play('correct');
+        } else {
+            setStreak(0);
+            SoundEngine.play('wrong');
+        }
+
+        setGameState('revealed');
+
+        setTimeout(() => {
+            nextRound();
+        }, 1200);
+    }, [gameState, currentPattern, streak, nextRound]);
+
+    // Keyboard
+    useEffect(() => {
+        const handleKey = (e) => {
+            if ((gameState === 'ready' || gameState === 'gameover') && (e.key === ' ' || e.key === 'Enter')) {
+                if (gameState === 'ready') startGame();
+                else onExit?.();
+            } else if (gameState === 'playing') {
+                if (e.key === '1') handleAnswer('fold');
+                else if (e.key === '2') handleAnswer('call');
+                else if (e.key === '3') handleAnswer('raise');
+            }
+        };
+        window.addEventListener('keydown', handleKey);
+        return () => window.removeEventListener('keydown', handleKey);
+    }, [gameState, handleAnswer, startGame, onExit]);
+
+    // Build mini grid
+    const renderMiniGrid = () => {
+        if (!currentPattern) return null;
+        const { visibleHands, solution } = currentPattern;
+
+        return (
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(13, 1fr)',
+                gap: 2,
+                width: 350,
+                margin: '0 auto 24px',
+                background: 'rgba(0,0,0,0.4)',
+                padding: 8,
+                borderRadius: 12,
+            }}>
+                {RANKS.map((r1, i) =>
+                    RANKS.map((r2, j) => {
+                        const hand = i < j ? `${r1}${r2}s` : i > j ? `${r2}${r1}o` : `${r1}${r2}`;
+                        const isVisible = visibleHands.includes(hand);
+                        const action = solution[hand];
+                        const color = action === 'raise' ? '#EF4444' : action === 'call' ? '#10B981' : 'rgba(100,100,100,0.3)';
+
+                        return (
+                            <div
+                                key={hand}
+                                style={{
+                                    width: 24,
+                                    height: 24,
+                                    background: isVisible ? color : 'rgba(255,255,255,0.05)',
+                                    borderRadius: 3,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 8,
+                                    color: isVisible ? '#fff' : 'rgba(255,255,255,0.2)',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                {isVisible ? hand.substring(0, 2) : '?'}
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+        );
+    };
+
+    return (
+        <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <button onClick={onExit} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>
+                    ← Exit
+                </button>
+                <div style={{ fontFamily: 'Orbitron', fontSize: 28, fontWeight: 900, color: '#FFD700' }}>
+                    {score.toLocaleString()}
+                </div>
+                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
+                    {round}/{maxRounds}
+                </div>
+            </div>
+
+            {gameState === 'ready' && (
+                <div style={{ marginTop: 60 }}>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>🧩</div>
+                    <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, color: '#00D4FF', marginBottom: 16 }}>PATTERN RECOGNITION</h1>
+                    <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
+                        See a partial range → Identify the dominant action!<br />
+                        Is this a RAISING range, CALLING range, or FOLDING range?<br />
+                        8 patterns. Test your GTO intuition!
+                    </p>
+                    <button onClick={startGame} style={{ padding: '16px 48px', fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #00D4FF, #0088ff)', color: '#fff', border: 'none', borderRadius: 50, cursor: 'pointer' }}>
+                        START [SPACE]
+                    </button>
+                </div>
+            )}
+
+            {(gameState === 'playing' || gameState === 'revealed') && currentPattern && (
+                <>
+                    {/* Scenario context */}
+                    <div style={{ fontSize: 16, color: '#00D4FF', marginBottom: 12, fontWeight: 600 }}>
+                        {currentPattern.scenario.title}
+                    </div>
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>
+                        What action does this range primarily represent?
+                    </div>
+
+                    {/* Mini grid */}
+                    {renderMiniGrid()}
+
+                    {/* Feedback */}
+                    {gameState === 'revealed' && (
+                        <div style={{
+                            fontSize: 18,
+                            fontWeight: 700,
+                            color: userAnswer === currentPattern.correctAnswer ? '#00ff88' : '#ff4444',
+                            marginBottom: 16
+                        }}>
+                            {userAnswer === currentPattern.correctAnswer
+                                ? `✓ Correct! This is a ${currentPattern.correctAnswer.toUpperCase()} range`
+                                : `✗ Wrong! This is a ${currentPattern.correctAnswer.toUpperCase()} range`}
+                        </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+                        <button onClick={() => handleAnswer('fold')} disabled={gameState !== 'playing'} style={{ padding: '16px 32px', fontSize: 16, fontWeight: 700, background: 'rgba(100,100,100,0.3)', border: '2px solid #666', borderRadius: 12, color: '#fff', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative' }}>
+                            <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)' }}>1</span>
+                            FOLD Range
+                        </button>
+                        <button onClick={() => handleAnswer('call')} disabled={gameState !== 'playing'} style={{ padding: '16px 32px', fontSize: 16, fontWeight: 700, background: 'rgba(16,185,129,0.3)', border: '2px solid #10B981', borderRadius: 12, color: '#10B981', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative' }}>
+                            <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>2</span>
+                            CALL Range
+                        </button>
+                        <button onClick={() => handleAnswer('raise')} disabled={gameState !== 'playing'} style={{ padding: '16px 32px', fontSize: 16, fontWeight: 700, background: 'rgba(239,68,68,0.3)', border: '2px solid #EF4444', borderRadius: 12, color: '#EF4444', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative' }}>
+                            <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>3</span>
+                            RAISE Range
+                        </button>
+                    </div>
+                </>
+            )}
+
+            {gameState === 'gameover' && (
+                <div style={{ marginTop: 40 }}>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>{correctAnswers >= 6 ? '🏆' : '📊'}</div>
+                    <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, color: correctAnswers >= 6 ? '#00ff88' : '#ffaa00', marginBottom: 30 }}>
+                        {correctAnswers >= 6 ? 'EXPERT PATTERN READER!' : 'KEEP STUDYING!'}
+                    </h1>
+                    <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 24, marginBottom: 30 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}>
+                            <span>Accuracy</span>
+                            <span style={{ color: correctAnswers >= 6 ? '#00ff88' : '#ffaa00' }}>{correctAnswers}/{maxRounds} ({Math.round((correctAnswers / maxRounds) * 100)}%)</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}>
+                            <span>Score</span>
+                            <span style={{ fontFamily: 'Orbitron', fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</span>
+                        </div>
+                        {(correctAnswers * 2 + Math.floor(score / 100)) > 0 && (
+                            <div style={{ marginTop: 16, padding: 12, background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,212,255,0.15))', borderRadius: 12, color: '#00ff88', fontWeight: 700 }}>
+                                💎 +{correctAnswers * 2 + Math.floor(score / 100)} Diamonds earned!
+                            </div>
+                        )}
+                    </div>
+                    <button onClick={onExit} style={{ padding: '14px 40px', fontSize: 16, fontWeight: 600, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 30, color: '#fff', cursor: 'pointer' }}>
+                        BACK TO MENU [SPACE]
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 🎮 MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 export default function MemoryGamesPage() {
@@ -1028,6 +1296,15 @@ export default function MemoryGamesPage() {
                                 >
                                     🔥 Pressure
                                 </button>
+                                <button
+                                    onClick={() => setGameType('pattern')}
+                                    style={{
+                                        ...styles.gameModeTab,
+                                        ...(gameType === 'pattern' ? styles.gameModeTabActive : {}),
+                                    }}
+                                >
+                                    🧩 Pattern
+                                </button>
                             </div>
 
                             {/* Speed Drill Mode */}
@@ -1094,6 +1371,44 @@ export default function MemoryGamesPage() {
                                         }}
                                     >
                                         START PRESSURE COOKER
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Pattern Recognition Mode */}
+                            {gameType === 'pattern' && (
+                                <div style={{
+                                    ...styles.speedDrillCard,
+                                    background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 136, 255, 0.1))',
+                                    border: '2px solid rgba(0, 212, 255, 0.3)',
+                                }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🧩</div>
+                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#00D4FF', marginBottom: 8 }}>
+                                        PATTERN RECOGNITION
+                                    </h2>
+                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
+                                        See a partial range → Identify the dominant action!<br />
+                                        Is it a RAISING, CALLING, or FOLDING range?<br />
+                                        Train your GTO intuition across 8 patterns.
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            if (!isVIP) {
+                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                if (!result.success) {
+                                                    alert(`Not enough diamonds!`);
+                                                    return;
+                                                }
+                                                setDiamondBalance(result.balance);
+                                            }
+                                            setMode('pattern-recognition');
+                                        }}
+                                        style={{
+                                            ...styles.speedDrillButton,
+                                            background: 'linear-gradient(135deg, #00D4FF, #0088ff)',
+                                        }}
+                                    >
+                                        START PATTERN RECOGNITION
                                     </button>
                                 </div>
                             )}
@@ -1175,6 +1490,16 @@ export default function MemoryGamesPage() {
                     {/* Pressure Cooker Mode - Full Implementation */}
                     {mode === 'pressure-cooker' && (
                         <PressureCookerGame
+                            level={currentLevel}
+                            onExit={() => setMode('menu')}
+                            onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
+                            DiamondEngine={DiamondEngine}
+                        />
+                    )}
+
+                    {/* Pattern Recognition Mode - Full Implementation */}
+                    {mode === 'pattern-recognition' && (
+                        <PatternRecognitionGame
                             level={currentLevel}
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}

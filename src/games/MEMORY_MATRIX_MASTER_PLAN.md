@@ -169,15 +169,15 @@ Tables:
 **Goal**: All 7 game modes functional with placeholder data
 
 ### Tasks:
-- [ ] 1.1 Refactor Range Memory with pressure timer
-- [ ] 1.2 Add screen shake + particle effects
-- [ ] 1.3 Implement combo/streak system
-- [ ] 1.4 Build Speed Drill game mode
-- [ ] 1.5 Build Pressure Cooker game mode
+- [x] 1.1 Refactor Range Memory with pressure timer ✅
+- [x] 1.2 Add screen shake + particle effects ✅
+- [x] 1.3 Implement combo/streak system ✅
+- [x] 1.4 Build Speed Drill game mode ✅
+- [x] 1.5 Build Pressure Cooker game mode ✅
 - [ ] 1.6 Build Pattern Recognition game mode
 - [ ] 1.7 Build Mixed Strategy Trainer
-- [ ] 1.8 Create 10-level progression UI
-- [ ] 1.9 Implement 85% gate logic
+- [x] 1.8 Create 10-level progression UI ✅
+- [x] 1.9 Implement 85% gate logic ✅
 - [ ] 1.10 Add audio engine (Howler.js)
 
 ## PHASE 2: Diamond Economy Integration (Week 2)

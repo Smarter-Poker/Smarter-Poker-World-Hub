@@ -5,8 +5,8 @@
   "devFiles": [],
   "ampDevFiles": [],
   "lowPriorityFiles": [
-    "static/Yg74Wp0FgyObIZjw5bUk2/_buildManifest.js",
-    "static/Yg74Wp0FgyObIZjw5bUk2/_ssgManifest.js"
+    "static/E3uiQ7WR-QABPVEXOsOpO/_buildManifest.js",
+    "static/E3uiQ7WR-QABPVEXOsOpO/_ssgManifest.js"
   ],
   "rootMainFiles": [],
   "pages": {
@@ -102,7 +102,7 @@
       "static/chunks/main-48a2be0192cdda09.js",
       "static/chunks/632-2e60a917c599ac19.js",
       "static/chunks/822-539eea3892b9a4b8.js",
-      "static/chunks/pages/hub/memory-games-0e99becf374e8127.js"
+      "static/chunks/pages/hub/memory-games-46d285fcc15bbc92.js"
     ],
     "/hub/settings": [
       "static/chunks/webpack-24825db8d3e9852c.js",
