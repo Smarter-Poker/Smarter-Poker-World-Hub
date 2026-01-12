@@ -512,256 +512,258 @@ export default function MemoryGamesPage() {
 
                             {/* Level Grid - Only show for Range Memory */}
                             {gameType === 'range' && (
-                                <div style={styles.levelGrid}>
-                                    {LEVELS.map((level, idx) => {
-                                        const scenarioCount = getLevelScenarios(level.level);
-                                        const levelConfig = getLevelConfig(level.level);
-                                        const isUnlocked = idx === 0 || consecutivePasses >= (idx * 5);
+                                <>
+                                    <div style={styles.levelGrid}>
+                                        {LEVELS.map((level, idx) => {
+                                            const scenarioCount = getLevelScenarios(level.level);
+                                            const levelConfig = getLevelConfig(level.level);
+                                            const isUnlocked = idx === 0 || consecutivePasses >= (idx * 5);
 
-                                        return (
-                                            <div
-                                                key={level.level}
-                                                onClick={() => isUnlocked && scenarioCount > 0 && startGame(level.level)}
-                                                style={{
-                                                    ...styles.levelCard,
-                                                    opacity: isUnlocked && scenarioCount > 0 ? 1 : 0.4,
-                                                    cursor: isUnlocked && scenarioCount > 0 ? 'pointer' : 'not-allowed',
-                                                    borderColor: isUnlocked ? '#00D4FF' : '#333',
-                                                }}
-                                            >
-                                                <div style={styles.levelNumber}>Level {level.level}</div>
-                                                <h3 style={styles.levelName}>{level.name}</h3>
-                                                <p style={styles.levelFocus}>{level.focus}</p>
-                                                <div style={styles.levelMeta}>
-                                                    <span>⏱️ {levelConfig.timer}s</span>
-                                                    <span>×{levelConfig.xpMultiplier} XP</span>
+                                            return (
+                                                <div
+                                                    key={level.level}
+                                                    onClick={() => isUnlocked && scenarioCount > 0 && startGame(level.level)}
+                                                    style={{
+                                                        ...styles.levelCard,
+                                                        opacity: isUnlocked && scenarioCount > 0 ? 1 : 0.4,
+                                                        cursor: isUnlocked && scenarioCount > 0 ? 'pointer' : 'not-allowed',
+                                                        borderColor: isUnlocked ? '#00D4FF' : '#333',
+                                                    }}
+                                                >
+                                                    <div style={styles.levelNumber}>Level {level.level}</div>
+                                                    <h3 style={styles.levelName}>{level.name}</h3>
+                                                    <p style={styles.levelFocus}>{level.focus}</p>
+                                                    <div style={styles.levelMeta}>
+                                                        <span>⏱️ {levelConfig.timer}s</span>
+                                                        <span>×{levelConfig.xpMultiplier} XP</span>
+                                                    </div>
+                                                    <div style={styles.levelMeta}>
+                                                        <span>{scenarioCount} scenario{scenarioCount !== 1 ? 's' : ''}</span>
+                                                        {!isUnlocked && <span>🔒</span>}
+                                                    </div>
                                                 </div>
-                                                <div style={styles.levelMeta}>
-                                                    <span>{scenarioCount} scenario{scenarioCount !== 1 ? 's' : ''}</span>
-                                                    {!isUnlocked && <span>🔒</span>}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Mastery Gate */}
-                            <div style={styles.masteryGate}>
-                                <span style={styles.masteryIcon}>🔐</span>
-                                <div>
-                                    <div style={styles.masteryTitle}>85% Mastery Gate</div>
-                                    <div style={styles.masteryDesc}>
-                                        Score 85%+ on 5 consecutive scenarios to unlock the next level
+                                            );
+                                        })}
                                     </div>
+
+                                    {/* Mastery Gate */}
+                                    <div style={styles.masteryGate}>
+                                        <span style={styles.masteryIcon}>🔐</span>
+                                        <div>
+                                            <div style={styles.masteryTitle}>85% Mastery Gate</div>
+                                            <div style={styles.masteryDesc}>
+                                                Score 85%+ on 5 consecutive scenarios to unlock the next level
+                                            </div>
+                                        </div>
+                                    </div>
+                            )}
+                                </>
+                            )}
+
+                            {/* VIP Upsell */}
+                            {!isVIP && (
+                                <div style={styles.vipUpsell}>
+                                    <div style={styles.vipTitle}>👑 GO VIP — $19.99/month</div>
+                                    <div style={styles.vipFeatures}>
+                                        Unlimited games • All levels • No diamond cost • Exclusive modes
+                                    </div>
+                                    <button style={styles.vipButton}>
+                                        Upgrade to VIP
+                                    </button>
                                 </div>
-                            </div>
+                            )}
                         </>
                     )}
 
-                    {/* VIP Upsell */}
-                    {!isVIP && (
-                        <div style={styles.vipUpsell}>
-                            <div style={styles.vipTitle}>👑 GO VIP — $19.99/month</div>
-                            <div style={styles.vipFeatures}>
-                                Unlimited games • All levels • No diamond cost • Exclusive modes
-                            </div>
-                            <button style={styles.vipButton}>
-                                Upgrade to VIP
+                    {/* Speed Drill Mode */}
+                    {mode === 'speed-drill' && (
+                        <div style={{ textAlign: 'center', marginTop: 40 }}>
+                            <div style={{ fontSize: 80, marginBottom: 20 }}>⚡</div>
+                            <h1 style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 36, color: '#FFD700', marginBottom: 20 }}>
+                                SPEED DRILL
+                            </h1>
+                            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', marginBottom: 30 }}>
+                                Coming soon! This mode will challenge you with rapid-fire hand decisions.
+                            </p>
+                            <button
+                                onClick={() => setMode('menu')}
+                                style={{
+                                    padding: '14px 40px',
+                                    fontSize: 16,
+                                    fontWeight: 600,
+                                    background: 'rgba(255,255,255,0.1)',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    borderRadius: 30,
+                                    color: '#fff',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                ← BACK TO MENU
                             </button>
                         </div>
                     )}
-                </>
-                    )}
 
-                {/* Speed Drill Mode */}
-                {mode === 'speed-drill' && (
-                    <div style={{ textAlign: 'center', marginTop: 40 }}>
-                        <div style={{ fontSize: 80, marginBottom: 20 }}>⚡</div>
-                        <h1 style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 36, color: '#FFD700', marginBottom: 20 }}>
-                            SPEED DRILL
-                        </h1>
-                        <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', marginBottom: 30 }}>
-                            Coming soon! This mode will challenge you with rapid-fire hand decisions.
-                        </p>
-                        <button
-                            onClick={() => setMode('menu')}
-                            style={{
-                                padding: '14px 40px',
-                                fontSize: 16,
-                                fontWeight: 600,
-                                background: 'rgba(255,255,255,0.1)',
-                                border: '1px solid rgba(255,255,255,0.2)',
-                                borderRadius: 30,
-                                color: '#fff',
-                                cursor: 'pointer',
-                            }}
-                        >
-                            ← BACK TO MENU
-                        </button>
-                    </div>
-                )}
-
-                {(mode === 'game' || mode === 'result') && currentScenario && (
-                    <>
-                        {/* Timer Bar */}
-                        <div style={styles.timerContainer}>
-                            <div
-                                style={{
-                                    ...styles.timerBar,
-                                    width: `${(timeRemaining / getLevelConfig(currentLevel).timer) * 100}%`,
-                                    backgroundColor: getTimerColor(),
-                                }}
-                            />
-                            <div style={{
-                                ...styles.timerText,
-                                color: getTimerColor(),
-                            }}>
-                                {timeRemaining}s
+                    {(mode === 'game' || mode === 'result') && currentScenario && (
+                        <>
+                            {/* Timer Bar */}
+                            <div style={styles.timerContainer}>
+                                <div
+                                    style={{
+                                        ...styles.timerBar,
+                                        width: `${(timeRemaining / getLevelConfig(currentLevel).timer) * 100}%`,
+                                        backgroundColor: getTimerColor(),
+                                    }}
+                                />
+                                <div style={{
+                                    ...styles.timerText,
+                                    color: getTimerColor(),
+                                }}>
+                                    {timeRemaining}s
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Scenario Header */}
-                        <div style={styles.gameHeader}>
-                            <div>
-                                <div style={styles.levelBadge}>Level {currentLevel} • ⏱️ {getLevelConfig(currentLevel).timer}s</div>
-                                <h2 style={styles.scenarioTitle}>{currentScenario.title}</h2>
-                                <p style={styles.scenarioDesc}>{currentScenario.description}</p>
-                                {currentScenario.tip && !gradeResult && (
-                                    <p style={styles.tipText}>💡 {currentScenario.tip}</p>
+                            {/* Scenario Header */}
+                            <div style={styles.gameHeader}>
+                                <div>
+                                    <div style={styles.levelBadge}>Level {currentLevel} • ⏱️ {getLevelConfig(currentLevel).timer}s</div>
+                                    <h2 style={styles.scenarioTitle}>{currentScenario.title}</h2>
+                                    <p style={styles.scenarioDesc}>{currentScenario.description}</p>
+                                    {currentScenario.tip && !gradeResult && (
+                                        <p style={styles.tipText}>💡 {currentScenario.tip}</p>
+                                    )}
+                                </div>
+                                {gradeResult && (
+                                    <div style={styles.scoreDisplay}>
+                                        <div style={{
+                                            ...styles.scoreValue,
+                                            color: gradeResult.score >= 85 ? '#00ff88' : '#ff4444',
+                                        }}>
+                                            {gradeResult.score}%
+                                        </div>
+                                        <div style={{
+                                            ...styles.passBadge,
+                                            background: gradeResult.score >= 85
+                                                ? 'linear-gradient(135deg, #00ff88, #00D4FF)'
+                                                : 'linear-gradient(135deg, #ff4444, #ff6b6b)',
+                                        }}>
+                                            {gradeResult.score >= 85 ? '✓ PASSED' : '✗ FAILED'}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
-                            {gradeResult && (
-                                <div style={styles.scoreDisplay}>
-                                    <div style={{
-                                        ...styles.scoreValue,
-                                        color: gradeResult.score >= 85 ? '#00ff88' : '#ff4444',
-                                    }}>
-                                        {gradeResult.score}%
-                                    </div>
-                                    <div style={{
-                                        ...styles.passBadge,
-                                        background: gradeResult.score >= 85
-                                            ? 'linear-gradient(135deg, #00ff88, #00D4FF)'
-                                            : 'linear-gradient(135deg, #ff4444, #ff6b6b)',
-                                    }}>
-                                        {gradeResult.score >= 85 ? '✓ PASSED' : '✗ FAILED'}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
 
-                        {/* Action Bar */}
-                        <div style={styles.actionBar}>
-                            {Object.entries(ACTION_COLORS).map(([action, { bg, border, label, key }]) => (
-                                <button
-                                    key={action}
-                                    onClick={() => setSelectedAction(action)}
-                                    disabled={!!gradeResult}
-                                    style={{
-                                        ...styles.actionButton,
-                                        background: selectedAction === action ? bg : 'rgba(0,0,0,0.4)',
-                                        borderColor: selectedAction === action ? border : 'rgba(255,255,255,0.2)',
-                                        color: selectedAction === action ? '#fff' : 'rgba(255,255,255,0.5)',
-                                        transform: selectedAction === action ? 'scale(1.05)' : 'scale(1)',
-                                    }}
-                                >
-                                    <span style={styles.keyHint}>{key}</span>
-                                    {label}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Grid */}
-                        <div style={styles.gridWrapper}>
-                            <div style={styles.grid}>
-                                {RANKS.map((_, row) => (
-                                    RANKS.map((_, col) => {
-                                        const hand = getHandName(row, col);
-                                        const userAction = userGrid[hand];
-                                        const solutionAction = currentScenario.solution[hand];
-                                        const actionStyle = userAction && ACTION_COLORS[userAction];
-
-                                        let feedbackBorder = 'transparent';
-                                        if (gradeResult) {
-                                            if (gradeResult.missedHands.includes(hand)) feedbackBorder = '#3B82F6';
-                                            else if (gradeResult.extraHands.includes(hand)) feedbackBorder = '#EF4444';
-                                            else if (gradeResult.wrongActionHands.includes(hand)) feedbackBorder = '#F59E0B';
-                                        }
-
-                                        return (
-                                            <div
-                                                key={hand}
-                                                onClick={() => handleCellClick(hand)}
-                                                style={{
-                                                    ...styles.cell,
-                                                    background: actionStyle?.bg || 'rgba(20, 20, 30, 0.6)',
-                                                    borderColor: actionStyle?.border || 'rgba(255,255,255,0.1)',
-                                                    boxShadow: feedbackBorder !== 'transparent'
-                                                        ? `inset 0 0 0 2px ${feedbackBorder}`
-                                                        : 'none',
-                                                    cursor: gradeResult ? 'default' : 'pointer',
-                                                }}
-                                            >
-                                                {hand}
-                                            </div>
-                                        );
-                                    })
+                            {/* Action Bar */}
+                            <div style={styles.actionBar}>
+                                {Object.entries(ACTION_COLORS).map(([action, { bg, border, label, key }]) => (
+                                    <button
+                                        key={action}
+                                        onClick={() => setSelectedAction(action)}
+                                        disabled={!!gradeResult}
+                                        style={{
+                                            ...styles.actionButton,
+                                            background: selectedAction === action ? bg : 'rgba(0,0,0,0.4)',
+                                            borderColor: selectedAction === action ? border : 'rgba(255,255,255,0.2)',
+                                            color: selectedAction === action ? '#fff' : 'rgba(255,255,255,0.5)',
+                                            transform: selectedAction === action ? 'scale(1.05)' : 'scale(1)',
+                                        }}
+                                    >
+                                        <span style={styles.keyHint}>{key}</span>
+                                        {label}
+                                    </button>
                                 ))}
                             </div>
-                        </div>
 
-                        {/* Submit / Result Buttons */}
-                        <div style={styles.buttonArea}>
-                            {!gradeResult ? (
-                                <button onClick={() => handleSubmit()} style={styles.submitButton}>
-                                    SUBMIT RANGE [SPACE]
-                                </button>
-                            ) : (
-                                <div style={styles.resultButtons}>
-                                    <button onClick={() => setMode('menu')} style={styles.menuButton}>
-                                        ← MENU
-                                    </button>
-                                    <button onClick={handleNext} style={styles.nextButton}>
-                                        NEXT SCENARIO →
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                            {/* Grid */}
+                            <div style={styles.gridWrapper}>
+                                <div style={styles.grid}>
+                                    {RANKS.map((_, row) => (
+                                        RANKS.map((_, col) => {
+                                            const hand = getHandName(row, col);
+                                            const userAction = userGrid[hand];
+                                            const solutionAction = currentScenario.solution[hand];
+                                            const actionStyle = userAction && ACTION_COLORS[userAction];
 
-                        {/* Result Feedback */}
-                        {gradeResult && (
-                            <div style={styles.feedbackPanel}>
-                                <div style={styles.feedbackGrid}>
-                                    <div style={styles.feedbackItem}>
-                                        <span style={{ color: '#00ff88' }}>✓ Correct</span>
-                                        <span style={styles.feedbackValue}>{gradeResult.correctHands}</span>
-                                    </div>
-                                    <div style={styles.feedbackItem}>
-                                        <span style={{ color: '#3B82F6' }}>● Missed</span>
-                                        <span style={styles.feedbackValue}>{gradeResult.missedHands.length}</span>
-                                    </div>
-                                    <div style={styles.feedbackItem}>
-                                        <span style={{ color: '#EF4444' }}>● Extra</span>
-                                        <span style={styles.feedbackValue}>{gradeResult.extraHands.length}</span>
-                                    </div>
-                                    <div style={styles.feedbackItem}>
-                                        <span style={{ color: '#F59E0B' }}>● Wrong Action</span>
-                                        <span style={styles.feedbackValue}>{gradeResult.wrongActionHands.length}</span>
-                                    </div>
+                                            let feedbackBorder = 'transparent';
+                                            if (gradeResult) {
+                                                if (gradeResult.missedHands.includes(hand)) feedbackBorder = '#3B82F6';
+                                                else if (gradeResult.extraHands.includes(hand)) feedbackBorder = '#EF4444';
+                                                else if (gradeResult.wrongActionHands.includes(hand)) feedbackBorder = '#F59E0B';
+                                            }
+
+                                            return (
+                                                <div
+                                                    key={hand}
+                                                    onClick={() => handleCellClick(hand)}
+                                                    style={{
+                                                        ...styles.cell,
+                                                        background: actionStyle?.bg || 'rgba(20, 20, 30, 0.6)',
+                                                        borderColor: actionStyle?.border || 'rgba(255,255,255,0.1)',
+                                                        boxShadow: feedbackBorder !== 'transparent'
+                                                            ? `inset 0 0 0 2px ${feedbackBorder}`
+                                                            : 'none',
+                                                        cursor: gradeResult ? 'default' : 'pointer',
+                                                    }}
+                                                >
+                                                    {hand}
+                                                </div>
+                                            );
+                                        })
+                                    ))}
                                 </div>
-                                {gradeResult.score >= 85 && lastReward && (
-                                    <div style={styles.rewardSummary}>
-                                        💎 +{lastReward.diamonds} Diamonds earned! (×{multiplier} multiplier)
+                            </div>
+
+                            {/* Submit / Result Buttons */}
+                            <div style={styles.buttonArea}>
+                                {!gradeResult ? (
+                                    <button onClick={() => handleSubmit()} style={styles.submitButton}>
+                                        SUBMIT RANGE [SPACE]
+                                    </button>
+                                ) : (
+                                    <div style={styles.resultButtons}>
+                                        <button onClick={() => setMode('menu')} style={styles.menuButton}>
+                                            ← MENU
+                                        </button>
+                                        <button onClick={handleNext} style={styles.nextButton}>
+                                            NEXT SCENARIO →
+                                        </button>
                                     </div>
                                 )}
                             </div>
-                        )}
-                    </>
-                )}
-            </div>
-        </div >
 
-            {/* Inject shake animation */ }
+                            {/* Result Feedback */}
+                            {gradeResult && (
+                                <div style={styles.feedbackPanel}>
+                                    <div style={styles.feedbackGrid}>
+                                        <div style={styles.feedbackItem}>
+                                            <span style={{ color: '#00ff88' }}>✓ Correct</span>
+                                            <span style={styles.feedbackValue}>{gradeResult.correctHands}</span>
+                                        </div>
+                                        <div style={styles.feedbackItem}>
+                                            <span style={{ color: '#3B82F6' }}>● Missed</span>
+                                            <span style={styles.feedbackValue}>{gradeResult.missedHands.length}</span>
+                                        </div>
+                                        <div style={styles.feedbackItem}>
+                                            <span style={{ color: '#EF4444' }}>● Extra</span>
+                                            <span style={styles.feedbackValue}>{gradeResult.extraHands.length}</span>
+                                        </div>
+                                        <div style={styles.feedbackItem}>
+                                            <span style={{ color: '#F59E0B' }}>● Wrong Action</span>
+                                            <span style={styles.feedbackValue}>{gradeResult.wrongActionHands.length}</span>
+                                        </div>
+                                    </div>
+                                    {gradeResult.score >= 85 && lastReward && (
+                                        <div style={styles.rewardSummary}>
+                                            💎 +{lastReward.diamonds} Diamonds earned! (×{multiplier} multiplier)
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div >
+
+            {/* Inject shake animation */}
             < style jsx global > {`
                 @keyframes shake {
                     0%, 100% { transform: translate(0, 0); }
