@@ -164,11 +164,14 @@ function NeuronPulse({ pathData, id, duration }: NeuronPulseProps) {
 // 🧠 NEURON LIGHTS CONTAINER
 // ─────────────────────────────────────────────────────────────────────────────
 export function NeuronLights() {
-    // Select random subset of paths for variety (4-6 active paths)
-    const [activePaths] = useState(() => {
+    // Use deterministic paths on first render, randomize on client only
+    const [activePaths, setActivePaths] = useState(() => ALL_PATHS.slice(0, 5));
+
+    // Randomize paths only on client after mount
+    useEffect(() => {
         const shuffled = [...ALL_PATHS].sort(() => Math.random() - 0.5);
-        return shuffled.slice(0, 5);
-    });
+        setActivePaths(shuffled.slice(0, 5));
+    }, []);
 
     return (
         <div

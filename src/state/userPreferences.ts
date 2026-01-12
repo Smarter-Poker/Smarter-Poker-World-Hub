@@ -26,6 +26,13 @@ interface UserPreferences {
 const STORAGE_KEY = 'hub-vanguard-user-prefs';
 
 function loadPreferences(): UserPreferences {
+    if (typeof window === 'undefined') {
+        return {
+            lastVisitedCardId: null,
+            mostVisitedCardIds: [],
+            visitCounts: {},
+        };
+    }
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -42,6 +49,7 @@ function loadPreferences(): UserPreferences {
 }
 
 function savePreferences(prefs: UserPreferences): void {
+    if (typeof window === 'undefined') return;
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
     } catch (e) {

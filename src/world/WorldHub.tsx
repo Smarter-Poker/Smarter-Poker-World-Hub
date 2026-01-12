@@ -166,61 +166,6 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🔮 PROFILE ORB WITH SUBTLE EDGE PULSE
-// ─────────────────────────────────────────────────────────────────────────────
-function ProfileOrb() {
-    const [edgeOpacity, setEdgeOpacity] = useState(0.3);
-
-    // Gentle pulsing edge glow
-    useEffect(() => {
-        let animFrame: number;
-        const startTime = Date.now();
-
-        const animate = () => {
-            const elapsed = (Date.now() - startTime) / 1000;
-
-            // Soft pulse cycle
-            const pulse = (Math.sin(elapsed * 0.5) + 1) / 2;
-            setEdgeOpacity(0.2 + pulse * 0.3); // Range: 0.2 - 0.5
-
-            animFrame = requestAnimationFrame(animate);
-        };
-
-        animate();
-        return () => cancelAnimationFrame(animFrame);
-    }, []);
-
-    return (
-        <div
-            style={{
-                position: 'absolute',
-                top: 24,
-                right: 24,
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                background: `url('/default-avatar.png') center/cover`,
-                border: '2px solid rgba(255, 255, 255, 0.8)',
-                boxShadow: `
-                    0 0 ${8 + edgeOpacity * 12}px rgba(0, 212, 255, ${edgeOpacity}),
-                    0 4px 16px rgba(0, 0, 0, 0.4)
-                `,
-                cursor: 'pointer',
-                transition: 'transform 0.2s ease-out',
-            }}
-            onClick={() => console.log('Profile Orb clicked — Navigate to Social Media')}
-            onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.1)';
-            }}
-            onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-            }}
-            title="View Profile / Social Media"
-        />
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // 🔔 HUD ICON (Messages, Notifications - same size as profile orb)
 // ─────────────────────────────────────────────────────────────────────────────
 interface HudIconProps {
@@ -381,6 +326,7 @@ export default function WorldHub() {
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
         // Check if user has completed onboarding
+        if (typeof window === 'undefined') return false;
         const hasOnboarded = localStorage.getItem('hub-onboarding-complete');
         return !hasOnboarded;
     });
