@@ -264,7 +264,7 @@ export default function OfficialRules() {
 
                         {/* Footer */}
                         <div style={styles.footer}>
-                            <p style={styles.lastUpdated}>Last Updated: January 12, 2026</p>
+                            <p style={styles.lastUpdated}>Last Updated: January 12, 2026 (v2.0)</p>
                             <p style={styles.contact}>
                                 Questions? Contact us at{' '}
                                 <a href="mailto:support@smarter.poker" style={styles.link}>
