@@ -21,6 +21,7 @@ import {
     ALL_SCENARIOS,
     getScenariosByLevel,
     getRandomScenario,
+    getLevelConfig,
     RANKS,
     getHandName,
 } from '../../src/games/ScenarioDatabase';
@@ -219,11 +220,14 @@ export default function MemoryGamesPage() {
             return;
         }
 
+        // Get level-specific config for progressive difficulty
+        const levelConfig = getLevelConfig(level);
+
         setCurrentLevel(level);
         setCurrentScenario(scenario);
         setUserGrid({});
         setGradeResult(null);
-        setTimeRemaining(90);
+        setTimeRemaining(levelConfig.timer); // Progressive: higher levels = less time
         setTimerActive(true);
         setCombo(0);
         setComboName(null);
@@ -289,8 +293,9 @@ export default function MemoryGamesPage() {
             setDiamondBalance(newBalance);
             setLastReward({ diamonds: totalReward, timestamp: Date.now() });
 
-            // XP
-            const xpGain = 50 + (result.score - 85) * 2 + (newCombo * 5);
+            // XP - higher levels give more XP
+            const levelConfig = getLevelConfig(currentLevel);
+            const xpGain = Math.floor((50 + (result.score - 85) * 2 + (newCombo * 5)) * levelConfig.xpMultiplier);
             setTotalXP(prev => prev + xpGain);
         } else {
             // Failure
@@ -514,7 +519,7 @@ export default function MemoryGamesPage() {
                                 <div
                                     style={{
                                         ...styles.timerBar,
-                                        width: `${(timeRemaining / 90) * 100}%`,
+                                        width: `${(timeRemaining / getLevelConfig(currentLevel).timer) * 100}%`,
                                         backgroundColor: getTimerColor(),
                                     }}
                                 />
