@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SMARTER.POKER — SIGN UP REGISTRATION NODE
-   Phone OTP Verification + Profile Initialization (XP=0, Multiplier=1x)
+   Multi-Step Registration: Info → Email OTP → Phone OTP → Profile Creation
+   Dual Verification (Email + Phone) Required
    Orange Ball Accent | Deep Black Background
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -9,20 +10,46 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { supabase } from '../../src/lib/supabase';
 
+// US States for dropdown
+const US_STATES = [
+    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
-// 📝 SIGN UP PAGE
+// 📝 SIGN UP PAGE — MULTI-STEP FLOW
 // ─────────────────────────────────────────────────────────────────────────────
 export default function SignUpPage() {
     const router = useRouter();
-    const [step, setStep] = useState('info'); // 'info' | 'otp'
+
+    // Step: 'info' → 'email-verify' → 'phone-verify' → 'complete'
+    const [step, setStep] = useState('info');
+
+    // Form data
     const [formData, setFormData] = useState({
-        username: '',
+        fullName: '',
+        email: '',
+        city: '',
+        state: '',
+        pokerAlias: '',
         phone: '',
     });
-    const [otp, setOtp] = useState('');
+
+    // Verification codes
+    const [emailOtp, setEmailOtp] = useState('');
+    const [phoneOtp, setPhoneOtp] = useState('');
+
+    // UI state
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [aliasError, setAliasError] = useState('');
+    const [aliasChecking, setAliasChecking] = useState(false);
+    const [aliasAvailable, setAliasAvailable] = useState(null);
     const [glowPulse, setGlowPulse] = useState(0);
+    const [emailVerified, setEmailVerified] = useState(false);
 
     // Animated glow effect
     useEffect(() => {
@@ -37,6 +64,45 @@ export default function SignUpPage() {
         return () => cancelAnimationFrame(frame);
     }, []);
 
+    // Check alias availability with debounce
+    useEffect(() => {
+        if (formData.pokerAlias.length < 3) {
+            setAliasAvailable(null);
+            setAliasError('');
+            return;
+        }
+
+        const timeout = setTimeout(async () => {
+            setAliasChecking(true);
+            setAliasError('');
+
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('username')
+                    .ilike('username', formData.pokerAlias)
+                    .limit(1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    setAliasAvailable(false);
+                    setAliasError('This alias is already taken');
+                } else {
+                    setAliasAvailable(true);
+                    setAliasError('');
+                }
+            } catch (err) {
+                console.error('Alias check error:', err);
+                setAliasAvailable(null);
+            } finally {
+                setAliasChecking(false);
+            }
+        }, 500);
+
+        return () => clearTimeout(timeout);
+    }, [formData.pokerAlias]);
+
     // Format phone number
     const formatPhone = (value) => {
         const cleaned = value.replace(/\D/g, '');
@@ -45,37 +111,107 @@ export default function SignUpPage() {
         return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
     };
 
-    // Handle info submission
+    // Validate email format
+    const isValidEmail = (email) => {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // STEP 1: Submit user info and send email verification
+    // ─────────────────────────────────────────────────────────────────────────
     const handleInfoSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        // Validate alias availability
+        if (aliasAvailable === false) {
+            setError('Please choose a different poker alias');
+            return;
+        }
+
+        if (formData.pokerAlias.length < 3) {
+            setError('Poker alias must be at least 3 characters');
+            return;
+        }
+
+        if (!isValidEmail(formData.email)) {
+            setError('Please enter a valid email address');
+            return;
+        }
+
+        const cleanPhone = formData.phone.replace(/\D/g, '');
+        if (cleanPhone.length !== 10) {
+            setError('Please enter a valid 10-digit phone number');
+            return;
+        }
+
         setLoading(true);
 
-        const cleanPhone = '+1' + formData.phone.replace(/\D/g, '');
-
         try {
-            // Send OTP
+            // Send email OTP first
             const { error } = await supabase.auth.signInWithOtp({
-                phone: cleanPhone,
+                email: formData.email,
                 options: {
                     data: {
-                        username: formData.username,
+                        full_name: formData.fullName,
+                        poker_alias: formData.pokerAlias,
+                        city: formData.city,
+                        state: formData.state,
                     },
                 },
             });
 
             if (error) throw error;
 
-            setStep('otp');
+            setStep('email-verify');
         } catch (err) {
-            setError(err.message || 'Failed to send verification code');
+            setError(err.message || 'Failed to send email verification code');
         } finally {
             setLoading(false);
         }
     };
 
-    // Handle OTP verification + profile creation
-    const handleOtpSubmit = async (e) => {
+    // ─────────────────────────────────────────────────────────────────────────
+    // STEP 2: Verify email OTP, then send phone verification
+    // ─────────────────────────────────────────────────────────────────────────
+    const handleEmailVerify = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+            // Verify email OTP
+            const { data, error: verifyError } = await supabase.auth.verifyOtp({
+                email: formData.email,
+                token: emailOtp,
+                type: 'email',
+            });
+
+            if (verifyError) throw verifyError;
+
+            setEmailVerified(true);
+
+            // Now send phone OTP
+            const cleanPhone = '+1' + formData.phone.replace(/\D/g, '');
+
+            const { error: phoneError } = await supabase.auth.signInWithOtp({
+                phone: cleanPhone,
+            });
+
+            if (phoneError) throw phoneError;
+
+            setStep('phone-verify');
+        } catch (err) {
+            setError(err.message || 'Invalid email verification code');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // STEP 3: Verify phone OTP and create profile
+    // ─────────────────────────────────────────────────────────────────────────
+    const handlePhoneVerify = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
@@ -83,28 +219,34 @@ export default function SignUpPage() {
         const cleanPhone = '+1' + formData.phone.replace(/\D/g, '');
 
         try {
-            // Verify OTP
+            // Verify phone OTP
             const { data, error: verifyError } = await supabase.auth.verifyOtp({
                 phone: cleanPhone,
-                token: otp,
+                token: phoneOtp,
                 type: 'sms',
             });
 
             if (verifyError) throw verifyError;
 
-            // Initialize user profile in 'profiles' table
+            // Create/update user profile
             if (data.user) {
                 const { error: profileError } = await supabase
                     .from('profiles')
                     .upsert({
                         id: data.user.id,
-                        username: formData.username,
+                        full_name: formData.fullName,
+                        email: formData.email,
                         phone: cleanPhone,
+                        city: formData.city,
+                        state: formData.state,
+                        username: formData.pokerAlias,
                         xp_total: 0,
                         diamonds: 0,
                         diamond_multiplier: 1.0,
                         streak_days: 0,
                         skill_tier: 'Newcomer',
+                        email_verified: true,
+                        phone_verified: true,
                         created_at: new Date().toISOString(),
                         last_login: new Date().toISOString(),
                     }, {
@@ -113,19 +255,57 @@ export default function SignUpPage() {
 
                 if (profileError) {
                     console.error('Profile creation error:', profileError);
-                    // Don't block login on profile error
                 }
             }
 
-            // Redirect to hub on success
+            // Redirect to hub
             router.push('/hub');
         } catch (err) {
-            setError(err.message || 'Invalid verification code');
+            setError(err.message || 'Invalid phone verification code');
         } finally {
             setLoading(false);
         }
     };
 
+    // Resend email code
+    const resendEmailCode = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const { error } = await supabase.auth.signInWithOtp({
+                email: formData.email,
+            });
+            if (error) throw error;
+            setError(''); // Clear any previous error
+            alert('Verification code sent to your email!');
+        } catch (err) {
+            setError(err.message || 'Failed to resend code');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Resend phone code
+    const resendPhoneCode = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const cleanPhone = '+1' + formData.phone.replace(/\D/g, '');
+            const { error } = await supabase.auth.signInWithOtp({
+                phone: cleanPhone,
+            });
+            if (error) throw error;
+            alert('Verification code sent to your phone!');
+        } catch (err) {
+            setError(err.message || 'Failed to resend code');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RENDER
+    // ─────────────────────────────────────────────────────────────────────────
     return (
         <>
             <Head>
@@ -150,6 +330,15 @@ export default function SignUpPage() {
                     <span>Back</span>
                 </button>
 
+                {/* Progress Indicator */}
+                <div style={styles.progressBar}>
+                    <ProgressStep number={1} label="Info" active={step === 'info'} completed={step !== 'info'} />
+                    <div style={styles.progressLine} />
+                    <ProgressStep number={2} label="Email" active={step === 'email-verify'} completed={step === 'phone-verify'} />
+                    <div style={styles.progressLine} />
+                    <ProgressStep number={3} label="Phone" active={step === 'phone-verify'} completed={false} />
+                </div>
+
                 {/* Auth Card */}
                 <div style={{
                     ...styles.authCard,
@@ -157,25 +346,17 @@ export default function SignUpPage() {
                 }}>
                     <div style={styles.logoSection}>
                         <OrangeBall size={48} />
-                        <h1 style={styles.title}>Create Account</h1>
+                        <h1 style={styles.title}>
+                            {step === 'info' && 'Create Account'}
+                            {step === 'email-verify' && 'Verify Email'}
+                            {step === 'phone-verify' && 'Verify Phone'}
+                        </h1>
                         <p style={styles.subtitle}>
-                            {step === 'info'
-                                ? 'Start your GTO training journey'
-                                : 'Enter the verification code we sent you'
-                            }
+                            {step === 'info' && 'Start your GTO training journey'}
+                            {step === 'email-verify' && `Enter the code sent to ${formData.email}`}
+                            {step === 'phone-verify' && `Enter the code sent to +1 ${formatPhone(formData.phone)}`}
                         </p>
                     </div>
-
-                    {/* Bonus Preview */}
-                    {step === 'info' && (
-                        <div style={styles.bonusBox}>
-                            <span style={styles.bonusIcon}>🎁</span>
-                            <div>
-                                <span style={styles.bonusTitle}>Welcome Bonus</span>
-                                <span style={styles.bonusDesc}>500 XP + 100 💎 Diamonds on signup</span>
-                            </div>
-                        </div>
-                    )}
 
                     {error && (
                         <div style={styles.errorBox}>
@@ -183,22 +364,104 @@ export default function SignUpPage() {
                         </div>
                     )}
 
-                    {step === 'info' ? (
+                    {/* ═══════════════════════════════════════════════════════════════
+                        STEP 1: USER INFORMATION
+                        ═══════════════════════════════════════════════════════════════ */}
+                    {step === 'info' && (
                         <form onSubmit={handleInfoSubmit} style={styles.form}>
+                            {/* Full Name */}
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Username</label>
+                                <label style={styles.label}>Full Name</label>
                                 <input
                                     type="text"
-                                    value={formData.username}
-                                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                    placeholder="Your poker alias"
+                                    value={formData.fullName}
+                                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                                    placeholder="John Smith"
                                     style={styles.inputSingle}
-                                    minLength={3}
-                                    maxLength={20}
                                     required
                                 />
                             </div>
 
+                            {/* Email */}
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Email Address</label>
+                                <input
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    placeholder="you@example.com"
+                                    style={styles.inputSingle}
+                                    required
+                                />
+                            </div>
+
+                            {/* City & State */}
+                            <div style={styles.rowGroup}>
+                                <div style={{ ...styles.inputGroup, flex: 2 }}>
+                                    <label style={styles.label}>City</label>
+                                    <input
+                                        type="text"
+                                        value={formData.city}
+                                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                                        placeholder="Las Vegas"
+                                        style={styles.inputSingle}
+                                        required
+                                    />
+                                </div>
+                                <div style={{ ...styles.inputGroup, flex: 1 }}>
+                                    <label style={styles.label}>State</label>
+                                    <select
+                                        value={formData.state}
+                                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                                        style={styles.selectInput}
+                                        required
+                                    >
+                                        <option value="">Select</option>
+                                        {US_STATES.map(st => (
+                                            <option key={st} value={st}>{st}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Poker Alias */}
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>
+                                    Poker Alias
+                                    <span style={styles.labelHint}>(you can change this later)</span>
+                                </label>
+                                <div style={styles.aliasInputWrapper}>
+                                    <input
+                                        type="text"
+                                        value={formData.pokerAlias}
+                                        onChange={(e) => setFormData({ ...formData, pokerAlias: e.target.value.replace(/[^a-zA-Z0-9_]/g, '') })}
+                                        placeholder="YourPokerName"
+                                        style={{
+                                            ...styles.inputSingle,
+                                            borderColor: aliasAvailable === false ? '#ff4d4d' :
+                                                aliasAvailable === true ? '#00ff66' :
+                                                    'rgba(255, 140, 0, 0.3)',
+                                        }}
+                                        minLength={3}
+                                        maxLength={20}
+                                        required
+                                    />
+                                    {aliasChecking && (
+                                        <span style={styles.aliasStatus}>Checking...</span>
+                                    )}
+                                    {!aliasChecking && aliasAvailable === true && (
+                                        <span style={{ ...styles.aliasStatus, color: '#00ff66' }}>✓ Available</span>
+                                    )}
+                                    {!aliasChecking && aliasAvailable === false && (
+                                        <span style={{ ...styles.aliasStatus, color: '#ff4d4d' }}>✗ Taken</span>
+                                    )}
+                                </div>
+                                {aliasError && (
+                                    <span style={styles.fieldError}>{aliasError}</span>
+                                )}
+                            </div>
+
+                            {/* Phone Number */}
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Phone Number</label>
                                 <div style={styles.phoneInput}>
@@ -219,25 +482,32 @@ export default function SignUpPage() {
                                 type="submit"
                                 style={{
                                     ...styles.submitButton,
-                                    opacity: loading ? 0.7 : 1,
+                                    opacity: loading || aliasAvailable === false ? 0.7 : 1,
                                 }}
-                                disabled={loading}
+                                disabled={loading || aliasAvailable === false}
                             >
-                                {loading ? 'Sending...' : 'Create Account'}
+                                {loading ? 'Sending Verification...' : 'Continue'}
                             </button>
 
                             <p style={styles.terms}>
                                 By signing up, you agree to our Terms of Service and Privacy Policy
                             </p>
                         </form>
-                    ) : (
-                        <form onSubmit={handleOtpSubmit} style={styles.form}>
+                    )}
+
+                    {/* ═══════════════════════════════════════════════════════════════
+                        STEP 2: EMAIL VERIFICATION
+                        ═══════════════════════════════════════════════════════════════ */}
+                    {step === 'email-verify' && (
+                        <form onSubmit={handleEmailVerify} style={styles.form}>
+                            <div style={styles.verifyIcon}>📧</div>
+
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Verification Code</label>
+                                <label style={styles.label}>Email Verification Code</label>
                                 <input
                                     type="text"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    value={emailOtp}
+                                    onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                     placeholder="123456"
                                     style={{ ...styles.inputSingle, textAlign: 'center', letterSpacing: '8px', fontSize: '24px' }}
                                     maxLength={6}
@@ -254,15 +524,72 @@ export default function SignUpPage() {
                                 }}
                                 disabled={loading}
                             >
-                                {loading ? 'Creating Account...' : 'Verify & Continue'}
+                                {loading ? 'Verifying...' : 'Verify Email'}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={resendEmailCode}
+                                style={styles.secondaryButton}
+                                disabled={loading}
+                            >
+                                Resend Code
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setStep('info')}
-                                style={styles.secondaryButton}
+                                style={styles.backLink}
                             >
-                                Use Different Number
+                                ← Back to Information
+                            </button>
+                        </form>
+                    )}
+
+                    {/* ═══════════════════════════════════════════════════════════════
+                        STEP 3: PHONE VERIFICATION
+                        ═══════════════════════════════════════════════════════════════ */}
+                    {step === 'phone-verify' && (
+                        <form onSubmit={handlePhoneVerify} style={styles.form}>
+                            <div style={styles.verifyIcon}>📱</div>
+
+                            <div style={styles.verifiedBadge}>
+                                <span style={styles.verifiedCheck}>✓</span>
+                                <span>Email Verified</span>
+                            </div>
+
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Phone Verification Code</label>
+                                <input
+                                    type="text"
+                                    value={phoneOtp}
+                                    onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    placeholder="123456"
+                                    style={{ ...styles.inputSingle, textAlign: 'center', letterSpacing: '8px', fontSize: '24px' }}
+                                    maxLength={6}
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                style={{
+                                    ...styles.submitButton,
+                                    opacity: loading ? 0.7 : 1,
+                                }}
+                                disabled={loading}
+                            >
+                                {loading ? 'Creating Account...' : 'Verify & Complete'}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={resendPhoneCode}
+                                style={styles.secondaryButton}
+                                disabled={loading}
+                            >
+                                Resend Code
                             </button>
                         </form>
                     )}
@@ -278,15 +605,6 @@ export default function SignUpPage() {
                         Already have an account? <span style={styles.orangeText}>Sign In</span>
                     </button>
                 </div>
-
-                {/* Initial Stats Preview */}
-                {step === 'info' && (
-                    <div style={styles.statsPreview}>
-                        <StatBox icon="⚡" value="0 XP" label="Starting XP" />
-                        <StatBox icon="💎" value="1x" label="Multiplier" />
-                        <StatBox icon="🔥" value="0" label="Streak" />
-                    </div>
-                )}
             </div>
         </>
     );
@@ -309,14 +627,43 @@ function OrangeBall({ size = 24 }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 📊 STAT BOX
+// 📊 PROGRESS STEP
 // ─────────────────────────────────────────────────────────────────────────────
-function StatBox({ icon, value, label }) {
+function ProgressStep({ number, label, active, completed }) {
     return (
-        <div style={styles.statBox}>
-            <span style={styles.statIcon}>{icon}</span>
-            <span style={styles.statValue}>{value}</span>
-            <span style={styles.statLabel}>{label}</span>
+        <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '8px',
+        }}>
+            <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: completed ? 'linear-gradient(135deg, #00ff66, #00cc52)' :
+                    active ? 'linear-gradient(135deg, #ff8c00, #ff6600)' :
+                        'rgba(255, 255, 255, 0.1)',
+                border: `2px solid ${completed ? '#00ff66' : active ? '#ff8c00' : 'rgba(255, 255, 255, 0.2)'}`,
+                fontFamily: 'Orbitron, sans-serif',
+                fontSize: '14px',
+                fontWeight: 700,
+                color: completed || active ? '#000' : 'rgba(255, 255, 255, 0.5)',
+            }}>
+                {completed ? '✓' : number}
+            </div>
+            <span style={{
+                fontSize: '10px',
+                fontFamily: 'Orbitron, sans-serif',
+                color: active ? '#ff8c00' : 'rgba(255, 255, 255, 0.5)',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+            }}>
+                {label}
+            </span>
         </div>
     );
 }
@@ -378,9 +725,22 @@ const styles = {
         transition: 'all 0.3s ease',
         zIndex: 10,
     },
+    progressBar: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '32px',
+        position: 'relative',
+        zIndex: 5,
+    },
+    progressLine: {
+        width: '40px',
+        height: '2px',
+        background: 'rgba(255, 255, 255, 0.2)',
+    },
     authCard: {
         width: '100%',
-        maxWidth: '420px',
+        maxWidth: '480px',
         padding: '40px',
         background: 'linear-gradient(180deg, rgba(20, 20, 30, 0.95), rgba(10, 10, 20, 0.98))',
         borderRadius: '24px',
@@ -408,31 +768,6 @@ const styles = {
         color: 'rgba(255, 255, 255, 0.6)',
         textAlign: 'center',
     },
-    bonusBox: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '14px 16px',
-        background: 'rgba(255, 140, 0, 0.1)',
-        border: '1px solid rgba(255, 140, 0, 0.3)',
-        borderRadius: '12px',
-        marginBottom: '20px',
-    },
-    bonusIcon: {
-        fontSize: '28px',
-    },
-    bonusTitle: {
-        display: 'block',
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '12px',
-        fontWeight: 600,
-        color: '#ff8c00',
-    },
-    bonusDesc: {
-        display: 'block',
-        fontSize: '12px',
-        color: 'rgba(255, 255, 255, 0.7)',
-    },
     errorBox: {
         padding: '12px 16px',
         background: 'rgba(255, 77, 77, 0.1)',
@@ -453,6 +788,10 @@ const styles = {
         flexDirection: 'column',
         gap: '8px',
     },
+    rowGroup: {
+        display: 'flex',
+        gap: '12px',
+    },
     label: {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: '11px',
@@ -460,17 +799,59 @@ const styles = {
         color: 'rgba(255, 255, 255, 0.5)',
         textTransform: 'uppercase',
         letterSpacing: '1px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+    },
+    labelHint: {
+        fontFamily: 'Inter, sans-serif',
+        fontSize: '10px',
+        fontWeight: 400,
+        color: 'rgba(255, 140, 0, 0.6)',
+        textTransform: 'none',
+        letterSpacing: 0,
     },
     inputSingle: {
-        padding: '16px',
+        padding: '14px 16px',
         background: 'rgba(0, 0, 0, 0.3)',
         border: '2px solid rgba(255, 140, 0, 0.3)',
         borderRadius: '12px',
         fontFamily: 'Inter, sans-serif',
-        fontSize: '16px',
+        fontSize: '15px',
         color: '#ffffff',
         outline: 'none',
         transition: 'border-color 0.3s ease',
+    },
+    selectInput: {
+        padding: '14px 16px',
+        background: 'rgba(0, 0, 0, 0.3)',
+        border: '2px solid rgba(255, 140, 0, 0.3)',
+        borderRadius: '12px',
+        fontFamily: 'Inter, sans-serif',
+        fontSize: '15px',
+        color: '#ffffff',
+        outline: 'none',
+        cursor: 'pointer',
+        appearance: 'none',
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23ff8c00' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 12px center',
+    },
+    aliasInputWrapper: {
+        position: 'relative',
+    },
+    aliasStatus: {
+        position: 'absolute',
+        right: '16px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        fontSize: '12px',
+        fontFamily: 'Orbitron, sans-serif',
+        color: 'rgba(255, 255, 255, 0.5)',
+    },
+    fieldError: {
+        fontSize: '11px',
+        color: '#ff4d4d',
     },
     phoneInput: {
         display: 'flex',
@@ -481,7 +862,7 @@ const styles = {
         overflow: 'hidden',
     },
     phonePrefix: {
-        padding: '16px',
+        padding: '14px 16px',
         background: 'rgba(255, 140, 0, 0.1)',
         fontFamily: 'Orbitron, sans-serif',
         fontSize: '14px',
@@ -490,12 +871,12 @@ const styles = {
     },
     input: {
         flex: 1,
-        padding: '16px',
+        padding: '14px 16px',
         background: 'transparent',
         border: 'none',
         outline: 'none',
         fontFamily: 'Inter, sans-serif',
-        fontSize: '16px',
+        fontSize: '15px',
         color: '#ffffff',
     },
     submitButton: {
@@ -520,12 +901,44 @@ const styles = {
     secondaryButton: {
         padding: '12px',
         background: 'transparent',
-        border: 'none',
-        color: 'rgba(255, 255, 255, 0.5)',
+        border: '1px solid rgba(255, 140, 0, 0.3)',
+        borderRadius: '8px',
+        color: 'rgba(255, 255, 255, 0.6)',
         fontFamily: 'Inter, sans-serif',
         fontSize: '13px',
         cursor: 'pointer',
-        transition: 'color 0.3s ease',
+        transition: 'all 0.3s ease',
+    },
+    backLink: {
+        padding: '8px',
+        background: 'transparent',
+        border: 'none',
+        color: 'rgba(255, 255, 255, 0.4)',
+        fontFamily: 'Inter, sans-serif',
+        fontSize: '12px',
+        cursor: 'pointer',
+    },
+    verifyIcon: {
+        fontSize: '48px',
+        textAlign: 'center',
+        marginBottom: '8px',
+    },
+    verifiedBadge: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        padding: '10px 16px',
+        background: 'rgba(0, 255, 102, 0.1)',
+        border: '1px solid rgba(0, 255, 102, 0.3)',
+        borderRadius: '8px',
+        color: '#00ff66',
+        fontSize: '13px',
+        fontFamily: 'Orbitron, sans-serif',
+        marginBottom: '8px',
+    },
+    verifiedCheck: {
+        fontSize: '16px',
     },
     divider: {
         display: 'flex',
@@ -550,38 +963,5 @@ const styles = {
     orangeText: {
         color: '#ff8c00',
         fontWeight: 600,
-    },
-    statsPreview: {
-        display: 'flex',
-        gap: '16px',
-        marginTop: '32px',
-        position: 'relative',
-        zIndex: 5,
-    },
-    statBox: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '16px 24px',
-        background: 'rgba(20, 20, 30, 0.6)',
-        border: '1px solid rgba(255, 140, 0, 0.2)',
-        borderRadius: '12px',
-        backdropFilter: 'blur(10px)',
-    },
-    statIcon: {
-        fontSize: '20px',
-    },
-    statValue: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '18px',
-        fontWeight: 700,
-        color: '#ff8c00',
-    },
-    statLabel: {
-        fontSize: '10px',
-        color: 'rgba(255, 255, 255, 0.5)',
-        textTransform: 'uppercase',
-        letterSpacing: '1px',
     },
 };
