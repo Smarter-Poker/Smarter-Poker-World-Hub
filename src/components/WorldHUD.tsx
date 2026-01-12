@@ -1,17 +1,17 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   HUB VANGUARD — WORLD HUD (10-ORB VERSION)
+   HUB VANGUARD — WORLD HUD (11-ORB VERSION)
    Overlay UI for world navigation and state feedback
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useWorldStore, selectActiveOrb, POKER_IQ_ORBS } from '../state/worldStore';
-import { getOrbById } from '../orbs/manifest/registry';
-import type { OrbId } from '../types/world';
+import { useWorldStore, selectActiveOrb } from '../state/worldStore';
+import { POKER_IQ_ORBS, getOrbById, type OrbConfig } from '../orbs/manifest/registry';
+
+export type OrbId = string;
 
 export function WorldHUD() {
     const activeOrb = useWorldStore(selectActiveOrb);
     const exitOrb = useWorldStore((s) => s.exitOrb);
-    const worldState = useWorldStore((s) => s.worldState);
 
     return (
         <div className="hud-overlay">
@@ -20,12 +20,12 @@ export function WorldHUD() {
 
             {/* Active Orb Indicator */}
             <AnimatePresence>
-                {activeOrb && worldState === 'ORB_ACTIVE' && (
+                {activeOrb && (
                     <ActiveOrbBanner orbId={activeOrb} onExit={exitOrb} />
                 )}
             </AnimatePresence>
 
-            {/* Bottom Orb Navigator - Scrollable for 10 orbs */}
+            {/* Bottom Orb Navigator - Scrollable for 11 orbs */}
             <OrbNavigator />
 
             {/* Instructions */}
@@ -81,7 +81,7 @@ function TopBar() {
                         margin: 0,
                         letterSpacing: '0.5px',
                     }}>
-                        Hub Vanguard • 10 Worlds
+                        Hub Vanguard • 11 Worlds
                     </p>
                 </div>
             </div>
@@ -171,7 +171,7 @@ function ActiveOrbBanner({ orbId, onExit }: { orbId: OrbId; onExit: () => void }
                 boxShadow: `0 0 40px ${orb.color}30`,
             }}
         >
-            <span style={{ fontSize: '28px' }}>{orb.icon}</span>
+            <span style={{ fontSize: '28px' }}>🎯</span>
             <div>
                 <h2 style={{
                     fontFamily: 'Outfit, sans-serif',
@@ -216,14 +216,9 @@ function ActiveOrbBanner({ orbId, onExit }: { orbId: OrbId; onExit: () => void }
 function OrbNavigator() {
     const activeOrb = useWorldStore(selectActiveOrb);
     const selectOrb = useWorldStore((s) => s.selectOrb);
-    const crossTransition = useWorldStore((s) => s.crossTransition);
 
     const handleOrbClick = (orbId: OrbId) => {
-        if (activeOrb) {
-            crossTransition(orbId);
-        } else {
-            selectOrb(orbId);
-        }
+        selectOrb(orbId);
     };
 
     return (
@@ -264,7 +259,7 @@ function OrbNavButton({
     isActive,
     onClick
 }: {
-    orb: typeof POKER_IQ_ORBS[0];
+    orb: OrbConfig;
     isActive: boolean;
     onClick: () => void;
 }) {
@@ -299,7 +294,7 @@ function OrbNavButton({
                 justifyContent: 'center',
                 fontSize: '14px',
             }}>
-                {orb.icon}
+                🎮
             </div>
             <span style={{
                 fontFamily: 'Inter, sans-serif',

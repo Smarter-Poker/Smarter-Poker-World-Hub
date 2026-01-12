@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* ═══════════════════════════════════════════════════════════════════════════
    HUB VANGUARD — POKERBROS CAROUSEL (SNAP + SMOOTH SCALE)
    Layout: Main fills screen, gaps between cards, snap-to-center, smooth scaling

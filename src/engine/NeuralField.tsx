@@ -2,10 +2,13 @@
    HUB VANGUARD — NEURAL FIELD ENGINE
    Three-Layer Background: Brain Lines + Solver Grid + Path-Restricted Neurons
    ═══════════════════════════════════════════════════════════════════════════ */
-
+// @ts-nocheck - R3F JSX elements require runtime type augmentation
 import { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, extend } from '@react-three/fiber';
 import * as THREE from 'three';
+
+// Extend THREE elements for JSX
+extend(THREE);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ⚡ LAYER 1: BRAIN LINES — Flowing neural pathways

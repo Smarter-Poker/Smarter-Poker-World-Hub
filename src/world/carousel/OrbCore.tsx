@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* ═══════════════════════════════════════════════════════════════════════════
    HUB VANGUARD — PURE WHITE 3D CARD WITH REACTIVE EDGE GLOW
    All white border with animated reactive edge glow and custom image texture

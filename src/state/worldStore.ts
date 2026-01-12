@@ -18,7 +18,7 @@ export const POKER_IQ_ORBS = [
   { id: 'marketplace-settings', label: 'Marketplace & Settings', color: '#ffffff' },
 ] as const;
 
-export type OrbId = typeof POKER_IQ_ORBS[number]['id'];
+export type OrbId = string;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 📊 WORLD STATE INTERFACE

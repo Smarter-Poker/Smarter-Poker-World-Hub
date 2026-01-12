@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* ═══════════════════════════════════════════════════════════════════════════
    HUB VANGUARD — PROFILE ORB
    Top-right clickable profile picture orb

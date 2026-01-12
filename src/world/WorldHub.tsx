@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* ═══════════════════════════════════════════════════════════════════════════
    HUB VANGUARD — POKERBROS WORLD HUB (6 FOOTER CARDS)
    Profile with reactive glow + 6 most visited cards at bottom

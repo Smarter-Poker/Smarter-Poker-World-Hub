@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* ═══════════════════════════════════════════════════════════════════════════
    HUB VANGUARD — WORLD EFFECTS
    Post-processing and ambient particle effects

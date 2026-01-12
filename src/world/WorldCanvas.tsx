@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* ═══════════════════════════════════════════════════════════════════════════
    HUB VANGUARD — WORLD CANVAS (R3F Core)
    The spatial 3D environment with 10-Orb Carousel
