@@ -2,7 +2,7 @@
    SMARTER.POKER — SIGN UP REGISTRATION NODE
    Multi-Step Registration: Info → Email OTP → Phone OTP → Profile Creation
    Dual Verification (Email + Phone) Required
-   Orange Ball Accent | Deep Black Background
+   Cyan/Electric Blue Aesthetic | Deep Navy Background
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
@@ -25,7 +25,7 @@ const US_STATES = [
 export default function SignUpPage() {
     const router = useRouter();
 
-    // Step: 'info' → 'email-verify' → 'phone-verify' → 'complete'
+    // Step: 'info' → 'email-verify' → 'phone-verify' → 'success' → redirect
     const [step, setStep] = useState('info');
 
     // Form data
@@ -50,6 +50,9 @@ export default function SignUpPage() {
     const [aliasAvailable, setAliasAvailable] = useState(null);
     const [glowPulse, setGlowPulse] = useState(0);
     const [emailVerified, setEmailVerified] = useState(false);
+
+    // Player number assigned after successful registration
+    const [assignedPlayerNumber, setAssignedPlayerNumber] = useState(null);
 
     // Animated glow effect
     useEffect(() => {
@@ -209,7 +212,7 @@ export default function SignUpPage() {
     };
 
     // ─────────────────────────────────────────────────────────────────────────
-    // STEP 3: Verify phone OTP and create profile
+    // STEP 3: Verify phone OTP and create profile with player number
     // ─────────────────────────────────────────────────────────────────────────
     const handlePhoneVerify = async (e) => {
         e.preventDefault();
@@ -228,38 +231,68 @@ export default function SignUpPage() {
 
             if (verifyError) throw verifyError;
 
-            // Create/update user profile
+            // Create/update user profile using the database function
+            // This atomically assigns a player number
             if (data.user) {
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .upsert({
-                        id: data.user.id,
-                        full_name: formData.fullName,
-                        email: formData.email,
-                        phone: cleanPhone,
-                        city: formData.city,
-                        state: formData.state,
-                        username: formData.pokerAlias,
-                        xp_total: 0,
-                        diamonds: 0,
-                        diamond_multiplier: 1.0,
-                        streak_days: 0,
-                        skill_tier: 'Newcomer',
-                        email_verified: true,
-                        phone_verified: true,
-                        created_at: new Date().toISOString(),
-                        last_login: new Date().toISOString(),
-                    }, {
-                        onConflict: 'id',
+                const { data: profileData, error: profileError } = await supabase
+                    .rpc('initialize_player_profile', {
+                        p_user_id: data.user.id,
+                        p_full_name: formData.fullName,
+                        p_email: formData.email,
+                        p_phone: cleanPhone,
+                        p_city: formData.city,
+                        p_state: formData.state,
+                        p_username: formData.pokerAlias,
                     });
 
                 if (profileError) {
                     console.error('Profile creation error:', profileError);
+                    // Fallback to direct insert if function fails
+                    const { error: fallbackError } = await supabase
+                        .from('profiles')
+                        .upsert({
+                            id: data.user.id,
+                            full_name: formData.fullName,
+                            email: formData.email,
+                            phone: cleanPhone,
+                            city: formData.city,
+                            state: formData.state,
+                            username: formData.pokerAlias,
+                            xp_total: 0,
+                            diamonds: 0,
+                            diamond_multiplier: 1.0,
+                            streak_days: 0,
+                            skill_tier: 'Newcomer',
+                            email_verified: true,
+                            phone_verified: true,
+                            created_at: new Date().toISOString(),
+                            last_login: new Date().toISOString(),
+                        }, {
+                            onConflict: 'id',
+                        });
+
+                    if (fallbackError) {
+                        console.error('Fallback profile creation error:', fallbackError);
+                    }
+
+                    // Try to get the player number from the profile
+                    const { data: existingProfile } = await supabase
+                        .from('profiles')
+                        .select('player_number')
+                        .eq('id', data.user.id)
+                        .single();
+
+                    if (existingProfile?.player_number) {
+                        setAssignedPlayerNumber(existingProfile.player_number);
+                    }
+                } else if (profileData && profileData.length > 0) {
+                    // Got the player number from the function
+                    setAssignedPlayerNumber(profileData[0].player_number);
                 }
             }
 
-            // Redirect to hub
-            router.push('/hub');
+            // Show success screen with player number
+            setStep('success');
         } catch (err) {
             setError(err.message || 'Invalid phone verification code');
         } finally {
@@ -342,10 +375,10 @@ export default function SignUpPage() {
                 {/* Auth Card */}
                 <div style={{
                     ...styles.authCard,
-                    boxShadow: `0 0 60px rgba(255, 140, 0, ${0.1 + glowPulse * 0.1})`,
+                    boxShadow: `0 0 60px rgba(0, 212, 255, ${0.1 + glowPulse * 0.1})`,
                 }}>
                     <div style={styles.logoSection}>
-                        <OrangeBall size={48} />
+                        <BrainIcon size={48} />
                         <h1 style={styles.title}>
                             {step === 'info' && 'Create Account'}
                             {step === 'email-verify' && 'Verify Email'}
@@ -440,7 +473,7 @@ export default function SignUpPage() {
                                             ...styles.inputSingle,
                                             borderColor: aliasAvailable === false ? '#ff4d4d' :
                                                 aliasAvailable === true ? '#00ff66' :
-                                                    'rgba(255, 140, 0, 0.3)',
+                                                    'rgba(0, 212, 255, 0.3)',
                                         }}
                                         minLength={3}
                                         maxLength={20}
@@ -490,7 +523,10 @@ export default function SignUpPage() {
                             </button>
 
                             <p style={styles.terms}>
-                                By signing up, you agree to our Terms of Service and Privacy Policy
+                                By signing up, you agree to our{' '}
+                                <a href="/terms" target="_blank" style={styles.termsLink}>Terms of Service</a>
+                                {' '}and{' '}
+                                <a href="/terms" target="_blank" style={styles.termsLink}>Privacy Policy</a>
                             </p>
                         </form>
                     )}
@@ -594,16 +630,78 @@ export default function SignUpPage() {
                         </form>
                     )}
 
-                    <div style={styles.divider}>
-                        <span>or</span>
-                    </div>
+                    {/* ═══════════════════════════════════════════════════════════════
+                        STEP 4: SUCCESS — PLAYER NUMBER ISSUED
+                        ═══════════════════════════════════════════════════════════════ */}
+                    {step === 'success' && (
+                        <div style={styles.successContainer}>
+                            <div style={styles.successIcon}>🎉</div>
 
-                    <button
-                        onClick={() => router.push('/auth/signin')}
-                        style={styles.signupLink}
-                    >
-                        Already have an account? <span style={styles.orangeText}>Sign In</span>
-                    </button>
+                            <h2 style={styles.successTitle}>Welcome to Smarter.Poker!</h2>
+
+                            <div style={styles.playerNumberCard}>
+                                <span style={styles.playerNumberLabel}>Your Player Number</span>
+                                <span style={styles.playerNumber}>
+                                    #{assignedPlayerNumber || '—'}
+                                </span>
+                                <span style={styles.playerNumberInfo}>
+                                    Your universal ID across PokerIQ, Diamond Arena & Club Arena
+                                </span>
+                            </div>
+
+                            <div style={styles.verifiedBadges}>
+                                <div style={styles.verifiedItem}>
+                                    <span style={styles.verifiedCheck}>✓</span>
+                                    <span>Email Verified</span>
+                                </div>
+                                <div style={styles.verifiedItem}>
+                                    <span style={styles.verifiedCheck}>✓</span>
+                                    <span>Phone Verified</span>
+                                </div>
+                            </div>
+
+                            <div style={styles.profileSummary}>
+                                <div style={styles.profileRow}>
+                                    <span style={styles.profileLabel}>Alias</span>
+                                    <span style={styles.profileValue}>{formData.pokerAlias}</span>
+                                </div>
+                                <div style={styles.profileRow}>
+                                    <span style={styles.profileLabel}>Location</span>
+                                    <span style={styles.profileValue}>{formData.city}, {formData.state}</span>
+                                </div>
+                                <div style={styles.profileRow}>
+                                    <span style={styles.profileLabel}>XP</span>
+                                    <span style={styles.profileValue}>0</span>
+                                </div>
+                                <div style={styles.profileRow}>
+                                    <span style={styles.profileLabel}>Skill Tier</span>
+                                    <span style={styles.profileValue}>Newcomer</span>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => router.push('/hub')}
+                                style={styles.submitButton}
+                            >
+                                Enter the Hub →
+                            </button>
+                        </div>
+                    )}
+
+                    {step !== 'success' && (
+                        <>
+                            <div style={styles.divider}>
+                                <span>or</span>
+                            </div>
+
+                            <button
+                                onClick={() => router.push('/auth/signin')}
+                                style={styles.signupLink}
+                            >
+                                Already have an account? <span style={styles.cyanText}>Sign In</span>
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         </>
@@ -611,18 +709,26 @@ export default function SignUpPage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🟠 ORANGE BALL
+// 🧠 BRAIN ICON
 // ─────────────────────────────────────────────────────────────────────────────
-function OrangeBall({ size = 24 }) {
+function BrainIcon({ size = 24 }) {
     return (
         <div style={{
             width: size,
             height: size,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle at 30% 30%, #ffa500, #ff6600)',
-            boxShadow: `0 0 ${size / 2}px rgba(255, 140, 0, 0.6)`,
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, #0a1628, #1a2a4a)',
+            border: '2px solid #00D4FF',
+            boxShadow: `0 0 ${size / 2}px rgba(0, 212, 255, 0.6)`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             flexShrink: 0,
-        }} />
+        }}>
+            <svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2">
+                <path d="M12 2a4 4 0 014 4c0 1.5-.8 2.8-2 3.5V12h2a4 4 0 110 8h-8a4 4 0 110-8h2V9.5A4 4 0 018 6a4 4 0 014-4z" />
+            </svg>
+        </div>
     );
 }
 
@@ -645,9 +751,9 @@ function ProgressStep({ number, label, active, completed }) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 background: completed ? 'linear-gradient(135deg, #00ff66, #00cc52)' :
-                    active ? 'linear-gradient(135deg, #ff8c00, #ff6600)' :
+                    active ? 'linear-gradient(135deg, #00D4FF, #0066FF)' :
                         'rgba(255, 255, 255, 0.1)',
-                border: `2px solid ${completed ? '#00ff66' : active ? '#ff8c00' : 'rgba(255, 255, 255, 0.2)'}`,
+                border: `2px solid ${completed ? '#00ff66' : active ? '#00D4FF' : 'rgba(255, 255, 255, 0.2)'}`,
                 fontFamily: 'Orbitron, sans-serif',
                 fontSize: '14px',
                 fontWeight: 700,
@@ -658,7 +764,7 @@ function ProgressStep({ number, label, active, completed }) {
             <span style={{
                 fontSize: '10px',
                 fontFamily: 'Orbitron, sans-serif',
-                color: active ? '#ff8c00' : 'rgba(255, 255, 255, 0.5)',
+                color: active ? '#00D4FF' : 'rgba(255, 255, 255, 0.5)',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
             }}>
@@ -669,7 +775,7 @@ function ProgressStep({ number, label, active, completed }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🎨 STYLES
+// 🎨 STYLES — CYAN/ELECTRIC BLUE THEME
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = {
     container: {
@@ -678,7 +784,7 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#0a0a0f',
+        background: '#0a1628',
         fontFamily: 'Inter, -apple-system, sans-serif',
         position: 'relative',
         padding: '40px 20px',
@@ -690,8 +796,8 @@ const styles = {
         right: 0,
         bottom: 0,
         backgroundImage: `
-            linear-gradient(rgba(255, 140, 0, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 140, 0, 0.03) 1px, transparent 1px)
+            linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px)
         `,
         backgroundSize: '60px 60px',
         pointerEvents: 'none',
@@ -702,7 +808,7 @@ const styles = {
         left: '50%',
         width: '100%',
         height: '100%',
-        background: 'radial-gradient(ellipse at center, rgba(255, 140, 0, 0.2), transparent 60%)',
+        background: 'radial-gradient(ellipse at center, rgba(0, 212, 255, 0.2), transparent 60%)',
         transform: 'translate(-50%, -50%)',
         pointerEvents: 'none',
     },
@@ -714,8 +820,8 @@ const styles = {
         alignItems: 'center',
         gap: '8px',
         padding: '10px 16px',
-        background: 'rgba(255, 140, 0, 0.1)',
-        border: '1px solid rgba(255, 140, 0, 0.3)',
+        background: 'rgba(0, 212, 255, 0.1)',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
         borderRadius: '8px',
         color: '#ffffff',
         fontFamily: 'Orbitron, sans-serif',
@@ -742,9 +848,9 @@ const styles = {
         width: '100%',
         maxWidth: '480px',
         padding: '40px',
-        background: 'linear-gradient(180deg, rgba(20, 20, 30, 0.95), rgba(10, 10, 20, 0.98))',
+        background: 'linear-gradient(180deg, rgba(10, 22, 40, 0.95), rgba(5, 15, 30, 0.98))',
         borderRadius: '24px',
-        border: '1px solid rgba(255, 140, 0, 0.2)',
+        border: '1px solid rgba(0, 212, 255, 0.2)',
         backdropFilter: 'blur(20px)',
         position: 'relative',
         zIndex: 5,
@@ -807,14 +913,14 @@ const styles = {
         fontFamily: 'Inter, sans-serif',
         fontSize: '10px',
         fontWeight: 400,
-        color: 'rgba(255, 140, 0, 0.6)',
+        color: 'rgba(0, 212, 255, 0.6)',
         textTransform: 'none',
         letterSpacing: 0,
     },
     inputSingle: {
         padding: '14px 16px',
         background: 'rgba(0, 0, 0, 0.3)',
-        border: '2px solid rgba(255, 140, 0, 0.3)',
+        border: '2px solid rgba(0, 212, 255, 0.3)',
         borderRadius: '12px',
         fontFamily: 'Inter, sans-serif',
         fontSize: '15px',
@@ -825,7 +931,7 @@ const styles = {
     selectInput: {
         padding: '14px 16px',
         background: 'rgba(0, 0, 0, 0.3)',
-        border: '2px solid rgba(255, 140, 0, 0.3)',
+        border: '2px solid rgba(0, 212, 255, 0.3)',
         borderRadius: '12px',
         fontFamily: 'Inter, sans-serif',
         fontSize: '15px',
@@ -833,7 +939,7 @@ const styles = {
         outline: 'none',
         cursor: 'pointer',
         appearance: 'none',
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23ff8c00' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E")`,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2300D4FF' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'right 12px center',
     },
@@ -857,17 +963,17 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         background: 'rgba(0, 0, 0, 0.3)',
-        border: '2px solid rgba(255, 140, 0, 0.3)',
+        border: '2px solid rgba(0, 212, 255, 0.3)',
         borderRadius: '12px',
         overflow: 'hidden',
     },
     phonePrefix: {
         padding: '14px 16px',
-        background: 'rgba(255, 140, 0, 0.1)',
+        background: 'rgba(0, 212, 255, 0.1)',
         fontFamily: 'Orbitron, sans-serif',
         fontSize: '14px',
         fontWeight: 600,
-        color: '#ff8c00',
+        color: '#00D4FF',
     },
     input: {
         flex: 1,
@@ -881,7 +987,7 @@ const styles = {
     },
     submitButton: {
         padding: '16px',
-        background: 'linear-gradient(135deg, #ff8c00, #ff6600)',
+        background: 'linear-gradient(135deg, #00D4FF, #0066FF)',
         border: 'none',
         borderRadius: '12px',
         color: '#000000',
@@ -898,10 +1004,14 @@ const styles = {
         textAlign: 'center',
         marginTop: '8px',
     },
+    termsLink: {
+        color: '#00D4FF',
+        textDecoration: 'underline',
+    },
     secondaryButton: {
         padding: '12px',
         background: 'transparent',
-        border: '1px solid rgba(255, 140, 0, 0.3)',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
         borderRadius: '8px',
         color: 'rgba(255, 255, 255, 0.6)',
         fontFamily: 'Inter, sans-serif',
@@ -952,7 +1062,7 @@ const styles = {
         width: '100%',
         padding: '12px',
         background: 'transparent',
-        border: '1px solid rgba(255, 140, 0, 0.2)',
+        border: '1px solid rgba(0, 212, 255, 0.2)',
         borderRadius: '12px',
         color: 'rgba(255, 255, 255, 0.6)',
         fontFamily: 'Inter, sans-serif',
@@ -960,8 +1070,107 @@ const styles = {
         cursor: 'pointer',
         transition: 'all 0.3s ease',
     },
-    orangeText: {
-        color: '#ff8c00',
+    cyanText: {
+        color: '#00D4FF',
         fontWeight: 600,
+    },
+    // ─────────────────────────────────────────────────────────────────────────
+    // SUCCESS SCREEN STYLES
+    // ─────────────────────────────────────────────────────────────────────────
+    successContainer: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '20px',
+        padding: '20px 0',
+    },
+    successIcon: {
+        fontSize: '64px',
+        animation: 'bounce 1s ease-in-out',
+    },
+    successTitle: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: '24px',
+        fontWeight: 700,
+        color: '#ffffff',
+        textAlign: 'center',
+        marginBottom: '8px',
+    },
+    playerNumberCard: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '24px 40px',
+        background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 102, 255, 0.1))',
+        border: '2px solid #00D4FF',
+        borderRadius: '16px',
+        boxShadow: '0 0 30px rgba(0, 212, 255, 0.3)',
+    },
+    playerNumberLabel: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: '11px',
+        fontWeight: 600,
+        color: 'rgba(255, 255, 255, 0.6)',
+        textTransform: 'uppercase',
+        letterSpacing: '2px',
+    },
+    playerNumber: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: '48px',
+        fontWeight: 900,
+        color: '#00D4FF',
+        textShadow: '0 0 20px rgba(0, 212, 255, 0.5)',
+    },
+    playerNumberInfo: {
+        fontFamily: 'Inter, sans-serif',
+        fontSize: '11px',
+        color: 'rgba(255, 255, 255, 0.5)',
+        textAlign: 'center',
+        maxWidth: '200px',
+    },
+    verifiedBadges: {
+        display: 'flex',
+        gap: '16px',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+    },
+    verifiedItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '8px 12px',
+        background: 'rgba(0, 255, 102, 0.1)',
+        border: '1px solid rgba(0, 255, 102, 0.3)',
+        borderRadius: '8px',
+        color: '#00ff66',
+        fontSize: '12px',
+        fontFamily: 'Orbitron, sans-serif',
+    },
+    profileSummary: {
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        padding: '16px',
+        background: 'rgba(0, 0, 0, 0.2)',
+        borderRadius: '12px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+    },
+    profileRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    profileLabel: {
+        fontFamily: 'Inter, sans-serif',
+        fontSize: '12px',
+        color: 'rgba(255, 255, 255, 0.5)',
+    },
+    profileValue: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: '13px',
+        fontWeight: 600,
+        color: '#ffffff',
     },
 };

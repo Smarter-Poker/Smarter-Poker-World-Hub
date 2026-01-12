@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SMARTER.POKER — MARKETING LANDING PAGE
-   Video Game Aesthetic | Orange Ball Accent | Deep Black Background
+   Cyan/Electric Blue Aesthetic | Deep Navy Background
    Gateway to the PokerIQ Empire
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -62,8 +62,8 @@ export default function LandingPage() {
                 {/* Navigation */}
                 <nav style={styles.nav}>
                     <div style={styles.logo}>
-                        <OrangeBall size={32} />
-                        <span style={styles.logoText}>SMARTER.POKER</span>
+                        <BrainIcon size={32} />
+                        <span style={styles.logoText}>SMARTER POKER</span>
                     </div>
                     <div style={styles.navLinks}>
                         <button onClick={handleSignUp} style={styles.navButton}>
@@ -79,7 +79,7 @@ export default function LandingPage() {
                 <main style={styles.hero}>
                     <div style={styles.heroContent}>
                         <div style={styles.tagline}>
-                            <OrangeBall size={16} />
+                            <DiamondIcon size={16} />
                             <span>THE FUTURE OF POKER TRAINING</span>
                         </div>
 
@@ -98,7 +98,7 @@ export default function LandingPage() {
                                 onClick={handleEnterHub}
                                 style={{
                                     ...styles.ctaButton,
-                                    boxShadow: `0 0 ${20 + glowPulse * 20}px rgba(255, 140, 0, ${0.4 + glowPulse * 0.3})`,
+                                    boxShadow: `0 0 ${20 + glowPulse * 20}px rgba(0, 212, 255, ${0.4 + glowPulse * 0.3})`,
                                 }}
                             >
                                 <span>Enter The Hub</span>
@@ -123,7 +123,7 @@ export default function LandingPage() {
                     <div style={styles.heroVisual}>
                         <div style={{
                             ...styles.phoneFrame,
-                            boxShadow: `0 0 60px rgba(255, 140, 0, ${0.2 + glowPulse * 0.15})`,
+                            boxShadow: `0 0 60px rgba(0, 212, 255, ${0.2 + glowPulse * 0.15})`,
                         }}>
                             <div style={styles.phoneScreen}>
                                 <img
@@ -135,7 +135,7 @@ export default function LandingPage() {
                                     }}
                                 />
                                 <div style={styles.phonePlaceholder}>
-                                    <OrangeBall size={48} />
+                                    <BrainIcon size={48} />
                                     <span style={styles.phonePlaceholderText}>World Hub</span>
                                 </div>
                             </div>
@@ -146,7 +146,7 @@ export default function LandingPage() {
                 {/* Features Section - Orb Study Previews */}
                 <section style={styles.features}>
                     <h2 style={styles.sectionTitle}>
-                        <OrangeBall size={20} />
+                        <DiamondIcon size={20} />
                         <span>10 Worlds. Infinite Possibilities.</span>
                     </h2>
 
@@ -155,13 +155,13 @@ export default function LandingPage() {
                             icon="🎯"
                             title="GTO Training"
                             description="AI-generated drills with solver-backed solutions. Hit 85% mastery to unlock new levels."
-                            color="#ff8c00"
+                            color="#00D4FF"
                         />
                         <FeatureCard
                             icon="💎"
                             title="Diamond Economy"
                             description="Earn Diamonds through training. Stake them in competitions. Build your bankroll."
-                            color="#00d4ff"
+                            color="#00BFFF"
                         />
                         <FeatureCard
                             icon="🧠"
@@ -185,7 +185,7 @@ export default function LandingPage() {
                             icon="🤖"
                             title="AI Assistant"
                             description="A team of expert assistants with complete system knowledge. Available 24/7."
-                            color="#ffee00"
+                            color="#00D4FF"
                         />
                     </div>
                 </section>
@@ -194,7 +194,7 @@ export default function LandingPage() {
                 <section style={styles.multiplierSection}>
                     <div style={styles.multiplierContent}>
                         <h2 style={styles.multiplierTitle}>
-                            Daily Streak <span style={styles.orangeText}>Multipliers</span>
+                            Daily Streak <span style={styles.cyanText}>Multipliers</span>
                         </h2>
                         <p style={styles.multiplierDesc}>
                             Log in every day and watch your Diamond rewards multiply.
@@ -221,11 +221,11 @@ export default function LandingPage() {
                         onClick={handleSignUp}
                         style={{
                             ...styles.ctaButton,
-                            boxShadow: `0 0 ${20 + glowPulse * 20}px rgba(255, 140, 0, ${0.4 + glowPulse * 0.3})`,
+                            boxShadow: `0 0 ${20 + glowPulse * 20}px rgba(0, 212, 255, ${0.4 + glowPulse * 0.3})`,
                         }}
                     >
                         <span>Start Training Free</span>
-                        <OrangeBall size={16} />
+                        <DiamondIcon size={16} />
                     </button>
                 </section>
 
@@ -233,8 +233,8 @@ export default function LandingPage() {
                 <footer style={styles.footer}>
                     <div style={styles.footerContent}>
                         <div style={styles.footerLogo}>
-                            <OrangeBall size={24} />
-                            <span style={styles.footerLogoText}>SMARTER.POKER</span>
+                            <BrainIcon size={24} />
+                            <span style={styles.footerLogoText}>SMARTER POKER</span>
                         </div>
                         <p style={styles.footerCopyright}>
                             © 2026 Smarter Poker. All rights reserved.
@@ -247,18 +247,45 @@ export default function LandingPage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🟠 ORANGE BALL ACCENT
+// 🧠 BRAIN ICON (Smarter Poker Logo)
 // ─────────────────────────────────────────────────────────────────────────────
-function OrangeBall({ size = 24 }) {
+function BrainIcon({ size = 24 }) {
     return (
         <div style={{
             width: size,
             height: size,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle at 30% 30%, #ffa500, #ff6600)',
-            boxShadow: `0 0 ${size / 2}px rgba(255, 140, 0, 0.6)`,
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, #0a1628, #1a2a4a)',
+            border: '2px solid #00D4FF',
+            boxShadow: `0 0 ${size / 2}px rgba(0, 212, 255, 0.6)`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             flexShrink: 0,
-        }} />
+        }}>
+            <svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2">
+                <path d="M12 2a4 4 0 014 4c0 1.5-.8 2.8-2 3.5V12h2a4 4 0 110 8h-8a4 4 0 110-8h2V9.5A4 4 0 018 6a4 4 0 014-4z" />
+            </svg>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 💎 DIAMOND ICON
+// ─────────────────────────────────────────────────────────────────────────────
+function DiamondIcon({ size = 16 }) {
+    return (
+        <div style={{
+            width: size,
+            height: size,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+        }}>
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="#00D4FF">
+                <path d="M12 2L2 9l10 13 10-13-10-7z" />
+            </svg>
+        </div>
     );
 }
 
@@ -285,7 +312,7 @@ function FeatureCard({ icon, title, description, color }) {
             style={{
                 ...styles.featureCard,
                 transform: isHovered ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
-                borderColor: isHovered ? color : 'rgba(255, 140, 0, 0.2)',
+                borderColor: isHovered ? color : 'rgba(0, 212, 255, 0.2)',
                 boxShadow: isHovered ? `0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px ${color}30` : styles.featureCard.boxShadow,
             }}
             onMouseEnter={() => setIsHovered(true)}
@@ -305,13 +332,13 @@ function MultiplierCard({ day, multiplier, active }) {
     return (
         <div style={{
             ...styles.multiplierCard,
-            borderColor: active ? '#ff8c00' : 'rgba(255, 140, 0, 0.2)',
-            background: active ? 'rgba(255, 140, 0, 0.1)' : 'rgba(20, 20, 30, 0.6)',
+            borderColor: active ? '#00D4FF' : 'rgba(0, 212, 255, 0.2)',
+            background: active ? 'rgba(0, 212, 255, 0.1)' : 'rgba(10, 22, 40, 0.6)',
         }}>
             <span style={styles.multiplierDay}>Day {day}</span>
             <span style={{
                 ...styles.multiplierValue,
-                color: active ? '#ff8c00' : '#ffffff',
+                color: active ? '#00D4FF' : '#ffffff',
             }}>{multiplier}</span>
         </div>
     );
@@ -323,19 +350,19 @@ function MultiplierCard({ day, multiplier, active }) {
 function LoadingScreen() {
     return (
         <div style={styles.loadingScreen}>
-            <OrangeBall size={60} />
+            <BrainIcon size={60} />
             <p style={styles.loadingText}>Entering the Hub...</p>
         </div>
     );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🎨 STYLES
+// 🎨 STYLES - CYAN/ELECTRIC BLUE THEME
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = {
     container: {
         minHeight: '100vh',
-        background: '#0a0a0f',
+        background: '#0a1628',
         color: '#ffffff',
         fontFamily: 'Inter, -apple-system, sans-serif',
         position: 'relative',
@@ -348,8 +375,8 @@ const styles = {
         right: 0,
         bottom: 0,
         backgroundImage: `
-            linear-gradient(rgba(255, 140, 0, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 140, 0, 0.03) 1px, transparent 1px)
+            linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px)
         `,
         backgroundSize: '60px 60px',
         pointerEvents: 'none',
@@ -361,7 +388,7 @@ const styles = {
         left: '50%',
         width: '100%',
         height: '100%',
-        background: 'radial-gradient(ellipse at center, rgba(255, 140, 0, 0.15), transparent 60%)',
+        background: 'radial-gradient(ellipse at center, rgba(0, 212, 255, 0.15), transparent 60%)',
         transform: 'translateX(-50%)',
         pointerEvents: 'none',
         zIndex: 0,
@@ -393,7 +420,7 @@ const styles = {
     navButton: {
         padding: '10px 24px',
         background: 'transparent',
-        border: '2px solid rgba(255, 140, 0, 0.5)',
+        border: '2px solid rgba(0, 212, 255, 0.5)',
         borderRadius: '8px',
         color: '#ffffff',
         fontFamily: 'Orbitron, sans-serif',
@@ -404,7 +431,7 @@ const styles = {
     },
     navButtonPrimary: {
         padding: '10px 24px',
-        background: 'linear-gradient(135deg, #ff8c00, #ff6600)',
+        background: 'linear-gradient(135deg, #00D4FF, #0066FF)',
         border: 'none',
         borderRadius: '8px',
         color: '#000000',
@@ -434,14 +461,14 @@ const styles = {
         alignItems: 'center',
         gap: '8px',
         padding: '8px 16px',
-        background: 'rgba(255, 140, 0, 0.1)',
-        border: '1px solid rgba(255, 140, 0, 0.3)',
+        background: 'rgba(0, 212, 255, 0.1)',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
         borderRadius: '100px',
         fontFamily: 'Orbitron, sans-serif',
         fontSize: '11px',
         fontWeight: 600,
         letterSpacing: '2px',
-        color: '#ff8c00',
+        color: '#00D4FF',
         marginBottom: '24px',
     },
     heroTitle: {
@@ -453,7 +480,7 @@ const styles = {
         color: '#ffffff',
     },
     gradientText: {
-        background: 'linear-gradient(135deg, #ff8c00, #ffa500)',
+        background: 'linear-gradient(135deg, #00D4FF, #00BFFF)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
     },
@@ -473,7 +500,7 @@ const styles = {
         alignItems: 'center',
         gap: '10px',
         padding: '16px 32px',
-        background: 'linear-gradient(135deg, #ff8c00, #ff6600)',
+        background: 'linear-gradient(135deg, #00D4FF, #0066FF)',
         border: 'none',
         borderRadius: '12px',
         color: '#000000',
@@ -486,7 +513,7 @@ const styles = {
     secondaryButton: {
         padding: '16px 32px',
         background: 'transparent',
-        border: '2px solid rgba(255, 140, 0, 0.5)',
+        border: '2px solid rgba(0, 212, 255, 0.5)',
         borderRadius: '12px',
         color: '#ffffff',
         fontFamily: 'Orbitron, sans-serif',
@@ -508,7 +535,7 @@ const styles = {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: '24px',
         fontWeight: 700,
-        color: '#ff8c00',
+        color: '#00D4FF',
     },
     statLabel: {
         fontSize: '12px',
@@ -525,9 +552,9 @@ const styles = {
     phoneFrame: {
         width: '320px',
         height: '640px',
-        background: 'linear-gradient(180deg, #1a1a2e, #0a0a15)',
+        background: 'linear-gradient(180deg, #0a1628, #061018)',
         borderRadius: '40px',
-        border: '4px solid rgba(255, 140, 0, 0.3)',
+        border: '4px solid rgba(0, 212, 255, 0.3)',
         overflow: 'hidden',
         position: 'relative',
     },
@@ -580,9 +607,9 @@ const styles = {
     },
     featureCard: {
         padding: '32px',
-        background: 'rgba(20, 20, 30, 0.6)',
+        background: 'rgba(10, 22, 40, 0.6)',
         borderRadius: '16px',
-        border: '1px solid rgba(255, 140, 0, 0.2)',
+        border: '1px solid rgba(0, 212, 255, 0.2)',
         backdropFilter: 'blur(10px)',
         transition: 'all 0.3s ease',
         cursor: 'pointer',
@@ -607,7 +634,7 @@ const styles = {
     },
     multiplierSection: {
         padding: '80px 40px',
-        background: 'linear-gradient(180deg, rgba(255, 140, 0, 0.05), transparent)',
+        background: 'linear-gradient(180deg, rgba(0, 212, 255, 0.05), transparent)',
         position: 'relative',
         zIndex: 5,
     },
@@ -622,8 +649,8 @@ const styles = {
         fontWeight: 700,
         marginBottom: '16px',
     },
-    orangeText: {
-        color: '#ff8c00',
+    cyanText: {
+        color: '#00D4FF',
     },
     multiplierDesc: {
         fontSize: '16px',
@@ -638,7 +665,7 @@ const styles = {
     },
     multiplierCard: {
         padding: '20px 28px',
-        background: 'rgba(20, 20, 30, 0.6)',
+        background: 'rgba(10, 22, 40, 0.6)',
         border: '2px solid',
         borderRadius: '12px',
         display: 'flex',
@@ -677,7 +704,7 @@ const styles = {
     },
     footer: {
         padding: '40px',
-        borderTop: '1px solid rgba(255, 140, 0, 0.1)',
+        borderTop: '1px solid rgba(0, 212, 255, 0.1)',
         position: 'relative',
         zIndex: 5,
     },
@@ -710,12 +737,12 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#0a0a0f',
+        background: '#0a1628',
         gap: '24px',
     },
     loadingText: {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: '18px',
-        color: '#ff8c00',
+        color: '#00D4FF',
     },
 };

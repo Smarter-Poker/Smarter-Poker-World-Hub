@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SMARTER.POKER — SIGN IN ACCESS NODE
    Phone OTP Verification via Supabase + Twilio
-   Orange Ball Accent | Deep Black Background
+   Cyan/Electric Blue Aesthetic | Deep Navy Background
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
@@ -118,10 +118,10 @@ export default function SignInPage() {
                 {/* Auth Card */}
                 <div style={{
                     ...styles.authCard,
-                    boxShadow: `0 0 60px rgba(255, 140, 0, ${0.1 + glowPulse * 0.1})`,
+                    boxShadow: `0 0 60px rgba(0, 212, 255, ${0.1 + glowPulse * 0.1})`,
                 }}>
                     <div style={styles.logoSection}>
-                        <OrangeBall size={48} />
+                        <BrainIcon size={48} />
                         <h1 style={styles.title}>Welcome Back</h1>
                         <p style={styles.subtitle}>
                             {step === 'phone'
@@ -175,7 +175,7 @@ export default function SignInPage() {
                                     value={otp}
                                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                     placeholder="123456"
-                                    style={{ ...styles.input, textAlign: 'center', letterSpacing: '8px', fontSize: '24px' }}
+                                    style={{ ...styles.otpInput, textAlign: 'center', letterSpacing: '8px', fontSize: '24px' }}
                                     maxLength={6}
                                     required
                                     autoFocus
@@ -211,7 +211,7 @@ export default function SignInPage() {
                         onClick={() => router.push('/auth/signup')}
                         style={styles.signupLink}
                     >
-                        Don't have an account? <span style={styles.orangeText}>Sign Up</span>
+                        Don't have an account? <span style={styles.cyanText}>Sign Up</span>
                     </button>
                 </div>
             </div>
@@ -220,23 +220,31 @@ export default function SignInPage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🟠 ORANGE BALL
+// 🧠 BRAIN ICON
 // ─────────────────────────────────────────────────────────────────────────────
-function OrangeBall({ size = 24 }) {
+function BrainIcon({ size = 24 }) {
     return (
         <div style={{
             width: size,
             height: size,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle at 30% 30%, #ffa500, #ff6600)',
-            boxShadow: `0 0 ${size / 2}px rgba(255, 140, 0, 0.6)`,
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, #0a1628, #1a2a4a)',
+            border: '2px solid #00D4FF',
+            boxShadow: `0 0 ${size / 2}px rgba(0, 212, 255, 0.6)`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             flexShrink: 0,
-        }} />
+        }}>
+            <svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2">
+                <path d="M12 2a4 4 0 014 4c0 1.5-.8 2.8-2 3.5V12h2a4 4 0 110 8h-8a4 4 0 110-8h2V9.5A4 4 0 018 6a4 4 0 014-4z" />
+            </svg>
+        </div>
     );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🎨 STYLES
+// 🎨 STYLES — CYAN/ELECTRIC BLUE THEME
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = {
     container: {
@@ -244,7 +252,7 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#0a0a0f',
+        background: '#0a1628',
         fontFamily: 'Inter, -apple-system, sans-serif',
         position: 'relative',
         padding: '40px 20px',
@@ -256,8 +264,8 @@ const styles = {
         right: 0,
         bottom: 0,
         backgroundImage: `
-            linear-gradient(rgba(255, 140, 0, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 140, 0, 0.03) 1px, transparent 1px)
+            linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px)
         `,
         backgroundSize: '60px 60px',
         pointerEvents: 'none',
@@ -268,7 +276,7 @@ const styles = {
         left: '50%',
         width: '100%',
         height: '100%',
-        background: 'radial-gradient(ellipse at center, rgba(255, 140, 0, 0.2), transparent 60%)',
+        background: 'radial-gradient(ellipse at center, rgba(0, 212, 255, 0.2), transparent 60%)',
         transform: 'translate(-50%, -50%)',
         pointerEvents: 'none',
     },
@@ -280,8 +288,8 @@ const styles = {
         alignItems: 'center',
         gap: '8px',
         padding: '10px 16px',
-        background: 'rgba(255, 140, 0, 0.1)',
-        border: '1px solid rgba(255, 140, 0, 0.3)',
+        background: 'rgba(0, 212, 255, 0.1)',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
         borderRadius: '8px',
         color: '#ffffff',
         fontFamily: 'Orbitron, sans-serif',
@@ -295,9 +303,9 @@ const styles = {
         width: '100%',
         maxWidth: '420px',
         padding: '40px',
-        background: 'linear-gradient(180deg, rgba(20, 20, 30, 0.95), rgba(10, 10, 20, 0.98))',
+        background: 'linear-gradient(180deg, rgba(10, 22, 40, 0.95), rgba(5, 15, 30, 0.98))',
         borderRadius: '24px',
-        border: '1px solid rgba(255, 140, 0, 0.2)',
+        border: '1px solid rgba(0, 212, 255, 0.2)',
         backdropFilter: 'blur(20px)',
         position: 'relative',
         zIndex: 5,
@@ -353,17 +361,17 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         background: 'rgba(0, 0, 0, 0.3)',
-        border: '2px solid rgba(255, 140, 0, 0.3)',
+        border: '2px solid rgba(0, 212, 255, 0.3)',
         borderRadius: '12px',
         overflow: 'hidden',
     },
     phonePrefix: {
         padding: '16px',
-        background: 'rgba(255, 140, 0, 0.1)',
+        background: 'rgba(0, 212, 255, 0.1)',
         fontFamily: 'Orbitron, sans-serif',
         fontSize: '14px',
         fontWeight: 600,
-        color: '#ff8c00',
+        color: '#00D4FF',
     },
     input: {
         flex: 1,
@@ -375,9 +383,19 @@ const styles = {
         fontSize: '16px',
         color: '#ffffff',
     },
+    otpInput: {
+        padding: '16px',
+        background: 'rgba(0, 0, 0, 0.3)',
+        border: '2px solid rgba(0, 212, 255, 0.3)',
+        borderRadius: '12px',
+        fontFamily: 'Inter, sans-serif',
+        fontSize: '16px',
+        color: '#ffffff',
+        outline: 'none',
+    },
     submitButton: {
         padding: '16px',
-        background: 'linear-gradient(135deg, #ff8c00, #ff6600)',
+        background: 'linear-gradient(135deg, #00D4FF, #0066FF)',
         border: 'none',
         borderRadius: '12px',
         color: '#000000',
@@ -400,6 +418,7 @@ const styles = {
     divider: {
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         margin: '24px 0',
         color: 'rgba(255, 255, 255, 0.3)',
         fontSize: '12px',
@@ -408,7 +427,7 @@ const styles = {
         width: '100%',
         padding: '12px',
         background: 'transparent',
-        border: '1px solid rgba(255, 140, 0, 0.2)',
+        border: '1px solid rgba(0, 212, 255, 0.2)',
         borderRadius: '12px',
         color: 'rgba(255, 255, 255, 0.6)',
         fontFamily: 'Inter, sans-serif',
@@ -416,8 +435,8 @@ const styles = {
         cursor: 'pointer',
         transition: 'all 0.3s ease',
     },
-    orangeText: {
-        color: '#ff8c00',
+    cyanText: {
+        color: '#00D4FF',
         fontWeight: 600,
     },
 };

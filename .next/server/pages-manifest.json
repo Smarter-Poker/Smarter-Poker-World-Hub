@@ -1,1 +1,9 @@
-{"/_app":"pages/_app.js","/_error":"pages/_error.js","/auth/callback":"pages/auth/callback.html","/auth/login":"pages/auth/login.html","/auth/signin":"pages/auth/signin.html","/auth/signup":"pages/auth/signup.html","/hub":"pages/hub.html","/":"pages/index.html","/_document":"pages/_document.js","/404":"pages/404.html"}
+{
+  "/_app": "pages/_app.js",
+  "/_error": "pages/_error.js",
+  "/_document": "pages/_document.js",
+  "/auth/signup": "pages/auth/signup.js",
+  "/": "pages/index.js",
+  "/terms": "pages/terms.js",
+  "/auth/signin": "pages/auth/signin.js"
+}
