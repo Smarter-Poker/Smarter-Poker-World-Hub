@@ -722,54 +722,63 @@ export default function SocialMediaPage() {
 
     // Send message with full Supabase integration
     const handleSendMessage = async (chatId, message) => {
-        if (!currentUser?.id) return;
-
-        const convId = conversationIds[chatId] || await getOrCreateConversation(chatId);
-        if (!convId) {
-            console.error('No conversation ID available');
-            return;
-        }
-
-        // Optimistic update with temp ID
-        const tempId = `temp-${Date.now()}`;
-        const optimisticMsg = {
+        // Create message locally first (works for all users)
+        const tempId = `local-${Date.now()}`;
+        const newMsg = {
             id: tempId,
             text: message,
             fromMe: true,
             timestamp: new Date().toISOString(),
-            senderId: currentUser.id,
-            readBy: [{ userId: currentUser.id, readAt: new Date().toISOString() }],
+            senderId: currentUser?.id || 'anonymous',
+            readBy: currentUser?.id
+                ? [{ userId: currentUser.id, readAt: new Date().toISOString() }]
+                : [],
+            synced: false,
         };
 
+        // Optimistic update - always add message locally
         setChatMessages(prev => ({
             ...prev,
-            [chatId]: [...(prev[chatId] || []), optimisticMsg],
+            [chatId]: [...(prev[chatId] || []), newMsg],
         }));
 
-        try {
-            // Send to Supabase using RPC
-            const { data: messageId, error } = await supabase.rpc('fn_send_message', {
-                p_conversation_id: convId,
-                p_sender_id: currentUser.id,
-                p_content: message,
-            });
+        // If user is authenticated, try to sync to database
+        if (currentUser?.id) {
+            const convId = conversationIds[chatId] || await getOrCreateConversation(chatId);
 
-            if (error) throw error;
+            if (convId) {
+                try {
+                    // Send to Supabase using RPC
+                    const { data: messageId, error } = await supabase.rpc('fn_send_message', {
+                        p_conversation_id: convId,
+                        p_sender_id: currentUser.id,
+                        p_content: message,
+                    });
 
-            // Update with real ID
-            setChatMessages(prev => ({
-                ...prev,
-                [chatId]: (prev[chatId] || []).map(msg =>
-                    msg.id === tempId ? { ...msg, id: messageId } : msg
-                ),
-            }));
-        } catch (err) {
-            console.error('Error sending message:', err);
-            // Remove optimistic message on error
-            setChatMessages(prev => ({
-                ...prev,
-                [chatId]: (prev[chatId] || []).filter(msg => msg.id !== tempId),
-            }));
+                    if (error) throw error;
+
+                    // Update with real ID and mark as synced
+                    setChatMessages(prev => ({
+                        ...prev,
+                        [chatId]: (prev[chatId] || []).map(msg =>
+                            msg.id === tempId
+                                ? { ...msg, id: messageId, synced: true }
+                                : msg
+                        ),
+                    }));
+                } catch (err) {
+                    console.warn('Message saved locally only (DB sync failed):', err.message);
+                    // Keep the message locally - mark synced as false
+                    setChatMessages(prev => ({
+                        ...prev,
+                        [chatId]: (prev[chatId] || []).map(msg =>
+                            msg.id === tempId
+                                ? { ...msg, synced: false }
+                                : msg
+                        ),
+                    }));
+                }
+            }
         }
     };
 
