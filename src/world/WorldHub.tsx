@@ -402,9 +402,11 @@ export default function WorldHub() {
 
     return (
         <div style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
             background: '#0a0a0f',
             overflow: 'hidden',
         }}>
