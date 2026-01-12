@@ -1,7 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SMARTER.POKER — SIGN UP REGISTRATION NODE
-   Multi-Step Registration: Info → Email OTP → Phone OTP → Profile Creation
-   Dual Verification (Email + Phone) Required
+   Simplified Email/Password Registration (No OTP for testing)
    Cyan/Electric Blue Aesthetic | Deep Navy Background
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -20,27 +19,25 @@ const US_STATES = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 📝 SIGN UP PAGE — MULTI-STEP FLOW
+// 📝 SIGN UP PAGE — SIMPLIFIED EMAIL/PASSWORD FLOW
 // ─────────────────────────────────────────────────────────────────────────────
 export default function SignUpPage() {
     const router = useRouter();
 
-    // Step: 'info' → 'email-verify' → 'phone-verify' → 'success' → redirect
+    // Step: 'info' → 'success' → redirect
     const [step, setStep] = useState('info');
 
     // Form data
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
+        password: '',
+        confirmPassword: '',
         city: '',
         state: '',
         pokerAlias: '',
         phone: '',
     });
-
-    // Verification codes
-    const [emailOtp, setEmailOtp] = useState('');
-    const [phoneOtp, setPhoneOtp] = useState('');
 
     // UI state
     const [loading, setLoading] = useState(false);
@@ -49,7 +46,6 @@ export default function SignUpPage() {
     const [aliasChecking, setAliasChecking] = useState(false);
     const [aliasAvailable, setAliasAvailable] = useState(null);
     const [glowPulse, setGlowPulse] = useState(0);
-    const [emailVerified, setEmailVerified] = useState(false);
 
     // Player number assigned after successful registration
     const [assignedPlayerNumber, setAssignedPlayerNumber] = useState(null);
@@ -120,9 +116,9 @@ export default function SignUpPage() {
     };
 
     // ─────────────────────────────────────────────────────────────────────────
-    // STEP 1: Submit user info and send email verification
+    // SUBMIT: Create account with email/password
     // ─────────────────────────────────────────────────────────────────────────
-    const handleInfoSubmit = async (e) => {
+    const handleSignUp = async (e) => {
         e.preventDefault();
         setError('');
 
@@ -142,6 +138,16 @@ export default function SignUpPage() {
             return;
         }
 
+        if (formData.password.length < 6) {
+            setError('Password must be at least 6 characters');
+            return;
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+            setError('Passwords do not match');
+            return;
+        }
+
         const cleanPhone = formData.phone.replace(/\D/g, '');
         if (cleanPhone.length !== 10) {
             setError('Please enter a valid 10-digit phone number');
@@ -151,9 +157,10 @@ export default function SignUpPage() {
         setLoading(true);
 
         try {
-            // Send email OTP first
-            const { error } = await supabase.auth.signInWithOtp({
+            // Step 1: Create auth user with email/password
+            const { data: authData, error: signUpError } = await supabase.auth.signUp({
                 email: formData.email,
+                password: formData.password,
                 options: {
                     data: {
                         full_name: formData.fullName,
@@ -161,176 +168,87 @@ export default function SignUpPage() {
                         city: formData.city,
                         state: formData.state,
                     },
+                    // Skip email confirmation for testing
+                    emailRedirectTo: undefined,
                 },
             });
 
-            if (error) throw error;
+            if (signUpError) throw signUpError;
 
-            setStep('email-verify');
-        } catch (err) {
-            setError(err.message || 'Failed to send email verification code');
-        } finally {
-            setLoading(false);
-        }
-    };
+            console.log('Auth user created:', authData);
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // STEP 2: Verify email OTP, then send phone verification
-    // ─────────────────────────────────────────────────────────────────────────
-    const handleEmailVerify = async (e) => {
-        e.preventDefault();
-        setError('');
-        setLoading(true);
+            // Step 2: Create profile directly
+            if (authData.user) {
+                const cleanPhoneFormatted = '+1' + cleanPhone;
 
-        try {
-            // Verify email OTP
-            const { data, error: verifyError } = await supabase.auth.verifyOtp({
-                email: formData.email,
-                token: emailOtp,
-                type: 'email',
-            });
+                // Try RPC first
+                try {
+                    const { data: profileData, error: rpcError } = await supabase
+                        .rpc('initialize_player_profile', {
+                            p_user_id: authData.user.id,
+                            p_full_name: formData.fullName,
+                            p_email: formData.email,
+                            p_phone: cleanPhoneFormatted,
+                            p_city: formData.city,
+                            p_state: formData.state,
+                            p_username: formData.pokerAlias,
+                        });
 
-            if (verifyError) throw verifyError;
+                    if (rpcError) {
+                        console.log('RPC failed, trying direct insert:', rpcError);
+                        throw rpcError;
+                    }
 
-            setEmailVerified(true);
-
-            // Now send phone OTP
-            const cleanPhone = '+1' + formData.phone.replace(/\D/g, '');
-
-            const { error: phoneError } = await supabase.auth.signInWithOtp({
-                phone: cleanPhone,
-            });
-
-            if (phoneError) throw phoneError;
-
-            setStep('phone-verify');
-        } catch (err) {
-            setError(err.message || 'Invalid email verification code');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // STEP 3: Verify phone OTP and create profile with player number
-    // ─────────────────────────────────────────────────────────────────────────
-    const handlePhoneVerify = async (e) => {
-        e.preventDefault();
-        setError('');
-        setLoading(true);
-
-        const cleanPhone = '+1' + formData.phone.replace(/\D/g, '');
-
-        try {
-            // Verify phone OTP
-            const { data, error: verifyError } = await supabase.auth.verifyOtp({
-                phone: cleanPhone,
-                token: phoneOtp,
-                type: 'sms',
-            });
-
-            if (verifyError) throw verifyError;
-
-            // Create/update user profile using the database function
-            // This atomically assigns a player number
-            if (data.user) {
-                const { data: profileData, error: profileError } = await supabase
-                    .rpc('initialize_player_profile', {
-                        p_user_id: data.user.id,
-                        p_full_name: formData.fullName,
-                        p_email: formData.email,
-                        p_phone: cleanPhone,
-                        p_city: formData.city,
-                        p_state: formData.state,
-                        p_username: formData.pokerAlias,
-                    });
-
-                if (profileError) {
-                    console.error('Profile creation error:', profileError);
-                    // Fallback to direct insert if function fails
-                    const { error: fallbackError } = await supabase
+                    if (profileData && profileData.length > 0) {
+                        setAssignedPlayerNumber(profileData[0].player_number);
+                    }
+                } catch (rpcErr) {
+                    // Fallback to direct insert
+                    console.log('Fallback: Direct profile insert');
+                    const { error: insertError } = await supabase
                         .from('profiles')
                         .upsert({
-                            id: data.user.id,
+                            id: authData.user.id,
                             full_name: formData.fullName,
                             email: formData.email,
-                            phone: cleanPhone,
+                            phone: cleanPhoneFormatted,
                             city: formData.city,
                             state: formData.state,
                             username: formData.pokerAlias,
                             xp_total: 0,
-                            diamonds: 0,
+                            diamonds: 100, // Starting bonus
                             diamond_multiplier: 1.0,
                             streak_days: 0,
                             skill_tier: 'Newcomer',
-                            email_verified: true,
-                            phone_verified: true,
                             created_at: new Date().toISOString(),
                             last_login: new Date().toISOString(),
                         }, {
                             onConflict: 'id',
                         });
 
-                    if (fallbackError) {
-                        console.error('Fallback profile creation error:', fallbackError);
+                    if (insertError) {
+                        console.error('Profile insert error:', insertError);
                     }
 
-                    // Try to get the player number from the profile
-                    const { data: existingProfile } = await supabase
+                    // Try to get player number
+                    const { data: profile } = await supabase
                         .from('profiles')
                         .select('player_number')
-                        .eq('id', data.user.id)
+                        .eq('id', authData.user.id)
                         .single();
 
-                    if (existingProfile?.player_number) {
-                        setAssignedPlayerNumber(existingProfile.player_number);
+                    if (profile?.player_number) {
+                        setAssignedPlayerNumber(profile.player_number);
                     }
-                } else if (profileData && profileData.length > 0) {
-                    // Got the player number from the function
-                    setAssignedPlayerNumber(profileData[0].player_number);
                 }
             }
 
-            // Show success screen with player number
+            // Show success
             setStep('success');
-        } catch (err) {
-            setError(err.message || 'Invalid phone verification code');
-        } finally {
-            setLoading(false);
-        }
-    };
 
-    // Resend email code
-    const resendEmailCode = async () => {
-        setLoading(true);
-        setError('');
-        try {
-            const { error } = await supabase.auth.signInWithOtp({
-                email: formData.email,
-            });
-            if (error) throw error;
-            setError(''); // Clear any previous error
-            alert('Verification code sent to your email!');
         } catch (err) {
-            setError(err.message || 'Failed to resend code');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Resend phone code
-    const resendPhoneCode = async () => {
-        setLoading(true);
-        setError('');
-        try {
-            const cleanPhone = '+1' + formData.phone.replace(/\D/g, '');
-            const { error } = await supabase.auth.signInWithOtp({
-                phone: cleanPhone,
-            });
-            if (error) throw error;
-            alert('Verification code sent to your phone!');
-        } catch (err) {
-            setError(err.message || 'Failed to resend code');
+            console.error('Signup error:', err);
+            setError(err.message || 'Failed to create account');
         } finally {
             setLoading(false);
         }
@@ -363,15 +281,6 @@ export default function SignUpPage() {
                     <span>Back</span>
                 </button>
 
-                {/* Progress Indicator */}
-                <div style={styles.progressBar}>
-                    <ProgressStep number={1} label="Info" active={step === 'info'} completed={step !== 'info'} />
-                    <div style={styles.progressLine} />
-                    <ProgressStep number={2} label="Email" active={step === 'email-verify'} completed={step === 'phone-verify'} />
-                    <div style={styles.progressLine} />
-                    <ProgressStep number={3} label="Phone" active={step === 'phone-verify'} completed={false} />
-                </div>
-
                 {/* Auth Card */}
                 <div style={{
                     ...styles.authCard,
@@ -381,13 +290,11 @@ export default function SignUpPage() {
                         <BrainIcon size={48} />
                         <h1 style={styles.title}>
                             {step === 'info' && 'Create Account'}
-                            {step === 'email-verify' && 'Verify Email'}
-                            {step === 'phone-verify' && 'Verify Phone'}
+                            {step === 'success' && 'Welcome!'}
                         </h1>
                         <p style={styles.subtitle}>
                             {step === 'info' && 'Start your GTO training journey'}
-                            {step === 'email-verify' && `Enter the code sent to ${formData.email}`}
-                            {step === 'phone-verify' && `Enter the code sent to +1 ${formatPhone(formData.phone)}`}
+                            {step === 'success' && 'Your account has been created'}
                         </p>
                     </div>
 
@@ -398,10 +305,10 @@ export default function SignUpPage() {
                     )}
 
                     {/* ═══════════════════════════════════════════════════════════════
-                        STEP 1: USER INFORMATION
+                        STEP 1: USER INFORMATION + PASSWORD
                         ═══════════════════════════════════════════════════════════════ */}
                     {step === 'info' && (
-                        <form onSubmit={handleInfoSubmit} style={styles.form}>
+                        <form onSubmit={handleSignUp} style={styles.form}>
                             {/* Full Name */}
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Full Name</label>
@@ -426,6 +333,34 @@ export default function SignUpPage() {
                                     style={styles.inputSingle}
                                     required
                                 />
+                            </div>
+
+                            {/* Password */}
+                            <div style={styles.rowGroup}>
+                                <div style={{ ...styles.inputGroup, flex: 1 }}>
+                                    <label style={styles.label}>Password</label>
+                                    <input
+                                        type="password"
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        placeholder="••••••••"
+                                        style={styles.inputSingle}
+                                        minLength={6}
+                                        required
+                                    />
+                                </div>
+                                <div style={{ ...styles.inputGroup, flex: 1 }}>
+                                    <label style={styles.label}>Confirm</label>
+                                    <input
+                                        type="password"
+                                        value={formData.confirmPassword}
+                                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                        placeholder="••••••••"
+                                        style={styles.inputSingle}
+                                        minLength={6}
+                                        required
+                                    />
+                                </div>
                             </div>
 
                             {/* City & State */}
@@ -519,7 +454,7 @@ export default function SignUpPage() {
                                 }}
                                 disabled={loading || aliasAvailable === false}
                             >
-                                {loading ? 'Sending Verification...' : 'Continue'}
+                                {loading ? 'Creating Account...' : 'Create Account'}
                             </button>
 
                             <p style={styles.terms}>
@@ -532,106 +467,7 @@ export default function SignUpPage() {
                     )}
 
                     {/* ═══════════════════════════════════════════════════════════════
-                        STEP 2: EMAIL VERIFICATION
-                        ═══════════════════════════════════════════════════════════════ */}
-                    {step === 'email-verify' && (
-                        <form onSubmit={handleEmailVerify} style={styles.form}>
-                            <div style={styles.verifyIcon}>📧</div>
-
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>Email Verification Code</label>
-                                <input
-                                    type="text"
-                                    value={emailOtp}
-                                    onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                    placeholder="123456"
-                                    style={{ ...styles.inputSingle, textAlign: 'center', letterSpacing: '8px', fontSize: '24px' }}
-                                    maxLength={6}
-                                    required
-                                    autoFocus
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                style={{
-                                    ...styles.submitButton,
-                                    opacity: loading ? 0.7 : 1,
-                                }}
-                                disabled={loading}
-                            >
-                                {loading ? 'Verifying...' : 'Verify Email'}
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={resendEmailCode}
-                                style={styles.secondaryButton}
-                                disabled={loading}
-                            >
-                                Resend Code
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setStep('info')}
-                                style={styles.backLink}
-                            >
-                                ← Back to Information
-                            </button>
-                        </form>
-                    )}
-
-                    {/* ═══════════════════════════════════════════════════════════════
-                        STEP 3: PHONE VERIFICATION
-                        ═══════════════════════════════════════════════════════════════ */}
-                    {step === 'phone-verify' && (
-                        <form onSubmit={handlePhoneVerify} style={styles.form}>
-                            <div style={styles.verifyIcon}>📱</div>
-
-                            <div style={styles.verifiedBadge}>
-                                <span style={styles.verifiedCheck}>✓</span>
-                                <span>Email Verified</span>
-                            </div>
-
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>Phone Verification Code</label>
-                                <input
-                                    type="text"
-                                    value={phoneOtp}
-                                    onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                    placeholder="123456"
-                                    style={{ ...styles.inputSingle, textAlign: 'center', letterSpacing: '8px', fontSize: '24px' }}
-                                    maxLength={6}
-                                    required
-                                    autoFocus
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                style={{
-                                    ...styles.submitButton,
-                                    opacity: loading ? 0.7 : 1,
-                                }}
-                                disabled={loading}
-                            >
-                                {loading ? 'Creating Account...' : 'Verify & Complete'}
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={resendPhoneCode}
-                                style={styles.secondaryButton}
-                                disabled={loading}
-                            >
-                                Resend Code
-                            </button>
-                        </form>
-                    )}
-
-                    {/* ═══════════════════════════════════════════════════════════════
-                        STEP 4: SUCCESS — PLAYER NUMBER ISSUED
+                        SUCCESS — ACCOUNT CREATED
                         ═══════════════════════════════════════════════════════════════ */}
                     {step === 'success' && (
                         <div style={styles.successContainer}>
@@ -649,17 +485,6 @@ export default function SignUpPage() {
                                 </span>
                             </div>
 
-                            <div style={styles.verifiedBadges}>
-                                <div style={styles.verifiedItem}>
-                                    <span style={styles.verifiedCheck}>✓</span>
-                                    <span>Email Verified</span>
-                                </div>
-                                <div style={styles.verifiedItem}>
-                                    <span style={styles.verifiedCheck}>✓</span>
-                                    <span>Phone Verified</span>
-                                </div>
-                            </div>
-
                             <div style={styles.profileSummary}>
                                 <div style={styles.profileRow}>
                                     <span style={styles.profileLabel}>Alias</span>
@@ -670,8 +495,8 @@ export default function SignUpPage() {
                                     <span style={styles.profileValue}>{formData.city}, {formData.state}</span>
                                 </div>
                                 <div style={styles.profileRow}>
-                                    <span style={styles.profileLabel}>XP</span>
-                                    <span style={styles.profileValue}>0</span>
+                                    <span style={styles.profileLabel}>Starting Diamonds</span>
+                                    <span style={styles.profileValue}>💎 100</span>
                                 </div>
                                 <div style={styles.profileRow}>
                                     <span style={styles.profileLabel}>Skill Tier</span>
@@ -733,48 +558,6 @@ function BrainIcon({ size = 24 }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 📊 PROGRESS STEP
-// ─────────────────────────────────────────────────────────────────────────────
-function ProgressStep({ number, label, active, completed }) {
-    return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '8px',
-        }}>
-            <div style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: completed ? 'linear-gradient(135deg, #00ff66, #00cc52)' :
-                    active ? 'linear-gradient(135deg, #00D4FF, #0066FF)' :
-                        'rgba(255, 255, 255, 0.1)',
-                border: `2px solid ${completed ? '#00ff66' : active ? '#00D4FF' : 'rgba(255, 255, 255, 0.2)'}`,
-                fontFamily: 'Orbitron, sans-serif',
-                fontSize: '14px',
-                fontWeight: 700,
-                color: completed || active ? '#000' : 'rgba(255, 255, 255, 0.5)',
-            }}>
-                {completed ? '✓' : number}
-            </div>
-            <span style={{
-                fontSize: '10px',
-                fontFamily: 'Orbitron, sans-serif',
-                color: active ? '#00D4FF' : 'rgba(255, 255, 255, 0.5)',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-            }}>
-                {label}
-            </span>
-        </div>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // 🎨 STYLES — CYAN/ELECTRIC BLUE THEME
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = {
@@ -830,19 +613,6 @@ const styles = {
         cursor: 'pointer',
         transition: 'all 0.3s ease',
         zIndex: 10,
-    },
-    progressBar: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        marginBottom: '32px',
-        position: 'relative',
-        zIndex: 5,
-    },
-    progressLine: {
-        width: '40px',
-        height: '2px',
-        background: 'rgba(255, 255, 255, 0.2)',
     },
     authCard: {
         width: '100%',
@@ -1008,48 +778,6 @@ const styles = {
         color: '#00D4FF',
         textDecoration: 'underline',
     },
-    secondaryButton: {
-        padding: '12px',
-        background: 'transparent',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: '8px',
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: '13px',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease',
-    },
-    backLink: {
-        padding: '8px',
-        background: 'transparent',
-        border: 'none',
-        color: 'rgba(255, 255, 255, 0.4)',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: '12px',
-        cursor: 'pointer',
-    },
-    verifyIcon: {
-        fontSize: '48px',
-        textAlign: 'center',
-        marginBottom: '8px',
-    },
-    verifiedBadge: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '8px',
-        padding: '10px 16px',
-        background: 'rgba(0, 255, 102, 0.1)',
-        border: '1px solid rgba(0, 255, 102, 0.3)',
-        borderRadius: '8px',
-        color: '#00ff66',
-        fontSize: '13px',
-        fontFamily: 'Orbitron, sans-serif',
-        marginBottom: '8px',
-    },
-    verifiedCheck: {
-        fontSize: '16px',
-    },
     divider: {
         display: 'flex',
         alignItems: 'center',
@@ -1128,24 +856,6 @@ const styles = {
         color: 'rgba(255, 255, 255, 0.5)',
         textAlign: 'center',
         maxWidth: '200px',
-    },
-    verifiedBadges: {
-        display: 'flex',
-        gap: '16px',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-    },
-    verifiedItem: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '8px 12px',
-        background: 'rgba(0, 255, 102, 0.1)',
-        border: '1px solid rgba(0, 255, 102, 0.3)',
-        borderRadius: '8px',
-        color: '#00ff66',
-        fontSize: '12px',
-        fontFamily: 'Orbitron, sans-serif',
     },
     profileSummary: {
         width: '100%',

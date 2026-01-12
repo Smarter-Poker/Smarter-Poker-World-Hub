@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SMARTER.POKER — SIGN IN ACCESS NODE
-   Phone OTP Verification via Supabase + Twilio
+   Email/Password Authentication (Simplified for testing)
    Cyan/Electric Blue Aesthetic | Deep Navy Background
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -14,9 +14,8 @@ import { supabase } from '../../src/lib/supabase';
 // ─────────────────────────────────────────────────────────────────────────────
 export default function SignInPage() {
     const router = useRouter();
-    const [step, setStep] = useState('phone'); // 'phone' | 'otp'
-    const [phone, setPhone] = useState('');
-    const [otp, setOtp] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [glowPulse, setGlowPulse] = useState(0);
@@ -34,50 +33,16 @@ export default function SignInPage() {
         return () => cancelAnimationFrame(frame);
     }, []);
 
-    // Format phone number
-    const formatPhone = (value) => {
-        const cleaned = value.replace(/\D/g, '');
-        if (cleaned.length <= 3) return cleaned;
-        if (cleaned.length <= 6) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
-        return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
-    };
-
-    // Handle phone submission
-    const handlePhoneSubmit = async (e) => {
+    // Handle sign in
+    const handleSignIn = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
-        const cleanPhone = '+1' + phone.replace(/\D/g, '');
-
         try {
-            const { error } = await supabase.auth.signInWithOtp({
-                phone: cleanPhone,
-            });
-
-            if (error) throw error;
-
-            setStep('otp');
-        } catch (err) {
-            setError(err.message || 'Failed to send verification code');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Handle OTP verification
-    const handleOtpSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        setLoading(true);
-
-        const cleanPhone = '+1' + phone.replace(/\D/g, '');
-
-        try {
-            const { data, error } = await supabase.auth.verifyOtp({
-                phone: cleanPhone,
-                token: otp,
-                type: 'sms',
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password,
             });
 
             if (error) throw error;
@@ -85,7 +50,8 @@ export default function SignInPage() {
             // Redirect to hub on success
             router.push('/hub');
         } catch (err) {
-            setError(err.message || 'Invalid verification code');
+            console.error('Sign in error:', err);
+            setError(err.message || 'Invalid email or password');
         } finally {
             setLoading(false);
         }
@@ -123,12 +89,7 @@ export default function SignInPage() {
                     <div style={styles.logoSection}>
                         <BrainIcon size={48} />
                         <h1 style={styles.title}>Welcome Back</h1>
-                        <p style={styles.subtitle}>
-                            {step === 'phone'
-                                ? 'Enter your phone number to sign in'
-                                : 'Enter the verification code we sent you'
-                            }
-                        </p>
+                        <p style={styles.subtitle}>Sign in to continue your training</p>
                     </div>
 
                     {error && (
@@ -137,71 +98,42 @@ export default function SignInPage() {
                         </div>
                     )}
 
-                    {step === 'phone' ? (
-                        <form onSubmit={handlePhoneSubmit} style={styles.form}>
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>Phone Number</label>
-                                <div style={styles.phoneInput}>
-                                    <span style={styles.phonePrefix}>+1</span>
-                                    <input
-                                        type="tel"
-                                        value={formatPhone(phone)}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                        placeholder="(555) 123-4567"
-                                        style={styles.input}
-                                        maxLength={14}
-                                        required
-                                    />
-                                </div>
-                            </div>
+                    <form onSubmit={handleSignIn} style={styles.form}>
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Email Address</label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="you@example.com"
+                                style={styles.inputSingle}
+                                required
+                            />
+                        </div>
 
-                            <button
-                                type="submit"
-                                style={{
-                                    ...styles.submitButton,
-                                    opacity: loading ? 0.7 : 1,
-                                }}
-                                disabled={loading}
-                            >
-                                {loading ? 'Sending...' : 'Send Verification Code'}
-                            </button>
-                        </form>
-                    ) : (
-                        <form onSubmit={handleOtpSubmit} style={styles.form}>
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>Verification Code</label>
-                                <input
-                                    type="text"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                    placeholder="123456"
-                                    style={{ ...styles.otpInput, textAlign: 'center', letterSpacing: '8px', fontSize: '24px' }}
-                                    maxLength={6}
-                                    required
-                                    autoFocus
-                                />
-                            </div>
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Password</label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                style={styles.inputSingle}
+                                required
+                            />
+                        </div>
 
-                            <button
-                                type="submit"
-                                style={{
-                                    ...styles.submitButton,
-                                    opacity: loading ? 0.7 : 1,
-                                }}
-                                disabled={loading}
-                            >
-                                {loading ? 'Verifying...' : 'Verify & Sign In'}
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setStep('phone')}
-                                style={styles.secondaryButton}
-                            >
-                                Use Different Number
-                            </button>
-                        </form>
-                    )}
+                        <button
+                            type="submit"
+                            style={{
+                                ...styles.submitButton,
+                                opacity: loading ? 0.7 : 1,
+                            }}
+                            disabled={loading}
+                        >
+                            {loading ? 'Signing In...' : 'Sign In'}
+                        </button>
+                    </form>
 
                     <div style={styles.divider}>
                         <span>or</span>
@@ -357,33 +289,7 @@ const styles = {
         textTransform: 'uppercase',
         letterSpacing: '1px',
     },
-    phoneInput: {
-        display: 'flex',
-        alignItems: 'center',
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '2px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: '12px',
-        overflow: 'hidden',
-    },
-    phonePrefix: {
-        padding: '16px',
-        background: 'rgba(0, 212, 255, 0.1)',
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '14px',
-        fontWeight: 600,
-        color: '#00D4FF',
-    },
-    input: {
-        flex: 1,
-        padding: '16px',
-        background: 'transparent',
-        border: 'none',
-        outline: 'none',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: '16px',
-        color: '#ffffff',
-    },
-    otpInput: {
+    inputSingle: {
         padding: '16px',
         background: 'rgba(0, 0, 0, 0.3)',
         border: '2px solid rgba(0, 212, 255, 0.3)',
@@ -404,16 +310,6 @@ const styles = {
         fontWeight: 700,
         cursor: 'pointer',
         transition: 'all 0.3s ease',
-    },
-    secondaryButton: {
-        padding: '12px',
-        background: 'transparent',
-        border: 'none',
-        color: 'rgba(255, 255, 255, 0.5)',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: '13px',
-        cursor: 'pointer',
-        transition: 'color 0.3s ease',
     },
     divider: {
         display: 'flex',
