@@ -461,6 +461,7 @@ export default function MemoryGamesPage() {
                             <div style={styles.levelGrid}>
                                 {LEVELS.map((level, idx) => {
                                     const scenarioCount = getLevelScenarios(level.level);
+                                    const levelConfig = getLevelConfig(level.level);
                                     const isUnlocked = idx === 0 || consecutivePasses >= (idx * 5);
 
                                     return (
@@ -478,7 +479,11 @@ export default function MemoryGamesPage() {
                                             <h3 style={styles.levelName}>{level.name}</h3>
                                             <p style={styles.levelFocus}>{level.focus}</p>
                                             <div style={styles.levelMeta}>
-                                                <span>{scenarioCount} scenarios</span>
+                                                <span>⏱️ {levelConfig.timer}s</span>
+                                                <span>×{levelConfig.xpMultiplier} XP</span>
+                                            </div>
+                                            <div style={styles.levelMeta}>
+                                                <span>{scenarioCount} scenario{scenarioCount !== 1 ? 's' : ''}</span>
                                                 {!isUnlocked && <span>🔒</span>}
                                             </div>
                                         </div>
@@ -534,9 +539,12 @@ export default function MemoryGamesPage() {
                             {/* Scenario Header */}
                             <div style={styles.gameHeader}>
                                 <div>
-                                    <div style={styles.levelBadge}>Level {currentLevel}</div>
+                                    <div style={styles.levelBadge}>Level {currentLevel} • ⏱️ {getLevelConfig(currentLevel).timer}s</div>
                                     <h2 style={styles.scenarioTitle}>{currentScenario.title}</h2>
                                     <p style={styles.scenarioDesc}>{currentScenario.description}</p>
+                                    {currentScenario.tip && !gradeResult && (
+                                        <p style={styles.tipText}>💡 {currentScenario.tip}</p>
+                                    )}
                                 </div>
                                 {gradeResult && (
                                     <div style={styles.scoreDisplay}>
@@ -954,6 +962,15 @@ const styles = {
     scenarioDesc: {
         fontSize: 13,
         color: 'rgba(255, 255, 255, 0.6)',
+    },
+    tipText: {
+        fontSize: 12,
+        color: '#FFD700',
+        marginTop: 8,
+        padding: '8px 12px',
+        background: 'rgba(255, 215, 0, 0.1)',
+        borderRadius: 8,
+        border: '1px solid rgba(255, 215, 0, 0.2)',
     },
     scoreDisplay: {
         textAlign: 'right',
