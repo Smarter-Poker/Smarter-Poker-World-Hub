@@ -5,8 +5,8 @@
   "devFiles": [],
   "ampDevFiles": [],
   "lowPriorityFiles": [
-    "static/senyqWURzyUaMbWGnOCQl/_buildManifest.js",
-    "static/senyqWURzyUaMbWGnOCQl/_ssgManifest.js"
+    "static/mqczYSDd2GUdFkzvbU-QU/_buildManifest.js",
+    "static/mqczYSDd2GUdFkzvbU-QU/_ssgManifest.js"
   ],
   "rootMainFiles": [],
   "pages": {
@@ -15,6 +15,12 @@
       "static/chunks/framework-ecc4130bc7a58a64.js",
       "static/chunks/main-48a2be0192cdda09.js",
       "static/chunks/pages/index-52345bacf11a14a0.js"
+    ],
+    "/404": [
+      "static/chunks/webpack-24825db8d3e9852c.js",
+      "static/chunks/framework-ecc4130bc7a58a64.js",
+      "static/chunks/main-48a2be0192cdda09.js",
+      "static/chunks/pages/404-2744ee31dcf79b52.js"
     ],
     "/_app": [
       "static/chunks/webpack-24825db8d3e9852c.js",
@@ -96,7 +102,7 @@
       "static/chunks/main-48a2be0192cdda09.js",
       "static/chunks/632-2e60a917c599ac19.js",
       "static/chunks/822-539eea3892b9a4b8.js",
-      "static/chunks/pages/hub/memory-games-18bc214101ac96fe.js"
+      "static/chunks/pages/hub/memory-games-716cdc0b0b05580d.js"
     ],
     "/hub/settings": [
       "static/chunks/webpack-24825db8d3e9852c.js",
