@@ -174,7 +174,7 @@ function PostCreator({ user, onPost, isPosting }) {
                         ref={inputRef}
                         value={content}
                         onChange={handleContentChange}
-                        placeholder={`What's on your mind, ${user?.name || 'Player'}? Use @ to tag friends`}
+                        placeholder={`What's on your mind, ${user?.name || 'Player'}?`}
                         style={{ width: '100%', background: C.bg, border: 'none', borderRadius: 20, padding: '10px 16px', fontSize: 16, outline: 'none', boxSizing: 'border-box' }}
                     />
                     {/* @Mention Dropdown */}
@@ -528,8 +528,8 @@ export default function SocialMediaPage() {
             try {
                 const { data: { user: au } } = await supabase.auth.getUser();
                 if (au) {
-                    const { data: p } = await supabase.from('profiles').select('username, skill_tier').eq('id', au.id).maybeSingle();
-                    setUser({ id: au.id, name: p?.username || au.email?.split('@')[0] || 'Player', avatar: null, tier: p?.skill_tier });
+                    const { data: p } = await supabase.from('profiles').select('username, skill_tier, avatar_url').eq('id', au.id).maybeSingle();
+                    setUser({ id: au.id, name: p?.username || au.email?.split('@')[0] || 'Player', avatar: p?.avatar_url || null, tier: p?.skill_tier });
                     await loadContacts(au.id);
                     // Load notifications
                     const { data: notifs } = await supabase.from('notifications')
@@ -902,30 +902,10 @@ export default function SocialMediaPage() {
 
                 {/* Main Feed - Full Width */}
                 <main style={{ maxWidth: 680, margin: '0 auto', padding: '8px' }}>
-                    {/* Post Creator - "What's on your mind?" */}
-                    {user && (
-                        <div style={{
-                            background: C.card, borderRadius: 8, padding: 12, marginBottom: 8,
-                            display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                        }}>
-                            <Avatar src={user.avatar} name={user.name} size={40} />
-                            <div
-                                onClick={() => document.querySelector('textarea')?.focus()}
-                                style={{
-                                    flex: 1, padding: '10px 16px', background: '#f0f2f5',
-                                    borderRadius: 20, color: C.textSec, cursor: 'pointer', fontSize: 15
-                                }}
-                            >What's on your mind?</div>
-                            <button style={{
-                                background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', opacity: 0.5
-                            }}>🖼</button>
-                        </div>
-                    )}
-
                     {/* Stories Bar */}
                     <StoriesBar currentUser={user} onAddStory={() => { }} />
 
-                    {/* Full Post Creator (hidden by default, shown when clicked) */}
+                    {/* Post Creator */}
                     {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} />}
 
                     {/* Login prompt */}
