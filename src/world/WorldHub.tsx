@@ -65,19 +65,19 @@ const HOLO_EDGE_COLORS = [
 function FooterCard({ orb, index, onSelect }: FooterCardProps) {
     const [edgeOpacity, setEdgeOpacity] = useState(0.3);
     const [floatY, setFloatY] = useState(0);
-    const [shineFlash, setShineFlash] = useState<{ x: number, y: number, active: boolean }>({ x: 0, y: 0, active: false });
+    const [edgeSparkle, setEdgeSparkle] = useState<{ edge: string, active: boolean }>({ edge: 'top', active: false });
 
     // Each card gets a unique edge glow color
     const edgeColor = useMemo(() => HOLO_EDGE_COLORS[index % HOLO_EDGE_COLORS.length], [index]);
 
-    // Animation parameters unique to each card
+    // Animation parameters unique to each card - truly independent
     const animParams = useMemo(() => ({
-        floatSpeed: 0.3 + Math.random() * 0.2,
-        floatAmplitude: 2 + Math.random() * 2,
-        phase: Math.random() * Math.PI * 2,
-        pulseSpeed: 0.8 + Math.random() * 0.4,
-        shineChance: 0.004,
-    }), []);
+        floatSpeed: 0.25 + (index * 0.08) + Math.random() * 0.15,
+        floatAmplitude: 2 + Math.random() * 3,
+        phase: (index * 1.2) + Math.random() * Math.PI * 2,
+        pulseSpeed: 0.6 + Math.random() * 0.5,
+        sparkleChance: 0.003,
+    }), [index]);
 
     // Holographic animations with random shine flash
     useEffect(() => {
@@ -95,18 +95,12 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
             const pulse = (Math.sin(elapsed * animParams.pulseSpeed) + 1) / 2;
             setEdgeOpacity(0.3 + pulse * 0.4);
 
-            // Random shine flash like light catching a car edge
-            if (Math.random() < animParams.shineChance && !shineFlash.active) {
-                const positions = [
-                    { x: 0, y: 0 },     // top-left corner
-                    { x: 100, y: 0 },   // top-right corner
-                    { x: 0, y: 100 },   // bottom-left corner
-                    { x: 100, y: 100 }, // bottom-right corner
-                    { x: 50, y: 0 },    // top edge center
-                ];
-                const pos = positions[Math.floor(Math.random() * positions.length)];
-                setShineFlash({ x: pos.x, y: pos.y, active: true });
-                setTimeout(() => setShineFlash(prev => ({ ...prev, active: false })), 150 + Math.random() * 200);
+            // Random edge sparkle flash - quick line flash on edges
+            if (Math.random() < animParams.sparkleChance && !edgeSparkle.active) {
+                const edges = ['top', 'right', 'bottom', 'left'];
+                const edge = edges[Math.floor(Math.random() * edges.length)];
+                setEdgeSparkle({ edge, active: true });
+                setTimeout(() => setEdgeSparkle(prev => ({ ...prev, active: false })), 80 + Math.random() * 120);
             }
 
             animFrame = requestAnimationFrame(animate);
@@ -143,11 +137,11 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 style={{
                     position: 'absolute',
                     bottom: 35,
-                    width: 300,
-                    height: 80,
+                    width: 220,
+                    height: 60,
                     borderRadius: '50%',
                     background: `radial-gradient(ellipse, rgba(0, 212, 255, 0.4), rgba(0, 136, 255, 0.2), transparent 70%)`,
-                    filter: 'blur(12px)',
+                    filter: 'blur(10px)',
                     opacity: edgeOpacity,
                     transform: 'rotateX(70deg)',
                 }}
@@ -158,7 +152,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 style={{
                     position: 'relative',
                     width: '100%',
-                    maxWidth: 360,
+                    maxWidth: 270,
                     transformStyle: 'preserve-3d',
                 }}
             >
@@ -244,21 +238,20 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                         }}
                     />
 
-                    {/* Random shine flash - like light catching a car */}
-                    {shineFlash.active && (
+                    {/* Edge sparkle flash - quick glint on edges */}
+                    {edgeSparkle.active && (
                         <div
                             style={{
                                 position: 'absolute',
-                                left: `${shineFlash.x}%`,
-                                top: `${shineFlash.y}%`,
-                                width: 40,
-                                height: 40,
-                                transform: 'translate(-50%, -50%)',
-                                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(200, 240, 255, 0.6) 30%, transparent 70%)',
-                                borderRadius: '50%',
-                                filter: 'blur(2px)',
+                                ...(edgeSparkle.edge === 'top' ? { top: 0, left: '10%', right: '10%', height: 3 } : {}),
+                                ...(edgeSparkle.edge === 'bottom' ? { bottom: 0, left: '10%', right: '10%', height: 3 } : {}),
+                                ...(edgeSparkle.edge === 'left' ? { left: 0, top: '10%', bottom: '10%', width: 3 } : {}),
+                                ...(edgeSparkle.edge === 'right' ? { right: 0, top: '10%', bottom: '10%', width: 3 } : {}),
+                                background: edgeSparkle.edge === 'top' || edgeSparkle.edge === 'bottom'
+                                    ? 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent)'
+                                    : 'linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.95), transparent)',
+                                boxShadow: '0 0 10px rgba(255, 255, 255, 0.8)',
                                 pointerEvents: 'none',
-                                animation: 'shineFlash 0.2s ease-out',
                             }}
                         />
                     )}

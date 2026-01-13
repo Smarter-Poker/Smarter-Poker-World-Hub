@@ -36,13 +36,17 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
     const shineRef = useRef<THREE.Mesh>(null);
     const lastShineTime = useRef(0);
 
-    // Random holographic parameters for each card
+    // Random holographic parameters for each card - truly independent floating
     const holoParams = useMemo(() => ({
         primaryColor: HOLO_COLORS[Math.floor(Math.random() * HOLO_COLORS.length)],
         secondaryColor: HOLO_COLORS[Math.floor(Math.random() * HOLO_COLORS.length)],
         speed: 1.2 + Math.random() * 1.5,
         phase: Math.random() * Math.PI * 2,
-        shineInterval: 3 + Math.random() * 5, // Random interval between shines
+        shineInterval: 3 + Math.random() * 5,
+        floatSpeed: 0.3 + Math.random() * 0.2,
+        floatPhase: Math.random() * Math.PI * 2,
+        rotXSpeed: 0.25 + Math.random() * 0.1,
+        rotYSpeed: 0.2 + Math.random() * 0.1,
     }), []);
 
     // Load texture if imageUrl is provided
@@ -60,11 +64,11 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
         const t = state.clock.getElapsedTime();
 
         if (groupRef.current) {
-            // Premium floating motion
-            groupRef.current.position.y = Math.sin(t * 0.4) * 0.03;
-            // Subtle 3D rotation for depth
-            groupRef.current.rotation.x = Math.sin(t * 0.3) * 0.015;
-            groupRef.current.rotation.y = Math.sin(t * 0.25) * 0.02;
+            // Independent floating motion using unique phase and speed
+            groupRef.current.position.y = Math.sin(t * holoParams.floatSpeed + holoParams.floatPhase) * 0.04;
+            // Subtle 3D rotation for depth - also independent
+            groupRef.current.rotation.x = Math.sin(t * holoParams.rotXSpeed + holoParams.floatPhase) * 0.015;
+            groupRef.current.rotation.y = Math.sin(t * holoParams.rotYSpeed + holoParams.floatPhase * 0.7) * 0.02;
         }
 
         // Animate holographic rim glow
@@ -80,31 +84,32 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
             rimMat.color.lerpColors(c1, c2, colorPulse);
         }
 
-        // Random shine flash effect - like light catching a shiny car
+        // Edge sparkle flash effect - quick glint on edges
         if (shineRef.current) {
             const shineMat = shineRef.current.material as THREE.MeshBasicMaterial;
             const timeSinceLastShine = t - lastShineTime.current;
 
             if (timeSinceLastShine > holoParams.shineInterval) {
-                // Trigger new shine
+                // Trigger new sparkle on a random edge
                 lastShineTime.current = t;
-                // Move shine to random corner
-                const corners = [
-                    [-(0.45), 0.65],   // top left
-                    [0.45, 0.65],      // top right
-                    [-(0.45), -0.65],  // bottom left
-                    [0.45, -0.65],     // bottom right
-                    [0, 0.7],          // top center
+                // Edge positions: top, right, bottom, left
+                const edges = [
+                    { x: 0, y: 0.72, rx: 0, ry: 0, rz: 0, sx: 0.8, sy: 0.02 },      // top edge
+                    { x: 0.48, y: 0, rx: 0, ry: 0, rz: Math.PI / 2, sx: 1.2, sy: 0.02 }, // right edge
+                    { x: 0, y: -0.72, rx: 0, ry: 0, rz: 0, sx: 0.8, sy: 0.02 },     // bottom edge
+                    { x: -0.48, y: 0, rx: 0, ry: 0, rz: Math.PI / 2, sx: 1.2, sy: 0.02 }, // left edge
                 ];
-                const corner = corners[Math.floor(Math.random() * corners.length)];
-                shineRef.current.position.x = corner[0];
-                shineRef.current.position.y = corner[1];
+                const edge = edges[Math.floor(Math.random() * edges.length)];
+                shineRef.current.position.x = edge.x;
+                shineRef.current.position.y = edge.y;
+                shineRef.current.rotation.z = edge.rz;
+                shineRef.current.scale.set(edge.sx, edge.sy, 1);
             }
 
-            // Animate shine opacity (quick flash then fade)
+            // Animate sparkle opacity (quick flash then fade)
             const shineProgress = timeSinceLastShine;
-            if (shineProgress < 0.3) {
-                shineMat.opacity = Math.sin(shineProgress * Math.PI / 0.3) * 0.9;
+            if (shineProgress < 0.15) {
+                shineMat.opacity = Math.sin(shineProgress * Math.PI / 0.15) * 1;
             } else {
                 shineMat.opacity = 0;
             }
@@ -205,9 +210,9 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                 <meshBasicMaterial color="#00d4ff" transparent opacity={0.8} />
             </mesh>
 
-            {/* Shine flash effect - random specular highlight like light catching a car */}
-            <mesh ref={shineRef} position={[0.45, 0.65, 0.05]}>
-                <circleGeometry args={[0.06, 16]} />
+            {/* Edge sparkle flash - thin line that flashes on edges */}
+            <mesh ref={shineRef} position={[0, 0.72, 0.05]}>
+                <planeGeometry args={[1, 1]} />
                 <meshBasicMaterial
                     color="#ffffff"
                     transparent
