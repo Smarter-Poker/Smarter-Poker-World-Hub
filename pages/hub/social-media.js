@@ -444,7 +444,9 @@ export default function SocialMediaPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <span style={{ fontSize: 20, cursor: 'pointer' }} title="Notifications">🔔</span>
                             <span style={{ fontSize: 20, cursor: 'pointer' }} title="Messages">💬</span>
-                            <Avatar src={user.avatar} name={user.name} size={36} />
+                            <Link href="/hub/profile" style={{ display: 'block' }}>
+                                <Avatar src={user.avatar} name={user.name} size={36} />
+                            </Link>
                         </div>
                     ) : (
                         <Link href="/auth/login" style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}>Log In</Link>
@@ -452,8 +454,9 @@ export default function SocialMediaPage() {
                 </header>
                 <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', maxWidth: 900, margin: '0 auto', gap: 16, padding: 16 }}>
                     <nav style={{ position: 'sticky', top: 70, height: 'fit-content' }}>
-                        {user && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', cursor: 'pointer' }}><Avatar name={user.name} size={32} /><span style={{ fontWeight: 600, fontSize: 14 }}>{user.name}</span></div>}
-                        {['👤 Profile', '👥 Friends', '🏛️ Clubs', '📺 Watch', '🏆 Tournaments', '🎯 GTO Training', '🌐 Full Social Site'].map((item, i) => <div key={i} style={{ padding: '8px 0', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>{item}</div>)}
+                        {user && <Link href="/hub/profile" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}><Avatar name={user.name} size={32} /><span style={{ fontWeight: 600, fontSize: 14 }}>{user.name}</span></Link>}
+                        <Link href="/hub/profile" style={{ display: 'block', padding: '8px 0', cursor: 'pointer', color: C.textSec, fontSize: 14, textDecoration: 'none' }}>👤 Profile</Link>
+                        {['👥 Friends', '🏛️ Clubs', '📺 Watch', '🏆 Tournaments', '🎯 GTO Training', '🌐 Full Social Site'].map((item, i) => <div key={i} style={{ padding: '8px 0', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>{item}</div>)}
                         <ContactsSidebar contacts={contacts} onOpenChat={handleOpenChat} onSearch={handleSearch} searchResults={searchResults} />
                     </nav>
                     <main>
