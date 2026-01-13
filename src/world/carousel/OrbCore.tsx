@@ -31,12 +31,9 @@ const HOLO_COLORS = [
 
 export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCoreProps) {
     const groupRef = useRef<THREE.Group>(null);
-    const shineRef = useRef<THREE.Mesh>(null);
-    const lastShineTime = useRef(0);
 
     // Random holographic parameters for each card - truly independent floating
     const holoParams = useMemo(() => ({
-        shineInterval: 3 + Math.random() * 5,
         floatSpeed: 0.3 + Math.random() * 0.2,
         floatPhase: Math.random() * Math.PI * 2,
         rotXSpeed: 0.25 + Math.random() * 0.1,
@@ -63,37 +60,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
             // Subtle 3D rotation for depth - also independent
             groupRef.current.rotation.x = Math.sin(t * holoParams.rotXSpeed + holoParams.floatPhase) * 0.015;
             groupRef.current.rotation.y = Math.sin(t * holoParams.rotYSpeed + holoParams.floatPhase * 0.7) * 0.02;
-        }
-
-        // Edge sparkle flash effect - quick glint on edges
-        if (shineRef.current) {
-            const shineMat = shineRef.current.material as THREE.MeshBasicMaterial;
-            const timeSinceLastShine = t - lastShineTime.current;
-
-            if (timeSinceLastShine > holoParams.shineInterval) {
-                // Trigger new sparkle on a random edge
-                lastShineTime.current = t;
-                // Edge positions: top, right, bottom, left
-                const edges = [
-                    { x: 0, y: 0.72, rx: 0, ry: 0, rz: 0, sx: 0.8, sy: 0.02 },      // top edge
-                    { x: 0.48, y: 0, rx: 0, ry: 0, rz: Math.PI / 2, sx: 1.2, sy: 0.02 }, // right edge
-                    { x: 0, y: -0.72, rx: 0, ry: 0, rz: 0, sx: 0.8, sy: 0.02 },     // bottom edge
-                    { x: -0.48, y: 0, rx: 0, ry: 0, rz: Math.PI / 2, sx: 1.2, sy: 0.02 }, // left edge
-                ];
-                const edge = edges[Math.floor(Math.random() * edges.length)];
-                shineRef.current.position.x = edge.x;
-                shineRef.current.position.y = edge.y;
-                shineRef.current.rotation.z = edge.rz;
-                shineRef.current.scale.set(edge.sx, edge.sy, 1);
-            }
-
-            // Animate sparkle opacity (quick flash then fade)
-            const shineProgress = timeSinceLastShine;
-            if (shineProgress < 0.15) {
-                shineMat.opacity = Math.sin(shineProgress * Math.PI / 0.15) * 1;
-            } else {
-                shineMat.opacity = 0;
-            }
         }
     });
 
@@ -140,17 +106,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                 <meshBasicMaterial color="#00d4ff" transparent opacity={0.8} />
             </mesh>
 
-            {/* Edge sparkle flash - thin line that flashes on edges */}
-            <mesh ref={shineRef} position={[0, 0.72, 0.05]}>
-                <planeGeometry args={[1, 1]} />
-                <meshBasicMaterial
-                    color="#ffffff"
-                    transparent
-                    opacity={0}
-                    blending={THREE.AdditiveBlending}
-                />
-            </mesh>
-
             {/* ═══════════════════════════════════════════════════════════════
                 LABEL TEXT - Holographic style
                 ═══════════════════════════════════════════════════════════════ */}
@@ -168,32 +123,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
             >
                 {label}
             </Text>
-
-            {/* Active state - thin bright border (high-def look) */}
-            {active && (
-                <>
-                    {/* Top edge - bright thin line */}
-                    <mesh position={[0, cardHeight / 2 - 0.01, 0.04]}>
-                        <planeGeometry args={[cardWidth, 0.008]} />
-                        <meshBasicMaterial color="#00d4ff" transparent opacity={0.9} />
-                    </mesh>
-                    {/* Bottom edge - bright thin line */}
-                    <mesh position={[0, -(cardHeight / 2 - 0.01), 0.04]}>
-                        <planeGeometry args={[cardWidth, 0.008]} />
-                        <meshBasicMaterial color="#00d4ff" transparent opacity={0.9} />
-                    </mesh>
-                    {/* Left edge - bright thin line */}
-                    <mesh position={[-(cardWidth / 2 - 0.01), 0, 0.04]}>
-                        <planeGeometry args={[0.008, cardHeight]} />
-                        <meshBasicMaterial color="#00d4ff" transparent opacity={0.9} />
-                    </mesh>
-                    {/* Right edge - bright thin line */}
-                    <mesh position={[(cardWidth / 2 - 0.01), 0, 0.04]}>
-                        <planeGeometry args={[0.008, cardHeight]} />
-                        <meshBasicMaterial color="#00d4ff" transparent opacity={0.9} />
-                    </mesh>
-                </>
-            )}
         </group>
     );
 }

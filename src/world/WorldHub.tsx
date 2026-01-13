@@ -65,7 +65,6 @@ const HOLO_EDGE_COLORS = [
 function FooterCard({ orb, index, onSelect }: FooterCardProps) {
     const [edgeOpacity, setEdgeOpacity] = useState(0.3);
     const [floatY, setFloatY] = useState(0);
-    const [edgeSparkle, setEdgeSparkle] = useState<{ edge: string, active: boolean }>({ edge: 'top', active: false });
 
     // Each card gets a unique edge glow color
     const edgeColor = useMemo(() => HOLO_EDGE_COLORS[index % HOLO_EDGE_COLORS.length], [index]);
@@ -76,10 +75,9 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
         floatAmplitude: 2 + Math.random() * 3,
         phase: (index * 1.2) + Math.random() * Math.PI * 2,
         pulseSpeed: 0.6 + Math.random() * 0.5,
-        sparkleChance: 0.003,
     }), [index]);
 
-    // Holographic animations with random shine flash
+    // Holographic animations
     useEffect(() => {
         let animFrame: number;
         const startTime = Date.now();
@@ -94,14 +92,6 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
             // Pulsing edge glow
             const pulse = (Math.sin(elapsed * animParams.pulseSpeed) + 1) / 2;
             setEdgeOpacity(0.3 + pulse * 0.4);
-
-            // Random edge sparkle flash - quick line flash on edges
-            if (Math.random() < animParams.sparkleChance && !edgeSparkle.active) {
-                const edges = ['top', 'right', 'bottom', 'left'];
-                const edge = edges[Math.floor(Math.random() * edges.length)];
-                setEdgeSparkle({ edge, active: true });
-                setTimeout(() => setEdgeSparkle(prev => ({ ...prev, active: false })), 80 + Math.random() * 120);
-            }
 
             animFrame = requestAnimationFrame(animate);
         };
@@ -156,20 +146,6 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                     transformStyle: 'preserve-3d',
                 }}
             >
-                {/* Card left edge - visible 3D glass thickness */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        left: -6,
-                        top: 3,
-                        width: 10,
-                        height: 'calc(100% - 6px)',
-                        background: 'linear-gradient(180deg, rgba(100, 200, 255, 0.5), rgba(0, 150, 255, 0.3), rgba(50, 150, 200, 0.4))',
-                        borderRadius: '6px 0 0 6px',
-                        transform: 'rotateY(-90deg) translateZ(3px)',
-                        boxShadow: 'inset 2px 0 10px rgba(255, 255, 255, 0.3)',
-                    }}
-                />
 
                 {/* Card bottom edge - visible 3D glass thickness */}
                 <div
@@ -237,58 +213,41 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                             background: 'linear-gradient(90deg, transparent 10%, rgba(255, 255, 255, 0.6) 50%, transparent 90%)',
                         }}
                     />
-
-                    {/* Edge sparkle flash - quick glint on edges */}
-                    {edgeSparkle.active && (
-                        <div
-                            style={{
-                                position: 'absolute',
-                                ...(edgeSparkle.edge === 'top' ? { top: 0, left: '10%', right: '10%', height: 3 } : {}),
-                                ...(edgeSparkle.edge === 'bottom' ? { bottom: 0, left: '10%', right: '10%', height: 3 } : {}),
-                                ...(edgeSparkle.edge === 'left' ? { left: 0, top: '10%', bottom: '10%', width: 3 } : {}),
-                                ...(edgeSparkle.edge === 'right' ? { right: 0, top: '10%', bottom: '10%', width: 3 } : {}),
-                                background: edgeSparkle.edge === 'top' || edgeSparkle.edge === 'bottom'
-                                    ? 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent)'
-                                    : 'linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.95), transparent)',
-                                boxShadow: '0 0 10px rgba(255, 255, 255, 0.8)',
-                                pointerEvents: 'none',
-                            }}
-                        />
-                    )}
                 </div>
             </div>
+        </div>
 
-            {/* Card label - Premium Oval Pill */}
-            <div
-                style={{
-                    marginTop: 20,
-                    padding: '10px 24px',
-                    background: 'linear-gradient(180deg, rgba(10, 30, 60, 0.9), rgba(5, 20, 40, 0.95))',
-                    backdropFilter: 'blur(10px)',
-                    borderRadius: 30,
-                    border: '2px solid rgba(0, 212, 255, 0.5)',
-                    boxShadow: `
+            {/* Card label - Premium Oval Pill */ }
+    <div
+        style={{
+            marginTop: 20,
+            padding: '10px 24px',
+            background: 'linear-gradient(180deg, rgba(10, 30, 60, 0.9), rgba(5, 20, 40, 0.95))',
+            backdropFilter: 'blur(10px)',
+            borderRadius: 30,
+            border: '2px solid rgba(0, 212, 255, 0.5)',
+            boxShadow: `
                         0 0 20px rgba(0, 212, 255, 0.25),
                         inset 0 1px 0 rgba(255, 255, 255, 0.15),
                         0 4px 15px rgba(0, 0, 0, 0.5)
                     `,
-                }}
-            >
-                <span
-                    style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        fontFamily: 'Orbitron, sans-serif',
-                        color: '#ffffff',
-                        textShadow: '0 0 15px rgba(0, 212, 255, 0.6)',
-                        letterSpacing: '1px',
-                        whiteSpace: 'nowrap',
-                    }}
-                >
-                    {orb.label}
-                </span>
-            </div>
-        </div>
+        }}
+    >
+        <span
+            style={{
+                fontSize: 14,
+                fontWeight: 700,
+                fontFamily: 'Orbitron, sans-serif',
+                color: '#ffffff',
+                textShadow: '0 0 15px rgba(0, 212, 255, 0.6)',
+                letterSpacing: '1px',
+                whiteSpace: 'nowrap',
+            }}
+        >
+            {orb.label}
+        </span>
+    </div>
+        </div >
     );
 }
 
