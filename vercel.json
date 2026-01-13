@@ -14,6 +14,10 @@
     {
       "path": "/api/cron/hendon-scraper",
       "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/cron/horses-post",
+      "schedule": "*/30 9-22 * * *"
     }
   ],
   "github": {
