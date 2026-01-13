@@ -19,6 +19,7 @@
     "framer-motion": "^12.25.0",
     "lucide-react": "latest",
     "next": "14.2.3",
+    "openai": "^6.16.0",
     "puppeteer": "^24.35.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
