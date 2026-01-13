@@ -76,14 +76,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
             const c2 = new THREE.Color(holoParams.secondaryColor);
             rimMat.color.lerpColors(c1, c2, colorPulse);
         }
-
-        // Animate scan line effect
-        if (scanLineRef.current) {
-            const scanY = ((t * holoParams.scanSpeed) % 2) - 1;
-            scanLineRef.current.position.y = scanY * 0.7;
-            const scanMat = scanLineRef.current.material as THREE.MeshBasicMaterial;
-            scanMat.opacity = 0.15 + Math.abs(Math.sin(t * 2)) * 0.1;
-        }
     });
 
     // Card dimensions (2:3 aspect ratio)
