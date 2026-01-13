@@ -264,10 +264,10 @@ export default function ProfilePage() {
         setSaving(true);
         setMessage('');
 
+        // Use update instead of upsert to avoid XP trigger issues
         const { error } = await supabase
             .from('profiles')
-            .upsert({
-                id: user.id,
+            .update({
                 full_name: profile.full_name,
                 username: profile.username,
                 bio: profile.bio,
@@ -283,7 +283,8 @@ export default function ProfilePage() {
                 home_casino: profile.home_casino,
                 avatar_url: profile.avatar_url,
                 updated_at: new Date().toISOString(),
-            });
+            })
+            .eq('id', user.id);
 
         setSaving(false);
         if (error) {
