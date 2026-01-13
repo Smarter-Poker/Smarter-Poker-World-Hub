@@ -148,7 +148,7 @@ export function WorldCanvas() {
     };
 
     return (
-        <div className="world-canvas">
+        <div className="world-canvas" style={{ touchAction: 'none' }}>
             <Canvas
                 shadows
                 gl={{
@@ -161,6 +161,7 @@ export function WorldCanvas() {
                 }}
                 dpr={[1, 2]}
                 performance={{ min: 0.5 }}
+                style={{ touchAction: 'none' }}
             >
                 <Suspense fallback={<LoadingFallback />}>
                     {/* Camera System */}
@@ -171,16 +172,15 @@ export function WorldCanvas() {
                         near={0.1}
                         far={500}
                     />
+                    {/* OrbitControls disabled on touch devices to allow carousel swiping */}
                     <OrbitControls
                         enablePan={false}
                         enableZoom={true}
-                        enableRotate={true}
-                        maxPolarAngle={Math.PI / 2.2}
-                        minPolarAngle={Math.PI / 4}
+                        enableRotate={false}
                         maxDistance={80}
                         minDistance={25}
-                        rotateSpeed={0.5}
                         zoomSpeed={0.5}
+                        touches={{ ONE: THREE.TOUCH.DOLLY_PAN, TWO: THREE.TOUCH.DOLLY_PAN }}
                     />
 
                     {/* Environment */}

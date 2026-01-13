@@ -29,15 +29,16 @@ export function CarouselEngine({ onOrbSelect }: CarouselEngineProps) {
 
     const { size, gl, viewport } = useThree();
 
-    // Drag gesture handler
-    const bind = useDrag(({ delta: [x], down, first, last }) => {
+    // Enhanced drag gesture handler with touch + momentum
+    const bind = useDrag(({ delta: [x], down, first, last, velocity: [vx], direction: [dx], swipe: [sx] }) => {
         if (first) {
             isDragging.current = true;
             gl.domElement.style.cursor = 'grabbing';
         }
 
         if (down) {
-            const sensitivity = 0.008 * (1000 / size.width);
+            // Sensitivity scales with screen width for consistent feel
+            const sensitivity = 0.01 * (1000 / size.width);
             velocity.current = -x * sensitivity;
             setScrollPosition(prev => prev + velocity.current);
             setTargetPosition(prev => prev + velocity.current);
@@ -47,13 +48,31 @@ export function CarouselEngine({ onOrbSelect }: CarouselEngineProps) {
             isDragging.current = false;
             gl.domElement.style.cursor = 'default';
 
-            // SNAP TO NEAREST CARD
-            const nearestCard = Math.round(scrollPosition);
-            setTargetPosition(nearestCard);
+            // Handle swipe gestures - jump multiple cards on fast swipe
+            if (sx !== 0) {
+                const swipeCards = Math.min(3, Math.ceil(Math.abs(vx) * 2));
+                const newTarget = Math.round(scrollPosition) - (sx * swipeCards);
+                setTargetPosition(newTarget);
+            }
+            // Apply momentum for slower drags
+            else if (Math.abs(vx) > 0.1) {
+                const momentum = -dx * Math.min(2, vx * 0.5);
+                const newTarget = Math.round(scrollPosition + momentum);
+                setTargetPosition(newTarget);
+            }
+            // Snap to nearest on release
+            else {
+                const nearestCard = Math.round(scrollPosition);
+                setTargetPosition(nearestCard);
+            }
         }
     }, {
         pointer: { touch: true },
         filterTaps: true,
+        swipe: { distance: 50, velocity: 0.5 }, // Swipe thresholds
+        axis: 'x', // Lock to horizontal
+        preventDefault: true,
+        eventOptions: { passive: false }, // Required for preventDefault on touch
     });
 
     // Smooth animation to target position (snap effect)
