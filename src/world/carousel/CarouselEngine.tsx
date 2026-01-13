@@ -18,12 +18,14 @@ const TOTAL_ORBS = POKER_IQ_ORBS.length; // 11
 // ─────────────────────────────────────────────────────────────────────────────
 interface CarouselEngineProps {
     onOrbSelect?: (id: string) => void;
+    initialIndex?: number;
+    onIndexChange?: (index: number) => void;
 }
 
-export function CarouselEngine({ onOrbSelect }: CarouselEngineProps) {
+export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange }: CarouselEngineProps) {
     const groupRef = useRef<Group>(null);
-    const [scrollPosition, setScrollPosition] = useState(0);
-    const [targetPosition, setTargetPosition] = useState(0);
+    const [scrollPosition, setScrollPosition] = useState(initialIndex);
+    const [targetPosition, setTargetPosition] = useState(initialIndex);
     const isDragging = useRef(false);
     const startX = useRef(0);
     const lastX = useRef(0);
@@ -133,6 +135,14 @@ export function CarouselEngine({ onOrbSelect }: CarouselEngineProps) {
             canvas.removeEventListener('touchcancel', onTouchEnd);
         };
     }, [gl.domElement, size.width]);
+
+    // Track index changes and notify parent
+    useEffect(() => {
+        const currentIndex = Math.round(targetPosition);
+        if (onIndexChange) {
+            onIndexChange(currentIndex);
+        }
+    }, [targetPosition, onIndexChange]);
 
     // Smooth animation to target position (snap effect)
     useFrame(() => {

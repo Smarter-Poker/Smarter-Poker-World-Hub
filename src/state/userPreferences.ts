@@ -119,3 +119,39 @@ export function hasUserHistory(): boolean {
     const prefs = loadPreferences();
     return prefs.lastVisitedCardId !== null || prefs.mostVisitedCardIds.length > 0;
 }
+
+// Get the last carousel index the user was viewing
+export function getLastCarouselIndex(): number {
+    if (typeof window === 'undefined') return 0;
+    try {
+        const stored = localStorage.getItem('hub-carousel-index');
+        return stored ? parseInt(stored, 10) : 0;
+    } catch {
+        return 0;
+    }
+}
+
+// Save the current carousel index
+export function setLastCarouselIndex(index: number): void {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.setItem('hub-carousel-index', String(index));
+    } catch {
+        // Ignore storage errors
+    }
+}
+
+// Trigger haptic feedback on supported devices
+export function triggerHaptic(type: 'light' | 'medium' | 'heavy' = 'medium'): void {
+    if (typeof window === 'undefined') return;
+
+    // Try Vibration API
+    if ('vibrate' in navigator) {
+        const durations: Record<string, number> = {
+            light: 10,
+            medium: 25,
+            heavy: 50,
+        };
+        navigator.vibrate(durations[type]);
+    }
+}

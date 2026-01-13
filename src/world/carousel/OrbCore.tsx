@@ -31,17 +31,12 @@ const HOLO_COLORS = [
 
 export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCoreProps) {
     const groupRef = useRef<THREE.Group>(null);
-    const rimRef = useRef<THREE.Mesh>(null);
     const glassRef = useRef<THREE.Mesh>(null);
     const shineRef = useRef<THREE.Mesh>(null);
     const lastShineTime = useRef(0);
 
     // Random holographic parameters for each card - truly independent floating
     const holoParams = useMemo(() => ({
-        primaryColor: HOLO_COLORS[Math.floor(Math.random() * HOLO_COLORS.length)],
-        secondaryColor: HOLO_COLORS[Math.floor(Math.random() * HOLO_COLORS.length)],
-        speed: 1.2 + Math.random() * 1.5,
-        phase: Math.random() * Math.PI * 2,
         shineInterval: 3 + Math.random() * 5,
         floatSpeed: 0.3 + Math.random() * 0.2,
         floatPhase: Math.random() * Math.PI * 2,
@@ -69,19 +64,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
             // Subtle 3D rotation for depth - also independent
             groupRef.current.rotation.x = Math.sin(t * holoParams.rotXSpeed + holoParams.floatPhase) * 0.015;
             groupRef.current.rotation.y = Math.sin(t * holoParams.rotYSpeed + holoParams.floatPhase * 0.7) * 0.02;
-        }
-
-        // Animate holographic rim glow
-        if (rimRef.current) {
-            const rimMat = rimRef.current.material as THREE.MeshBasicMaterial;
-            const pulse = (Math.sin(t * holoParams.speed + holoParams.phase) + 1) / 2;
-            rimMat.opacity = 0.3 + pulse * 0.5;
-
-            // Color shift between primary and secondary
-            const colorPulse = (Math.sin(t * 0.5) + 1) / 2;
-            const c1 = new THREE.Color(holoParams.primaryColor);
-            const c2 = new THREE.Color(holoParams.secondaryColor);
-            rimMat.color.lerpColors(c1, c2, colorPulse);
         }
 
         // Edge sparkle flash effect - quick glint on edges
@@ -123,18 +105,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
 
     return (
         <group ref={groupRef}>
-            {/* ═══════════════════════════════════════════════════════════════
-                HOLOGRAPHIC RIM GLOW (outer edge lighting)
-                ═══════════════════════════════════════════════════════════════ */}
-            <mesh ref={rimRef} position={[0, 0, -0.02]}>
-                <boxGeometry args={[cardWidth + 0.12, cardHeight + 0.12, 0.01]} />
-                <meshBasicMaterial
-                    color={holoParams.primaryColor}
-                    transparent
-                    opacity={0.5}
-                    blending={THREE.AdditiveBlending}
-                />
-            </mesh>
 
             {/* ═══════════════════════════════════════════════════════════════
                 GLASS FRAME (premium transparent border)

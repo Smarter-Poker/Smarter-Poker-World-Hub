@@ -10,7 +10,7 @@ import { Canvas } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { CarouselEngine } from './carousel/CarouselEngine';
-import { getFooterCards, recordCardVisit } from '../state/userPreferences';
+import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, setLastCarouselIndex } from '../state/userPreferences';
 import { useWorldStore } from '../state/worldStore';
 import type { OrbConfig } from '../orbs/manifest/registry';
 import { NeuronLights } from './components/NeuronLights';
@@ -533,6 +533,7 @@ export default function WorldHub() {
     // Handle footer card click → Navigate to that world page
     const handleCardSelect = (cardId: string) => {
         console.log(`Footer card clicked: ${cardId}`);
+        triggerHaptic('medium');
         recordCardVisit(cardId);
         selectOrb(cardId as any);
         router.push(`/hub/${cardId}`);
@@ -541,6 +542,7 @@ export default function WorldHub() {
     // Handle main carousel card click → Navigate to that world page
     const handleOrbSelect = (orbId: string) => {
         console.log(`Main card selected: ${orbId}`);
+        triggerHaptic('heavy');
         recordCardVisit(orbId);
         selectOrb(orbId as any);
         router.push(`/hub/${orbId}`);
@@ -549,6 +551,7 @@ export default function WorldHub() {
     // Handle HUD icon navigation
     const handleNavigate = (destination: string) => {
         console.log(`Navigating to: ${destination}`);
+        triggerHaptic('light');
         // Map destination names to page routes
         const routeMap: Record<string, string> = {
             'profile': '/hub/social-media',
@@ -662,7 +665,11 @@ export default function WorldHub() {
                     />
 
                     {/* Card Carousel with Snap */}
-                    <CarouselEngine onOrbSelect={handleOrbSelect} />
+                    <CarouselEngine
+                        onOrbSelect={handleOrbSelect}
+                        initialIndex={getLastCarouselIndex()}
+                        onIndexChange={setLastCarouselIndex}
+                    />
                 </Suspense>
             </Canvas>
 
