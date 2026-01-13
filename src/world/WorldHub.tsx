@@ -65,7 +65,6 @@ const HOLO_EDGE_COLORS = [
 function FooterCard({ orb, index, onSelect }: FooterCardProps) {
     const [edgeOpacity, setEdgeOpacity] = useState(0.3);
     const [floatY, setFloatY] = useState(0);
-    const [scanLineY, setScanLineY] = useState(0);
     const [edgeFlicker, setEdgeFlicker] = useState(false);
 
     // Each card gets a unique edge glow color
@@ -77,11 +76,10 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
         floatAmplitude: 2 + Math.random() * 2,
         phase: Math.random() * Math.PI * 2,
         pulseSpeed: 0.8 + Math.random() * 0.4,
-        scanSpeed: 1.5 + Math.random() * 0.5,
-        flickerChance: 0.002, // Subtle random flicker chance per frame
+        flickerChance: 0.003, // Subtle random flicker chance per frame
     }), []);
 
-    // Holographic animations
+    // Holographic animations (no scan lines)
     useEffect(() => {
         let animFrame: number;
         const startTime = Date.now();
@@ -96,10 +94,6 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
             // Pulsing edge glow
             const pulse = (Math.sin(elapsed * animParams.pulseSpeed) + 1) / 2;
             setEdgeOpacity(0.3 + pulse * 0.4);
-
-            // Scan line moving down the card
-            const scan = ((elapsed * animParams.scanSpeed) % 3) / 3;
-            setScanLineY(scan * 100);
 
             // Random subtle edge flicker for "alive" feel
             if (Math.random() < animParams.flickerChance) {
@@ -121,149 +115,141 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 flexDirection: 'column',
                 alignItems: 'center',
                 cursor: 'pointer',
-                transform: `translateY(${floatY}px) perspective(800px) rotateX(5deg)`,
+                transform: `translateY(${floatY}px) perspective(600px) rotateX(8deg)`,
                 flex: 1,
                 maxWidth: 'calc(16.66% - 16px)',
                 transition: 'transform 0.3s ease-out',
+                transformStyle: 'preserve-3d',
             }}
             onClick={() => onSelect(orb.id)}
             title={orb.label}
             onMouseEnter={(e) => {
-                e.currentTarget.style.transform = `translateY(${floatY - 8}px) perspective(800px) rotateX(0deg) scale(1.1)`;
+                e.currentTarget.style.transform = `translateY(${floatY - 10}px) perspective(600px) rotateX(0deg) scale(1.15)`;
             }}
             onMouseLeave={(e) => {
-                e.currentTarget.style.transform = `translateY(${floatY}px) perspective(800px) rotateX(5deg) scale(1)`;
+                e.currentTarget.style.transform = `translateY(${floatY}px) perspective(600px) rotateX(8deg) scale(1)`;
             }}
         >
-            {/* Holographic pedestal glow */}
+            {/* Holographic pedestal/reflection */}
             <div
                 style={{
                     position: 'absolute',
-                    bottom: 30,
-                    width: 80,
-                    height: 4,
-                    borderRadius: 2,
-                    background: `linear-gradient(90deg, transparent, ${edgeColor.glow}, transparent)`,
-                    filter: 'blur(4px)',
-                    opacity: edgeOpacity,
+                    bottom: 20,
+                    width: 70,
+                    height: 20,
+                    borderRadius: '50%',
+                    background: `radial-gradient(ellipse, ${edgeColor.glow}, transparent 70%)`,
+                    filter: 'blur(6px)',
+                    opacity: edgeOpacity * 0.8,
+                    transform: 'rotateX(60deg)',
                 }}
             />
 
-            {/* Main card with holographic frame */}
+            {/* 3D Card Container */}
             <div
                 style={{
                     position: 'relative',
                     width: '100%',
-                    aspectRatio: '2 / 3',
-                    maxWidth: 90,
-                    borderRadius: 8,
-                    overflow: 'hidden',
-                    background: '#0a1628',
-                    border: `2px solid ${edgeFlicker ? 'rgba(255, 255, 255, 1)' : 'rgba(200, 255, 255, 0.8)'}`,
-                    boxShadow: `
-                        0 0 ${8 + edgeOpacity * 15}px ${edgeColor.glow},
-                        0 0 ${4 + edgeOpacity * 8}px ${edgeColor.main},
-                        inset 0 0 20px rgba(0, 212, 255, 0.1),
-                        0 8px 24px rgba(0, 0, 0, 0.6)
-                    `,
-                    transition: 'box-shadow 0.2s ease-out, border-color 0.1s ease-out',
+                    maxWidth: 85,
+                    transformStyle: 'preserve-3d',
                 }}
             >
-                {/* Card image */}
-                <div
-                    style={{
-                        width: '100%',
-                        height: '100%',
-                        backgroundImage: orb.imageUrl
-                            ? `url('${orb.imageUrl}')`
-                            : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                    }}
-                />
-
-                {/* Holographic scan line */}
+                {/* Card edge/thickness (left side) */}
                 <div
                     style={{
                         position: 'absolute',
-                        top: `${scanLineY}%`,
-                        left: 0,
-                        right: 0,
-                        height: 2,
-                        background: `linear-gradient(90deg, transparent, ${edgeColor.main}, transparent)`,
-                        opacity: 0.6,
-                        pointerEvents: 'none',
-                    }}
-                />
-
-                {/* Corner accents - top left */}
-                <div style={{
-                    position: 'absolute',
-                    top: 4,
-                    left: 4,
-                    width: 12,
-                    height: 2,
-                    background: '#00ff88',
-                    opacity: 0.8,
-                }} />
-                <div style={{
-                    position: 'absolute',
-                    top: 4,
-                    left: 4,
-                    width: 2,
-                    height: 12,
-                    background: '#00ff88',
-                    opacity: 0.8,
-                }} />
-
-                {/* Corner accents - bottom right */}
-                <div style={{
-                    position: 'absolute',
-                    bottom: 4,
-                    right: 4,
-                    width: 12,
-                    height: 2,
-                    background: '#00d4ff',
-                    opacity: 0.8,
-                }} />
-                <div style={{
-                    position: 'absolute',
-                    bottom: 4,
-                    right: 4,
-                    width: 2,
-                    height: 12,
-                    background: '#00d4ff',
-                    opacity: 0.8,
-                }} />
-
-                {/* Holographic shimmer overlay */}
-                <div
-                    style={{
-                        position: 'absolute',
+                        left: -3,
                         top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: `linear-gradient(135deg, 
-                            transparent 0%, 
-                            rgba(0, 212, 255, 0.1) 25%, 
-                            transparent 50%, 
-                            rgba(0, 255, 136, 0.1) 75%, 
-                            transparent 100%)`,
-                        pointerEvents: 'none',
+                        width: 3,
+                        height: '100%',
+                        background: 'linear-gradient(180deg, rgba(0, 212, 255, 0.4), rgba(0, 100, 150, 0.6))',
+                        transform: 'rotateY(-90deg) translateZ(1.5px)',
+                        borderRadius: '2px 0 0 2px',
                     }}
                 />
+
+                {/* Card edge/thickness (bottom) */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        left: 0,
+                        bottom: -3,
+                        width: '100%',
+                        height: 3,
+                        background: 'linear-gradient(90deg, rgba(0, 100, 150, 0.6), rgba(0, 212, 255, 0.3))',
+                        transform: 'rotateX(90deg) translateZ(1.5px)',
+                        borderRadius: '0 0 2px 2px',
+                    }}
+                />
+
+                {/* Main card face */}
+                <div
+                    style={{
+                        position: 'relative',
+                        width: '100%',
+                        aspectRatio: '2 / 3',
+                        borderRadius: 6,
+                        overflow: 'hidden',
+                        background: '#0a1628',
+                        border: `2px solid ${edgeFlicker ? 'rgba(255, 255, 255, 1)' : 'rgba(200, 255, 255, 0.7)'}`,
+                        boxShadow: `
+                            0 0 ${10 + edgeOpacity * 20}px ${edgeColor.glow},
+                            0 0 ${5 + edgeOpacity * 10}px ${edgeColor.main},
+                            0 15px 35px rgba(0, 0, 0, 0.7),
+                            0 5px 15px rgba(0, 0, 0, 0.5)
+                        `,
+                        transition: 'box-shadow 0.2s ease-out, border-color 0.1s ease-out',
+                    }}
+                >
+                    {/* Card image */}
+                    <div
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            backgroundImage: orb.imageUrl
+                                ? `url('${orb.imageUrl}')`
+                                : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                        }}
+                    />
+
+                    {/* Glass overlay for depth */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.2) 100%)',
+                            pointerEvents: 'none',
+                        }}
+                    />
+
+                    {/* Top highlight edge */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: 1,
+                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
+                        }}
+                    />
+                </div>
             </div>
 
-            {/* Card label with holographic text effect */}
+            {/* Card label */}
             <span
                 style={{
-                    marginTop: 10,
+                    marginTop: 12,
                     fontSize: 11,
                     fontWeight: 600,
                     color: 'rgba(255, 255, 255, 0.95)',
                     textAlign: 'center',
-                    textShadow: `0 0 8px ${edgeColor.glow}, 0 1px 3px rgba(0, 0, 0, 0.8)`,
+                    textShadow: `0 0 10px ${edgeColor.glow}, 0 2px 4px rgba(0, 0, 0, 0.9)`,
                     maxWidth: '100%',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -276,6 +262,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
         </div>
     );
 }
+
 
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -33,7 +33,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
     const groupRef = useRef<THREE.Group>(null);
     const rimRef = useRef<THREE.Mesh>(null);
     const glassRef = useRef<THREE.Mesh>(null);
-    const scanLineRef = useRef<THREE.Mesh>(null);
 
     // Random holographic parameters for each card
     const holoParams = useMemo(() => ({
@@ -41,7 +40,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
         secondaryColor: HOLO_COLORS[Math.floor(Math.random() * HOLO_COLORS.length)],
         speed: 1.2 + Math.random() * 1.5,
         phase: Math.random() * Math.PI * 2,
-        scanSpeed: 0.8 + Math.random() * 0.4,
     }), []);
 
     // Load texture if imageUrl is provided
@@ -160,17 +158,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                         roughness={0.7}
                     />
                 )}
-            </mesh>
-
-            {/* Holographic scan line effect */}
-            <mesh ref={scanLineRef} position={[0, 0, 0.035]}>
-                <planeGeometry args={[cardWidth - 0.04, 0.02]} />
-                <meshBasicMaterial
-                    color="#00d4ff"
-                    transparent
-                    opacity={0.2}
-                    blending={THREE.AdditiveBlending}
-                />
             </mesh>
 
             {/* Corner accent - top left */}
