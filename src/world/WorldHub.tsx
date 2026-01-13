@@ -65,7 +65,7 @@ const HOLO_EDGE_COLORS = [
 function FooterCard({ orb, index, onSelect }: FooterCardProps) {
     const [edgeOpacity, setEdgeOpacity] = useState(0.3);
     const [floatY, setFloatY] = useState(0);
-    const [edgeFlicker, setEdgeFlicker] = useState(false);
+    const [shineFlash, setShineFlash] = useState<{ x: number, y: number, active: boolean }>({ x: 0, y: 0, active: false });
 
     // Each card gets a unique edge glow color
     const edgeColor = useMemo(() => HOLO_EDGE_COLORS[index % HOLO_EDGE_COLORS.length], [index]);
@@ -76,10 +76,10 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
         floatAmplitude: 2 + Math.random() * 2,
         phase: Math.random() * Math.PI * 2,
         pulseSpeed: 0.8 + Math.random() * 0.4,
-        flickerChance: 0.003, // Subtle random flicker chance per frame
+        shineChance: 0.004,
     }), []);
 
-    // Holographic animations (no scan lines)
+    // Holographic animations with random shine flash
     useEffect(() => {
         let animFrame: number;
         const startTime = Date.now();
@@ -95,10 +95,18 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
             const pulse = (Math.sin(elapsed * animParams.pulseSpeed) + 1) / 2;
             setEdgeOpacity(0.3 + pulse * 0.4);
 
-            // Random subtle edge flicker for "alive" feel
-            if (Math.random() < animParams.flickerChance) {
-                setEdgeFlicker(true);
-                setTimeout(() => setEdgeFlicker(false), 50 + Math.random() * 100);
+            // Random shine flash like light catching a car edge
+            if (Math.random() < animParams.shineChance && !shineFlash.active) {
+                const positions = [
+                    { x: 0, y: 0 },     // top-left corner
+                    { x: 100, y: 0 },   // top-right corner
+                    { x: 0, y: 100 },   // bottom-left corner
+                    { x: 100, y: 100 }, // bottom-right corner
+                    { x: 50, y: 0 },    // top edge center
+                ];
+                const pos = positions[Math.floor(Math.random() * positions.length)];
+                setShineFlash({ x: pos.x, y: pos.y, active: true });
+                setTimeout(() => setShineFlash(prev => ({ ...prev, active: false })), 150 + Math.random() * 200);
             }
 
             animFrame = requestAnimationFrame(animate);
@@ -115,7 +123,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 flexDirection: 'column',
                 alignItems: 'center',
                 cursor: 'pointer',
-                transform: `translateY(${floatY}px) perspective(600px) rotateX(8deg)`,
+                transform: `translateY(${floatY}px) perspective(800px) rotateX(10deg)`,
                 flex: 1,
                 maxWidth: 'calc(16.66% - 16px)',
                 transition: 'transform 0.3s ease-out',
@@ -124,79 +132,82 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
             onClick={() => onSelect(orb.id)}
             title={orb.label}
             onMouseEnter={(e) => {
-                e.currentTarget.style.transform = `translateY(${floatY - 10}px) perspective(600px) rotateX(0deg) scale(1.15)`;
+                e.currentTarget.style.transform = `translateY(${floatY - 12}px) perspective(800px) rotateX(0deg) scale(1.15)`;
             }}
             onMouseLeave={(e) => {
-                e.currentTarget.style.transform = `translateY(${floatY}px) perspective(600px) rotateX(8deg) scale(1)`;
+                e.currentTarget.style.transform = `translateY(${floatY}px) perspective(800px) rotateX(10deg) scale(1)`;
             }}
         >
-            {/* Holographic pedestal/reflection */}
+            {/* Holographic pedestal glow */}
             <div
                 style={{
                     position: 'absolute',
-                    bottom: 20,
-                    width: 70,
-                    height: 20,
+                    bottom: 18,
+                    width: 80,
+                    height: 25,
                     borderRadius: '50%',
-                    background: `radial-gradient(ellipse, ${edgeColor.glow}, transparent 70%)`,
-                    filter: 'blur(6px)',
-                    opacity: edgeOpacity * 0.8,
-                    transform: 'rotateX(60deg)',
+                    background: `radial-gradient(ellipse, rgba(0, 212, 255, 0.4), rgba(0, 136, 255, 0.2), transparent 70%)`,
+                    filter: 'blur(8px)',
+                    opacity: edgeOpacity,
+                    transform: 'rotateX(70deg)',
                 }}
             />
 
-            {/* 3D Card Container */}
+            {/* 3D Glass Card Container */}
             <div
                 style={{
                     position: 'relative',
                     width: '100%',
-                    maxWidth: 85,
+                    maxWidth: 90,
                     transformStyle: 'preserve-3d',
                 }}
             >
-                {/* Card edge/thickness (left side) */}
+                {/* Card left edge - visible 3D glass thickness */}
                 <div
                     style={{
                         position: 'absolute',
-                        left: -3,
-                        top: 0,
-                        width: 3,
-                        height: '100%',
-                        background: 'linear-gradient(180deg, rgba(0, 212, 255, 0.4), rgba(0, 100, 150, 0.6))',
-                        transform: 'rotateY(-90deg) translateZ(1.5px)',
-                        borderRadius: '2px 0 0 2px',
+                        left: -4,
+                        top: 2,
+                        width: 5,
+                        height: 'calc(100% - 4px)',
+                        background: 'linear-gradient(180deg, rgba(100, 200, 255, 0.5), rgba(0, 150, 255, 0.3), rgba(50, 150, 200, 0.4))',
+                        borderRadius: '4px 0 0 4px',
+                        transform: 'rotateY(-90deg) translateZ(2px)',
+                        boxShadow: 'inset 2px 0 8px rgba(255, 255, 255, 0.3)',
                     }}
                 />
 
-                {/* Card edge/thickness (bottom) */}
+                {/* Card bottom edge - visible 3D glass thickness */}
                 <div
                     style={{
                         position: 'absolute',
-                        left: 0,
-                        bottom: -3,
-                        width: '100%',
-                        height: 3,
-                        background: 'linear-gradient(90deg, rgba(0, 100, 150, 0.6), rgba(0, 212, 255, 0.3))',
-                        transform: 'rotateX(90deg) translateZ(1.5px)',
-                        borderRadius: '0 0 2px 2px',
+                        left: 2,
+                        bottom: -4,
+                        width: 'calc(100% - 4px)',
+                        height: 5,
+                        background: 'linear-gradient(90deg, rgba(50, 150, 200, 0.4), rgba(0, 180, 255, 0.3), rgba(100, 200, 255, 0.3))',
+                        borderRadius: '0 0 4px 4px',
+                        transform: 'rotateX(90deg) translateZ(2px)',
                     }}
                 />
 
-                {/* Main card face */}
+                {/* Main card face - frosted glass */}
                 <div
                     style={{
                         position: 'relative',
                         width: '100%',
                         aspectRatio: '2 / 3',
-                        borderRadius: 6,
+                        borderRadius: 8,
                         overflow: 'hidden',
-                        background: '#0a1628',
-                        border: `2px solid ${edgeFlicker ? 'rgba(255, 255, 255, 1)' : 'rgba(200, 255, 255, 0.7)'}`,
+                        background: 'linear-gradient(135deg, rgba(10, 30, 60, 0.85), rgba(5, 20, 40, 0.9))',
+                        backdropFilter: 'blur(10px)',
+                        border: '2px solid rgba(100, 200, 255, 0.5)',
                         boxShadow: `
-                            0 0 ${10 + edgeOpacity * 20}px ${edgeColor.glow},
-                            0 0 ${5 + edgeOpacity * 10}px ${edgeColor.main},
-                            0 15px 35px rgba(0, 0, 0, 0.7),
-                            0 5px 15px rgba(0, 0, 0, 0.5)
+                            0 0 ${15 + edgeOpacity * 25}px rgba(0, 180, 255, 0.3),
+                            0 0 ${8 + edgeOpacity * 15}px ${edgeColor.main},
+                            0 20px 40px rgba(0, 0, 0, 0.7),
+                            0 8px 20px rgba(0, 0, 0, 0.5),
+                            inset 0 1px 0 rgba(255, 255, 255, 0.2)
                         `,
                         transition: 'box-shadow 0.2s ease-out, border-color 0.1s ease-out',
                     }}
@@ -214,30 +225,49 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                         }}
                     />
 
-                    {/* Glass overlay for depth */}
+                    {/* Glass reflection overlay */}
                     <div
                         style={{
                             position: 'absolute',
                             top: 0,
                             left: 0,
                             right: 0,
-                            bottom: 0,
-                            background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.2) 100%)',
+                            height: '40%',
+                            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 100%)',
                             pointerEvents: 'none',
                         }}
                     />
 
-                    {/* Top highlight edge */}
+                    {/* Top edge shine */}
                     <div
                         style={{
                             position: 'absolute',
                             top: 0,
                             left: 0,
                             right: 0,
-                            height: 1,
-                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
+                            height: 2,
+                            background: 'linear-gradient(90deg, transparent 10%, rgba(255, 255, 255, 0.6) 50%, transparent 90%)',
                         }}
                     />
+
+                    {/* Random shine flash - like light catching a car */}
+                    {shineFlash.active && (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                left: `${shineFlash.x}%`,
+                                top: `${shineFlash.y}%`,
+                                width: 20,
+                                height: 20,
+                                transform: 'translate(-50%, -50%)',
+                                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(200, 240, 255, 0.6) 30%, transparent 70%)',
+                                borderRadius: '50%',
+                                filter: 'blur(2px)',
+                                pointerEvents: 'none',
+                                animation: 'shineFlash 0.2s ease-out',
+                            }}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -249,7 +279,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                     fontWeight: 600,
                     color: 'rgba(255, 255, 255, 0.95)',
                     textAlign: 'center',
-                    textShadow: `0 0 10px ${edgeColor.glow}, 0 2px 4px rgba(0, 0, 0, 0.9)`,
+                    textShadow: `0 0 12px rgba(0, 200, 255, 0.5), 0 2px 4px rgba(0, 0, 0, 0.9)`,
                     maxWidth: '100%',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -636,6 +666,109 @@ export default function WorldHub() {
                     <CarouselEngine onOrbSelect={handleOrbSelect} />
                 </Suspense>
             </Canvas>
+
+            {/* ═══════════════════════════════════════════════════════════════
+                HOLOGRAPHIC LIGHT BEAM BASE — Blue/White shining lights
+                ═══════════════════════════════════════════════════════════════ */}
+            <div
+                style={{
+                    position: 'absolute',
+                    bottom: '22%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 400,
+                    height: 200,
+                    pointerEvents: 'none',
+                    zIndex: 6,
+                }}
+            >
+                {/* Main light beam - upward cone */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: 280,
+                        height: 180,
+                        background: `
+                            radial-gradient(ellipse at center bottom, 
+                                rgba(0, 180, 255, 0.25) 0%, 
+                                rgba(100, 200, 255, 0.15) 20%,
+                                rgba(0, 150, 255, 0.08) 40%,
+                                transparent 70%)
+                        `,
+                        filter: 'blur(3px)',
+                    }}
+                />
+
+                {/* Secondary light rays */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: 200,
+                        height: 150,
+                        background: `
+                            radial-gradient(ellipse at center bottom, 
+                                rgba(255, 255, 255, 0.2) 0%, 
+                                rgba(200, 240, 255, 0.1) 30%,
+                                transparent 60%)
+                        `,
+                        filter: 'blur(2px)',
+                    }}
+                />
+
+                {/* Holographic pedestal ring */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        bottom: 10,
+                        left: '50%',
+                        width: 300,
+                        height: 50,
+                        transform: 'translateX(-50%) rotateX(75deg)',
+                        borderRadius: '50%',
+                        border: '3px solid rgba(0, 212, 255, 0.5)',
+                        boxShadow: `
+                            0 0 30px rgba(0, 212, 255, 0.4),
+                            0 0 60px rgba(0, 180, 255, 0.2),
+                            inset 0 0 20px rgba(0, 212, 255, 0.2)
+                        `,
+                        animation: 'pedestalPulse 3s ease-in-out infinite',
+                    }}
+                />
+
+                {/* Inner ring */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        bottom: 15,
+                        left: '50%',
+                        width: 220,
+                        height: 35,
+                        transform: 'translateX(-50%) rotateX(75deg)',
+                        borderRadius: '50%',
+                        border: '2px solid rgba(255, 255, 255, 0.4)',
+                        boxShadow: '0 0 20px rgba(255, 255, 255, 0.3)',
+                    }}
+                />
+            </div>
+
+            {/* Keyframe animations for shine and pedestal effects */}
+            <style jsx global>{`
+                @keyframes pedestalPulse {
+                    0%, 100% { opacity: 0.6; transform: translateX(-50%) rotateX(75deg) scale(1); }
+                    50% { opacity: 1; transform: translateX(-50%) rotateX(75deg) scale(1.05); }
+                }
+                @keyframes shineFlash {
+                    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+                    50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+                }
+            `}</style>
 
             {/* ═══════════════════════════════════════════════════════════════
                 CIRCUIT BRAIN BACKGROUND OVERLAY

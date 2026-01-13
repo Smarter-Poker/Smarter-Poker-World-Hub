@@ -71,13 +71,13 @@ export default async function handler(req, res) {
             });
         }
 
-        // Save to database
         const { error: updateError } = await supabase
             .from('profiles')
             .update({
                 hendon_total_cashes: stats.totalCashes,
                 hendon_total_earnings: stats.totalEarnings,
                 hendon_best_finish: stats.bestFinish,
+                hendon_biggest_cash: stats.biggestCash,
                 hendon_last_scraped: new Date().toISOString(),
             })
             .eq('id', userId);
@@ -92,6 +92,7 @@ export default async function handler(req, res) {
             total_cashes: stats.totalCashes,
             total_earnings: stats.totalEarnings,
             best_finish: stats.bestFinish,
+            biggest_cash: stats.biggestCash,
             source: stats.source,
         });
 
@@ -244,15 +245,24 @@ function parseStatsFromText(text) {
     let totalEarnings = null;
     let totalCashes = null;
     let bestFinish = null;
+    let biggestCash = null;
 
-    // Find dollar amounts (look for largest as total earnings)
+    // Find dollar amounts
     const dollarMatches = text.match(/\$[\d,]+(?:\.\d{2})?/g);
     if (dollarMatches && dollarMatches.length > 0) {
         const amounts = dollarMatches
             .map(s => parseInt(s.replace(/[$,\.]/g, ''), 10) / (s.includes('.') ? 100 : 1))
-            .filter(n => !isNaN(n) && n > 0);
+            .filter(n => !isNaN(n) && n > 0)
+            .sort((a, b) => b - a); // Sort descending
+
         if (amounts.length > 0) {
-            totalEarnings = Math.max(...amounts);
+            totalEarnings = amounts[0]; // Largest = total earnings
+            // Second largest (or largest if only one) is likely biggest cash
+            biggestCash = amounts.length > 1 ? amounts[1] : amounts[0];
+            // If second largest seems too small relative to total, look for other patterns
+            if (biggestCash < totalEarnings * 0.01) {
+                biggestCash = null; // Will try other patterns
+            }
         }
     }
 
@@ -262,6 +272,24 @@ function parseStatsFromText(text) {
         const millions = parseFloat(millionMatch[1]) * 1000000;
         if (!totalEarnings || millions > totalEarnings) {
             totalEarnings = millions;
+        }
+    }
+
+    // Look for "biggest cash" or "largest cash" patterns
+    const bigCashPatterns = [
+        /biggest\s*(?:single\s*)?cash[:\s]*\$?([\d,]+)/i,
+        /largest\s*(?:single\s*)?cash[:\s]*\$?([\d,]+)/i,
+        /best\s*(?:single\s*)?cash[:\s]*\$?([\d,]+)/i,
+        /([\d,]+)\s*(?:was|is)\s*(?:his|her|their)?\s*biggest/i,
+    ];
+    for (const pattern of bigCashPatterns) {
+        const match = text.match(pattern);
+        if (match) {
+            const val = parseInt(match[1].replace(/,/g, ''), 10);
+            if (!isNaN(val) && val > 0) {
+                biggestCash = val;
+                break;
+            }
         }
     }
 
@@ -295,5 +323,5 @@ function parseStatsFromText(text) {
         }
     }
 
-    return { totalEarnings, totalCashes, bestFinish };
+    return { totalEarnings, totalCashes, bestFinish, biggestCash };
 }

@@ -175,7 +175,9 @@ function PostCreator({ user, onPost, isPosting }) {
     return (
         <div style={{ background: C.card, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2, position: 'relative' }}>
             <div style={{ padding: 12, display: 'flex', gap: 8 }}>
-                <Avatar src={user?.avatar} name={user?.name} size={40} />
+                <Link href="/hub/profile" style={{ display: 'block', cursor: 'pointer' }}>
+                    <Avatar src={user?.avatar} name={user?.name} size={40} />
+                </Link>
                 <div style={{ flex: 1, position: 'relative' }}>
                     <input
                         ref={inputRef}
@@ -779,8 +781,8 @@ export default function SocialMediaPage() {
                                 <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>EARNINGS</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>{user.hendon.bestFinish || '—'}</div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>BEST</div>
+                                <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>${user.hendon.biggestCash?.toLocaleString() || user.hendon.bestFinish || '—'}</div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>BIG CASH</div>
                             </div>
                         </div>
                     </div>
@@ -860,7 +862,7 @@ export default function SocialMediaPage() {
                                 width: 40, height: 40, borderRadius: 8
                             }}
                         >☰</button>
-                        <Link href="/hub" style={{ fontWeight: 700, fontSize: 22, color: C.blue, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>🧠 Smarter.Poker</Link>
+                        <Link href="/hub" style={{ fontWeight: 700, fontSize: 22, color: C.blue, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 20 }}>🔵</span> smarter.poker</Link>
                     </div>
 
                     {/* RIGHT: Search, Notifications, Messenger, Profile */}

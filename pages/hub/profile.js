@@ -20,6 +20,16 @@ const C = {
     border: '#DADDE1', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A', gold: '#FFD700',
 };
 
+// Auto-format hand notation: 4s5s → 4♠5♠, AsKh → A♠K♥
+function formatFavoriteHand(input) {
+    if (!input) return input;
+    return input
+        .replace(/([AKQJT2-9])s/gi, '$1♠')
+        .replace(/([AKQJT2-9])h/gi, '$1♥')
+        .replace(/([AKQJT2-9])d/gi, '$1♦')
+        .replace(/([AKQJT2-9])c/gi, '$1♣');
+}
+
 function Avatar({ src, size = 120, onUpload }) {
     const fileRef = useRef(null);
 
@@ -148,9 +158,9 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                             border: '1px solid rgba(255,255,255,0.1)'
                         }}>
                             <div style={{ fontSize: 32, fontWeight: 800, color: '#00d4ff', textShadow: '0 0 10px rgba(0, 212, 255, 0.3)' }}>
-                                {hendonData.best_finish || '—'}
+                                ${hendonData.biggest_cash?.toLocaleString() || hendonData.best_finish || '—'}
                             </div>
-                            <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Best Finish</div>
+                            <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Big Cash</div>
                         </div>
                     </div>
 
@@ -242,6 +252,7 @@ export default function ProfilePage() {
         hendon_total_cashes: null,
         hendon_total_earnings: null,
         hendon_best_finish: null,
+        hendon_biggest_cash: null,
         hendon_last_scraped: null,
     });
     const [originalProfile, setOriginalProfile] = useState(null);
@@ -475,7 +486,7 @@ export default function ProfilePage() {
                         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>🃏 Poker Info</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                             <ProfileField label="Favorite Game" value={profile.favorite_game} onChange={updateField('favorite_game')} placeholder="No Limit Hold'em" icon="🎰" />
-                            <ProfileField label="Favorite Hand" value={profile.favorite_hand} onChange={updateField('favorite_hand')} placeholder="A♠ K♠" icon="🃏" />
+                            <ProfileField label="Favorite Hand" value={profile.favorite_hand} onChange={(val) => updateField('favorite_hand')(formatFavoriteHand(val))} placeholder="A♠ K♠ or type AsKs" icon="🃏" />
                             <ProfileField label="Home Casino" value={profile.home_casino} onChange={updateField('home_casino')} placeholder="Bellagio" icon="🏨" />
                             <ProfileField label="Birth Year" value={profile.birth_year} onChange={updateField('birth_year')} placeholder="1990" icon="🎂" />
                         </div>
@@ -504,6 +515,7 @@ export default function ProfilePage() {
                                 total_cashes: profile.hendon_total_cashes,
                                 total_earnings: profile.hendon_total_earnings,
                                 best_finish: profile.hendon_best_finish,
+                                biggest_cash: profile.hendon_biggest_cash,
                                 last_scraped: profile.hendon_last_scraped,
                             }}
                             onRefresh={async () => {
@@ -526,6 +538,7 @@ export default function ProfilePage() {
                                             hendon_total_cashes: data.total_cashes,
                                             hendon_total_earnings: data.total_earnings,
                                             hendon_best_finish: data.best_finish,
+                                            hendon_biggest_cash: data.biggest_cash,
                                             hendon_last_scraped: new Date().toISOString()
                                         }));
                                         setMessage('✅ Stats synced successfully!');
