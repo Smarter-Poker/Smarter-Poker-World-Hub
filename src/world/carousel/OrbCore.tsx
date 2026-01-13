@@ -7,7 +7,7 @@
 
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, Html } from '@react-three/drei';
+import { Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { TextureLoader } from 'three';
 
@@ -111,35 +111,35 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
             </mesh>
 
             {/* ═══════════════════════════════════════════════════════════════
-                INNER WHITE BORDER FRAME - CSS overlay (same as footer cards)
-                Using Html from drei to render CSS that matches footer exactly
+                INNER WHITE BORDER FRAME - Continuous line rectangle
+                Using drei's Line for a proper connected rectangle with no gaps
                 ═══════════════════════════════════════════════════════════════ */}
-            <Html
-                center
-                transform
-                occlude={false}
-                style={{
-                    width: `${cardWidth * 200}px`,
-                    height: `${cardHeight * 200}px`,
-                    pointerEvents: 'none',
-                }}
-            >
-                <div style={{
-                    width: '100%',
-                    height: '100%',
-                    position: 'relative',
-                    pointerEvents: 'none',
-                }}>
-                    {/* Inner top border */}
-                    <div style={{ position: 'absolute', top: 12, left: 12, right: 12, height: 1, background: 'rgba(255, 255, 255, 0.85)' }} />
-                    {/* Inner bottom border */}
-                    <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12, height: 1, background: 'rgba(255, 255, 255, 0.85)' }} />
-                    {/* Inner left border */}
-                    <div style={{ position: 'absolute', top: 12, bottom: 12, left: 12, width: 1, background: 'rgba(255, 255, 255, 0.85)' }} />
-                    {/* Inner right border */}
-                    <div style={{ position: 'absolute', top: 12, bottom: 12, right: 12, width: 1, background: 'rgba(255, 255, 255, 0.85)' }} />
-                </div>
-            </Html>
+            {(() => {
+                const inset = 0.05;
+                const left = -(cardWidth / 2) + inset;
+                const right = (cardWidth / 2) - inset;
+                const top = (cardHeight / 2) - inset;
+                const bottom = -(cardHeight / 2) + inset;
+
+                // Points forming a closed rectangle
+                const points: [number, number, number][] = [
+                    [left, top, 0.04],      // Top-left
+                    [right, top, 0.04],     // Top-right
+                    [right, bottom, 0.04],  // Bottom-right
+                    [left, bottom, 0.04],   // Bottom-left
+                    [left, top, 0.04],      // Back to top-left (close the loop)
+                ];
+
+                return (
+                    <Line
+                        points={points}
+                        color="#ffffff"
+                        lineWidth={1}
+                        transparent
+                        opacity={0.85}
+                    />
+                );
+            })()}
 
             {/* ═══════════════════════════════════════════════════════════════
                 LABEL TEXT - Holographic style
