@@ -424,7 +424,22 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
                 <button onClick={handleLike} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: liked ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>👍 {liked ? 'Liked' : 'Like'}</button>
                 <button onClick={handleToggleComments} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>💬 Comment</button>
-                <button style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>↗️ Share</button>
+                <button
+                    onClick={() => {
+                        const shareUrl = `${window.location.origin}/hub/post/${post.id}`;
+                        if (navigator.share) {
+                            navigator.share({
+                                title: 'Check out this post on Smarter.Poker',
+                                text: post.content?.slice(0, 100) || 'A post from Smarter.Poker',
+                                url: shareUrl,
+                            }).catch(() => { });
+                        } else {
+                            navigator.clipboard.writeText(shareUrl);
+                            alert('Link copied to clipboard!');
+                        }
+                    }}
+                    style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}
+                >↗️ Share</button>
             </div>
             {showComments && (
                 <div style={{ borderTop: `1px solid ${C.border}`, padding: 12 }}>
@@ -516,7 +531,13 @@ export default function SocialMediaPage() {
     const [bottomNavVisible, setBottomNavVisible] = useState(true);
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
+    // Global Search State
+    const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+    const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+    const [globalSearchResults, setGlobalSearchResults] = useState({ users: [], posts: [] });
+    const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
     const searchTimeout = useRef(null);
+    const globalSearchTimeout = useRef(null);
     const lastScrollY = useRef(0);
 
     // Hide bottom nav when scrolling up, show when scrolling down
@@ -673,6 +694,54 @@ export default function SocialMediaPage() {
                 const { data } = await supabase.from('profiles').select('id, username').ilike('username', `%${q}%`).limit(10);
                 if (data) setSearchResults(data.map(u => ({ id: u.id, username: u.username })));
             } catch (e) { console.error(e); }
+        }, 300);
+    };
+
+    // Global search for users and posts
+    const handleGlobalSearch = (query) => {
+        setGlobalSearchQuery(query);
+        if (globalSearchTimeout.current) clearTimeout(globalSearchTimeout.current);
+        if (query.length < 2) {
+            setGlobalSearchResults({ users: [], posts: [] });
+            return;
+        }
+        setGlobalSearchLoading(true);
+        globalSearchTimeout.current = setTimeout(async () => {
+            try {
+                // Search users
+                const { data: users } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url')
+                    .ilike('username', `%${query}%`)
+                    .limit(5);
+
+                // Search posts
+                const { data: posts } = await supabase
+                    .from('social_posts')
+                    .select('id, content, author_id, created_at')
+                    .ilike('content', `%${query}%`)
+                    .limit(5);
+
+                // Get author info for posts
+                let enrichedPosts = [];
+                if (posts?.length) {
+                    const authorIds = [...new Set(posts.map(p => p.author_id))];
+                    const { data: authors } = await supabase.from('profiles').select('id, username').in('id', authorIds);
+                    const authorMap = Object.fromEntries((authors || []).map(a => [a.id, a]));
+                    enrichedPosts = posts.map(p => ({
+                        ...p,
+                        author: authorMap[p.author_id]
+                    }));
+                }
+
+                setGlobalSearchResults({
+                    users: users || [],
+                    posts: enrichedPosts
+                });
+            } catch (e) {
+                console.error('Global search error:', e);
+            }
+            setGlobalSearchLoading(false);
         }, 300);
     };
 

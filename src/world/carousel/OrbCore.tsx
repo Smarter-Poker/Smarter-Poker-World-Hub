@@ -131,13 +131,32 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                 ];
 
                 return (
-                    <Line
-                        points={points}
-                        color="#ffffff"
-                        lineWidth={1}
-                        transparent
-                        opacity={0.85}
-                    />
+                    <>
+                        {/* Outer glow layer - soft and wide */}
+                        <Line
+                            points={points}
+                            color="#ffffff"
+                            lineWidth={8}
+                            transparent
+                            opacity={0.3}
+                        />
+                        {/* Middle glow layer */}
+                        <Line
+                            points={points}
+                            color="#ffffff"
+                            lineWidth={5}
+                            transparent
+                            opacity={0.5}
+                        />
+                        {/* Core bright line - 3x thickness */}
+                        <Line
+                            points={points}
+                            color="#ffffff"
+                            lineWidth={3}
+                            transparent
+                            opacity={0.9}
+                        />
+                    </>
                 );
             })()}
 

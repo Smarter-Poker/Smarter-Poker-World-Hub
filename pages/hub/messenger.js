@@ -359,8 +359,10 @@ function TypingIndicator({ name }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 
-function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry }) {
+function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onReact, onDelete, currentUserId }) {
     const [showReactions, setShowReactions] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const [reactions, setReactions] = useState(message.reactions || []);
     const status = message.status || 'sent';
 
     const StatusIcon = () => {
@@ -377,6 +379,36 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
         return <span style={{ color: '#0084FF', fontSize: 10 }}>✓✓</span>;
     };
 
+    const handleReaction = async (emoji) => {
+        // Optimistic update
+        const hasReaction = reactions.some(r => r.reaction === emoji && r.user_id === currentUserId);
+        if (hasReaction) {
+            setReactions(prev => prev.filter(r => !(r.reaction === emoji && r.user_id === currentUserId)));
+        } else {
+            setReactions(prev => [...prev, { reaction: emoji, user_id: currentUserId }]);
+        }
+        setShowReactions(false);
+
+        // Call parent handler for DB persistence
+        if (onReact) {
+            await onReact(message.id, emoji);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!confirm('Delete this message?')) return;
+        setShowMenu(false);
+        if (onDelete) {
+            await onDelete(message.id);
+        }
+    };
+
+    // Group reactions by emoji
+    const groupedReactions = reactions.reduce((acc, r) => {
+        acc[r.reaction] = (acc[r.reaction] || 0) + 1;
+        return acc;
+    }, {});
+
     return (
         <div
             style={{
@@ -388,9 +420,10 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                 paddingLeft: isOwn ? 60 : 12,
                 paddingRight: isOwn ? 12 : 60,
                 opacity: status === 'sending' ? 0.7 : 1,
+                position: 'relative',
             }}
             onMouseEnter={() => setShowReactions(true)}
-            onMouseLeave={() => setShowReactions(false)}
+            onMouseLeave={() => { setShowReactions(false); setShowMenu(false); }}
         >
             {/* Avatar */}
             {!isOwn && (
@@ -403,6 +436,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
 
             {/* Bubble with reactions */}
             <div style={{ position: 'relative', maxWidth: '70%' }}>
+                {/* Reaction picker */}
                 {showReactions && status !== 'sending' && (
                     <div style={{
                         position: 'absolute',
@@ -417,16 +451,74 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         borderRadius: 16,
                         padding: '4px 6px',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        zIndex: 10,
                     }}>
-                        {['❤️', '👍', '😂'].map(emoji => (
-                            <button key={emoji} style={{
+                        {['❤️', '👍', '😂', '😮', '😢'].map(emoji => (
+                            <button
+                                key={emoji}
+                                onClick={() => handleReaction(emoji)}
+                                style={{
+                                    border: 'none',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    fontSize: 16,
+                                    padding: 4,
+                                    borderRadius: 4,
+                                    transition: 'background 0.2s',
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >{emoji}</button>
+                        ))}
+                        {isOwn && (
+                            <>
+                                <div style={{ width: 1, background: C.border, margin: '4px 2px' }} />
+                                <button
+                                    onClick={() => setShowMenu(!showMenu)}
+                                    style={{
+                                        border: 'none',
+                                        background: 'transparent',
+                                        cursor: 'pointer',
+                                        fontSize: 14,
+                                        padding: 4,
+                                        color: C.textSec,
+                                    }}
+                                >⋯</button>
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {/* Context menu for own messages */}
+                {showMenu && isOwn && (
+                    <div style={{
+                        position: 'absolute',
+                        [isOwn ? 'left' : 'right']: '100%',
+                        top: '100%',
+                        marginLeft: isOwn ? 0 : 4,
+                        background: C.card,
+                        borderRadius: 8,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        overflow: 'hidden',
+                        zIndex: 20,
+                        minWidth: 120,
+                    }}>
+                        <button
+                            onClick={handleDelete}
+                            style={{
+                                display: 'block',
+                                width: '100%',
+                                padding: '10px 16px',
                                 border: 'none',
                                 background: 'transparent',
                                 cursor: 'pointer',
+                                textAlign: 'left',
+                                color: C.red,
                                 fontSize: 14,
-                                padding: 2,
-                            }}>{emoji}</button>
-                        ))}
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >🗑️ Delete</button>
                     </div>
                 )}
 
@@ -443,6 +535,28 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                 }}>
                     {message.content || message.text}
                 </div>
+
+                {/* Display reactions */}
+                {Object.keys(groupedReactions).length > 0 && (
+                    <div style={{
+                        position: 'absolute',
+                        bottom: -8,
+                        [isOwn ? 'left' : 'right']: 8,
+                        display: 'flex',
+                        gap: 2,
+                        background: C.card,
+                        borderRadius: 10,
+                        padding: '2px 4px',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
+                        fontSize: 12,
+                    }}>
+                        {Object.entries(groupedReactions).map(([emoji, count]) => (
+                            <span key={emoji} style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {emoji}{count > 1 && <span style={{ fontSize: 10, color: C.textSec }}>{count}</span>}
+                            </span>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Time & Status */}
@@ -637,11 +751,18 @@ export default function MessengerPage() {
     const [toast, setToast] = useState(null);
     const [isTyping, setIsTyping] = useState(false);
     const [otherTyping, setOtherTyping] = useState(false);
+    // New enhanced features
+    const [messageSearchQuery, setMessageSearchQuery] = useState('');
+    const [messageSearchResults, setMessageSearchResults] = useState([]);
+    const [showMessageSearch, setShowMessageSearch] = useState(false);
+    const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+    const [onlineUsers, setOnlineUsers] = useState(new Set());
 
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
     const searchInputRef = useRef(null);
     const typingTimeout = useRef(null);
+    const messageSearchTimeout = useRef(null);
 
     // Check for mobile
     useEffect(() => {
@@ -866,6 +987,49 @@ export default function MessengerPage() {
         }
     };
 
+    // Handle message reaction
+    const handleReaction = async (messageId, emoji) => {
+        if (!user) return;
+        try {
+            await supabase.rpc('fn_toggle_message_reaction', {
+                p_message_id: messageId,
+                p_user_id: user.id,
+                p_reaction: emoji,
+            });
+        } catch (e) {
+            console.error('Reaction error:', e);
+            // Reactions are optimistically updated, so failure is already handled in UI
+        }
+    };
+
+    // Handle message deletion
+    const handleDeleteMessage = async (messageId) => {
+        if (!user) return;
+        try {
+            const { data: success, error } = await supabase.rpc('fn_delete_message', {
+                p_message_id: messageId,
+                p_user_id: user.id,
+            });
+
+            if (error) throw error;
+
+            if (success) {
+                // Update UI to show deleted message
+                setMessages(prev => prev.map(m =>
+                    m.id === messageId
+                        ? { ...m, content: '[Message deleted]', is_deleted: true }
+                        : m
+                ));
+                setToast({ type: 'success', message: 'Message deleted' });
+            } else {
+                setToast({ type: 'error', message: 'Could not delete message' });
+            }
+        } catch (e) {
+            console.error('Delete message error:', e);
+            setToast({ type: 'error', message: 'Failed to delete message' });
+        }
+    };
+
     const handleSearchUser = useCallback((query) => {
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
         if (!query || query.length < 2) {
@@ -922,7 +1086,64 @@ export default function MessengerPage() {
         }
     };
 
-    // Loading state
+    // Handle message search within a conversation
+    const handleMessageSearch = useCallback((query) => {
+        if (messageSearchTimeout.current) clearTimeout(messageSearchTimeout.current);
+
+        if (!query || query.length < 2 || !activeConversation) {
+            setMessageSearchResults([]);
+            return;
+        }
+
+        messageSearchTimeout.current = setTimeout(async () => {
+            try {
+                const { data, error } = await supabase.rpc('fn_search_messages', {
+                    p_conversation_id: activeConversation.id,
+                    p_user_id: user.id,
+                    p_query: query,
+                });
+
+                if (error) throw error;
+                setMessageSearchResults(data || []);
+            } catch (e) {
+                console.error('Message search error:', e);
+            }
+        }, 300);
+    }, [activeConversation, user]);
+
+    // Update user presence on mount/unmount
+    useEffect(() => {
+        if (!user) return;
+
+        // Set online on mount
+        const updatePresence = async (isOnline) => {
+            try {
+                await supabase.rpc('fn_update_presence', {
+                    p_user_id: user.id,
+                    p_is_online: isOnline,
+                });
+            } catch (e) {
+                console.error('Presence update error:', e);
+            }
+        };
+
+        updatePresence(true);
+
+        // Set offline on unmount or page close
+        const handleUnload = () => updatePresence(false);
+        window.addEventListener('beforeunload', handleUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleUnload);
+            updatePresence(false);
+        };
+    }, [user]);
+
+    // Calculate total unread count
+    useEffect(() => {
+        const total = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+        setTotalUnreadCount(total);
+    }, [conversations]);
     if (loading) {
         return (
             <div style={{
@@ -1147,6 +1368,16 @@ export default function MessengerPage() {
                                 </div>
 
                                 <div style={{ display: 'flex', gap: 8 }}>
+                                    <button
+                                        onClick={() => setShowMessageSearch(!showMessageSearch)}
+                                        style={{
+                                            width: 36, height: 36, borderRadius: '50%',
+                                            background: showMessageSearch ? C.bg : 'transparent',
+                                            border: 'none', cursor: 'pointer', fontSize: 18,
+                                            color: C.blue,
+                                        }}
+                                        title="Search messages"
+                                    >🔍</button>
                                     <button style={{
                                         width: 36, height: 36, borderRadius: '50%',
                                         background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
@@ -1164,6 +1395,100 @@ export default function MessengerPage() {
                                     }}>ℹ️</button>
                                 </div>
                             </div>
+
+                            {/* Message Search Bar */}
+                            {showMessageSearch && (
+                                <div style={{
+                                    padding: '8px 16px',
+                                    borderBottom: `1px solid ${C.border}`,
+                                    background: C.bg,
+                                    position: 'relative',
+                                }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        background: C.card,
+                                        borderRadius: 20,
+                                        padding: '0 12px',
+                                        border: `1px solid ${C.border}`,
+                                    }}>
+                                        <span style={{ color: C.textSec, marginRight: 8 }}>🔍</span>
+                                        <input
+                                            type="text"
+                                            value={messageSearchQuery}
+                                            onChange={e => {
+                                                setMessageSearchQuery(e.target.value);
+                                                handleMessageSearch(e.target.value);
+                                            }}
+                                            placeholder="Search in this conversation..."
+                                            style={{
+                                                flex: 1,
+                                                border: 'none',
+                                                background: 'transparent',
+                                                padding: '8px 0',
+                                                fontSize: 14,
+                                                outline: 'none',
+                                            }}
+                                        />
+                                        {messageSearchQuery && (
+                                            <button
+                                                onClick={() => { setMessageSearchQuery(''); setMessageSearchResults([]); }}
+                                                style={{
+                                                    background: 'none', border: 'none', cursor: 'pointer',
+                                                    color: C.textSec, fontSize: 14,
+                                                }}
+                                            >✕</button>
+                                        )}
+                                    </div>
+
+                                    {/* Search Results Dropdown */}
+                                    {messageSearchResults.length > 0 && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '100%',
+                                            left: 16,
+                                            right: 16,
+                                            background: C.card,
+                                            borderRadius: 8,
+                                            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                                            maxHeight: 240,
+                                            overflowY: 'auto',
+                                            zIndex: 100,
+                                        }}>
+                                            <div style={{ padding: '8px 12px', fontSize: 12, color: C.textSec, borderBottom: `1px solid ${C.border}` }}>
+                                                {messageSearchResults.length} result{messageSearchResults.length !== 1 ? 's' : ''}
+                                            </div>
+                                            {messageSearchResults.map(result => (
+                                                <div
+                                                    key={result.id}
+                                                    onClick={() => {
+                                                        // Scroll to message (future: highlight it)
+                                                        const el = document.getElementById(`msg-${result.id}`);
+                                                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                        setShowMessageSearch(false);
+                                                        setMessageSearchQuery('');
+                                                        setMessageSearchResults([]);
+                                                    }}
+                                                    style={{
+                                                        padding: '10px 12px',
+                                                        borderBottom: `1px solid ${C.border}`,
+                                                        cursor: 'pointer',
+                                                    }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                >
+                                                    <div style={{ fontSize: 13, color: C.text, marginBottom: 2 }}>
+                                                        {result.content.slice(0, 80)}{result.content.length > 80 ? '...' : ''}
+                                                    </div>
+                                                    <div style={{ fontSize: 11, color: C.textSec }}>
+                                                        {timeAgo(result.created_at)}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Messages */}
                             <div style={{
@@ -1215,6 +1540,9 @@ export default function MessengerPage() {
                                                 sender={msg.profiles}
                                                 showTime={isLastInGroup}
                                                 isLastInGroup={isLastInGroup}
+                                                onReact={handleReaction}
+                                                onDelete={handleDeleteMessage}
+                                                currentUserId={user.id}
                                             />
                                         );
                                     })
