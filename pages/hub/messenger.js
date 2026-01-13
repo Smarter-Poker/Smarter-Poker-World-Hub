@@ -404,22 +404,37 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId }) {
 // 🔍 SEARCH BAR COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser }) {
+function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser, inputRef, composing }) {
     return (
         <div style={{ padding: '12px 16px', position: 'relative' }}>
+            {composing && (
+                <div style={{
+                    marginBottom: 12,
+                    padding: '8px 12px',
+                    background: 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)',
+                    borderRadius: 8,
+                    color: 'white',
+                    fontSize: 14,
+                    fontWeight: 500,
+                }}>
+                    ✨ New Message - Search for a user below
+                </div>
+            )}
             <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 background: C.bg,
                 borderRadius: 24,
                 padding: '0 12px',
+                border: composing ? `2px solid ${C.blue}` : 'none',
             }}>
                 <span style={{ color: C.textSec, marginRight: 8 }}>🔍</span>
                 <input
+                    ref={inputRef}
                     type="text"
                     value={value}
                     onChange={e => { onChange(e.target.value); onSearchUser?.(e.target.value); }}
-                    placeholder="Search Messenger"
+                    placeholder={composing ? "Type a name to start chatting..." : "Search Messenger"}
                     style={{
                         flex: 1,
                         border: 'none',
@@ -487,9 +502,11 @@ export default function MessengerPage() {
     const [searchResults, setSearchResults] = useState([]);
     const [isMobile, setIsMobile] = useState(false);
     const [showSidebar, setShowSidebar] = useState(true);
+    const [composing, setComposing] = useState(false);
 
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
+    const searchInputRef = useRef(null);
 
     // Check for mobile
     useEffect(() => {
@@ -827,14 +844,19 @@ export default function MessengerPage() {
                             <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>Chats</h1>
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
-                            <button style={{
-                                width: 36, height: 36, borderRadius: '50%',
-                                background: C.bg, border: 'none', cursor: 'pointer', fontSize: 16,
-                            }}>⋯</button>
-                            <button style={{
-                                width: 36, height: 36, borderRadius: '50%',
-                                background: C.bg, border: 'none', cursor: 'pointer', fontSize: 16,
-                            }}>✏️</button>
+                            <button
+                                onClick={() => {
+                                    setComposing(true);
+                                    setTimeout(() => searchInputRef.current?.focus(), 100);
+                                }}
+                                title="New Message"
+                                style={{
+                                    width: 36, height: 36, borderRadius: '50%',
+                                    background: composing ? C.blue : C.bg,
+                                    border: 'none', cursor: 'pointer', fontSize: 16,
+                                    color: composing ? 'white' : C.text,
+                                    transition: 'all 0.2s',
+                                }}>✏️</button>
                         </div>
                     </div>
 
@@ -844,7 +866,12 @@ export default function MessengerPage() {
                         onChange={setSearchQuery}
                         onSearchUser={handleSearchUser}
                         searchResults={searchResults}
-                        onSelectUser={handleStartConversation}
+                        onSelectUser={(user) => {
+                            handleStartConversation(user);
+                            setComposing(false);
+                        }}
+                        inputRef={searchInputRef}
+                        composing={composing}
                     />
 
                     {/* Conversations */}
