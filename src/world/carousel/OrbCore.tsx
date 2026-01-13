@@ -105,24 +105,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
 
     return (
         <group ref={groupRef}>
-
-            {/* ═══════════════════════════════════════════════════════════════
-                GLASS FRAME (premium transparent border)
-                ═══════════════════════════════════════════════════════════════ */}
-            <mesh ref={glassRef} position={[0, 0, 0]}>
-                <boxGeometry args={[cardWidth + borderWidth * 2, cardHeight + borderWidth * 2, 0.05]} />
-                <meshPhysicalMaterial
-                    color="#ffffff"
-                    metalness={0.1}
-                    roughness={0.05}
-                    transmission={0.3}
-                    thickness={0.5}
-                    clearcoat={1}
-                    clearcoatRoughness={0.1}
-                    envMapIntensity={1}
-                />
-            </mesh>
-
             {/* ═══════════════════════════════════════════════════════════════
                 CARD CONTENT AREA - Custom image with holographic overlay
                 ═══════════════════════════════════════════════════════════════ */}

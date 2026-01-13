@@ -2,11 +2,13 @@
  * 🎯 CONTENT COMMANDER ENGINE
  * ═══════════════════════════════════════════════════════════════════════════
  * Autonomous content generation system for seeding the Smarter.Poker platform.
+ * NOW WITH HORSE MEMORY 🧠 - Each horse remembers their past posts!
  * 
  * MODULES:
  * 1. AGGREGATOR - Fetches poker news/content from external sources
  * 2. GENERATOR  - Creates original content in persona voices
  * 3. SCHEDULER  - Posts content on configurable intervals
+ * 4. MEMORY     - Persistent memory for personality consistency
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -29,6 +31,10 @@ const CONFIG = {
     MIN_DELAY_MINUTES: 30,
     MAX_DELAY_MINUTES: 120,
 
+    // Memory settings
+    TOPIC_COOLDOWN_HOURS: 48,
+    MAX_MEMORIES_IN_PROMPT: 5,
+
     // Content types
     CONTENT_TYPES: [
         'strategy_tip',
@@ -49,6 +55,119 @@ const openai = new OpenAI({ apiKey: CONFIG.OPENAI_API_KEY });
 // Load personas
 const personasPath = path.join(__dirname, 'personas.json');
 const { personas } = JSON.parse(fs.readFileSync(personasPath, 'utf-8'));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🧠 MEMORY SERVICE (Inline for module compatibility)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const MemoryService = {
+    /**
+     * Get memory context for a horse
+     */
+    async getMemoryContext(authorId, topic = null) {
+        const [memories, personality, cooldowns] = await Promise.all([
+            this.getRecentMemories(authorId, topic),
+            this.getPersonality(authorId),
+            this.getTopicsOnCooldown(authorId)
+        ]);
+
+        return { recentMemories: memories, personality, topicsOnCooldown: cooldowns };
+    },
+
+    async getRecentMemories(authorId, topic = null, limit = 10) {
+        const { data, error } = await supabase.rpc('get_horse_memories', {
+            p_author_id: authorId,
+            p_topic: topic,
+            p_limit: limit
+        });
+        return error ? [] : (data || []);
+    },
+
+    async getPersonality(authorId) {
+        const { data } = await supabase.rpc('get_horse_personality', { p_author_id: authorId });
+        return data && Object.keys(data).length > 0 ? data : null;
+    },
+
+    async getTopicsOnCooldown(authorId) {
+        const { data } = await supabase
+            .from('horse_topic_cooldowns')
+            .select('topic, last_posted_at, cooldown_hours')
+            .eq('author_id', authorId);
+
+        if (!data) return [];
+        const now = new Date();
+        return data
+            .filter(row => {
+                const cooldownEnd = new Date(row.last_posted_at);
+                cooldownEnd.setHours(cooldownEnd.getHours() + row.cooldown_hours);
+                return cooldownEnd > now;
+            })
+            .map(row => row.topic);
+    },
+
+    async recordMemory(authorId, memoryType, contentSummary, options = {}) {
+        const { data } = await supabase.rpc('record_horse_memory', {
+            p_author_id: authorId,
+            p_memory_type: memoryType,
+            p_content_summary: contentSummary,
+            p_related_topic: options.relatedTopic || null,
+            p_keywords: options.keywords || [],
+            p_sentiment: options.sentiment || 'neutral',
+            p_source_post_id: options.sourcePostId || null
+        });
+        return data;
+    },
+
+    async setTopicCooldown(authorId, topic, hours = 48) {
+        await supabase.rpc('set_topic_cooldown', {
+            p_author_id: authorId,
+            p_topic: topic,
+            p_cooldown_hours: hours
+        });
+    },
+
+    buildMemoryPromptSection(context) {
+        const sections = [];
+
+        if (context.personality) {
+            const p = context.personality;
+            sections.push(`PERSONALITY DNA:
+- Aggression: ${p.aggression_level}/10
+- Humor: ${p.humor_level}/10
+- Technical Depth: ${p.technical_depth}/10
+- Philosophy: ${p.gto_vs_exploitative || 'balanced'}
+- Risk Tolerance: ${p.risk_tolerance || 'moderate'}`);
+
+            if (p.catchphrases?.length) {
+                sections.push(`SIGNATURE PHRASES (use occasionally): ${p.catchphrases.join(', ')}`);
+            }
+            if (p.origin_story) {
+                sections.push(`BACKSTORY: ${p.origin_story}`);
+            }
+        }
+
+        if (context.recentMemories?.length > 0) {
+            const memoryLines = context.recentMemories
+                .slice(0, CONFIG.MAX_MEMORIES_IN_PROMPT)
+                .map(m => `- [${m.memory_type}] ${m.content_summary}`);
+            sections.push(`YOUR RECENT POSTS/OPINIONS (stay consistent):\n${memoryLines.join('\n')}`);
+        }
+
+        if (context.topicsOnCooldown?.length > 0) {
+            sections.push(`⚠️ TOPICS TO AVOID (recently covered): ${context.topicsOnCooldown.join(', ')}`);
+        }
+
+        return sections.length > 0 ? '\n\n' + sections.join('\n\n') : '';
+    },
+
+    extractKeywords(content) {
+        const keywords = ['GTO', 'exploitative', 'ranges', 'equity', 'EV', 'ICM',
+            'preflop', 'postflop', 'bluff', 'value', 'position', 'bankroll',
+            'variance', 'tilt', 'solver', 'NLH', 'PLO', 'tournament', 'cash game'];
+        const contentLower = content.toLowerCase();
+        return keywords.filter(kw => contentLower.includes(kw.toLowerCase()));
+    }
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PERSONA VOICE PROMPTS
@@ -221,28 +340,48 @@ const CONTENT_TEMPLATES = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CONTENT GENERATOR
+// CONTENT GENERATOR (WITH MEMORY)
 // ═══════════════════════════════════════════════════════════════════════════
 
 class ContentGenerator {
 
     /**
-     * Generate a single piece of content
+     * Generate a single piece of content WITH MEMORY
      */
     async generateContent(persona, contentType) {
         const template = CONTENT_TEMPLATES[contentType];
-        const topic = this.randomChoice(template.topics);
+
+        // 🧠 MEMORY: Get horse's memory context
+        const memoryContext = await MemoryService.getMemoryContext(persona.id);
+
+        // Filter out topics on cooldown
+        const availableTopics = template.topics.filter(
+            t => !memoryContext.topicsOnCooldown.some(cd => t.toLowerCase().includes(cd.toLowerCase()))
+        );
+
+        // If all topics on cooldown, skip this content type
+        if (availableTopics.length === 0) {
+            console.log(`⏸️ ${persona.name}: All ${contentType} topics on cooldown, skipping...`);
+            return null;
+        }
+
+        const topic = this.randomChoice(availableTopics);
         const voiceGuide = VOICE_PROMPTS[persona.voice] || VOICE_PROMPTS.casual;
+
+        // 🧠 MEMORY: Build memory-enhanced prompt
+        const memorySection = MemoryService.buildMemoryPromptSection(memoryContext);
 
         const systemPrompt = `You are ${persona.name}, a poker player from ${persona.location}. 
 Your specialty is ${persona.specialty.replace('_', ' ')} at ${persona.stakes}.
 Bio: ${persona.bio}
 
 VOICE STYLE: ${voiceGuide}
+${memorySection}
 
 Write as this person would naturally write - authentic, personal, and based on real experience.
 Keep posts between 100-300 words. No hashtags. No emojis unless they fit naturally.
-Reference your background when relevant.`;
+Reference your background when relevant.
+IMPORTANT: Stay consistent with your past posts and opinions listed above.`;
 
         const userPrompt = template.prompt.replace('{topic}', topic);
 
@@ -258,6 +397,20 @@ Reference your background when relevant.`;
             });
 
             const content = response.choices[0].message.content;
+
+            // 🧠 MEMORY: Record this post as a memory
+            const keywords = MemoryService.extractKeywords(content);
+            const topicKey = topic.split(' ').slice(0, 3).join('_').toLowerCase();
+
+            await MemoryService.recordMemory(
+                persona.id,
+                'POST',
+                `Posted about ${contentType}: ${topic.slice(0, 100)}`,
+                { relatedTopic: topicKey, keywords, sentiment: 'neutral' }
+            );
+
+            // 🧠 MEMORY: Set topic cooldown
+            await MemoryService.setTopicCooldown(persona.id, topicKey, CONFIG.TOPIC_COOLDOWN_HOURS);
 
             return {
                 persona_id: persona.id,
@@ -288,7 +441,7 @@ Reference your background when relevant.`;
             const content = await this.generateContent(persona, contentType);
             if (content) {
                 results.push(content);
-                console.log(`✅ Generated: ${content.author_name} - ${content.content_type}`);
+                console.log(`✅ Generated: ${content.author_name} - ${content.content_type} (🧠 memory updated)`);
             }
 
             // Small delay to avoid rate limits
@@ -319,7 +472,8 @@ Reference your background when relevant.`;
      * Run the content seeding loop
      */
     async runSeedingLoop(totalPosts = 100) {
-        console.log(`\n🚀 CONTENT COMMANDER: Starting seed of ${totalPosts} posts\n`);
+        console.log(`\n🚀 CONTENT COMMANDER: Starting seed of ${totalPosts} posts`);
+        console.log(`🧠 HORSE MEMORY: Enabled - Each horse has persistent memory\n`);
 
         const batchSize = 10;
         const batches = Math.ceil(totalPosts / batchSize);
@@ -344,7 +498,8 @@ Reference your background when relevant.`;
             }
         }
 
-        console.log(`\n✅ CONTENT COMMANDER: Seeding complete! ${totalPosts} posts created.\n`);
+        console.log(`\n✅ CONTENT COMMANDER: Seeding complete! ${totalPosts} posts created.`);
+        console.log(`🧠 All horse memories have been updated.\n`);
     }
 
     // Utility functions
@@ -362,6 +517,7 @@ Reference your background when relevant.`;
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const contentGenerator = new ContentGenerator();
+export { MemoryService };
 
 // CLI execution
 if (process.argv[2] === 'seed') {
@@ -370,3 +526,4 @@ if (process.argv[2] === 'seed') {
 }
 
 export default ContentGenerator;
+
