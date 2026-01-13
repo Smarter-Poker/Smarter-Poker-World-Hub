@@ -6,16 +6,17 @@
 import { useState, useEffect } from 'react';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 📊 MOCK USER DATA (Replace with real data from store/API)
+// 📊 DEFAULT USER STATS (Replace with real data from store/API)
+// Streak defaults to 0 (no fake streak data)
 // ─────────────────────────────────────────────────────────────────────────────
 const MOCK_USER_STATS = {
-    diamonds: 12450,
-    xp: 8750,
-    level: 12,
-    tier: 'Gold',
-    streak: 7,
-    streakMultiplier: 1.5,
-    xpToday: 350,
+    diamonds: 300,
+    xp: 50,
+    level: 1,
+    tier: 'Bronze',
+    streak: 0,          // Default to 0 (no fake streak)
+    streakMultiplier: 1.0,
+    xpToday: 0,
 };
 
 // Tier colors and icons

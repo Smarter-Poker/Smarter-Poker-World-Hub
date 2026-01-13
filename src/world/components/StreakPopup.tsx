@@ -2,17 +2,10 @@
    STREAK POPUP — Subtle toast notification for daily streaks
    Appears briefly on load, then fades out
    White/cyan theme matching site aesthetics
+   Only shows when real streak data is provided (no mock data)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 📊 MOCK STREAK DATA
-// ─────────────────────────────────────────────────────────────────────────────
-const MOCK_STREAK = {
-    days: 7,
-    multiplier: 1.5,
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🔥 STREAK MESSAGES — Title Case
@@ -43,15 +36,15 @@ function getStreakMessage(days: number, multiplier: number): string {
 // 🎉 STREAK POPUP COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 interface StreakPopupProps {
-    days?: number;
-    multiplier?: number;
-    delay?: number;      // Delay before showing (ms)
-    duration?: number;   // How long to show (ms)
+    days?: number;        // Real streak days from database
+    multiplier?: number;  // Real multiplier from database
+    delay?: number;       // Delay before showing (ms)
+    duration?: number;    // How long to show (ms)
 }
 
 export function StreakPopup({
-    days = MOCK_STREAK.days,
-    multiplier = MOCK_STREAK.multiplier,
+    days = 0,             // Default to 0 (no mock data)
+    multiplier = 1.0,     // Default to 1.0 (no mock data)
     delay = 1500,
     duration = 5000,
 }: StreakPopupProps) {
@@ -59,7 +52,7 @@ export function StreakPopup({
     const [message, setMessage] = useState('');
 
     useEffect(() => {
-        // Don't show for day 1 (no streak yet)
+        // Don't show for day 1 or less (no streak yet)
         if (days < 2) return;
 
         // Generate message once
@@ -81,7 +74,7 @@ export function StreakPopup({
         };
     }, [days, multiplier, delay, duration]);
 
-    // Don't render if no streak
+    // Don't render if no real streak
     if (days < 2) return null;
 
     return (
