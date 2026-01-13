@@ -283,22 +283,29 @@ export default async function handler(req, res) {
             });
         }
 
-        // Get random active horses
+        // Get random horses (all horses are considered active)
         const { data: horses, error: horseError } = await supabase
             .from('content_authors')
             .select('*')
-            .eq('is_active', true)
-            .order('RANDOM()')
-            .limit(CONFIG.HORSES_PER_TRIGGER);
+            .limit(CONFIG.HORSES_PER_TRIGGER * 2);  // Get more, then randomly pick
 
-        if (horseError || !horses?.length) {
-            console.log('No active horses found');
-            return res.status(200).json({ success: true, message: 'No horses available', posted: 0 });
+        if (horseError) {
+            console.error('Horse fetch error:', horseError);
+            return res.status(500).json({ success: false, error: horseError.message });
         }
+
+        if (!horses?.length) {
+            console.log('No horses found in database');
+            return res.status(200).json({ success: true, message: 'No horses in database', posted: 0 });
+        }
+
+        // Randomly shuffle and pick horses
+        const shuffled = horses.sort(() => Math.random() - 0.5);
+        const selectedHorses = shuffled.slice(0, CONFIG.HORSES_PER_TRIGGER);
 
         const results = [];
 
-        for (const horse of horses) {
+        for (const horse of selectedHorses) {
             // Add random delay (1-5 seconds) for natural feel
             await new Promise(r => setTimeout(r, Math.random() * 4000 + 1000));
 

@@ -7,7 +7,7 @@
 
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, MeshTransmissionMaterial } from '@react-three/drei';
+import { Text, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { TextureLoader } from 'three';
 
@@ -111,45 +111,35 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
             </mesh>
 
             {/* ═══════════════════════════════════════════════════════════════
-                INNER WHITE BORDER FRAME - Precise geometry with no gaps
-                The border is inset 0.05 from each edge. Line thickness is 0.004.
-                Horizontal bars extend full width. Vertical bars fit between them.
+                INNER WHITE BORDER FRAME - CSS overlay (same as footer cards)
+                Using Html from drei to render CSS that matches footer exactly
                 ═══════════════════════════════════════════════════════════════ */}
-            {(() => {
-                const inset = 0.05;
-                const lineW = 0.004;
-                const innerLeft = -(cardWidth / 2) + inset;
-                const innerRight = (cardWidth / 2) - inset;
-                const innerTop = (cardHeight / 2) - inset;
-                const innerBottom = -(cardHeight / 2) + inset;
-                const innerWidth = innerRight - innerLeft;
-                const innerHeight = innerTop - innerBottom - lineW; // Subtract line width for vertical bars
-
-                return (
-                    <>
-                        {/* Top horizontal bar - full width */}
-                        <mesh position={[0, innerTop - lineW / 2, 0.04]}>
-                            <planeGeometry args={[innerWidth, lineW]} />
-                            <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
-                        </mesh>
-                        {/* Bottom horizontal bar - full width */}
-                        <mesh position={[0, innerBottom + lineW / 2, 0.04]}>
-                            <planeGeometry args={[innerWidth, lineW]} />
-                            <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
-                        </mesh>
-                        {/* Left vertical bar - between top and bottom bars */}
-                        <mesh position={[innerLeft + lineW / 2, 0, 0.04]}>
-                            <planeGeometry args={[lineW, innerHeight]} />
-                            <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
-                        </mesh>
-                        {/* Right vertical bar - between top and bottom bars */}
-                        <mesh position={[innerRight - lineW / 2, 0, 0.04]}>
-                            <planeGeometry args={[lineW, innerHeight]} />
-                            <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
-                        </mesh>
-                    </>
-                );
-            })()}
+            <Html
+                center
+                transform
+                occlude={false}
+                style={{
+                    width: `${cardWidth * 200}px`,
+                    height: `${cardHeight * 200}px`,
+                    pointerEvents: 'none',
+                }}
+            >
+                <div style={{
+                    width: '100%',
+                    height: '100%',
+                    position: 'relative',
+                    pointerEvents: 'none',
+                }}>
+                    {/* Inner top border */}
+                    <div style={{ position: 'absolute', top: 12, left: 12, right: 12, height: 1, background: 'rgba(255, 255, 255, 0.85)' }} />
+                    {/* Inner bottom border */}
+                    <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12, height: 1, background: 'rgba(255, 255, 255, 0.85)' }} />
+                    {/* Inner left border */}
+                    <div style={{ position: 'absolute', top: 12, bottom: 12, left: 12, width: 1, background: 'rgba(255, 255, 255, 0.85)' }} />
+                    {/* Inner right border */}
+                    <div style={{ position: 'absolute', top: 12, bottom: 12, right: 12, width: 1, background: 'rgba(255, 255, 255, 0.85)' }} />
+                </div>
+            </Html>
 
             {/* ═══════════════════════════════════════════════════════════════
                 LABEL TEXT - Holographic style

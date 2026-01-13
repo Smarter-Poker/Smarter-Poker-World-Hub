@@ -324,7 +324,10 @@ export default function HorsesAdmin() {
                 {/* Navigation */}
                 <nav className={styles.nav}>
                     <button className={activeTab === 'stable' ? styles.active : ''} onClick={() => setActiveTab('stable')}>
-                        🐎 The Stable
+                        💬 Social Horses
+                    </button>
+                    <button className={activeTab === 'grinder' ? styles.active : ''} onClick={() => setActiveTab('grinder')}>
+                        🎰 Grinder Horses
                     </button>
                     <button className={activeTab === 'pipeline' ? styles.active : ''} onClick={() => setActiveTab('pipeline')}>
                         🚀 Pipeline
@@ -415,6 +418,151 @@ export default function HorsesAdmin() {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* GRINDER HORSES TAB */}
+                    {activeTab === 'grinder' && (
+                        <div className={styles.grinderView}>
+                            <div className={styles.grinderHeader}>
+                                <h2>🎰 Grinder Horses - Poker AI</h2>
+                                <p className={styles.grinderSubtitle}>Same horses, second job: Playing poker 16hrs/day across 4 tables max</p>
+                            </div>
+
+                            <div className={styles.grinderStats}>
+                                <div className={styles.statBox}>
+                                    <span className={styles.statNumber}>{personas.length}</span>
+                                    <span className={styles.statLabel}>Total Grinders</span>
+                                </div>
+                                <div className={`${styles.statBox} ${styles.activeBox}`}>
+                                    <span className={styles.statNumber}>0</span>
+                                    <span className={styles.statLabel}>Currently Playing</span>
+                                </div>
+                                <div className={styles.statBox}>
+                                    <span className={styles.statNumber}>0</span>
+                                    <span className={styles.statLabel}>Active Tables</span>
+                                </div>
+                                <div className={styles.statBox}>
+                                    <span className={styles.statNumber}>16h</span>
+                                    <span className={styles.statLabel}>Daily Playtime</span>
+                                </div>
+                            </div>
+
+                            <div className={styles.grinderControls}>
+                                <h3>🏠 Club Management</h3>
+                                <div className={styles.clubActions}>
+                                    <button className={styles.btnSuccess}>
+                                        🐴 Add All Horses to Shark Club (10,000 chips each)
+                                    </button>
+                                    <button className={styles.actionBtn}>
+                                        🎮 Start Auto-Join
+                                    </button>
+                                    <button className={styles.actionBtn}>
+                                        ⏹️ Stop All Horses
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className={styles.grinderSettings}>
+                                <h3>⚙️ Grinder Settings</h3>
+                                <div className={styles.settingsRow}>
+                                    <div className={styles.settingItem}>
+                                        <label>Max Tables Per Horse</label>
+                                        <select defaultValue="4">
+                                            <option value="1">1 Table</option>
+                                            <option value="2">2 Tables</option>
+                                            <option value="3">3 Tables</option>
+                                            <option value="4">4 Tables (Max)</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.settingItem}>
+                                        <label>Daily Play Hours</label>
+                                        <select defaultValue="16">
+                                            <option value="8">8 Hours</option>
+                                            <option value="12">12 Hours</option>
+                                            <option value="16">16 Hours</option>
+                                            <option value="24">24 Hours</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.settingItem}>
+                                        <label>Starting Chips</label>
+                                        <input type="number" defaultValue="10000" min="1000" max="100000" />
+                                    </div>
+                                    <div className={styles.settingItem}>
+                                        <label>AI Model</label>
+                                        <select defaultValue="gpt-4o">
+                                            <option value="gpt-4o">GPT-4o (Best)</option>
+                                            <option value="gpt-4o-mini">GPT-4o Mini (Faster)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className={styles.grinderTable}>
+                                <h3>🐴 Horse Roster - Poker Mode</h3>
+                                <table className={styles.runsTable}>
+                                    <thead>
+                                        <tr>
+                                            <th>Horse</th>
+                                            <th>Specialty</th>
+                                            <th>Play Style</th>
+                                            <th>Tables</th>
+                                            <th>Hands</th>
+                                            <th>Profit</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredPersonas.slice(0, 20).map(persona => (
+                                            <tr key={persona.id}>
+                                                <td>
+                                                    <div className={styles.horseCell}>
+                                                        <span>{persona.gender === 'female' ? '👩' : '👨'}</span>
+                                                        <div>
+                                                            <strong>{persona.name}</strong>
+                                                            <small>@{persona.alias}</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>{persona.specialty?.replace('_', ' ')}</td>
+                                                <td><span className={styles.voiceTag}>{persona.voice}</span></td>
+                                                <td>0/4</td>
+                                                <td>0</td>
+                                                <td className={styles.profitCell}>$0</td>
+                                                <td>
+                                                    <span className={styles.statusIdle}>Idle</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {filteredPersonas.length > 20 && (
+                                    <p className={styles.moreHorses}>
+                                        + {filteredPersonas.length - 20} more horses in the stable
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className={styles.schedulePreview}>
+                                <h3>🕐 Daily Schedule (Rotating Shifts)</h3>
+                                <div className={styles.scheduleGrid}>
+                                    <div className={styles.shift}>
+                                        <h4>🌅 Morning Shift</h4>
+                                        <p>8 AM - 4 PM</p>
+                                        <span>40 horses</span>
+                                    </div>
+                                    <div className={styles.shift}>
+                                        <h4>☀️ Day Shift</h4>
+                                        <p>12 PM - 8 PM</p>
+                                        <span>35 horses</span>
+                                    </div>
+                                    <div className={styles.shift}>
+                                        <h4>🌙 Night Shift</h4>
+                                        <p>4 PM - 12 AM</p>
+                                        <span>25 horses</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

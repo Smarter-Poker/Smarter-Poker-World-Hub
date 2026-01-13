@@ -1080,3 +1080,205 @@
         gap: 24px;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GRINDER HORSES VIEW
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.grinderView h2 {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.grinderSubtitle {
+    color: #64748b;
+    font-size: 14px;
+    margin-bottom: 32px;
+}
+
+.grinderHeader {
+    margin-bottom: 24px;
+}
+
+.grinderStats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+}
+
+.grinderControls {
+    background: rgba(26, 26, 46, 0.8);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.grinderControls h3 {
+    font-size: 16px;
+    color: #94a3b8;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.clubActions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.grinderSettings {
+    background: rgba(26, 26, 46, 0.8);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.grinderSettings h3 {
+    font-size: 16px;
+    color: #94a3b8;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.settingsRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.grinderTable {
+    background: rgba(26, 26, 46, 0.8);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.grinderTable h3 {
+    font-size: 16px;
+    color: #94a3b8;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.horseCell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.horseCell span {
+    font-size: 24px;
+}
+
+.horseCell div {
+    display: flex;
+    flex-direction: column;
+}
+
+.horseCell strong {
+    font-weight: 600;
+}
+
+.horseCell small {
+    font-size: 12px;
+    color: #8b5cf6;
+}
+
+.profitCell {
+    font-weight: 600;
+    color: #22c55e;
+}
+
+.statusIdle {
+    background: rgba(100, 116, 139, 0.2);
+    color: #64748b;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.statusPlaying {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.moreHorses {
+    color: #64748b;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 16px;
+    font-style: italic;
+}
+
+.schedulePreview {
+    background: rgba(26, 26, 46, 0.8);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 16px;
+    padding: 24px;
+}
+
+.schedulePreview h3 {
+    font-size: 16px;
+    color: #94a3b8;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.scheduleGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.shift {
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+}
+
+.shift h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.shift p {
+    color: #94a3b8;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.shift span {
+    color: #8b5cf6;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .grinderStats {
+        flex-direction: column;
+    }
+
+    .scheduleGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .clubActions {
+        flex-direction: column;
+    }
+}
