@@ -189,18 +189,12 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                     />
 
                     {/* ═══════════════════════════════════════════════════════════════
-                        INNER WHITE BORDER FRAME - Thick glowing rectangle
+                        INNER WHITE BORDER FRAME - Clean sharp line (matching mockup)
                         ═══════════════════════════════════════════════════════════════ */}
-                    {/* Outer glow layer - soft and wide */}
-                    <div style={{ position: 'absolute', top: 6, left: 6, right: 6, height: 4, background: 'rgba(255, 255, 255, 0.25)', filter: 'blur(2px)' }} />
-                    <div style={{ position: 'absolute', bottom: 6, left: 6, right: 6, height: 4, background: 'rgba(255, 255, 255, 0.25)', filter: 'blur(2px)' }} />
-                    <div style={{ position: 'absolute', top: 6, bottom: 6, left: 6, width: 4, background: 'rgba(255, 255, 255, 0.25)', filter: 'blur(2px)' }} />
-                    <div style={{ position: 'absolute', top: 6, bottom: 6, right: 6, width: 4, background: 'rgba(255, 255, 255, 0.25)', filter: 'blur(2px)' }} />
-                    {/* Core bright border - 3x thickness */}
-                    <div style={{ position: 'absolute', top: 6, left: 6, right: 6, height: 2, background: 'rgba(255, 255, 255, 0.9)' }} />
-                    <div style={{ position: 'absolute', bottom: 6, left: 6, right: 6, height: 2, background: 'rgba(255, 255, 255, 0.9)' }} />
-                    <div style={{ position: 'absolute', top: 6, bottom: 6, left: 6, width: 2, background: 'rgba(255, 255, 255, 0.9)' }} />
-                    <div style={{ position: 'absolute', top: 6, bottom: 6, right: 6, width: 2, background: 'rgba(255, 255, 255, 0.9)' }} />
+                    <div style={{ position: 'absolute', top: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                    <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                    <div style={{ position: 'absolute', top: 8, bottom: 8, left: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                    <div style={{ position: 'absolute', top: 8, bottom: 8, right: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
                 </div>
             </div>
 
