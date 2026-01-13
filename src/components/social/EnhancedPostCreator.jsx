@@ -7,10 +7,33 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useSupabase } from '@/providers/SupabaseProvider';
-import { SocialService } from '@/services/SocialService';
-import { MediaUploadService, validateFile } from '@/services/MediaUploadService';
-import { validatePostContent } from '@/services/social-types';
+import { SocialService } from '../../services/SocialService';
+import { validatePostContent } from '../../services/social-types';
+
+// Simple file validation since MediaUploadService may not exist
+const validateFile = (file, mediaType) => {
+  const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm'];
+
+  if (mediaType === 'video') {
+    if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
+      return { valid: false, error: 'Invalid video format. Use MP4 or WebM.' };
+    }
+    if (file.size > MAX_VIDEO_SIZE) {
+      return { valid: false, error: 'Video too large. Max 100MB.' };
+    }
+  } else {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      return { valid: false, error: 'Invalid image format. Use JPEG, PNG, GIF, or WebP.' };
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      return { valid: false, error: 'Image too large. Max 10MB.' };
+    }
+  }
+  return { valid: true };
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📊 CONSTANTS
@@ -79,11 +102,10 @@ export const EnhancedPostCreator = ({
   isOpen = true,  // Default to true for inline mode
   onClose,
   onPostCreated,
-  user: userProp,  // Allow passing user directly
-  inline = false   // New: inline mode renders without modal overlay
+  user,           // User object passed from parent
+  supabase,       // Supabase client passed from parent
+  inline = false  // New: inline mode renders without modal overlay
 }) => {
-  const { user: authUser, supabase } = useSupabase();
-  const user = userProp || authUser;
 
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState('public');
@@ -191,32 +213,47 @@ export const EnhancedPostCreator = ({
       }
     }
 
+    if (!supabase) {
+      setError('Supabase client not available');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
     try {
       const socialService = new SocialService(supabase);
-      const mediaUploadService = new MediaUploadService(supabase);
 
-      // Upload media files first
+      // Upload media files first using direct Supabase storage
       const uploadedMedia = [];
 
       for (let i = 0; i < mediaFiles.length; i++) {
         const file = mediaFiles[i];
-        const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+        const isVideo = file.type.startsWith('video/');
+        const bucket = isVideo ? 'videos' : 'images';
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
 
         try {
-          const result = await mediaUploadService.uploadFile(
-            file,
-            { mediaType },
-            (progress) => {
-              setUploadProgress(prev => ({
-                ...prev,
-                [i]: progress
-              }));
-            }
-          );
-          uploadedMedia.push(result);
+          setUploadProgress(prev => ({ ...prev, [i]: 10 }));
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from(bucket)
+            .upload(fileName, file);
+
+          if (uploadError) throw uploadError;
+
+          setUploadProgress(prev => ({ ...prev, [i]: 80 }));
+
+          const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
+
+          setUploadProgress(prev => ({ ...prev, [i]: 100 }));
+
+          uploadedMedia.push({
+            url: urlData.publicUrl,
+            type: file.type,
+            name: file.name
+          });
         } catch (uploadErr) {
           console.error('Media upload failed:', uploadErr);
           setError(`Failed to upload ${file.name}`);
@@ -226,7 +263,7 @@ export const EnhancedPostCreator = ({
       }
 
       // Determine content type
-      const contentType = uploadedMedia.some(m => m.metadata?.mimeType?.startsWith('video/'))
+      const contentType = uploadedMedia.some(m => m.type?.startsWith('video/'))
         ? 'video'
         : uploadedMedia.length > 0
           ? 'image'
@@ -237,23 +274,9 @@ export const EnhancedPostCreator = ({
         authorId: user.id,
         content: content.trim() || (contentType === 'image' ? '📸' : contentType === 'video' ? '🎬' : ''),
         contentType,
-        mediaUrls: uploadedMedia.map(m => ({
-          url: m.url,
-          type: m.metadata?.mimeType || 'image/jpeg',
-          thumbnail: m.thumbnail || null,
-          width: m.metadata?.width || null,
-          height: m.metadata?.height || null
-        })),
+        mediaUrls: uploadedMedia.map(m => m.url),
         visibility
       });
-
-      // Link media to post
-      for (const media of uploadedMedia) {
-        await supabase
-          .from('social_media')
-          .update({ post_id: newPost.id })
-          .eq('id', media.mediaId);
-      }
 
       // Show success animation
       setShowSuccess(true);
@@ -265,7 +288,7 @@ export const EnhancedPostCreator = ({
         setUploadProgress({});
         setShowSuccess(false);
         onPostCreated?.(newPost);
-        onClose();
+        if (onClose) onClose();
       }, 1500);
 
     } catch (err) {

@@ -5,7 +5,7 @@
  * Backend API interactions for social features with optimistic updates.
  */
 
-import { createPost, createComment, createAuthor } from './types';
+import { createPost, createComment, createAuthor } from './social-types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🌐 SOCIAL SERVICE CLASS

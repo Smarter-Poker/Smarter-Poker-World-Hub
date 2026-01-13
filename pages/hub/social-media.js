@@ -9,12 +9,17 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { SocialService } from '../../src/services/SocialService';
+import { EnhancedPostCreator } from '../../src/components/social/EnhancedPostCreator';
 
 // Initialize Supabase
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 );
+
+// Initialize SocialService
+const socialService = new SocialService(supabase);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 FB COLORS (Facebook-style theming)
@@ -166,15 +171,54 @@ function CreatePostBox({ user, onSubmit }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // 📄 POST CARD
 // ═══════════════════════════════════════════════════════════════════════════
-function FBPostCard({ post, onLike }) {
+function FBPostCard({ post, onLike, onComment, onShare }) {
     const [liked, setLiked] = useState(post.isLiked || false);
     const [likeCount, setLikeCount] = useState(post.likeCount || 0);
+    const [showComments, setShowComments] = useState(false);
+    const [commentText, setCommentText] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleLike = () => {
+    const handleLike = async () => {
+        // Optimistic UI update
         setLiked(!liked);
         setLikeCount(liked ? likeCount - 1 : likeCount + 1);
-        onLike?.(!liked);
+
+        // Call backend
+        if (onLike) {
+            try {
+                await onLike(post.id);
+            } catch (error) {
+                // Revert on error
+                setLiked(liked);
+                setLikeCount(likeCount);
+            }
+        }
     };
+
+    const handleCommentSubmit = async () => {
+        if (!commentText.trim() || isSubmitting) return;
+
+        setIsSubmitting(true);
+        if (onComment) {
+            try {
+                await onComment(post.id, commentText);
+                setCommentText('');
+            } catch (error) {
+                console.error('Comment failed:', error);
+            }
+        }
+        setIsSubmitting(false);
+    };
+
+    const handleShare = () => {
+        if (onShare) {
+            onShare(post.id);
+        }
+    };
+
+    // Handle media URLs (can be array or single string)
+    const mediaUrl = post.mediaUrl || (post.mediaUrls && post.mediaUrls[0]);
+    const mediaType = post.mediaType || post.contentType;
 
     return (
         <div style={styles.postCard}>
@@ -191,15 +235,15 @@ function FBPostCard({ post, onLike }) {
             {/* Content */}
             <div style={styles.postContent}>
                 <p style={styles.postText}>{post.content || post.text}</p>
-                {post.mediaUrl && (
+                {mediaUrl && (
                     <div style={{ marginTop: 12 }}>
-                        {post.mediaType === 'video' ? (
+                        {mediaType === 'video' ? (
                             <div style={{ width: '100%', background: '#000', borderRadius: 8, overflow: 'hidden' }}>
-                                <video src={post.mediaUrl} style={{ width: '100%', maxHeight: 500, display: 'block' }} controls />
+                                <video src={mediaUrl} style={{ width: '100%', maxHeight: 500, display: 'block' }} controls />
                             </div>
                         ) : (
                             <div style={{ width: '100%', borderRadius: 8, overflow: 'hidden', border: '1px solid #ddd' }}>
-                                <img src={post.mediaUrl} alt="Post media" style={{ width: '100%', maxHeight: 600, objectFit: 'cover', display: 'block' }} />
+                                <img src={mediaUrl} alt="Post media" style={{ width: '100%', maxHeight: 600, objectFit: 'cover', display: 'block' }} />
                             </div>
                         )}
                     </div>
@@ -228,7 +272,9 @@ function FBPostCard({ post, onLike }) {
             {/* Stats */}
             <div style={styles.postStats}>
                 <span>{likeCount > 0 ? `👍 ${likeCount}` : ''}</span>
-                <span>{post.commentCount > 0 ? `${post.commentCount} comments` : ''}</span>
+                <span onClick={() => setShowComments(!showComments)} style={{ cursor: 'pointer' }}>
+                    {post.commentCount > 0 ? `${post.commentCount} comments` : ''}
+                </span>
             </div>
 
             {/* Actions */}
@@ -242,12 +288,58 @@ function FBPostCard({ post, onLike }) {
                 >
                     {liked ? '👍' : '👍'} Like
                 </button>
-                <button style={styles.postAction}>💬 Comment</button>
-                <button style={styles.postAction}>↗️ Share</button>
+                <button
+                    style={styles.postAction}
+                    onClick={() => setShowComments(!showComments)}
+                >
+                    💬 Comment
+                </button>
+                <button style={styles.postAction} onClick={handleShare}>↗️ Share</button>
             </div>
+
+            {/* Comment Input */}
+            {showComments && (
+                <div style={{ padding: '12px 16px', borderTop: `1px solid ${FB_COLORS.divider}` }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input
+                            type="text"
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            placeholder="Write a comment..."
+                            onKeyDown={(e) => e.key === 'Enter' && handleCommentSubmit()}
+                            disabled={isSubmitting}
+                            style={{
+                                flex: 1,
+                                padding: '8px 12px',
+                                border: 'none',
+                                borderRadius: 20,
+                                background: '#f0f2f5',
+                                fontSize: 14,
+                            }}
+                        />
+                        <button
+                            onClick={handleCommentSubmit}
+                            disabled={!commentText.trim() || isSubmitting}
+                            style={{
+                                padding: '6px 12px',
+                                background: commentText.trim() ? FB_COLORS.blue : '#e4e6eb',
+                                color: commentText.trim() ? '#fff' : '#bcc0c4',
+                                border: 'none',
+                                borderRadius: 16,
+                                cursor: commentText.trim() ? 'pointer' : 'default',
+                                fontSize: 13,
+                                fontWeight: 500,
+                            }}
+                        >
+                            {isSubmitting ? '...' : 'Post'}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📱 LEFT SIDEBAR
@@ -905,31 +997,65 @@ export default function SocialMediaPage() {
                         name: profile?.username || user.email,
                         avatar: profile?.avatar_url,
                     });
+                } else {
+                    // Demo user for testing when not authenticated
+                    // This allows testing social features without requiring login
+                    console.log('🎭 No authenticated user found, using demo user for testing');
+                    setCurrentUser({
+                        id: 'demo-user-001',
+                        name: 'Demo Player',
+                        avatar: 'https://ui-avatars.com/api/?name=Demo+Player&background=1877F2&color=fff',
+                    });
                 }
 
-                // Load posts
-                const { data: postsData } = await supabase
-                    .from('social_posts')
-                    .select(`
-                        *,
-                        author:author_id (id, username, avatar_url)
-                    `)
-                    .order('created_at', { ascending: false })
-                    .limit(20);
+                // Load posts using SocialService (uses fn_get_social_feed RPC)
+                try {
+                    const userId = user?.id || null;
+                    const { posts: feedPosts } = await socialService.getFeed({
+                        userId,
+                        filter: 'recent',
+                        limit: 20,
+                        offset: 0
+                    });
 
-                if (postsData) {
-                    setPosts(postsData.map(p => ({
-                        id: p.id,
-                        content: p.content,
-                        author: {
-                            name: p.author?.username || 'Anonymous',
-                            avatar: p.author?.avatar_url,
-                        },
-                        likeCount: p.like_count || 0,
-                        commentCount: p.comment_count || 0,
-                        timeAgo: getTimeAgo(p.created_at),
-                        handData: p.hand_data,
-                    })));
+                    if (feedPosts && feedPosts.length > 0) {
+                        setPosts(feedPosts.map(p => ({
+                            id: p.id,
+                            content: p.content,
+                            author: {
+                                name: p.author?.username || 'Anonymous',
+                                avatar: p.author?.avatarUrl,
+                                tier: p.author?.tier,
+                            },
+                            likeCount: p.engagement?.likeCount || 0,
+                            commentCount: p.engagement?.commentCount || 0,
+                            shareCount: p.engagement?.shareCount || 0,
+                            timeAgo: p.relativeTime || getTimeAgo(p.createdAt),
+                            handData: p.achievementData,
+                            mediaUrls: p.mediaUrls,
+                            contentType: p.contentType,
+                            isLiked: p.isLiked,
+                        })));
+                    }
+                } catch (feedError) {
+                    console.warn('Feed RPC failed, falling back to direct query:', feedError.message);
+                    // Fallback: direct query without joins (basic posts only)
+                    const { data: postsData } = await supabase
+                        .from('social_posts')
+                        .select('*')
+                        .order('created_at', { ascending: false })
+                        .limit(20);
+
+                    if (postsData) {
+                        setPosts(postsData.map(p => ({
+                            id: p.id,
+                            content: p.content,
+                            author: { name: 'Anonymous', avatar: null },
+                            likeCount: p.like_count || 0,
+                            commentCount: p.comment_count || 0,
+                            timeAgo: getTimeAgo(p.created_at),
+                        })));
+                    }
                 }
             } catch (error) {
                 console.error('Error loading data:', error);
@@ -950,45 +1076,148 @@ export default function SocialMediaPage() {
     };
 
     const handleCreatePost = async (content, mediaFile) => {
-        if (!currentUser) return;
-
-        let mediaUrl = null;
-        let mediaType = null;
-
-        if (mediaFile) {
-            mediaUrl = URL.createObjectURL(mediaFile);
-            mediaType = mediaFile.type.startsWith('video') ? 'video' : 'image';
+        if (!currentUser) {
+            alert('Please log in to create a post');
+            return;
         }
 
-        const newPost = {
-            id: Date.now(),
-            content,
-            author: currentUser,
-            likeCount: 0,
-            commentCount: 0,
-            timeAgo: 'Just now',
-            mediaUrl,
-            mediaType
-        };
+        if (!content || content.trim().length === 0) {
+            alert('Post content cannot be empty');
+            return;
+        }
 
-        setPosts([newPost, ...posts]);
-
-        // Attempt to save to database (will fail until migration runs)
         try {
+            let mediaUrls = [];
+            let contentType = 'text';
+
+            // Upload media to Supabase Storage if provided
             if (mediaFile) {
-                // Mock upload for now - in production this would upload to Supabase Storage
-                console.log('Would upload file:', mediaFile.name);
+                const fileExt = mediaFile.name.split('.').pop();
+                const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`;
+                const bucket = mediaFile.type.startsWith('video') ? 'videos' : 'images';
+
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from(bucket)
+                    .upload(fileName, mediaFile);
+
+                if (uploadError) {
+                    console.error('Media upload error:', uploadError);
+                    // Continue without media rather than failing completely
+                } else {
+                    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
+                    mediaUrls = [urlData.publicUrl];
+                    contentType = mediaFile.type.startsWith('video') ? 'video' : 'image';
+                }
             }
 
-            const { error } = await supabase.from('social_posts').insert({
-                author_id: currentUser.id,
-                content,
-                // meta_data: { mediaUrl, mediaType } // Schema dependent
+            // Create post using SocialService
+            const newPost = await socialService.createPost({
+                authorId: currentUser.id,
+                content: content.trim(),
+                contentType,
+                mediaUrls,
+                visibility: 'public'
             });
 
-            if (error) throw error;
+            // Add to local state with proper formatting
+            const formattedPost = {
+                id: newPost.id,
+                content: newPost.content,
+                author: {
+                    name: newPost.author?.username || currentUser.name || 'You',
+                    avatar: newPost.author?.avatarUrl || currentUser.avatar,
+                    tier: newPost.author?.tier,
+                },
+                likeCount: 0,
+                commentCount: 0,
+                shareCount: 0,
+                timeAgo: 'Just now',
+                mediaUrls: newPost.mediaUrls,
+                contentType: newPost.contentType,
+                isLiked: false,
+            };
+
+            setPosts(prevPosts => [formattedPost, ...prevPosts]);
+            console.log('✅ Post created successfully:', newPost.id);
+
         } catch (error) {
-            console.warn('Post saved locally only (backend pending):', error.message);
+            console.error('Failed to create post:', error);
+            alert('Failed to save post. Please try again.');
+        }
+    };
+
+    // Handle like toggle
+    const handleLike = async (postId) => {
+        if (!currentUser) {
+            alert('Please log in to like posts');
+            return;
+        }
+
+        try {
+            const result = await socialService.toggleReaction(postId, currentUser.id, 'like');
+
+            // Update local state
+            setPosts(prevPosts => prevPosts.map(post => {
+                if (post.id === postId) {
+                    return {
+                        ...post,
+                        isLiked: result.added,
+                        likeCount: result.added ? post.likeCount + 1 : Math.max(0, post.likeCount - 1)
+                    };
+                }
+                return post;
+            }));
+        } catch (error) {
+            console.error('Failed to toggle like:', error);
+        }
+    };
+
+    // Handle comment creation
+    const handleComment = async (postId, commentContent) => {
+        if (!currentUser) {
+            alert('Please log in to comment');
+            return;
+        }
+
+        if (!commentContent || commentContent.trim().length === 0) {
+            return;
+        }
+
+        try {
+            const newComment = await socialService.createComment({
+                postId,
+                authorId: currentUser.id,
+                content: commentContent.trim()
+            });
+
+            // Update local state
+            setPosts(prevPosts => prevPosts.map(post => {
+                if (post.id === postId) {
+                    return {
+                        ...post,
+                        commentCount: post.commentCount + 1,
+                        latestComment: {
+                            author: currentUser.name,
+                            content: commentContent.trim()
+                        }
+                    };
+                }
+                return post;
+            }));
+
+            console.log('✅ Comment created:', newComment.id);
+        } catch (error) {
+            console.error('Failed to create comment:', error);
+        }
+    };
+
+    // Handle share
+    const handleShare = async (postId) => {
+        try {
+            await navigator.clipboard.writeText(`${window.location.origin}/post/${postId}`);
+            alert('Post link copied to clipboard!');
+        } catch (error) {
+            console.error('Failed to share:', error);
         }
     };
 
@@ -1029,9 +1258,29 @@ export default function SocialMediaPage() {
                         {activeTab === 'feed' && (
                             <>
                                 <StoriesRow user={currentUser} />
-                                <CreatePostBox
+                                <EnhancedPostCreator
                                     user={currentUser}
-                                    onSubmit={handleCreatePost}
+                                    supabase={supabase}
+                                    inline={true}
+                                    onPostCreated={(newPost) => {
+                                        // Format the new post for local state
+                                        const formattedPost = {
+                                            id: newPost.id,
+                                            content: newPost.content,
+                                            author: {
+                                                name: newPost.author?.username || currentUser?.name || 'You',
+                                                avatar: newPost.author?.avatarUrl || currentUser?.avatar,
+                                            },
+                                            likeCount: 0,
+                                            commentCount: 0,
+                                            shareCount: 0,
+                                            timeAgo: 'Just now',
+                                            mediaUrls: newPost.mediaUrls,
+                                            contentType: newPost.contentType,
+                                            isLiked: false,
+                                        };
+                                        setPosts(prevPosts => [formattedPost, ...prevPosts]);
+                                    }}
                                 />
 
                                 {loading ? (
@@ -1044,7 +1293,13 @@ export default function SocialMediaPage() {
                                     </div>
                                 ) : (
                                     posts.map(post => (
-                                        <FBPostCard key={post.id} post={post} />
+                                        <FBPostCard
+                                            key={post.id}
+                                            post={post}
+                                            onLike={handleLike}
+                                            onComment={handleComment}
+                                            onShare={handleShare}
+                                        />
                                     ))
                                 )}
                             </>
