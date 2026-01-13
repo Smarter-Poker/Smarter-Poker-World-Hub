@@ -2,11 +2,11 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    HUB VANGUARD — POKERBROS CAROUSEL (SNAP + SMOOTH SCALE)
    Layout: Main fills screen, gaps between cards, snap-to-center, smooth scaling
+   Mobile: Touch/Swipe enabled via native touch events on canvas
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useDrag } from '@use-gesture/react';
 import { Group } from 'three';
 import { POKER_IQ_ORBS } from '../../orbs/manifest/registry';
 import { OrbCore } from './OrbCore';
@@ -24,56 +24,115 @@ export function CarouselEngine({ onOrbSelect }: CarouselEngineProps) {
     const groupRef = useRef<Group>(null);
     const [scrollPosition, setScrollPosition] = useState(0);
     const [targetPosition, setTargetPosition] = useState(0);
-    const velocity = useRef(0);
     const isDragging = useRef(false);
+    const startX = useRef(0);
+    const lastX = useRef(0);
+    const velocityX = useRef(0);
+    const lastTime = useRef(0);
 
     const { size, gl, viewport } = useThree();
 
-    // Enhanced drag gesture handler with touch + momentum
-    const bind = useDrag(({ delta: [x], down, first, last, velocity: [vx], direction: [dx], swipe: [sx] }) => {
-        if (first) {
+    // Attach native touch/mouse handlers to canvas for reliable mobile swipe
+    useEffect(() => {
+        const canvas = gl.domElement;
+        if (!canvas) return;
+
+        const handleStart = (clientX: number) => {
             isDragging.current = true;
-            gl.domElement.style.cursor = 'grabbing';
-        }
+            startX.current = clientX;
+            lastX.current = clientX;
+            lastTime.current = Date.now();
+            velocityX.current = 0;
+            canvas.style.cursor = 'grabbing';
+        };
 
-        if (down) {
+        const handleMove = (clientX: number) => {
+            if (!isDragging.current) return;
+
+            const deltaX = clientX - lastX.current;
+            const now = Date.now();
+            const deltaTime = now - lastTime.current;
+
+            // Calculate velocity for momentum
+            if (deltaTime > 0) {
+                velocityX.current = deltaX / deltaTime;
+            }
+
             // Sensitivity scales with screen width for consistent feel
-            const sensitivity = 0.01 * (1000 / size.width);
-            velocity.current = -x * sensitivity;
-            setScrollPosition(prev => prev + velocity.current);
-            setTargetPosition(prev => prev + velocity.current);
-        }
+            const sensitivity = 0.003 * (1000 / size.width);
+            const scrollDelta = -deltaX * sensitivity;
 
-        if (last) {
+            setScrollPosition(prev => prev + scrollDelta);
+            setTargetPosition(prev => prev + scrollDelta);
+
+            lastX.current = clientX;
+            lastTime.current = now;
+        };
+
+        const handleEnd = () => {
+            if (!isDragging.current) return;
             isDragging.current = false;
-            gl.domElement.style.cursor = 'default';
+            canvas.style.cursor = 'default';
 
-            // Handle swipe gestures - jump multiple cards on fast swipe
-            if (sx !== 0) {
-                const swipeCards = Math.min(3, Math.ceil(Math.abs(vx) * 2));
-                const newTarget = Math.round(scrollPosition) - (sx * swipeCards);
-                setTargetPosition(newTarget);
+            // Apply momentum based on velocity
+            const absVelocity = Math.abs(velocityX.current);
+
+            if (absVelocity > 0.5) {
+                // Fast swipe - jump multiple cards
+                const direction = velocityX.current > 0 ? -1 : 1;
+                const swipeCards = Math.min(3, Math.ceil(absVelocity));
+                setTargetPosition(prev => Math.round(prev) + (direction * swipeCards));
+            } else if (absVelocity > 0.1) {
+                // Medium speed - apply some momentum
+                const momentum = -velocityX.current * 2;
+                setTargetPosition(prev => Math.round(prev + momentum));
+            } else {
+                // Slow - snap to nearest
+                setTargetPosition(prev => Math.round(prev));
             }
-            // Apply momentum for slower drags
-            else if (Math.abs(vx) > 0.1) {
-                const momentum = -dx * Math.min(2, vx * 0.5);
-                const newTarget = Math.round(scrollPosition + momentum);
-                setTargetPosition(newTarget);
+        };
+
+        // Mouse events
+        const onMouseDown = (e: MouseEvent) => handleStart(e.clientX);
+        const onMouseMove = (e: MouseEvent) => handleMove(e.clientX);
+        const onMouseUp = () => handleEnd();
+        const onMouseLeave = () => handleEnd();
+
+        // Touch events
+        const onTouchStart = (e: TouchEvent) => {
+            if (e.touches.length === 1) {
+                handleStart(e.touches[0].clientX);
             }
-            // Snap to nearest on release
-            else {
-                const nearestCard = Math.round(scrollPosition);
-                setTargetPosition(nearestCard);
+        };
+        const onTouchMove = (e: TouchEvent) => {
+            if (e.touches.length === 1) {
+                e.preventDefault(); // Prevent page scroll
+                handleMove(e.touches[0].clientX);
             }
-        }
-    }, {
-        pointer: { touch: true },
-        filterTaps: true,
-        swipe: { distance: 50, velocity: 0.5 }, // Swipe thresholds
-        axis: 'x', // Lock to horizontal
-        preventDefault: true,
-        eventOptions: { passive: false }, // Required for preventDefault on touch
-    });
+        };
+        const onTouchEnd = () => handleEnd();
+
+        // Add listeners
+        canvas.addEventListener('mousedown', onMouseDown);
+        canvas.addEventListener('mousemove', onMouseMove);
+        canvas.addEventListener('mouseup', onMouseUp);
+        canvas.addEventListener('mouseleave', onMouseLeave);
+        canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+        canvas.addEventListener('touchend', onTouchEnd);
+        canvas.addEventListener('touchcancel', onTouchEnd);
+
+        return () => {
+            canvas.removeEventListener('mousedown', onMouseDown);
+            canvas.removeEventListener('mousemove', onMouseMove);
+            canvas.removeEventListener('mouseup', onMouseUp);
+            canvas.removeEventListener('mouseleave', onMouseLeave);
+            canvas.removeEventListener('touchstart', onTouchStart);
+            canvas.removeEventListener('touchmove', onTouchMove);
+            canvas.removeEventListener('touchend', onTouchEnd);
+            canvas.removeEventListener('touchcancel', onTouchEnd);
+        };
+    }, [gl.domElement, size.width]);
 
     // Smooth animation to target position (snap effect)
     useFrame(() => {
@@ -89,10 +148,12 @@ export function CarouselEngine({ onOrbSelect }: CarouselEngineProps) {
     });
 
     const handleOrbClick = useCallback((id: string, offset: number) => {
-        if (!isDragging.current && Math.abs(offset) < 0.3) {
+        // Only trigger click if we weren't dragging significantly
+        const dragDistance = Math.abs(startX.current - lastX.current);
+        if (dragDistance < 10 && Math.abs(offset) < 0.3) {
             console.log('🃏 Card Selected:', id);
             onOrbSelect?.(id);
-        } else if (!isDragging.current) {
+        } else if (dragDistance < 10) {
             // Click on non-center card: snap to it
             const newTarget = Math.round(scrollPosition + offset);
             setTargetPosition(newTarget);
@@ -125,7 +186,7 @@ export function CarouselEngine({ onOrbSelect }: CarouselEngineProps) {
     const verticalOffset = 2.8;
 
     return (
-        <group ref={groupRef} position={[0, verticalOffset, 0]} {...(bind() as any)}>
+        <group ref={groupRef} position={[0, verticalOffset, 0]}>
             {visibleOrbs.map(({ config, offset }) => {
                 const absOffset = Math.abs(offset);
 
@@ -185,3 +246,4 @@ export function CarouselEngine({ onOrbSelect }: CarouselEngineProps) {
 
 // Legacy export
 export const Carousel = CarouselEngine;
+

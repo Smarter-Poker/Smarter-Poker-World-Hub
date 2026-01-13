@@ -40,6 +40,7 @@ export default function SignUpPage() {
         email: '',
         password: '',
         confirmPassword: '',
+        birthdate: '',
         city: '',
         state: '',
         pokerAlias: '',
@@ -162,6 +163,20 @@ export default function SignUpPage() {
 
         if (formData.password !== formData.confirmPassword) {
             setError('Passwords do not match');
+            return;
+        }
+
+        // Birthdate validation - must be 18+
+        if (!formData.birthdate) {
+            setError('Please enter your birth date');
+            return;
+        }
+        const birthDate = new Date(formData.birthdate);
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (age < 18 || (age === 18 && monthDiff < 0) || (age === 18 && monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            setError('You must be 18 years or older to create an account');
             return;
         }
 
@@ -423,31 +438,44 @@ export default function SignUpPage() {
                             </div>
 
                             {/* Password */}
-                            <div style={styles.rowGroup}>
-                                <div style={{ ...styles.inputGroup, flex: 1 }}>
-                                    <label style={styles.label}>Password</label>
-                                    <input
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        placeholder="••••••••"
-                                        style={styles.inputSingle}
-                                        minLength={6}
-                                        required
-                                    />
-                                </div>
-                                <div style={{ ...styles.inputGroup, flex: 1 }}>
-                                    <label style={styles.label}>Confirm</label>
-                                    <input
-                                        type="password"
-                                        value={formData.confirmPassword}
-                                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                        placeholder="••••••••"
-                                        style={styles.inputSingle}
-                                        minLength={6}
-                                        required
-                                    />
-                                </div>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Password</label>
+                                <input
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    placeholder="••••••••"
+                                    style={styles.inputSingle}
+                                    minLength={6}
+                                    required
+                                />
+                            </div>
+
+                            {/* Confirm Password */}
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Confirm Password</label>
+                                <input
+                                    type="password"
+                                    value={formData.confirmPassword}
+                                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                    placeholder="••••••••"
+                                    style={styles.inputSingle}
+                                    minLength={6}
+                                    required
+                                />
+                            </div>
+
+                            {/* Birthdate - 18+ Verification */}
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Date of Birth <span style={styles.labelHint}>(must be 18+)</span></label>
+                                <input
+                                    type="date"
+                                    value={formData.birthdate}
+                                    onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
+                                    style={styles.inputSingle}
+                                    max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                                    required
+                                />
                             </div>
 
                             {/* City & State */}
