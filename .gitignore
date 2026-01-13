@@ -25,3 +25,6 @@ dist-ssr
 .vercel
 .env*.local
 .next/
+node_modules
+node_modules
+src/content-engine/node_modules
