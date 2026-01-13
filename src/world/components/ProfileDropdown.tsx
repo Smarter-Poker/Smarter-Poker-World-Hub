@@ -3,6 +3,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 📋 MENU ITEMS
@@ -11,16 +12,16 @@ interface MenuItem {
     id: string;
     icon: string;
     label: string;
-    onClick: () => void;
+    route?: string;
     danger?: boolean;
 }
 
 const MENU_ITEMS: MenuItem[] = [
-    { id: 'profile', icon: '👤', label: 'View Profile', onClick: () => console.log('View Profile') },
-    { id: 'settings', icon: '⚙️', label: 'Settings', onClick: () => console.log('Settings') },
-    { id: 'help', icon: '❓', label: 'Help & Tutorial', onClick: () => console.log('Help') },
-    { id: 'divider', icon: '', label: '', onClick: () => { } },
-    { id: 'logout', icon: '🚪', label: 'Log Out', onClick: () => console.log('Logout'), danger: true },
+    { id: 'profile', icon: '👤', label: 'View Profile', route: '/hub/social-media?tab=profile' },
+    { id: 'settings', icon: '⚙️', label: 'Settings', route: '/hub/settings' },
+    { id: 'help', icon: '❓', label: 'Help & Tutorial', route: '/hub/help' },
+    { id: 'divider', icon: '', label: '' },
+    { id: 'logout', icon: '🚪', label: 'Log Out', danger: true },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -34,6 +35,7 @@ interface ProfileDropdownProps {
 
 export function ProfileDropdown({ isOpen, onClose, anchorRef }: ProfileDropdownProps) {
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
 
     // Close on outside click
     useEffect(() => {
@@ -92,7 +94,12 @@ export function ProfileDropdown({ isOpen, onClose, anchorRef }: ProfileDropdownP
                     <button
                         key={item.id}
                         onClick={() => {
-                            item.onClick();
+                            if (item.route) {
+                                router.push(item.route);
+                            } else if (item.id === 'logout') {
+                                // Handle logout
+                                console.log('Logout clicked');
+                            }
                             onClose();
                         }}
                         style={{

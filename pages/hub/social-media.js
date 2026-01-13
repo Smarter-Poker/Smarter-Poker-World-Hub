@@ -29,11 +29,13 @@ const timeAgo = (d) => {
 };
 
 function Avatar({ src, name, size = 40, online }) {
-    const init = name?.[0]?.toUpperCase() || '?';
     return (
         <div style={{ position: 'relative', display: 'inline-block' }}>
-            {src ? <img src={src} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
-                : <div style={{ width: size, height: size, borderRadius: '50%', background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: size * 0.4 }}>{init}</div>}
+            <img
+                src={src || '/default-avatar.png'}
+                alt={name || 'User'}
+                style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }}
+            />
             {online !== undefined && <div style={{ position: 'absolute', bottom: 0, right: 0, width: size * 0.28, height: size * 0.28, borderRadius: '50%', background: online ? C.green : '#ccc', border: '2px solid white' }} />}
         </div>
     );
@@ -418,9 +420,15 @@ export default function SocialMediaPage() {
                     {/* CENTER: Stats */}
                     {user && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px', background: '#f0f0f0', borderRadius: 16, fontSize: 13, fontWeight: 600 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px 4px 12px', background: '#f0f0f0', borderRadius: 16, fontSize: 13, fontWeight: 600 }}>
                                 <span>💎</span>
                                 <span style={{ color: C.blue }}>{user.diamonds?.toLocaleString() || '300'}</span>
+                                <Link href="/hub/diamond-store" style={{
+                                    width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: C.blue, borderRadius: '50%', textDecoration: 'none', marginLeft: 4
+                                }}>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: 'white', lineHeight: 1 }}>+</span>
+                                </Link>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px', background: '#f0f0f0', borderRadius: 16, fontSize: 13, fontWeight: 600 }}>
                                 <span style={{ color: C.textSec }}>XP</span>
