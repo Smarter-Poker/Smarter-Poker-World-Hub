@@ -10,6 +10,12 @@
   "regions": [
     "sfo1"
   ],
+  "crons": [
+    {
+      "path": "/api/cron/hendon-scraper",
+      "schedule": "0 3 * * 0"
+    }
+  ],
   "github": {
     "enabled": true,
     "autoAlias": true,

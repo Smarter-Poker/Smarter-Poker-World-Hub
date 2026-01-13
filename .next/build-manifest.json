@@ -5,8 +5,8 @@
   "devFiles": [],
   "ampDevFiles": [],
   "lowPriorityFiles": [
-    "static/yA_REwiVTzxcM7ppFLwG3/_buildManifest.js",
-    "static/yA_REwiVTzxcM7ppFLwG3/_ssgManifest.js"
+    "static/FmOrEwC8fErpkrG1F92Yt/_buildManifest.js",
+    "static/FmOrEwC8fErpkrG1F92Yt/_ssgManifest.js"
   ],
   "rootMainFiles": [],
   "pages": {
@@ -83,7 +83,7 @@
       "static/chunks/webpack-028a45411f2e4f1f.js",
       "static/chunks/framework-ecc4130bc7a58a64.js",
       "static/chunks/main-48a2be0192cdda09.js",
-      "static/chunks/pages/hub/club-arena-6af859856b1a6154.js"
+      "static/chunks/pages/hub/club-arena-b33cad85bb04a233.js"
     ],
     "/hub/diamond-arena": [
       "static/chunks/webpack-028a45411f2e4f1f.js",
@@ -103,6 +103,13 @@
       "static/chunks/framework-ecc4130bc7a58a64.js",
       "static/chunks/main-48a2be0192cdda09.js",
       "static/chunks/pages/hub/memory-games-e57cf748e8932bc5.js"
+    ],
+    "/hub/profile": [
+      "static/chunks/webpack-028a45411f2e4f1f.js",
+      "static/chunks/framework-ecc4130bc7a58a64.js",
+      "static/chunks/main-48a2be0192cdda09.js",
+      "static/chunks/996-0c3b85cea13847a4.js",
+      "static/chunks/pages/hub/profile-4f0b04135ccc2733.js"
     ],
     "/hub/settings": [
       "static/chunks/webpack-028a45411f2e4f1f.js",

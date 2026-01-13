@@ -10,9 +10,11 @@
   "dependencies": {
     "@react-three/drei": "9.88",
     "@react-three/fiber": "^8.18.0",
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "@use-gesture/react": "^10.3.1",
+    "cheerio": "^1.1.2",
     "clsx": "latest",
     "framer-motion": "^12.25.0",
     "lucide-react": "latest",
