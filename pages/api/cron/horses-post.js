@@ -230,15 +230,42 @@ Write authentically as this person. 100-250 words. No hashtags. Stay consistent 
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    // Verify cron secret
+    // Log that we're starting
+    console.log('🐴 Horses Cron Trigger Started');
+
+    // Check required env vars
+    if (!SUPABASE_URL) {
+        console.error('Missing SUPABASE_URL');
+        return res.status(500).json({ error: 'Missing SUPABASE_URL env var' });
+    }
+    if (!SUPABASE_KEY) {
+        console.error('Missing SUPABASE_KEY');
+        return res.status(500).json({ error: 'Missing SUPABASE_KEY env var' });
+    }
+
+    // OpenAI is optional - we can skip generation if not set
+    const hasOpenAI = !!process.env.OPENAI_API_KEY;
+    if (!hasOpenAI) {
+        console.log('No OPENAI_API_KEY - returning test response');
+        return res.status(200).json({
+            success: true,
+            message: 'OpenAI not configured, horses sleeping',
+            posted: 0,
+            env: {
+                hasSupabaseUrl: !!SUPABASE_URL,
+                hasSupabaseKey: !!SUPABASE_KEY,
+                hasOpenAI
+            }
+        });
+    }
+
+    // Verify cron secret (optional in dev)
     const authHeader = req.headers.authorization;
     if (CONFIG.CRON_SECRET && authHeader !== `Bearer ${CONFIG.CRON_SECRET}`) {
         if (process.env.NODE_ENV === 'production') {
             return res.status(401).json({ error: 'Unauthorized' });
         }
     }
-
-    console.log('🐴 Horses Cron Trigger Started');
 
     try {
         // Check daily limit

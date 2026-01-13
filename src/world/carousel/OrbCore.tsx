@@ -111,46 +111,27 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
             </mesh>
 
             {/* ═══════════════════════════════════════════════════════════════
-                CORNER BRACKETS - L-shaped accents at all 4 corners
+                INNER WHITE BORDER FRAME - Full rectangle inside the card
                 ═══════════════════════════════════════════════════════════════ */}
-            {/* Top-left corner */}
-            <mesh position={[-(cardWidth / 2 - 0.06), (cardHeight / 2 - 0.01), 0.04]}>
-                <planeGeometry args={[0.1, 0.008]} />
-                <meshBasicMaterial color="#ffffff" />
+            {/* Inner top border */}
+            <mesh position={[0, cardHeight / 2 - 0.06, 0.04]}>
+                <planeGeometry args={[cardWidth - 0.12, 0.006]} />
+                <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
             </mesh>
-            <mesh position={[-(cardWidth / 2 - 0.01), (cardHeight / 2 - 0.06), 0.04]}>
-                <planeGeometry args={[0.008, 0.1]} />
-                <meshBasicMaterial color="#ffffff" />
+            {/* Inner bottom border */}
+            <mesh position={[0, -(cardHeight / 2 - 0.06), 0.04]}>
+                <planeGeometry args={[cardWidth - 0.12, 0.006]} />
+                <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
             </mesh>
-
-            {/* Top-right corner */}
-            <mesh position={[(cardWidth / 2 - 0.06), (cardHeight / 2 - 0.01), 0.04]}>
-                <planeGeometry args={[0.1, 0.008]} />
-                <meshBasicMaterial color="#ffffff" />
+            {/* Inner left border */}
+            <mesh position={[-(cardWidth / 2 - 0.06), 0, 0.04]}>
+                <planeGeometry args={[0.006, cardHeight - 0.12]} />
+                <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
             </mesh>
-            <mesh position={[(cardWidth / 2 - 0.01), (cardHeight / 2 - 0.06), 0.04]}>
-                <planeGeometry args={[0.008, 0.1]} />
-                <meshBasicMaterial color="#ffffff" />
-            </mesh>
-
-            {/* Bottom-left corner */}
-            <mesh position={[-(cardWidth / 2 - 0.06), -(cardHeight / 2 - 0.01), 0.04]}>
-                <planeGeometry args={[0.1, 0.008]} />
-                <meshBasicMaterial color="#ffffff" />
-            </mesh>
-            <mesh position={[-(cardWidth / 2 - 0.01), -(cardHeight / 2 - 0.06), 0.04]}>
-                <planeGeometry args={[0.008, 0.1]} />
-                <meshBasicMaterial color="#ffffff" />
-            </mesh>
-
-            {/* Bottom-right corner */}
-            <mesh position={[(cardWidth / 2 - 0.06), -(cardHeight / 2 - 0.01), 0.04]}>
-                <planeGeometry args={[0.1, 0.008]} />
-                <meshBasicMaterial color="#ffffff" />
-            </mesh>
-            <mesh position={[(cardWidth / 2 - 0.01), -(cardHeight / 2 - 0.06), 0.04]}>
-                <planeGeometry args={[0.008, 0.1]} />
-                <meshBasicMaterial color="#ffffff" />
+            {/* Inner right border */}
+            <mesh position={[(cardWidth / 2 - 0.06), 0, 0.04]}>
+                <planeGeometry args={[0.006, cardHeight - 0.12]} />
+                <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
             </mesh>
 
             {/* ═══════════════════════════════════════════════════════════════

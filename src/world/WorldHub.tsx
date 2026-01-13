@@ -189,23 +189,16 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                     />
 
                     {/* ═══════════════════════════════════════════════════════════════
-                        CORNER BRACKETS - L-shaped accents at all 4 corners (matching main cards)
+                        INNER WHITE BORDER FRAME - Full rectangle inside the card
                         ═══════════════════════════════════════════════════════════════ */}
-                    {/* Top-left corner */}
-                    <div style={{ position: 'absolute', top: 4, left: 4, width: 16, height: 2, background: '#ffffff' }} />
-                    <div style={{ position: 'absolute', top: 4, left: 4, width: 2, height: 16, background: '#ffffff' }} />
-
-                    {/* Top-right corner */}
-                    <div style={{ position: 'absolute', top: 4, right: 4, width: 16, height: 2, background: '#ffffff' }} />
-                    <div style={{ position: 'absolute', top: 4, right: 4, width: 2, height: 16, background: '#ffffff' }} />
-
-                    {/* Bottom-left corner */}
-                    <div style={{ position: 'absolute', bottom: 4, left: 4, width: 16, height: 2, background: '#ffffff' }} />
-                    <div style={{ position: 'absolute', bottom: 4, left: 4, width: 2, height: 16, background: '#ffffff' }} />
-
-                    {/* Bottom-right corner */}
-                    <div style={{ position: 'absolute', bottom: 4, right: 4, width: 16, height: 2, background: '#ffffff' }} />
-                    <div style={{ position: 'absolute', bottom: 4, right: 4, width: 2, height: 16, background: '#ffffff' }} />
+                    {/* Inner top border */}
+                    <div style={{ position: 'absolute', top: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.9)' }} />
+                    {/* Inner bottom border */}
+                    <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.9)' }} />
+                    {/* Inner left border */}
+                    <div style={{ position: 'absolute', top: 8, bottom: 8, left: 8, width: 2, background: 'rgba(255, 255, 255, 0.9)' }} />
+                    {/* Inner right border */}
+                    <div style={{ position: 'absolute', top: 8, bottom: 8, right: 8, width: 2, background: 'rgba(255, 255, 255, 0.9)' }} />
                 </div>
             </div>
 
