@@ -269,6 +269,7 @@ export default function ProfilePage() {
 
     const handleAvatarUpload = async (file) => {
         if (!user) return;
+        setMessage('Uploading avatar...');
 
         const fileExt = file.name.split('.').pop();
         const filePath = `${user.id}/avatar.${fileExt}`;
@@ -278,13 +279,35 @@ export default function ProfilePage() {
             .upload(filePath, file, { upsert: true });
 
         if (uploadError) {
-            setMessage('Error uploading avatar');
+            setMessage('Error uploading avatar: ' + uploadError.message);
+            console.error('Upload error:', uploadError);
             return;
         }
 
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+
+        // Auto-save to database immediately
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+            .eq('id', user.id);
+
+        if (updateError) {
+            setMessage('Error saving avatar: ' + updateError.message);
+            console.error('Save error:', updateError);
+            return;
+        }
+
         setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
-        setMessage('Avatar updated!');
+
+        // Award diamonds/XP for first avatar if this is the first time
+        if (!originalProfile?.avatar_url) {
+            await awardProfileReward('first_avatar', 15, 25);
+            setMessage('🎉 Avatar saved! +15 💎 +25 XP!');
+            setOriginalProfile(prev => ({ ...prev, avatar_url: publicUrl }));
+        } else {
+            setMessage('✓ Avatar saved!');
+        }
     };
 
     const handleSave = async () => {

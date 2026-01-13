@@ -5,6 +5,7 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
@@ -28,9 +29,15 @@ const timeAgo = (d) => {
     return `${Math.floor(s / 86400)}d`;
 };
 
-function Avatar({ src, name, size = 40, online }) {
+function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
+    const router = useRouter();
+    const handleClick = onClick || (linkTo ? () => router.push(linkTo) : null);
+
     return (
-        <div style={{ position: 'relative', display: 'inline-block' }}>
+        <div
+            style={{ position: 'relative', display: 'inline-block', cursor: handleClick ? 'pointer' : 'default' }}
+            onClick={handleClick}
+        >
             <img
                 src={src || '/default-avatar.png'}
                 alt={name || 'User'}
