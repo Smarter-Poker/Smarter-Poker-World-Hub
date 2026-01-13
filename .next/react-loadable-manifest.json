@@ -19,8 +19,12 @@
     "id": 6823,
     "files": [
       "static/chunks/fb7d5399.46b1b3c3458b7fd8.js",
-      "static/chunks/191.ca36de1c1bb7305f.js",
-      "static/chunks/823.bbd7f51295e0481a.js"
+      "static/chunks/392.af1d905107374dee.js",
+      "static/chunks/823.650ba0ef4d86362f.js"
     ]
+  },
+  "src/world/WorldHub.tsx -> @supabase/supabase-js": {
+    "id": 2629,
+    "files": []
   }
 }
