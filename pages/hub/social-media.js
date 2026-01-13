@@ -485,9 +485,10 @@ function LeftSidebar({ user, onNavigate }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📱 RIGHT SIDEBAR (CONTACTS)
+// 📱 RIGHT SIDEBAR (CONTACTS) - Sngine-style with User Search
 // ═══════════════════════════════════════════════════════════════════════════
-function RightSidebar({ contacts = [], onOpenChat }) {
+function RightSidebar({ contacts = [], onOpenChat, onSearch, searchResults = [] }) {
+    const [searchQuery, setSearchQuery] = useState('');
     const defaultContacts = [
         { id: 1, name: 'Mike Shark', online: true, avatar: 'https://picsum.photos/100?1' },
         { id: 2, name: 'Sarah GTO', online: true, avatar: 'https://picsum.photos/100?2' },
@@ -495,20 +496,77 @@ function RightSidebar({ contacts = [], onOpenChat }) {
     ];
 
     const displayContacts = contacts.length > 0 ? contacts : defaultContacts;
+    const showSearchResults = searchQuery.length >= 2 && searchResults.length > 0;
 
     return (
         <aside style={styles.rightSidebar}>
+            {/* Search Input */}
+            <div style={{ padding: '8px 16px', marginBottom: '8px' }}>
+                <input
+                    type="text"
+                    placeholder="🔍 Search players..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        onSearch?.(e.target.value);
+                    }}
+                    style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '20px',
+                        border: 'none',
+                        background: FB_COLORS.bgMain,
+                        fontSize: '14px',
+                    }}
+                />
+            </div>
+
+            {/* Search Results */}
+            {showSearchResults && (
+                <>
+                    <h4 style={{ ...styles.sidebarHeading, color: FB_COLORS.blue }}>Search Results</h4>
+                    {searchResults.map((user) => (
+                        <div
+                            key={user.id}
+                            style={styles.contactItem}
+                            onClick={() => onOpenChat?.({ ...user, online: false })}
+                        >
+                            <FBAvatar src={user.avatar} size={36} />
+                            <div style={{ flex: 1 }}>
+                                <span style={styles.contactName}>
+                                    {user.name}
+                                    {user.verified && <span style={{ color: FB_COLORS.blue, marginLeft: 4 }}>✓</span>}
+                                </span>
+                                {user.level && (
+                                    <span style={{ fontSize: '11px', color: FB_COLORS.textSecondary, display: 'block' }}>
+                                        Level {user.level}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                    <div style={{ borderBottom: `1px solid ${FB_COLORS.divider}`, margin: '8px 0' }} />
+                </>
+            )}
+
+            {/* Contacts */}
             <h4 style={styles.sidebarHeading}>Contacts</h4>
-            {displayContacts.map((contact) => (
-                <div
-                    key={contact.id}
-                    style={styles.contactItem}
-                    onClick={() => onOpenChat?.(contact)}
-                >
-                    <FBAvatar src={contact.avatar} size={36} online={contact.online} />
-                    <span style={styles.contactName}>{contact.name}</span>
-                </div>
-            ))}
+            {displayContacts.length === 0 ? (
+                <p style={{ padding: '0 16px', color: FB_COLORS.textSecondary, fontSize: '13px' }}>
+                    No contacts yet. Search for players above!
+                </p>
+            ) : (
+                displayContacts.map((contact) => (
+                    <div
+                        key={contact.id}
+                        style={styles.contactItem}
+                        onClick={() => onOpenChat?.(contact)}
+                    >
+                        <FBAvatar src={contact.avatar} size={36} online={contact.online} />
+                        <span style={styles.contactName}>{contact.name}</span>
+                    </div>
+                ))
+            )}
         </aside>
     );
 }
@@ -784,6 +842,11 @@ export default function SocialMediaPage() {
     const [showMessenger, setShowMessenger] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const subscriptionsRef = useRef(new Map());
+
+    // Contacts & Search State (Sngine reconstruction)
+    const [contacts, setContacts] = useState([]);
+    const [userSearchQuery, setUserSearchQuery] = useState('');
+    const [userSearchResults, setUserSearchResults] = useState([]);
 
     // Load user messaging settings
     useEffect(() => {
@@ -1150,6 +1213,56 @@ export default function SocialMediaPage() {
         return `${Math.floor(seconds / 86400)}d`;
     };
 
+    // Load contacts from existing conversations (Sngine reconstruction)
+    const loadContacts = useCallback(async () => {
+        if (!currentUser?.id) return;
+        try {
+            const conversations = await socialService.getConversations(currentUser.id);
+            const contactsList = conversations
+                .filter(c => c.otherParticipant)
+                .map(c => ({
+                    id: c.otherParticipant.user_id || c.otherParticipant.id,
+                    name: c.otherParticipant.name || c.otherParticipant.username || 'Player',
+                    avatar: c.otherParticipant.avatar || c.otherParticipant.avatar_url,
+                    online: false, // TODO: Real-time presence
+                    conversationId: c.id,
+                    lastMessage: c.lastMessage?.text,
+                }));
+            setContacts(contactsList);
+        } catch (err) {
+            console.warn('Failed to load contacts:', err.message);
+        }
+    }, [currentUser?.id]);
+
+    // User search handler (Sngine reconstruction)
+    const handleUserSearch = useCallback(async (query) => {
+        setUserSearchQuery(query);
+        if (!query || query.length < 2) {
+            setUserSearchResults([]);
+            return;
+        }
+        try {
+            const results = await socialService.searchUsers(query, 10);
+            setUserSearchResults(results.map(u => ({
+                id: u.id,
+                name: u.username,
+                avatar: u.avatar,
+                level: u.level,
+                verified: u.verified,
+            })));
+        } catch (err) {
+            console.warn('User search failed:', err.message);
+            setUserSearchResults([]);
+        }
+    }, []);
+
+    // Load contacts when user is authenticated
+    useEffect(() => {
+        if (currentUser?.id) {
+            loadContacts();
+        }
+    }, [currentUser?.id, loadContacts]);
+
     const handleCreatePost = async (content, mediaFile) => {
         if (!currentUser) {
             alert('Please log in to create a post');
@@ -1489,7 +1602,12 @@ export default function SocialMediaPage() {
                     </main>
 
                     {/* Right Sidebar */}
-                    <RightSidebar onOpenChat={handleOpenChat} />
+                    <RightSidebar
+                        contacts={contacts}
+                        onOpenChat={handleOpenChat}
+                        onSearch={handleUserSearch}
+                        searchResults={userSearchResults}
+                    />
                 </div>
 
                 {/* Chat Windows Dock */}
