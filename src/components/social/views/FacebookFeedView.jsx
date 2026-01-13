@@ -1,17 +1,18 @@
 /**
  * 🌐 FACEBOOK-STYLE NEWS FEED VIEW
- * src/app/social/views/FacebookFeedView.jsx
+ * src/components/social/views/FacebookFeedView.jsx
  * 
  * Complete Facebook-clone layout using the unified Shell
  * Connected to Real SocialService
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { CreatePostBox, FBPostCard, FBStoriesRow, FB_COLORS, FBAvatar } from '../components/FacebookStyleCard';
-import { ReelsCarousel } from '../components/FacebookReels';
-import { FriendsList } from '../components/FacebookFriends';
-import { useSocialOrb } from '../../providers/SocialOrbProvider';
-import { useSupabase } from '../../providers/SupabaseProvider';
+import { FBPostCard, FBStoriesRow, FB_COLORS, FBAvatar } from '../FacebookStyleCard';
+import { EnhancedPostCreator } from '../EnhancedPostCreator';
+import { ReelsCarousel } from '../FacebookReels';
+import { FriendsList } from '../FacebookFriends';
+import { useSupabase } from '@/providers/SupabaseProvider';
+import { SocialService } from '@/services/SocialService';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📱 LEFT SIDEBAR (Shortcuts)
@@ -242,8 +243,10 @@ const FBRightSidebar = ({ onlineContacts = [], onMessage }) => (
 
 export const FacebookFeedView = ({ onNavigate, onOpenChat }) => {
     // Hooks
-    const { socialService } = useSocialOrb();
-    const { user: authUser, profile: authProfile } = useSupabase(); // Get real user
+    const { user: authUser, profile: authProfile, supabase } = useSupabase();
+
+    // Create SocialService instance
+    const socialService = supabase ? new SocialService(supabase) : null;
 
     // Construct currentUser object for UI
     const currentUser = authUser ? {
@@ -286,11 +289,9 @@ export const FacebookFeedView = ({ onNavigate, onOpenChat }) => {
             setPosts([
                 {
                     id: 1,
-                    text: "Just crushed it at the 2/5 NL tables! 🔥 That river bluff was chef's kiss 👨‍🍳",
+                    content: "Just crushed it at the 2/5 NL tables! 🔥 That river bluff was chef's kiss 👨‍🍳",
                     createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-                    likeCount: 47,
-                    commentCount: 12,
-                    shareCount: 3,
+                    engagement: { likeCount: 47, commentCount: 12, shareCount: 3 },
                     handData: {
                         stakes: '$2/$5 NL',
                         won: true,
@@ -298,8 +299,8 @@ export const FacebookFeedView = ({ onNavigate, onOpenChat }) => {
                         heroCards: ['A♠', 'K♠'],
                         board: ['Q♠', 'J♠', '4♥', '8♦', '2♣']
                     },
-                    user: { name: 'Mike Thompson', isShark: true, online: true },
-                    comments: [{ user: { name: 'Sarah G' }, text: 'Nice hand! That river was scary though 😅' }]
+                    author: { username: 'Mike Thompson', tier: 'SHARK', isVerified: true },
+                    comments: [{ author: { username: 'Sarah G' }, content: 'Nice hand! That river was scary though 😅' }]
                 }
             ]);
             setLoading(false);
@@ -312,13 +313,14 @@ export const FacebookFeedView = ({ onNavigate, onOpenChat }) => {
                 userId: currentUser.id,
                 filter: 'recent'
             });
-            setPosts(newPosts);
+            setPosts(newPosts || []);
         } catch (error) {
             console.error("Failed to load feed", error);
+            setPosts([]);
         } finally {
             setLoading(false);
         }
-    }, [socialService, currentUser]);
+    }, [socialService, currentUser?.id]);
 
     useEffect(() => {
         loadFeed();
@@ -328,31 +330,20 @@ export const FacebookFeedView = ({ onNavigate, onOpenChat }) => {
     // ✋ INTERACTION HANDLERS
     // ─────────────────────────────────────────────────────────────────────────
 
-    const handleCreatePost = async (content) => {
-        if (!socialService || !currentUser) return;
-        try {
-            const newPost = await socialService.createPost({
-                authorId: currentUser.id,
-                content: content
-            });
-            // Prepend new post
-            setPosts(prev => [newPost, ...prev]);
-        } catch (error) {
-            console.error("Failed to create post", error);
-        }
-    };
-
     const handleLike = async (postId) => {
         if (!socialService || !currentUser) return;
 
         // Optimistic UI Update
         setPosts(prev => prev.map(p => {
             if (p.id === postId) {
-                const isLiked = p.isLiked; // Assuming post object has this state
+                const isLiked = p.isLiked;
                 return {
                     ...p,
                     isLiked: !isLiked,
-                    likeCount: isLiked ? p.likeCount - 1 : p.likeCount + 1
+                    engagement: {
+                        ...p.engagement,
+                        likeCount: isLiked ? (p.engagement?.likeCount || 0) - 1 : (p.engagement?.likeCount || 0) + 1
+                    }
                 };
             }
             return p;
@@ -361,7 +352,6 @@ export const FacebookFeedView = ({ onNavigate, onOpenChat }) => {
         try {
             await socialService.toggleReaction(postId, currentUser.id, 'like');
         } catch (error) {
-            // Revert on error
             console.error("Reaction failed");
             loadFeed();
         }
@@ -374,7 +364,14 @@ export const FacebookFeedView = ({ onNavigate, onOpenChat }) => {
             <main className="fb-feed-center">
                 <FBStoriesRow stories={stories} currentUser={currentUser} />
 
-                <CreatePostBox user={currentUser} onSubmit={handleCreatePost} />
+                <EnhancedPostCreator
+                    user={currentUser}
+                    inline={true}
+                    onPostCreated={(newPost) => {
+                        // Prepend new post to feed
+                        setPosts(prev => [newPost, ...prev]);
+                    }}
+                />
 
                 {/* Reels Section (Inserted into feed) */}
                 <ReelsCarousel reels={reels} onViewAll={() => { }} />

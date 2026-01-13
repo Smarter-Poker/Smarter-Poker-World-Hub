@@ -20,9 +20,6 @@
       "main": true
     }
   },
-  "env": {
-    "NEXT_PUBLIC_ANTIGRAVITY_ENABLED": "true"
-  },
   "headers": [
     {
       "source": "/(.*)",

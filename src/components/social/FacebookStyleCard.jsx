@@ -166,8 +166,22 @@ export const FBPostCard = ({
     onComment,
     onShare
 }) => {
-    const [liked, setLiked] = useState(post.userLiked || false);
+    const [liked, setLiked] = useState(post.userLiked || post.isLiked || false);
     const [showComments, setShowComments] = useState(false);
+
+    // Support both old and new data structures
+    const author = user || post.author || post.user;
+    const authorName = author?.name || author?.username || 'Anonymous';
+    const authorAvatar = author?.avatar || author?.avatarUrl || null;
+    const authorTier = author?.tier || (author?.isShark ? 'SHARK' : author?.isGTO ? 'GTO_MASTER' : null);
+
+    // Support both flat and nested engagement structures
+    const likeCount = post.engagement?.likeCount ?? post.likeCount ?? 0;
+    const commentCount = post.engagement?.commentCount ?? post.commentCount ?? 0;
+    const shareCount = post.engagement?.shareCount ?? post.shareCount ?? 0;
+
+    // Support both content and text properties
+    const postContent = post.content || post.text;
 
     const formatTime = (timestamp) => {
         const now = new Date();
@@ -191,12 +205,13 @@ export const FBPostCard = ({
         <div className="fb-post">
             {/* Header */}
             <div className="fb-post-header">
-                <FBAvatar src={user?.avatar} name={user?.name} size={40} online={user?.online} />
+                <FBAvatar src={authorAvatar} name={authorName} size={40} online={author?.online} />
                 <div className="fb-post-meta">
                     <div className="fb-post-author">
-                        <span className="fb-post-name">{user?.name}</span>
-                        {user?.isShark && <span className="badge-shark">🦈 Shark</span>}
-                        {user?.isGTO && <span className="badge-gto">👑 GTO</span>}
+                        <span className="fb-post-name">{authorName}</span>
+                        {authorTier === 'SHARK' && <span className="badge-shark">🦈 Shark</span>}
+                        {authorTier === 'GTO_MASTER' && <span className="badge-gto">👑 GTO</span>}
+                        {author?.isVerified && <span className="badge-verified">✓</span>}
                     </div>
                     <div className="fb-post-time">
                         {formatTime(post.createdAt)} · 🌐
@@ -207,7 +222,7 @@ export const FBPostCard = ({
 
             {/* Content */}
             <div className="fb-post-content">
-                {post.text && <p className="fb-post-text">{post.text}</p>}
+                {postContent && <p className="fb-post-text">{postContent}</p>}
 
                 {/* Hand History (Poker-specific) */}
                 {post.handData && (
@@ -238,10 +253,39 @@ export const FBPostCard = ({
                     </div>
                 )}
 
-                {/* Media */}
-                {post.media && (
+                {/* Media Grid - supports multiple images/videos */}
+                {(post.mediaUrls?.length > 0 || post.media) && (
                     <div className="fb-post-media">
-                        <img src={post.media} alt="Post" />
+                        {/* Support both array and single item */}
+                        {post.mediaUrls?.length > 0 ? (
+                            <div className={`media-grid media-count-${Math.min(post.mediaUrls.length, 4)}`}>
+                                {post.mediaUrls.slice(0, 4).map((media, idx) => (
+                                    <div key={idx} className="media-item">
+                                        {(typeof media === 'string' ? media : media.type)?.startsWith('video') ? (
+                                            <video
+                                                src={typeof media === 'string' ? media : media.url}
+                                                controls
+                                                poster={media.thumbnail}
+                                                preload="metadata"
+                                            />
+                                        ) : (
+                                            <img
+                                                src={typeof media === 'string' ? media : media.url}
+                                                alt={`Media ${idx + 1}`}
+                                                loading="lazy"
+                                            />
+                                        )}
+                                        {idx === 3 && post.mediaUrls.length > 4 && (
+                                            <div className="more-media-overlay">
+                                                +{post.mediaUrls.length - 4}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <img src={post.media} alt="Post" />
+                        )}
                     </div>
                 )}
             </div>
@@ -253,10 +297,10 @@ export const FBPostCard = ({
                     <span className="reaction-emoji">❤️</span>
                     <span className="reaction-emoji">🔥</span>
                 </div>
-                <span className="reaction-count">{post.likeCount || 0}</span>
+                <span className="reaction-count">{likeCount}</span>
                 <div className="comment-share-count">
-                    {post.commentCount > 0 && <span>{post.commentCount} comments</span>}
-                    {post.shareCount > 0 && <span>{post.shareCount} shares</span>}
+                    {commentCount > 0 && <span>{commentCount} comments</span>}
+                    {shareCount > 0 && <span>{shareCount} shares</span>}
                 </div>
             </div>
 
@@ -294,10 +338,10 @@ export const FBPostCard = ({
                     </div>
                     {post.comments?.map((comment, i) => (
                         <div key={i} className="fb-comment">
-                            <FBAvatar src={comment.user?.avatar} size={32} />
+                            <FBAvatar src={comment.user?.avatar || comment.author?.avatarUrl} size={32} />
                             <div className="fb-comment-content">
-                                <span className="fb-comment-author">{comment.user?.name}</span>
-                                <span className="fb-comment-text">{comment.text}</span>
+                                <span className="fb-comment-author">{comment.user?.name || comment.author?.username}</span>
+                                <span className="fb-comment-text">{comment.text || comment.content}</span>
                             </div>
                         </div>
                     ))}
@@ -444,11 +488,77 @@ export const FBPostCard = ({
                     margin-left: 8px;
                 }
 
-                /* Media */
-                .fb-post-media img {
+                /* Media Grid */
+                .fb-post-media {
+                    margin-left: -16px;
+                    margin-right: -16px;
+                }
+
+                .fb-post-media > img {
                     width: 100%;
                     max-height: 600px;
                     object-fit: cover;
+                }
+
+                .media-grid {
+                    display: grid;
+                    gap: 2px;
+                }
+
+                .media-grid.media-count-1 {
+                    grid-template-columns: 1fr;
+                }
+
+                .media-grid.media-count-2 {
+                    grid-template-columns: 1fr 1fr;
+                }
+
+                .media-grid.media-count-3 {
+                    grid-template-columns: 2fr 1fr;
+                    grid-template-rows: 1fr 1fr;
+                }
+
+                .media-grid.media-count-3 .media-item:first-child {
+                    grid-row: span 2;
+                }
+
+                .media-grid.media-count-4 {
+                    grid-template-columns: 1fr 1fr;
+                    grid-template-rows: 1fr 1fr;
+                }
+
+                .media-item {
+                    position: relative;
+                    overflow: hidden;
+                    min-height: 150px;
+                    max-height: 300px;
+                    background: ${FB_COLORS.bgMain};
+                }
+
+                .media-item img,
+                .media-item video {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .media-item video {
+                    background: #000;
+                }
+
+                .more-media-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 32px;
+                    font-weight: 700;
                 }
 
                 /* Reactions */
