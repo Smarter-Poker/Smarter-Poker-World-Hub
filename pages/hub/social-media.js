@@ -171,12 +171,17 @@ function CreatePostBox({ user, onSubmit }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // 📄 POST CARD
 // ═══════════════════════════════════════════════════════════════════════════
-function FBPostCard({ post, onLike, onComment, onShare }) {
+function FBPostCard({ post, onLike, onComment, onShare, onDelete, currentUserId }) {
     const [liked, setLiked] = useState(post.isLiked || false);
     const [likeCount, setLikeCount] = useState(post.likeCount || 0);
     const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // Check if current user owns this post
+    const isOwner = currentUserId && (post.authorId === currentUserId || post.author_id === currentUserId);
 
     const handleLike = async () => {
         // Optimistic UI update
@@ -216,6 +221,25 @@ function FBPostCard({ post, onLike, onComment, onShare }) {
         }
     };
 
+    const handleDelete = async () => {
+        if (!onDelete || isDeleting) return;
+
+        if (!confirm('Are you sure you want to delete this post?')) {
+            setShowMenu(false);
+            return;
+        }
+
+        setIsDeleting(true);
+        try {
+            await onDelete(post.id);
+        } catch (error) {
+            console.error('Delete failed:', error);
+            alert('Failed to delete post');
+        }
+        setIsDeleting(false);
+        setShowMenu(false);
+    };
+
     // Handle media URLs (can be array or single string)
     const mediaUrl = post.mediaUrl || (post.mediaUrls && post.mediaUrls[0]);
     const mediaType = post.mediaType || post.contentType;
@@ -229,7 +253,86 @@ function FBPostCard({ post, onLike, onComment, onShare }) {
                     <span style={styles.postAuthorName}>{post.author?.name || 'Anonymous'}</span>
                     <span style={styles.postTime}>{post.timeAgo || 'Just now'}</span>
                 </div>
-                <button style={styles.moreBtn}>⋯</button>
+                <div style={{ position: 'relative' }}>
+                    <button
+                        style={styles.moreBtn}
+                        onClick={() => setShowMenu(!showMenu)}
+                    >
+                        ⋯
+                    </button>
+                    {showMenu && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            right: 0,
+                            background: '#fff',
+                            borderRadius: 8,
+                            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+                            minWidth: 180,
+                            zIndex: 100,
+                            overflow: 'hidden'
+                        }}>
+                            {isOwner && (
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={isDeleting}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 10,
+                                        width: '100%',
+                                        padding: '12px 16px',
+                                        border: 'none',
+                                        background: 'transparent',
+                                        textAlign: 'left',
+                                        cursor: isDeleting ? 'wait' : 'pointer',
+                                        color: '#dc2626',
+                                        fontSize: 15,
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    🗑️ {isDeleting ? 'Deleting...' : 'Delete Post'}
+                                </button>
+                            )}
+                            <button
+                                onClick={() => { handleShare(); setShowMenu(false); }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    width: '100%',
+                                    padding: '12px 16px',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    color: '#1c1e21',
+                                    fontSize: 15
+                                }}
+                            >
+                                📋 Copy Link
+                            </button>
+                            <button
+                                onClick={() => setShowMenu(false)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    width: '100%',
+                                    padding: '12px 16px',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    color: '#65676b',
+                                    fontSize: 15
+                                }}
+                            >
+                                ✕ Cancel
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Content */}
@@ -1221,6 +1324,25 @@ export default function SocialMediaPage() {
         }
     };
 
+    // Handle delete post
+    const handleDelete = async (postId) => {
+        if (!currentUser) {
+            alert('Please log in to delete posts');
+            return;
+        }
+
+        try {
+            await socialService.deletePost(postId);
+
+            // Remove from local state
+            setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+            console.log('✅ Post deleted:', postId);
+        } catch (error) {
+            console.error('Failed to delete post:', error);
+            throw error; // Re-throw so UI can handle it
+        }
+    };
+
     const handleTabChange = (newTab) => {
         setActiveTab(newTab);
         router.push(`/hub/social-media?tab=${newTab}`, undefined, { shallow: true });
@@ -1299,6 +1421,8 @@ export default function SocialMediaPage() {
                                             onLike={handleLike}
                                             onComment={handleComment}
                                             onShare={handleShare}
+                                            onDelete={handleDelete}
+                                            currentUserId={currentUser?.id}
                                         />
                                     ))
                                 )}
