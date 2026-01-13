@@ -83,7 +83,7 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
 }
 
 // Poker Resume Badge - displays scraped HendonMob data in Smarter.Poker style
-function PokerResumeBadge({ hendonData, onRefresh, isRefreshing }) {
+function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
     if (!hendonData?.hendon_url) return null;
 
     const hasData = hendonData.total_cashes || hendonData.total_earnings;
@@ -106,23 +106,25 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing }) {
                     }}>🏆</div>
                     <div>
                         <div style={{ fontWeight: 700, fontSize: 20, letterSpacing: 0.5 }}>POKER RESUME</div>
-                        <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>Tournament Career Statistics</div>
+                        <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>HendonMob Stats</div>
                     </div>
                 </div>
-                <div style={{
-                    background: 'rgba(255, 215, 0, 0.15)',
-                    border: '1px solid rgba(255, 215, 0, 0.4)',
-                    padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                    color: C.gold
-                }}>
-                    ✓ VERIFIED
-                </div>
+                {hasData && (
+                    <div style={{
+                        background: 'rgba(0, 255, 136, 0.2)',
+                        border: '1px solid rgba(0, 255, 136, 0.5)',
+                        padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                        color: '#00FF88'
+                    }}>
+                        ✓ SYNCED
+                    </div>
+                )}
             </div>
 
             {hasData ? (
                 <>
                     {/* Stats Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
                         <div style={{
                             background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 16, textAlign: 'center',
                             border: '1px solid rgba(255,255,255,0.1)'
@@ -152,32 +154,58 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing }) {
                         </div>
                     </div>
 
-                    {/* Last Updated */}
-                    {hendonData.last_scraped && (
-                        <div style={{ fontSize: 11, opacity: 0.4, textAlign: 'center' }}>
-                            Stats last synced: {new Date(hendonData.last_scraped).toLocaleDateString()}
-                        </div>
-                    )}
+                    {/* Last Updated + Re-sync */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                        {hendonData.last_scraped && (
+                            <div style={{ fontSize: 11, opacity: 0.4 }}>
+                                Last synced: {new Date(hendonData.last_scraped).toLocaleDateString()}
+                            </div>
+                        )}
+                        <button
+                            onClick={onRefresh}
+                            disabled={isRefreshing}
+                            style={{
+                                background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)',
+                                padding: '6px 16px', borderRadius: 6, fontSize: 12, cursor: isRefreshing ? 'wait' : 'pointer',
+                                opacity: isRefreshing ? 0.7 : 1
+                            }}
+                        >
+                            {isRefreshing ? '🔄 Syncing...' : '🔄 Re-sync'}
+                        </button>
+                    </div>
                 </>
             ) : (
-                /* No data yet - show pending state */
+                /* No data yet - show sync button with better status */
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                    <div style={{ fontSize: 48, marginBottom: 12 }}>⏳</div>
-                    <div style={{ fontSize: 14, opacity: 0.7, marginBottom: 16 }}>
-                        Stats will be synced automatically after you save your profile.
-                    </div>
-                    <button
-                        onClick={onRefresh}
-                        disabled={isRefreshing}
-                        style={{
-                            background: C.gold, color: '#000', border: 'none',
-                            padding: '10px 24px', borderRadius: 8, fontWeight: 600,
-                            cursor: isRefreshing ? 'wait' : 'pointer',
-                            opacity: isRefreshing ? 0.7 : 1
-                        }}
-                    >
-                        {isRefreshing ? 'Syncing...' : '🔄 Sync Stats Now'}
-                    </button>
+                    {isRefreshing ? (
+                        <>
+                            <div style={{ fontSize: 48, marginBottom: 12, animation: 'spin 1s linear infinite' }}>🔄</div>
+                            <div style={{ fontSize: 16, fontWeight: 600, color: C.gold, marginBottom: 8 }}>
+                                Fetching your tournament stats...
+                            </div>
+                            <div style={{ fontSize: 13, opacity: 0.6 }}>
+                                This may take a few seconds
+                            </div>
+                            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+                        </>
+                    ) : (
+                        <>
+                            <div style={{ fontSize: 48, marginBottom: 12 }}>📊</div>
+                            <div style={{ fontSize: 14, opacity: 0.7, marginBottom: 16 }}>
+                                Click below to fetch your tournament stats from Hendon Mob
+                            </div>
+                            <button
+                                onClick={onRefresh}
+                                style={{
+                                    background: C.gold, color: '#000', border: 'none',
+                                    padding: '12px 32px', borderRadius: 8, fontWeight: 700,
+                                    cursor: 'pointer', fontSize: 15
+                                }}
+                            >
+                                🔄 Sync Stats Now
+                            </button>
+                        </>
+                    )}
                 </div>
             )}
         </div>
