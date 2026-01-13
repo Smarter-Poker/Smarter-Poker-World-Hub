@@ -206,7 +206,9 @@ export default function ProfilePage() {
         instagram: '',
         hendon_url: '',
         favorite_game: '',
+        favorite_hand: '',
         home_casino: '',
+        birth_year: '',
         avatar_url: '',
         // HendonMob scraped data
         hendon_total_cashes: null,
@@ -306,7 +308,9 @@ export default function ProfilePage() {
                 instagram: profile.instagram,
                 hendon_url: profile.hendon_url,
                 favorite_game: profile.favorite_game,
+                favorite_hand: profile.favorite_hand,
                 home_casino: profile.home_casino,
+                birth_year: profile.birth_year,
                 avatar_url: profile.avatar_url,
                 updated_at: new Date().toISOString(),
             })
@@ -420,7 +424,9 @@ export default function ProfilePage() {
                         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>🃏 Poker Info</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                             <ProfileField label="Favorite Game" value={profile.favorite_game} onChange={updateField('favorite_game')} placeholder="No Limit Hold'em" icon="🎰" />
+                            <ProfileField label="Favorite Hand" value={profile.favorite_hand} onChange={updateField('favorite_hand')} placeholder="A♠ K♠" icon="🃏" />
                             <ProfileField label="Home Casino" value={profile.home_casino} onChange={updateField('home_casino')} placeholder="Bellagio" icon="🏨" />
+                            <ProfileField label="Birth Year" value={profile.birth_year} onChange={updateField('birth_year')} placeholder="1990" icon="🎂" />
                         </div>
                     </div>
 

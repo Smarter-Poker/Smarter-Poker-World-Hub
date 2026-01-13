@@ -314,9 +314,13 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
     return (
         <div style={{ background: C.card, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2, overflow: 'hidden' }}>
             <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Avatar src={post.author?.avatar} name={post.author?.name} size={40} />
+                <Link href={`/hub/user/${post.author?.name || 'player'}`} style={{ textDecoration: 'none' }}>
+                    <Avatar src={post.author?.avatar} name={post.author?.name} size={40} />
+                </Link>
                 <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, color: C.text }}>{post.author?.name || 'Player'}</div>
+                    <Link href={`/hub/user/${post.author?.name || 'player'}`} style={{ fontWeight: 600, color: C.text, textDecoration: 'none' }}>
+                        {post.author?.name || 'Player'}
+                    </Link>
                     <div style={{ fontSize: 12, color: C.textSec }}>{post.timeAgo}</div>
                 </div>
                 {post.authorId === currentUserId && <button onClick={() => onDelete(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 16 }}>⋯</button>}
