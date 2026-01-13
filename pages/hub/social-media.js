@@ -807,7 +807,7 @@ export default function SocialMediaPage() {
                                 width: 40, height: 40, borderRadius: 8
                             }}
                         >☰</button>
-                        <Link href="/hub" style={{ fontWeight: 700, fontSize: 22, color: C.blue, textDecoration: 'none' }}>Smarter.Poker</Link>
+                        <Link href="/hub" style={{ fontWeight: 700, fontSize: 22, color: C.blue, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>🧠 Smarter.Poker</Link>
                     </div>
 
                     {/* RIGHT: Search, Notifications, Messenger, Profile */}
