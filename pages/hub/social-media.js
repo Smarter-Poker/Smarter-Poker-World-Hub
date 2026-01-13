@@ -1010,9 +1010,9 @@ export default function SocialMediaPage() {
                         <span style={{ fontSize: 24 }}>🏛️</span>
                         <span style={{ fontSize: 10, marginTop: 2 }}>Clubs</span>
                     </Link>
-                    <Link href="/hub/social-media?tab=notifications" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec, position: 'relative' }}>
+                    <Link href="/hub/notifications" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec, position: 'relative' }}>
                         <span style={{ fontSize: 24 }}>🔔</span>
-                        <div style={{ position: 'absolute', top: -2, right: -4, background: C.red, color: 'white', borderRadius: '50%', width: 18, height: 18, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>1</div>
+                        <div style={{ position: 'absolute', top: -2, right: -4, background: C.red, color: 'white', borderRadius: '50%', width: 18, height: 18, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>{notifications.filter(n => !n.read).length || ''}</div>
                         <span style={{ fontSize: 10, marginTop: 2 }}>Alerts</span>
                     </Link>
                     <Link href="/hub/profile" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec }}>
