@@ -119,7 +119,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 cursor: 'pointer',
                 transform: `translateY(${floatY}px) perspective(800px) rotateX(10deg)`,
                 flex: 1,
-                maxWidth: 'calc(16.66% - 8px)',
+                maxWidth: 'calc(13% - 6px)',
                 transition: 'transform 0.3s ease-out',
                 transformStyle: 'preserve-3d',
             }}
@@ -136,12 +136,12 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
             <div
                 style={{
                     position: 'absolute',
-                    bottom: 35,
-                    width: 220,
-                    height: 60,
+                    bottom: 25,
+                    width: 120,
+                    height: 35,
                     borderRadius: '50%',
                     background: `radial-gradient(ellipse, rgba(0, 212, 255, 0.4), rgba(0, 136, 255, 0.2), transparent 70%)`,
-                    filter: 'blur(10px)',
+                    filter: 'blur(8px)',
                     opacity: edgeOpacity,
                     transform: 'rotateX(70deg)',
                 }}
@@ -152,7 +152,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 style={{
                     position: 'relative',
                     width: '100%',
-                    maxWidth: 270,
+                    maxWidth: 140,
                     transformStyle: 'preserve-3d',
                 }}
             >

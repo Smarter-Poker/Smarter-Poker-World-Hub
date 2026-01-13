@@ -136,17 +136,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                 />
             </mesh>
 
-            {/* Secondary glow layer for depth */}
-            <mesh position={[0, 0, -0.04]}>
-                <boxGeometry args={[cardWidth + 0.2, cardHeight + 0.2, 0.01]} />
-                <meshBasicMaterial
-                    color="#00d4ff"
-                    transparent
-                    opacity={0.15}
-                    blending={THREE.AdditiveBlending}
-                />
-            </mesh>
-
             {/* ═══════════════════════════════════════════════════════════════
                 GLASS FRAME (premium transparent border)
                 ═══════════════════════════════════════════════════════════════ */}
@@ -161,16 +150,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                     clearcoat={1}
                     clearcoatRoughness={0.1}
                     envMapIntensity={1}
-                />
-            </mesh>
-
-            {/* Inner edge highlight */}
-            <mesh position={[0, 0, 0.026]}>
-                <boxGeometry args={[cardWidth + 0.01, cardHeight + 0.01, 0.002]} />
-                <meshBasicMaterial
-                    color="#ffffff"
-                    transparent
-                    opacity={0.9}
                 />
             </mesh>
 
