@@ -218,6 +218,16 @@ export const EnhancedPostCreator = ({
       return;
     }
 
+    if (!user || !user.id) {
+      setError('Please log in to create a post');
+      return;
+    }
+
+    if (!user.isAuthenticated) {
+      setError('Please log in to create a post');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
