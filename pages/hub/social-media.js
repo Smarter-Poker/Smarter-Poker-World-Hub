@@ -1,36 +1,34 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   SOCIAL MEDIA ORB — Facebook-Style Poker Social Network
-   Orb #1: Connect with players, share hands, and build your network
-   
-   Version 2.0 - Complete Facebook-Style Redesign
-   ═══════════════════════════════════════════════════════════════════════════ */
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 🌐 SMARTER.POKER SOCIAL HUB - SNGINE RECONSTRUCTION v3.0
+ * /pages/hub/social-media.js
+ * 
+ * SOCIAL-ONLY REBUILD (No messaging module)
+ * - Feed, Posts, Comments, Reactions
+ * - User Search, Profile Discovery
+ * - Zero seed data, Zero hardcoded contacts
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
 
-import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { UnifiedSocialService } from '../../src/services/UnifiedSocialService';
-import { EnhancedPostCreator } from '../../src/components/social/EnhancedPostCreator';
 
-// Initialize Supabase with fallback credentials
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
-
+// Initialize Supabase
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://hpnqzvjknynwcpzzcdmo.supabase.co';
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwbnF6dmprbnnud2Nwenpjzg1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcwMTQxNjYsImV4cCI6MjA2MjU5MDE2Nn0.yWbevMwO7h1mIFvqc0bDLX0bdyGB1tNB0h2bGDzzbrw';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Initialize SocialService
-const socialService = new UnifiedSocialService(supabase);
-
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎨 FB COLORS (Facebook-style theming)
+// 🎨 FACEBOOK-STYLE COLORS
 // ═══════════════════════════════════════════════════════════════════════════
-const FB_COLORS = {
+const FB = {
     blue: '#1877F2',
     blueHover: '#166FE5',
-    blueLight: '#E7F3FF',
     bgMain: '#F0F2F5',
-    bgWhite: '#FFFFFF',
-    bgHover: '#F2F2F2',
+    bgCard: '#FFFFFF',
     textPrimary: '#050505',
     textSecondary: '#65676B',
     divider: '#CED0D4',
@@ -38,2144 +36,808 @@ const FB_COLORS = {
     red: '#FA383E',
 };
 
+const styles = {
+    page: {
+        minHeight: '100vh',
+        background: FB.bgMain,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    },
+    header: {
+        background: FB.bgCard,
+        padding: '8px 16px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottom: `1px solid ${FB.divider}`,
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+    },
+    logo: {
+        fontSize: '24px',
+        fontWeight: 700,
+        color: FB.blue,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        textDecoration: 'none',
+    },
+    mainLayout: {
+        display: 'grid',
+        gridTemplateColumns: '280px 1fr 280px',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        gap: '16px',
+        padding: '16px',
+    },
+    sidebar: {
+        position: 'sticky',
+        top: '80px',
+        height: 'fit-content',
+    },
+    sidebarItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        color: FB.textPrimary,
+        fontWeight: 500,
+        transition: 'background 0.2s',
+    },
+    feedContainer: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+    },
+    card: {
+        background: FB.bgCard,
+        borderRadius: '8px',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+        overflow: 'hidden',
+    },
+    postCreator: {
+        padding: '16px',
+    },
+    postInput: {
+        width: '100%',
+        padding: '12px 16px',
+        borderRadius: '20px',
+        border: 'none',
+        background: FB.bgMain,
+        fontSize: '16px',
+        resize: 'none',
+        minHeight: '44px',
+        outline: 'none',
+    },
+    postActions: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        borderTop: `1px solid ${FB.divider}`,
+        marginTop: '12px',
+        paddingTop: '12px',
+    },
+    actionBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '8px 16px',
+        borderRadius: '8px',
+        border: 'none',
+        background: 'transparent',
+        cursor: 'pointer',
+        color: FB.textSecondary,
+        fontWeight: 500,
+        fontSize: '14px',
+    },
+    postBtn: {
+        padding: '8px 24px',
+        borderRadius: '8px',
+        border: 'none',
+        background: FB.blue,
+        color: 'white',
+        fontWeight: 600,
+        cursor: 'pointer',
+    },
+    postCard: {
+        padding: '16px',
+    },
+    postHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '12px',
+    },
+    avatar: {
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        background: FB.blue,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        fontWeight: 600,
+        fontSize: '16px',
+    },
+    postContent: {
+        fontSize: '15px',
+        lineHeight: 1.5,
+        color: FB.textPrimary,
+        marginBottom: '12px',
+    },
+    postStats: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        padding: '8px 0',
+        borderTop: `1px solid ${FB.divider}`,
+        borderBottom: `1px solid ${FB.divider}`,
+        color: FB.textSecondary,
+        fontSize: '14px',
+    },
+    postInteractions: {
+        display: 'flex',
+        justifyContent: 'space-around',
+        padding: '4px 0',
+    },
+    interactionBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '8px 16px',
+        borderRadius: '4px',
+        border: 'none',
+        background: 'transparent',
+        cursor: 'pointer',
+        color: FB.textSecondary,
+        fontWeight: 500,
+        fontSize: '14px',
+        flex: 1,
+        justifyContent: 'center',
+    },
+    emptyState: {
+        textAlign: 'center',
+        padding: '60px 20px',
+        color: FB.textSecondary,
+    },
+    searchBox: {
+        display: 'flex',
+        alignItems: 'center',
+        background: FB.bgMain,
+        borderRadius: '20px',
+        padding: '8px 16px',
+        flex: 1,
+        maxWidth: '400px',
+    },
+    searchInput: {
+        border: 'none',
+        background: 'transparent',
+        outline: 'none',
+        fontSize: '14px',
+        width: '100%',
+        marginLeft: '8px',
+    },
+    userCard: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '12px 16px',
+        borderBottom: `1px solid ${FB.divider}`,
+        cursor: 'pointer',
+    },
+    rightSidebar: {
+        position: 'sticky',
+        top: '80px',
+        height: 'fit-content',
+    },
+    rightCard: {
+        background: FB.bgCard,
+        borderRadius: '8px',
+        padding: '16px',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+    },
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
-// 👤 AVATAR COMPONENT
+// 🔧 AVATAR COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
-function FBAvatar({ src, size = 40, online = false }) {
-    return (
-        <div style={{
-            width: size,
-            height: size,
-            borderRadius: '50%',
-            background: src ? `url(${src}) center/cover` : 'linear-gradient(135deg, #667eea, #764ba2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: size * 0.4,
-            color: 'white',
-            position: 'relative',
-            flexShrink: 0,
-        }}>
-            {!src && '👤'}
-            {online && (
-                <div style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    right: 0,
-                    width: size * 0.25,
-                    height: size * 0.25,
-                    background: FB_COLORS.green,
-                    border: `2px solid ${FB_COLORS.bgWhite}`,
-                    borderRadius: '50%',
-                }} />
-            )}
-        </div>
+function Avatar({ src, name, size = 40 }) {
+    const initial = name?.[0]?.toUpperCase() || '?';
+    return src ? (
+        <img src={src} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
+    ) : (
+        <div style={{ ...styles.avatar, width: size, height: size, fontSize: size * 0.4 }}>{initial}</div>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📝 CREATE POST BOX
+// 📝 POST CREATOR COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
-function CreatePostBox({ user, onSubmit }) {
+function PostCreator({ user, onPost, isPosting }) {
     const [content, setContent] = useState('');
-    const [mediaFile, setMediaFile] = useState(null);
-    const [previewUrl, setPreviewUrl] = useState(null);
-    const fileInputRef = useRef(null);
+    const [error, setError] = useState('');
 
-    const handleFileSelect = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setMediaFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
-        }
-    };
-
-    const handleSubmit = () => {
-        if (content.trim() || mediaFile) {
-            onSubmit?.(content, mediaFile);
-            setContent('');
-            setMediaFile(null);
-            setPreviewUrl(null);
-        }
-    };
-
-    return (
-        <div style={styles.createPost}>
-            <div style={styles.createPostRow}>
-                <FBAvatar src={user?.avatar} size={40} />
-                <input
-                    type="text"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder={`What's on your mind?`}
-                    style={styles.createPostInput}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                />
-            </div>
-
-            {/* Media Preview */}
-            {previewUrl && (
-                <div style={{ padding: '0 16px 12px 16px' }}>
-                    <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden' }}>
-                        {mediaFile?.type?.startsWith('video') ? (
-                            <video src={previewUrl} style={{ width: '100%', maxHeight: 300, background: '#000' }} controls />
-                        ) : (
-                            <img src={previewUrl} alt="Preview" style={{ width: '100%', maxHeight: 300, objectFit: 'cover' }} />
-                        )}
-                        <button
-                            onClick={() => { setMediaFile(null); setPreviewUrl(null); }}
-                            style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer' }}
-                        >✕</button>
-                    </div>
-                </div>
-            )}
-
-            <div style={styles.createPostDivider} />
-
-            <div style={styles.createPostActions}>
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    accept="image/*,video/*"
-                    style={{ display: 'none' }}
-                />
-                <button style={styles.createPostAction}>🎮 Live Video</button>
-                <button
-                    style={styles.createPostAction}
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                    📷 Photo/Video
-                </button>
-                <button style={styles.createPostAction}>🃏 Hand History</button>
-                <button
-                    onClick={handleSubmit}
-                    style={{
-                        marginLeft: 'auto',
-                        background: (content || mediaFile) ? FB_COLORS.blue : '#e4e6eb',
-                        color: (content || mediaFile) ? '#fff' : '#bcc0c4',
-                        padding: '6px 24px',
-                        border: 'none',
-                        borderRadius: 6,
-                        fontWeight: 600,
-                        cursor: (content || mediaFile) ? 'pointer' : 'default'
-                    }}
-                >
-                    Post
-                </button>
-            </div>
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 📄 POST CARD
-// ═══════════════════════════════════════════════════════════════════════════
-function FBPostCard({ post, onLike, onComment, onShare, onDelete, currentUserId }) {
-    const [liked, setLiked] = useState(post.isLiked || false);
-    const [likeCount, setLikeCount] = useState(post.likeCount || 0);
-    const [showComments, setShowComments] = useState(false);
-    const [commentText, setCommentText] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showMenu, setShowMenu] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    // Check if current user owns this post
-    const isOwner = currentUserId && (post.authorId === currentUserId || post.author_id === currentUserId);
-
-    const handleLike = async () => {
-        // Optimistic UI update
-        setLiked(!liked);
-        setLikeCount(liked ? likeCount - 1 : likeCount + 1);
-
-        // Call backend
-        if (onLike) {
-            try {
-                await onLike(post.id);
-            } catch (error) {
-                // Revert on error
-                setLiked(liked);
-                setLikeCount(likeCount);
-            }
-        }
-    };
-
-    const handleCommentSubmit = async () => {
-        if (!commentText.trim() || isSubmitting) return;
-
-        setIsSubmitting(true);
-        if (onComment) {
-            try {
-                await onComment(post.id, commentText);
-                setCommentText('');
-            } catch (error) {
-                console.error('Comment failed:', error);
-            }
-        }
-        setIsSubmitting(false);
-    };
-
-    const handleShare = () => {
-        if (onShare) {
-            onShare(post.id);
-        }
-    };
-
-    const handleDelete = async () => {
-        if (!onDelete || isDeleting) return;
-
-        if (!confirm('Are you sure you want to delete this post?')) {
-            setShowMenu(false);
+    const handleSubmit = async () => {
+        if (!content.trim()) return;
+        if (!user?.id) {
+            setError('Please log in to post');
             return;
         }
-
-        setIsDeleting(true);
-        try {
-            await onDelete(post.id);
-        } catch (error) {
-            console.error('Delete failed:', error);
-            alert('Failed to delete post');
-        }
-        setIsDeleting(false);
-        setShowMenu(false);
+        setError('');
+        const success = await onPost(content);
+        if (success) setContent('');
     };
 
-    // Handle media URLs (can be array or single string)
-    const mediaUrl = post.mediaUrl || (post.mediaUrls && post.mediaUrls[0]);
-    const mediaType = post.mediaType || post.contentType;
+    return (
+        <div style={{ ...styles.card, ...styles.postCreator }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <Avatar name={user?.name} src={user?.avatar} size={40} />
+                <textarea
+                    style={styles.postInput}
+                    placeholder={user?.name ? `What's on your mind, ${user.name}?` : "What's on your mind?"}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    rows={2}
+                />
+            </div>
+            {error && <p style={{ color: FB.red, fontSize: '14px', margin: '8px 0 0 52px' }}>⚠️ {error}</p>}
+            <div style={styles.postActions}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button style={styles.actionBtn}>📷 Photo</button>
+                    <button style={styles.actionBtn}>🎥 Video</button>
+                </div>
+                <button
+                    style={{ ...styles.postBtn, opacity: isPosting || !content.trim() ? 0.6 : 1 }}
+                    onClick={handleSubmit}
+                    disabled={isPosting || !content.trim()}
+                >
+                    {isPosting ? 'Posting...' : 'Post'}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📄 POST CARD COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+function PostCard({ post, currentUserId, onLike, onDelete }) {
+    const [isLiked, setIsLiked] = useState(post.isLiked || false);
+    const [likeCount, setLikeCount] = useState(post.likeCount || 0);
+
+    const handleLike = async () => {
+        const wasLiked = isLiked;
+        setIsLiked(!wasLiked);
+        setLikeCount(prev => wasLiked ? prev - 1 : prev + 1);
+        try {
+            await onLike(post.id);
+        } catch {
+            setIsLiked(wasLiked);
+            setLikeCount(post.likeCount || 0);
+        }
+    };
+
+    const canDelete = post.authorId === currentUserId;
 
     return (
-        <div style={styles.postCard}>
-            {/* Header */}
+        <div style={{ ...styles.card, ...styles.postCard }}>
             <div style={styles.postHeader}>
-                <FBAvatar src={post.author?.avatar} size={40} />
-                <div style={styles.postAuthorInfo}>
-                    <span style={styles.postAuthorName}>{post.author?.name || 'Anonymous'}</span>
-                    <span style={styles.postTime}>{post.timeAgo || 'Just now'}</span>
-                </div>
-                <div style={{ position: 'relative' }}>
-                    <button
-                        style={styles.moreBtn}
-                        onClick={() => setShowMenu(!showMenu)}
-                    >
-                        ⋯
-                    </button>
-                    {showMenu && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '100%',
-                            right: 0,
-                            background: '#fff',
-                            borderRadius: 8,
-                            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-                            minWidth: 180,
-                            zIndex: 100,
-                            overflow: 'hidden'
-                        }}>
-                            {isOwner && (
-                                <button
-                                    onClick={handleDelete}
-                                    disabled={isDeleting}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 10,
-                                        width: '100%',
-                                        padding: '12px 16px',
-                                        border: 'none',
-                                        background: 'transparent',
-                                        textAlign: 'left',
-                                        cursor: isDeleting ? 'wait' : 'pointer',
-                                        color: '#dc2626',
-                                        fontSize: 15,
-                                        fontWeight: 500
-                                    }}
-                                >
-                                    🗑️ {isDeleting ? 'Deleting...' : 'Delete Post'}
-                                </button>
-                            )}
-                            <button
-                                onClick={() => { handleShare(); setShowMenu(false); }}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 10,
-                                    width: '100%',
-                                    padding: '12px 16px',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    textAlign: 'left',
-                                    cursor: 'pointer',
-                                    color: '#1c1e21',
-                                    fontSize: 15
-                                }}
-                            >
-                                📋 Copy Link
-                            </button>
-                            <button
-                                onClick={() => setShowMenu(false)}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 10,
-                                    width: '100%',
-                                    padding: '12px 16px',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    textAlign: 'left',
-                                    cursor: 'pointer',
-                                    color: '#65676b',
-                                    fontSize: 15
-                                }}
-                            >
-                                ✕ Cancel
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Content */}
-            <div style={styles.postContent}>
-                <p style={styles.postText}>{post.content || post.text}</p>
-                {mediaUrl && (
-                    <div style={{ marginTop: 12 }}>
-                        {mediaType === 'video' ? (
-                            <div style={{ width: '100%', background: '#000', borderRadius: 8, overflow: 'hidden' }}>
-                                <video src={mediaUrl} style={{ width: '100%', maxHeight: 500, display: 'block' }} controls />
-                            </div>
-                        ) : (
-                            <div style={{ width: '100%', borderRadius: 8, overflow: 'hidden', border: '1px solid #ddd' }}>
-                                <img src={mediaUrl} alt="Post media" style={{ width: '100%', maxHeight: 600, objectFit: 'cover', display: 'block' }} />
-                            </div>
+                <Avatar name={post.author?.name} src={post.author?.avatar} size={40} />
+                <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, color: FB.textPrimary }}>
+                        {post.author?.name || 'Anonymous'}
+                        {post.author?.tier && (
+                            <span style={{ fontSize: '12px', color: FB.blue, marginLeft: '8px' }}>
+                                Lvl {post.author.tier}
+                            </span>
                         )}
                     </div>
+                    <div style={{ fontSize: '13px', color: FB.textSecondary }}>{post.timeAgo}</div>
+                </div>
+                {canDelete && (
+                    <button
+                        onClick={() => onDelete(post.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: FB.textSecondary }}
+                        title="Delete post"
+                    >
+                        🗑️
+                    </button>
                 )}
             </div>
-
-            {/* Hand Display */}
-            {post.handData && (
-                <div style={styles.handDisplay}>
-                    <div style={styles.handRow}>
-                        <span style={styles.handLabel}>Hero:</span>
-                        <span style={styles.handCards}>{post.handData.heroCards?.join(' ')}</span>
-                    </div>
-                    <div style={styles.handRow}>
-                        <span style={styles.handLabel}>Board:</span>
-                        <span style={styles.handCards}>{post.handData.board?.join(' ')}</span>
-                    </div>
-                    {post.handData.won && (
-                        <div style={styles.winBadge}>
-                            💰 +${post.handData.amount?.toLocaleString()}
-                        </div>
-                    )}
+            <div style={styles.postContent}>{post.content}</div>
+            {post.mediaUrls?.length > 0 && (
+                <div style={{ marginBottom: '12px' }}>
+                    {post.mediaUrls.map((url, i) => (
+                        <img key={i} src={url} alt="" style={{ width: '100%', borderRadius: '8px', marginTop: '8px' }} />
+                    ))}
                 </div>
             )}
-
-            {/* Stats */}
             <div style={styles.postStats}>
                 <span>{likeCount > 0 ? `👍 ${likeCount}` : ''}</span>
-                <span onClick={() => setShowComments(!showComments)} style={{ cursor: 'pointer' }}>
-                    {post.commentCount > 0 ? `${post.commentCount} comments` : ''}
-                </span>
+                <span>{post.commentCount > 0 ? `${post.commentCount} comments` : ''}</span>
             </div>
-
-            {/* Actions */}
-            <div style={styles.postActions}>
+            <div style={styles.postInteractions}>
                 <button
+                    style={{ ...styles.interactionBtn, color: isLiked ? FB.blue : FB.textSecondary }}
                     onClick={handleLike}
-                    style={{
-                        ...styles.postAction,
-                        color: liked ? FB_COLORS.blue : FB_COLORS.textSecondary,
-                    }}
                 >
-                    {liked ? '👍' : '👍'} Like
+                    👍 Like
                 </button>
-                <button
-                    style={styles.postAction}
-                    onClick={() => setShowComments(!showComments)}
-                >
-                    💬 Comment
-                </button>
-                <button style={styles.postAction} onClick={handleShare}>↗️ Share</button>
+                <button style={styles.interactionBtn}>💬 Comment</button>
+                <button style={styles.interactionBtn}>↗️ Share</button>
             </div>
-
-            {/* Comment Input */}
-            {showComments && (
-                <div style={{ padding: '12px 16px', borderTop: `1px solid ${FB_COLORS.divider}` }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <input
-                            type="text"
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            placeholder="Write a comment..."
-                            onKeyDown={(e) => e.key === 'Enter' && handleCommentSubmit()}
-                            disabled={isSubmitting}
-                            style={{
-                                flex: 1,
-                                padding: '8px 12px',
-                                border: 'none',
-                                borderRadius: 20,
-                                background: '#f0f2f5',
-                                fontSize: 14,
-                            }}
-                        />
-                        <button
-                            onClick={handleCommentSubmit}
-                            disabled={!commentText.trim() || isSubmitting}
-                            style={{
-                                padding: '6px 12px',
-                                background: commentText.trim() ? FB_COLORS.blue : '#e4e6eb',
-                                color: commentText.trim() ? '#fff' : '#bcc0c4',
-                                border: 'none',
-                                borderRadius: 16,
-                                cursor: commentText.trim() ? 'pointer' : 'default',
-                                fontSize: 13,
-                                fontWeight: 500,
-                            }}
-                        >
-                            {isSubmitting ? '...' : 'Post'}
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
 
-
 // ═══════════════════════════════════════════════════════════════════════════
-// 📱 LEFT SIDEBAR
+// 🔍 USER SEARCH RESULTS
 // ═══════════════════════════════════════════════════════════════════════════
-function LeftSidebar({ user, onNavigate }) {
-    const menuItems = [
-        { icon: '👤', label: 'Profile', route: 'profile' },
-        { icon: '👥', label: 'Friends', route: 'friends' },
-        { icon: '🎰', label: 'Clubs', route: 'clubs' },
-        { icon: '📺', label: 'Watch', route: 'watch' },
-        { icon: '🏆', label: 'Tournaments', route: 'tournaments' },
-        { icon: '🧠', label: 'GTO Training', route: '/hub/training' },
-    ];
-
+function UserSearchResults({ results, onViewProfile }) {
+    if (!results || results.length === 0) return null;
     return (
-        <aside style={styles.leftSidebar}>
-            <div style={styles.sidebarItem}>
-                <FBAvatar src={user?.avatar} size={36} />
-                <span>{user?.name || 'You'}</span>
-            </div>
-            {menuItems.map((item, i) => (
-                <div
-                    key={i}
-                    style={styles.sidebarItem}
-                    onClick={() => onNavigate?.(item.route)}
-                >
-                    <span style={styles.sidebarIcon}>{item.icon}</span>
-                    <span>{item.label}</span>
+        <div style={{ ...styles.card, marginTop: '16px' }}>
+            <h4 style={{ padding: '12px 16px', margin: 0, borderBottom: `1px solid ${FB.divider}` }}>
+                🔍 Search Results ({results.length})
+            </h4>
+            {results.map(user => (
+                <div key={user.id} style={styles.userCard} onClick={() => onViewProfile?.(user)}>
+                    <Avatar name={user.username} src={user.avatar} size={40} />
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600 }}>
+                            {user.username}
+                            {user.verified && <span style={{ color: FB.blue, marginLeft: '4px' }}>✓</span>}
+                        </div>
+                        {user.level && <div style={{ fontSize: '13px', color: FB.textSecondary }}>Level {user.level}</div>}
+                    </div>
                 </div>
             ))}
-            <div
-                style={styles.sidebarItem}
-                onClick={() => window.open('https://social.smarter.poker', '_blank')}
-            >
-                <span style={styles.sidebarIcon}>🌐</span>
-                <span>Full Social Site</span>
-            </div>
-        </aside>
+        </div>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📱 RIGHT SIDEBAR (CONTACTS) - Sngine-style with User Search
+// 📊 RIGHT SIDEBAR - DISCOVERY (No fake contacts)
 // ═══════════════════════════════════════════════════════════════════════════
-function RightSidebar({ contacts = [], onOpenChat, onSearch, searchResults = [] }) {
-    const [searchQuery, setSearchQuery] = useState('');
-    const defaultContacts = [
-        { id: 1, name: 'Mike Shark', online: true, avatar: 'https://picsum.photos/100?1' },
-        { id: 2, name: 'Sarah GTO', online: true, avatar: 'https://picsum.photos/100?2' },
-        { id: 3, name: 'Tom Grinder', online: false, avatar: 'https://picsum.photos/100?3' },
-    ];
-
-    const displayContacts = contacts.length > 0 ? contacts : defaultContacts;
-    const showSearchResults = searchQuery.length >= 2 && searchResults.length > 0;
-
+function DiscoverySidebar({ suggestedUsers = [], onViewProfile }) {
     return (
         <aside style={styles.rightSidebar}>
-            {/* Search Input */}
-            <div style={{ padding: '8px 16px', marginBottom: '8px' }}>
-                <input
-                    type="text"
-                    placeholder="🔍 Search players..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        onSearch?.(e.target.value);
-                    }}
-                    style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: '20px',
-                        border: 'none',
-                        background: FB_COLORS.bgMain,
-                        fontSize: '14px',
-                    }}
-                />
-            </div>
-
-            {/* Search Results */}
-            {showSearchResults && (
-                <>
-                    <h4 style={{ ...styles.sidebarHeading, color: FB_COLORS.blue }}>Search Results</h4>
-                    {searchResults.map((user) => (
+            <div style={styles.rightCard}>
+                <h4 style={{ margin: '0 0 12px 0', color: FB.textPrimary }}>Suggested Players</h4>
+                {suggestedUsers.length === 0 ? (
+                    <p style={{ color: FB.textSecondary, fontSize: '14px' }}>
+                        No suggestions yet. Use search to find players!
+                    </p>
+                ) : (
+                    suggestedUsers.slice(0, 5).map(user => (
                         <div
                             key={user.id}
-                            style={styles.contactItem}
-                            onClick={() => onOpenChat?.({ ...user, online: false })}
+                            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', cursor: 'pointer' }}
+                            onClick={() => onViewProfile?.(user)}
                         >
-                            <FBAvatar src={user.avatar} size={36} />
-                            <div style={{ flex: 1 }}>
-                                <span style={styles.contactName}>
-                                    {user.name}
-                                    {user.verified && <span style={{ color: FB_COLORS.blue, marginLeft: 4 }}>✓</span>}
-                                </span>
-                                {user.level && (
-                                    <span style={{ fontSize: '11px', color: FB_COLORS.textSecondary, display: 'block' }}>
-                                        Level {user.level}
-                                    </span>
-                                )}
+                            <Avatar name={user.username} src={user.avatar} size={36} />
+                            <div>
+                                <div style={{ fontWeight: 500, fontSize: '14px' }}>{user.username}</div>
+                                {user.level && <div style={{ fontSize: '12px', color: FB.textSecondary }}>Level {user.level}</div>}
                             </div>
                         </div>
-                    ))}
-                    <div style={{ borderBottom: `1px solid ${FB_COLORS.divider}`, margin: '8px 0' }} />
-                </>
-            )}
-
-            {/* Contacts */}
-            <h4 style={styles.sidebarHeading}>Contacts</h4>
-            {displayContacts.length === 0 ? (
-                <p style={{ padding: '0 16px', color: FB_COLORS.textSecondary, fontSize: '13px' }}>
-                    No contacts yet. Search for players above!
-                </p>
-            ) : (
-                displayContacts.map((contact) => (
-                    <div
-                        key={contact.id}
-                        style={styles.contactItem}
-                        onClick={() => onOpenChat?.(contact)}
-                    >
-                        <FBAvatar src={contact.avatar} size={36} online={contact.online} />
-                        <span style={styles.contactName}>{contact.name}</span>
-                    </div>
-                ))
-            )}
+                    ))
+                )}
+            </div>
         </aside>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 💬 CHAT WINDOW - Full Featured with Read Receipts
-// ═══════════════════════════════════════════════════════════════════════════
-function ChatWindow({
-    chat,
-    messages = [],
-    onClose,
-    onSend,
-    onMarkRead,
-    readReceiptsEnabled = true,
-    onToggleReadReceipts,
-    currentUserId
-}) {
-    const [message, setMessage] = useState('');
-    const [showSettings, setShowSettings] = useState(false);
-    const [isTyping, setIsTyping] = useState(false);
-    const messagesEndRef = useRef(null);
-    const inputRef = useRef(null);
-
-    // Auto-scroll to latest message
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
-
-    // Mark messages as read when chat opens or new messages arrive
-    useEffect(() => {
-        if (messages.length > 0 && onMarkRead) {
-            onMarkRead(chat.id);
-        }
-    }, [messages.length, chat.id, onMarkRead]);
-
-    const handleSend = () => {
-        if (message.trim()) {
-            onSend?.(chat.id, message);
-            setMessage('');
-            inputRef.current?.focus();
-        }
-    };
-
-    const getReadStatus = (msg) => {
-        if (!msg.fromMe) return null;
-
-        const readByOthers = (msg.readBy || []).filter(r => r.userId !== currentUserId);
-
-        if (readByOthers.length > 0) {
-            return { status: 'read', text: 'Seen' };
-        }
-        if (msg.id) {
-            return { status: 'delivered', text: 'Delivered' };
-        }
-        return { status: 'sent', text: 'Sent' };
-    };
-
-    return (
-        <div style={styles.chatWindow}>
-            {/* Header with settings */}
-            <div style={styles.chatHeader}>
-                <FBAvatar src={chat.avatar} size={32} online={chat.online} />
-                <span style={styles.chatName}>{chat.name}</span>
-                <div style={{ display: 'flex', gap: 4 }}>
-                    <button
-                        onClick={() => setShowSettings(!showSettings)}
-                        style={styles.chatSettingsBtn}
-                        title="Chat Settings"
-                    >
-                        ⚙️
-                    </button>
-                    <button onClick={() => onClose?.(chat.id)} style={styles.chatClose}>×</button>
-                </div>
-            </div>
-
-            {/* Settings Dropdown */}
-            {showSettings && (
-                <div style={styles.chatSettingsDropdown}>
-                    <label style={styles.settingsLabel}>
-                        <input
-                            type="checkbox"
-                            checked={readReceiptsEnabled}
-                            onChange={(e) => {
-                                onToggleReadReceipts?.(e.target.checked);
-                                setShowSettings(false);
-                            }}
-                            style={styles.settingsCheckbox}
-                        />
-                        <span>Read Receipts</span>
-                        <span style={styles.settingsHint}>
-                            {readReceiptsEnabled ? 'On' : 'Off'}
-                        </span>
-                    </label>
-                </div>
-            )}
-
-            {/* Messages Area */}
-            <div style={styles.chatMessages}>
-                {messages.length === 0 ? (
-                    <div style={styles.chatEmpty}>
-                        Start a conversation with {chat.name}
-                    </div>
-                ) : (
-                    messages.map((msg, i) => {
-                        const readStatus = readReceiptsEnabled ? getReadStatus(msg) : null;
-                        const isLastFromMe = msg.fromMe &&
-                            (i === messages.length - 1 || !messages[i + 1]?.fromMe);
-
-                        return (
-                            <div key={msg.id || i} style={styles.msgWrapper}>
-                                <div style={{
-                                    ...styles.msgBubble,
-                                    ...(msg.fromMe ? styles.msgBubbleMe : styles.msgBubbleThem),
-                                }}>
-                                    {msg.text}
-                                </div>
-                                {/* Read Receipt Status - Only show on last message from user */}
-                                {readReceiptsEnabled && isLastFromMe && readStatus && (
-                                    <div style={styles.readReceipt}>
-                                        {readStatus.status === 'read' && (
-                                            <span style={styles.readReceiptSeen}>✓✓ {readStatus.text}</span>
-                                        )}
-                                        {readStatus.status === 'delivered' && (
-                                            <span style={styles.readReceiptDelivered}>✓ {readStatus.text}</span>
-                                        )}
-                                        {readStatus.status === 'sent' && (
-                                            <span style={styles.readReceiptSent}>○ {readStatus.text}</span>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })
-                )}
-
-                {/* Typing Indicator */}
-                {isTyping && (
-                    <div style={styles.typingIndicator}>
-                        <span style={styles.typingDot}>●</span>
-                        <span style={styles.typingDot}>●</span>
-                        <span style={styles.typingDot}>●</span>
-                    </div>
-                )}
-
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div style={styles.chatInput}>
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Aa"
-                    style={styles.chatTextField}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                />
-                <button
-                    onClick={handleSend}
-                    style={{
-                        ...styles.chatSendBtn,
-                        opacity: message.trim() ? 1 : 0.5,
-                    }}
-                    disabled={!message.trim()}
-                >
-                    ➤
-                </button>
-            </div>
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 🏠 NAVIGATION BAR
-// ═══════════════════════════════════════════════════════════════════════════
-function NavBar({ user, activeTab, onTabChange, onBack, onNotifClick, onMessengerClick }) {
-    const tabs = [
-        { id: 'feed', icon: '🏠', label: 'Home' },
-        { id: 'watch', icon: '📺', label: 'Watch' },
-        { id: 'clubs', icon: '👥', label: 'Clubs' },
-        { id: 'profile', icon: '👤', label: 'Profile' },
-    ];
-
-    return (
-        <nav style={styles.navbar}>
-            {/* Left: Logo */}
-            <div style={styles.navLeft}>
-                <button onClick={onBack} style={styles.backBtn}>
-                    ← Hub
-                </button>
-                <span style={styles.logo}>🔴 Social</span>
-            </div>
-
-            {/* Center: Tabs */}
-            <div style={styles.navCenter}>
-                {tabs.map((tab) => (
-                    <button
-                        key={tab.id}
-                        onClick={() => onTabChange(tab.id)}
-                        style={{
-                            ...styles.navTab,
-                            ...(activeTab === tab.id ? styles.navTabActive : {}),
-                        }}
-                    >
-                        <span style={{ fontSize: 20 }}>{tab.icon}</span>
-                    </button>
-                ))}
-            </div>
-
-            {/* Right: User */}
-            <div style={styles.navRight}>
-                <button onClick={onNotifClick} style={styles.navIcon}>🔔</button>
-                <button onClick={onMessengerClick} style={styles.navIcon}>💬</button>
-                <FBAvatar src={user?.avatar} size={40} />
-            </div>
-        </nav>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 🌟 STORIES ROW
-// ═══════════════════════════════════════════════════════════════════════════
-function StoriesRow({ user }) {
-    const stories = [
-        { id: 'create', isCreate: true, user },
-        { id: 1, user: { name: 'Mike' }, thumbnail: 'https://picsum.photos/200/300?1' },
-        { id: 2, user: { name: 'Sarah' }, thumbnail: 'https://picsum.photos/200/300?2' },
-        { id: 3, user: { name: 'Tom' }, thumbnail: 'https://picsum.photos/200/300?3' },
-    ];
-
-    return (
-        <div style={styles.storiesRow}>
-            {stories.map((story) => (
-                <div key={story.id} style={styles.storyCard}>
-                    {story.isCreate ? (
-                        <>
-                            <div style={styles.storyBg} />
-                            <div style={styles.createStoryBtn}>+</div>
-                            <span style={styles.storyName}>Create Story</span>
-                        </>
-                    ) : (
-                        <>
-                            <div style={{
-                                ...styles.storyBg,
-                                backgroundImage: `url(${story.thumbnail})`,
-                            }} />
-                            <span style={styles.storyName}>{story.user.name}</span>
-                        </>
-                    )}
-                </div>
-            ))}
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 📄 MAIN PAGE COMPONENT
+// 🏠 MAIN PAGE COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 export default function SocialMediaPage() {
     const router = useRouter();
-    const { tab } = router.query;
-    const [activeTab, setActiveTab] = useState(tab || 'feed');
-    const [posts, setPosts] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
+    const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isPosting, setIsPosting] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [suggestedUsers, setSuggestedUsers] = useState([]);
+    const searchTimeoutRef = useRef(null);
 
-    // Chat & Panel State
-    const [openChats, setOpenChats] = useState([]);
-    const [chatMessages, setChatMessages] = useState({}); // { chatId: [{ id, text, fromMe, timestamp, readBy }] }
-    const [conversationIds, setConversationIds] = useState({}); // { participantId: conversationId }
-    const [messagingSettings, setMessagingSettings] = useState({ read_receipts_enabled: true });
-    const [showMessenger, setShowMessenger] = useState(false);
-    const [showNotifications, setShowNotifications] = useState(false);
-    const subscriptionsRef = useRef(new Map());
-
-    // Contacts & Search State (Sngine reconstruction)
-    const [contacts, setContacts] = useState([]);
-    const [userSearchQuery, setUserSearchQuery] = useState('');
-    const [userSearchResults, setUserSearchResults] = useState([]);
-
-    // Load user messaging settings
+    // ═══════════════════════════════════════════════════════════════════════
+    // 🔐 AUTHENTICATION & INITIAL LOAD
+    // ═══════════════════════════════════════════════════════════════════════
     useEffect(() => {
-        async function loadSettings() {
-            if (!currentUser?.id) return;
-
+        async function init() {
             try {
-                const { data, error } = await supabase
-                    .from('social_messaging_settings')
-                    .select('*')
-                    .eq('user_id', currentUser.id)
-                    .single();
-
-                if (error && error.code === 'PGRST116') {
-                    // No settings found, create default
-                    await supabase.from('social_messaging_settings').upsert({
-                        user_id: currentUser.id,
-                        read_receipts_enabled: true,
-                    });
-                    setMessagingSettings({ read_receipts_enabled: true });
-                } else if (data) {
-                    setMessagingSettings(data);
-                }
-            } catch (err) {
-                console.error('Error loading messaging settings:', err);
-            }
-        }
-        loadSettings();
-    }, [currentUser?.id]);
-
-    // Toggle read receipts globally
-    const toggleReadReceipts = async (enabled) => {
-        if (!currentUser?.id) return;
-
-        try {
-            await supabase.from('social_messaging_settings').upsert({
-                user_id: currentUser.id,
-                read_receipts_enabled: enabled,
-                updated_at: new Date().toISOString(),
-            });
-            setMessagingSettings(prev => ({ ...prev, read_receipts_enabled: enabled }));
-        } catch (err) {
-            console.error('Error updating settings:', err);
-        }
-    };
-
-    // Get or create conversation with a participant
-    const getOrCreateConversation = async (participantId) => {
-        if (!currentUser?.id) return null;
-
-        // Check cache first
-        if (conversationIds[participantId]) {
-            return conversationIds[participantId];
-        }
-
-        try {
-            const convId = await socialService.getOrCreateConversation(currentUser.id, participantId);
-            setConversationIds(prev => ({ ...prev, [participantId]: convId }));
-            return convId;
-        } catch (err) {
-            console.error('Error getting/creating conversation:', err);
-            return null;
-        }
-    };
-
-    // Load messages for a conversation
-    const loadMessages = async (conversationId, participantId) => {
-        try {
-            const messages = await socialService.getMessages(conversationId);
-            const formattedMessages = messages.map(msg => ({
-                id: msg.id,
-                text: msg.text,
-                timestamp: msg.timestamp || msg.time,
-                fromMe: msg.senderId === currentUser?.id,
-                senderId: msg.senderId,
-                readBy: msg.readBy || [],
-            }));
-
-            setChatMessages(prev => ({ ...prev, [participantId]: formattedMessages }));
-            return formattedMessages;
-        } catch (err) {
-            console.error('Error loading messages:', err);
-            return [];
-        }
-    };
-
-    // Subscribe to real-time messages for a conversation
-    const subscribeToConversation = (conversationId, participantId) => {
-        const channelKey = `conv:${conversationId}`;
-
-        // Don't re-subscribe
-        if (subscriptionsRef.current.has(channelKey)) return;
-
-        const channel = supabase
-            .channel(channelKey)
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'social_messages',
-                    filter: `conversation_id=eq.${conversationId}`,
-                },
-                (payload) => {
-                    const newMsg = {
-                        id: payload.new.id,
-                        text: payload.new.content,
-                        timestamp: payload.new.created_at,
-                        fromMe: payload.new.sender_id === currentUser?.id,
-                        senderId: payload.new.sender_id,
-                        readBy: [],
-                    };
-
-                    setChatMessages(prev => ({
-                        ...prev,
-                        [participantId]: [...(prev[participantId] || []), newMsg],
-                    }));
-                }
-            )
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'social_message_reads',
-                },
-                (payload) => {
-                    // Update read status on messages
-                    setChatMessages(prev => {
-                        const msgs = prev[participantId] || [];
-                        return {
-                            ...prev,
-                            [participantId]: msgs.map(msg =>
-                                msg.id === payload.new.message_id
-                                    ? {
-                                        ...msg,
-                                        readBy: [...(msg.readBy || []), {
-                                            userId: payload.new.user_id,
-                                            readAt: payload.new.read_at,
-                                        }],
-                                    }
-                                    : msg
-                            ),
-                        };
-                    });
-                }
-            )
-            .subscribe();
-
-        subscriptionsRef.current.set(channelKey, channel);
-    };
-
-    // Open chat with a contact
-    const handleOpenChat = async (contact) => {
-        if (!openChats.find(c => c.id === contact.id)) {
-            setOpenChats([...openChats, contact]);
-
-            // Get or create conversation
-            const convId = await getOrCreateConversation(contact.id);
-            if (convId) {
-                // Load existing messages
-                await loadMessages(convId, contact.id);
-                // Subscribe to real-time updates
-                subscribeToConversation(convId, contact.id);
-            }
-        }
-    };
-
-    // Close chat
-    const handleCloseChat = (chatId) => {
-        setOpenChats(openChats.filter(c => c.id !== chatId));
-
-        // Unsubscribe from real-time
-        const convId = conversationIds[chatId];
-        if (convId) {
-            const channelKey = `conv:${convId}`;
-            const channel = subscriptionsRef.current.get(channelKey);
-            if (channel) {
-                supabase.removeChannel(channel);
-                subscriptionsRef.current.delete(channelKey);
-            }
-        }
-    };
-
-    // Send message with full Supabase integration
-    const handleSendMessage = async (chatId, message) => {
-        // Create message locally first (works for all users)
-        const tempId = `local-${Date.now()}`;
-        const newMsg = {
-            id: tempId,
-            text: message,
-            fromMe: true,
-            timestamp: new Date().toISOString(),
-            senderId: currentUser?.id || 'anonymous',
-            readBy: currentUser?.id
-                ? [{ userId: currentUser.id, readAt: new Date().toISOString() }]
-                : [],
-            synced: false,
-        };
-
-        // Optimistic update - always add message locally
-        setChatMessages(prev => ({
-            ...prev,
-            [chatId]: [...(prev[chatId] || []), newMsg],
-        }));
-
-        // If user is authenticated, try to sync to database
-        if (currentUser?.id) {
-            const convId = conversationIds[chatId] || await getOrCreateConversation(chatId);
-
-            if (convId) {
-                try {
-                    // Send using service
-                    const result = await socialService.sendMessage(convId, currentUser.id, message);
-
-                    // Update with real ID and mark as synced
-                    setChatMessages(prev => ({
-                        ...prev,
-                        [chatId]: (prev[chatId] || []).map(msg =>
-                            msg.id === tempId
-                                ? { ...msg, id: result.id, synced: true }
-                                : msg
-                        ),
-                    }));
-                } catch (err) {
-                    console.warn('Message saved locally only (DB sync failed):', err.message);
-                    // Keep the message locally - mark synced as false
-                    setChatMessages(prev => ({
-                        ...prev,
-                        [chatId]: (prev[chatId] || []).map(msg =>
-                            msg.id === tempId
-                                ? { ...msg, synced: false }
-                                : msg
-                        ),
-                    }));
-                }
-            }
-        }
-    };
-
-    // Mark conversation as read
-    const handleMarkRead = async (chatId) => {
-        if (!currentUser?.id || !messagingSettings.read_receipts_enabled) return;
-
-        const convId = conversationIds[chatId];
-        if (!convId) return;
-
-        try {
-            await supabase.rpc('fn_mark_messages_read', {
-                p_conversation_id: convId,
-                p_user_id: currentUser.id,
-            });
-        } catch (err) {
-            console.error('Error marking messages read:', err);
-        }
-    };
-
-    // Cleanup subscriptions on unmount
-    useEffect(() => {
-        return () => {
-            subscriptionsRef.current.forEach((channel) => {
-                supabase.removeChannel(channel);
-            });
-            subscriptionsRef.current.clear();
-        };
-    }, []);
-
-    // Load user and posts
-    useEffect(() => {
-        async function loadData() {
-            try {
+                // Get current user
                 const { data: { user } } = await supabase.auth.getUser();
+
                 if (user) {
                     const { data: profile } = await supabase
                         .from('profiles')
-                        .select('*')
+                        .select('username, avatar_url, current_level')
                         .eq('id', user.id)
                         .single();
 
                     setCurrentUser({
                         id: user.id,
                         name: profile?.username || user.email?.split('@')[0] || 'Player',
-                        avatar: profile?.full_name ? `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name)}&background=1877F2&color=fff` : null,
-                        isAuthenticated: true, // Real authenticated user
-                    });
-                    console.log('✅ Authenticated user:', user.id);
-                } else {
-                    // Not authenticated - show limited demo view
-                    console.log('⚠️ Not authenticated - posting/deleting requires login');
-                    setCurrentUser({
-                        id: null,
-                        name: 'Guest',
-                        avatar: null,
-                        isAuthenticated: false, // Not authenticated
+                        avatar: profile?.avatar_url,
+                        level: profile?.current_level || 1,
                     });
                 }
 
-                // Load posts using SocialService (uses fn_get_social_feed RPC)
-                try {
-                    const userId = user?.id || null;
-                    const { posts: feedPosts } = await socialService.getFeed({
-                        userId,
-                        filter: 'recent',
-                        limit: 20,
-                        offset: 0
-                    });
+                // Load feed
+                await loadFeed();
 
-                    if (feedPosts && feedPosts.length > 0) {
-                        setPosts(feedPosts.map(p => ({
-                            id: p.id,
-                            authorId: p.authorId || p.author_id, // Include for delete ownership check
-                            content: p.content,
-                            author: {
-                                name: p.author?.username || 'Anonymous',
-                                avatar: p.author?.avatarUrl,
-                                tier: p.author?.tier,
-                            },
-                            likeCount: p.engagement?.likeCount || 0,
-                            commentCount: p.engagement?.commentCount || 0,
-                            shareCount: p.engagement?.shareCount || 0,
-                            timeAgo: p.relativeTime || getTimeAgo(p.createdAt),
-                            handData: p.achievementData,
-                            mediaUrls: p.mediaUrls,
-                            contentType: p.contentType,
-                            isLiked: p.isLiked,
-                        })));
-                    }
-                } catch (feedError) {
-                    console.warn('Feed RPC failed, falling back to direct query:', feedError.message);
-                    // Fallback: direct query without joins (basic posts only)
-                    const { data: postsData } = await supabase
-                        .from('social_posts')
-                        .select('*')
-                        .order('created_at', { ascending: false })
-                        .limit(20);
+                // Load suggested users (latest active)
+                const { data: suggested } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url, current_level')
+                    .not('username', 'is', null)
+                    .order('updated_at', { ascending: false })
+                    .limit(10);
 
-                    if (postsData) {
-                        setPosts(postsData.map(p => ({
-                            id: p.id,
-                            authorId: p.author_id, // Include for delete ownership check
-                            content: p.content,
-                            author: { name: 'Anonymous', avatar: null },
-                            likeCount: p.like_count || 0,
-                            commentCount: p.comment_count || 0,
-                            timeAgo: getTimeAgo(p.created_at),
-                        })));
-                    }
+                if (suggested) {
+                    setSuggestedUsers(suggested.map(u => ({
+                        id: u.id,
+                        username: u.username,
+                        avatar: u.avatar_url,
+                        level: u.current_level
+                    })));
                 }
-            } catch (error) {
-                console.error('Error loading data:', error);
+
+            } catch (err) {
+                console.error('Init error:', err);
             } finally {
                 setLoading(false);
             }
         }
-
-        loadData();
+        init();
     }, []);
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // 📰 FEED LOADING
+    // ═══════════════════════════════════════════════════════════════════════
+    const loadFeed = async () => {
+        try {
+            // Try RPC first
+            const { data: rpcData, error: rpcError } = await supabase.rpc('fn_get_social_feed_v2', {
+                p_user_id: currentUser?.id || null,
+                p_limit: 20,
+                p_offset: 0,
+                p_filter: 'recent'
+            });
+
+            if (!rpcError && rpcData?.length > 0) {
+                setPosts(rpcData.map(formatPost));
+                return;
+            }
+        } catch (e) {
+            console.warn('RPC failed, using fallback:', e.message);
+        }
+
+        // Fallback: Direct query
+        const { data, error } = await supabase
+            .from('social_posts')
+            .select(`
+                id, content, content_type, media_urls, like_count, comment_count, created_at, author_id,
+                author:profiles!author_id (username, avatar_url, current_level)
+            `)
+            .or('visibility.eq.public,visibility.is.null')
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        if (!error && data) {
+            setPosts(data.map(p => ({
+                id: p.id,
+                authorId: p.author_id,
+                content: p.content,
+                mediaUrls: p.media_urls || [],
+                likeCount: p.like_count || 0,
+                commentCount: p.comment_count || 0,
+                timeAgo: getTimeAgo(p.created_at),
+                isLiked: false,
+                author: {
+                    name: p.author?.username || 'Player',
+                    avatar: p.author?.avatar_url,
+                    tier: p.author?.current_level
+                }
+            })));
+        }
+    };
+
+    const formatPost = (row) => ({
+        id: row.post_id || row.id,
+        authorId: row.author_id,
+        content: row.content,
+        mediaUrls: row.media_urls || [],
+        likeCount: row.like_count || 0,
+        commentCount: row.comment_count || 0,
+        timeAgo: getTimeAgo(row.created_at),
+        isLiked: row.is_liked || false,
+        author: {
+            name: row.author_username || 'Player',
+            avatar: row.author_avatar,
+            tier: row.author_level
+        }
+    });
+
     const getTimeAgo = (date) => {
-        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+        if (!date) return '';
+        const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
         if (seconds < 60) return 'Just now';
         if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
         if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
         return `${Math.floor(seconds / 86400)}d`;
     };
 
-    // Load contacts from existing conversations (Sngine reconstruction)
-    const loadContacts = useCallback(async () => {
-        if (!currentUser?.id) return;
-        try {
-            const conversations = await socialService.getConversations(currentUser.id);
-            const contactsList = conversations
-                .filter(c => c.otherParticipant)
-                .map(c => ({
-                    id: c.otherParticipant.user_id || c.otherParticipant.id,
-                    name: c.otherParticipant.name || c.otherParticipant.username || 'Player',
-                    avatar: c.otherParticipant.avatar || c.otherParticipant.avatar_url,
-                    online: false, // TODO: Real-time presence
-                    conversationId: c.id,
-                    lastMessage: c.lastMessage?.text,
-                }));
-            setContacts(contactsList);
-        } catch (err) {
-            console.warn('Failed to load contacts:', err.message);
-        }
-    }, [currentUser?.id]);
-
-    // User search handler (Sngine reconstruction)
-    const handleUserSearch = useCallback(async (query) => {
-        setUserSearchQuery(query);
-        if (!query || query.length < 2) {
-            setUserSearchResults([]);
-            return;
-        }
-        try {
-            const results = await socialService.searchUsers(query, 10);
-            setUserSearchResults(results.map(u => ({
-                id: u.id,
-                name: u.username,
-                avatar: u.avatar,
-                level: u.level,
-                verified: u.verified,
-            })));
-        } catch (err) {
-            console.warn('User search failed:', err.message);
-            setUserSearchResults([]);
-        }
-    }, []);
-
-    // Load contacts when user is authenticated
-    useEffect(() => {
-        if (currentUser?.id) {
-            loadContacts();
-        }
-    }, [currentUser?.id, loadContacts]);
-
-    const handleCreatePost = async (content, mediaFile) => {
-        if (!currentUser) {
-            alert('Please log in to create a post');
-            return;
-        }
-
-        if (!content || content.trim().length === 0) {
-            alert('Post content cannot be empty');
-            return;
-        }
+    // ═══════════════════════════════════════════════════════════════════════
+    // ✍️ CREATE POST
+    // ═══════════════════════════════════════════════════════════════════════
+    const handleCreatePost = async (content) => {
+        if (!currentUser?.id) return false;
+        setIsPosting(true);
 
         try {
-            let mediaUrls = [];
-            let contentType = 'text';
+            // Try RPC first
+            const { data: rpcData, error: rpcError } = await supabase.rpc('fn_create_social_post', {
+                p_author_id: currentUser.id,
+                p_content: content,
+                p_content_type: 'text',
+                p_media_urls: [],
+                p_visibility: 'public',
+                p_achievement_data: null
+            });
 
-            // Upload media to Supabase Storage if provided
-            if (mediaFile) {
-                const fileExt = mediaFile.name.split('.').pop();
-                const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`;
-                const bucket = mediaFile.type.startsWith('video') ? 'videos' : 'images';
-
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from(bucket)
-                    .upload(fileName, mediaFile);
-
-                if (uploadError) {
-                    console.error('Media upload error:', uploadError);
-                    // Continue without media rather than failing completely
-                } else {
-                    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-                    mediaUrls = [urlData.publicUrl];
-                    contentType = mediaFile.type.startsWith('video') ? 'video' : 'image';
-                }
+            if (!rpcError && rpcData) {
+                const newPost = {
+                    id: rpcData.id,
+                    authorId: currentUser.id,
+                    content: content,
+                    mediaUrls: [],
+                    likeCount: 0,
+                    commentCount: 0,
+                    timeAgo: 'Just now',
+                    isLiked: false,
+                    author: {
+                        name: currentUser.name,
+                        avatar: currentUser.avatar,
+                        tier: currentUser.level
+                    }
+                };
+                setPosts(prev => [newPost, ...prev]);
+                setIsPosting(false);
+                return true;
             }
 
-            // Create post using SocialService
-            const newPost = await socialService.createPost({
-                authorId: currentUser.id,
-                content: content.trim(),
-                contentType,
-                mediaUrls,
-                visibility: 'public'
-            });
+            // Fallback: Direct insert
+            const { data, error } = await supabase
+                .from('social_posts')
+                .insert({
+                    author_id: currentUser.id,
+                    content: content,
+                    content_type: 'text',
+                    media_urls: [],
+                    visibility: 'public'
+                })
+                .select()
+                .single();
 
-            // Add to local state with proper formatting
-            const formattedPost = {
-                id: newPost.id,
-                content: newPost.content,
-                author: {
-                    name: newPost.author?.username || currentUser.name || 'You',
-                    avatar: newPost.author?.avatarUrl || currentUser.avatar,
-                    tier: newPost.author?.tier,
-                },
+            if (error) throw error;
+
+            setPosts(prev => [{
+                id: data.id,
+                authorId: currentUser.id,
+                content: content,
+                mediaUrls: [],
                 likeCount: 0,
                 commentCount: 0,
-                shareCount: 0,
                 timeAgo: 'Just now',
-                mediaUrls: newPost.mediaUrls,
-                contentType: newPost.contentType,
                 isLiked: false,
-            };
+                author: {
+                    name: currentUser.name,
+                    avatar: currentUser.avatar,
+                    tier: currentUser.level
+                }
+            }, ...prev]);
 
-            setPosts(prevPosts => [formattedPost, ...prevPosts]);
-            console.log('✅ Post created successfully:', newPost.id);
+            setIsPosting(false);
+            return true;
 
-        } catch (error) {
-            console.error('Failed to create post:', error);
-            alert('Failed to save post. Please try again.');
+        } catch (err) {
+            console.error('Create post error:', err);
+            setIsPosting(false);
+            return false;
         }
     };
 
-    // Handle like toggle
+    // ═══════════════════════════════════════════════════════════════════════
+    // 👍 LIKE POST
+    // ═══════════════════════════════════════════════════════════════════════
     const handleLike = async (postId) => {
-        if (!currentUser) {
-            alert('Please log in to like posts');
-            return;
-        }
+        if (!currentUser?.id) return;
 
-        try {
-            const result = await socialService.toggleReaction(postId, currentUser.id, 'like');
+        const { data: existing } = await supabase
+            .from('social_interactions')
+            .select('id')
+            .eq('post_id', postId)
+            .eq('user_id', currentUser.id)
+            .eq('interaction_type', 'like')
+            .single();
 
-            // Update local state
-            setPosts(prevPosts => prevPosts.map(post => {
-                if (post.id === postId) {
-                    return {
-                        ...post,
-                        isLiked: result.added,
-                        likeCount: result.added ? post.likeCount + 1 : Math.max(0, post.likeCount - 1)
-                    };
-                }
-                return post;
-            }));
-        } catch (error) {
-            console.error('Failed to toggle like:', error);
-        }
-    };
-
-    // Handle comment creation
-    const handleComment = async (postId, commentContent) => {
-        if (!currentUser) {
-            alert('Please log in to comment');
-            return;
-        }
-
-        if (!commentContent || commentContent.trim().length === 0) {
-            return;
-        }
-
-        try {
-            const newComment = await socialService.createComment({
-                postId,
-                authorId: currentUser.id,
-                content: commentContent.trim()
+        if (existing) {
+            await supabase.from('social_interactions').delete().eq('id', existing.id);
+        } else {
+            await supabase.from('social_interactions').insert({
+                post_id: postId,
+                user_id: currentUser.id,
+                interaction_type: 'like'
             });
-
-            // Update local state
-            setPosts(prevPosts => prevPosts.map(post => {
-                if (post.id === postId) {
-                    return {
-                        ...post,
-                        commentCount: post.commentCount + 1,
-                        latestComment: {
-                            author: currentUser.name,
-                            content: commentContent.trim()
-                        }
-                    };
-                }
-                return post;
-            }));
-
-            console.log('✅ Comment created:', newComment.id);
-        } catch (error) {
-            console.error('Failed to create comment:', error);
         }
     };
 
-    // Handle share
-    const handleShare = async (postId) => {
-        try {
-            await navigator.clipboard.writeText(`${window.location.origin}/post/${postId}`);
-            alert('Post link copied to clipboard!');
-        } catch (error) {
-            console.error('Failed to share:', error);
-        }
-    };
-
-    // Handle delete post
+    // ═══════════════════════════════════════════════════════════════════════
+    // 🗑️ DELETE POST
+    // ═══════════════════════════════════════════════════════════════════════
     const handleDelete = async (postId) => {
-        if (!currentUser) {
-            alert('Please log in to delete posts');
+        if (!currentUser?.id) return;
+        if (!confirm('Delete this post?')) return;
+
+        const { error } = await supabase.from('social_posts').delete().eq('id', postId);
+        if (!error) {
+            setPosts(prev => prev.filter(p => p.id !== postId));
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 🔍 USER SEARCH
+    // ═══════════════════════════════════════════════════════════════════════
+    const handleSearch = (query) => {
+        setSearchQuery(query);
+
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+
+        if (query.length < 2) {
+            setSearchResults([]);
             return;
         }
 
-        try {
-            await socialService.deletePost(postId);
+        searchTimeoutRef.current = setTimeout(async () => {
+            const { data } = await supabase
+                .from('profiles')
+                .select('id, username, avatar_url, current_level')
+                .ilike('username', `%${query}%`)
+                .limit(10);
 
-            // Remove from local state
-            setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
-            console.log('✅ Post deleted:', postId);
-        } catch (error) {
-            console.error('Failed to delete post:', error);
-            throw error; // Re-throw so UI can handle it
-        }
+            if (data) {
+                setSearchResults(data.map(u => ({
+                    id: u.id,
+                    username: u.username,
+                    avatar: u.avatar_url,
+                    level: u.current_level
+                })));
+            }
+        }, 300);
     };
 
-    const handleTabChange = (newTab) => {
-        setActiveTab(newTab);
-        router.push(`/hub/social-media?tab=${newTab}`, undefined, { shallow: true });
-    };
+    // ═══════════════════════════════════════════════════════════════════════
+    // 🎨 RENDER
+    // ═══════════════════════════════════════════════════════════════════════
+    if (loading) {
+        return (
+            <div style={{ ...styles.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🌐</div>
+                    <p style={{ color: FB.textSecondary }}>Loading Social Hub...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>
             <Head>
-                <title>Social Hub — Smarter.Poker</title>
-                <meta name="description" content="Connect with fellow poker players" />
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+                <title>Social Hub | Smarter.Poker</title>
+                <meta name="description" content="Connect with poker players, share your wins, and build your network." />
             </Head>
 
-            <div style={styles.pageContainer}>
-                {/* Navigation Bar */}
-                <NavBar
-                    user={currentUser}
-                    activeTab={activeTab}
-                    onTabChange={handleTabChange}
-                    onBack={() => router.push('/hub')}
-                    onNotifClick={() => setShowNotifications(!showNotifications)}
-                    onMessengerClick={() => setShowMessenger(!showMessenger)}
-                />
-
-                {/* Auth Status Banner - Shows when NOT logged in */}
-                {!currentUser?.isAuthenticated && (
-                    <div style={{
-                        background: '#fff3cd',
-                        borderBottom: '1px solid #ffc107',
-                        padding: '10px 20px',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: 16
-                    }}>
-                        <span>⚠️ You are not logged in. Posting, commenting, and deleting are disabled.</span>
-                        <a
-                            href="/auth/login"
-                            style={{
-                                background: '#1877F2',
-                                color: '#fff',
-                                padding: '6px 16px',
-                                borderRadius: 4,
-                                fontWeight: 600,
-                                textDecoration: 'none'
-                            }}
-                        >
-                            Login Now
-                        </a>
+            <div style={styles.page}>
+                {/* Header */}
+                <header style={styles.header}>
+                    <Link href="/hub" style={styles.logo}>
+                        ← Hub
+                    </Link>
+                    <div style={{ color: FB.red, fontWeight: 700, fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        🔴 Social
                     </div>
-                )}
+                    <div style={styles.searchBox}>
+                        <span>🔍</span>
+                        <input
+                            style={styles.searchInput}
+                            placeholder="Search players..."
+                            value={searchQuery}
+                            onChange={(e) => handleSearch(e.target.value)}
+                        />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        {currentUser ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Avatar name={currentUser.name} src={currentUser.avatar} size={36} />
+                                <span style={{ fontWeight: 500 }}>{currentUser.name}</span>
+                            </div>
+                        ) : (
+                            <Link href="/login" style={{ color: FB.blue, fontWeight: 600, textDecoration: 'none' }}>
+                                Log In
+                            </Link>
+                        )}
+                    </div>
+                </header>
 
                 {/* Main Layout */}
                 <div style={styles.mainLayout}>
                     {/* Left Sidebar */}
-                    <LeftSidebar
-                        user={currentUser}
-                        onNavigate={handleTabChange}
-                    />
+                    <nav style={styles.sidebar}>
+                        {currentUser && (
+                            <div style={styles.sidebarItem}>
+                                <Avatar name={currentUser.name} src={currentUser.avatar} size={32} />
+                                <span>{currentUser.name}</span>
+                            </div>
+                        )}
+                        <div style={styles.sidebarItem}>👤 Profile</div>
+                        <div style={styles.sidebarItem}>👥 Friends</div>
+                        <div style={styles.sidebarItem}>🏆 Leaderboard</div>
+                        <div style={styles.sidebarItem}>🎮 Tournaments</div>
+                        <div style={styles.sidebarItem}>📚 GTO Training</div>
+                    </nav>
 
-                    {/* Feed Content */}
+                    {/* Main Feed */}
                     <main style={styles.feedContainer}>
-                        {activeTab === 'feed' && (
-                            <>
-                                <StoriesRow user={currentUser} />
+                        {/* Search Results */}
+                        <UserSearchResults results={searchResults} />
 
-                                {/* Show login prompt for unauthenticated users */}
-                                {!currentUser?.isAuthenticated ? (
-                                    <div style={{
-                                        background: '#fff',
-                                        borderRadius: 8,
-                                        padding: '20px',
-                                        marginBottom: 16,
-                                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                        textAlign: 'center'
-                                    }}>
-                                        <span style={{ fontSize: 32, display: 'block', marginBottom: 12 }}>🔐</span>
-                                        <h3 style={{ margin: '0 0 8px', color: '#1c1e21' }}>Login to Post</h3>
-                                        <p style={{ margin: '0 0 16px', color: '#65676b' }}>
-                                            Sign in to create posts, comment, and interact with the community!
-                                        </p>
-                                        <a
-                                            href="/auth/login"
-                                            style={{
-                                                display: 'inline-block',
-                                                background: '#1877F2',
-                                                color: '#fff',
-                                                padding: '10px 24px',
-                                                borderRadius: 6,
-                                                fontWeight: 600,
-                                                textDecoration: 'none'
-                                            }}
-                                        >
-                                            Sign In
-                                        </a>
-                                    </div>
-                                ) : (
-                                    <EnhancedPostCreator
-                                        user={currentUser}
-                                        supabase={supabase}
-                                        inline={true}
-                                        onPostCreated={(newPost) => {
-                                            // Format the new post for local state
-                                            const formattedPost = {
-                                                id: newPost.id,
-                                                authorId: currentUser.id, // Include for delete ownership
-                                                content: newPost.content,
-                                                author: {
-                                                    name: newPost.author?.username || currentUser?.name || 'You',
-                                                    avatar: newPost.author?.avatarUrl || currentUser?.avatar,
-                                                },
-                                                likeCount: 0,
-                                                commentCount: 0,
-                                                shareCount: 0,
-                                                timeAgo: 'Just now',
-                                                mediaUrls: newPost.mediaUrls,
-                                                contentType: newPost.contentType,
-                                                isLiked: false,
-                                            };
-                                            setPosts(prevPosts => [formattedPost, ...prevPosts]);
-                                        }}
-                                    />
-                                )}
-
-                                {loading ? (
-                                    <div style={styles.loading}>Loading feed...</div>
-                                ) : posts.length === 0 ? (
-                                    <div style={styles.emptyFeed}>
-                                        <span style={{ fontSize: 48 }}>🌟</span>
-                                        <h3>Your feed is empty</h3>
-                                        <p>Start by sharing your first poker moment!</p>
-                                    </div>
-                                ) : (
-                                    posts.map(post => (
-                                        <FBPostCard
-                                            key={post.id}
-                                            post={post}
-                                            onLike={handleLike}
-                                            onComment={handleComment}
-                                            onShare={handleShare}
-                                            onDelete={handleDelete}
-                                            currentUserId={currentUser?.id}
-                                        />
-                                    ))
-                                )}
-                            </>
+                        {/* Post Creator */}
+                        {currentUser && (
+                            <PostCreator user={currentUser} onPost={handleCreatePost} isPosting={isPosting} />
                         )}
 
-                        {activeTab === 'watch' && (
-                            <div style={styles.placeholder}>
-                                <span style={{ fontSize: 64 }}>📺</span>
-                                <h2>Watch</h2>
-                                <p>Poker videos and live streams coming soon!</p>
+                        {!currentUser && (
+                            <div style={{ ...styles.card, padding: '20px', textAlign: 'center' }}>
+                                <p style={{ color: FB.textSecondary, marginBottom: '12px' }}>
+                                    Log in to create posts and interact with the community!
+                                </p>
+                                <Link href="/login" style={{ color: FB.blue, fontWeight: 600, textDecoration: 'none' }}>
+                                    Log In →
+                                </Link>
                             </div>
                         )}
 
-                        {activeTab === 'clubs' && (
-                            <div style={styles.placeholder}>
-                                <span style={{ fontSize: 64 }}>👥</span>
-                                <h2>Clubs</h2>
-                                <p>Join poker clubs and communities!</p>
+                        {/* Posts Feed */}
+                        {posts.length === 0 ? (
+                            <div style={styles.emptyState}>
+                                <div style={{ fontSize: '64px', marginBottom: '16px' }}>🌟</div>
+                                <h2 style={{ color: FB.textPrimary, marginBottom: '8px' }}>No posts yet</h2>
+                                <p>Be the first to share something with the community!</p>
                             </div>
-                        )}
-
-                        {activeTab === 'profile' && (
-                            <div style={styles.placeholder}>
-                                <span style={{ fontSize: 64 }}>👤</span>
-                                <h2>Your Profile</h2>
-                                <p>View and edit your poker profile!</p>
-                            </div>
+                        ) : (
+                            posts.map(post => (
+                                <PostCard
+                                    key={post.id}
+                                    post={post}
+                                    currentUserId={currentUser?.id}
+                                    onLike={handleLike}
+                                    onDelete={handleDelete}
+                                />
+                            ))
                         )}
                     </main>
 
-                    {/* Right Sidebar */}
-                    <RightSidebar
-                        contacts={contacts}
-                        onOpenChat={handleOpenChat}
-                        onSearch={handleUserSearch}
-                        searchResults={userSearchResults}
-                    />
-                </div>
-
-                {/* Chat Windows Dock */}
-                <div style={styles.chatDock}>
-                    {openChats.map(chat => (
-                        <ChatWindow
-                            key={chat.id}
-                            chat={chat}
-                            messages={chatMessages[chat.id] || []}
-                            onClose={handleCloseChat}
-                            onSend={handleSendMessage}
-                            onMarkRead={handleMarkRead}
-                            readReceiptsEnabled={messagingSettings.read_receipts_enabled}
-                            onToggleReadReceipts={toggleReadReceipts}
-                            currentUserId={currentUser?.id}
-                        />
-                    ))}
+                    {/* Right Sidebar - Discovery (NO FAKE CONTACTS) */}
+                    <DiscoverySidebar suggestedUsers={suggestedUsers} />
                 </div>
             </div>
         </>
     );
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 🎨 STYLES - Facebook-Style Design
-// ═══════════════════════════════════════════════════════════════════════════
-const styles = {
-    pageContainer: {
-        minHeight: '100vh',
-        background: FB_COLORS.bgMain,
-        fontFamily: 'Inter, -apple-system, sans-serif',
-    },
-
-    // Navigation
-    navbar: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 56,
-        background: FB_COLORS.bgWhite,
-        borderBottom: `1px solid ${FB_COLORS.divider}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 16px',
-        zIndex: 1000,
-    },
-    navLeft: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-    },
-    backBtn: {
-        padding: '8px 12px',
-        background: FB_COLORS.bgMain,
-        border: 'none',
-        borderRadius: 6,
-        fontSize: 14,
-        fontWeight: 500,
-        cursor: 'pointer',
-        color: FB_COLORS.textPrimary,
-    },
-    logo: {
-        fontSize: 24,
-        fontWeight: 700,
-        color: FB_COLORS.blue,
-    },
-    navCenter: {
-        display: 'flex',
-        gap: 4,
-    },
-    navTab: {
-        width: 110,
-        height: 48,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: 8,
-        cursor: 'pointer',
-        color: FB_COLORS.textSecondary,
-    },
-    navTabActive: {
-        color: FB_COLORS.blue,
-        borderBottom: `3px solid ${FB_COLORS.blue}`,
-        borderRadius: 0,
-    },
-    navRight: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-    },
-    navIcon: {
-        width: 40,
-        height: 40,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: FB_COLORS.bgMain,
-        border: 'none',
-        borderRadius: '50%',
-        fontSize: 18,
-        cursor: 'pointer',
-    },
-
-    // Layout
-    mainLayout: {
-        display: 'flex',
-        justifyContent: 'center',
-        paddingTop: 72,
-        minHeight: '100vh',
-    },
-    leftSidebar: {
-        position: 'fixed',
-        top: 56,
-        left: 0,
-        width: 280,
-        height: 'calc(100vh - 56px)',
-        padding: 16,
-        overflowY: 'auto',
-    },
-    rightSidebar: {
-        position: 'fixed',
-        top: 56,
-        right: 0,
-        width: 280,
-        height: 'calc(100vh - 56px)',
-        padding: 16,
-        overflowY: 'auto',
-    },
-    sidebarItem: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '8px 8px',
-        borderRadius: 8,
-        cursor: 'pointer',
-        color: FB_COLORS.textPrimary,
-        fontSize: 15,
-        fontWeight: 500,
-    },
-    sidebarIcon: {
-        width: 36,
-        height: 36,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 20,
-    },
-    sidebarHeading: {
-        padding: '8px',
-        fontSize: 17,
-        fontWeight: 600,
-        color: FB_COLORS.textSecondary,
-    },
-    contactItem: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: 8,
-        borderRadius: 8,
-        cursor: 'pointer',
-    },
-    contactName: {
-        fontSize: 15,
-        fontWeight: 500,
-        color: FB_COLORS.textPrimary,
-    },
-
-    // Feed
-    feedContainer: {
-        width: '100%',
-        maxWidth: 680,
-        padding: '0 16px',
-        marginLeft: 280,
-        marginRight: 280,
-    },
-
-    // Stories
-    storiesRow: {
-        display: 'flex',
-        gap: 8,
-        padding: '16px 0',
-        overflowX: 'auto',
-    },
-    storyCard: {
-        width: 112,
-        height: 200,
-        borderRadius: 12,
-        background: FB_COLORS.bgWhite,
-        overflow: 'hidden',
-        position: 'relative',
-        cursor: 'pointer',
-        flexShrink: 0,
-    },
-    storyBg: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        background: 'linear-gradient(135deg, #667eea, #764ba2)',
-    },
-    createStoryBtn: {
-        position: 'absolute',
-        bottom: 48,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 40,
-        height: 40,
-        background: FB_COLORS.blue,
-        borderRadius: '50%',
-        border: `4px solid ${FB_COLORS.bgWhite}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white',
-        fontSize: 24,
-        fontWeight: 300,
-    },
-    storyName: {
-        position: 'absolute',
-        bottom: 12,
-        left: 8,
-        right: 8,
-        fontSize: 13,
-        fontWeight: 500,
-        color: 'white',
-        textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-        textAlign: 'center',
-    },
-
-    // Create Post
-    createPost: {
-        background: FB_COLORS.bgWhite,
-        borderRadius: 8,
-        padding: 16,
-        marginBottom: 16,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-    },
-    createPostRow: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-    },
-    createPostInput: {
-        flex: 1,
-        padding: '12px 16px',
-        background: FB_COLORS.bgMain,
-        border: 'none',
-        borderRadius: 20,
-        fontSize: 17,
-        outline: 'none',
-    },
-    createPostDivider: {
-        height: 1,
-        background: FB_COLORS.divider,
-        margin: '12px 0',
-    },
-    createPostActions: {
-        display: 'flex',
-        justifyContent: 'space-around',
-    },
-    createPostAction: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '8px 16px',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: 8,
-        fontSize: 15,
-        fontWeight: 600,
-        color: FB_COLORS.textSecondary,
-        cursor: 'pointer',
-    },
-
-    // Post Card
-    postCard: {
-        background: FB_COLORS.bgWhite,
-        borderRadius: 8,
-        marginBottom: 16,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-    },
-    postHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        padding: 12,
-        gap: 8,
-    },
-    postAuthorInfo: {
-        flex: 1,
-    },
-    postAuthorName: {
-        display: 'block',
-        fontWeight: 600,
-        fontSize: 15,
-        color: FB_COLORS.textPrimary,
-    },
-    postTime: {
-        fontSize: 13,
-        color: FB_COLORS.textSecondary,
-    },
-    moreBtn: {
-        width: 36,
-        height: 36,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '50%',
-        fontSize: 20,
-        cursor: 'pointer',
-    },
-    postContent: {
-        padding: '0 12px 12px',
-    },
-    postText: {
-        fontSize: 15,
-        color: FB_COLORS.textPrimary,
-        lineHeight: 1.5,
-        margin: 0,
-    },
-    handDisplay: {
-        margin: '12px 12px',
-        padding: 12,
-        background: FB_COLORS.bgMain,
-        borderRadius: 8,
-    },
-    handRow: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 4,
-    },
-    handLabel: {
-        fontSize: 13,
-        color: FB_COLORS.textSecondary,
-        width: 50,
-    },
-    handCards: {
-        fontSize: 16,
-        fontWeight: 600,
-        letterSpacing: 2,
-    },
-    winBadge: {
-        marginTop: 8,
-        padding: '8px 12px',
-        background: 'linear-gradient(135deg, #22C55E, #16A34A)',
-        borderRadius: 8,
-        color: 'white',
-        fontWeight: 700,
-        fontSize: 16,
-        display: 'inline-block',
-    },
-    postStats: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        padding: '0 12px 8px',
-        fontSize: 15,
-        color: FB_COLORS.textSecondary,
-    },
-    postActions: {
-        display: 'flex',
-        borderTop: `1px solid ${FB_COLORS.divider}`,
-        padding: 4,
-    },
-    postAction: {
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        padding: '10px 0',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: 4,
-        fontSize: 15,
-        fontWeight: 600,
-        color: FB_COLORS.textSecondary,
-        cursor: 'pointer',
-    },
-
-    // States
-    loading: {
-        textAlign: 'center',
-        padding: 40,
-        color: FB_COLORS.textSecondary,
-    },
-    emptyFeed: {
-        textAlign: 'center',
-        padding: 60,
-        background: FB_COLORS.bgWhite,
-        borderRadius: 8,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-    },
-    placeholder: {
-        textAlign: 'center',
-        padding: 80,
-        background: FB_COLORS.bgWhite,
-        borderRadius: 8,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-        marginTop: 16,
-    },
-
-    // Chat Dock & Windows
-    chatDock: {
-        position: 'fixed',
-        bottom: 0,
-        right: 80,
-        display: 'flex',
-        gap: 8,
-        zIndex: 1000,
-    },
-    chatWindow: {
-        width: 328,
-        height: 450,
-        background: FB_COLORS.bgWhite,
-        borderRadius: '8px 8px 0 0',
-        boxShadow: '0 -2px 10px rgba(0,0,0,0.15)',
-        display: 'flex',
-        flexDirection: 'column',
-    },
-    chatHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '8px 12px',
-        borderBottom: `1px solid ${FB_COLORS.divider}`,
-    },
-    chatName: {
-        flex: 1,
-        fontWeight: 600,
-        fontSize: 15,
-        color: FB_COLORS.textPrimary,
-    },
-    chatClose: {
-        width: 28,
-        height: 28,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '50%',
-        fontSize: 20,
-        cursor: 'pointer',
-        color: FB_COLORS.textSecondary,
-    },
-    chatMessages: {
-        flex: 1,
-        padding: 12,
-        overflowY: 'auto',
-    },
-    chatEmpty: {
-        textAlign: 'center',
-        color: FB_COLORS.textSecondary,
-        fontSize: 14,
-        marginTop: 80,
-    },
-    chatInput: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: 8,
-        borderTop: `1px solid ${FB_COLORS.divider}`,
-    },
-    chatTextField: {
-        flex: 1,
-        padding: '8px 12px',
-        background: FB_COLORS.bgMain,
-        border: 'none',
-        borderRadius: 20,
-        fontSize: 14,
-        outline: 'none',
-    },
-    chatSendBtn: {
-        width: 32,
-        height: 32,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: FB_COLORS.blue,
-        border: 'none',
-        borderRadius: '50%',
-        color: 'white',
-        fontSize: 14,
-        cursor: 'pointer',
-    },
-    msgBubble: {
-        maxWidth: '70%',
-        padding: '8px 12px',
-        borderRadius: 18,
-        marginBottom: 4,
-        fontSize: 14,
-        lineHeight: 1.4,
-    },
-    msgBubbleMe: {
-        marginLeft: 'auto',
-        background: FB_COLORS.blue,
-        color: 'white',
-    },
-    msgBubbleThem: {
-        marginRight: 'auto',
-        background: FB_COLORS.bgMain,
-        color: FB_COLORS.textPrimary,
-    },
-    msgWrapper: {
-        display: 'flex',
-        flexDirection: 'column',
-        marginBottom: 4,
-    },
-    readReceipt: {
-        textAlign: 'right',
-        fontSize: 11,
-        marginTop: 2,
-        paddingRight: 4,
-    },
-    readReceiptSeen: {
-        color: FB_COLORS.blue,
-    },
-    readReceiptDelivered: {
-        color: FB_COLORS.textSecondary,
-    },
-    readReceiptSent: {
-        color: '#AAA',
-    },
-    chatSettingsBtn: {
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        fontSize: 14,
-        padding: 4,
-        opacity: 0.7,
-    },
-    chatSettingsDropdown: {
-        background: FB_COLORS.bgWhite,
-        borderBottom: `1px solid ${FB_COLORS.divider}`,
-        padding: 10,
-    },
-    settingsLabel: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        fontSize: 13,
-        cursor: 'pointer',
-    },
-    settingsCheckbox: {
-        accentColor: FB_COLORS.blue,
-    },
-    settingsHint: {
-        marginLeft: 'auto',
-        color: FB_COLORS.textSecondary,
-        fontSize: 12,
-    },
-    typingIndicator: {
-        display: 'flex',
-        gap: 3,
-        padding: '8px 12px',
-        color: FB_COLORS.textSecondary,
-    },
-    typingDot: {
-        animation: 'pulse 1.4s infinite',
-        fontSize: 10,
-    },
-};
