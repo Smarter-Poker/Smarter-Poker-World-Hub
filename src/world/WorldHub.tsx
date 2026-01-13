@@ -259,9 +259,10 @@ function HudIconOrb({ iconUrl, title, badgeCount = 0, size = 60, onClick }: HudI
 interface ProfileOrbInlineProps {
     onClick?: () => void;
     size?: number;
+    avatarUrl?: string | null;
 }
 
-function ProfileOrbInline({ onClick, size = 48 }: ProfileOrbInlineProps) {
+function ProfileOrbInline({ onClick, size = 48, avatarUrl }: ProfileOrbInlineProps) {
     const [edgeOpacity, setEdgeOpacity] = useState(0.3);
 
     // Gentle pulsing edge glow
@@ -289,7 +290,7 @@ function ProfileOrbInline({ onClick, size = 48 }: ProfileOrbInlineProps) {
                 width: size,
                 height: size,
                 borderRadius: '50%',
-                background: `url('/default-avatar.png') center/cover`,
+                background: `url('${avatarUrl || '/default-avatar.png'}') center/cover`,
                 border: '2px solid rgba(255, 255, 255, 0.8)',
                 boxShadow: `
                     0 0 ${8 + edgeOpacity * 12}px rgba(0, 212, 255, ${edgeOpacity}),
@@ -335,6 +336,35 @@ export default function WorldHub() {
     // Notification counts - users start with 0 (no seed data)
     const [messageCount] = useState(0);
     const [notificationCount] = useState(0);
+    const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
+
+    // Fetch user profile data including avatar
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            try {
+                // Import supabase dynamically to avoid SSR issues
+                const { createClient } = await import('@supabase/supabase-js');
+                const supabase = createClient(
+                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                );
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('avatar_url')
+                        .eq('id', user.id)
+                        .maybeSingle();
+                    if (profile?.avatar_url) {
+                        setUserAvatarUrl(profile.avatar_url);
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to fetch user profile:', e);
+            }
+        };
+        fetchUserProfile();
+    }, []);
 
     // Handle buy diamonds click - navigate to store
     const handleBuyDiamonds = () => {
@@ -534,7 +564,7 @@ export default function WorldHub() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, position: 'relative' }}>
                         {/* PROFILE ORB — Click to open dropdown */}
                         <div ref={profileOrbRef}>
-                            <ProfileOrbInline onClick={handleProfileClick} size={48} />
+                            <ProfileOrbInline onClick={handleProfileClick} size={48} avatarUrl={userAvatarUrl} />
                         </div>
                         <ProfileDropdown
                             isOpen={isProfileDropdownOpen}

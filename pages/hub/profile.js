@@ -214,6 +214,30 @@ export default function ProfilePage() {
         hendon_best_finish: null,
         hendon_last_scraped: null,
     });
+    const [originalProfile, setOriginalProfile] = useState(null);
+
+    // Award diamonds and XP for profile actions
+    const awardProfileReward = async (reason, diamonds, xp) => {
+        if (!user) return;
+        try {
+            // Award diamonds via diamond_ledger insert
+            if (diamonds > 0) {
+                await supabase.from('diamond_ledger').insert({
+                    user_id: user.id,
+                    amount: diamonds,
+                    type: 'earn',
+                    source: reason,
+                    description: `Profile: ${reason}`
+                });
+            }
+            // Award XP by updating profiles
+            if (xp > 0) {
+                await supabase.rpc('fn_add_xp', { p_user_id: user.id, p_amount: xp });
+            }
+        } catch (e) {
+            console.error('Reward error:', e);
+        }
+    };
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -229,6 +253,7 @@ export default function ProfilePage() {
 
                 if (profileData) {
                     setProfile(prev => ({ ...prev, ...profileData }));
+                    setOriginalProfile(profileData);
                 }
             }
             setLoading(false);
@@ -292,8 +317,28 @@ export default function ProfilePage() {
             setMessage(`Error saving profile: ${error.message || error.code || JSON.stringify(error)}`);
             console.error('Profile save error:', error);
         } else {
-            // Navigate back to previous page after successful save
-            router.back();
+            // Award rewards for first-time profile updates
+            const rewards = [];
+
+            // First time setting avatar (15 diamonds, 25 XP)
+            if (profile.avatar_url && (!originalProfile || !originalProfile.avatar_url)) {
+                await awardProfileReward('first_avatar', 15, 25);
+                rewards.push('🎉 +15 💎 +25 XP for adding profile picture!');
+            }
+
+            // First time linking HendonMob (15 diamonds, 25 XP)
+            if (profile.hendon_url && (!originalProfile || !originalProfile.hendon_url)) {
+                await awardProfileReward('hendonmob_linked', 15, 25);
+                rewards.push('🏆 +15 💎 +25 XP for linking Hendon Mob!');
+            }
+
+            if (rewards.length > 0) {
+                setMessage(rewards.join(' '));
+                // Small delay to show rewards before navigating
+                setTimeout(() => router.back(), 2000);
+            } else {
+                router.back();
+            }
         }
     };
 

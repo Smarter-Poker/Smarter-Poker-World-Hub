@@ -528,8 +528,19 @@ export default function SocialMediaPage() {
             try {
                 const { data: { user: au } } = await supabase.auth.getUser();
                 if (au) {
-                    const { data: p } = await supabase.from('profiles').select('username, skill_tier, avatar_url').eq('id', au.id).maybeSingle();
-                    setUser({ id: au.id, name: p?.username || au.email?.split('@')[0] || 'Player', avatar: p?.avatar_url || null, tier: p?.skill_tier });
+                    const { data: p } = await supabase.from('profiles').select('username, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish').eq('id', au.id).maybeSingle();
+                    setUser({
+                        id: au.id,
+                        name: p?.username || au.email?.split('@')[0] || 'Player',
+                        avatar: p?.avatar_url || null,
+                        tier: p?.skill_tier,
+                        hendon: p?.hendon_url ? {
+                            url: p.hendon_url,
+                            cashes: p.hendon_total_cashes,
+                            earnings: p.hendon_total_earnings,
+                            bestFinish: p.hendon_best_finish
+                        } : null
+                    });
                     await loadContacts(au.id);
                     // Load notifications
                     const { data: notifs } = await supabase.from('notifications')
@@ -731,6 +742,37 @@ export default function SocialMediaPage() {
                             fontSize: 12, fontWeight: 600
                         }}>9+</div>
                     </Link>
+                )}
+
+                {/* Poker Resume - Show when HendonMob is linked */}
+                {user?.hendon && (
+                    <div style={{
+                        margin: '0 12px 16px', padding: 16, borderRadius: 12,
+                        background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%)',
+                        border: '1px solid rgba(255, 215, 0, 0.3)'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                            <span style={{ fontSize: 24 }}>🏆</span>
+                            <div>
+                                <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 14 }}>POKER RESUME</div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>Tournament Stats</div>
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ color: '#FFD700', fontSize: 18, fontWeight: 700 }}>{user.hendon.cashes || '—'}</div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>CASHES</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ color: '#00ff88', fontSize: 18, fontWeight: 700 }}>${user.hendon.earnings?.toLocaleString() || '—'}</div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>EARNINGS</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>{user.hendon.bestFinish || '—'}</div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>BEST</div>
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {/* Your Shortcuts */}
