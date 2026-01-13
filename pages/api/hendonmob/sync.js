@@ -1,11 +1,15 @@
 /**
- * HENDONMOB SYNC API
- * Manual sync endpoint for users to refresh their HendonMob stats
+ * HENDONMOB SYNC API - Using Puppeteer with Stealth Plugin
+ * Bypasses Cloudflare protection to scrape real HendonMob data
  * POST /api/hendonmob/sync
- * Body: { userId, hendonUrl }
  */
 
 import { createClient } from '@supabase/supabase-js';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
+// Add stealth plugin to avoid Cloudflare detection
+puppeteer.use(StealthPlugin());
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -24,27 +28,127 @@ export default async function handler(req, res) {
     }
 
     // Validate HendonMob URL
-    if (!hendonUrl.includes('thehendonmob.com') && !hendonUrl.includes('hendonmob.com')) {
+    if (!hendonUrl.includes('hendonmob.com')) {
         return res.status(400).json({ error: 'Invalid Hendon Mob URL' });
     }
+
+    let browser = null;
 
     try {
         console.log(`Syncing HendonMob for user ${userId}: ${hendonUrl}`);
 
-        // Scrape the HendonMob page
-        const scraped = await scrapeHendonMob(hendonUrl);
+        // Launch browser with stealth mode
+        browser = await puppeteer.launch({
+            headless: 'new',
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+                '--window-size=1920x1080',
+            ]
+        });
 
-        if (!scraped) {
-            return res.status(400).json({ error: 'Could not scrape HendonMob profile. Please check your URL.' });
+        const page = await browser.newPage();
+
+        // Set a realistic user agent
+        await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+        // Set viewport
+        await page.setViewport({ width: 1920, height: 1080 });
+
+        // Navigate to the HendonMob page
+        console.log('Navigating to HendonMob...');
+        await page.goto(hendonUrl, {
+            waitUntil: 'networkidle2',
+            timeout: 30000
+        });
+
+        // Wait for Cloudflare challenge to complete (if any)
+        await page.waitForTimeout(5000);
+
+        // Check if we're still on a Cloudflare challenge page
+        const pageContent = await page.content();
+        if (pageContent.includes('Just a moment') || pageContent.includes('Checking your browser')) {
+            console.log('Cloudflare challenge detected, waiting...');
+            await page.waitForTimeout(10000);
         }
+
+        // Get the page content after waiting
+        const html = await page.content();
+        console.log('Page loaded, extracting stats...');
+
+        // Parse stats from the page
+        const stats = await page.evaluate(() => {
+            const text = document.body.innerText;
+
+            let totalEarnings = null;
+            let totalCashes = null;
+            let bestFinish = null;
+
+            // Look for "Total Live Earnings" or similar
+            const earningsMatch = text.match(/Total\s*(?:Live\s*)?Earnings[:\s]*\$?([\d,]+)/i);
+            if (earningsMatch) {
+                totalEarnings = parseInt(earningsMatch[1].replace(/,/g, ''), 10);
+            }
+
+            // Look for any large dollar amounts
+            if (!totalEarnings) {
+                const dollarMatches = text.match(/\$[\d,]+/g);
+                if (dollarMatches && dollarMatches.length > 0) {
+                    const amounts = dollarMatches.map(s => parseInt(s.replace(/[$,]/g, ''), 10));
+                    totalEarnings = Math.max(...amounts);
+                }
+            }
+
+            // Look for cashes/results count
+            const cashesMatch = text.match(/(\d+)\s*(?:Cashes|Results|ITM)/i);
+            if (cashesMatch) {
+                totalCashes = parseInt(cashesMatch[1], 10);
+            }
+
+            // Look for rows in a results table
+            if (!totalCashes) {
+                const rows = document.querySelectorAll('table tr');
+                if (rows.length > 1) {
+                    totalCashes = rows.length - 1; // Subtract header row
+                }
+            }
+
+            // Look for best finish
+            const finishMatch = text.match(/(?:Best|1st|Winner|Won)[:\s]*/i);
+            if (finishMatch || text.match(/1st\s*place/i)) {
+                bestFinish = '1st';
+            } else {
+                const placeMatch = text.match(/(1st|2nd|3rd|\d+th)/i);
+                if (placeMatch) {
+                    bestFinish = placeMatch[1];
+                }
+            }
+
+            return { totalEarnings, totalCashes, bestFinish };
+        });
+
+        await browser.close();
+        browser = null;
+
+        if (!stats.totalEarnings && !stats.totalCashes) {
+            return res.status(400).json({
+                error: 'Could not extract stats from HendonMob. The page may still be loading or the URL may be incorrect.',
+                debug: { pageLength: html.length }
+            });
+        }
+
+        console.log('Stats extracted:', stats);
 
         // Update the user's profile with the scraped data
         const { error: updateError } = await supabase
             .from('profiles')
             .update({
-                hendon_total_cashes: scraped.totalCashes,
-                hendon_total_earnings: scraped.totalEarnings,
-                hendon_best_finish: scraped.bestFinish,
+                hendon_total_cashes: stats.totalCashes,
+                hendon_total_earnings: stats.totalEarnings,
+                hendon_best_finish: stats.bestFinish,
                 hendon_last_scraped: new Date().toISOString(),
             })
             .eq('id', userId);
@@ -56,101 +160,16 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             success: true,
-            total_cashes: scraped.totalCashes,
-            total_earnings: scraped.totalEarnings,
-            best_finish: scraped.bestFinish,
+            total_cashes: stats.totalCashes,
+            total_earnings: stats.totalEarnings,
+            best_finish: stats.bestFinish,
         });
 
     } catch (error) {
         console.error('Sync error:', error);
+        if (browser) {
+            await browser.close();
+        }
         return res.status(500).json({ error: 'Failed to sync: ' + error.message });
-    }
-}
-
-/**
- * Scrape HendonMob profile page
- */
-async function scrapeHendonMob(url) {
-    if (!url) return null;
-
-    try {
-        // Normalize the URL
-        let normalizedUrl = url.trim();
-        if (!normalizedUrl.startsWith('http')) {
-            normalizedUrl = 'https://' + normalizedUrl;
-        }
-
-        // Fetch the page with browser-like headers
-        const response = await fetch(normalizedUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const html = await response.text();
-
-        // Parse stats from the page
-        let totalCashes = null;
-        let totalEarnings = null;
-        let bestFinish = null;
-
-        // Look for earnings (usually formatted like $1,234,567)
-        const earningsMatch = html.match(/\$[\d,]+(?:\.\d{2})?/g);
-        if (earningsMatch && earningsMatch.length > 0) {
-            const amounts = earningsMatch.map(s => parseFloat(s.replace(/[$,]/g, '')));
-            totalEarnings = Math.max(...amounts);
-        }
-
-        // Look for cashes count
-        const cashesMatch = html.match(/(\d+)\s*(?:cashes|cash|ITM|Results)/i);
-        if (cashesMatch) {
-            totalCashes = parseInt(cashesMatch[1], 10);
-        }
-
-        // Look for results count in a different format
-        if (!totalCashes) {
-            const resultsMatch = html.match(/(\d+)\s*results/i);
-            if (resultsMatch) {
-                totalCashes = parseInt(resultsMatch[1], 10);
-            }
-        }
-
-        // Look for best finish (1st, 2nd, 3rd, etc.)
-        const finishMatches = html.match(/(?:1st|2nd|3rd|\d+th)/gi);
-        if (finishMatches && finishMatches.length > 0) {
-            // Get the best (lowest) finish
-            const finishes = finishMatches.map(f => {
-                if (f.toLowerCase() === '1st') return 1;
-                if (f.toLowerCase() === '2nd') return 2;
-                if (f.toLowerCase() === '3rd') return 3;
-                return parseInt(f, 10);
-            }).filter(n => !isNaN(n) && n > 0);
-
-            if (finishes.length > 0) {
-                const best = Math.min(...finishes);
-                if (best === 1) bestFinish = '1st';
-                else if (best === 2) bestFinish = '2nd';
-                else if (best === 3) bestFinish = '3rd';
-                else bestFinish = `${best}th`;
-            }
-        }
-
-        console.log('Scraped data:', { totalCashes, totalEarnings, bestFinish });
-
-        return {
-            totalCashes,
-            totalEarnings,
-            bestFinish,
-        };
-
-    } catch (error) {
-        console.error('Scrape error:', error);
-        throw error;
     }
 }

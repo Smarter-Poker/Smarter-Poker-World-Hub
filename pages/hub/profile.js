@@ -481,22 +481,23 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* HendonMob Integration */}
+                    {/* HendonMob Integration / Poker Resume */}
                     <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600, color: C.text }}>🏆 Hendon Mob Profile</h3>
+                        <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600, color: C.text }}>🏆 Poker Resume</h3>
                         <p style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>
-                            Link your Hendon Mob profile to display your professional tournament results.
-                            Stats are automatically updated weekly.
+                            Link your Hendon Mob profile to automatically display your tournament stats.
+                            Stats are synced directly from HendonMob.
                         </p>
+
                         <ProfileField
-                            label="Hendon Mob URL"
+                            label="Hendon Mob Profile URL"
                             value={profile.hendon_url}
                             onChange={updateField('hendon_url')}
                             placeholder="https://pokerdb.thehendonmob.com/player.php?a=r&n=YOUR_ID"
                             icon="🔗"
                         />
 
-                        {/* Display Poker Resume badge if linked */}
+                        {/* Display Poker Resume badge with sync button */}
                         <PokerResumeBadge
                             hendonData={{
                                 hendon_url: profile.hendon_url,
@@ -511,16 +512,15 @@ export default function ProfilePage() {
                                     return;
                                 }
                                 setIsRefreshing(true);
-                                setMessage('Syncing stats from Hendon Mob...');
+                                setMessage('🔄 Syncing stats from Hendon Mob... This may take 15-30 seconds.');
                                 try {
-                                    // Call the API to scrape HendonMob stats
                                     const res = await fetch('/api/hendonmob/sync', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({ userId: user.id, hendonUrl: profile.hendon_url })
                                     });
-                                    if (res.ok) {
-                                        const data = await res.json();
+                                    const data = await res.json();
+                                    if (res.ok && data.success) {
                                         setProfile(prev => ({
                                             ...prev,
                                             hendon_total_cashes: data.total_cashes,
@@ -528,13 +528,13 @@ export default function ProfilePage() {
                                             hendon_best_finish: data.best_finish,
                                             hendon_last_scraped: new Date().toISOString()
                                         }));
-                                        setMessage('Stats synced successfully!');
+                                        setMessage('✅ Stats synced successfully!');
                                     } else {
-                                        setMessage('Could not sync stats. Please check your Hendon Mob URL.');
+                                        setMessage(`❌ ${data.error || 'Could not sync stats. Please check your URL.'}`);
                                     }
                                 } catch (e) {
                                     console.error('Sync error:', e);
-                                    setMessage('Error syncing stats. Please try again later.');
+                                    setMessage('❌ Error syncing stats. Please try again later.');
                                 }
                                 setIsRefreshing(false);
                             }}
