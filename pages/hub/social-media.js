@@ -456,7 +456,8 @@ export default function SocialMediaPage() {
                     <nav style={{ position: 'sticky', top: 70, height: 'fit-content' }}>
                         {user && <Link href="/hub/profile" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}><Avatar name={user.name} size={32} /><span style={{ fontWeight: 600, fontSize: 14 }}>{user.name}</span></Link>}
                         <Link href="/hub/profile" style={{ display: 'block', padding: '8px 0', cursor: 'pointer', color: C.textSec, fontSize: 14, textDecoration: 'none' }}>👤 Profile</Link>
-                        {['👥 Friends', '🏛️ Clubs', '📺 Watch', '🏆 Tournaments', '🎯 GTO Training', '🌐 Full Social Site'].map((item, i) => <div key={i} style={{ padding: '8px 0', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>{item}</div>)}
+                        <Link href="/hub/friends" style={{ display: 'block', padding: '8px 0', cursor: 'pointer', color: C.textSec, fontSize: 14, textDecoration: 'none' }}>👥 Friends</Link>
+                        {['🏛️ Clubs', '📺 Watch', '🏆 Tournaments', '🎯 GTO Training', '🌐 Full Social Site'].map((item, i) => <div key={i} style={{ padding: '8px 0', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>{item}</div>)}
                         <ContactsSidebar contacts={contacts} onOpenChat={handleOpenChat} onSearch={handleSearch} searchResults={searchResults} />
                     </nav>
                     <main>

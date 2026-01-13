@@ -5,57 +5,20 @@
  */
 
 import Head from 'next/head';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '../../src/lib/supabase';
 
 export default function ClubArenaPage() {
     const [mounted, setMounted] = useState(false);
-    const [sessionReady, setSessionReady] = useState(false);
     const iframeRef = useRef(null);
 
-    useEffect(() => {
-        setMounted(true);
-
-        // Listen for events from Club Arena (XP, Diamonds, etc.)
-        const handleMessage = async (event) => {
-            if (!event.origin.includes('club-arena.vercel.app')) return;
-
-            if (event.data?.type === 'CLUB_ARENA_EVENT') {
-                const { eventType, payload } = event.data;
-
-                switch (eventType) {
-                    case 'XP_EARNED':
-                        console.log('🎯 XP Earned:', payload);
-                        // TODO: Call Supabase RPC to add XP
-                        break;
-
-                    case 'DIAMOND_EARNED':
-                        console.log('💎 Diamond Earned:', payload);
-                        // TODO: Call Supabase RPC to add diamonds
-                        break;
-
-                    case 'ACHIEVEMENT_UNLOCKED':
-                        console.log('🏆 Achievement:', payload);
-                        // TODO: Trigger celebration queue
-                        break;
-
-                    default:
-                        console.log('Unknown event:', eventType, payload);
-                }
-            }
-        };
-
-        window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
-    }, []);
-
-    // Send auth to iframe when it loads
-    const handleIframeLoad = async () => {
+    // Send session to iframe
+    const sendSessionToIframe = useCallback(async () => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
 
-            if (session && iframeRef.current) {
-                // Send session to iframe
+            if (session && iframeRef.current?.contentWindow) {
+                console.log('📤 Sending SSO to Club Arena iframe');
                 iframeRef.current.contentWindow.postMessage({
                     type: 'SMARTER_POKER_SSO',
                     payload: {
@@ -69,13 +32,63 @@ export default function ClubArenaPage() {
                         access_token: session.access_token,
                         expires_at: session.expires_at,
                     }
-                }, 'https://club-arena.vercel.app');
-
-                setSessionReady(true);
+                }, '*'); // Use * for cross-origin
+            } else {
+                console.log('⚠️ No session or iframe not ready');
             }
         } catch (error) {
             console.error('Failed to send SSO:', error);
         }
+    }, []);
+
+    useEffect(() => {
+        setMounted(true);
+
+        // Listen for messages from Club Arena
+        const handleMessage = async (event) => {
+            // Accept messages from club-arena
+            if (!event.origin.includes('club-arena.vercel.app') &&
+                !event.origin.includes('localhost')) {
+                return;
+            }
+
+            console.log('📨 Hub received:', event.data?.type);
+
+            // Handle SSO request from iframe
+            if (event.data?.type === 'REQUEST_SSO') {
+                console.log('🔗 Club Arena requested SSO');
+                sendSessionToIframe();
+            }
+
+            // Handle XP/Diamond events
+            if (event.data?.type === 'CLUB_ARENA_EVENT') {
+                const { eventType, payload } = event.data;
+
+                switch (eventType) {
+                    case 'XP_EARNED':
+                        console.log('🎯 XP Earned:', payload);
+                        break;
+                    case 'DIAMOND_EARNED':
+                        console.log('💎 Diamond Earned:', payload);
+                        break;
+                    case 'ACHIEVEMENT_UNLOCKED':
+                        console.log('🏆 Achievement:', payload);
+                        break;
+                    default:
+                        console.log('Unknown event:', eventType, payload);
+                }
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, [sendSessionToIframe]);
+
+    // Send auth to iframe when it loads
+    const handleIframeLoad = () => {
+        console.log('🖼️ Iframe loaded, sending SSO');
+        // Small delay to ensure iframe message listener is ready
+        setTimeout(sendSessionToIframe, 500);
     };
 
     if (!mounted) {
