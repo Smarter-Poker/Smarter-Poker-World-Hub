@@ -47,6 +47,16 @@ export default function HorsesAdmin() {
     const [loginError, setLoginError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState('all');
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [newPersona, setNewPersona] = useState({
+        name: '',
+        gender: 'male',
+        location: '',
+        specialty: 'cash_games',
+        stakes: '',
+        bio: '',
+        voice: 'casual'
+    });
 
     useEffect(() => {
         checkAuth();
@@ -144,6 +154,55 @@ export default function HorsesAdmin() {
     const updateSetting = async (key, value) => {
         const newSettings = { ...settings, [key]: value };
         setSettings(newSettings);
+        /* In a real app we would save this to DB */
+    };
+
+    const handleCreate = async (e) => {
+        e.preventDefault();
+        const alias = newPersona.name.replace(/[^a-zA-Z0-9]/g, '') + Math.floor(Math.random() * 1000);
+
+        const personaToCreate = {
+            ...newPersona,
+            alias,
+            avatar_seed: alias.toLowerCase(),
+            timezone: 'America/New_York',
+            is_active: true
+        };
+
+        try {
+            const { data, error } = await supabase
+                .from('content_authors')
+                .insert([personaToCreate])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            setPersonas([data, ...personas]);
+            setShowCreateModal(false);
+            setNewPersona({ name: '', gender: 'male', location: '', specialty: 'cash_games', stakes: '', bio: '', voice: 'casual' });
+            showNotification('New horse stabled! 🐴', 'success');
+        } catch (err) {
+            console.error(err);
+            // Demo fallback
+            const demoP = { ...personaToCreate, id: Date.now() };
+            setPersonas([demoP, ...personas]);
+            setShowCreateModal(false);
+            showNotification('Horse created (fallback)', 'success');
+        }
+    };
+
+    const handleDelete = async (id, name) => {
+        if (!window.confirm(`Are you sure you want to retire ${name}?`)) return;
+
+        setPersonas(personas.filter(p => p.id !== id));
+
+        try {
+            await supabase.from('content_authors').delete().eq('id', id);
+            showNotification(`${name} retired`, 'info');
+        } catch (err) {
+            console.log('Delete error (likely demo mode)', err);
+        }
     };
 
     const triggerPipeline = async (type) => {
@@ -314,7 +373,7 @@ export default function HorsesAdmin() {
                                         <option value="inactive">Resting Only</option>
                                     </select>
                                     <button className={styles.btnSuccess} onClick={() => toggleAllPersonas(true)}>Activate All</button>
-                                    <button className={styles.btnDanger} onClick={() => toggleAllPersonas(false)}>Rest All</button>
+                                    <button className={styles.btnCreate} onClick={() => setShowCreateModal(true)}>➕ New Horse</button>
                                 </div>
                             </div>
 
@@ -346,6 +405,13 @@ export default function HorsesAdmin() {
                                         <div className={styles.personaBio}>{persona.bio}</div>
                                         <div className={styles.personaVoice}>
                                             <span className={styles.voiceTag}>{persona.voice}</span>
+                                            <button
+                                                className={styles.deleteBtn}
+                                                onClick={() => handleDelete(persona.id, persona.name)}
+                                                title="Retire"
+                                            >
+                                                🗑️
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
@@ -566,6 +632,89 @@ export default function HorsesAdmin() {
                         </div>
                     )}
                 </main>
+
+                {showCreateModal && (
+                    <div className={styles.modalOverlay}>
+                        <div className={styles.modalContent}>
+                            <div className={styles.modalHeader}>
+                                <h2>🐴 New Horse</h2>
+                                <button className={styles.closeBtn} onClick={() => setShowCreateModal(false)}>×</button>
+                            </div>
+                            <form onSubmit={handleCreate}>
+                                <div className={styles.formGroup}>
+                                    <label>Name</label>
+                                    <input
+                                        type="text"
+                                        value={newPersona.name}
+                                        onChange={e => setNewPersona({ ...newPersona, name: e.target.value })}
+                                        placeholder="e.g. Johnny Sticks"
+                                        required
+                                    />
+                                </div>
+                                <div className={styles.formRow}>
+                                    <div className={styles.formGroup}>
+                                        <label>Gender</label>
+                                        <select
+                                            value={newPersona.gender}
+                                            onChange={e => setNewPersona({ ...newPersona, gender: e.target.value })}
+                                        >
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Location</label>
+                                        <input
+                                            type="text"
+                                            value={newPersona.location}
+                                            onChange={e => setNewPersona({ ...newPersona, location: e.target.value })}
+                                            placeholder="e.g. Austin, TX"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Bio</label>
+                                    <textarea
+                                        value={newPersona.bio}
+                                        onChange={e => setNewPersona({ ...newPersona, bio: e.target.value })}
+                                        placeholder="Brief backstory..."
+                                        rows="3"
+                                        required
+                                    />
+                                </div>
+                                <div className={styles.formRow}>
+                                    <div className={styles.formGroup}>
+                                        <label>Specialty</label>
+                                        <select
+                                            value={newPersona.specialty}
+                                            onChange={e => setNewPersona({ ...newPersona, specialty: e.target.value })}
+                                        >
+                                            <option value="cash_games">Cash Games</option>
+                                            <option value="tournaments">Tournaments</option>
+                                            <option value="plo">PLO</option>
+                                            <option value="online">Online</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Stakes</label>
+                                        <input
+                                            type="text"
+                                            value={newPersona.stakes}
+                                            onChange={e => setNewPersona({ ...newPersona, stakes: e.target.value })}
+                                            placeholder="e.g. 2/5 NLH"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div className={styles.formActions}>
+                                    <button type="button" className={styles.btnCancel} onClick={() => setShowCreateModal(false)}>Cancel</button>
+                                    <button type="submit" className={styles.btnSubmit}>Stabling Horse</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </div>
         </>
     );
