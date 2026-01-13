@@ -180,7 +180,7 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
             </div>
             {post.content && <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>{post.content}</div>}
             {post.mediaUrls?.length > 0 && (
-                <div>{post.contentType === 'video' ? <video controls style={{ width: '100%', maxHeight: 400 }} src={post.mediaUrls[0]} /> : <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', maxHeight: 400, objectFit: 'cover' }} />}</div>
+                <div>{post.contentType === 'video' ? <video controls style={{ width: '100%', display: 'block' }} src={post.mediaUrls[0]} /> : <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', display: 'block' }} />}</div>
             )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
                 <span>{likeCount > 0 && `👍 ${likeCount}`}</span>
@@ -251,8 +251,8 @@ function ChatWindow({ chat, messages, currentUserId, onSend, onClose }) {
 function ContactsSidebar({ contacts, onOpenChat, onSearch, searchResults }) {
     const [q, setQ] = useState('');
     return (
-        <aside style={{ width: 200, paddingLeft: 0 }}>
-            <h4 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 600, color: C.textSec, textAlign: 'left' }}>Contacts</h4>
+        <aside style={{ width: 200, position: 'sticky', top: 70, height: 'fit-content' }}>
+            <h4 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 600, color: C.textSec }}>Contacts</h4>
             <input value={q} onChange={e => { setQ(e.target.value); onSearch(e.target.value); }} placeholder="🔍 Search..." style={{ width: '100%', padding: '8px 10px', borderRadius: 20, border: 'none', background: C.bg, fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }} />
             {q.length >= 2 && searchResults.length > 0 && searchResults.map(u => (
                 <div key={u.id} onClick={() => onOpenChat(u)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', cursor: 'pointer', borderRadius: 6 }}>
