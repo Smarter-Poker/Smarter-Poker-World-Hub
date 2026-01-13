@@ -31,7 +31,6 @@ const HOLO_COLORS = [
 
 export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCoreProps) {
     const groupRef = useRef<THREE.Group>(null);
-    const glassRef = useRef<THREE.Mesh>(null);
     const shineRef = useRef<THREE.Mesh>(null);
     const lastShineTime = useRef(0);
 
