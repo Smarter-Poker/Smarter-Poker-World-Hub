@@ -120,15 +120,52 @@ function PostCreator({ user, onPost, isPosting }) {
     );
 }
 
-function PostCard({ post, currentUserId, onLike, onDelete }) {
+function PostCard({ post, currentUserId, onLike, onDelete, onComment }) {
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
+    const [showComments, setShowComments] = useState(false);
+    const [comments, setComments] = useState([]);
+    const [newComment, setNewComment] = useState('');
+    const [loadingComments, setLoadingComments] = useState(false);
+    const [commentCount, setCommentCount] = useState(post.commentCount || 0);
 
     const handleLike = async () => {
         const newLiked = !liked;
         setLiked(newLiked);
         setLikeCount(prev => newLiked ? prev + 1 : Math.max(0, prev - 1));
         await onLike(post.id, newLiked ? 'like' : null);
+    };
+
+    const loadComments = async () => {
+        if (comments.length > 0) return;
+        setLoadingComments(true);
+        try {
+            const { data } = await supabase.from('social_comments')
+                .select('id, content, created_at, author_id, profiles(username)')
+                .eq('post_id', post.id)
+                .order('created_at', { ascending: true })
+                .limit(20);
+            if (data) setComments(data.map(c => ({ id: c.id, text: c.content, authorName: c.profiles?.username || 'Player', authorId: c.author_id, time: timeAgo(c.created_at) })));
+        } catch (e) { console.error(e); }
+        setLoadingComments(false);
+    };
+
+    const handleToggleComments = () => {
+        setShowComments(!showComments);
+        if (!showComments) loadComments();
+    };
+
+    const handleSubmitComment = async () => {
+        if (!newComment.trim() || !currentUserId) return;
+        try {
+            const { data, error } = await supabase.from('social_comments').insert({ post_id: post.id, author_id: currentUserId, content: newComment }).select('id, content, created_at').single();
+            if (!error && data) {
+                setComments(prev => [...prev, { id: data.id, text: data.content, authorName: 'You', authorId: currentUserId, time: 'Just now' }]);
+                setCommentCount(prev => prev + 1);
+                setNewComment('');
+                if (onComment) onComment(post.id);
+            }
+        } catch (e) { console.error(e); }
     };
 
     return (
@@ -147,13 +184,32 @@ function PostCard({ post, currentUserId, onLike, onDelete }) {
             )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
                 <span>{likeCount > 0 && `👍 ${likeCount}`}</span>
-                <span>{post.commentCount > 0 && `${post.commentCount} comments`}</span>
+                <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${commentCount} comments`}</span>
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
                 <button onClick={handleLike} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: liked ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>👍 {liked ? 'Liked' : 'Like'}</button>
-                <button style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>💬 Comment</button>
+                <button onClick={handleToggleComments} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>💬 Comment</button>
                 <button style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>↗️ Share</button>
             </div>
+            {showComments && (
+                <div style={{ borderTop: `1px solid ${C.border}`, padding: 12 }}>
+                    {loadingComments && <div style={{ color: C.textSec, fontSize: 13 }}>Loading comments...</div>}
+                    {comments.map(c => (
+                        <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                            <Avatar name={c.authorName} size={28} />
+                            <div style={{ flex: 1, background: C.bg, borderRadius: 12, padding: '6px 10px' }}>
+                                <div style={{ fontWeight: 600, fontSize: 13 }}>{c.authorName}</div>
+                                <div style={{ fontSize: 14, color: C.text }}>{c.text}</div>
+                            </div>
+                        </div>
+                    ))}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <Avatar size={28} />
+                        <input value={newComment} onChange={e => setNewComment(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSubmitComment()} placeholder="Write a comment..." style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} />
+                        <button onClick={handleSubmitComment} disabled={!newComment.trim()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: newComment.trim() ? C.blue : C.textSec, fontWeight: 600, fontSize: 13 }}>Post</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
