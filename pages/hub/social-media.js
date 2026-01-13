@@ -41,7 +41,7 @@ function Avatar({ src, name, size = 40, online }) {
 
 function StoriesBar({ currentUser, onAddStory }) {
     return (
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '8px 0', marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '8px 0', marginBottom: 1 }}>
             <div onClick={onAddStory} style={{ minWidth: 110, height: 190, borderRadius: 12, background: C.card, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', cursor: 'pointer', overflow: 'hidden', border: `1px solid ${C.border}` }}>
                 <div style={{ height: '75%', background: currentUser?.avatar ? `url(${currentUser.avatar}) center/cover` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }} />
                 <div style={{ height: '25%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
@@ -90,7 +90,7 @@ function PostCreator({ user, onPost, isPosting }) {
     };
 
     return (
-        <div style={{ background: C.card, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 16 }}>
+        <div style={{ background: C.card, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2 }}>
             <div style={{ padding: 12, display: 'flex', gap: 8 }}>
                 <Avatar src={user?.avatar} name={user?.name} size={40} />
                 <input value={content} onChange={e => setContent(e.target.value)} placeholder={`What's on your mind, ${user?.name || 'Player'}?`}
@@ -169,7 +169,7 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
     };
 
     return (
-        <div style={{ background: C.card, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 16 }}>
+        <div style={{ background: C.card, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2 }}>
             <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Avatar src={post.author?.avatar} name={post.author?.name} size={40} />
                 <div style={{ flex: 1 }}>
@@ -251,15 +251,15 @@ function ChatWindow({ chat, messages, currentUserId, onSend, onClose }) {
 function ContactsSidebar({ contacts, onOpenChat, onSearch, searchResults }) {
     const [q, setQ] = useState('');
     return (
-        <aside style={{ width: 200 }}>
-            <h4 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 600, color: C.textSec }}>Contacts</h4>
+        <aside style={{ width: 200, paddingLeft: 0 }}>
+            <h4 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 600, color: C.textSec, textAlign: 'left' }}>Contacts</h4>
             <input value={q} onChange={e => { setQ(e.target.value); onSearch(e.target.value); }} placeholder="🔍 Search..." style={{ width: '100%', padding: '8px 10px', borderRadius: 20, border: 'none', background: C.bg, fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }} />
             {q.length >= 2 && searchResults.length > 0 && searchResults.map(u => (
                 <div key={u.id} onClick={() => onOpenChat(u)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', cursor: 'pointer', borderRadius: 6 }}>
                     <Avatar name={u.username} size={32} /><span style={{ fontSize: 13 }}>{u.username}</span>
                 </div>
             ))}
-            {contacts.length === 0 ? <p style={{ color: C.textSec, fontSize: 12 }}>No contacts yet</p> : contacts.map(c => (
+            {contacts.length === 0 ? <p style={{ color: C.textSec, fontSize: 12, textAlign: 'left', margin: 0 }}>No contacts yet</p> : contacts.map(c => (
                 <div key={c.id} onClick={() => onOpenChat(c)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', cursor: 'pointer', borderRadius: 6 }}>
                     <Avatar src={c.avatar} name={c.name} size={36} online={c.online} /><span style={{ fontSize: 13, fontWeight: 500 }}>{c.name}</span>
                 </div>
@@ -424,7 +424,7 @@ export default function SocialMediaPage() {
                     <main>
                         <StoriesBar currentUser={user} onAddStory={() => { }} />
                         {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} />}
-                        {!user && <div style={{ background: C.card, borderRadius: 8, padding: 20, textAlign: 'center', marginBottom: 16 }}><p style={{ color: C.textSec }}>Log in to post and chat!</p><Link href="/auth/login" style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}>Log In →</Link></div>}
+                        {!user && <div style={{ background: C.card, borderRadius: 8, padding: 20, textAlign: 'center', marginBottom: 2 }}><p style={{ color: C.textSec }}>Log in to post and chat!</p><Link href="/auth/login" style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}>Log In →</Link></div>}
                         {posts.length === 0 ? <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}><div style={{ fontSize: 48 }}>🌟</div><h3 style={{ color: C.text }}>No posts yet</h3><p>Be the first to share something!</p></div> : posts.map(p => <PostCard key={p.id} post={p} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />)}
                     </main>
                     <ContactsSidebar contacts={contacts} onOpenChat={handleOpenChat} onSearch={handleSearch} searchResults={searchResults} />
