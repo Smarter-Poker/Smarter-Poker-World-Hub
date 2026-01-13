@@ -125,7 +125,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 cursor: 'pointer',
                 transform: `translateY(${floatY}px) perspective(800px) rotateX(10deg)`,
                 flex: 1,
-                maxWidth: 'calc(16.66% - 16px)',
+                maxWidth: 'calc(16.66% - 8px)',
                 transition: 'transform 0.3s ease-out',
                 transformStyle: 'preserve-3d',
             }}
@@ -142,12 +142,12 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
             <div
                 style={{
                     position: 'absolute',
-                    bottom: 18,
-                    width: 80,
-                    height: 25,
+                    bottom: 25,
+                    width: 160,
+                    height: 50,
                     borderRadius: '50%',
-                    background: `radial-gradient(ellipse, rgba(0, 212, 255, 0.4), rgba(0, 136, 255, 0.2), transparent 70%)`,
-                    filter: 'blur(8px)',
+                    background: `radial-gradient(ellipse, rgba(0, 212, 255, 0.5), rgba(0, 136, 255, 0.3), transparent 70%)`,
+                    filter: 'blur(10px)',
                     opacity: edgeOpacity,
                     transform: 'rotateX(70deg)',
                 }}
@@ -158,7 +158,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 style={{
                     position: 'relative',
                     width: '100%',
-                    maxWidth: 90,
+                    maxWidth: 180,
                     transformStyle: 'preserve-3d',
                 }}
             >
@@ -168,7 +168,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                         position: 'absolute',
                         left: -4,
                         top: 2,
-                        width: 5,
+                        width: 8,
                         height: 'calc(100% - 4px)',
                         background: 'linear-gradient(180deg, rgba(100, 200, 255, 0.5), rgba(0, 150, 255, 0.3), rgba(50, 150, 200, 0.4))',
                         borderRadius: '4px 0 0 4px',
@@ -184,7 +184,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                         left: 2,
                         bottom: -4,
                         width: 'calc(100% - 4px)',
-                        height: 5,
+                        height: 8,
                         background: 'linear-gradient(90deg, rgba(50, 150, 200, 0.4), rgba(0, 180, 255, 0.3), rgba(100, 200, 255, 0.3))',
                         borderRadius: '0 0 4px 4px',
                         transform: 'rotateX(90deg) translateZ(2px)',
@@ -257,8 +257,8 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                                 position: 'absolute',
                                 left: `${shineFlash.x}%`,
                                 top: `${shineFlash.y}%`,
-                                width: 20,
-                                height: 20,
+                                width: 40,
+                                height: 40,
                                 transform: 'translate(-50%, -50%)',
                                 background: 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(200, 240, 255, 0.6) 30%, transparent 70%)',
                                 borderRadius: '50%',
@@ -274,12 +274,12 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
             {/* Card label */}
             <span
                 style={{
-                    marginTop: 12,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: 'rgba(255, 255, 255, 0.95)',
+                    marginTop: 16,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: 'rgba(255, 255, 255, 0.98)',
                     textAlign: 'center',
-                    textShadow: `0 0 12px rgba(0, 200, 255, 0.5), 0 2px 4px rgba(0, 0, 0, 0.9)`,
+                    textShadow: `0 0 15px rgba(0, 200, 255, 0.6), 0 2px 4px rgba(0, 0, 0, 0.9)`,
                     maxWidth: '100%',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
