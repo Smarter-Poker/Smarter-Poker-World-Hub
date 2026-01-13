@@ -142,12 +142,12 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
             <div
                 style={{
                     position: 'absolute',
-                    bottom: 25,
-                    width: 160,
-                    height: 50,
+                    bottom: 35,
+                    width: 300,
+                    height: 80,
                     borderRadius: '50%',
-                    background: `radial-gradient(ellipse, rgba(0, 212, 255, 0.5), rgba(0, 136, 255, 0.3), transparent 70%)`,
-                    filter: 'blur(10px)',
+                    background: `radial-gradient(ellipse, rgba(0, 212, 255, 0.4), rgba(0, 136, 255, 0.2), transparent 70%)`,
+                    filter: 'blur(12px)',
                     opacity: edgeOpacity,
                     transform: 'rotateX(70deg)',
                 }}
@@ -158,7 +158,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 style={{
                     position: 'relative',
                     width: '100%',
-                    maxWidth: 180,
+                    maxWidth: 360,
                     transformStyle: 'preserve-3d',
                 }}
             >
@@ -166,14 +166,14 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 <div
                     style={{
                         position: 'absolute',
-                        left: -4,
-                        top: 2,
-                        width: 8,
-                        height: 'calc(100% - 4px)',
+                        left: -6,
+                        top: 3,
+                        width: 10,
+                        height: 'calc(100% - 6px)',
                         background: 'linear-gradient(180deg, rgba(100, 200, 255, 0.5), rgba(0, 150, 255, 0.3), rgba(50, 150, 200, 0.4))',
-                        borderRadius: '4px 0 0 4px',
-                        transform: 'rotateY(-90deg) translateZ(2px)',
-                        boxShadow: 'inset 2px 0 8px rgba(255, 255, 255, 0.3)',
+                        borderRadius: '6px 0 0 6px',
+                        transform: 'rotateY(-90deg) translateZ(3px)',
+                        boxShadow: 'inset 2px 0 10px rgba(255, 255, 255, 0.3)',
                     }}
                 />
 
@@ -181,13 +181,13 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 <div
                     style={{
                         position: 'absolute',
-                        left: 2,
-                        bottom: -4,
-                        width: 'calc(100% - 4px)',
-                        height: 8,
+                        left: 3,
+                        bottom: -6,
+                        width: 'calc(100% - 6px)',
+                        height: 10,
                         background: 'linear-gradient(90deg, rgba(50, 150, 200, 0.4), rgba(0, 180, 255, 0.3), rgba(100, 200, 255, 0.3))',
-                        borderRadius: '0 0 4px 4px',
-                        transform: 'rotateX(90deg) translateZ(2px)',
+                        borderRadius: '0 0 6px 6px',
+                        transform: 'rotateX(90deg) translateZ(3px)',
                     }}
                 />
 
@@ -197,19 +197,13 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                         position: 'relative',
                         width: '100%',
                         aspectRatio: '2 / 3',
-                        borderRadius: 8,
+                        borderRadius: 12,
                         overflow: 'hidden',
                         background: 'linear-gradient(135deg, rgba(10, 30, 60, 0.85), rgba(5, 20, 40, 0.9))',
                         backdropFilter: 'blur(10px)',
                         border: '2px solid rgba(100, 200, 255, 0.5)',
-                        boxShadow: `
-                            0 0 ${15 + edgeOpacity * 25}px rgba(0, 180, 255, 0.3),
-                            0 0 ${8 + edgeOpacity * 15}px ${edgeColor.main},
-                            0 20px 40px rgba(0, 0, 0, 0.7),
-                            0 8px 20px rgba(0, 0, 0, 0.5),
-                            inset 0 1px 0 rgba(255, 255, 255, 0.2)
-                        `,
-                        transition: 'box-shadow 0.2s ease-out, border-color 0.1s ease-out',
+                        boxShadow: `0 0 25px rgba(0, 180, 255, 0.35), 0 25px 50px rgba(0, 0, 0, 0.6)`,
+                        transition: 'box-shadow 0.2s ease-out',
                     }}
                 >
                     {/* Card image */}
@@ -271,24 +265,36 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 </div>
             </div>
 
-            {/* Card label */}
-            <span
+            {/* Card label - Premium Oval Pill */}
+            <div
                 style={{
-                    marginTop: 16,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: 'rgba(255, 255, 255, 0.98)',
-                    textAlign: 'center',
-                    textShadow: `0 0 15px rgba(0, 200, 255, 0.6), 0 2px 4px rgba(0, 0, 0, 0.9)`,
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    letterSpacing: '0.5px',
+                    marginTop: 20,
+                    padding: '10px 24px',
+                    background: 'linear-gradient(180deg, rgba(10, 30, 60, 0.9), rgba(5, 20, 40, 0.95))',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: 30,
+                    border: '2px solid rgba(0, 212, 255, 0.5)',
+                    boxShadow: `
+                        0 0 20px rgba(0, 212, 255, 0.25),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                        0 4px 15px rgba(0, 0, 0, 0.5)
+                    `,
                 }}
             >
-                {orb.label}
-            </span>
+                <span
+                    style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        fontFamily: 'Orbitron, sans-serif',
+                        color: '#ffffff',
+                        textShadow: '0 0 15px rgba(0, 212, 255, 0.6)',
+                        letterSpacing: '1px',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    {orb.label}
+                </span>
+            </div>
         </div>
     );
 }
@@ -813,30 +819,25 @@ export default function WorldHub() {
                 z-index: 10 ensures cards and UI are ABOVE background/neurons
                 ═══════════════════════════════════════════════════════════════ */}
             <div className="hud-overlay" style={{ zIndex: 10 }}>
-                {/* TOP BAR: Glassmorphism Header */}
+                {/* TOP BAR: Full Width Glassmorphism Header */}
                 <div
                     style={{
                         position: 'absolute',
-                        top: 12,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
+                        top: 0,
+                        left: 0,
+                        right: 0,
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        padding: '8px 24px',
-                        background: 'linear-gradient(180deg, rgba(10, 22, 40, 0.85), rgba(5, 15, 30, 0.9))',
-                        backdropFilter: 'blur(12px)',
-                        WebkitBackdropFilter: 'blur(12px)',
-                        borderRadius: 50,
-                        border: '1px solid rgba(0, 212, 255, 0.3)',
+                        padding: '16px 40px',
+                        background: 'linear-gradient(180deg, rgba(10, 22, 40, 0.92), rgba(5, 15, 30, 0.95))',
+                        backdropFilter: 'blur(15px)',
+                        WebkitBackdropFilter: 'blur(15px)',
+                        borderBottom: '2px solid rgba(0, 212, 255, 0.3)',
                         boxShadow: `
-                            0 0 20px rgba(0, 212, 255, 0.15),
-                            0 4px 30px rgba(0, 0, 0, 0.4),
-                            inset 0 1px 0 rgba(255, 255, 255, 0.1)
+                            0 4px 30px rgba(0, 0, 0, 0.5),
+                            0 0 30px rgba(0, 212, 255, 0.1)
                         `,
-                        gap: 24,
-                        minWidth: 'auto',
-                        maxWidth: '95vw',
                     }}
                 >
                     {/* LEFT SECTION: Logo */}
@@ -846,20 +847,20 @@ export default function WorldHub() {
                             alt="Smarter Poker — Return to Home"
                             onClick={handleLogoClick}
                             style={{
-                                height: 40,
+                                height: 60,
                                 width: 'auto',
                                 objectFit: 'contain',
-                                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
+                                filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6))',
                                 cursor: 'pointer',
                                 transition: 'transform 0.2s ease-out, filter 0.2s ease-out',
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.transform = 'scale(1.05)';
-                                e.currentTarget.style.filter = 'drop-shadow(0 2px 8px rgba(0, 212, 255, 0.5))';
+                                e.currentTarget.style.filter = 'drop-shadow(0 2px 12px rgba(0, 212, 255, 0.5))';
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.transform = 'scale(1)';
-                                e.currentTarget.style.filter = 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))';
+                                e.currentTarget.style.filter = 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6))';
                             }}
                             title="Return to Home"
                         />
@@ -872,10 +873,10 @@ export default function WorldHub() {
                     </div>
 
                     {/* RIGHT SECTION: Icons */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
                         {/* PROFILE ORB */}
                         <div ref={profileOrbRef}>
-                            <ProfileOrbInline onClick={handleProfileClick} size={40} avatarUrl={userAvatarUrl} />
+                            <ProfileOrbInline onClick={handleProfileClick} size={56} avatarUrl={userAvatarUrl} />
                         </div>
                         <ProfileDropdown
                             isOpen={isProfileDropdownOpen}
@@ -887,7 +888,7 @@ export default function WorldHub() {
                         <HudIconOrb
                             iconUrl="/message-orb-icon.png"
                             title="Messages"
-                            size={40}
+                            size={56}
                             badgeCount={messageCount}
                             onClick={() => handleNavigate('messages')}
                         />
@@ -896,19 +897,19 @@ export default function WorldHub() {
                         <HudIconOrb
                             iconUrl="/notification-orb-icon.png"
                             title="Notifications"
-                            size={40}
+                            size={56}
                             badgeCount={notificationCount}
                             onClick={() => handleNavigate('notifications')}
                         />
 
                         {/* SEARCH ORB */}
-                        <SearchOrb onClick={() => setIsSearchOpen(true)} size={40} />
+                        <SearchOrb onClick={() => setIsSearchOpen(true)} size={56} />
 
                         {/* SETTINGS ORB */}
-                        <SettingsOrb onClick={handleSettings} size={40} />
+                        <SettingsOrb onClick={handleSettings} size={56} />
 
                         {/* LIVE HELP ORB */}
-                        <LiveHelpOrb onClick={liveHelp.openHelp} size={40} />
+                        <LiveHelpOrb onClick={liveHelp.openHelp} size={56} />
                     </div>
                 </div>
 
