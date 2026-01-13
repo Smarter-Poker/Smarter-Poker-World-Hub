@@ -116,6 +116,16 @@ function HorsesDashboard({ user, onLogout }) {
     const [filter, setFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [notification, setNotification] = useState(null);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [newPersona, setNewPersona] = useState({
+        name: '',
+        gender: 'male',
+        location: '',
+        specialty: 'cash_games',
+        stakes: '',
+        bio: '',
+        voice: 'casual'
+    });
 
     // Demo personas for when DB is empty
     const demoPersonas = [
@@ -216,6 +226,57 @@ function HorsesDashboard({ user, onLogout }) {
                 .upsert({ id: 1, ...newSettings });
         } catch (err) {
             console.log('Demo mode - settings not saved');
+        }
+    };
+
+    const handleCreate = async (e) => {
+        e.preventDefault();
+        // Generate alias if not provided or auto-generate
+        const alias = newPersona.name.replace(/[^a-zA-Z0-9]/g, '') + Math.floor(Math.random() * 1000);
+
+        const personaToCreate = {
+            ...newPersona,
+            alias,
+            avatar_seed: alias.toLowerCase(),
+            timezone: 'America/New_York', // Default, can be refined later
+            is_active: true
+        };
+
+        try {
+            const { data, error } = await supabase
+                .from('content_authors')
+                .insert([personaToCreate])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            setPersonas([data, ...personas]);
+            setShowCreateModal(false);
+            setNewPersona({ name: '', gender: 'male', location: '', specialty: 'cash_games', stakes: '', bio: '', voice: 'casual' });
+            showNotification('New horse stabled! 🐴', 'success');
+        } catch (err) {
+            // For demo mode fallback
+            const demoId = Date.now();
+            const demoPersona = { ...personaToCreate, id: demoId };
+            setPersonas([demoPersona, ...personas]);
+            setShowCreateModal(false);
+            showNotification('Horse created (Demo Mode)', 'success');
+        }
+    };
+
+    const handleDelete = async (id, name) => {
+        if (!window.confirm(`Are you sure you want to retire ${name}? This cannot be undone.`)) return;
+
+        // Optimistic update
+        setPersonas(personas.filter(p => p.id !== id));
+
+        try {
+            const { error } = await supabase.from('content_authors').delete().eq('id', id);
+            if (error) throw error;
+            showNotification(`${name} has been retired.`, 'info');
+        } catch (err) {
+            showNotification(`Retired ${name} (Demo Mode)`, 'info');
         }
     };
 
@@ -353,8 +414,8 @@ function HorsesDashboard({ user, onLogout }) {
                                 <button className="btn-success" onClick={() => toggleAllPersonas(true)}>
                                     Activate All
                                 </button>
-                                <button className="btn-danger" onClick={() => toggleAllPersonas(false)}>
-                                    Rest All
+                                <button className="btn-create" onClick={() => setShowCreateModal(true)}>
+                                    ➕ New Horse
                                 </button>
                             </div>
                         </div>
@@ -390,6 +451,13 @@ function HorsesDashboard({ user, onLogout }) {
                                     <div className="persona-bio">{persona.bio}</div>
                                     <div className="persona-voice">
                                         <span className="voice-tag">{persona.voice}</span>
+                                        <button
+                                            className="delete-btn"
+                                            onClick={() => handleDelete(persona.id, persona.name)}
+                                            title="Retire Horse"
+                                        >
+                                            🗑️
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -663,7 +731,95 @@ function HorsesDashboard({ user, onLogout }) {
                     </div>
                 )}
             </main>
-        </div>
+                )}
+        </main>
+
+            {/* CREATE MODAL */ }
+    {
+        showCreateModal && (
+            <div className="modal-overlay">
+                <div className="modal-content">
+                    <div className="modal-header">
+                        <h2>🐴 New Horse</h2>
+                        <button className="close-btn" onClick={() => setShowCreateModal(false)}>×</button>
+                    </div>
+                    <form onSubmit={handleCreate}>
+                        <div className="form-group">
+                            <label>Name</label>
+                            <input
+                                type="text"
+                                value={newPersona.name}
+                                onChange={e => setNewPersona({ ...newPersona, name: e.target.value })}
+                                placeholder="e.g. Johnny Sticks"
+                                required
+                            />
+                        </div>
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Gender</label>
+                                <select
+                                    value={newPersona.gender}
+                                    onChange={e => setNewPersona({ ...newPersona, gender: e.target.value })}
+                                >
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Location</label>
+                                <input
+                                    type="text"
+                                    value={newPersona.location}
+                                    onChange={e => setNewPersona({ ...newPersona, location: e.target.value })}
+                                    placeholder="e.g. Austin, TX"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="form-group">
+                            <label>Bio</label>
+                            <textarea
+                                value={newPersona.bio}
+                                onChange={e => setNewPersona({ ...newPersona, bio: e.target.value })}
+                                placeholder="Brief backstory..."
+                                rows="3"
+                                required
+                            />
+                        </div>
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Specialty</label>
+                                <select
+                                    value={newPersona.specialty}
+                                    onChange={e => setNewPersona({ ...newPersona, specialty: e.target.value })}
+                                >
+                                    <option value="cash_games">Cash Games</option>
+                                    <option value="tournaments">Tournaments</option>
+                                    <option value="plo">PLO</option>
+                                    <option value="online">Online</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Stakes</label>
+                                <input
+                                    type="text"
+                                    value={newPersona.stakes}
+                                    onChange={e => setNewPersona({ ...newPersona, stakes: e.target.value })}
+                                    placeholder="e.g. 2/5 NLH"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="form-actions">
+                            <button type="button" className="btn-cancel" onClick={() => setShowCreateModal(false)}>Cancel</button>
+                            <button type="submit" className="btn-submit">Stabling Horse</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        )
+    }
+        </div >
     );
 }
 
