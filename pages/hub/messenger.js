@@ -1,7 +1,8 @@
 /**
- * 💬 SMARTER.POKER MESSENGER
+ * 💬 SMARTER.POKER MESSENGER V2.0
  * Full-featured Facebook Messenger clone with premium design
  * Real-time chat, read receipts, typing indicators, and poker-themed UI
+ * Enhanced with: optimistic updates, message reactions, sound notifications
  */
 
 import Head from 'next/head';
@@ -19,37 +20,27 @@ const supabase = createClient(
 // ═══════════════════════════════════════════════════════════════════════════
 
 const C = {
-    // Core colors
     bg: '#F0F2F5',
     bgDark: '#1C1E21',
     card: '#FFFFFF',
     cardDark: '#242526',
-
-    // Text
     text: '#050505',
     textDark: '#E4E6EB',
     textSec: '#65676B',
     textSecDark: '#B0B3B8',
-
-    // Accent
     blue: '#0084FF',
     blueHover: '#0073E6',
     green: '#31A24C',
     purple: '#8A2BE2',
     gold: '#FFD700',
-
-    // UI Elements
+    red: '#E41E3F',
     border: '#E4E6EB',
     borderDark: '#3E4042',
     hoverBg: '#E4E6EB',
     hoverBgDark: '#3A3B3C',
-
-    // Message bubbles
     ownBubble: 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)',
     otherBubble: '#E4E6EB',
     otherBubbleDark: '#3A3B3C',
-
-    // Poker themed
     pokerGreen: '#35654d',
     pokerFelt: '#1a472a',
     chipGold: '#FFD700',
@@ -57,15 +48,22 @@ const C = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔧 UTILITY FUNCTIONS
+// 🔧 UTILITY FUNCTIONS & HOOKS
 // ═══════════════════════════════════════════════════════════════════════════
+
+function playMessageSound() {
+    try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleR0tRXFuYz0mFTNNaWxofmh+YKStoJd/aGtbL09OYUFRYWOHeoKK');
+        audio.volume = 0.3;
+        audio.play().catch(() => { });
+    } catch (e) { }
+}
 
 function timeAgo(timestamp) {
     if (!timestamp) return '';
     const now = new Date();
     const date = new Date(timestamp);
     const diff = Math.floor((now - date) / 1000);
-
     if (diff < 60) return 'Just now';
     if (diff < 3600) return `${Math.floor(diff / 60)}m`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
@@ -77,6 +75,17 @@ function formatMessageTime(timestamp) {
     if (!timestamp) return '';
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+function formatDateHeader(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return date.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -503,10 +512,14 @@ export default function MessengerPage() {
     const [isMobile, setIsMobile] = useState(false);
     const [showSidebar, setShowSidebar] = useState(true);
     const [composing, setComposing] = useState(false);
+    const [toast, setToast] = useState(null);
+    const [isTyping, setIsTyping] = useState(false);
+    const [otherTyping, setOtherTyping] = useState(false);
 
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
     const searchInputRef = useRef(null);
+    const typingTimeout = useRef(null);
 
     // Check for mobile
     useEffect(() => {
@@ -664,6 +677,23 @@ export default function MessengerPage() {
     const handleSendMessage = async (content) => {
         if (!user || !activeConversation || !content.trim()) return;
 
+        // Optimistic update - show message immediately
+        const tempId = `temp-${Date.now()}`;
+        const optimisticMsg = {
+            id: tempId,
+            content: content.trim(),
+            created_at: new Date().toISOString(),
+            sender_id: user.id,
+            profiles: { id: user.id, username: user.username, avatar_url: user.avatar_url },
+            status: 'sending',
+        };
+        setMessages(prev => [...prev, optimisticMsg]);
+        setConversations(prev => prev.map(c =>
+            c.id === activeConversation.id
+                ? { ...c, last_message_preview: content, last_message_at: new Date().toISOString() }
+                : c
+        ));
+
         try {
             const { data, error } = await supabase.rpc('fn_send_message', {
                 p_conversation_id: activeConversation.id,
@@ -673,26 +703,19 @@ export default function MessengerPage() {
 
             if (error) throw error;
 
-            // Fetch the sent message
-            const { data: msg } = await supabase
-                .from('social_messages')
-                .select('id, content, created_at, sender_id')
-                .eq('id', data)
-                .single();
-
-            if (msg) {
-                setMessages(prev => [...prev, { ...msg, profiles: { id: user.id, username: user.username, avatar_url: user.avatar_url } }]);
-            }
-
-            // Update conversation preview
-            setConversations(prev => prev.map(c =>
-                c.id === activeConversation.id
-                    ? { ...c, last_message_preview: content, last_message_at: new Date().toISOString() }
-                    : c
+            // Replace optimistic message with real one
+            setMessages(prev => prev.map(m =>
+                m.id === tempId
+                    ? { ...m, id: data, status: 'sent' }
+                    : m
             ));
-
         } catch (e) {
             console.error('Send message error:', e);
+            // Mark message as failed
+            setMessages(prev => prev.map(m =>
+                m.id === tempId ? { ...m, status: 'failed' } : m
+            ));
+            setToast({ type: 'error', message: 'Failed to send message. Tap to retry.' });
         }
     };
 

@@ -111,27 +111,27 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
             </mesh>
 
             {/* ═══════════════════════════════════════════════════════════════
-                INNER WHITE BORDER FRAME - Full rectangle with connected corners
+                INNER WHITE BORDER FRAME - Overlapping edges for connected corners
                 ═══════════════════════════════════════════════════════════════ */}
-            {/* Inner top border - extends full width */}
+            {/* Inner top border - wide enough to cover corners */}
             <mesh position={[0, cardHeight / 2 - 0.055, 0.04]}>
-                <planeGeometry args={[cardWidth - 0.08, 0.005]} />
-                <meshBasicMaterial color="#ffffff" transparent opacity={0.85} />
+                <planeGeometry args={[cardWidth - 0.06, 0.004]} />
+                <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
             </mesh>
-            {/* Inner bottom border - extends full width */}
+            {/* Inner bottom border - wide enough to cover corners */}
             <mesh position={[0, -(cardHeight / 2 - 0.055), 0.04]}>
-                <planeGeometry args={[cardWidth - 0.08, 0.005]} />
-                <meshBasicMaterial color="#ffffff" transparent opacity={0.85} />
+                <planeGeometry args={[cardWidth - 0.06, 0.004]} />
+                <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
             </mesh>
-            {/* Inner left border - full height to meet top/bottom */}
-            <mesh position={[-(cardWidth / 2 - 0.055), 0, 0.04]}>
-                <planeGeometry args={[0.005, cardHeight - 0.08]} />
-                <meshBasicMaterial color="#ffffff" transparent opacity={0.85} />
+            {/* Inner left border - full height */}
+            <mesh position={[-(cardWidth / 2 - 0.055), 0, 0.041]}>
+                <planeGeometry args={[0.004, cardHeight - 0.06]} />
+                <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
             </mesh>
-            {/* Inner right border - full height to meet top/bottom */}
-            <mesh position={[(cardWidth / 2 - 0.055), 0, 0.04]}>
-                <planeGeometry args={[0.005, cardHeight - 0.08]} />
-                <meshBasicMaterial color="#ffffff" transparent opacity={0.85} />
+            {/* Inner right border - full height */}
+            <mesh position={[(cardWidth / 2 - 0.055), 0, 0.041]}>
+                <planeGeometry args={[0.004, cardHeight - 0.06]} />
+                <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
             </mesh>
 
             {/* ═══════════════════════════════════════════════════════════════
