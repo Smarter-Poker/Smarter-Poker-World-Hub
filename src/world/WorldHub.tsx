@@ -161,19 +161,17 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                     }}
                 />
 
-                {/* Main card face - frosted glass */}
+                {/* Main card face */}
                 <div
                     style={{
                         position: 'relative',
                         width: '100%',
                         aspectRatio: '2 / 3',
-                        borderRadius: 12,
-                        overflow: 'hidden',
+                        borderRadius: 8,
+                        overflow: 'visible',
                         background: 'linear-gradient(135deg, rgba(10, 30, 60, 0.85), rgba(5, 20, 40, 0.9))',
-                        backdropFilter: 'blur(10px)',
-                        border: '2px solid rgba(100, 200, 255, 0.5)',
-                        boxShadow: `0 0 25px rgba(0, 180, 255, 0.35), 0 25px 50px rgba(0, 0, 0, 0.6)`,
-                        transition: 'box-shadow 0.2s ease-out',
+                        border: '2px solid rgba(0, 212, 255, 0.85)',
+                        boxShadow: `0 0 20px rgba(0, 180, 255, 0.3), 0 20px 40px rgba(0, 0, 0, 0.5)`,
                     }}
                 >
                     {/* Card image */}
@@ -186,33 +184,28 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                                 : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
+                            borderRadius: 6,
                         }}
                     />
 
-                    {/* Glass reflection overlay */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: '40%',
-                            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 100%)',
-                            pointerEvents: 'none',
-                        }}
-                    />
+                    {/* ═══════════════════════════════════════════════════════════════
+                        CORNER BRACKETS - L-shaped accents at all 4 corners (matching main cards)
+                        ═══════════════════════════════════════════════════════════════ */}
+                    {/* Top-left corner */}
+                    <div style={{ position: 'absolute', top: 4, left: 4, width: 16, height: 2, background: '#ffffff' }} />
+                    <div style={{ position: 'absolute', top: 4, left: 4, width: 2, height: 16, background: '#ffffff' }} />
 
-                    {/* Top edge shine */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: 2,
-                            background: 'linear-gradient(90deg, transparent 10%, rgba(255, 255, 255, 0.6) 50%, transparent 90%)',
-                        }}
-                    />
+                    {/* Top-right corner */}
+                    <div style={{ position: 'absolute', top: 4, right: 4, width: 16, height: 2, background: '#ffffff' }} />
+                    <div style={{ position: 'absolute', top: 4, right: 4, width: 2, height: 16, background: '#ffffff' }} />
+
+                    {/* Bottom-left corner */}
+                    <div style={{ position: 'absolute', bottom: 4, left: 4, width: 16, height: 2, background: '#ffffff' }} />
+                    <div style={{ position: 'absolute', bottom: 4, left: 4, width: 2, height: 16, background: '#ffffff' }} />
+
+                    {/* Bottom-right corner */}
+                    <div style={{ position: 'absolute', bottom: 4, right: 4, width: 16, height: 2, background: '#ffffff' }} />
+                    <div style={{ position: 'absolute', bottom: 4, right: 4, width: 2, height: 16, background: '#ffffff' }} />
                 </div>
             </div>
 
