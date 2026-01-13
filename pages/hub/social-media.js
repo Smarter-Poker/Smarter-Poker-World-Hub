@@ -416,10 +416,11 @@ export default function SocialMediaPage() {
                     <div style={{ fontWeight: 700, fontSize: 20, color: C.red }}>🔴 Social</div>
                     {user ? <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ fontSize: 20, cursor: 'pointer' }}>🔔</span><span style={{ fontSize: 20, cursor: 'pointer' }}>💬</span><Avatar name={user.name} size={36} /></div> : <Link href="/auth/login" style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}>Log In</Link>}
                 </header>
-                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 200px', maxWidth: 1000, margin: '0 auto', gap: 0, padding: 16, columnGap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', maxWidth: 900, margin: '0 auto', gap: 16, padding: 16 }}>
                     <nav style={{ position: 'sticky', top: 70, height: 'fit-content' }}>
                         {user && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', cursor: 'pointer' }}><Avatar name={user.name} size={32} /><span style={{ fontWeight: 600, fontSize: 14 }}>{user.name}</span></div>}
                         {['👤 Profile', '👥 Friends', '🏛️ Clubs', '📺 Watch', '🏆 Tournaments', '🎯 GTO Training', '🌐 Full Social Site'].map((item, i) => <div key={i} style={{ padding: '8px 0', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>{item}</div>)}
+                        <ContactsSidebar contacts={contacts} onOpenChat={handleOpenChat} onSearch={handleSearch} searchResults={searchResults} />
                     </nav>
                     <main>
                         <StoriesBar currentUser={user} onAddStory={() => { }} />
@@ -427,7 +428,6 @@ export default function SocialMediaPage() {
                         {!user && <div style={{ background: C.card, borderRadius: 8, padding: 20, textAlign: 'center', marginBottom: 2 }}><p style={{ color: C.textSec }}>Log in to post and chat!</p><Link href="/auth/login" style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}>Log In →</Link></div>}
                         {posts.length === 0 ? <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}><div style={{ fontSize: 48 }}>🌟</div><h3 style={{ color: C.text }}>No posts yet</h3><p>Be the first to share something!</p></div> : posts.map(p => <PostCard key={p.id} post={p} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />)}
                     </main>
-                    <ContactsSidebar contacts={contacts} onOpenChat={handleOpenChat} onSearch={handleSearch} searchResults={searchResults} />
                 </div>
                 <div style={{ position: 'fixed', bottom: 0, right: 80, display: 'flex', gap: 8, zIndex: 1000 }}>{openChats.map(ch => <ChatWindow key={ch.id} chat={ch} messages={chatMsgs[ch.id] || []} currentUserId={user?.id} onSend={txt => handleSendMsg(ch.id, txt)} onClose={() => setOpenChats(prev => prev.filter(x => x.id !== ch.id))} />)}</div>
             </div>
