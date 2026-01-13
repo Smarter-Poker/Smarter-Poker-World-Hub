@@ -1097,17 +1097,19 @@ export default function SocialMediaPage() {
 
                     setCurrentUser({
                         id: user.id,
-                        name: profile?.username || user.email,
-                        avatar: profile?.avatar_url,
+                        name: profile?.username || user.email?.split('@')[0] || 'Player',
+                        avatar: profile?.full_name ? `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name)}&background=1877F2&color=fff` : null,
+                        isAuthenticated: true, // Real authenticated user
                     });
+                    console.log('✅ Authenticated user:', user.id);
                 } else {
-                    // Demo user for testing when not authenticated
-                    // This allows testing social features without requiring login
-                    console.log('🎭 No authenticated user found, using demo user for testing');
+                    // Not authenticated - show limited demo view
+                    console.log('⚠️ Not authenticated - posting/deleting requires login');
                     setCurrentUser({
-                        id: 'demo-user-001',
-                        name: 'Demo Player',
-                        avatar: 'https://ui-avatars.com/api/?name=Demo+Player&background=1877F2&color=fff',
+                        id: null,
+                        name: 'Guest',
+                        avatar: null,
+                        isAuthenticated: false, // Not authenticated
                     });
                 }
 
@@ -1382,30 +1384,64 @@ export default function SocialMediaPage() {
                         {activeTab === 'feed' && (
                             <>
                                 <StoriesRow user={currentUser} />
-                                <EnhancedPostCreator
-                                    user={currentUser}
-                                    supabase={supabase}
-                                    inline={true}
-                                    onPostCreated={(newPost) => {
-                                        // Format the new post for local state
-                                        const formattedPost = {
-                                            id: newPost.id,
-                                            content: newPost.content,
-                                            author: {
-                                                name: newPost.author?.username || currentUser?.name || 'You',
-                                                avatar: newPost.author?.avatarUrl || currentUser?.avatar,
-                                            },
-                                            likeCount: 0,
-                                            commentCount: 0,
-                                            shareCount: 0,
-                                            timeAgo: 'Just now',
-                                            mediaUrls: newPost.mediaUrls,
-                                            contentType: newPost.contentType,
-                                            isLiked: false,
-                                        };
-                                        setPosts(prevPosts => [formattedPost, ...prevPosts]);
-                                    }}
-                                />
+
+                                {/* Show login prompt for unauthenticated users */}
+                                {!currentUser?.isAuthenticated ? (
+                                    <div style={{
+                                        background: '#fff',
+                                        borderRadius: 8,
+                                        padding: '20px',
+                                        marginBottom: 16,
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                        textAlign: 'center'
+                                    }}>
+                                        <span style={{ fontSize: 32, display: 'block', marginBottom: 12 }}>🔐</span>
+                                        <h3 style={{ margin: '0 0 8px', color: '#1c1e21' }}>Login to Post</h3>
+                                        <p style={{ margin: '0 0 16px', color: '#65676b' }}>
+                                            Sign in to create posts, comment, and interact with the community!
+                                        </p>
+                                        <a
+                                            href="/auth/login"
+                                            style={{
+                                                display: 'inline-block',
+                                                background: '#1877F2',
+                                                color: '#fff',
+                                                padding: '10px 24px',
+                                                borderRadius: 6,
+                                                fontWeight: 600,
+                                                textDecoration: 'none'
+                                            }}
+                                        >
+                                            Sign In
+                                        </a>
+                                    </div>
+                                ) : (
+                                    <EnhancedPostCreator
+                                        user={currentUser}
+                                        supabase={supabase}
+                                        inline={true}
+                                        onPostCreated={(newPost) => {
+                                            // Format the new post for local state
+                                            const formattedPost = {
+                                                id: newPost.id,
+                                                authorId: currentUser.id, // Include for delete ownership
+                                                content: newPost.content,
+                                                author: {
+                                                    name: newPost.author?.username || currentUser?.name || 'You',
+                                                    avatar: newPost.author?.avatarUrl || currentUser?.avatar,
+                                                },
+                                                likeCount: 0,
+                                                commentCount: 0,
+                                                shareCount: 0,
+                                                timeAgo: 'Just now',
+                                                mediaUrls: newPost.mediaUrls,
+                                                contentType: newPost.contentType,
+                                                isLiked: false,
+                                            };
+                                            setPosts(prevPosts => [formattedPost, ...prevPosts]);
+                                        }}
+                                    />
+                                )}
 
                                 {loading ? (
                                     <div style={styles.loading}>Loading feed...</div>
