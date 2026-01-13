@@ -304,3 +304,4 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, error: error.message });
     }
 }
+// trigger rebuild Tue Jan 13 14:15:35 CST 2026
