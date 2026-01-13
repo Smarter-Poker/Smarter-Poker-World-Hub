@@ -169,7 +169,7 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
     };
 
     return (
-        <div style={{ background: C.card, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2 }}>
+        <div style={{ background: C.card, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2, overflow: 'hidden' }}>
             <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Avatar src={post.author?.avatar} name={post.author?.name} size={40} />
                 <div style={{ flex: 1 }}>
@@ -180,7 +180,7 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
             </div>
             {post.content && <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>{post.content}</div>}
             {post.mediaUrls?.length > 0 && (
-                <div style={{ margin: '0 -0px' }}>{post.contentType === 'video' ? <video controls style={{ width: '100%', display: 'block', objectFit: 'contain' }} src={post.mediaUrls[0]} /> : <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain' }} />}</div>
+                <div>{post.contentType === 'video' ? <video controls style={{ width: '100%', display: 'block' }} src={post.mediaUrls[0]} /> : <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />}</div>
             )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
                 <span>{likeCount > 0 && `👍 ${likeCount}`}</span>
