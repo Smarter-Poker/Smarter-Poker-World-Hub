@@ -120,7 +120,7 @@ function PostCreator({ user, onPost, isPosting }) {
     );
 }
 
-function PostCard({ post, currentUserId, onLike, onDelete, onComment }) {
+function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onComment }) {
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
     const [showComments, setShowComments] = useState(false);
@@ -184,7 +184,7 @@ function PostCard({ post, currentUserId, onLike, onDelete, onComment }) {
             )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
                 <span>{likeCount > 0 && `👍 ${likeCount}`}</span>
-                <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${commentCount} comments`}</span>
+                <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
                 <button onClick={handleLike} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: liked ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>👍 {liked ? 'Liked' : 'Like'}</button>
@@ -204,7 +204,7 @@ function PostCard({ post, currentUserId, onLike, onDelete, onComment }) {
                         </div>
                     ))}
                     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                        <Avatar size={28} />
+                        <Avatar name={currentUserName} size={28} />
                         <input value={newComment} onChange={e => setNewComment(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSubmitComment()} placeholder="Write a comment..." style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} />
                         <button onClick={handleSubmitComment} disabled={!newComment.trim()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: newComment.trim() ? C.blue : C.textSec, fontWeight: 600, fontSize: 13 }}>Post</button>
                     </div>
@@ -425,7 +425,7 @@ export default function SocialMediaPage() {
                         <StoriesBar currentUser={user} onAddStory={() => { }} />
                         {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} />}
                         {!user && <div style={{ background: C.card, borderRadius: 8, padding: 20, textAlign: 'center', marginBottom: 16 }}><p style={{ color: C.textSec }}>Log in to post and chat!</p><Link href="/auth/login" style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}>Log In →</Link></div>}
-                        {posts.length === 0 ? <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}><div style={{ fontSize: 48 }}>🌟</div><h3 style={{ color: C.text }}>No posts yet</h3><p>Be the first to share something!</p></div> : posts.map(p => <PostCard key={p.id} post={p} currentUserId={user?.id} onLike={handleLike} onDelete={handleDelete} />)}
+                        {posts.length === 0 ? <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}><div style={{ fontSize: 48 }}>🌟</div><h3 style={{ color: C.text }}>No posts yet</h3><p>Be the first to share something!</p></div> : posts.map(p => <PostCard key={p.id} post={p} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />)}
                     </main>
                     <ContactsSidebar contacts={contacts} onOpenChat={handleOpenChat} onSearch={handleSearch} searchResults={searchResults} />
                 </div>
