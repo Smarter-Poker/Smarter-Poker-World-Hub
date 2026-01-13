@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { SocialService } from '../../src/services/SocialService';
+import { UnifiedSocialService } from '../../src/services/UnifiedSocialService';
 import { EnhancedPostCreator } from '../../src/components/social/EnhancedPostCreator';
 
 // Initialize Supabase with fallback credentials
@@ -19,7 +19,7 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGci
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Initialize SocialService
-const socialService = new SocialService(supabase);
+const socialService = new UnifiedSocialService(supabase);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 FB COLORS (Facebook-style theming)
@@ -840,15 +840,9 @@ export default function SocialMediaPage() {
         }
 
         try {
-            const { data, error } = await supabase.rpc('fn_get_or_create_conversation', {
-                user1_id: currentUser.id,
-                user2_id: participantId,
-            });
-
-            if (error) throw error;
-
-            setConversationIds(prev => ({ ...prev, [participantId]: data }));
-            return data;
+            const convId = await socialService.getOrCreateConversation(currentUser.id, participantId);
+            setConversationIds(prev => ({ ...prev, [participantId]: convId }));
+            return convId;
         } catch (err) {
             console.error('Error getting/creating conversation:', err);
             return null;
@@ -858,38 +852,18 @@ export default function SocialMediaPage() {
     // Load messages for a conversation
     const loadMessages = async (conversationId, participantId) => {
         try {
-            const { data, error } = await supabase
-                .from('social_messages')
-                .select(`
-                    id,
-                    content,
-                    created_at,
-                    sender_id,
-                    social_message_reads (
-                        user_id,
-                        read_at
-                    )
-                `)
-                .eq('conversation_id', conversationId)
-                .eq('is_deleted', false)
-                .order('created_at', { ascending: true });
-
-            if (error) throw error;
-
-            const messages = (data || []).map(msg => ({
+            const messages = await socialService.getMessages(conversationId);
+            const formattedMessages = messages.map(msg => ({
                 id: msg.id,
-                text: msg.content,
-                timestamp: msg.created_at,
-                fromMe: msg.sender_id === currentUser?.id,
-                senderId: msg.sender_id,
-                readBy: (msg.social_message_reads || []).map(r => ({
-                    userId: r.user_id,
-                    readAt: r.read_at,
-                })),
+                text: msg.text,
+                timestamp: msg.timestamp || msg.time,
+                fromMe: msg.senderId === currentUser?.id,
+                senderId: msg.senderId,
+                readBy: msg.readBy || [],
             }));
 
-            setChatMessages(prev => ({ ...prev, [participantId]: messages }));
-            return messages;
+            setChatMessages(prev => ({ ...prev, [participantId]: formattedMessages }));
+            return formattedMessages;
         } catch (err) {
             console.error('Error loading messages:', err);
             return [];
@@ -1022,21 +996,15 @@ export default function SocialMediaPage() {
 
             if (convId) {
                 try {
-                    // Send to Supabase using RPC
-                    const { data: messageId, error } = await supabase.rpc('fn_send_message', {
-                        p_conversation_id: convId,
-                        p_sender_id: currentUser.id,
-                        p_content: message,
-                    });
-
-                    if (error) throw error;
+                    // Send using service
+                    const result = await socialService.sendMessage(convId, currentUser.id, message);
 
                     // Update with real ID and mark as synced
                     setChatMessages(prev => ({
                         ...prev,
                         [chatId]: (prev[chatId] || []).map(msg =>
                             msg.id === tempId
-                                ? { ...msg, id: messageId, synced: true }
+                                ? { ...msg, id: result.id, synced: true }
                                 : msg
                         ),
                     }));
