@@ -180,7 +180,7 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
             </div>
             {post.content && <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>{post.content}</div>}
             {post.mediaUrls?.length > 0 && (
-                <div>{post.contentType === 'video' ? <video controls style={{ width: '100%', display: 'block' }} src={post.mediaUrls[0]} /> : <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', display: 'block' }} />}</div>
+                <div style={{ margin: '0 -0px' }}>{post.contentType === 'video' ? <video controls style={{ width: '100%', display: 'block', objectFit: 'contain' }} src={post.mediaUrls[0]} /> : <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain' }} />}</div>
             )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
                 <span>{likeCount > 0 && `👍 ${likeCount}`}</span>
@@ -416,7 +416,7 @@ export default function SocialMediaPage() {
                     <div style={{ fontWeight: 700, fontSize: 20, color: C.red }}>🔴 Social</div>
                     {user ? <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ fontSize: 20, cursor: 'pointer' }}>🔔</span><span style={{ fontSize: 20, cursor: 'pointer' }}>💬</span><Avatar name={user.name} size={36} /></div> : <Link href="/auth/login" style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}>Log In</Link>}
                 </header>
-                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 200px', maxWidth: 1000, margin: '0 auto', gap: 16, padding: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 200px', maxWidth: 1000, margin: '0 auto', gap: 0, padding: 16, columnGap: 16 }}>
                     <nav style={{ position: 'sticky', top: 70, height: 'fit-content' }}>
                         {user && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', cursor: 'pointer' }}><Avatar name={user.name} size={32} /><span style={{ fontWeight: 600, fontSize: 14 }}>{user.name}</span></div>}
                         {['👤 Profile', '👥 Friends', '🏛️ Clubs', '📺 Watch', '🏆 Tournaments', '🎯 GTO Training', '🌐 Full Social Site'].map((item, i) => <div key={i} style={{ padding: '8px 0', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>{item}</div>)}
