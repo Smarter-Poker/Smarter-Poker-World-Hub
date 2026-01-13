@@ -302,8 +302,40 @@ export const EnhancedPostCreator = ({
       }, 1500);
 
     } catch (err) {
-      console.error('Post creation error:', err);
-      setError(err.message || 'Failed to create post. Please try again.');
+      console.error('Post creation error details:', err);
+
+      // SAFETY: Robust error message extraction
+      let errorMessage = 'Failed to create post';
+      if (typeof err === 'string') {
+        errorMessage = err;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (err?.error_description) {
+        errorMessage = err.error_description;
+      }
+
+      // Hide technical database errors
+      const lowerMsg = errorMessage.toLowerCase();
+      const isDatabaseError =
+        lowerMsg.includes('ambiguous') ||
+        lowerMsg.includes('column') ||
+        lowerMsg.includes('syntax') ||
+        lowerMsg.includes('relation') ||
+        lowerMsg.includes('constraint') ||
+        lowerMsg.includes('violates');
+
+      const isAuthError =
+        lowerMsg.includes('permission') ||
+        lowerMsg.includes('policy') ||
+        lowerMsg.includes('rls');
+
+      const userFriendlyMessage = isDatabaseError
+        ? 'Unable to post at this time. Please try again later.'
+        : isAuthError
+          ? 'You do not have permission to post. Please log in.'
+          : errorMessage;
+
+      setError(userFriendlyMessage);
     } finally {
       setIsSubmitting(false);
     }

@@ -22,13 +22,49 @@ export class SocialService {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Fetch social feed - using direct query (RPC was broken)
+     * Fetch social feed - tries RPC first for rich author data, falls back to direct query
      * @param {Object} options - Feed options
      * @returns {Promise<{ posts: SocialPost[], hasMore: boolean }>}
      */
     async getFeed({ userId, filter = 'recent', limit = 20, offset = 0 }) {
         try {
-            // Direct query instead of RPC - more reliable
+            // 1. Try V2 RPC first (Fixed function)
+            const { data: rpcData, error: rpcError } = await this.supabase.rpc('fn_get_social_feed_v2', {
+                p_user_id: userId || null,
+                p_limit: limit + 1,
+                p_offset: offset,
+                p_filter: filter
+            });
+
+            if (rpcError) throw rpcError;
+
+            if (rpcData) {
+                const hasMore = rpcData.length > limit;
+                const posts = rpcData.slice(0, limit).map(row => createPost({
+                    post_id: row.post_id,
+                    author_id: row.author_id,
+                    author_username: row.author_username,
+                    author_avatar: row.author_avatar,
+                    author_level: row.author_level,
+                    content: row.content,
+                    content_type: row.content_type,
+                    media_urls: row.media_urls,
+                    like_count: row.like_count,
+                    comment_count: row.comment_count,
+                    share_count: row.share_count,
+                    is_liked: row.is_liked,
+                    created_at: row.created_at
+                }));
+                return { posts, hasMore };
+            }
+        } catch (err) {
+            console.warn('V2 Feed RPC failed, trying Direct Fallback:', err.message);
+        }
+
+        try {
+            // Fallback: Direct query legacy
+
+            console.warn('RPC fallback: using direct query for feed');
             const { data, error } = await this.supabase
                 .from('social_posts')
                 .select('*')
@@ -100,6 +136,31 @@ export class SocialService {
         try {
             console.log('📝 Creating post:', { authorId, content: content?.substring(0, 50), contentType });
 
+            // 1. Try V2 RPC first (Bypasses "ambiguous column" triggers)
+            const { data: rpcData, error: rpcError } = await this.supabase.rpc('fn_create_social_post', {
+                p_author_id: authorId,
+                p_content: content,
+                p_content_type: contentType,
+                p_media_urls: mediaUrls,
+                p_visibility: visibility,
+                p_achievement_data: achievementData
+            });
+
+            if (!rpcError && rpcData) {
+                console.log('✅ Post created via RPC:', rpcData.id);
+                return createPost({
+                    ...rpcData,
+                    post_id: rpcData.id,
+                    author_username: 'You',
+                    author_avatar: null,
+                    author_level: 1,
+                    is_liked: false
+                });
+            } else if (rpcError) {
+                console.warn('RPC create failed, falling back to direct insert', rpcError);
+            }
+
+            // Fallback (Legacy)
             const { data, error } = await this.supabase
                 .from('social_posts')
                 .insert({
@@ -118,7 +179,7 @@ export class SocialService {
                 throw error;
             }
 
-            console.log('✅ Post created:', data.id);
+            console.log('✅ Post created (Direct):', data.id);
 
             // Return simplified post object
             return createPost({
