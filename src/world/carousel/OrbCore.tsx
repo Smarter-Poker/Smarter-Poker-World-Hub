@@ -169,28 +169,28 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                 {label}
             </Text>
 
-            {/* Active state - intensified glow */}
+            {/* Active state - thin bright border (high-def look) */}
             {active && (
                 <>
-                    <mesh position={[0, 0, -0.06]}>
-                        <boxGeometry args={[cardWidth + 0.3, cardHeight + 0.3, 0.01]} />
-                        <meshBasicMaterial
-                            color="#00d4ff"
-                            transparent
-                            opacity={0.3}
-                            blending={THREE.AdditiveBlending}
-                        />
+                    {/* Top edge - bright thin line */}
+                    <mesh position={[0, cardHeight / 2 - 0.01, 0.04]}>
+                        <planeGeometry args={[cardWidth, 0.008]} />
+                        <meshBasicMaterial color="#00d4ff" transparent opacity={0.9} />
                     </mesh>
-                    {/* Holographic pedestal ring */}
-                    <mesh position={[0, -(cardHeight / 2 + 0.15), -0.1]} rotation={[-Math.PI / 2, 0, 0]}>
-                        <ringGeometry args={[0.3, 0.35, 32]} />
-                        <meshBasicMaterial
-                            color="#00ff88"
-                            transparent
-                            opacity={0.4}
-                            blending={THREE.AdditiveBlending}
-                            side={THREE.DoubleSide}
-                        />
+                    {/* Bottom edge - bright thin line */}
+                    <mesh position={[0, -(cardHeight / 2 - 0.01), 0.04]}>
+                        <planeGeometry args={[cardWidth, 0.008]} />
+                        <meshBasicMaterial color="#00d4ff" transparent opacity={0.9} />
+                    </mesh>
+                    {/* Left edge - bright thin line */}
+                    <mesh position={[-(cardWidth / 2 - 0.01), 0, 0.04]}>
+                        <planeGeometry args={[0.008, cardHeight]} />
+                        <meshBasicMaterial color="#00d4ff" transparent opacity={0.9} />
+                    </mesh>
+                    {/* Right edge - bright thin line */}
+                    <mesh position={[(cardWidth / 2 - 0.01), 0, 0.04]}>
+                        <planeGeometry args={[0.008, cardHeight]} />
+                        <meshBasicMaterial color="#00d4ff" transparent opacity={0.9} />
                     </mesh>
                 </>
             )}

@@ -841,7 +841,7 @@ export default function MessengerPage() {
                             <Link href="/hub/social-media">
                                 <Avatar src={user.avatar_url} name={user.username} size={40} />
                             </Link>
-                            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>Chats</h1>
+                            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: C.text }}>Chats</h1>
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <button
@@ -880,11 +880,26 @@ export default function MessengerPage() {
                             <div style={{
                                 textAlign: 'center',
                                 padding: 40,
-                                color: C.textSec,
                             }}>
                                 <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
-                                <div>No conversations yet</div>
-                                <div style={{ fontSize: 13, marginTop: 4 }}>Search for someone to start chatting!</div>
+                                <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>No conversations yet</div>
+                                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Search for someone to start chatting!</div>
+                                <button
+                                    onClick={() => {
+                                        setComposing(true);
+                                        setTimeout(() => searchInputRef.current?.focus(), 100);
+                                    }}
+                                    style={{
+                                        background: C.blue,
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: 8,
+                                        padding: '12px 24px',
+                                        fontSize: 15,
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                    }}
+                                >✏️ Start New Chat</button>
                             </div>
                         ) : (
                             conversations.map(conv => (
@@ -1041,7 +1056,7 @@ export default function MessengerPage() {
                         }}>
                             <div style={{ fontSize: 80, marginBottom: 16 }}>💬</div>
                             <h2 style={{ margin: 0, color: C.text, fontWeight: 600 }}>Select a conversation</h2>
-                            <p style={{ marginTop: 8 }}>Choose from your existing chats or search for someone new</p>
+                            <p style={{ marginTop: 8, color: C.textSec }}>Choose from your existing chats or search for someone new</p>
                         </div>
                     )}
                 </main>

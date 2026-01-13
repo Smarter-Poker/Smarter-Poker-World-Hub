@@ -119,7 +119,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 cursor: 'pointer',
                 transform: `translateY(${floatY}px) perspective(800px) rotateX(10deg)`,
                 flex: 1,
-                maxWidth: 'calc(13% - 6px)',
+                maxWidth: 'calc(17% - 6px)',
                 transition: 'transform 0.3s ease-out',
                 transformStyle: 'preserve-3d',
             }}
@@ -137,8 +137,8 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 style={{
                     position: 'absolute',
                     bottom: 25,
-                    width: 120,
-                    height: 35,
+                    width: 160,
+                    height: 45,
                     borderRadius: '50%',
                     background: `radial-gradient(ellipse, rgba(0, 212, 255, 0.4), rgba(0, 136, 255, 0.2), transparent 70%)`,
                     filter: 'blur(8px)',
@@ -152,7 +152,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 style={{
                     position: 'relative',
                     width: '100%',
-                    maxWidth: 140,
+                    maxWidth: 186,
                     transformStyle: 'preserve-3d',
                 }}
             >
@@ -555,7 +555,7 @@ export default function WorldHub() {
         // Map destination names to page routes
         const routeMap: Record<string, string> = {
             'profile': '/hub/social-media',
-            'messages': '/hub/social-media?tab=messages',
+            'messages': '/hub/messenger',
             'notifications': '/hub/social-media?tab=notifications',
         };
         const route = routeMap[destination] || `/hub/${destination}`;
