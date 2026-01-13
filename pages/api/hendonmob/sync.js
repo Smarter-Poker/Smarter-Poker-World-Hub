@@ -1,6 +1,6 @@
 /**
- * HENDONMOB SYNC API - Using ScraperAPI
- * Uses a scraping proxy service to bypass Cloudflare
+ * HENDONMOB SYNC API - Free Google Search Method
+ * Uses search engines to find indexed HendonMob stats (no API key required)
  * POST /api/hendonmob/sync
  */
 
@@ -18,236 +18,282 @@ export default async function handler(req, res) {
 
     const { userId, hendonUrl } = req.body;
 
-    if (!userId || !hendonUrl) {
-        return res.status(400).json({ error: 'Missing userId or hendonUrl' });
-    }
-
-    // Validate HendonMob URL
-    if (!hendonUrl.includes('hendonmob.com')) {
-        return res.status(400).json({ error: 'Invalid Hendon Mob URL' });
+    if (!userId) {
+        return res.status(400).json({ error: 'Missing userId' });
     }
 
     try {
-        console.log(`Syncing HendonMob for user ${userId}: ${hendonUrl}`);
+        // Get player name from profile
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', userId)
+            .single();
 
-        // Try ScraperAPI if available
-        let html = null;
+        const playerName = profile?.full_name;
 
-        if (process.env.SCRAPERAPI_KEY) {
-            const scraperUrl = `http://api.scraperapi.com?api_key=${process.env.SCRAPERAPI_KEY}&url=${encodeURIComponent(hendonUrl)}&render=true`;
-            const response = await fetch(scraperUrl, { timeout: 60000 });
-            if (response.ok) {
-                html = await response.text();
+        if (!playerName && !hendonUrl) {
+            return res.status(400).json({ error: 'Please set your full name in your profile to match your Hendon Mob name' });
+        }
+
+        console.log(`Searching for HendonMob stats for: ${playerName}`);
+
+        // Try multiple search methods
+        let stats = null;
+
+        // Method 1: DuckDuckGo Instant Answers (free, no key)
+        if (playerName) {
+            stats = await searchDuckDuckGo(playerName);
+        }
+
+        // Method 2: Try Bing Web Search (free tier available)
+        if (!stats && playerName) {
+            stats = await searchBing(playerName);
+        }
+
+        // Method 3: Try fetching from a poker stats aggregator
+        if (!stats && playerName) {
+            stats = await searchPokerDB(playerName);
+        }
+
+        // Method 4: Extract player ID from URL and search
+        if (!stats && hendonUrl) {
+            const playerIdMatch = hendonUrl.match(/n=(\d+)/);
+            if (playerIdMatch) {
+                stats = await searchByPlayerId(playerIdMatch[1], playerName);
             }
         }
 
-        // Fallback: try ZenRows if available
-        if (!html && process.env.ZENROWS_KEY) {
-            const zenUrl = `https://api.zenrows.com/v1/?apikey=${process.env.ZENROWS_KEY}&url=${encodeURIComponent(hendonUrl)}&js_render=true&antibot=true`;
-            const response = await fetch(zenUrl, { timeout: 60000 });
-            if (response.ok) {
-                html = await response.text();
-            }
-        }
-
-        // Fallback: try direct fetch (may work sometimes)
-        if (!html) {
-            try {
-                const response = await fetch(hendonUrl, {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                        'Accept-Language': 'en-US,en;q=0.5',
-                    }
-                });
-                if (response.ok) {
-                    html = await response.text();
-                }
-            } catch (e) {
-                console.log('Direct fetch failed:', e.message);
-            }
-        }
-
-        // If we still don't have HTML, try Google search method
-        if (!html || html.includes('Just a moment') || html.length < 5000) {
-            console.log('Using Google search fallback...');
-
-            // Get player name from profile
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('full_name')
-                .eq('id', userId)
-                .single();
-
-            if (profile?.full_name) {
-                const stats = await searchForStats(profile.full_name, hendonUrl);
-                if (stats) {
-                    return await saveAndReturn(res, userId, stats);
-                }
-            }
-
+        if (!stats || (!stats.totalEarnings && !stats.totalCashes)) {
             return res.status(400).json({
-                error: 'Could not access HendonMob. Please try again later or contact support.',
-                suggestion: 'HendonMob may be blocking access. Try again in a few minutes.'
+                error: 'Could not find stats. Make sure your Full Name matches your Hendon Mob profile exactly.',
+                suggestion: `Searched for: "${playerName}". Try updating your name to match exactly.`
             });
         }
 
-        // Parse stats from HTML
-        const stats = parseHendonMobHtml(html);
+        // Save to database
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+                hendon_total_cashes: stats.totalCashes,
+                hendon_total_earnings: stats.totalEarnings,
+                hendon_best_finish: stats.bestFinish,
+                hendon_last_scraped: new Date().toISOString(),
+            })
+            .eq('id', userId);
 
-        if (!stats.totalEarnings && !stats.totalCashes) {
-            return res.status(400).json({
-                error: 'Could not extract stats from HendonMob page. The player may not have any recorded results.',
-            });
+        if (updateError) {
+            console.error('Update error:', updateError);
+            return res.status(500).json({ error: 'Failed to save stats' });
         }
 
-        return await saveAndReturn(res, userId, stats);
+        return res.status(200).json({
+            success: true,
+            total_cashes: stats.totalCashes,
+            total_earnings: stats.totalEarnings,
+            best_finish: stats.bestFinish,
+            source: stats.source,
+        });
 
     } catch (error) {
         console.error('Sync error:', error);
-        return res.status(500).json({ error: 'Failed to sync: ' + error.message });
+        return res.status(500).json({ error: 'Sync failed: ' + error.message });
     }
 }
 
-async function saveAndReturn(res, userId, stats) {
-    const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-            hendon_total_cashes: stats.totalCashes,
-            hendon_total_earnings: stats.totalEarnings,
-            hendon_best_finish: stats.bestFinish,
-            hendon_last_scraped: new Date().toISOString(),
-        })
-        .eq('id', userId);
+/**
+ * Search DuckDuckGo for player stats
+ */
+async function searchDuckDuckGo(playerName) {
+    try {
+        const queries = [
+            `${playerName} Hendon Mob poker earnings`,
+            `${playerName} poker tournament total live earnings`,
+            `${playerName} WSOP earnings total`,
+        ];
 
-    if (updateError) {
-        console.error('Update error:', updateError);
-        return res.status(500).json({ error: 'Failed to update profile' });
+        for (const query of queries) {
+            const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+            const response = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0' },
+                timeout: 10000
+            });
+
+            if (!response.ok) continue;
+
+            const data = await response.json();
+            const text = [
+                data.AbstractText || '',
+                data.Answer || '',
+                data.Definition || '',
+                ...(data.RelatedTopics || []).map(t => t.Text || ''),
+            ].join(' ');
+
+            if (text.length > 30) {
+                const stats = parseStatsFromText(text);
+                if (stats.totalEarnings || stats.totalCashes) {
+                    stats.source = 'duckduckgo';
+                    return stats;
+                }
+            }
+        }
+    } catch (e) {
+        console.log('DuckDuckGo search failed:', e.message);
     }
-
-    return res.status(200).json({
-        success: true,
-        total_cashes: stats.totalCashes,
-        total_earnings: stats.totalEarnings,
-        best_finish: stats.bestFinish,
-    });
+    return null;
 }
 
-function parseHendonMobHtml(html) {
+/**
+ * Search Bing for player info
+ */
+async function searchBing(playerName) {
+    try {
+        // Use Bing's autosuggest/instant answers (free)
+        const query = `${playerName} hendon mob poker`;
+        const url = `https://www.bing.com/AS/Suggestions?qry=${encodeURIComponent(query)}&cvid=1`;
+
+        const response = await fetch(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 5000
+        });
+
+        if (response.ok) {
+            const text = await response.text();
+            const stats = parseStatsFromText(text);
+            if (stats.totalEarnings || stats.totalCashes) {
+                stats.source = 'bing';
+                return stats;
+            }
+        }
+    } catch (e) {
+        console.log('Bing search failed:', e.message);
+    }
+    return null;
+}
+
+/**
+ * Search poker databases
+ */
+async function searchPokerDB(playerName) {
+    try {
+        // Try Global Poker Index (public data)
+        const gpiUrl = `https://www.globalpokerindex.com/api/v1/players/search?q=${encodeURIComponent(playerName)}`;
+        const response = await fetch(gpiUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0',
+                'Accept': 'application/json'
+            },
+            timeout: 10000
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.players && data.players.length > 0) {
+                const player = data.players[0];
+                return {
+                    totalEarnings: player.total_earnings || player.lifetime_earnings,
+                    totalCashes: player.cashes || player.itm_count,
+                    bestFinish: player.best_finish || '1st',
+                    source: 'gpi'
+                };
+            }
+        }
+    } catch (e) {
+        console.log('PokerDB search failed:', e.message);
+    }
+    return null;
+}
+
+/**
+ * Search by Hendon Mob player ID
+ */
+async function searchByPlayerId(playerId, playerName) {
+    try {
+        const query = `site:thehendonmob.com "${playerId}" ${playerName || ''} earnings`;
+        const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`;
+
+        const response = await fetch(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 10000
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const text = [
+                data.AbstractText || '',
+                data.Answer || '',
+                ...(data.RelatedTopics || []).map(t => t.Text || ''),
+            ].join(' ');
+
+            const stats = parseStatsFromText(text);
+            if (stats.totalEarnings || stats.totalCashes) {
+                stats.source = 'hendonmob_id';
+                return stats;
+            }
+        }
+    } catch (e) {
+        console.log('Player ID search failed:', e.message);
+    }
+    return null;
+}
+
+/**
+ * Extract stats from text
+ */
+function parseStatsFromText(text) {
     let totalEarnings = null;
     let totalCashes = null;
     let bestFinish = null;
 
-    // Look for "Total Live Earnings" patterns
-    const earningsPatterns = [
-        /Total\s*(?:Live\s*)?Earnings[:\s]*\$?([\d,]+)/i,
-        /Lifetime\s*Earnings[:\s]*\$?([\d,]+)/i,
-        /All\s*Time\s*Earnings[:\s]*\$?([\d,]+)/i,
-    ];
-
-    for (const pattern of earningsPatterns) {
-        const match = html.match(pattern);
-        if (match) {
-            totalEarnings = parseInt(match[1].replace(/,/g, ''), 10);
-            break;
+    // Find dollar amounts (look for largest as total earnings)
+    const dollarMatches = text.match(/\$[\d,]+(?:\.\d{2})?/g);
+    if (dollarMatches && dollarMatches.length > 0) {
+        const amounts = dollarMatches
+            .map(s => parseInt(s.replace(/[$,\.]/g, ''), 10) / (s.includes('.') ? 100 : 1))
+            .filter(n => !isNaN(n) && n > 0);
+        if (amounts.length > 0) {
+            totalEarnings = Math.max(...amounts);
         }
     }
 
-    // Fallback: find largest dollar amount
-    if (!totalEarnings) {
-        const dollarMatches = html.match(/\$[\d,]+/g);
-        if (dollarMatches && dollarMatches.length > 0) {
-            const amounts = dollarMatches.map(s => parseInt(s.replace(/[$,]/g, ''), 10)).filter(n => !isNaN(n));
-            if (amounts.length > 0) {
-                totalEarnings = Math.max(...amounts);
-            }
+    // Also look for "X million" or "X,XXX,XXX" patterns
+    const millionMatch = text.match(/([\d.]+)\s*million/i);
+    if (millionMatch) {
+        const millions = parseFloat(millionMatch[1]) * 1000000;
+        if (!totalEarnings || millions > totalEarnings) {
+            totalEarnings = millions;
         }
     }
 
-    // Look for cashes/results count
+    // Find cashes count
     const cashesPatterns = [
-        /(\d+)\s*(?:Live\s*)?Cashes/i,
-        /(\d+)\s*Results/i,
+        /(\d+)\s*(?:live\s*)?cashes/i,
+        /(\d+)\s*results/i,
         /(\d+)\s*ITM/i,
-        /Cashes[:\s]*(\d+)/i,
+        /cashes[:\s]*(\d+)/i,
     ];
-
     for (const pattern of cashesPatterns) {
-        const match = html.match(pattern);
+        const match = text.match(pattern);
         if (match) {
             totalCashes = parseInt(match[1], 10);
             break;
         }
     }
 
-    // Look for best finish
-    if (html.match(/1st\s*(?:place)?|Winner|Won/i)) {
+    // Find best finish
+    if (text.match(/\b(1st|first|winner|won|victory|champion)\b/i)) {
         bestFinish = '1st';
-    } else {
-        const placeMatch = html.match(/(1st|2nd|3rd|\d+th)/i);
-        if (placeMatch) {
-            bestFinish = placeMatch[1];
-        }
-    }
-
-    return { totalCashes, totalEarnings, bestFinish };
-}
-
-async function searchForStats(playerName, hendonUrl) {
-    // Extract player ID from URL
-    const playerIdMatch = hendonUrl.match(/n=(\d+)/);
-    const playerId = playerIdMatch ? playerIdMatch[1] : null;
-
-    // Try DuckDuckGo Instant Answers (free, no API key)
-    try {
-        const query = `"${playerName}" Hendon Mob poker total live earnings`;
-        const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`;
-        const response = await fetch(ddgUrl);
-        const data = await response.json();
-
-        const text = `${data.AbstractText || ''} ${data.Answer || ''} ${JSON.stringify(data.RelatedTopics || [])}`;
-
-        if (text.length > 50) {
-            const stats = parseTextForStats(text);
-            if (stats.totalEarnings || stats.totalCashes) {
-                return stats;
-            }
-        }
-    } catch (e) {
-        console.error('DuckDuckGo search failed:', e);
-    }
-
-    return null;
-}
-
-function parseTextForStats(text) {
-    let totalEarnings = null;
-    let totalCashes = null;
-    let bestFinish = null;
-
-    // Look for dollar amounts
-    const dollarMatches = text.match(/\$[\d,]+/g);
-    if (dollarMatches) {
-        const amounts = dollarMatches.map(s => parseInt(s.replace(/[$,]/g, ''), 10)).filter(n => !isNaN(n));
-        if (amounts.length > 0) {
-            totalEarnings = Math.max(...amounts);
-        }
-    }
-
-    // Look for cashes
-    const cashesMatch = text.match(/(\d+)\s*(?:cashes|results|ITM)/i);
-    if (cashesMatch) {
-        totalCashes = parseInt(cashesMatch[1], 10);
-    }
-
-    // Look for best finish
-    if (text.match(/1st|first|winner|won/i)) {
-        bestFinish = '1st';
-    } else if (text.match(/2nd|second/i)) {
+    } else if (text.match(/\b(2nd|second|runner.?up)\b/i)) {
         bestFinish = '2nd';
-    } else if (text.match(/3rd|third/i)) {
+    } else if (text.match(/\b(3rd|third)\b/i)) {
         bestFinish = '3rd';
+    } else {
+        const placeMatch = text.match(/(\d+)(?:st|nd|rd|th)\s*(?:place)?/i);
+        if (placeMatch) {
+            const num = parseInt(placeMatch[1], 10);
+            bestFinish = num === 1 ? '1st' : num === 2 ? '2nd' : num === 3 ? '3rd' : `${num}th`;
+        }
     }
 
-    return { totalCashes, totalEarnings, bestFinish };
+    return { totalEarnings, totalCashes, bestFinish };
 }
