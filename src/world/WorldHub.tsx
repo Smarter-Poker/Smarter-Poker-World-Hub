@@ -42,8 +42,9 @@ function LoadingFallback() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🃏 FOOTER CARD - LARGER SIZE WITH SUBTLE EDGE FLICKER
-// 6 cards spanning the full width with very subtle edge glow pulse
+// 🃏 FOOTER CARD - STANDING HOLOGRAPHIC CARDS
+// 6 cards with 3D perspective, holographic edges, and subtle animations
+// Color palette: Cyan, Blue, Green, White (no purple/pink)
 // ─────────────────────────────────────────────────────────────────────────────
 interface FooterCardProps {
     orb: OrbConfig;
@@ -51,33 +52,36 @@ interface FooterCardProps {
     onSelect: (id: string) => void;
 }
 
-// Subtle edge glow colors
-const EDGE_COLORS = [
-    'rgba(0, 212, 255, 0.4)',   // Cyan
-    'rgba(138, 43, 226, 0.4)',  // Purple
-    'rgba(0, 255, 136, 0.4)',   // Green
-    'rgba(255, 165, 0, 0.4)',   // Orange
-    'rgba(255, 0, 255, 0.4)',   // Magenta
-    'rgba(100, 149, 237, 0.4)', // Cornflower blue
+// Holographic edge glow colors (cyan/blue/green/white only)
+const HOLO_EDGE_COLORS = [
+    { main: 'rgba(0, 212, 255, 0.6)', glow: 'rgba(0, 212, 255, 0.3)' },   // Electric Cyan
+    { main: 'rgba(0, 255, 136, 0.6)', glow: 'rgba(0, 255, 136, 0.3)' },   // Neon Green
+    { main: 'rgba(0, 191, 255, 0.6)', glow: 'rgba(0, 191, 255, 0.3)' },   // Deep Sky Blue
+    { main: 'rgba(77, 210, 255, 0.6)', glow: 'rgba(77, 210, 255, 0.3)' }, // Light Cyan
+    { main: 'rgba(0, 255, 159, 0.6)', glow: 'rgba(0, 255, 159, 0.3)' },   // Mint Green
+    { main: 'rgba(255, 255, 255, 0.6)', glow: 'rgba(200, 255, 255, 0.3)' }, // Ice White
 ];
 
 function FooterCard({ orb, index, onSelect }: FooterCardProps) {
-    const [edgeOpacity, setEdgeOpacity] = useState(0);
-    const [yOffset, setYOffset] = useState(0);
+    const [edgeOpacity, setEdgeOpacity] = useState(0.3);
+    const [floatY, setFloatY] = useState(0);
+    const [scanLineY, setScanLineY] = useState(0);
+    const [edgeFlicker, setEdgeFlicker] = useState(false);
 
     // Each card gets a unique edge glow color
-    const edgeColor = useMemo(() => EDGE_COLORS[index % EDGE_COLORS.length], [index]);
+    const edgeColor = useMemo(() => HOLO_EDGE_COLORS[index % HOLO_EDGE_COLORS.length], [index]);
 
-    // Animation parameters
+    // Animation parameters unique to each card
     const animParams = useMemo(() => ({
-        floatDuration: 5 + Math.random() * 3, // 5-8 seconds (very slow)
-        floatAmplitude: 0.3 + Math.random() * 0.4, // 0.3-0.7px (very subtle)
+        floatSpeed: 0.3 + Math.random() * 0.2,
+        floatAmplitude: 2 + Math.random() * 2,
         phase: Math.random() * Math.PI * 2,
-        flickerSpeed: 0.3 + Math.random() * 0.4, // Slow flicker cycle
-        flickerPhase: Math.random() * Math.PI * 2,
+        pulseSpeed: 0.8 + Math.random() * 0.4,
+        scanSpeed: 1.5 + Math.random() * 0.5,
+        flickerChance: 0.002, // Subtle random flicker chance per frame
     }), []);
 
-    // Very subtle float + gentle edge pulse
+    // Holographic animations
     useEffect(() => {
         let animFrame: number;
         const startTime = Date.now();
@@ -85,17 +89,23 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
         const animate = () => {
             const elapsed = (Date.now() - startTime) / 1000;
 
-            // Very subtle float
-            const floatY = Math.sin((elapsed / animParams.floatDuration) * Math.PI * 2 + animParams.phase)
-                * animParams.floatAmplitude;
-            setYOffset(floatY);
+            // Gentle floating motion
+            const float = Math.sin(elapsed * animParams.floatSpeed + animParams.phase) * animParams.floatAmplitude;
+            setFloatY(float);
 
-            // Gentle edge pulse - very subtle, not strobe
-            // Uses a soft sine wave with occasional slight intensity variation
-            const basePulse = (Math.sin(elapsed * animParams.flickerSpeed + animParams.flickerPhase) + 1) / 2;
-            // Add slight random variation every few seconds for organic feel
-            const variation = Math.sin(elapsed * 0.1) * 0.1;
-            setEdgeOpacity(basePulse * 0.25 + variation * 0.05); // Max opacity ~0.3
+            // Pulsing edge glow
+            const pulse = (Math.sin(elapsed * animParams.pulseSpeed) + 1) / 2;
+            setEdgeOpacity(0.3 + pulse * 0.4);
+
+            // Scan line moving down the card
+            const scan = ((elapsed * animParams.scanSpeed) % 3) / 3;
+            setScanLineY(scan * 100);
+
+            // Random subtle edge flicker for "alive" feel
+            if (Math.random() < animParams.flickerChance) {
+                setEdgeFlicker(true);
+                setTimeout(() => setEdgeFlicker(false), 50 + Math.random() * 100);
+            }
 
             animFrame = requestAnimationFrame(animate);
         };
@@ -111,55 +121,154 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 flexDirection: 'column',
                 alignItems: 'center',
                 cursor: 'pointer',
-                transform: `translateY(${yOffset}px)`,
+                transform: `translateY(${floatY}px) perspective(800px) rotateX(5deg)`,
                 flex: 1,
-                maxWidth: 'calc(16.66% - 16px)', // 6 cards with gaps
+                maxWidth: 'calc(16.66% - 16px)',
+                transition: 'transform 0.3s ease-out',
             }}
             onClick={() => onSelect(orb.id)}
             title={orb.label}
+            onMouseEnter={(e) => {
+                e.currentTarget.style.transform = `translateY(${floatY - 8}px) perspective(800px) rotateX(0deg) scale(1.1)`;
+            }}
+            onMouseLeave={(e) => {
+                e.currentTarget.style.transform = `translateY(${floatY}px) perspective(800px) rotateX(5deg) scale(1)`;
+            }}
         >
-            {/* Card with subtle edge glow */}
+            {/* Holographic pedestal glow */}
             <div
                 style={{
-                    width: '100%',
-                    aspectRatio: '2 / 3',
-                    maxWidth: 100,
-                    borderRadius: 6,
-                    overflow: 'hidden',
-                    backgroundImage: orb.imageUrl
-                        ? `url('${orb.imageUrl}')`
-                        : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    border: '2px solid rgba(255, 255, 255, 0.9)',
-                    boxShadow: `
-                        0 0 ${4 + edgeOpacity * 8}px ${edgeColor.replace('0.4', String(edgeOpacity))},
-                        0 4px 16px rgba(0, 0, 0, 0.5)
-                    `,
-                    transition: 'transform 0.2s ease-out',
-                }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.08) translateY(-4px)';
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 1)';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.9)';
+                    position: 'absolute',
+                    bottom: 30,
+                    width: 80,
+                    height: 4,
+                    borderRadius: 2,
+                    background: `linear-gradient(90deg, transparent, ${edgeColor.glow}, transparent)`,
+                    filter: 'blur(4px)',
+                    opacity: edgeOpacity,
                 }}
             />
-            {/* Card label */}
+
+            {/* Main card with holographic frame */}
+            <div
+                style={{
+                    position: 'relative',
+                    width: '100%',
+                    aspectRatio: '2 / 3',
+                    maxWidth: 90,
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    background: '#0a1628',
+                    border: `2px solid ${edgeFlicker ? 'rgba(255, 255, 255, 1)' : 'rgba(200, 255, 255, 0.8)'}`,
+                    boxShadow: `
+                        0 0 ${8 + edgeOpacity * 15}px ${edgeColor.glow},
+                        0 0 ${4 + edgeOpacity * 8}px ${edgeColor.main},
+                        inset 0 0 20px rgba(0, 212, 255, 0.1),
+                        0 8px 24px rgba(0, 0, 0, 0.6)
+                    `,
+                    transition: 'box-shadow 0.2s ease-out, border-color 0.1s ease-out',
+                }}
+            >
+                {/* Card image */}
+                <div
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        backgroundImage: orb.imageUrl
+                            ? `url('${orb.imageUrl}')`
+                            : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                    }}
+                />
+
+                {/* Holographic scan line */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: `${scanLineY}%`,
+                        left: 0,
+                        right: 0,
+                        height: 2,
+                        background: `linear-gradient(90deg, transparent, ${edgeColor.main}, transparent)`,
+                        opacity: 0.6,
+                        pointerEvents: 'none',
+                    }}
+                />
+
+                {/* Corner accents - top left */}
+                <div style={{
+                    position: 'absolute',
+                    top: 4,
+                    left: 4,
+                    width: 12,
+                    height: 2,
+                    background: '#00ff88',
+                    opacity: 0.8,
+                }} />
+                <div style={{
+                    position: 'absolute',
+                    top: 4,
+                    left: 4,
+                    width: 2,
+                    height: 12,
+                    background: '#00ff88',
+                    opacity: 0.8,
+                }} />
+
+                {/* Corner accents - bottom right */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: 4,
+                    right: 4,
+                    width: 12,
+                    height: 2,
+                    background: '#00d4ff',
+                    opacity: 0.8,
+                }} />
+                <div style={{
+                    position: 'absolute',
+                    bottom: 4,
+                    right: 4,
+                    width: 2,
+                    height: 12,
+                    background: '#00d4ff',
+                    opacity: 0.8,
+                }} />
+
+                {/* Holographic shimmer overlay */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: `linear-gradient(135deg, 
+                            transparent 0%, 
+                            rgba(0, 212, 255, 0.1) 25%, 
+                            transparent 50%, 
+                            rgba(0, 255, 136, 0.1) 75%, 
+                            transparent 100%)`,
+                        pointerEvents: 'none',
+                    }}
+                />
+            </div>
+
+            {/* Card label with holographic text effect */}
             <span
                 style={{
-                    marginTop: 8,
+                    marginTop: 10,
                     fontSize: 11,
                     fontWeight: 600,
-                    color: 'rgba(255, 255, 255, 0.85)',
+                    color: 'rgba(255, 255, 255, 0.95)',
                     textAlign: 'center',
-                    textShadow: '0 1px 3px rgba(0, 0, 0, 0.8)',
+                    textShadow: `0 0 8px ${edgeColor.glow}, 0 1px 3px rgba(0, 0, 0, 0.8)`,
                     maxWidth: '100%',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
+                    letterSpacing: '0.5px',
                 }}
             >
                 {orb.label}
@@ -167,6 +276,7 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
         </div>
     );
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🔔 HUD ICON (Messages, Notifications - same size as profile orb)
@@ -445,9 +555,58 @@ export default function WorldHub() {
             left: 0,
             width: '100vw',
             height: '100vh',
-            background: '#0a0a0f',
+            background: 'linear-gradient(180deg, #0a0a12 0%, #050510 50%, #0a1218 100%)',
             overflow: 'hidden',
         }}>
+            {/* ═══════════════════════════════════════════════════════════════
+                HEXAGON GRID FLOOR — Premium video game aesthetic
+                ═══════════════════════════════════════════════════════════════ */}
+            <div
+                style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: '50vh',
+                    background: `
+                        linear-gradient(180deg, transparent 0%, rgba(0, 212, 255, 0.03) 100%),
+                        repeating-linear-gradient(
+                            0deg,
+                            transparent,
+                            transparent 40px,
+                            rgba(0, 212, 255, 0.05) 40px,
+                            rgba(0, 212, 255, 0.05) 41px
+                        ),
+                        repeating-linear-gradient(
+                            90deg,
+                            transparent,
+                            transparent 40px,
+                            rgba(0, 212, 255, 0.05) 40px,
+                            rgba(0, 212, 255, 0.05) 41px
+                        )
+                    `,
+                    transform: 'perspective(500px) rotateX(60deg) translateY(50%)',
+                    transformOrigin: 'center bottom',
+                    zIndex: 1,
+                    pointerEvents: 'none',
+                }}
+            />
+
+            {/* Volumetric light beam from top center */}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: '50%',
+                    width: '60vw',
+                    height: '70vh',
+                    transform: 'translateX(-50%)',
+                    background: 'radial-gradient(ellipse at top center, rgba(0, 212, 255, 0.08) 0%, transparent 60%)',
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                }}
+            />
+
             {/* ═══════════════════════════════════════════════════════════════
                 3D SPATIAL LAYER — Camera for massive main card
                 z-index: 5 puts cards ABOVE background but BELOW HUD (z-index: 10)
@@ -461,24 +620,29 @@ export default function WorldHub() {
                     powerPreference: 'high-performance',
                     outputColorSpace: THREE.SRGBColorSpace,
                     toneMapping: THREE.ACESFilmicToneMapping,
-                    toneMappingExposure: 1.0,
-                    alpha: true, // Enable transparency so background shows through
+                    toneMappingExposure: 1.1,
+                    alpha: true,
                 }}
             >
                 <Suspense fallback={<LoadingFallback />}>
-                    {/* Transparent background - let circuit brain show through */}
-
-                    {/* Lighting */}
-                    <ambientLight intensity={0.5} />
-                    <pointLight position={[0, 10, 15]} intensity={2} color="#ffffff" />
-                    <pointLight position={[-15, 0, 5]} intensity={0.4} color="#4488ff" />
-                    <pointLight position={[15, 0, 5]} intensity={0.4} color="#ff4488" />
+                    {/* Premium Lighting — Cyan/Blue/Green palette only */}
+                    <ambientLight intensity={0.4} />
+                    <pointLight position={[0, 12, 15]} intensity={2.5} color="#ffffff" />
+                    <pointLight position={[-15, 5, 8]} intensity={0.6} color="#00d4ff" />
+                    <pointLight position={[15, 5, 8]} intensity={0.6} color="#00ff88" />
+                    <pointLight position={[0, -10, 10]} intensity={0.3} color="#0088ff" />
                     <spotLight
-                        position={[0, 15, 10]}
-                        angle={0.6}
-                        penumbra={0.5}
-                        intensity={1.2}
+                        position={[0, 20, 12]}
+                        angle={0.5}
+                        penumbra={0.6}
+                        intensity={1.5}
                         color="#ffffff"
+                    />
+                    {/* Rim light from behind */}
+                    <directionalLight
+                        position={[0, 5, -15]}
+                        intensity={0.4}
+                        color="#00d4ff"
                     />
 
                     {/* Card Carousel with Snap */}
@@ -499,8 +663,22 @@ export default function WorldHub() {
                     backgroundImage: `url('/circuit-brain-bg.png')`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    opacity: 0.25,
+                    opacity: 0.2,
                     zIndex: 2,
+                    pointerEvents: 'none',
+                }}
+            />
+
+            {/* Subtle vignette overlay for cinematic feel */}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.4) 100%)',
+                    zIndex: 3,
                     pointerEvents: 'none',
                 }}
             />
