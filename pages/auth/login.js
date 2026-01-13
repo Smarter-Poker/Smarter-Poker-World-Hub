@@ -3,28 +3,117 @@
    Vanguard Silver | Next.js Unified
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
 
 export default function LoginPage() {
     const router = useRouter();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [mode, setMode] = useState('login'); // 'login' or 'signup'
+    const [message, setMessage] = useState(null);
 
     useEffect(() => {
-        // Check for existing session
-        const session = typeof window !== 'undefined'
-            ? localStorage.getItem('pokeriq_session')
-            : null;
-
-        if (session) {
-            router.push('/hub');
+        // Check for existing Supabase session
+        async function checkSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                router.push('/hub');
+            }
         }
+        checkSession();
     }, [router]);
 
-    const handleLogin = async () => {
-        // TODO: Integrate with Supabase Auth
-        console.log('Login initiated');
-        localStorage.setItem('pokeriq_session', 'demo_session');
-        router.push('/hub');
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const { data, error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (authError) throw authError;
+
+            console.log('✅ Login successful:', data.user?.email);
+            router.push('/hub/social-media');
+        } catch (err) {
+            console.error('Login error:', err);
+            setError(err.message || 'Login failed');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSignup = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError(null);
+        setMessage(null);
+
+        try {
+            const { data, error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/auth/callback`,
+                }
+            });
+
+            if (authError) throw authError;
+
+            if (data.user && !data.session) {
+                // Email confirmation required
+                setMessage('Check your email for a confirmation link!');
+            } else if (data.session) {
+                // Auto-confirmed (for development)
+                console.log('✅ Signup successful:', data.user?.email);
+                router.push('/hub/social-media');
+            }
+        } catch (err) {
+            console.error('Signup error:', err);
+            setError(err.message || 'Signup failed');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleMagicLink = async () => {
+        if (!email) {
+            setError('Please enter your email');
+            return;
+        }
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const { error: authError } = await supabase.auth.signInWithOtp({
+                email,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/auth/callback`,
+                }
+            });
+
+            if (authError) throw authError;
+
+            setMessage('Magic link sent! Check your email.');
+        } catch (err) {
+            console.error('Magic link error:', err);
+            setError(err.message || 'Failed to send magic link');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -35,68 +124,180 @@ export default function LoginPage() {
             alignItems: 'center',
             justifyContent: 'center',
             background: 'linear-gradient(180deg, #000a14 0%, #001428 50%, #000a14 100%)',
-            fontFamily: 'Orbitron, sans-serif',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            padding: 20,
         }}>
             {/* Logo */}
             <img
                 src="/smarter-poker-logo.png"
                 alt="Smarter Poker"
                 style={{
-                    height: 120,
-                    marginBottom: 40,
+                    height: 80,
+                    marginBottom: 30,
                     filter: 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.3))',
                 }}
             />
 
             {/* Title */}
             <h1 style={{
-                fontSize: 32,
+                fontSize: 28,
                 fontWeight: 700,
                 color: '#ffffff',
                 marginBottom: 8,
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
+                letterSpacing: '0.05em',
             }}>
-                Welcome To PokerIQ
+                {mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h1>
 
             <p style={{
                 fontSize: 14,
                 color: 'rgba(255, 255, 255, 0.6)',
-                marginBottom: 40,
+                marginBottom: 30,
             }}>
-                Your GTO Training Command Center
+                {mode === 'login' ? 'Sign in to your PokerIQ account' : 'Join the PokerIQ community'}
             </p>
 
-            {/* Login Button */}
-            <button
-                onClick={handleLogin}
-                style={{
-                    padding: '16px 48px',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    fontFamily: 'Orbitron, sans-serif',
-                    color: '#ffffff',
-                    background: 'linear-gradient(135deg, rgba(0, 100, 180, 0.8), rgba(0, 60, 120, 0.9))',
-                    border: '2px solid rgba(0, 212, 255, 0.5)',
-                    borderRadius: 8,
-                    cursor: 'pointer',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 20px rgba(0, 212, 255, 0.2)',
-                }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                    e.currentTarget.style.boxShadow = '0 6px 30px rgba(0, 212, 255, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 212, 255, 0.2)';
-                }}
-            >
-                Enter The Hub
-            </button>
+            {/* Auth Form */}
+            <form onSubmit={mode === 'login' ? handleLogin : handleSignup} style={{
+                width: '100%',
+                maxWidth: 360,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+            }}>
+                <input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    style={{
+                        padding: '14px 16px',
+                        fontSize: 16,
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        borderRadius: 8,
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        color: '#fff',
+                        outline: 'none',
+                    }}
+                />
+
+                <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    style={{
+                        padding: '14px 16px',
+                        fontSize: 16,
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        borderRadius: 8,
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        color: '#fff',
+                        outline: 'none',
+                    }}
+                />
+
+                {error && (
+                    <div style={{
+                        padding: '12px',
+                        background: 'rgba(220, 38, 38, 0.2)',
+                        border: '1px solid rgba(220, 38, 38, 0.5)',
+                        borderRadius: 8,
+                        color: '#f87171',
+                        fontSize: 14,
+                        textAlign: 'center',
+                    }}>
+                        {error}
+                    </div>
+                )}
+
+                {message && (
+                    <div style={{
+                        padding: '12px',
+                        background: 'rgba(34, 197, 94, 0.2)',
+                        border: '1px solid rgba(34, 197, 94, 0.5)',
+                        borderRadius: 8,
+                        color: '#4ade80',
+                        fontSize: 14,
+                        textAlign: 'center',
+                    }}>
+                        {message}
+                    </div>
+                )}
+
+                <button
+                    type="submit"
+                    disabled={isLoading}
+                    style={{
+                        padding: '14px 24px',
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: '#ffffff',
+                        background: isLoading
+                            ? 'rgba(100, 100, 100, 0.5)'
+                            : 'linear-gradient(135deg, #1877F2, #0a5dc2)',
+                        border: 'none',
+                        borderRadius: 8,
+                        cursor: isLoading ? 'wait' : 'pointer',
+                        transition: 'all 0.3s ease',
+                    }}
+                >
+                    {isLoading
+                        ? 'Please wait...'
+                        : mode === 'login'
+                            ? 'Sign In'
+                            : 'Create Account'}
+                </button>
+
+                {mode === 'login' && (
+                    <button
+                        type="button"
+                        onClick={handleMagicLink}
+                        disabled={isLoading}
+                        style={{
+                            padding: '14px 24px',
+                            fontSize: 14,
+                            fontWeight: 500,
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            background: 'transparent',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: 8,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        ✨ Send Magic Link
+                    </button>
+                )}
+            </form>
+
+            {/* Toggle Mode */}
+            <p style={{
+                marginTop: 24,
+                fontSize: 14,
+                color: 'rgba(255, 255, 255, 0.6)',
+            }}>
+                {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
+                <button
+                    onClick={() => {
+                        setMode(mode === 'login' ? 'signup' : 'login');
+                        setError(null);
+                        setMessage(null);
+                    }}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#1877F2',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        textDecoration: 'underline',
+                    }}
+                >
+                    {mode === 'login' ? 'Sign Up' : 'Sign In'}
+                </button>
+            </p>
 
             {/* Footer */}
             <p style={{
