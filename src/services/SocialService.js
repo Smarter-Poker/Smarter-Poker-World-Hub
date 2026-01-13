@@ -22,23 +22,31 @@ export class SocialService {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Fetch social feed
+     * Fetch social feed - using direct query (RPC was broken)
      * @param {Object} options - Feed options
      * @returns {Promise<{ posts: SocialPost[], hasMore: boolean }>}
      */
     async getFeed({ userId, filter = 'recent', limit = 20, offset = 0 }) {
         try {
-            const { data, error } = await this.supabase.rpc('fn_get_social_feed', {
-                p_user_id: userId,
-                p_limit: limit + 1, // Fetch one extra to check if more exist
-                p_offset: offset,
-                p_filter: filter
-            });
+            // Direct query instead of RPC - more reliable
+            const { data, error } = await this.supabase
+                .from('social_posts')
+                .select('*')
+                .or('visibility.eq.public,visibility.is.null')
+                .order('created_at', { ascending: false })
+                .range(offset, offset + limit);
 
             if (error) throw error;
 
             const hasMore = data.length > limit;
-            const posts = data.slice(0, limit).map(row => createPost(row));
+            const posts = data.slice(0, limit).map(row => createPost({
+                ...row,
+                post_id: row.id,
+                author_username: 'Player',
+                author_avatar: null,
+                author_level: 1,
+                is_liked: false
+            }));
 
             return { posts, hasMore };
         } catch (error) {

@@ -1,18 +1,36 @@
 {
     "name": "content-engine",
     "version": "1.0.0",
-    "description": "Smarter.Poker Content Seeding Engine",
+    "description": "Smarter.Poker Content Seeding Engine with Video Generation",
     "type": "module",
     "scripts": {
         "seed": "node ContentCommander.js seed",
+        "seed:10": "node ContentScheduler.js seed 10",
+        "seed:50": "node ContentScheduler.js seed 50",
         "seed:100": "node ContentScheduler.js seed 100",
         "seed:500": "node ContentScheduler.js seed 500",
         "schedule": "node ContentScheduler.js schedule",
         "publish": "node ContentScheduler.js publish",
-        "bootstrap": "node ContentScheduler.js full"
+        "bootstrap": "node ContentScheduler.js full",
+        "seed-personas": "node seedPersonas.js",
+        "pipeline:test": "node pipeline/PipelineCommander.js test",
+        "pipeline:daily": "node pipeline/PipelineCommander.js daily",
+        "pipeline:publish": "node pipeline/PipelineCommander.js publish",
+        "pipeline:video": "node pipeline/PipelineCommander.js video",
+        "pipeline:cycle": "node pipeline/PipelineCommander.js cycle",
+        "rss:fetch": "node -e \"import('./pipeline/RSSAggregator.js').then(m => m.rssAggregator.fetchAll().then(console.log))\"",
+        "admin": "vite --config admin/vite.config.js",
+        "build:admin": "vite build --config admin/vite.config.js"
     },
     "dependencies": {
         "openai": "^4.28.0",
-        "@supabase/supabase-js": "^2.39.0"
+        "@supabase/supabase-js": "^2.39.0",
+        "rss-parser": "^3.13.0"
+    },
+    "devDependencies": {
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "vite": "^5.0.0",
+        "@vitejs/plugin-react": "^4.2.0"
     }
 }
