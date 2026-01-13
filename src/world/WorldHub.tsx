@@ -189,16 +189,16 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                     />
 
                     {/* ═══════════════════════════════════════════════════════════════
-                        INNER WHITE BORDER FRAME - Full rectangle inside the card
+                        INNER WHITE BORDER FRAME - Full rectangle with connected corners
                         ═══════════════════════════════════════════════════════════════ */}
                     {/* Inner top border */}
-                    <div style={{ position: 'absolute', top: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.9)' }} />
+                    <div style={{ position: 'absolute', top: 6, left: 6, right: 6, height: 1, background: 'rgba(255, 255, 255, 0.85)' }} />
                     {/* Inner bottom border */}
-                    <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.9)' }} />
+                    <div style={{ position: 'absolute', bottom: 6, left: 6, right: 6, height: 1, background: 'rgba(255, 255, 255, 0.85)' }} />
                     {/* Inner left border */}
-                    <div style={{ position: 'absolute', top: 8, bottom: 8, left: 8, width: 2, background: 'rgba(255, 255, 255, 0.9)' }} />
+                    <div style={{ position: 'absolute', top: 6, bottom: 6, left: 6, width: 1, background: 'rgba(255, 255, 255, 0.85)' }} />
                     {/* Inner right border */}
-                    <div style={{ position: 'absolute', top: 8, bottom: 8, right: 8, width: 2, background: 'rgba(255, 255, 255, 0.9)' }} />
+                    <div style={{ position: 'absolute', top: 6, bottom: 6, right: 6, width: 1, background: 'rgba(255, 255, 255, 0.85)' }} />
                 </div>
             </div>
 
