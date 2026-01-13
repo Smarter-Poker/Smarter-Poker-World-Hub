@@ -283,11 +283,12 @@ export default async function handler(req, res) {
             });
         }
 
-        // Get random horses (all horses are considered active)
+        // Get random active horses (is_active controls which horses are deployed)
         const { data: horses, error: horseError } = await supabase
             .from('content_authors')
             .select('*')
-            .limit(CONFIG.HORSES_PER_TRIGGER * 2);  // Get more, then randomly pick
+            .eq('is_active', true)
+            .limit(CONFIG.HORSES_PER_TRIGGER * 2);
 
         if (horseError) {
             console.error('Horse fetch error:', horseError);
@@ -295,8 +296,12 @@ export default async function handler(req, res) {
         }
 
         if (!horses?.length) {
-            console.log('No horses found in database');
-            return res.status(200).json({ success: true, message: 'No horses in database', posted: 0 });
+            console.log('No active horses found - check is_active column');
+            return res.status(200).json({
+                success: true,
+                message: 'No active horses - set is_active=true on horses to deploy them',
+                posted: 0
+            });
         }
 
         // Randomly shuffle and pick horses
