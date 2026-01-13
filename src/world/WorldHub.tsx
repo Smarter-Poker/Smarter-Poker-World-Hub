@@ -680,56 +680,69 @@ export default function WorldHub() {
                 z-index: 10 ensures cards and UI are ABOVE background/neurons
                 ═══════════════════════════════════════════════════════════════ */}
             <div className="hud-overlay" style={{ zIndex: 10 }}>
-                {/* TOP BAR: Logo | Stats (centered) | Profile */}
+                {/* TOP BAR: Glassmorphism Header */}
                 <div
                     style={{
                         position: 'absolute',
-                        top: 4,
-                        left: 24,
-                        right: 24,
+                        top: 12,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
+                        padding: '8px 24px',
+                        background: 'linear-gradient(180deg, rgba(10, 22, 40, 0.85), rgba(5, 15, 30, 0.9))',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                        borderRadius: 50,
+                        border: '1px solid rgba(0, 212, 255, 0.3)',
+                        boxShadow: `
+                            0 0 20px rgba(0, 212, 255, 0.15),
+                            0 4px 30px rgba(0, 0, 0, 0.4),
+                            inset 0 1px 0 rgba(255, 255, 255, 0.1)
+                        `,
+                        gap: 24,
+                        minWidth: 'auto',
+                        maxWidth: '95vw',
                     }}
                 >
-                    {/* LEFT SECTION: Logo only */}
+                    {/* LEFT SECTION: Logo */}
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                        {/* SMARTER POKER LOGO — Smaller, click to return home */}
                         <img
                             src="/smarter-poker-logo.png"
                             alt="Smarter Poker — Return to Home"
                             onClick={handleLogoClick}
                             style={{
-                                height: 60,
+                                height: 40,
                                 width: 'auto',
                                 objectFit: 'contain',
-                                filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6))',
+                                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
                                 cursor: 'pointer',
                                 transition: 'transform 0.2s ease-out, filter 0.2s ease-out',
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'scale(1.03)';
-                                e.currentTarget.style.filter = 'drop-shadow(0 2px 12px rgba(0, 212, 255, 0.4))';
+                                e.currentTarget.style.transform = 'scale(1.05)';
+                                e.currentTarget.style.filter = 'drop-shadow(0 2px 8px rgba(0, 212, 255, 0.5))';
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.transform = 'scale(1)';
-                                e.currentTarget.style.filter = 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6))';
+                                e.currentTarget.style.filter = 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))';
                             }}
                             title="Return to Home"
                         />
                     </div>
 
-                    {/* CENTER SECTION: Stats (evenly spaced) */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    {/* CENTER SECTION: Stats */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                         <DiamondStat onBuyClick={handleBuyDiamonds} />
                         <XPStat />
                     </div>
 
-                    {/* RIGHT SECTION: Profile, Messages, Notifications, Search, Help */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, position: 'relative' }}>
-                        {/* PROFILE ORB — Click to open dropdown */}
+                    {/* RIGHT SECTION: Icons */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+                        {/* PROFILE ORB */}
                         <div ref={profileOrbRef}>
-                            <ProfileOrbInline onClick={handleProfileClick} size={48} avatarUrl={userAvatarUrl} />
+                            <ProfileOrbInline onClick={handleProfileClick} size={40} avatarUrl={userAvatarUrl} />
                         </div>
                         <ProfileDropdown
                             isOpen={isProfileDropdownOpen}
@@ -737,32 +750,32 @@ export default function WorldHub() {
                             anchorRef={profileOrbRef}
                         />
 
-                        {/* MESSAGES ORB — With badge count */}
+                        {/* MESSAGES ORB */}
                         <HudIconOrb
                             iconUrl="/message-orb-icon.png"
                             title="Messages"
-                            size={48}
+                            size={40}
                             badgeCount={messageCount}
                             onClick={() => handleNavigate('messages')}
                         />
 
-                        {/* NOTIFICATIONS ORB — With badge count */}
+                        {/* NOTIFICATIONS ORB */}
                         <HudIconOrb
                             iconUrl="/notification-orb-icon.png"
                             title="Notifications"
-                            size={48}
+                            size={40}
                             badgeCount={notificationCount}
                             onClick={() => handleNavigate('notifications')}
                         />
 
                         {/* SEARCH ORB */}
-                        <SearchOrb onClick={() => setIsSearchOpen(true)} size={48} />
+                        <SearchOrb onClick={() => setIsSearchOpen(true)} size={40} />
 
-                        {/* SETTINGS ORB — Gear icon to settings page */}
-                        <SettingsOrb onClick={handleSettings} size={48} />
+                        {/* SETTINGS ORB */}
+                        <SettingsOrb onClick={handleSettings} size={40} />
 
-                        {/* LIVE HELP ORB — Far right, opens expert assistance panel */}
-                        <LiveHelpOrb onClick={liveHelp.openHelp} size={48} />
+                        {/* LIVE HELP ORB */}
+                        <LiveHelpOrb onClick={liveHelp.openHelp} size={40} />
                     </div>
                 </div>
 
