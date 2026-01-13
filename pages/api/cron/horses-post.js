@@ -7,8 +7,8 @@
  * Add to vercel.json:
  * {
  *   "crons": [
- *     { "path": "/api/cron/horses-post", "schedule": "*/30 9 - 22 * * * " }
-    *   ]
+ *     { "path": "/api/cron/horses-post", "schedule": "0,30 9-22 * * *" }
+ *   ]
  * }
  * ═══════════════════════════════════════════════════════════════════════════
  */
