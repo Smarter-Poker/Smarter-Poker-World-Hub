@@ -90,6 +90,8 @@ export class SocialService {
      */
     async createPost({ authorId, content, contentType = 'text', mediaUrls = [], visibility = 'public', achievementData = null }) {
         try {
+            console.log('📝 Creating post:', { authorId, content: content?.substring(0, 50), contentType });
+
             const { data, error } = await this.supabase
                 .from('social_posts')
                 .insert({
@@ -100,22 +102,24 @@ export class SocialService {
                     visibility,
                     achievement_data: achievementData
                 })
-                .select(`
-          *,
-          author:user_dna_profiles!author_id (
-            user_id,
-            username,
-            avatar_url,
-            current_level,
-            tier_id,
-            is_verified
-          )
-        `)
+                .select('*')
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                console.error('❌ Post insert error:', error);
+                throw error;
+            }
 
-            return createPost(data, createAuthor(data.author));
+            console.log('✅ Post created:', data.id);
+
+            // Return simplified post object
+            return createPost({
+                ...data,
+                author_id: authorId,
+                author_username: 'You',
+                author_avatar: null,
+                author_level: 1
+            });
         } catch (error) {
             console.error('Post creation error:', error);
             throw error;

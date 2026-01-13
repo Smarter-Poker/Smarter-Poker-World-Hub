@@ -303,7 +303,7 @@ export const EnhancedPostCreator = ({
 
     } catch (err) {
       console.error('Post creation error:', err);
-      setError('Failed to create post. Please try again.');
+      setError(err.message || 'Failed to create post. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
