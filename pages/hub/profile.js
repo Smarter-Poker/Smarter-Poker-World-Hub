@@ -287,8 +287,8 @@ export default function ProfilePage() {
 
         setSaving(false);
         if (error) {
-            setMessage('Error saving profile');
-            console.error(error);
+            setMessage(`Error saving profile: ${error.message || error.code || JSON.stringify(error)}`);
+            console.error('Profile save error:', error);
         } else {
             // Navigate back to previous page after successful save
             router.back();
