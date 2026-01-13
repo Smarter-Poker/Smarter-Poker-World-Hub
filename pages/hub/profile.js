@@ -82,76 +82,102 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
     );
 }
 
-// External Link Modal - opens external sites in an iframe inside the app
-function ExternalLinkModal({ url, onClose }) {
-    if (!url) return null;
-    return (
-        <div style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex',
-            flexDirection: 'column', padding: 20
-        }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ color: 'white', fontSize: 14 }}>{url}</span>
-                <button onClick={onClose} style={{
-                    background: '#ff4444', color: 'white', border: 'none',
-                    padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600
-                }}>✕ Close</button>
-            </div>
-            <iframe
-                src={url}
-                style={{ flex: 1, border: 'none', borderRadius: 8, background: 'white' }}
-                title="External Content"
-            />
-        </div>
-    );
-}
-
-function HendonMobBadge({ hendonData, onOpenExternal }) {
+// Poker Resume Badge - displays scraped HendonMob data in Smarter.Poker style
+function PokerResumeBadge({ hendonData, onRefresh, isRefreshing }) {
     if (!hendonData?.hendon_url) return null;
 
+    const hasData = hendonData.total_cashes || hendonData.total_earnings;
+
     return (
         <div style={{
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-            borderRadius: 12, padding: 20, color: 'white', marginTop: 16
+            background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d0d2e 100%)',
+            borderRadius: 16, padding: 24, color: 'white', marginTop: 16,
+            border: '1px solid rgba(255, 215, 0, 0.3)',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 215, 0, 0.1)'
         }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                <span style={{ fontSize: 28 }}>🏆</span>
-                <div>
-                    <div style={{ fontWeight: 700, fontSize: 18 }}>Hendon Mob Verified</div>
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>Professional Tournament Player</div>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                        width: 48, height: 48, borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 24, boxShadow: '0 2px 10px rgba(255, 215, 0, 0.4)'
+                    }}>🏆</div>
+                    <div>
+                        <div style={{ fontWeight: 700, fontSize: 20, letterSpacing: 0.5 }}>POKER RESUME</div>
+                        <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>Tournament Career Statistics</div>
+                    </div>
+                </div>
+                <div style={{
+                    background: 'rgba(255, 215, 0, 0.15)',
+                    border: '1px solid rgba(255, 215, 0, 0.4)',
+                    padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                    color: C.gold
+                }}>
+                    ✓ VERIFIED
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: 12, textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, fontWeight: 700, color: C.gold }}>{hendonData.total_cashes || '—'}</div>
-                    <div style={{ fontSize: 11, opacity: 0.7 }}>Total Cashes</div>
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: 12, textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, fontWeight: 700, color: C.gold }}>${hendonData.total_earnings?.toLocaleString() || '—'}</div>
-                    <div style={{ fontSize: 11, opacity: 0.7 }}>Total Earnings</div>
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: 12, textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, fontWeight: 700, color: C.gold }}>{hendonData.best_finish || '—'}</div>
-                    <div style={{ fontSize: 11, opacity: 0.7 }}>Best Finish</div>
-                </div>
-            </div>
+            {hasData ? (
+                <>
+                    {/* Stats Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
+                        <div style={{
+                            background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 16, textAlign: 'center',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                            <div style={{ fontSize: 32, fontWeight: 800, color: C.gold, textShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>
+                                {hendonData.total_cashes?.toLocaleString() || '—'}
+                            </div>
+                            <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Cashes</div>
+                        </div>
+                        <div style={{
+                            background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 16, textAlign: 'center',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                            <div style={{ fontSize: 32, fontWeight: 800, color: '#00ff88', textShadow: '0 0 10px rgba(0, 255, 136, 0.3)' }}>
+                                ${hendonData.total_earnings?.toLocaleString() || '—'}
+                            </div>
+                            <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Earnings</div>
+                        </div>
+                        <div style={{
+                            background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 16, textAlign: 'center',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                            <div style={{ fontSize: 32, fontWeight: 800, color: '#00d4ff', textShadow: '0 0 10px rgba(0, 212, 255, 0.3)' }}>
+                                {hendonData.best_finish || '—'}
+                            </div>
+                            <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Best Finish</div>
+                        </div>
+                    </div>
 
-            <button
-                onClick={() => onOpenExternal(hendonData.hendon_url)}
-                style={{
-                    display: 'block', width: '100%', textAlign: 'center', padding: 10, background: C.gold,
-                    color: '#000', borderRadius: 8, fontWeight: 600, border: 'none', cursor: 'pointer',
-                    fontSize: 14
-                }}
-            >
-                View Full Poker Resume →
-            </button>
-
-            {hendonData.last_scraped && (
-                <div style={{ fontSize: 11, opacity: 0.5, textAlign: 'center', marginTop: 8 }}>
-                    Last updated: {new Date(hendonData.last_scraped).toLocaleDateString()}
+                    {/* Last Updated */}
+                    {hendonData.last_scraped && (
+                        <div style={{ fontSize: 11, opacity: 0.4, textAlign: 'center' }}>
+                            Stats last synced: {new Date(hendonData.last_scraped).toLocaleDateString()}
+                        </div>
+                    )}
+                </>
+            ) : (
+                /* No data yet - show pending state */
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <div style={{ fontSize: 48, marginBottom: 12 }}>⏳</div>
+                    <div style={{ fontSize: 14, opacity: 0.7, marginBottom: 16 }}>
+                        Stats will be synced automatically after you save your profile.
+                    </div>
+                    <button
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        style={{
+                            background: C.gold, color: '#000', border: 'none',
+                            padding: '10px 24px', borderRadius: 8, fontWeight: 600,
+                            cursor: isRefreshing ? 'wait' : 'pointer',
+                            opacity: isRefreshing ? 0.7 : 1
+                        }}
+                    >
+                        {isRefreshing ? 'Syncing...' : '🔄 Sync Stats Now'}
+                    </button>
                 </div>
             )}
         </div>
@@ -164,7 +190,6 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
-    const [externalUrl, setExternalUrl] = useState(null);
 
     // Profile fields
     const [profile, setProfile] = useState({
@@ -367,8 +392,8 @@ export default function ProfilePage() {
                             icon="🔗"
                         />
 
-                        {/* Display HendonMob badge if linked */}
-                        <HendonMobBadge
+                        {/* Display Poker Resume badge if linked */}
+                        <PokerResumeBadge
                             hendonData={{
                                 hendon_url: profile.hendon_url,
                                 total_cashes: profile.hendon_total_cashes,
@@ -376,7 +401,6 @@ export default function ProfilePage() {
                                 best_finish: profile.hendon_best_finish,
                                 last_scraped: profile.hendon_last_scraped,
                             }}
-                            onOpenExternal={setExternalUrl}
                         />
                     </div>
 
@@ -394,9 +418,6 @@ export default function ProfilePage() {
                     </button>
                 </div>
             </div>
-
-            {/* External Link Modal */}
-            <ExternalLinkModal url={externalUrl} onClose={() => setExternalUrl(null)} />
         </>
     );
 }

@@ -6,13 +6,12 @@
 
 import Head from 'next/head';
 import { useEffect, useState, useRef } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '../../src/lib/supabase';
 
 export default function ClubArenaPage() {
     const [mounted, setMounted] = useState(false);
     const [sessionReady, setSessionReady] = useState(false);
     const iframeRef = useRef(null);
-    const supabase = createClientComponentClient();
 
     useEffect(() => {
         setMounted(true);
@@ -28,13 +27,11 @@ export default function ClubArenaPage() {
                     case 'XP_EARNED':
                         console.log('🎯 XP Earned:', payload);
                         // TODO: Call Supabase RPC to add XP
-                        // await supabase.rpc('add_xp', { amount: payload.amount, reason: payload.reason });
                         break;
 
                     case 'DIAMOND_EARNED':
                         console.log('💎 Diamond Earned:', payload);
                         // TODO: Call Supabase RPC to add diamonds
-                        // await supabase.rpc('add_diamonds', { amount: payload.amount, reason: payload.reason });
                         break;
 
                     case 'ACHIEVEMENT_UNLOCKED':

@@ -5,8 +5,8 @@
   "devFiles": [],
   "ampDevFiles": [],
   "lowPriorityFiles": [
-    "static/XACIM-haxB5jhJRN8NZLV/_buildManifest.js",
-    "static/XACIM-haxB5jhJRN8NZLV/_ssgManifest.js"
+    "static/1OxGT-cpBoDfZG5QLn04r/_buildManifest.js",
+    "static/1OxGT-cpBoDfZG5QLn04r/_ssgManifest.js"
   ],
   "rootMainFiles": [],
   "pages": {
@@ -83,7 +83,7 @@
       "static/chunks/webpack-028a45411f2e4f1f.js",
       "static/chunks/framework-ecc4130bc7a58a64.js",
       "static/chunks/main-48a2be0192cdda09.js",
-      "static/chunks/pages/hub/club-arena-b33cad85bb04a233.js"
+      "static/chunks/pages/hub/club-arena-f49d7737f3c6f933.js"
     ],
     "/hub/diamond-arena": [
       "static/chunks/webpack-028a45411f2e4f1f.js",
@@ -109,7 +109,7 @@
       "static/chunks/framework-ecc4130bc7a58a64.js",
       "static/chunks/main-48a2be0192cdda09.js",
       "static/chunks/996-0c3b85cea13847a4.js",
-      "static/chunks/pages/hub/profile-a83e60a8dd1a66ee.js"
+      "static/chunks/pages/hub/profile-2ea083e3b41e5c10.js"
     ],
     "/hub/settings": [
       "static/chunks/webpack-028a45411f2e4f1f.js",
