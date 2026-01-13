@@ -141,11 +141,11 @@ function PostCard({ post, currentUserId, onLike, onDelete, onComment }) {
         setLoadingComments(true);
         try {
             const { data } = await supabase.from('social_comments')
-                .select('id, content, created_at, author_id, profiles(username)')
+                .select('id, content, created_at, author_id')
                 .eq('post_id', post.id)
                 .order('created_at', { ascending: true })
                 .limit(20);
-            if (data) setComments(data.map(c => ({ id: c.id, text: c.content, authorName: c.profiles?.username || 'Player', authorId: c.author_id, time: timeAgo(c.created_at) })));
+            if (data) setComments(data.map(c => ({ id: c.id, text: c.content, authorName: 'Player', authorId: c.author_id, time: timeAgo(c.created_at) })));
         } catch (e) { console.error(e); }
         setLoadingComments(false);
     };
