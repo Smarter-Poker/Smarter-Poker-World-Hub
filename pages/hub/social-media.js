@@ -55,20 +55,39 @@ function StoriesBar({ currentUser, onAddStory }) {
     );
 }
 
+const MAX_MEDIA = 10;
+
 function PostCreator({ user, onPost, isPosting }) {
     const [content, setContent] = useState('');
     const [media, setMedia] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState('');
+    const [mentionQuery, setMentionQuery] = useState('');
+    const [mentionResults, setMentionResults] = useState([]);
+    const [showMentions, setShowMentions] = useState(false);
+    const [cursorPosition, setCursorPosition] = useState(0);
     const fileRef = useRef(null);
+    const inputRef = useRef(null);
+    const mentionTimeout = useRef(null);
 
     const handleFiles = async (e) => {
         const files = Array.from(e.target.files);
         if (!files.length || !user?.id) return;
+
+        // Check total media limit
+        const remaining = MAX_MEDIA - media.length;
+        if (remaining <= 0) {
+            setError(`Maximum ${MAX_MEDIA} images/videos allowed per post`);
+            return;
+        }
+        const filesToUpload = files.slice(0, remaining);
+        if (files.length > remaining) {
+            setError(`Only ${remaining} more file(s) can be added (max ${MAX_MEDIA})`);
+        }
+
         setUploading(true);
-        setError('');
         const uploaded = [];
-        for (const file of files) {
+        for (const file of filesToUpload) {
             const isVideo = file.type.startsWith('video/');
             const path = `${isVideo ? 'videos' : 'photos'}/${user.id}/${Date.now()}_${file.name}`;
             const { error: upErr } = await supabase.storage.from('social-media').upload(path, file);
@@ -81,40 +100,162 @@ function PostCreator({ user, onPost, isPosting }) {
         setUploading(false);
     };
 
+    // Handle @mention detection
+    const handleContentChange = (e) => {
+        const value = e.target.value;
+        const pos = e.target.selectionStart;
+        setContent(value);
+        setCursorPosition(pos);
+
+        // Check for @mention pattern
+        const textBeforeCursor = value.substring(0, pos);
+        const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+
+        if (mentionMatch) {
+            const query = mentionMatch[1];
+            setMentionQuery(query);
+            setShowMentions(true);
+
+            // Search for users
+            if (mentionTimeout.current) clearTimeout(mentionTimeout.current);
+            if (query.length >= 1) {
+                mentionTimeout.current = setTimeout(async () => {
+                    try {
+                        const { data } = await supabase.from('profiles')
+                            .select('id, username, full_name')
+                            .ilike('username', `%${query}%`)
+                            .limit(5);
+                        if (data) setMentionResults(data);
+                    } catch (e) { console.error(e); }
+                }, 200);
+            }
+        } else {
+            setShowMentions(false);
+            setMentionResults([]);
+        }
+    };
+
+    const insertMention = (user) => {
+        const textBeforeCursor = content.substring(0, cursorPosition);
+        const textAfterCursor = content.substring(cursorPosition);
+        const mentionStart = textBeforeCursor.lastIndexOf('@');
+        const newContent = textBeforeCursor.substring(0, mentionStart) + `@${user.username} ` + textAfterCursor;
+        setContent(newContent);
+        setShowMentions(false);
+        setMentionResults([]);
+        inputRef.current?.focus();
+    };
+
     const handlePost = async () => {
         if (!content.trim() && !media.length) return;
         setError('');
         const urls = media.map(m => m.url);
         const type = media.some(m => m.type === 'video') ? 'video' : media.length ? 'photo' : 'text';
-        const ok = await onPost(content, urls, type);
+
+        // Extract mentions from content
+        const mentionPattern = /@(\w+)/g;
+        const mentions = [];
+        let match;
+        while ((match = mentionPattern.exec(content)) !== null) {
+            mentions.push(match[1]);
+        }
+
+        const ok = await onPost(content, urls, type, mentions);
         if (ok) { setContent(''); setMedia([]); }
         else setError('Unable to post at this time. Please try again later.');
     };
 
     return (
-        <div style={{ background: C.card, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2 }}>
+        <div style={{ background: C.card, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2, position: 'relative' }}>
             <div style={{ padding: 12, display: 'flex', gap: 8 }}>
                 <Avatar src={user?.avatar} name={user?.name} size={40} />
-                <input value={content} onChange={e => setContent(e.target.value)} placeholder={`What's on your mind, ${user?.name || 'Player'}?`}
-                    style={{ flex: 1, background: C.bg, border: 'none', borderRadius: 20, padding: '10px 16px', fontSize: 16, outline: 'none' }} />
-            </div>
-            {media.length > 0 && (
-                <div style={{ padding: '0 12px 8px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {media.map((m, i) => (
-                        <div key={i} style={{ position: 'relative', width: 60, height: 60, borderRadius: 8, overflow: 'hidden' }}>
-                            {m.type === 'video' ? <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                            <button onClick={() => setMedia(prev => prev.filter((_, idx) => idx !== i))} style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', cursor: 'pointer', fontSize: 10 }}>✕</button>
+                <div style={{ flex: 1, position: 'relative' }}>
+                    <input
+                        ref={inputRef}
+                        value={content}
+                        onChange={handleContentChange}
+                        placeholder={`What's on your mind, ${user?.name || 'Player'}? Use @ to tag friends`}
+                        style={{ width: '100%', background: C.bg, border: 'none', borderRadius: 20, padding: '10px 16px', fontSize: 16, outline: 'none', boxSizing: 'border-box' }}
+                    />
+                    {/* @Mention Dropdown */}
+                    {showMentions && mentionResults.length > 0 && (
+                        <div style={{
+                            position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+                            background: C.card, borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            border: `1px solid ${C.border}`, zIndex: 1000, maxHeight: 200, overflowY: 'auto'
+                        }}>
+                            {mentionResults.map(u => (
+                                <div
+                                    key={u.id}
+                                    onClick={() => insertMention(u)}
+                                    style={{
+                                        padding: '10px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                                        borderBottom: `1px solid ${C.border}`, transition: 'background 0.2s'
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = C.bg}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <Avatar name={u.username} size={32} />
+                                    <div>
+                                        <div style={{ fontWeight: 600, fontSize: 14 }}>@{u.username}</div>
+                                        {u.full_name && <div style={{ fontSize: 12, color: C.textSec }}>{u.full_name}</div>}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    ))}
+                    )}
+                </div>
+            </div>
+            {/* Media Preview Grid */}
+            {media.length > 0 && (
+                <div style={{ padding: '0 12px 8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: media.length === 1 ? '1fr' : media.length === 2 ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 4 }}>
+                        {media.map((m, i) => (
+                            <div key={i} style={{ position: 'relative', aspectRatio: media.length === 1 ? '16/9' : '1', borderRadius: 8, overflow: 'hidden' }}>
+                                {m.type === 'video' ? (
+                                    <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                )}
+                                <button
+                                    onClick={() => setMedia(prev => prev.filter((_, idx) => idx !== i))}
+                                    style={{
+                                        position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: '50%',
+                                        background: 'rgba(0,0,0,0.7)', border: 'none', color: 'white', cursor: 'pointer',
+                                        fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}
+                                >✕</button>
+                                {m.type === 'video' && (
+                                    <div style={{
+                                        position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.7)',
+                                        padding: '2px 6px', borderRadius: 4, color: 'white', fontSize: 10
+                                    }}>VIDEO</div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>{media.length}/{MAX_MEDIA} files</div>
                 </div>
             )}
             {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}>⚠️ {error}</div>}
             <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: 4 }}>
                     <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFiles} />
-                    <button onClick={() => fileRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>{uploading ? '⏳' : '🖼️'} Photo/Video</button>
+                    <button
+                        onClick={() => fileRef.current?.click()}
+                        disabled={media.length >= MAX_MEDIA}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6,
+                            border: 'none', background: 'transparent', cursor: media.length >= MAX_MEDIA ? 'not-allowed' : 'pointer',
+                            color: media.length >= MAX_MEDIA ? '#ccc' : C.textSec, fontSize: 13
+                        }}
+                    >{uploading ? '⏳' : '🖼️'} Photo/Video</button>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>📺 Live</button>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>🃏 Share Hand</button>
+                    <button
+                        onClick={() => { setContent(prev => prev + ' @'); inputRef.current?.focus(); }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}
+                    >👤 Tag</button>
                 </div>
                 <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length)} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length) ? 0.5 : 1 }}>Post</button>
             </div>
@@ -180,9 +321,88 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                 </div>
                 {post.authorId === currentUserId && <button onClick={() => onDelete(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 16 }}>⋯</button>}
             </div>
-            {post.content && <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>{post.content}</div>}
+            {post.content && (
+                <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>
+                    {post.content.split(/(@\w+)/g).map((part, i) =>
+                        part.startsWith('@') ?
+                            <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>{part}</span> :
+                            part
+                    )}
+                </div>
+            )}
+            {/* Media Grid - supports up to 10 images/videos */}
             {post.mediaUrls?.length > 0 && (
-                <div>{post.contentType === 'video' ? <video controls style={{ width: '100%', display: 'block' }} src={post.mediaUrls[0]} /> : <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />}</div>
+                <div style={{ padding: post.mediaUrls.length > 1 ? '0 2px 2px' : 0 }}>
+                    {post.mediaUrls.length === 1 ? (
+                        // Single media - full width
+                        post.contentType === 'video' ? (
+                            <video controls style={{ width: '100%', display: 'block' }} src={post.mediaUrls[0]} />
+                        ) : (
+                            <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                        )
+                    ) : post.mediaUrls.length === 2 ? (
+                        // 2 media - side by side
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                            {post.mediaUrls.map((url, i) => (
+                                <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
+                                    {post.contentType === 'video' && i === 0 ? (
+                                        <video controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} src={url} />
+                                    ) : (
+                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : post.mediaUrls.length === 3 ? (
+                        // 3 media - 1 large + 2 small
+                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 2 }}>
+                            <div style={{ aspectRatio: '1', overflow: 'hidden' }}>
+                                <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {post.mediaUrls.slice(1).map((url, i) => (
+                                    <div key={i} style={{ flex: 1, overflow: 'hidden' }}>
+                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : post.mediaUrls.length === 4 ? (
+                        // 4 media - 2x2 grid
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                            {post.mediaUrls.map((url, i) => (
+                                <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
+                                    <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        // 5+ media - 2 large + rest in row with +N overlay
+                        <div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, marginBottom: 2 }}>
+                                {post.mediaUrls.slice(0, 2).map((url, i) => (
+                                    <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
+                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+                                {post.mediaUrls.slice(2, 5).map((url, i) => (
+                                    <div key={i} style={{ aspectRatio: '1', overflow: 'hidden', position: 'relative' }}>
+                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        {i === 2 && post.mediaUrls.length > 5 && (
+                                            <div style={{
+                                                position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: 'white', fontSize: 24, fontWeight: 600
+                                            }}>+{post.mediaUrls.length - 5}</div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
             )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
                 <span>{likeCount > 0 && `👍 ${likeCount}`}</span>
@@ -341,7 +561,7 @@ export default function SocialMediaPage() {
         } catch (e) { console.error('Feed error:', e); }
     };
 
-    const handlePost = async (content, urls, type) => {
+    const handlePost = async (content, urls, type, mentions = []) => {
         if (!user?.id) return false;
         setIsPosting(true);
         try {
@@ -349,7 +569,31 @@ export default function SocialMediaPage() {
                 author_id: user.id, content, content_type: type, media_urls: urls, visibility: 'public'
             }).select().single();
             if (error) throw error;
-            setPosts(prev => [{ id: data.id, authorId: user.id, content, contentType: type, mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0, timeAgo: 'Just now', isLiked: false, author: { name: user.name, avatar: user.avatar } }, ...prev]);
+
+            // Insert mentions if any
+            if (mentions.length > 0 && data?.id) {
+                // Look up user IDs for mentioned usernames
+                const { data: mentionedUsers } = await supabase
+                    .from('profiles')
+                    .select('id, username')
+                    .in('username', mentions);
+
+                if (mentionedUsers?.length > 0) {
+                    const mentionInserts = mentionedUsers.map(u => ({
+                        post_id: data.id,
+                        mentioned_user_id: u.id,
+                        mentioned_by_id: user.id
+                    }));
+                    await supabase.from('mentions').insert(mentionInserts);
+                }
+            }
+
+            setPosts(prev => [{
+                id: data.id, authorId: user.id, content, contentType: type,
+                mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
+                timeAgo: 'Just now', isLiked: false,
+                author: { name: user.name, avatar: user.avatar }
+            }, ...prev]);
             return true;
         } catch (e) { console.error('Post error:', e); return false; }
         finally { setIsPosting(false); }
