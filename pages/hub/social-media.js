@@ -412,9 +412,35 @@ export default function SocialMediaPage() {
             <Head><title>Social Hub | Smarter.Poker</title></Head>
             <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 <header style={{ background: C.card, padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
-                    <Link href="/hub" style={{ fontSize: 14, color: C.textSec, textDecoration: 'none' }}>← Hub</Link>
-                    <div style={{ fontWeight: 700, fontSize: 20, color: C.red }}>🔴 Social</div>
-                    {user ? <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span style={{ fontSize: 20, cursor: 'pointer' }}>🔔</span><span style={{ fontSize: 20, cursor: 'pointer' }}>💬</span><Avatar name={user.name} size={36} /></div> : <Link href="/auth/login" style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}>Log In</Link>}
+                    {/* LEFT: Smarter.Poker logo text */}
+                    <Link href="/hub" style={{ fontWeight: 700, fontSize: 22, color: C.blue, textDecoration: 'none' }}>Smarter.Poker</Link>
+
+                    {/* CENTER: Stats */}
+                    {user && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px', background: '#f0f0f0', borderRadius: 16, fontSize: 13, fontWeight: 600 }}>
+                                <span>💎</span>
+                                <span style={{ color: C.blue }}>{user.diamonds?.toLocaleString() || '300'}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px', background: '#f0f0f0', borderRadius: 16, fontSize: 13, fontWeight: 600 }}>
+                                <span style={{ color: C.textSec }}>XP</span>
+                                <span style={{ color: C.blue }}>{user.xp?.toLocaleString() || '50'}</span>
+                                <span style={{ color: C.textSec }}>•</span>
+                                <span>LV {user.level || 1}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* RIGHT: Profile, Messages, Notifications */}
+                    {user ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <span style={{ fontSize: 20, cursor: 'pointer' }} title="Notifications">🔔</span>
+                            <span style={{ fontSize: 20, cursor: 'pointer' }} title="Messages">💬</span>
+                            <Avatar src={user.avatar} name={user.name} size={36} />
+                        </div>
+                    ) : (
+                        <Link href="/auth/login" style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}>Log In</Link>
+                    )}
                 </header>
                 <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', maxWidth: 900, margin: '0 auto', gap: 16, padding: 16 }}>
                     <nav style={{ position: 'sticky', top: 70, height: 'fit-content' }}>
