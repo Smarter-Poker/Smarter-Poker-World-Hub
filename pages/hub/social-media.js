@@ -336,8 +336,14 @@ export default function SocialMediaPage() {
     const handleLike = async (postId, type) => {
         if (!user?.id) return;
         try {
-            if (!type) await supabase.from('social_interactions').delete().eq('post_id', postId).eq('user_id', user.id);
-            else await supabase.from('social_interactions').upsert({ post_id: postId, user_id: user.id, interaction_type: type }, { onConflict: 'post_id,user_id' });
+            if (!type) {
+                await supabase.from('social_interactions').delete().eq('post_id', postId).eq('user_id', user.id).eq('interaction_type', 'like');
+            } else {
+                await supabase.from('social_interactions').upsert(
+                    { post_id: postId, user_id: user.id, interaction_type: 'like' },
+                    { onConflict: 'user_id,post_id,interaction_type' }
+                );
+            }
         } catch (e) { console.error(e); }
     };
 
