@@ -4,11 +4,26 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import personas from './personas.json' assert { type: 'json' };
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const personas = JSON.parse(readFileSync(join(__dirname, 'personas.json'), 'utf-8'));
+
+// Load environment from hub-vanguard's .env.local
+const envPath = join(__dirname, '../../.env.local');
+const envContent = readFileSync(envPath, 'utf-8');
+const env = {};
+envContent.split('\n').forEach(line => {
+    const match = line.match(/^([^#=]+)=(.*)$/);
+    if (match) env[match[1].trim()] = match[2].trim();
+});
 
 const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 async function seedPersonas() {

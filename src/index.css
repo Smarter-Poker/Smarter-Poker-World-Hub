@@ -1,7 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    HUB VANGUARD — GLOBAL STYLES
-   Force 3D world to occupy 100% of browser width/height
-   Works with Next.js #__next container
+   Mobile-first responsive design with conditional 3D canvas support
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Reset and base */
@@ -13,39 +12,53 @@
   padding: 0;
 }
 
-html,
-body {
+html {
   width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
+  min-height: 100%;
   background: #0a0a0f;
   font-family: 'Orbitron', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   color: white;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Allow scrolling by default */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
-/* Next.js root container */
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  /* Allow scrolling by default */
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Smooth iOS scrolling */
+}
+
+/* Next.js root container - scrollable by default */
 #__next {
   width: 100%;
-  height: 100%;
   min-height: 100vh;
   position: relative;
+  /* Allow scrolling by default */
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+/* 3D World pages - lock viewport for canvas */
+.world-3d-container {
+  width: 100%;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
   overflow: hidden;
 }
 
-/* Ensure WorldHub container fills viewport */
-#__next>div {
-  width: 100%;
-  height: 100%;
-  min-height: 100vh;
-  position: relative;
-}
-
-/* R3F Canvas - Full viewport */
-canvas {
+/* R3F Canvas - Full viewport (only inside 3D containers) */
+.world-3d-container canvas {
   display: block !important;
   position: absolute !important;
   top: 0 !important;
@@ -71,5 +84,55 @@ canvas {
   pointer-events: auto;
 }
 
-/* Google Fonts fallback */
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE OPTIMIZATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Touch-friendly interactive elements */
+@media (max-width: 768px) {
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    /* Apple HIG touch target */
+    font-size: 16px;
+    /* Prevent iOS zoom on focus */
+  }
+
+  /* Responsive typography */
+  h1 {
+    font-size: 1.75rem !important;
+  }
+
+  h2 {
+    font-size: 1.5rem !important;
+  }
+
+  h3 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Ensure content doesn't overflow horizontally */
+  img,
+  video,
+  iframe {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Safe area support for notched devices */
+@supports (padding-top: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');

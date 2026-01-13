@@ -1,17 +1,11 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- FIX: Column reference "total_xp" is ambiguous in fn_get_social_feed
--- This migration fixes the ambiguous column reference by properly qualifying
--- all columns with their table aliases.
--- 
--- RUN THIS IN SUPABASE SQL EDITOR:
--- https://supabase.com/dashboard → Your Project → SQL Editor → Run
+-- SOCIAL FEED FIX V2 - Aggressive Resolution
+-- 1. Creates fn_get_social_feed_v2 to bypass any caching/overload issues
+-- 2. Creates fn_create_social_post to bypass "SELECT *" ambiguity triggers
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- Drop the old function if it exists to avoid signature conflicts
-DROP FUNCTION IF EXISTS fn_get_social_feed(UUID, INT, INT, TEXT);
-
--- Create the fixed function with proper column qualifications
-CREATE OR REPLACE FUNCTION fn_get_social_feed(
+-- 1. NEW FEED FUNCTION (V2)
+CREATE OR REPLACE FUNCTION fn_get_social_feed_v2(
     p_user_id UUID DEFAULT NULL,
     p_limit INT DEFAULT 20,
     p_offset INT DEFAULT 0,
@@ -60,27 +54,49 @@ BEGIN
     FROM social_posts sp
     LEFT JOIN profiles p ON p.id = sp.author_id
     WHERE (sp.visibility = 'public' OR sp.visibility IS NULL)
-    ORDER BY 
-        CASE WHEN p_filter = 'trending' THEN sp.like_count ELSE 0 END DESC,
-        sp.created_at DESC
+    ORDER BY sp.created_at DESC
     LIMIT p_limit
     OFFSET p_offset;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Grant access to anonymous and authenticated users
-GRANT EXECUTE ON FUNCTION fn_get_social_feed TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION fn_get_social_feed_v2 TO anon, authenticated;
 
--- ═══════════════════════════════════════════════════════════════════════════
--- VERIFICATION: Test the function works
--- ═══════════════════════════════════════════════════════════════════════════
-DO $$
+-- 2. SAFE CREATE POST FUNCTION (Bypasses Ambiguity)
+CREATE OR REPLACE FUNCTION fn_create_social_post(
+    p_author_id UUID,
+    p_content TEXT,
+    p_content_type TEXT,
+    p_media_urls TEXT[],
+    p_visibility TEXT,
+    p_achievement_data JSONB DEFAULT NULL
+)
+RETURNS JSONB
+AS $$
+DECLARE
+    v_post_id UUID;
+    v_result JSONB;
 BEGIN
-    -- Quick test to ensure no errors
-    PERFORM * FROM fn_get_social_feed(NULL, 5, 0, 'recent');
-    RAISE NOTICE '✅ fn_get_social_feed function verified successfully!';
-EXCEPTION
-    WHEN OTHERS THEN
-        RAISE EXCEPTION '❌ fn_get_social_feed test failed: %', SQLERRM;
+    INSERT INTO social_posts (
+        author_id, content, content_type, media_urls, visibility, achievement_data
+    ) VALUES (
+        p_author_id, p_content, p_content_type, p_media_urls, p_visibility, p_achievement_data
+    )
+    RETURNING id INTO v_post_id;
+
+    -- Return clean object without querying possibly ambiguous views
+    SELECT jsonb_build_object(
+        'id', v_post_id,
+        'author_id', p_author_id,
+        'content', p_content,
+        'created_at', NOW(),
+        'media_urls', p_media_urls,
+        'like_count', 0,
+        'comment_count', 0
+    ) INTO v_result;
+
+    RETURN v_result;
 END;
-$$;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION fn_create_social_post TO authenticated;

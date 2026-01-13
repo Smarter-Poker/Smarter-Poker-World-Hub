@@ -366,7 +366,8 @@ const styles = {
         color: '#ffffff',
         fontFamily: 'Inter, -apple-system, sans-serif',
         position: 'relative',
-        overflow: 'hidden',
+        overflowX: 'hidden',
+        overflowY: 'auto',
     },
     bgGrid: {
         position: 'fixed',
