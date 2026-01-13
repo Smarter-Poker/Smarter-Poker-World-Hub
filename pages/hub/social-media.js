@@ -936,11 +936,16 @@ export default function SocialMediaPage() {
 
                     {/* RIGHT: Search, Notifications, Messenger, Profile */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <button style={{
-                            width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb',
-                            border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
-                            alignItems: 'center', justifyContent: 'center'
-                        }}>🔍</button>
+                        <button
+                            onClick={() => setShowGlobalSearch(!showGlobalSearch)}
+                            style={{
+                                width: 40, height: 40, borderRadius: '50%',
+                                background: showGlobalSearch ? C.blue : '#e4e6eb',
+                                border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
+                                alignItems: 'center', justifyContent: 'center',
+                                color: showGlobalSearch ? 'white' : 'inherit'
+                            }}
+                        >🔍</button>
                         <button
                             onClick={() => setShowNotifications(!showNotifications)}
                             style={{
@@ -968,6 +973,119 @@ export default function SocialMediaPage() {
                         </Link>
                     </div>
                 </header>
+
+                {/* Global Search Overlay */}
+                {showGlobalSearch && (
+                    <div style={{
+                        position: 'fixed', top: 60, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.5)', zIndex: 998
+                    }} onClick={() => setShowGlobalSearch(false)} />
+                )}
+                {showGlobalSearch && (
+                    <div style={{
+                        position: 'fixed', top: 60, left: '50%', transform: 'translateX(-50%)',
+                        width: '100%', maxWidth: 600, background: C.card, borderRadius: '0 0 12px 12px',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.2)', zIndex: 999, maxHeight: 'calc(100vh - 80px)',
+                        overflowY: 'auto'
+                    }}>
+                        <div style={{ padding: 16 }}>
+                            <div style={{
+                                display: 'flex', alignItems: 'center', gap: 12,
+                                background: C.bg, borderRadius: 24, padding: '0 16px'
+                            }}>
+                                <span style={{ fontSize: 18 }}>🔍</span>
+                                <input
+                                    type="text"
+                                    value={globalSearchQuery}
+                                    onChange={e => handleGlobalSearch(e.target.value)}
+                                    placeholder="Search Smarter.Poker..."
+                                    autoFocus
+                                    style={{
+                                        flex: 1, border: 'none', background: 'transparent',
+                                        padding: '12px 0', fontSize: 16, outline: 'none'
+                                    }}
+                                />
+                                {globalSearchQuery && (
+                                    <button
+                                        onClick={() => { setGlobalSearchQuery(''); setGlobalSearchResults({ users: [], posts: [] }); }}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec }}
+                                    >✕</button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Search Results */}
+                        {globalSearchLoading && (
+                            <div style={{ padding: '20px', textAlign: 'center', color: C.textSec }}>
+                                Searching...
+                            </div>
+                        )}
+
+                        {!globalSearchLoading && globalSearchQuery.length >= 2 && (
+                            <div>
+                                {/* Users */}
+                                {globalSearchResults.users.length > 0 && (
+                                    <div style={{ borderTop: `1px solid ${C.border}` }}>
+                                        <div style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: C.textSec }}>
+                                            People
+                                        </div>
+                                        {globalSearchResults.users.map(u => (
+                                            <Link
+                                                key={u.id}
+                                                href={`/hub/user/${u.username}`}
+                                                onClick={() => setShowGlobalSearch(false)}
+                                                style={{
+                                                    display: 'flex', alignItems: 'center', gap: 12,
+                                                    padding: '10px 16px', textDecoration: 'none', color: 'inherit'
+                                                }}
+                                                onMouseEnter={e => e.currentTarget.style.background = C.bg}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                <Avatar src={u.avatar_url} name={u.username} size={40} />
+                                                <div style={{ fontWeight: 500 }}>{u.username}</div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Posts */}
+                                {globalSearchResults.posts.length > 0 && (
+                                    <div style={{ borderTop: `1px solid ${C.border}` }}>
+                                        <div style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: C.textSec }}>
+                                            Posts
+                                        </div>
+                                        {globalSearchResults.posts.map(p => (
+                                            <div
+                                                key={p.id}
+                                                onClick={() => { setShowGlobalSearch(false); }}
+                                                style={{
+                                                    padding: '10px 16px', cursor: 'pointer'
+                                                }}
+                                                onMouseEnter={e => e.currentTarget.style.background = C.bg}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 4 }}>
+                                                    {p.author?.username || 'Player'}
+                                                </div>
+                                                <div style={{ fontSize: 14, color: C.text }}>
+                                                    {p.content?.slice(0, 100)}{p.content?.length > 100 ? '...' : ''}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* No results */}
+                                {globalSearchResults.users.length === 0 && globalSearchResults.posts.length === 0 && (
+                                    <div style={{ padding: '40px 20px', textAlign: 'center', color: C.textSec }}>
+                                        <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+                                        No results found for "{globalSearchQuery}"
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Notification Dropdown */}
                 {showNotifications && (
