@@ -280,7 +280,26 @@ export default function SocialMediaPage() {
     const [chatMsgs, setChatMsgs] = useState({});
     const [isPosting, setIsPosting] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [bottomNavVisible, setBottomNavVisible] = useState(true);
     const searchTimeout = useRef(null);
+    const lastScrollY = useRef(0);
+
+    // Hide bottom nav when scrolling up, show when scrolling down
+    useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+                // Scrolling down - hide nav
+                setBottomNavVisible(false);
+            } else {
+                // Scrolling up - show nav
+                setBottomNavVisible(true);
+            }
+            lastScrollY.current = currentScrollY;
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     useEffect(() => {
         (async () => {
@@ -614,7 +633,9 @@ export default function SocialMediaPage() {
                     position: 'fixed', bottom: 0, left: 0, right: 0, height: 56,
                     background: C.card, borderTop: `1px solid ${C.border}`,
                     display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-                    zIndex: 100
+                    zIndex: 100,
+                    transform: bottomNavVisible ? 'translateY(0)' : 'translateY(100%)',
+                    transition: 'transform 0.3s ease'
                 }}>
                     <Link href="/hub/social-media" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.blue }}>
                         <span style={{ fontSize: 24 }}>🏠</span>
@@ -633,7 +654,7 @@ export default function SocialMediaPage() {
                         <span style={{ fontSize: 24 }}>🏛️</span>
                         <span style={{ fontSize: 10, marginTop: 2 }}>Clubs</span>
                     </Link>
-                    <Link href="/hub/notifications" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec, position: 'relative' }}>
+                    <Link href="/hub/social-media?tab=notifications" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec, position: 'relative' }}>
                         <span style={{ fontSize: 24 }}>🔔</span>
                         <div style={{ position: 'absolute', top: -2, right: -4, background: C.red, color: 'white', borderRadius: '50%', width: 18, height: 18, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>1</div>
                         <span style={{ fontSize: 10, marginTop: 2 }}>Alerts</span>
