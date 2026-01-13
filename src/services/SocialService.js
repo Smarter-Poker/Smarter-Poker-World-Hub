@@ -150,7 +150,7 @@ export class SocialService {
     }
 
     /**
-     * Delete post (soft delete)
+     * Delete post (hard delete)
      * @param {string} postId - Post UUID
      * @returns {Promise<boolean>}
      */
@@ -158,7 +158,7 @@ export class SocialService {
         try {
             const { error } = await this.supabase
                 .from('social_posts')
-                .update({ is_deleted: true })
+                .delete()
                 .eq('id', postId);
 
             if (error) throw error;

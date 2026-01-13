@@ -1124,6 +1124,7 @@ export default function SocialMediaPage() {
                     if (feedPosts && feedPosts.length > 0) {
                         setPosts(feedPosts.map(p => ({
                             id: p.id,
+                            authorId: p.authorId || p.author_id, // Include for delete ownership check
                             content: p.content,
                             author: {
                                 name: p.author?.username || 'Anonymous',
@@ -1152,6 +1153,7 @@ export default function SocialMediaPage() {
                     if (postsData) {
                         setPosts(postsData.map(p => ({
                             id: p.id,
+                            authorId: p.author_id, // Include for delete ownership check
                             content: p.content,
                             author: { name: 'Anonymous', avatar: null },
                             likeCount: p.like_count || 0,
