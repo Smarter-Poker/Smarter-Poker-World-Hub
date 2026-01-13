@@ -209,15 +209,19 @@ Write authentically as this person. 100-250 words. No hashtags. Stay consistent 
         await MemoryService.recordMemory(horse.id, 'POST', `Posted about ${contentType}: ${topic}`, { relatedTopic: topicKey });
         await MemoryService.setTopicCooldown(horse.id, topicKey, CONFIG.TOPIC_COOLDOWN_HOURS);
 
+        // Return format for social_posts table
         return {
-            author_id: horse.id,
-            author_name: horse.name,
-            author_alias: horse.alias,
-            content_type: contentType,
-            topic,
-            body: content,
-            status: 'published',
-            published_at: new Date().toISOString()
+            author_id: horse.profile_id,  // UUID from profiles table
+            content: content,
+            content_type: 'text',
+            visibility: 'public',
+            // Store metadata for reference
+            _meta: {
+                horse_id: horse.id,
+                horse_name: horse.name,
+                topic: topic,
+                category: contentType
+            }
         };
     } catch (error) {
         console.error(`Error generating for ${horse.name}:`, error);
@@ -283,11 +287,12 @@ export default async function handler(req, res) {
             });
         }
 
-        // Get random active horses (is_active controls which horses are deployed)
+        // Get random active horses that have user profiles
         const { data: horses, error: horseError } = await supabase
             .from('content_authors')
             .select('*')
             .eq('is_active', true)
+            .not('profile_id', 'is', null)
             .limit(CONFIG.HORSES_PER_TRIGGER * 2);
 
         if (horseError) {
@@ -315,18 +320,27 @@ export default async function handler(req, res) {
             await new Promise(r => setTimeout(r, Math.random() * 4000 + 1000));
 
             const post = await generateHorsePost(horse);
-            if (post) {
-                // Insert into database
+            if (post && post.author_id) {
+                // Insert into social_posts (real social feed)
                 const { error: insertError } = await supabase
-                    .from('seeded_content')
-                    .insert(post);
+                    .from('social_posts')
+                    .insert({
+                        author_id: post.author_id,
+                        content: post.content,
+                        content_type: post.content_type,
+                        visibility: post.visibility
+                    });
 
                 if (!insertError) {
-                    console.log(`✅ ${horse.name} posted about ${post.topic}`);
-                    results.push({ horse: horse.name, topic: post.topic, success: true });
+                    console.log(`✅ ${horse.name} posted about ${post._meta.topic}`);
+                    results.push({ horse: horse.name, topic: post._meta.topic, success: true });
                 } else {
+                    console.error(`❌ ${horse.name} error:`, insertError.message);
                     results.push({ horse: horse.name, success: false, error: insertError.message });
                 }
+            } else if (post) {
+                // Horse doesn't have profile_id linked
+                results.push({ horse: horse.name, success: false, error: 'No profile_id linked' });
             }
         }
 
