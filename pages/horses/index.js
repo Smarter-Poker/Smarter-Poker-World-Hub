@@ -308,8 +308,8 @@ export default function HorsesAdmin() {
                 <header className={styles.header}>
                     <div className={styles.headerLeft}>
                         <span className={styles.logo}>🐴</span>
-                        <h1>HORSES</h1>
-                        <span className={styles.subtitle}>Content Stable</span>
+                        <h1>STABLE ADMIN v1.0</h1>
+                        <span className={styles.subtitle}>Content Stable & Search</span>
                     </div>
                     <div className={styles.headerRight}>
                         <div className={styles.engineStatus}>

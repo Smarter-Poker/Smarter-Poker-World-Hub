@@ -150,7 +150,8 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .dashboard {
-    min-height: 100vh;
+    height: 100vh;
+    overflow-y: auto !important;
     background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
     color: #f8fafc;
     font-family: 'Inter', -apple-system, sans-serif;
