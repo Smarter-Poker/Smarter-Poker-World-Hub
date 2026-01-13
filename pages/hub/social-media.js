@@ -889,11 +889,11 @@ export default function SocialMediaPage() {
                                 }}>{notifications.filter(n => !n.read).length}</span>
                             )}
                         </button>
-                        <button style={{
+                        <Link href="/hub/messenger" style={{
                             width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb',
                             border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
-                            alignItems: 'center', justifyContent: 'center'
-                        }}>💬</button>
+                            alignItems: 'center', justifyContent: 'center', textDecoration: 'none'
+                        }}>💬</Link>
                         <Link href="/hub/profile" style={{ display: 'block' }}>
                             <Avatar src={user?.avatar} name={user?.name} size={40} />
                         </Link>
