@@ -288,20 +288,110 @@ function MessageInput({ onSend, disabled }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 💬 MESSAGE BUBBLE COMPONENT
+// 🔔 TOAST NOTIFICATION COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup }) {
+function Toast({ toast, onDismiss }) {
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => onDismiss(), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast, onDismiss]);
+
+    if (!toast) return null;
+
+    return (
+        <div style={{
+            position: 'fixed',
+            bottom: 100,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: toast.type === 'error' ? C.red : C.green,
+            color: 'white',
+            padding: '12px 24px',
+            borderRadius: 12,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+        }}>
+            <span>{toast.type === 'error' ? '⚠️' : '✓'}</span>
+            <span>{toast.message}</span>
+            <button
+                onClick={onDismiss}
+                style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', marginLeft: 8 }}
+            >✕</button>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ⌨️ TYPING INDICATOR COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+function TypingIndicator({ name }) {
     return (
         <div style={{
             display: 'flex',
-            flexDirection: isOwn ? 'row-reverse' : 'row',
-            alignItems: 'flex-end',
+            alignItems: 'center',
             gap: 8,
-            marginBottom: isLastInGroup ? 16 : 2,
-            paddingLeft: isOwn ? 60 : 12,
-            paddingRight: isOwn ? 12 : 60,
+            padding: '8px 16px',
+            color: C.textSec,
+            fontSize: 13,
         }}>
+            <div style={{ display: 'flex', gap: 3 }}>
+                {[0, 1, 2].map(i => (
+                    <div key={i} style={{
+                        width: 6, height: 6, borderRadius: '50%', background: C.textSec,
+                        animation: `bounce 1.4s infinite ${i * 0.2}s`,
+                    }} />
+                ))}
+            </div>
+            <span>{name} is typing...</span>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 💬 MESSAGE BUBBLE COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+
+function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry }) {
+    const [showReactions, setShowReactions] = useState(false);
+    const status = message.status || 'sent';
+
+    const StatusIcon = () => {
+        if (!isOwn) return null;
+        if (status === 'sending') return <span style={{ opacity: 0.7, fontSize: 10 }}>○</span>;
+        if (status === 'sent') return <span style={{ color: '#31A24C', fontSize: 10 }}>✓</span>;
+        if (status === 'failed') return (
+            <span
+                onClick={() => onRetry?.(message)}
+                style={{ color: '#E41E3F', fontSize: 10, cursor: 'pointer' }}
+                title="Failed - tap to retry"
+            >⚠</span>
+        );
+        return <span style={{ color: '#0084FF', fontSize: 10 }}>✓✓</span>;
+    };
+
+    return (
+        <div
+            style={{
+                display: 'flex',
+                flexDirection: isOwn ? 'row-reverse' : 'row',
+                alignItems: 'flex-end',
+                gap: 8,
+                marginBottom: isLastInGroup ? 16 : 2,
+                paddingLeft: isOwn ? 60 : 12,
+                paddingRight: isOwn ? 12 : 60,
+                opacity: status === 'sending' ? 0.7 : 1,
+            }}
+            onMouseEnter={() => setShowReactions(true)}
+            onMouseLeave={() => setShowReactions(false)}
+        >
             {/* Avatar */}
             {!isOwn && (
                 showAvatar ? (
@@ -311,31 +401,63 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                 )
             )}
 
-            {/* Bubble */}
-            <div style={{
-                maxWidth: '70%',
-                padding: '8px 12px',
-                borderRadius: 18,
-                background: isOwn ? C.ownBubble : C.otherBubble,
-                color: isOwn ? 'white' : C.text,
-                fontSize: 15,
-                lineHeight: 1.4,
-                borderBottomRightRadius: isOwn && !isLastInGroup ? 4 : 18,
-                borderBottomLeftRadius: !isOwn && !isLastInGroup ? 4 : 18,
-                wordBreak: 'break-word',
-            }}>
-                {message.content || message.text}
+            {/* Bubble with reactions */}
+            <div style={{ position: 'relative', maxWidth: '70%' }}>
+                {showReactions && status !== 'sending' && (
+                    <div style={{
+                        position: 'absolute',
+                        [isOwn ? 'left' : 'right']: '100%',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        marginLeft: isOwn ? 0 : 4,
+                        marginRight: isOwn ? 4 : 0,
+                        display: 'flex',
+                        gap: 2,
+                        background: C.card,
+                        borderRadius: 16,
+                        padding: '4px 6px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    }}>
+                        {['❤️', '👍', '😂'].map(emoji => (
+                            <button key={emoji} style={{
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                fontSize: 14,
+                                padding: 2,
+                            }}>{emoji}</button>
+                        ))}
+                    </div>
+                )}
+
+                <div style={{
+                    padding: '8px 12px',
+                    borderRadius: 18,
+                    background: isOwn ? C.ownBubble : C.otherBubble,
+                    color: isOwn ? 'white' : C.text,
+                    fontSize: 15,
+                    lineHeight: 1.4,
+                    borderBottomRightRadius: isOwn && !isLastInGroup ? 4 : 18,
+                    borderBottomLeftRadius: !isOwn && !isLastInGroup ? 4 : 18,
+                    wordBreak: 'break-word',
+                }}>
+                    {message.content || message.text}
+                </div>
             </div>
 
-            {/* Timestamp (on hover) */}
+            {/* Time & Status */}
             {showTime && (
                 <span style={{
                     fontSize: 11,
                     color: C.textSec,
                     whiteSpace: 'nowrap',
                     alignSelf: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
                 }}>
                     {formatMessageTime(message.created_at || message.timestamp)}
+                    <StatusIcon />
                 </span>
             )}
         </div>
@@ -568,8 +690,33 @@ export default function MessengerPage() {
                 schema: 'public',
                 table: 'social_messages',
                 filter: `conversation_id=eq.${activeConversation.id}`,
-            }, payload => {
-                setMessages(prev => [...prev, payload.new]);
+            }, async (payload) => {
+                const newMsg = payload.new;
+                // Skip if this is our own message (already added via optimistic update)
+                if (newMsg.sender_id === user.id) return;
+
+                // Play sound for incoming message
+                playMessageSound();
+
+                // Fetch sender profile for enrichment
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url')
+                    .eq('id', newMsg.sender_id)
+                    .single();
+
+                setMessages(prev => {
+                    // Check for duplicates
+                    if (prev.some(m => m.id === newMsg.id)) return prev;
+                    return [...prev, { ...newMsg, profiles: profile }];
+                });
+
+                // Update conversation preview
+                setConversations(prev => prev.map(c =>
+                    c.id === activeConversation.id
+                        ? { ...c, last_message_preview: newMsg.content, last_message_at: newMsg.created_at }
+                        : c
+                ));
             })
             .subscribe();
 
@@ -834,7 +981,18 @@ export default function MessengerPage() {
 
     return (
         <>
-            <Head><title>Messenger | Smarter.Poker</title></Head>
+            <Head>
+                <title>Messenger | Smarter.Poker</title>
+                <style>{`
+                    @keyframes bounce {
+                        0%, 60%, 100% { transform: translateY(0); }
+                        30% { transform: translateY(-4px); }
+                    }
+                `}</style>
+            </Head>
+
+            {/* Toast Notifications */}
+            <Toast toast={toast} onDismiss={() => setToast(null)} />
 
             <div style={{
                 display: 'flex',
@@ -1061,6 +1219,8 @@ export default function MessengerPage() {
                                         );
                                     })
                                 )}
+                                {/* Typing indicator */}
+                                {otherTyping && <TypingIndicator name={otherUser?.username} />}
                                 <div ref={messagesEndRef} />
                             </div>
 
