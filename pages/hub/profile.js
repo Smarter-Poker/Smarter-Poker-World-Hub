@@ -5,6 +5,7 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
@@ -81,7 +82,32 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
     );
 }
 
-function HendonMobBadge({ hendonData }) {
+// External Link Modal - opens external sites in an iframe inside the app
+function ExternalLinkModal({ url, onClose }) {
+    if (!url) return null;
+    return (
+        <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex',
+            flexDirection: 'column', padding: 20
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ color: 'white', fontSize: 14 }}>{url}</span>
+                <button onClick={onClose} style={{
+                    background: '#ff4444', color: 'white', border: 'none',
+                    padding: '8px 16px', borderRadius: 6, cursor: 'pointer', fontWeight: 600
+                }}>✕ Close</button>
+            </div>
+            <iframe
+                src={url}
+                style={{ flex: 1, border: 'none', borderRadius: 8, background: 'white' }}
+                title="External Content"
+            />
+        </div>
+    );
+}
+
+function HendonMobBadge({ hendonData, onOpenExternal }) {
     if (!hendonData?.hendon_url) return null;
 
     return (
@@ -112,18 +138,16 @@ function HendonMobBadge({ hendonData }) {
                 </div>
             </div>
 
-            <a
-                href={hendonData.hendon_url}
-                target="_blank"
-                rel="noopener noreferrer"
+            <button
+                onClick={() => onOpenExternal(hendonData.hendon_url)}
                 style={{
-                    display: 'block', textAlign: 'center', padding: 10, background: C.gold,
-                    color: '#000', borderRadius: 8, fontWeight: 600, textDecoration: 'none',
+                    display: 'block', width: '100%', textAlign: 'center', padding: 10, background: C.gold,
+                    color: '#000', borderRadius: 8, fontWeight: 600, border: 'none', cursor: 'pointer',
                     fontSize: 14
                 }}
             >
                 View Full Poker Resume →
-            </a>
+            </button>
 
             {hendonData.last_scraped && (
                 <div style={{ fontSize: 11, opacity: 0.5, textAlign: 'center', marginTop: 8 }}>
@@ -135,10 +159,12 @@ function HendonMobBadge({ hendonData }) {
 }
 
 export default function ProfilePage() {
+    const router = useRouter();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
+    const [externalUrl, setExternalUrl] = useState(null);
 
     // Profile fields
     const [profile, setProfile] = useState({
@@ -239,7 +265,8 @@ export default function ProfilePage() {
             setMessage('Error saving profile');
             console.error(error);
         } else {
-            setMessage('Profile saved successfully!');
+            // Navigate back to previous page after successful save
+            router.back();
         }
     };
 
@@ -341,13 +368,16 @@ export default function ProfilePage() {
                         />
 
                         {/* Display HendonMob badge if linked */}
-                        <HendonMobBadge hendonData={{
-                            hendon_url: profile.hendon_url,
-                            total_cashes: profile.hendon_total_cashes,
-                            total_earnings: profile.hendon_total_earnings,
-                            best_finish: profile.hendon_best_finish,
-                            last_scraped: profile.hendon_last_scraped,
-                        }} />
+                        <HendonMobBadge
+                            hendonData={{
+                                hendon_url: profile.hendon_url,
+                                total_cashes: profile.hendon_total_cashes,
+                                total_earnings: profile.hendon_total_earnings,
+                                best_finish: profile.hendon_best_finish,
+                                last_scraped: profile.hendon_last_scraped,
+                            }}
+                            onOpenExternal={setExternalUrl}
+                        />
                     </div>
 
                     {/* Save Button */}
@@ -364,6 +394,9 @@ export default function ProfilePage() {
                     </button>
                 </div>
             </div>
+
+            {/* External Link Modal */}
+            <ExternalLinkModal url={externalUrl} onClose={() => setExternalUrl(null)} />
         </>
     );
 }
