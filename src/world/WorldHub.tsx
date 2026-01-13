@@ -215,39 +215,38 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                     />
                 </div>
             </div>
-        </div>
 
-            {/* Card label - Premium Oval Pill */ }
-    <div
-        style={{
-            marginTop: 20,
-            padding: '10px 24px',
-            background: 'linear-gradient(180deg, rgba(10, 30, 60, 0.9), rgba(5, 20, 40, 0.95))',
-            backdropFilter: 'blur(10px)',
-            borderRadius: 30,
-            border: '2px solid rgba(0, 212, 255, 0.5)',
-            boxShadow: `
+            {/* Card label - Premium Oval Pill */}
+            <div
+                style={{
+                    marginTop: 20,
+                    padding: '10px 24px',
+                    background: 'linear-gradient(180deg, rgba(10, 30, 60, 0.9), rgba(5, 20, 40, 0.95))',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: 30,
+                    border: '2px solid rgba(0, 212, 255, 0.5)',
+                    boxShadow: `
                         0 0 20px rgba(0, 212, 255, 0.25),
                         inset 0 1px 0 rgba(255, 255, 255, 0.15),
                         0 4px 15px rgba(0, 0, 0, 0.5)
                     `,
-        }}
-    >
-        <span
-            style={{
-                fontSize: 14,
-                fontWeight: 700,
-                fontFamily: 'Orbitron, sans-serif',
-                color: '#ffffff',
-                textShadow: '0 0 15px rgba(0, 212, 255, 0.6)',
-                letterSpacing: '1px',
-                whiteSpace: 'nowrap',
-            }}
-        >
-            {orb.label}
-        </span>
-    </div>
-        </div >
+                }}
+            >
+                <span
+                    style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        fontFamily: 'Orbitron, sans-serif',
+                        color: '#ffffff',
+                        textShadow: '0 0 15px rgba(0, 212, 255, 0.6)',
+                        letterSpacing: '1px',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    {orb.label}
+                </span>
+            </div>
+        </div>
     );
 }
 
