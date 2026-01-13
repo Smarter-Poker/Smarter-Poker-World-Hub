@@ -1371,6 +1371,34 @@ export default function SocialMediaPage() {
                     onMessengerClick={() => setShowMessenger(!showMessenger)}
                 />
 
+                {/* Auth Status Banner - Shows when NOT logged in */}
+                {!currentUser?.isAuthenticated && (
+                    <div style={{
+                        background: '#fff3cd',
+                        borderBottom: '1px solid #ffc107',
+                        padding: '10px 20px',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: 16
+                    }}>
+                        <span>⚠️ You are not logged in. Posting, commenting, and deleting are disabled.</span>
+                        <a
+                            href="/auth/login"
+                            style={{
+                                background: '#1877F2',
+                                color: '#fff',
+                                padding: '6px 16px',
+                                borderRadius: 4,
+                                fontWeight: 600,
+                                textDecoration: 'none'
+                            }}
+                        >
+                            Login Now
+                        </a>
+                    </div>
+                )}
+
                 {/* Main Layout */}
                 <div style={styles.mainLayout}>
                     {/* Left Sidebar */}

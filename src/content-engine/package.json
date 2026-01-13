@@ -1,0 +1,18 @@
+{
+    "name": "content-engine",
+    "version": "1.0.0",
+    "description": "Smarter.Poker Content Seeding Engine",
+    "type": "module",
+    "scripts": {
+        "seed": "node ContentCommander.js seed",
+        "seed:100": "node ContentScheduler.js seed 100",
+        "seed:500": "node ContentScheduler.js seed 500",
+        "schedule": "node ContentScheduler.js schedule",
+        "publish": "node ContentScheduler.js publish",
+        "bootstrap": "node ContentScheduler.js full"
+    },
+    "dependencies": {
+        "openai": "^4.28.0",
+        "@supabase/supabase-js": "^2.39.0"
+    }
+}

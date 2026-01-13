@@ -85,6 +85,7 @@ export function createAuthor(profile) {
 export function createPost(row, author = null) {
     return {
         id: row.id || row.post_id,
+        authorId: row.author_id, // For delete ownership check
         author: author || createAuthor({
             user_id: row.author_id,
             username: row.author_username,
