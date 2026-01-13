@@ -501,6 +501,8 @@ export default function SocialMediaPage() {
     const [isPosting, setIsPosting] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [bottomNavVisible, setBottomNavVisible] = useState(true);
+    const [notifications, setNotifications] = useState([]);
+    const [showNotifications, setShowNotifications] = useState(false);
     const searchTimeout = useRef(null);
     const lastScrollY = useRef(0);
 
@@ -529,6 +531,13 @@ export default function SocialMediaPage() {
                     const { data: p } = await supabase.from('profiles').select('username, skill_tier').eq('id', au.id).maybeSingle();
                     setUser({ id: au.id, name: p?.username || au.email?.split('@')[0] || 'Player', avatar: null, tier: p?.skill_tier });
                     await loadContacts(au.id);
+                    // Load notifications
+                    const { data: notifs } = await supabase.from('notifications')
+                        .select('*')
+                        .eq('user_id', au.id)
+                        .order('created_at', { ascending: false })
+                        .limit(20);
+                    if (notifs) setNotifications(notifs);
                 }
                 await loadFeed();
             } catch (e) { console.error(e); }
@@ -801,25 +810,95 @@ export default function SocialMediaPage() {
                         <Link href="/hub" style={{ fontWeight: 700, fontSize: 22, color: C.blue, textDecoration: 'none' }}>Smarter.Poker</Link>
                     </div>
 
-                    {/* RIGHT: Create, Search, Messenger */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {/* RIGHT: Search, Notifications, Messenger, Profile */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <button style={{
-                            width: 36, height: 36, borderRadius: '50%', background: '#e4e6eb',
-                            border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
-                            alignItems: 'center', justifyContent: 'center'
-                        }}>+</button>
-                        <button style={{
-                            width: 36, height: 36, borderRadius: '50%', background: '#e4e6eb',
+                            width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb',
                             border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
                             alignItems: 'center', justifyContent: 'center'
                         }}>🔍</button>
+                        <button
+                            onClick={() => setShowNotifications(!showNotifications)}
+                            style={{
+                                width: 40, height: 40, borderRadius: '50%', background: showNotifications ? C.blue : '#e4e6eb',
+                                border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
+                                alignItems: 'center', justifyContent: 'center', position: 'relative',
+                                color: showNotifications ? 'white' : 'inherit'
+                            }}>
+                            🔔
+                            {notifications.filter(n => !n.read).length > 0 && (
+                                <span style={{
+                                    position: 'absolute', top: 0, right: 0, background: 'red', color: 'white',
+                                    borderRadius: '50%', width: 18, height: 18, fontSize: 11, fontWeight: 700,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}>{notifications.filter(n => !n.read).length}</span>
+                            )}
+                        </button>
                         <button style={{
-                            width: 36, height: 36, borderRadius: '50%', background: '#e4e6eb',
+                            width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb',
                             border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
                             alignItems: 'center', justifyContent: 'center'
                         }}>💬</button>
+                        <Link href="/hub/profile" style={{ display: 'block' }}>
+                            <Avatar src={user?.avatar} name={user?.name} size={40} />
+                        </Link>
                     </div>
                 </header>
+
+                {/* Notification Dropdown */}
+                {showNotifications && (
+                    <div style={{
+                        position: 'fixed', top: 60, right: 12, width: 360, maxHeight: 480,
+                        background: C.card, borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                        zIndex: 1000, overflowY: 'auto'
+                    }}>
+                        <div style={{ padding: 16, borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Notifications</h3>
+                            <button
+                                onClick={() => setShowNotifications(false)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}
+                            >✕</button>
+                        </div>
+                        {notifications.length === 0 ? (
+                            <div style={{ padding: 24, textAlign: 'center', color: C.textSec }}>
+                                No notifications yet
+                            </div>
+                        ) : (
+                            notifications.map(n => (
+                                <div
+                                    key={n.id}
+                                    onClick={async () => {
+                                        if (!n.read) {
+                                            await supabase.from('notifications').update({ read: true }).eq('id', n.id);
+                                            setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
+                                        }
+                                    }}
+                                    style={{
+                                        padding: 12, borderBottom: `1px solid ${C.border}`,
+                                        display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer',
+                                        background: n.read ? 'transparent' : 'rgba(24, 119, 242, 0.05)'
+                                    }}
+                                >
+                                    <div style={{
+                                        width: 48, height: 48, borderRadius: '50%', background: C.blue,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 24, flexShrink: 0
+                                    }}>
+                                        {n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : '🔔'}
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{n.title}</div>
+                                        <div style={{ fontSize: 13, color: C.textSec, marginTop: 2 }}>{n.message}</div>
+                                        <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>{timeAgo(n.created_at)}</div>
+                                    </div>
+                                    {!n.read && (
+                                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 6 }} />
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
 
                 {/* Main Feed - Full Width */}
                 <main style={{ maxWidth: 680, margin: '0 auto', padding: '8px' }}>

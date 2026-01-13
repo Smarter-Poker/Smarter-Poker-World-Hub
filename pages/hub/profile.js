@@ -190,6 +190,7 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Profile fields
     const [profile, setProfile] = useState({
@@ -402,6 +403,40 @@ export default function ProfilePage() {
                                 best_finish: profile.hendon_best_finish,
                                 last_scraped: profile.hendon_last_scraped,
                             }}
+                            onRefresh={async () => {
+                                if (!profile.hendon_url) {
+                                    setMessage('Please enter your Hendon Mob URL first');
+                                    return;
+                                }
+                                setIsRefreshing(true);
+                                setMessage('Syncing stats from Hendon Mob...');
+                                try {
+                                    // Call the API to scrape HendonMob stats
+                                    const res = await fetch('/api/hendonmob/sync', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ userId: user.id, hendonUrl: profile.hendon_url })
+                                    });
+                                    if (res.ok) {
+                                        const data = await res.json();
+                                        setProfile(prev => ({
+                                            ...prev,
+                                            hendon_total_cashes: data.total_cashes,
+                                            hendon_total_earnings: data.total_earnings,
+                                            hendon_best_finish: data.best_finish,
+                                            hendon_last_scraped: new Date().toISOString()
+                                        }));
+                                        setMessage('Stats synced successfully!');
+                                    } else {
+                                        setMessage('Could not sync stats. Please check your Hendon Mob URL.');
+                                    }
+                                } catch (e) {
+                                    console.error('Sync error:', e);
+                                    setMessage('Error syncing stats. Please try again later.');
+                                }
+                                setIsRefreshing(false);
+                            }}
+                            isRefreshing={isRefreshing}
                         />
                     </div>
 
