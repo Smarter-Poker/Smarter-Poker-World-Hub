@@ -279,6 +279,7 @@ export default function SocialMediaPage() {
     const [openChats, setOpenChats] = useState([]);
     const [chatMsgs, setChatMsgs] = useState({});
     const [isPosting, setIsPosting] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const searchTimeout = useRef(null);
 
     useEffect(() => {
@@ -412,62 +413,241 @@ export default function SocialMediaPage() {
     return (
         <>
             <Head><title>Social Hub | Smarter.Poker</title></Head>
-            <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
-                <header style={{ background: C.card, padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
-                    {/* LEFT: Smarter.Poker logo text */}
-                    <Link href="/hub" style={{ fontWeight: 700, fontSize: 22, color: C.blue, textDecoration: 'none' }}>Smarter.Poker</Link>
 
-                    {/* CENTER: Stats */}
+            {/* Slide-out Sidebar Overlay */}
+            {sidebarOpen && (
+                <div
+                    onClick={() => setSidebarOpen(false)}
+                    style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.5)', zIndex: 999
+                    }}
+                />
+            )}
+
+            {/* Slide-out Sidebar Panel */}
+            <div style={{
+                position: 'fixed', top: 0, left: 0, bottom: 0, width: 320,
+                background: C.card, zIndex: 1000, boxShadow: '2px 0 10px rgba(0,0,0,0.2)',
+                transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+                transition: 'transform 0.3s ease',
+                overflowY: 'auto', paddingBottom: 80
+            }}>
+                {/* Close button */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 12 }}>
+                    <button onClick={() => setSidebarOpen(false)} style={{
+                        background: '#f0f0f0', border: 'none', width: 32, height: 32,
+                        borderRadius: '50%', cursor: 'pointer', fontSize: 16
+                    }}>✕</button>
+                </div>
+
+                {/* User Profile Card */}
+                {user && (
+                    <Link href="/hub/profile" onClick={() => setSidebarOpen(false)} style={{
+                        display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', margin: '0 12px 16px',
+                        background: C.card, borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                        textDecoration: 'none', color: 'inherit'
+                    }}>
+                        <Avatar src={user.avatar} name={user.name} size={48} />
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: 17 }}>{user.name}</div>
+                            <div style={{ fontSize: 13, color: C.textSec }}>View your profile</div>
+                        </div>
+                        <div style={{
+                            background: C.blue, color: 'white', borderRadius: '50%',
+                            width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 12, fontWeight: 600
+                        }}>9+</div>
+                    </Link>
+                )}
+
+                {/* Your Shortcuts */}
+                <div style={{ padding: '0 16px', marginBottom: 24 }}>
+                    <h4 style={{ fontSize: 14, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>Your shortcuts</h4>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                        <Link href="/hub/club-arena" onClick={() => setSidebarOpen(false)} style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
+                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🏛</div>
+                            <div style={{ fontSize: 11, marginTop: 4, color: C.textSec }}>Club Arena</div>
+                        </Link>
+                        <Link href="/hub" onClick={() => setSidebarOpen(false)} style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
+                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🎮</div>
+                            <div style={{ fontSize: 11, marginTop: 4, color: C.textSec }}>Games Hub</div>
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Menu Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 16px', marginBottom: 16 }}>
+                    {[
+                        { icon: '👤', label: 'Profile', href: '/hub/profile' },
+                        { icon: '👥', label: 'Friends', href: '/hub/friends' },
+                        { icon: '🏛️', label: 'Clubs', href: '/hub/club-arena' },
+                        { icon: '💎', label: 'Diamond Store', href: '/hub/diamond-store' },
+                        { icon: '🏆', label: 'Tournaments', href: '/hub/tournaments' },
+                        { icon: '🎯', label: 'GTO Training', href: '/hub/gto-trainer' },
+                        { icon: '📺', label: 'Watch', href: '/hub/watch' },
+                        { icon: '⚙️', label: 'Settings', href: '/hub/settings' },
+                    ].map((item, i) => (
+                        <Link key={i} href={item.href} onClick={() => setSidebarOpen(false)} style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                            padding: 12, background: '#f7f8fa', borderRadius: 8,
+                            textDecoration: 'none', color: C.text
+                        }}>
+                            <span style={{ fontSize: 24, marginBottom: 4 }}>{item.icon}</span>
+                            <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>
+                        </Link>
+                    ))}
+                </div>
+
+                {/* See More */}
+                <div style={{ padding: '0 16px', marginBottom: 16 }}>
+                    <button style={{
+                        width: '100%', padding: 12, background: '#e4e6eb', border: 'none',
+                        borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                    }}>See more</button>
+                </div>
+
+                {/* Bottom Links */}
+                <div style={{ padding: '0 16px' }}>
+                    <div style={{ padding: '12px 0', borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                        <span style={{ fontSize: 20, opacity: 0.6 }}>❓</span>
+                        <span style={{ flex: 1, fontSize: 15 }}>Help & support</span>
+                        <span style={{ color: C.textSec }}>›</span>
+                    </div>
+                    <div style={{ padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                        <span style={{ fontSize: 20, opacity: 0.6 }}>⚙️</span>
+                        <span style={{ flex: 1, fontSize: 15 }}>Settings & privacy</span>
+                        <span style={{ color: C.textSec }}>›</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', paddingBottom: 70 }}>
+                {/* Header */}
+                <header style={{ background: C.card, padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
+                    {/* LEFT: Hamburger + Logo */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button
+                            onClick={() => setSidebarOpen(true)}
+                            style={{
+                                background: 'none', border: 'none', fontSize: 24, cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                width: 40, height: 40, borderRadius: 8
+                            }}
+                        >☰</button>
+                        <Link href="/hub" style={{ fontWeight: 700, fontSize: 22, color: C.blue, textDecoration: 'none' }}>Smarter.Poker</Link>
+                    </div>
+
+                    {/* RIGHT: Create, Search, Messenger */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button style={{
+                            width: 36, height: 36, borderRadius: '50%', background: '#e4e6eb',
+                            border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
+                            alignItems: 'center', justifyContent: 'center'
+                        }}>+</button>
+                        <button style={{
+                            width: 36, height: 36, borderRadius: '50%', background: '#e4e6eb',
+                            border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
+                            alignItems: 'center', justifyContent: 'center'
+                        }}>🔍</button>
+                        <button style={{
+                            width: 36, height: 36, borderRadius: '50%', background: '#e4e6eb',
+                            border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
+                            alignItems: 'center', justifyContent: 'center'
+                        }}>💬</button>
+                    </div>
+                </header>
+
+                {/* Main Feed - Full Width */}
+                <main style={{ maxWidth: 680, margin: '0 auto', padding: '8px' }}>
+                    {/* Post Creator - "What's on your mind?" */}
                     {user && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px 4px 12px', background: '#f0f0f0', borderRadius: 16, fontSize: 13, fontWeight: 600 }}>
-                                <span>💎</span>
-                                <span style={{ color: C.blue }}>{user.diamonds?.toLocaleString() || '300'}</span>
-                                <Link href="/hub/diamond-store" style={{
-                                    width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    background: C.blue, borderRadius: '50%', textDecoration: 'none', marginLeft: 4
-                                }}>
-                                    <span style={{ fontSize: 14, fontWeight: 700, color: 'white', lineHeight: 1 }}>+</span>
-                                </Link>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px', background: '#f0f0f0', borderRadius: 16, fontSize: 13, fontWeight: 600 }}>
-                                <span style={{ color: C.textSec }}>XP</span>
-                                <span style={{ color: C.blue }}>{user.xp?.toLocaleString() || '50'}</span>
-                                <span style={{ color: C.textSec }}>•</span>
-                                <span>LV {user.level || 1}</span>
-                            </div>
+                        <div style={{
+                            background: C.card, borderRadius: 8, padding: 12, marginBottom: 8,
+                            display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                        }}>
+                            <Avatar src={user.avatar} name={user.name} size={40} />
+                            <div
+                                onClick={() => document.querySelector('textarea')?.focus()}
+                                style={{
+                                    flex: 1, padding: '10px 16px', background: '#f0f2f5',
+                                    borderRadius: 20, color: C.textSec, cursor: 'pointer', fontSize: 15
+                                }}
+                            >What's on your mind?</div>
+                            <button style={{
+                                background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', opacity: 0.5
+                            }}>🖼</button>
                         </div>
                     )}
 
-                    {/* RIGHT: Profile, Messages, Notifications */}
-                    {user ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <span style={{ fontSize: 20, cursor: 'pointer' }} title="Notifications">🔔</span>
-                            <span style={{ fontSize: 20, cursor: 'pointer' }} title="Messages">💬</span>
-                            <Link href="/hub/profile" style={{ display: 'block' }}>
-                                <Avatar src={user.avatar} name={user.name} size={36} />
-                            </Link>
+                    {/* Stories Bar */}
+                    <StoriesBar currentUser={user} onAddStory={() => { }} />
+
+                    {/* Full Post Creator (hidden by default, shown when clicked) */}
+                    {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} />}
+
+                    {/* Login prompt */}
+                    {!user && (
+                        <div style={{ background: C.card, borderRadius: 8, padding: 24, textAlign: 'center', marginBottom: 8 }}>
+                            <p style={{ color: C.textSec, marginBottom: 12 }}>Log in to post and interact!</p>
+                            <Link href="/auth/login" style={{
+                                display: 'inline-block', padding: '10px 24px', background: C.blue,
+                                color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none'
+                            }}>Log In</Link>
+                        </div>
+                    )}
+
+                    {/* Posts Feed */}
+                    {posts.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                            <div style={{ fontSize: 48 }}>🌟</div>
+                            <h3 style={{ color: C.text }}>No posts yet</h3>
+                            <p>Be the first to share something!</p>
                         </div>
                     ) : (
-                        <Link href="/auth/login" style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}>Log In</Link>
+                        posts.map(p => <PostCard key={p.id} post={p} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />)
                     )}
-                </header>
-                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', maxWidth: 900, margin: '0 auto', gap: 16, padding: 16 }}>
-                    <nav style={{ position: 'sticky', top: 70, height: 'fit-content' }}>
-                        {user && <Link href="/hub/profile" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}><Avatar name={user.name} size={32} /><span style={{ fontWeight: 600, fontSize: 14 }}>{user.name}</span></Link>}
-                        <Link href="/hub/profile" style={{ display: 'block', padding: '8px 0', cursor: 'pointer', color: C.textSec, fontSize: 14, textDecoration: 'none' }}>👤 Profile</Link>
-                        <Link href="/hub/friends" style={{ display: 'block', padding: '8px 0', cursor: 'pointer', color: C.textSec, fontSize: 14, textDecoration: 'none' }}>👥 Friends</Link>
-                        {['🏛️ Clubs', '📺 Watch', '🏆 Tournaments', '🎯 GTO Training', '🌐 Full Social Site'].map((item, i) => <div key={i} style={{ padding: '8px 0', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>{item}</div>)}
-                        <ContactsSidebar contacts={contacts} onOpenChat={handleOpenChat} onSearch={handleSearch} searchResults={searchResults} />
-                    </nav>
-                    <main>
-                        <StoriesBar currentUser={user} onAddStory={() => { }} />
-                        {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} />}
-                        {!user && <div style={{ background: C.card, borderRadius: 8, padding: 20, textAlign: 'center', marginBottom: 2 }}><p style={{ color: C.textSec }}>Log in to post and chat!</p><Link href="/auth/login" style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}>Log In →</Link></div>}
-                        {posts.length === 0 ? <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}><div style={{ fontSize: 48 }}>🌟</div><h3 style={{ color: C.text }}>No posts yet</h3><p>Be the first to share something!</p></div> : posts.map(p => <PostCard key={p.id} post={p} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />)}
-                    </main>
+                </main>
+
+                {/* Bottom Navigation Bar */}
+                <nav style={{
+                    position: 'fixed', bottom: 0, left: 0, right: 0, height: 56,
+                    background: C.card, borderTop: `1px solid ${C.border}`,
+                    display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+                    zIndex: 100
+                }}>
+                    <Link href="/hub/social-media" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.blue }}>
+                        <span style={{ fontSize: 24 }}>🏠</span>
+                        <span style={{ fontSize: 10, marginTop: 2 }}>Home</span>
+                    </Link>
+                    <Link href="/hub/watch" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec, position: 'relative' }}>
+                        <span style={{ fontSize: 24 }}>📺</span>
+                        <span style={{ fontSize: 10, marginTop: 2 }}>Reels</span>
+                    </Link>
+                    <Link href="/hub/friends" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec, position: 'relative' }}>
+                        <span style={{ fontSize: 24 }}>👥</span>
+                        <div style={{ position: 'absolute', top: -2, right: -4, background: C.red, color: 'white', borderRadius: '50%', width: 18, height: 18, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>1</div>
+                        <span style={{ fontSize: 10, marginTop: 2 }}>Friends</span>
+                    </Link>
+                    <Link href="/hub/club-arena" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec }}>
+                        <span style={{ fontSize: 24 }}>🏛️</span>
+                        <span style={{ fontSize: 10, marginTop: 2 }}>Clubs</span>
+                    </Link>
+                    <Link href="/hub/notifications" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec, position: 'relative' }}>
+                        <span style={{ fontSize: 24 }}>🔔</span>
+                        <div style={{ position: 'absolute', top: -2, right: -4, background: C.red, color: 'white', borderRadius: '50%', width: 18, height: 18, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>1</div>
+                        <span style={{ fontSize: 10, marginTop: 2 }}>Alerts</span>
+                    </Link>
+                    <Link href="/hub/profile" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec }}>
+                        {user ? <Avatar src={user.avatar} name={user.name} size={28} /> : <span style={{ fontSize: 24 }}>👤</span>}
+                        <span style={{ fontSize: 10, marginTop: 2 }}>Profile</span>
+                    </Link>
+                </nav>
+
+                {/* Chat Windows */}
+                <div style={{ position: 'fixed', bottom: 70, right: 16, display: 'flex', gap: 8, zIndex: 1000 }}>
+                    {openChats.map(ch => <ChatWindow key={ch.id} chat={ch} messages={chatMsgs[ch.id] || []} currentUserId={user?.id} onSend={txt => handleSendMsg(ch.id, txt)} onClose={() => setOpenChats(prev => prev.filter(x => x.id !== ch.id))} />)}
                 </div>
-                <div style={{ position: 'fixed', bottom: 0, right: 80, display: 'flex', gap: 8, zIndex: 1000 }}>{openChats.map(ch => <ChatWindow key={ch.id} chat={ch} messages={chatMsgs[ch.id] || []} currentUserId={user?.id} onSend={txt => handleSendMsg(ch.id, txt)} onClose={() => setOpenChats(prev => prev.filter(x => x.id !== ch.id))} />)}</div>
             </div>
         </>
     );
