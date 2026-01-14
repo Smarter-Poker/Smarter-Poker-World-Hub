@@ -81,45 +81,46 @@ const POST_TYPES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CONTEXTUAL IMAGE PROMPTS - Match the post vibe
-// LAW: NO TEXT-ONLY POSTS ALLOWED - Every post MUST have an image
+// REALISTIC IMAGE PROMPTS - Look like REAL phone photos poker players take
+// LAW: NO TEXT-ONLY POSTS - Images must look authentic, NOT AI-generated
+// KEY: Messy, imperfect, casual, low-light, smartphone quality
 // ═══════════════════════════════════════════════════════════════════════════
 const IMAGE_PROMPTS_BY_TYPE = {
     session_result: [
-        "Poker chip stack on green felt table, dramatic casino lighting, player's perspective, photorealistic",
-        "Professional poker room at night, warm ambient lighting, rows of tables, cinematic photo",
-        "Close up of cards and chips on table after poker session, moody lighting, professional",
-        "Poker table from player's view showing chip stack, casino background, authentic feel"
+        "Smartphone photo of messy poker chip stack on casino felt, slightly blurry, dim casino lighting, candid snapshot, Red Bull can in corner, realistic",
+        "Casual phone photo of poker chips scattered on green table, overhead shot, some chips knocked over, half-eaten food tray nearby, dim lighting",
+        "Amateur photo of small chip stack at poker table, casino carpet visible, other players hands blurred, authentic messy table, low light",
+        "Quick snapshot of chip racks at cashier cage, grainy phone quality, fluorescent casino lighting, money counter in background"
     ],
     bad_beat: [
-        "Dramatic poker moment, cards on felt, intense lighting, close up, cinematic",
-        "Frustrated poker scene, chips scattered on table, moody casino lighting, emotional",
-        "Close up of pocket aces vs pocket kings on board, dramatic river card, dark atmosphere",
-        "Poker bad beat moment, stunning visual of cards on felt, dark dramatic lighting"
+        "Phone photo of face-up cards on poker table showing bad beat, messy chips around, slightly tilted angle, frustrated energy, amateur quality",
+        "Candid snapshot of poker hand showing cooler, cards on felt, dim lighting, drink cups visible, imperfect framing",
+        "Blurry phone photo of cards showing river suckout, casino table, slightly out of focus, looks like taken in frustration",
+        "Quick photo of board cards at poker table, player perspective, messy felt, empty coffee cup, low casino lighting"
     ],
     life_moment: [
-        "Inside a casino poker room, beautiful ambient lighting, luxury atmosphere, candid feel",
-        "Late night home poker game setup, warm lighting, cozy atmosphere, authentic",
-        "Poker player perspective walking into casino, grand entrance, cinematic shot",
-        "Poker table at home game, friends playing, warm authentic atmosphere, natural"
+        "Casual selfie style photo inside casino poker room, blurry background tables, fluorescent lights, authentic environment",
+        "Phone snapshot of late night poker room, empty tables, scattered chips, half-eaten sandwich, tired atmosphere, dim lights",
+        "Amateur photo of home poker setup, messy table, beer bottles, chips in chaos, warm lamp lighting, lived-in feel",
+        "Candid photo of poker room entrance, casino carpet, blurry players walking, authentic phone camera quality"
     ],
     win_celebration: [
-        "Winner's chip stack at poker table, golden hour lighting, triumphant feel, stunning",
-        "Big poker pot being pushed to winner, chips piled high, casino excitement, vibrant",
-        "Victorious poker moment, stacked chips gleaming, luxury casino setting, celebration",
-        "Poker tournament final table victory, dramatic lighting, champion's view"
+        "Excited snapshot of big chip stack from winning session, slightly shaky photo, messy table, other players chips visible, candid joy",
+        "Phone photo of chip rack closeup after big win, grainy quality, cashier window reflection, authentic casino lighting",
+        "Quick celebratory photo of stacked chips, some falling over, drink in background, messy felt, real phone snapshot feel",
+        "Amateur overhead photo of huge pot won, cards visible, scattered chips, other players hands in frame, chaotic feel"
     ],
     random_thought: [
-        "Contemplative poker scene, cards face down, thoughtful atmosphere, artistic",
-        "Abstract poker aesthetic, chips and cards, moody lighting, artistic composition",
-        "Poker room at dawn, empty tables, peaceful atmosphere, reflective mood",
-        "Stylish poker flatlay, cards chips and felt, top down view, instagram aesthetic"
+        "Aesthetic phone shot of poker table at quiet moment, empty seats, dim casino lighting, slightly grainy, contemplative mood",
+        "Casual photo of cards and coffee cup on poker table, morning session vibes, soft lighting, imperfect composition",
+        "Snapshot of empty poker table late at night, scattered chips left behind, dim lights, melancholy atmosphere",
+        "Phone camera photo of poker room view, blurry background players, focus on felt texture, authentic candid feel"
     ],
     question: [
-        "Interactive poker scene, community cards showing, decision point, engaging",
-        "Poker hand in progress, betting action, dramatic moment, viewer engagement",
-        "Close up of poker decision, cards and chips, tension in the air, cinematic",
-        "Poker strategy moment, hand revealed, community pondering, authentic"
+        "Phone photo of tricky board texture, cards face up on felt, chip stacks visible, asking for opinions vibe, casual snapshot",
+        "Amateur photo of poker hand decision point, cards shown, messy table, other players watching, authentic lighting",
+        "Quick snapshot of interesting flop texture, cards on casino felt, slightly blurry edges, phone camera quality",
+        "Candid photo of poker scenario, community cards visible, chip stacks around, dim casino lighting, discussion starter"
     ]
 };
 

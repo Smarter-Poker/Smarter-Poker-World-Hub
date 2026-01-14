@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
 import { StoriesBar, ShareToStoryPrompt } from '../../src/components/social/Stories';
+import { ReelsFeedCarousel } from '../../src/components/social/ReelsFeedCarousel';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -1166,7 +1167,16 @@ export default function SocialMediaPage() {
                             <p>Be the first to share something!</p>
                         </div>
                     ) : (
-                        posts.map(p => <PostCard key={p.id} post={p} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />)
+                        <>
+                            {/* Render posts with Reels carousel inserted after every 3 posts */}
+                            {posts.map((p, index) => (
+                                <>
+                                    <PostCard key={p.id} post={p} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />
+                                    {/* Insert Reels carousel after 3rd post */}
+                                    {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
+                                </>
+                            ))}
+                        </>
                     )}
                 </main>
 
