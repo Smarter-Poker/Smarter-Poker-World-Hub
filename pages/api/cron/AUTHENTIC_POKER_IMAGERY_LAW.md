@@ -2,7 +2,7 @@
 ## Hard Law for Horse Content Generation
 
 **Status:** LOCKED_PRODUCTION  
-**Version:** 1.0  
+**Version:** 1.1  
 **Last Updated:** 2026-01-13  
 
 ---
@@ -20,12 +20,17 @@ that screams "AI GENERATED" and destroys user trust.
 Based on deep research of r/chipporn, poker Twitter, and professional player 
 Instagram accounts:
 
-### 1. CHIP PRESENTATION (Critical)
+### 1. CHIP AUTHENTICITY (Critical - v1.1)
+- **REAL CASINO BRANDING** - Chips from actual casinos: Bellagio, Aria, Wynn, MGM, Venetian, WSOP
+- **VISIBLE DENOMINATIONS** - $1 white, $5 red, $25 green, $100 black, $500 purple clearly marked
 - **NEATLY STACKED** - Chips organized in clean stacks of 20
 - **SORTED BY DENOMINATION** - Colors separated and organized
-- **CHIP CASTLES/TOWERS** - Tall, carefully built formations
-- **CHIP RACKS** - Casino chip carriers with organized rows
-- **Player's personal area** - Their spot on the table, neat and organized
+- **REALISTIC SESSION AMOUNTS** - Pile size matches a believable session (not ridiculous towers)
+
+### 2. HOME GAME CHIPS (Alternative)
+- **CERAMIC CHIPS** - Monte Carlo style, Paulson clays, or quality home game sets
+- **PRINTED DENOMINATIONS** - Clear value markings on chips
+- **NOT GENERIC** - Must look like quality poker chips, not plain colored discs
 
 ### 2. CARD PRESENTATION
 - **Hole cards from POV** - Looking down at your own cards (AA, KK, etc.)
@@ -71,12 +76,19 @@ Instagram accounts:
 - ❌ **CRAPS** - Rectangular with side rails
 - ❌ **ANY NON-POKER TABLE** - Must be poker table only
 
-### 1. CHIP PRESENTATION (Instant Detection)
+### 1. GENERIC CHIPS (Instant Detection - v1.1)
+- ❌ **PLAIN COLORED CHIPS** - Generic red/blue/green discs with no markings
+- ❌ **NO DENOMINATION** - Real chips ALWAYS have $ values printed on them
+- ❌ **NO BRANDING** - Real casino chips have casino name/logo
+- ❌ **CLIP ART STYLE** - Looks like stock image poker chips
+
+### 2. CHIP PRESENTATION (Instant Detection)
 - ❌ **SCATTERED CHIPS** - Nobody scatters their chips
 - ❌ **CHIPS KNOCKED OVER** - Players don't let this happen
 - ❌ **RANDOM PILES** - Chaos = AI, organization = human
 - ❌ **Chips in "chaos"** - This literally never happens
-- ❌ **Dramatic chip arrangements** - Too perfect, too artistic
+- ❌ **RIDICULOUS PILE SIZES** - Unrealistic tower of chips without context
+- ❌ **DRAMATIC ARRANGEMENTS** - Too perfect, too artistic
 
 ### 2. CARD ISSUES
 - ❌ **Unreadable cards** - Blurred or nonsense suits/ranks
@@ -108,11 +120,13 @@ Instagram accounts:
 ## 📝 PROMPT ENGINEERING RULES
 
 ### ALWAYS Include:
-1. "neatly stacked chips organized by denomination"
-2. "player's seat perspective" or "POV"
-3. "casino table" or "green felt"
-4. "ambient lighting" (not dramatic/cinematic)
-5. "phone photo quality" or "candid shot"
+1. **Specific casino name** - "Bellagio", "Aria", "Wynn", "MGM", "WSOP"
+2. **Visible denominations** - "$5 red $25 green $100 black chips with denomination markers"
+3. "player's seat perspective" or "POV"
+4. "casino table" or "green felt"
+5. "ambient lighting" (not dramatic/cinematic)
+6. "phone photo quality" or "candid shot"
+7. **Realistic amounts** - "modest session", "realistic 2/5 session amount", "about 30 chips"
 
 ### NEVER Include:
 1. "scattered" or "chaos" or "messy chips"

@@ -81,68 +81,70 @@ const POST_TYPES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔒 AUTHENTIC POKER IMAGE PROMPTS - HARD LAW v1.0
+// 🔒 AUTHENTIC POKER IMAGE PROMPTS - HARD LAW v1.1
 // See: AUTHENTIC_POKER_IMAGERY_LAW.md for full documentation
 // 
-// ✓ REQUIRED: Neatly stacked chips, organized by denomination
-// ✓ REQUIRED: Player POV perspective, realistic phone quality
-// ✓ REQUIRED: Authentic casino/home game environments
+// ✓ REQUIRED: REAL CASINO CHIPS with visible denominations (Bellagio, Aria, WSOP)
+// ✓ REQUIRED: Realistic session-sized stacks (not unrealistic towers)
+// ✓ REQUIRED: Player POV perspective, phone camera quality
+// ✗ FORBIDDEN: Generic plain colored chips (dead giveaway of AI)
+// ✗ FORBIDDEN: Ridiculous unrealistic piles without story context
 // ✗ FORBIDDEN: Scattered/chaotic chips, dramatic lighting, cinematic effects
 // ✗ FORBIDDEN: Blackjack tables, baccarat tables, roulette, any non-poker games
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Anti-AI suffix added to all prompts to ensure authenticity
-// HARD LAW: POKER TABLES ONLY - No blackjack, baccarat, roulette, or other games
-const AUTHENTICITY_SUFFIX = ", POKER TABLE ONLY not blackjack or baccarat, casual phone photo quality, no dramatic lighting, no lens flare, no HDR, realistic amateur photography";
+// HARD LAW: POKER TABLES ONLY + REAL CASINO CHIPS WITH DENOMINATIONS
+const AUTHENTICITY_SUFFIX = ", POKER TABLE ONLY not blackjack or baccarat, real casino chips with visible denomination markings not generic plain chips, casual phone photo quality, no dramatic lighting, no lens flare, no HDR, realistic amateur photography";
 
 const IMAGE_PROMPTS_BY_TYPE = {
     session_result: [
-        "Phone photo of neatly stacked poker chips organized in tall towers by denomination on green felt, player seat perspective, casino table, flat ambient lighting" + AUTHENTICITY_SUFFIX,
-        "Overhead shot of organized chip stacks in red, green, and black sorted into neat rows on casino poker table, water bottle in corner" + AUTHENTICITY_SUFFIX,
-        "Casual photo of chip racks at casino cashier cage window, chips organized by color in rows, cash bills on counter, fluorescent overhead lighting" + AUTHENTICITY_SUFFIX,
-        "Player POV looking down at their organized chip stack on poker table, cards face down waiting, dealer button visible, other players blurred" + AUTHENTICITY_SUFFIX,
-        "Photo of chip rack being filled with neatly stacked chips at casino cage, cashing out session, money counter in background" + AUTHENTICITY_SUFFIX,
-        "Simple overhead photo of organized poker chips in stacks of 20 on green felt, player's spot at table, coffee cup edge of frame" + AUTHENTICITY_SUFFIX
+        "Phone photo of Bellagio casino chips stacked neatly - $5 red $25 green $100 black chips with Bellagio logo, about 30 chips total showing a modest session, player seat perspective on green felt" + AUTHENTICITY_SUFFIX,
+        "Overhead phone shot of Aria casino chips organized in short stacks by denomination, $1 white $5 red $25 green visible, realistic 2/5 session amount, water bottle in corner" + AUTHENTICITY_SUFFIX,
+        "Casual photo at WSOP poker room cage window, Venetian chips being counted with visible denomination markers, cash bills on counter, fluorescent lighting" + AUTHENTICITY_SUFFIX,
+        "Player POV looking at their MGM Grand chips - $5 reds and $25 greens in organized stacks of 20, cards face down, dealer button visible, realistic amount" + AUTHENTICITY_SUFFIX,
+        "Photo cashing out at Wynn cage, chip racks with Wynn-branded chips showing denominations being exchanged for cash, money counter background" + AUTHENTICITY_SUFFIX,
+        "Simple overhead photo of casino chips with printed denominations ($5 $25 $100 visible), realistic 3-hour session stack, coffee cup edge of frame" + AUTHENTICITY_SUFFIX
     ],
     bad_beat: [
-        "Phone photo of two hole cards (pocket aces) face up flat on green felt next to five community cards, neatly stacked chips in background" + AUTHENTICITY_SUFFIX,
-        "Close-up of poker showdown - two hands revealed flat on felt, community board visible, organized chip stacks around" + AUTHENTICITY_SUFFIX,
-        "Player perspective photo looking at hole cards next to the board after a cooler, neat chip stacks visible, casino table" + AUTHENTICITY_SUFFIX,
-        "Candid photo of cards face up on poker table after all-in, both hands visible flat on felt, chips neatly organized nearby" + AUTHENTICITY_SUFFIX,
-        "Phone photo of poker runout showing bad beat board, hole cards revealed face up on felt, organized remaining chips" + AUTHENTICITY_SUFFIX,
-        "Close-up of river card completing a suckout, hole cards visible, neatly stacked chips in frame, casino felt texture" + AUTHENTICITY_SUFFIX
+        "Phone photo of pocket aces (two aces) face up on green felt next to a bad board runout, Bellagio chips with denominations visible in background" + AUTHENTICITY_SUFFIX,
+        "Close-up of cooler showdown - two strong hole cards next to losing board, organized Aria chips with $25 green visible" + AUTHENTICITY_SUFFIX,
+        "Player POV showing KK vs AA cooler, cards flat on felt, remaining MGM chips with denomination markers, casino table" + AUTHENTICITY_SUFFIX,
+        "Candid shot of all-in runout on felt, both hands revealed, casino chips with $5 $25 denominations visible nearby" + AUTHENTICITY_SUFFIX,
+        "Phone photo of river suckout board, hole cards face up, WSOP tournament chips with visible values in frame" + AUTHENTICITY_SUFFIX,
+        "Close-up of bad beat board texture, remaining Venetian casino chips showing $100 black denomination, felt texture" + AUTHENTICITY_SUFFIX
     ],
     life_moment: [
-        "Wide phone photo of busy casino poker room with rows of active tables, players seated, overhead fluorescent lighting, casino carpet visible" + AUTHENTICITY_SUFFIX,
-        "Casual photo from poker room entrance, multiple tables visible in rows, dealers in uniform, typical casino atmosphere" + AUTHENTICITY_SUFFIX,
-        "Phone snapshot of late night casino poker room, some tables with players, dim ambient lighting, authentic atmosphere" + AUTHENTICITY_SUFFIX,
-        "Photo of home poker game on proper table, friends seated around, organized chip stacks at each seat, warm lamp lighting" + AUTHENTICITY_SUFFIX,
-        "Candid photo walking into casino poker room, check-in desk visible, TVs showing sports, casino environment" + AUTHENTICITY_SUFFIX,
-        "Phone photo of poker room at 3am, half-full tables, tired players, empty coffee cups, authentic late-night grind atmosphere" + AUTHENTICITY_SUFFIX
+        "Wide phone photo of Bellagio poker room with active tables, real players seated, overhead lights, casino carpet visible" + AUTHENTICITY_SUFFIX,
+        "Casual photo from Aria poker room entrance, tables in rows, dealers dealing, typical Vegas poker room" + AUTHENTICITY_SUFFIX,
+        "Phone snapshot of MGM Grand poker room late night, half-full tables, tired grinders, authentic 3am atmosphere" + AUTHENTICITY_SUFFIX,
+        "Photo of home game on proper poker table, ceramic Monte Carlo style chips with denominations visible, friends playing, warm lighting" + AUTHENTICITY_SUFFIX,
+        "Candid walking into Wynn poker room, check-in board visible, players waiting for seats, real casino environment" + AUTHENTICITY_SUFFIX,
+        "Phone photo of WSOP at Rio poker room floor, tournament tables, visible branding, authentic event atmosphere" + AUTHENTICITY_SUFFIX
     ],
     win_celebration: [
-        "Phone photo of tall chip castle - multiple stacks built into organized tower formation on green felt, player's winning stack" + AUTHENTICITY_SUFFIX,
-        "Excited POV photo of massive chip stack sorted neatly by denomination, different colored towers on casino table, big win" + AUTHENTICITY_SUFFIX,
-        "Photo of chip racks at cashier cage, multiple racks full of organized high-denomination chips, cashing out big session" + AUTHENTICITY_SUFFIX,
-        "Overhead phone photo of huge chip stack organized into neat rows by color on green felt, player's seat perspective" + AUTHENTICITY_SUFFIX,
-        "Photo of organized chips being counted into racks at casino cage, cash being handed over, successful session" + AUTHENTICITY_SUFFIX,
-        "Phone photo of impressive organized chip fortress built from session winnings, stacks of 20 in multiple colors" + AUTHENTICITY_SUFFIX
+        "Phone photo of solid Bellagio session - organized stacks of $5 red $25 green $100 black chips with visible logos, realistic big win amount" + AUTHENTICITY_SUFFIX,
+        "Excited POV of Aria chips after heater session, neatly sorted $25 greens and $100 blacks with denomination markers visible" + AUTHENTICITY_SUFFIX,
+        "Photo at casino cage cashing out $1200 in MGM chips, racks with denominations visible, cash being counted out" + AUTHENTICITY_SUFFIX,
+        "Overhead phone photo of good 5/10 session, organized Wynn chips showing $5 $25 $100 denominations, player seat" + AUTHENTICITY_SUFFIX,
+        "Photo of Venetian chips being cashed, visible $100 black $500 purple denominations, realistic tournament cash" + AUTHENTICITY_SUFFIX,
+        "Phone photo of WSOP circuit score, tournament chips with clear value markings, organized win stack" + AUTHENTICITY_SUFFIX
     ],
     random_thought: [
-        "Quiet phone photo of empty poker table between sessions, dealer button in position, stacked chips waiting, ambient casino lighting" + AUTHENTICITY_SUFFIX,
-        "Atmospheric photo of poker room during slow hours, empty clean tables ready for action, peaceful casino morning" + AUTHENTICITY_SUFFIX,
-        "Casual photo of coffee cup sitting next to neatly stacked chips on green felt, early morning session, soft overhead light" + AUTHENTICITY_SUFFIX,
-        "Phone photo of organized chips on felt during a break, cards face down, contemplative moment at poker table" + AUTHENTICITY_SUFFIX,
-        "Photo of poker room view from seat, other tables visible in background, quiet moment during session" + AUTHENTICITY_SUFFIX,
-        "Candid photo of poker table felt texture close-up, dealer button and organized chips at edge of frame" + AUTHENTICITY_SUFFIX
+        "Quiet phone photo of empty poker table between hands, Bellagio dealer button, waiting chips with denominatons visible, ambient lighting" + AUTHENTICITY_SUFFIX,
+        "Photo of Aria poker room during slow morning hours, clean tables with chip trays, peaceful casino morning" + AUTHENTICITY_SUFFIX,
+        "Casual photo of coffee cup next to organized $5 and $25 casino chips on green felt, early session, soft lighting" + AUTHENTICITY_SUFFIX,
+        "Phone photo of MGM chips organized during break, cards down, contemplative moment, chips showing denominations" + AUTHENTICITY_SUFFIX,
+        "Photo of poker room view from seat at Venetian, other tables visible, quiet moment during session" + AUTHENTICITY_SUFFIX,
+        "Candid photo of dealer button and organized Wynn chips with visible $25 markers, felt texture close-up" + AUTHENTICITY_SUFFIX
     ],
     question: [
-        "Phone photo of poker board showing five community cards face up on felt, organized chip stacks visible, decision point setup" + AUTHENTICITY_SUFFIX,
-        "Close-up of hole cards partially lifted showing hand, community board visible, neat chip stacks in background" + AUTHENTICITY_SUFFIX,
-        "Photo of poker situation in progress - visible flop texture on felt, organized chip stacks, strategic moment" + AUTHENTICITY_SUFFIX,
-        "Player POV of tournament spot - board cards laid out on felt, well-organized chip stack, casino poker room" + AUTHENTICITY_SUFFIX,
-        "Phone photo of tricky board texture, five cards on green felt, chip stacks organized around, asking opinions vibe" + AUTHENTICITY_SUFFIX,
-        "Candid photo of interesting poker hand, community cards visible face up, organized chips, authentic table setting" + AUTHENTICITY_SUFFIX
+        "Phone photo of poker board with five cards face up, Bellagio chips with $25 $100 denominations visible, decision point" + AUTHENTICITY_SUFFIX,
+        "Close-up of hole cards AK partially lifted, community board visible, organized Aria casino chips in background" + AUTHENTICITY_SUFFIX,
+        "Photo of interesting flop texture on felt, organized MGM chips with denomination markers, strategic moment" + AUTHENTICITY_SUFFIX,
+        "Player POV of tournament spot at WSOP, board cards visible, tournament chips with clear values showing" + AUTHENTICITY_SUFFIX,
+        "Phone photo of tricky river decision, five cards on felt, Venetian chips organized showing $5 $25 denominations" + AUTHENTICITY_SUFFIX,
+        "Candid photo of hand in progress, community cards visible, authentic Wynn casino chips with markings" + AUTHENTICITY_SUFFIX
     ]
 };
 
