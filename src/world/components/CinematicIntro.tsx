@@ -1,131 +1,270 @@
 // @ts-nocheck
 /* ═══════════════════════════════════════════════════════════════════════════
-   SMARTER.POKER — EPIC CINEMATIC INTRO
-   Full-screen explosions, particle storms, and cinematic music
-   THE USER MUST BE EXCITED TO ENTER
+   SMARTER.POKER — 2026 CINEMATIC INTRO
+   PS5-Quality Full-Screen Experience with Modern Sound Design
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EPIC MUSIC COMPOSER - Cinematic orchestral-style music
+// 2026 CINEMATIC SOUND DESIGN - Pure texture, zero melody
+// No 8-bit oscillator music. Just: whoosh, impact, rumble, shimmer.
 // ─────────────────────────────────────────────────────────────────────────────
-class EpicMusicComposer {
+class CinematicSoundDesign {
     private ctx: AudioContext | null = null;
-    private masterGain: GainNode | null = null;
+    private master: GainNode | null = null;
     private compressor: DynamicsCompressorNode | null = null;
 
     init() {
         if (this.ctx) return;
         try {
             this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+            // Master bus with compression for punch
             this.compressor = this.ctx.createDynamicsCompressor();
-            this.masterGain = this.ctx.createGain();
-            this.masterGain.connect(this.compressor);
+            this.compressor.threshold.value = -24;
+            this.compressor.knee.value = 12;
+            this.compressor.ratio.value = 4;
+            this.compressor.attack.value = 0.003;
+            this.compressor.release.value = 0.15;
+
+            this.master = this.ctx.createGain();
+            this.master.gain.value = 0.8;
+
+            this.master.connect(this.compressor);
             this.compressor.connect(this.ctx.destination);
-            this.masterGain.gain.setValueAtTime(0.5, this.ctx.currentTime);
         } catch (e) {
             console.log('Audio not available');
         }
     }
 
-    private playNote(freq: number, start: number, dur: number, type: OscillatorType = 'sine', vol: number = 0.2) {
-        if (!this.ctx || !this.masterGain) return;
+    // ═══════════════════════════════════════════════════════════════════════
+    // TEXTURE 1: Filtered noise whoosh (the sweep/breath sound)
+    // ═══════════════════════════════════════════════════════════════════════
+    private whoosh(start: number, duration: number, direction: 'up' | 'down', intensity: number = 1) {
+        if (!this.ctx || !this.master) return;
+
+        const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+        const buffer = this.ctx.createBuffer(2, bufferSize, this.ctx.sampleRate);
+
+        // Stereo pink-ish noise
+        for (let ch = 0; ch < 2; ch++) {
+            const data = buffer.getChannelData(ch);
+            let b0 = 0, b1 = 0, b2 = 0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                b0 = 0.99765 * b0 + white * 0.0990460;
+                b1 = 0.96300 * b1 + white * 0.2965164;
+                b2 = 0.57000 * b2 + white * 1.0526913;
+                data[i] = (b0 + b1 + b2 + white * 0.1848) * 0.11;
+            }
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        // Bandpass filter for sweep
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.Q.value = 1.5;
+
+        const startFreq = direction === 'up' ? 200 : 4000;
+        const endFreq = direction === 'up' ? 4000 : 200;
+        filter.frequency.setValueAtTime(startFreq, start);
+        filter.frequency.exponentialRampToValueAtTime(endFreq, start + duration);
+
+        // Volume envelope
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.25 * intensity, start + duration * 0.15);
+        gain.gain.setValueAtTime(0.2 * intensity, start + duration * 0.6);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.master);
+
+        noise.start(start);
+        noise.stop(start + duration);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // TEXTURE 2: Sub bass thump (the physical rumble you feel)
+    // ═══════════════════════════════════════════════════════════════════════
+    private subThump(start: number, intensity: number = 1) {
+        if (!this.ctx || !this.master) return;
 
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.connect(gain);
-        gain.connect(this.masterGain);
 
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, start);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(60, start);
+        osc.frequency.exponentialRampToValueAtTime(25, start + 0.4);
 
         gain.gain.setValueAtTime(0, start);
-        gain.gain.linearRampToValueAtTime(vol, start + 0.02);
-        gain.gain.setValueAtTime(vol * 0.8, start + dur * 0.7);
-        gain.gain.linearRampToValueAtTime(0, start + dur);
+        gain.gain.linearRampToValueAtTime(0.7 * intensity, start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.5);
+
+        osc.connect(gain);
+        gain.connect(this.master);
 
         osc.start(start);
-        osc.stop(start + dur + 0.1);
+        osc.stop(start + 0.6);
     }
 
-    private playChord(freqs: number[], start: number, dur: number, type: OscillatorType = 'sine', vol: number = 0.1) {
-        freqs.forEach(f => this.playNote(f, start, dur, type, vol));
+    // ═══════════════════════════════════════════════════════════════════════
+    // TEXTURE 3: Transient click/crack (the initial attack of impacts)
+    // ═══════════════════════════════════════════════════════════════════════
+    private transient(start: number, intensity: number = 1) {
+        if (!this.ctx || !this.master) return;
+
+        // Short noise burst
+        const bufferSize = Math.floor(this.ctx.sampleRate * 0.05);
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+
+        for (let i = 0; i < bufferSize; i++) {
+            // Sharp exponential decay
+            data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 6);
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        // Highpass to keep it punchy
+        const hp = this.ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 800;
+        hp.Q.value = 0.7;
+
+        const gain = this.ctx.createGain();
+        gain.gain.value = 0.5 * intensity;
+
+        noise.connect(hp);
+        hp.connect(gain);
+        gain.connect(this.master);
+
+        noise.start(start);
     }
 
-    playEpicIntro() {
+    // ═══════════════════════════════════════════════════════════════════════
+    // TEXTURE 4: Cinematic impact (sub + transient + body)
+    // ═══════════════════════════════════════════════════════════════════════
+    private impact(start: number, intensity: number = 1) {
+        this.subThump(start, intensity);
+        this.transient(start, intensity);
+
+        // Mid-range body
+        if (!this.ctx || !this.master) return;
+
+        const bodyBuffer = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.2), this.ctx.sampleRate);
+        const bodyData = bodyBuffer.getChannelData(0);
+        for (let i = 0; i < bodyData.length; i++) {
+            bodyData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bodyBuffer.length, 3);
+        }
+
+        const body = this.ctx.createBufferSource();
+        body.buffer = bodyBuffer;
+
+        const bp = this.ctx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.value = 400;
+        bp.Q.value = 1;
+
+        const bodyGain = this.ctx.createGain();
+        bodyGain.gain.value = 0.3 * intensity;
+
+        body.connect(bp);
+        bp.connect(bodyGain);
+        bodyGain.connect(this.master);
+
+        body.start(start);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // TEXTURE 5: Air shimmer (subtle high-frequency texture for reveals)
+    // ═══════════════════════════════════════════════════════════════════════
+    private shimmer(start: number, duration: number, intensity: number = 1) {
+        if (!this.ctx || !this.master) return;
+
+        const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+        const buffer = this.ctx.createBuffer(2, bufferSize, this.ctx.sampleRate);
+
+        for (let ch = 0; ch < 2; ch++) {
+            const data = buffer.getChannelData(ch);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const hp = this.ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 6000;
+
+        const lp = this.ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 12000;
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.08 * intensity, start + duration * 0.3);
+        gain.gain.setValueAtTime(0.06 * intensity, start + duration * 0.7);
+        gain.gain.linearRampToValueAtTime(0, start + duration);
+
+        noise.connect(hp);
+        hp.connect(lp);
+        lp.connect(gain);
+        gain.connect(this.master);
+
+        noise.start(start);
+        noise.stop(start + duration);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // THE 2026 INTRO SEQUENCE - Tension → Impact → Release
+    // ═══════════════════════════════════════════════════════════════════════
+    play2026Intro() {
         this.init();
         if (!this.ctx) return;
 
         const t = this.ctx.currentTime;
 
-        // ══════════════════════════════════════════════════════════════════
-        // PHASE 1: THE VOID AWAKENS (0-1s) - Deep rumble, anticipation
-        // ══════════════════════════════════════════════════════════════════
-        this.playNote(27.5, t, 2, 'sine', 0.4);  // Sub bass A0
-        this.playNote(55, t + 0.3, 1.5, 'sine', 0.25); // A1
-        this.playChord([110, 165, 220], t + 0.5, 1.2, 'triangle', 0.08); // Am chord rising
+        // ─── ACT 1: TENSION (0 - 0.8s) ───────────────────────────────────
+        // Building anticipation with breath and rumble
+        this.whoosh(t, 0.9, 'up', 0.6);
+        this.subThump(t + 0.1, 0.3); // Subtle low rumble
 
-        // ══════════════════════════════════════════════════════════════════
-        // PHASE 2: THE EXPLOSION (1-1.5s) - MASSIVE IMPACT
-        // ══════════════════════════════════════════════════════════════════
-        // Impact bass
-        this.playNote(30, t + 1, 0.4, 'sawtooth', 0.5);
-        this.playNote(60, t + 1, 0.3, 'square', 0.3);
+        // ─── ACT 2: IMPACT (0.8s) ────────────────────────────────────────
+        // The big hit - this is the moment
+        this.impact(t + 0.8, 1.3);
+        this.whoosh(t + 0.8, 0.4, 'down', 0.8);
 
-        // Power chord explosion
-        this.playChord([110, 165, 220, 330], t + 1, 0.6, 'sawtooth', 0.2);
+        // ─── ACT 3: EXPANSION (1.0 - 2.5s) ───────────────────────────────
+        // Release and spread - the energy radiates outward
+        this.whoosh(t + 1.0, 1.5, 'up', 0.5);
+        this.shimmer(t + 1.2, 2.0, 0.8);
 
-        // White noise burst for impact
-        if (this.ctx && this.masterGain) {
-            const bufferSize = this.ctx.sampleRate * 0.15;
-            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
-            }
-            const noise = this.ctx.createBufferSource();
-            noise.buffer = buffer;
-            const noiseGain = this.ctx.createGain();
-            noise.connect(noiseGain);
-            noiseGain.connect(this.masterGain);
-            noiseGain.gain.setValueAtTime(0.4, t + 1);
-            noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 1.15);
-            noise.start(t + 1);
-        }
+        // Secondary smaller impact for punch
+        this.impact(t + 1.3, 0.5);
 
-        // ══════════════════════════════════════════════════════════════════
-        // PHASE 3: THE REVELATION (1.5-2.5s) - Epic rising melody
-        // ══════════════════════════════════════════════════════════════════
-        // Rising melodic phrase
-        const melody = [220, 262, 330, 392, 440, 523];
-        melody.forEach((freq, i) => {
-            this.playNote(freq, t + 1.5 + i * 0.12, 0.25, 'triangle', 0.15);
-        });
+        // ─── ACT 4: ARRIVAL (2.5 - 4s) ───────────────────────────────────
+        // The logo reveal moment - subtle and confident
+        this.impact(t + 2.4, 0.7);
+        this.shimmer(t + 2.5, 1.8, 1.0);
+        this.whoosh(t + 2.6, 1.5, 'up', 0.3);
 
-        // Sustained power chord
-        this.playChord([110, 220, 330, 440], t + 1.8, 1, 'sine', 0.12);
-
-        // ══════════════════════════════════════════════════════════════════
-        // PHASE 4: THE TRIUMPH (2.5-3.5s) - Glorious resolution
-        // ══════════════════════════════════════════════════════════════════
-        // Major chord resolution (A major)
-        this.playChord([110, 138.59, 165, 220, 277.18, 330], t + 2.5, 1.2, 'sine', 0.1);
-
-        // Shimmering high notes
-        [880, 1100, 1320, 1760].forEach((f, i) => {
-            this.playNote(f, t + 2.6 + i * 0.08, 0.5, 'sine', 0.06);
-        });
-
-        // Final bass note
-        this.playNote(55, t + 2.5, 1.5, 'sine', 0.3);
+        // Final sub bass anchor
+        this.subThump(t + 2.5, 0.6);
     }
 }
 
-const musicComposer = new EpicMusicComposer();
+const soundDesigner = new CinematicSoundDesign();
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PARTICLE EXPLOSION SYSTEM - Canvas-based for maximum performance
+// ADVANCED PARTICLE SYSTEM - GPU-like performance with Canvas 2D
 // ─────────────────────────────────────────────────────────────────────────────
 interface Particle {
     x: number;
@@ -136,126 +275,154 @@ interface Particle {
     life: number;
     maxLife: number;
     hue: number;
-    type: 'spark' | 'ember' | 'trail';
+    brightness: number;
+    type: 'spark' | 'glow' | 'streak' | 'dust';
 }
 
-function useParticleExplosion(canvasRef: React.RefObject<HTMLCanvasElement>, active: boolean) {
+function useAdvancedParticles(canvasRef: React.RefObject<HTMLCanvasElement>, phase: string) {
     const particlesRef = useRef<Particle[]>([]);
     const animationRef = useRef<number>();
 
-    const createExplosion = useCallback((cx: number, cy: number, count: number, type: 'spark' | 'ember' | 'trail' = 'spark') => {
+    const emit = useCallback((cx: number, cy: number, count: number, type: Particle['type'], config?: Partial<{
+        speed: number;
+        spread: number;
+        hueRange: [number, number];
+        life: number;
+    }>) => {
+        const { speed = 10, spread = Math.PI * 2, hueRange = [180, 220], life = 1 } = config || {};
+
         for (let i = 0; i < count; i++) {
-            const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
-            const speed = type === 'spark' ? 8 + Math.random() * 15 :
-                type === 'ember' ? 2 + Math.random() * 5 :
-                    4 + Math.random() * 8;
+            const angle = (spread * i / count) - spread / 2 + (Math.random() - 0.5) * 0.3;
+            const s = speed * (0.5 + Math.random());
 
             particlesRef.current.push({
-                x: cx,
-                y: cy,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                size: type === 'spark' ? 2 + Math.random() * 4 :
-                    type === 'ember' ? 4 + Math.random() * 8 :
-                        1 + Math.random() * 2,
+                x: cx + (Math.random() - 0.5) * 20,
+                y: cy + (Math.random() - 0.5) * 20,
+                vx: Math.cos(angle) * s,
+                vy: Math.sin(angle) * s,
+                size: type === 'glow' ? 20 + Math.random() * 40 :
+                    type === 'streak' ? 1 + Math.random() * 2 :
+                        type === 'dust' ? 1 + Math.random() * 3 :
+                            2 + Math.random() * 4,
                 life: 1,
-                maxLife: type === 'spark' ? 0.5 + Math.random() * 0.5 :
-                    type === 'ember' ? 1 + Math.random() * 1 :
-                        0.3 + Math.random() * 0.3,
-                hue: 180 + Math.random() * 40, // Cyan to blue range
+                maxLife: life * (0.8 + Math.random() * 0.4),
+                hue: hueRange[0] + Math.random() * (hueRange[1] - hueRange[0]),
+                brightness: 50 + Math.random() * 30,
                 type,
             });
         }
     }, []);
 
     useEffect(() => {
-        if (!active || !canvasRef.current) return;
+        if (!canvasRef.current) return;
 
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: true });
         if (!ctx) return;
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const resize = () => {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            ctx.scale(dpr, dpr);
+            canvas.style.width = `${window.innerWidth}px`;
+            canvas.style.height = `${window.innerHeight}px`;
+        };
+        resize();
+        window.addEventListener('resize', resize);
 
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2;
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
 
-        // Initial massive explosion at 1 second
-        setTimeout(() => {
-            createExplosion(cx, cy, 200, 'spark');
-            createExplosion(cx, cy, 50, 'ember');
-        }, 1000);
-
-        // Secondary wave at 1.3 seconds
-        setTimeout(() => {
-            createExplosion(cx, cy, 150, 'spark');
-            for (let i = 0; i < 8; i++) {
-                const angle = (Math.PI * 2 * i) / 8;
-                const dist = 150;
-                createExplosion(cx + Math.cos(angle) * dist, cy + Math.sin(angle) * dist, 30, 'spark');
-            }
-        }, 1300);
-
-        // Third wave - ring explosion at 1.6 seconds
-        setTimeout(() => {
-            for (let i = 0; i < 12; i++) {
-                const angle = (Math.PI * 2 * i) / 12;
-                const dist = 250;
-                createExplosion(cx + Math.cos(angle) * dist, cy + Math.sin(angle) * dist, 20, 'ember');
-            }
-        }, 1600);
+        // Ambient dust constantly
+        let dustInterval: number;
+        if (phase !== 'dark') {
+            dustInterval = window.setInterval(() => {
+                emit(cx, cy, 2, 'dust', { speed: 2, life: 2, hueRange: [190, 210] });
+            }, 100);
+        }
 
         let lastTime = performance.now();
 
         const animate = (currentTime: number) => {
-            const delta = (currentTime - lastTime) / 1000;
+            const delta = Math.min((currentTime - lastTime) / 1000, 0.1);
             lastTime = currentTime;
 
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Motion blur effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+            ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
             particlesRef.current = particlesRef.current.filter(p => {
                 p.life -= delta / p.maxLife;
                 if (p.life <= 0) return false;
 
-                p.x += p.vx;
-                p.y += p.vy;
-                p.vy += 0.5; // Gravity
-                p.vx *= 0.98; // Drag
-                p.vy *= 0.98;
+                p.x += p.vx * delta * 60;
+                p.y += p.vy * delta * 60;
 
-                const alpha = p.life;
-                const size = p.size * p.life;
-
+                // Physics
                 if (p.type === 'spark') {
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
-                    ctx.fillStyle = `hsla(${p.hue}, 100%, 70%, ${alpha})`;
-                    ctx.fill();
-
-                    // Glow
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, size * 2, 0, Math.PI * 2);
-                    ctx.fillStyle = `hsla(${p.hue}, 100%, 50%, ${alpha * 0.3})`;
-                    ctx.fill();
-                } else if (p.type === 'ember') {
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
-                    const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size);
-                    gradient.addColorStop(0, `hsla(${p.hue}, 100%, 80%, ${alpha})`);
-                    gradient.addColorStop(1, `hsla(${p.hue}, 100%, 40%, 0)`);
-                    ctx.fillStyle = gradient;
-                    ctx.fill();
+                    p.vy += 15 * delta; // Gravity
+                    p.vx *= 0.99;
+                    p.vy *= 0.99;
+                } else if (p.type === 'glow') {
+                    p.vx *= 0.95;
+                    p.vy *= 0.95;
+                } else if (p.type === 'streak') {
+                    // Keep velocity for trails
                 } else {
-                    ctx.beginPath();
-                    ctx.moveTo(p.x, p.y);
-                    ctx.lineTo(p.x - p.vx * 3, p.y - p.vy * 3);
-                    ctx.strokeStyle = `hsla(${p.hue}, 100%, 70%, ${alpha})`;
-                    ctx.lineWidth = size;
-                    ctx.stroke();
+                    p.vx *= 0.98;
+                    p.vy *= 0.98;
                 }
 
+                const alpha = Math.pow(p.life, 0.5);
+                const size = p.size * (p.type === 'glow' ? (1 - p.life * 0.3) : p.life);
+
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+
+                if (p.type === 'spark') {
+                    // Core
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${p.hue}, 100%, ${p.brightness + 20}%, ${alpha})`;
+                    ctx.fill();
+
+                    // Outer glow
+                    const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 3);
+                    gradient.addColorStop(0, `hsla(${p.hue}, 100%, ${p.brightness}%, ${alpha * 0.5})`);
+                    gradient.addColorStop(1, `hsla(${p.hue}, 100%, ${p.brightness}%, 0)`);
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, size * 3, 0, Math.PI * 2);
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                } else if (p.type === 'glow') {
+                    const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size);
+                    gradient.addColorStop(0, `hsla(${p.hue}, 80%, 70%, ${alpha * 0.6})`);
+                    gradient.addColorStop(0.5, `hsla(${p.hue}, 90%, 50%, ${alpha * 0.3})`);
+                    gradient.addColorStop(1, `hsla(${p.hue}, 100%, 30%, 0)`);
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                } else if (p.type === 'streak') {
+                    const length = Math.sqrt(p.vx * p.vx + p.vy * p.vy) * 3;
+                    const angle = Math.atan2(p.vy, p.vx);
+
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p.x - Math.cos(angle) * length, p.y - Math.sin(angle) * length);
+                    ctx.strokeStyle = `hsla(${p.hue}, 100%, 80%, ${alpha})`;
+                    ctx.lineWidth = size;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${p.hue}, 60%, 80%, ${alpha * 0.5})`;
+                    ctx.fill();
+                }
+
+                ctx.restore();
                 return true;
             });
 
@@ -265,43 +432,24 @@ function useParticleExplosion(canvasRef: React.RefObject<HTMLCanvasElement>, act
         animationRef.current = requestAnimationFrame(animate);
 
         return () => {
-            if (animationRef.current) {
-                cancelAnimationFrame(animationRef.current);
-            }
+            window.removeEventListener('resize', resize);
+            if (dustInterval) clearInterval(dustInterval);
+            if (animationRef.current) cancelAnimationFrame(animationRef.current);
         };
-    }, [active, createExplosion]);
+    }, [phase, emit]);
 
-    return { createExplosion };
+    return { emit };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SHOCKWAVE EFFECT
+// CINEMATIC RING COMPONENT - Energy ring with glow
 // ─────────────────────────────────────────────────────────────────────────────
-function Shockwave({ delay, duration }: { delay: number; duration: number }) {
-    const [scale, setScale] = useState(0);
-    const [opacity, setOpacity] = useState(0);
+function EnergyRing({ progress, delay = 0 }: { progress: number; delay?: number }) {
+    const adjustedProgress = Math.max(0, Math.min(1, (progress * 1000 - delay) / 800));
+    const scale = adjustedProgress * 2.5;
+    const opacity = Math.max(0, 1 - adjustedProgress);
 
-    useEffect(() => {
-        const startTime = Date.now() + delay;
-
-        const animate = () => {
-            const elapsed = Date.now() - startTime;
-            if (elapsed < 0) {
-                requestAnimationFrame(animate);
-                return;
-            }
-
-            const progress = Math.min(elapsed / duration, 1);
-            setScale(progress * 3);
-            setOpacity(1 - progress);
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            }
-        };
-
-        requestAnimationFrame(animate);
-    }, [delay, duration]);
+    if (adjustedProgress <= 0) return null;
 
     return (
         <div style={{
@@ -313,8 +461,13 @@ function Shockwave({ delay, duration }: { delay: number; duration: number }) {
             marginTop: '-100px',
             marginLeft: '-100px',
             borderRadius: '50%',
-            border: '4px solid rgba(0, 212, 255, 0.8)',
-            boxShadow: '0 0 60px rgba(0, 212, 255, 0.6), inset 0 0 40px rgba(0, 212, 255, 0.3)',
+            border: '3px solid rgba(0, 200, 255, 0.9)',
+            boxShadow: `
+                0 0 30px rgba(0, 200, 255, 0.8),
+                0 0 60px rgba(0, 200, 255, 0.5),
+                0 0 90px rgba(0, 200, 255, 0.3),
+                inset 0 0 30px rgba(0, 200, 255, 0.3)
+            `,
             transform: `scale(${scale})`,
             opacity,
             pointerEvents: 'none',
@@ -323,49 +476,92 @@ function Shockwave({ delay, duration }: { delay: number; duration: number }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EPIC CINEMATIC INTRO COMPONENT
+// MAIN CINEMATIC INTRO COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 interface CinematicIntroProps {
     onComplete: () => void;
     duration?: number;
 }
 
-export function CinematicIntro({ onComplete, duration = 3500 }: CinematicIntroProps) {
-    const [phase, setPhase] = useState<'dark' | 'charge' | 'explode' | 'reveal' | 'exit'>('dark');
-    const [showShockwaves, setShowShockwaves] = useState(false);
-    const [screenFlash, setScreenFlash] = useState(0);
+export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroProps) {
+    const [phase, setPhase] = useState<'void' | 'charge' | 'impact' | 'expand' | 'reveal' | 'exit'>('void');
+    const [progress, setProgress] = useState(0);
+    const [screenGlow, setScreenGlow] = useState(0);
+    const [logoOpacity, setLogoOpacity] = useState(0);
+    const [logoScale, setLogoScale] = useState(0.7);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const hasStartedRef = useRef(false);
+    const startTimeRef = useRef(0);
 
-    useParticleExplosion(canvasRef, phase !== 'dark');
+    const { emit } = useAdvancedParticles(canvasRef, phase);
 
     useEffect(() => {
         if (hasStartedRef.current) return;
         hasStartedRef.current = true;
+        startTimeRef.current = performance.now();
 
-        // Play epic music
-        musicComposer.playEpicIntro();
+        // Play modern sound
+        soundDesigner.play2026Intro();
 
-        // Haptic feedback
+        // Haptic buildup
         if ('vibrate' in navigator) {
-            navigator.vibrate([50, 100, 50, 100, 200]);
+            navigator.vibrate([30, 80, 30, 80, 30, 80, 200]);
         }
 
-        // Timeline
-        setTimeout(() => setPhase('charge'), 200);
-        setTimeout(() => {
-            setPhase('explode');
-            setShowShockwaves(true);
-            setScreenFlash(1);
-            setTimeout(() => setScreenFlash(0), 150);
-            if ('vibrate' in navigator) navigator.vibrate([200, 50, 100]);
-        }, 1000);
-        setTimeout(() => setPhase('reveal'), 2000);
-        setTimeout(() => {
-            setPhase('exit');
-            setTimeout(onComplete, 500);
-        }, duration);
-    }, [duration, onComplete]);
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+
+        // Animation timeline
+        const animate = () => {
+            const elapsed = performance.now() - startTimeRef.current;
+            const p = elapsed / duration;
+            setProgress(p);
+
+            if (p < 0.2) {
+                // VOID phase - subtle buildup
+                setPhase('charge');
+                if (Math.random() < 0.1) {
+                    emit(cx, cy, 1, 'dust', { speed: 1, life: 1.5 });
+                }
+            } else if (p < 0.25) {
+                // IMPACT
+                if (phase !== 'impact') {
+                    setPhase('impact');
+                    setScreenGlow(1);
+                    emit(cx, cy, 80, 'spark', { speed: 25, life: 0.8 });
+                    emit(cx, cy, 30, 'glow', { speed: 15, life: 1.2 });
+                    emit(cx, cy, 50, 'streak', { speed: 35, life: 0.5 });
+                    if ('vibrate' in navigator) navigator.vibrate(150);
+                }
+            } else if (p < 0.6) {
+                // EXPAND
+                setPhase('expand');
+                setScreenGlow(Math.max(0, screenGlow - 0.03));
+                if (Math.random() < 0.15) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 100 + Math.random() * 200;
+                    emit(cx + Math.cos(angle) * dist, cy + Math.sin(angle) * dist, 3, 'spark', { speed: 8, life: 0.6 });
+                }
+            } else if (p < 0.85) {
+                // REVEAL
+                setPhase('reveal');
+                setLogoOpacity(Math.min(1, (p - 0.6) / 0.15));
+                setLogoScale(0.7 + (p - 0.6) * 1.2);
+            } else {
+                // EXIT
+                setPhase('exit');
+                setLogoOpacity(Math.max(0, 1 - (p - 0.85) / 0.15));
+            }
+
+            if (p < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                onComplete();
+            }
+        };
+
+        requestAnimationFrame(animate);
+    }, [duration, onComplete, emit, phase, screenGlow]);
 
     return (
         <div style={{
@@ -377,8 +573,6 @@ export function CinematicIntro({ onComplete, duration = 3500 }: CinematicIntroPr
             backgroundColor: '#000',
             zIndex: 10000,
             overflow: 'hidden',
-            opacity: phase === 'exit' ? 0 : 1,
-            transition: 'opacity 0.5s ease-out',
         }}>
             {/* Particle canvas */}
             <canvas
@@ -392,27 +586,43 @@ export function CinematicIntro({ onComplete, duration = 3500 }: CinematicIntroPr
                 }}
             />
 
-            {/* Screen flash */}
+            {/* Radial gradient background pulse */}
+            <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                width: '150vmax',
+                height: '150vmax',
+                transform: 'translate(-50%, -50%)',
+                background: `radial-gradient(circle, 
+                    rgba(0, 150, 255, ${0.1 * (1 - Math.abs(progress - 0.25) * 4)}) 0%, 
+                    transparent 50%)`,
+                pointerEvents: 'none',
+            }} />
+
+            {/* Screen flash on impact */}
             <div style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
                 width: '100%',
                 height: '100%',
-                backgroundColor: '#00d4ff',
-                opacity: screenFlash,
-                transition: 'opacity 0.15s ease-out',
+                backgroundColor: 'rgba(0, 200, 255, 1)',
+                opacity: screenGlow * 0.7,
+                transition: 'opacity 0.1s ease-out',
                 pointerEvents: 'none',
+                mixBlendMode: 'screen',
             }} />
 
-            {/* Shockwaves */}
-            {showShockwaves && (
+            {/* Energy rings */}
+            {phase === 'impact' || phase === 'expand' ? (
                 <>
-                    <Shockwave delay={0} duration={800} />
-                    <Shockwave delay={100} duration={900} />
-                    <Shockwave delay={200} duration={1000} />
+                    <EnergyRing progress={progress - 0.2} delay={0} />
+                    <EnergyRing progress={progress - 0.2} delay={80} />
+                    <EnergyRing progress={progress - 0.2} delay={160} />
+                    <EnergyRing progress={progress - 0.2} delay={240} />
                 </>
-            )}
+            ) : null}
 
             {/* Central energy core */}
             <div style={{
@@ -420,19 +630,23 @@ export function CinematicIntro({ onComplete, duration = 3500 }: CinematicIntroPr
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: phase === 'explode' || phase === 'reveal' ? '600px' : phase === 'charge' ? '100px' : '20px',
-                height: phase === 'explode' || phase === 'reveal' ? '600px' : phase === 'charge' ? '100px' : '20px',
+                width: phase === 'impact' || phase === 'expand'
+                    ? `${Math.min(400, 50 + (progress - 0.2) * 1000)}px`
+                    : phase === 'charge'
+                        ? `${30 + progress * 100}px`
+                        : '0px',
+                height: phase === 'impact' || phase === 'expand'
+                    ? `${Math.min(400, 50 + (progress - 0.2) * 1000)}px`
+                    : phase === 'charge'
+                        ? `${30 + progress * 100}px`
+                        : '0px',
                 borderRadius: '50%',
-                background: phase === 'explode'
-                    ? 'radial-gradient(circle, rgba(0,212,255,0.8) 0%, rgba(0,100,200,0.4) 40%, transparent 70%)'
-                    : 'radial-gradient(circle, rgba(0,212,255,0.6) 0%, transparent 70%)',
-                boxShadow: phase === 'charge' || phase === 'explode'
-                    ? '0 0 100px rgba(0,212,255,0.8), 0 0 200px rgba(0,212,255,0.4)'
-                    : 'none',
-                transition: phase === 'explode'
-                    ? 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                    : 'all 0.8s ease-out',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(0,200,255,0.6) 30%, rgba(0,100,200,0.2) 60%, transparent 80%)',
+                boxShadow: phase === 'impact'
+                    ? '0 0 100px rgba(0,200,255,1), 0 0 200px rgba(0,200,255,0.6)'
+                    : '0 0 60px rgba(0,200,255,0.6)',
                 opacity: phase === 'reveal' || phase === 'exit' ? 0 : 1,
+                transition: 'opacity 0.5s ease-out',
             }} />
 
             {/* Logo reveal */}
@@ -440,48 +654,64 @@ export function CinematicIntro({ onComplete, duration = 3500 }: CinematicIntroPr
                 position: 'absolute',
                 top: '50%',
                 left: '50%',
-                transform: 'translate(-50%, -50%)',
+                transform: `translate(-50%, -50%) scale(${logoScale})`,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '20px',
-                opacity: phase === 'reveal' || phase === 'exit' ? 1 : 0,
-                transition: 'opacity 0.8s ease-out',
+                gap: '24px',
+                opacity: logoOpacity,
+                pointerEvents: 'none',
             }}>
+                {/* Spade icon */}
                 <div style={{
-                    fontSize: '120px',
-                    color: '#00d4ff',
-                    textShadow: '0 0 60px rgba(0,212,255,0.8), 0 0 120px rgba(0,212,255,0.4)',
-                    animation: phase === 'reveal' ? 'pulse 1s ease-in-out infinite' : 'none',
+                    fontSize: '140px',
+                    color: '#fff',
+                    textShadow: `
+                        0 0 40px rgba(0,200,255,1),
+                        0 0 80px rgba(0,200,255,0.8),
+                        0 0 120px rgba(0,200,255,0.5)
+                    `,
+                    filter: 'drop-shadow(0 0 20px rgba(0,200,255,0.8))',
                 }}>
                     ♠
                 </div>
+
+                {/* Brand name */}
                 <div style={{
-                    fontSize: '56px',
+                    fontSize: '64px',
                     fontWeight: 800,
-                    letterSpacing: '12px',
+                    letterSpacing: '16px',
                     color: '#fff',
                     textTransform: 'uppercase',
-                    textShadow: '0 0 40px rgba(0,212,255,0.6)',
+                    textShadow: '0 0 40px rgba(0,200,255,0.8)',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
                 }}>
                     SMARTER
                 </div>
+
+                {/* Tagline */}
                 <div style={{
-                    fontSize: '20px',
-                    letterSpacing: '8px',
-                    color: 'rgba(0,212,255,0.9)',
+                    fontSize: '18px',
+                    letterSpacing: '10px',
+                    color: 'rgba(0,200,255,1)',
                     textTransform: 'uppercase',
+                    fontWeight: 500,
+                    marginTop: '-8px',
                 }}>
                     MASTER YOUR GAME
                 </div>
             </div>
 
-            <style>{`
-                @keyframes pulse {
-                    0%, 100% { transform: scale(1); }
-                    50% { transform: scale(1.05); }
-                }
-            `}</style>
+            {/* Vignette overlay */}
+            <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                background: 'radial-gradient(circle, transparent 30%, rgba(0,0,0,0.4) 100%)',
+                pointerEvents: 'none',
+            }} />
         </div>
     );
 }
@@ -503,7 +733,7 @@ export function useCinematicIntro() {
         introComplete,
         handleIntroComplete,
         CinematicIntroComponent: showIntro ? (
-            <CinematicIntro onComplete={handleIntroComplete} duration={3500} />
+            <CinematicIntro onComplete={handleIntroComplete} duration={4000} />
         ) : null,
     };
 }

@@ -1180,40 +1180,61 @@ export default function SocialMediaPage() {
                     )}
                 </main>
 
-                {/* Bottom Navigation Bar */}
+                {/* Bottom Navigation Bar - Enhanced with larger click targets */}
                 <nav style={{
-                    position: 'fixed', bottom: 0, left: 0, right: 0, height: 56,
+                    position: 'fixed', bottom: 0, left: 0, right: 0, height: 60,
                     background: C.card, borderTop: `1px solid ${C.border}`,
-                    display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+                    display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
                     zIndex: 100,
                     transform: bottomNavVisible ? 'translateY(0)' : 'translateY(100%)',
-                    transition: 'transform 0.3s ease'
+                    transition: 'transform 0.3s ease',
+                    paddingBottom: 'env(safe-area-inset-bottom, 0px)'
                 }}>
-                    <Link href="/hub/social-media" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.blue }}>
-                        <span style={{ fontSize: 24 }}>🏠</span>
-                        <span style={{ fontSize: 10, marginTop: 2 }}>Home</span>
+                    <Link href="/hub/social-media" style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        textDecoration: 'none', color: C.blue, flex: 1, padding: '8px 4px', minWidth: 50
+                    }}>
+                        <span style={{ fontSize: 22 }}>🏠</span>
+                        <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Home</span>
                     </Link>
-                    <Link href="/hub/reels" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec, position: 'relative' }}>
-                        <span style={{ fontSize: 24 }}>📺</span>
-                        <span style={{ fontSize: 10, marginTop: 2 }}>Reels</span>
+                    <Link href="/hub/reels" style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        textDecoration: 'none', color: C.textSec, flex: 1, padding: '8px 4px', minWidth: 50
+                    }}>
+                        <span style={{ fontSize: 22 }}>📺</span>
+                        <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Reels</span>
                     </Link>
-                    <Link href="/hub/friends" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec, position: 'relative' }}>
-                        <span style={{ fontSize: 24 }}>👥</span>
-                        <div style={{ position: 'absolute', top: -2, right: -4, background: C.red, color: 'white', borderRadius: '50%', width: 18, height: 18, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>1</div>
-                        <span style={{ fontSize: 10, marginTop: 2 }}>Friends</span>
+                    <Link href="/hub/friends" style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        textDecoration: 'none', color: C.textSec, flex: 1, padding: '8px 4px', minWidth: 50, position: 'relative'
+                    }}>
+                        <span style={{ fontSize: 22 }}>👥</span>
+                        <div style={{ position: 'absolute', top: 4, right: 'calc(50% - 20px)', background: C.red, color: 'white', borderRadius: '50%', width: 16, height: 16, fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, pointerEvents: 'none' }}>1</div>
+                        <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Friends</span>
                     </Link>
-                    <Link href="/hub/club-arena" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec }}>
-                        <span style={{ fontSize: 24 }}>🏛️</span>
-                        <span style={{ fontSize: 10, marginTop: 2 }}>Clubs</span>
+                    <Link href="/hub/club-arena" style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        textDecoration: 'none', color: C.textSec, flex: 1, padding: '8px 4px', minWidth: 50
+                    }}>
+                        <span style={{ fontSize: 22 }}>🏛️</span>
+                        <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Clubs</span>
                     </Link>
-                    <Link href="/hub/notifications" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec, position: 'relative' }}>
-                        <span style={{ fontSize: 24 }}>🔔</span>
-                        <div style={{ position: 'absolute', top: -2, right: -4, background: C.red, color: 'white', borderRadius: '50%', width: 18, height: 18, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>{notifications.filter(n => !n.read).length || ''}</div>
-                        <span style={{ fontSize: 10, marginTop: 2 }}>Alerts</span>
+                    <Link href="/hub/notifications" style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        textDecoration: 'none', color: C.textSec, flex: 1, padding: '8px 4px', minWidth: 50, position: 'relative'
+                    }}>
+                        <span style={{ fontSize: 22 }}>🔔</span>
+                        {notifications.filter(n => !n.read).length > 0 && (
+                            <div style={{ position: 'absolute', top: 4, right: 'calc(50% - 20px)', background: C.red, color: 'white', borderRadius: '50%', width: 16, height: 16, fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, pointerEvents: 'none' }}>{notifications.filter(n => !n.read).length}</div>
+                        )}
+                        <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Alerts</span>
                     </Link>
-                    <Link href="/hub/profile" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec }}>
-                        {user ? <Avatar src={user.avatar} name={user.name} size={28} /> : <span style={{ fontSize: 24 }}>👤</span>}
-                        <span style={{ fontSize: 10, marginTop: 2 }}>Profile</span>
+                    <Link href="/hub/profile" style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        textDecoration: 'none', color: C.textSec, flex: 1, padding: '8px 4px', minWidth: 50
+                    }}>
+                        {user ? <Avatar src={user.avatar} name={user.name} size={26} /> : <span style={{ fontSize: 22 }}>👤</span>}
+                        <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Profile</span>
                     </Link>
                 </nav>
 
