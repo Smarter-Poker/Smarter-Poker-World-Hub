@@ -7,6 +7,8 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { useTheme } from '../../src/providers/ThemeProvider';
+import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 
 // Initialize Supabase
 const supabase = createClient(
@@ -301,16 +303,14 @@ export default function SettingsPage() {
                                 <h2 style={styles.sectionTitle}>Appearance</h2>
 
                                 <div style={styles.card}>
-                                    <Select
-                                        label="Theme"
-                                        value={settings.theme}
-                                        onChange={(v) => updateSetting('theme', v)}
-                                        options={[
-                                            { value: 'dark', label: 'Dark Mode' },
-                                            { value: 'light', label: 'Light Mode' },
-                                            { value: 'system', label: 'System Default' },
-                                        ]}
-                                    />
+                                    {/* Theme Toggle - Uses global ThemeProvider */}
+                                    <div style={styles.settingRow}>
+                                        <div style={styles.settingInfo}>
+                                            <span style={styles.settingLabel}>Theme</span>
+                                            <span style={styles.settingDesc}>Switch between light and dark mode</span>
+                                        </div>
+                                        <DarkModeToggle size="medium" />
+                                    </div>
                                     <Select
                                         label="Card Style"
                                         value={settings.cardStyle}
