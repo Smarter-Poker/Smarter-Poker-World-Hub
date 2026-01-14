@@ -74,35 +74,27 @@ function StoryAvatar({ story, onClick, isOwn, hasStory }) {
                 gap: 4,
                 cursor: 'pointer',
                 minWidth: 80,
+                position: 'relative',
             }}
         >
             <StoryRing hasUnviewed={hasUnviewed} size={64}>
-                {isOwn && !hasStory ? (
-                    // Create story button
-                    <div style={{
-                        width: 64, height: 64, borderRadius: '50%',
-                        background: C.bg,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        position: 'relative',
-                    }}>
-                        <img
-                            src={story?.author_avatar || '/default-avatar.png'}
-                            style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }}
-                        />
-                        <div style={{
-                            position: 'absolute', bottom: 0, right: 0,
-                            width: 24, height: 24, borderRadius: '50%',
-                            background: C.blue, border: '3px solid white',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 16, color: 'white', fontWeight: 700,
-                        }}>+</div>
-                    </div>
-                ) : (
+                <div style={{ position: 'relative' }}>
                     <img
                         src={story?.author_avatar || '/default-avatar.png'}
                         style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }}
                     />
-                )}
+                    {/* Plus badge on avatar for "Your Story" */}
+                    {isOwn && (
+                        <div style={{
+                            position: 'absolute', bottom: -2, right: -2,
+                            width: 24, height: 24, borderRadius: '50%',
+                            background: C.blue, border: '3px solid white',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 16, color: 'white', fontWeight: 700,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        }}>+</div>
+                    )}
+                </div>
             </StoryRing>
             <span style={{
                 fontSize: 12,
@@ -115,6 +107,26 @@ function StoryAvatar({ story, onClick, isOwn, hasStory }) {
             }}>
                 {isOwn ? 'Your Story' : (story?.author_username || 'User')}
             </span>
+            {/* Plus button below "Your Story" */}
+            {isOwn && (
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    padding: '4px 12px',
+                    background: C.blue,
+                    borderRadius: 16,
+                    color: 'white',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    marginTop: 2,
+                    boxShadow: '0 2px 6px rgba(24, 119, 242, 0.4)',
+                }}>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>+</span>
+                    Add
+                </div>
+            )}
         </div>
     );
 }
