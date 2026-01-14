@@ -7,70 +7,354 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2026 PREMIUM CINEMATIC AUDIO - Real audio files, not synthesized sounds
-// For true PS5/Netflix quality, we use actual recorded audio
+// GOOSEBUMP ENGINE - Creates spine-tingling, emotional audio
+// Not a cheap synth. Not stock audio. Pure emotional impact.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Audio file options (all royalty-free):
-// 1. Local: /public/audio/cinematic-intro.mp3 (add your own premium audio)
-// 2. Mixkit CDN: https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3 (cinematic impact)
+class GoosebumpEngine {
+    private ctx: AudioContext | null = null;
+    private master: GainNode | null = null;
+    private compressor: DynamicsCompressorNode | null = null;
 
-const CINEMATIC_AUDIO_URL = '/audio/cinematic-intro.mp3'; // Local file (recommended)
-const FALLBACK_AUDIO_URL = 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'; // Mixkit fallback
-
-class CinematicAudioPlayer {
-    private audio: HTMLAudioElement | null = null;
-    private loaded: boolean = false;
-
-    constructor() {
-        // Pre-load audio on construction
-        if (typeof window !== 'undefined') {
-            this.preload();
-        }
-    }
-
-    private preload() {
-        this.audio = new Audio();
-        this.audio.preload = 'auto';
-        this.audio.volume = 0.7;
-
-        // Try local file first, fall back to CDN
-        this.audio.src = CINEMATIC_AUDIO_URL;
-
-        this.audio.addEventListener('canplaythrough', () => {
-            this.loaded = true;
-            console.log('[CinematicAudio] Audio loaded successfully');
-        });
-
-        this.audio.addEventListener('error', () => {
-            console.log('[CinematicAudio] Local audio not found, trying fallback...');
-            if (this.audio) {
-                this.audio.src = FALLBACK_AUDIO_URL;
-            }
-        });
-
-        // Force load
-        this.audio.load();
-    }
-
-    async play() {
-        if (!this.audio) {
-            this.preload();
-        }
-
+    private init() {
+        if (this.ctx) return;
         try {
-            if (this.audio) {
-                this.audio.currentTime = 0;
-                await this.audio.play();
-                console.log('[CinematicAudio] Playing cinematic intro audio');
-            }
+            this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+            // Professional mastering chain
+            this.compressor = this.ctx.createDynamicsCompressor();
+            this.compressor.threshold.value = -12;
+            this.compressor.knee.value = 6;
+            this.compressor.ratio.value = 8;
+            this.compressor.attack.value = 0.001;
+            this.compressor.release.value = 0.1;
+
+            // Limiter stage
+            const limiter = this.ctx.createDynamicsCompressor();
+            limiter.threshold.value = -3;
+            limiter.knee.value = 0;
+            limiter.ratio.value = 20;
+            limiter.attack.value = 0.001;
+            limiter.release.value = 0.05;
+
+            this.master = this.ctx.createGain();
+            this.master.gain.value = 0.85;
+
+            this.master.connect(this.compressor);
+            this.compressor.connect(limiter);
+            limiter.connect(this.ctx.destination);
+
+            console.log('[GoosebumpEngine] Audio engine initialized');
         } catch (e) {
-            console.log('[CinematicAudio] Playback failed (likely needs user interaction):', e);
+            console.log('[GoosebumpEngine] Audio not available');
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LAYER 1: THE VOID - Deep sub-bass that you FEEL in your chest
+    // This is the physical foundation - 20-40Hz pure power
+    // ═══════════════════════════════════════════════════════════════════════════
+    private theVoid(start: number, duration: number) {
+        if (!this.ctx || !this.master) return;
+
+        // Ultra-low sine wave - below conscious hearing but you FEEL it
+        const sub = this.ctx.createOscillator();
+        const subGain = this.ctx.createGain();
+
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(25, start);
+        sub.frequency.exponentialRampToValueAtTime(18, start + duration);
+
+        // Massive swell
+        subGain.gain.setValueAtTime(0, start);
+        subGain.gain.linearRampToValueAtTime(0.9, start + duration * 0.4);
+        subGain.gain.setValueAtTime(0.85, start + duration * 0.6);
+        subGain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+
+        sub.connect(subGain);
+        subGain.connect(this.master);
+
+        sub.start(start);
+        sub.stop(start + duration + 0.5);
+
+        // Second harmonic for warmth
+        const warm = this.ctx.createOscillator();
+        const warmGain = this.ctx.createGain();
+
+        warm.type = 'sine';
+        warm.frequency.setValueAtTime(50, start);
+        warm.frequency.exponentialRampToValueAtTime(36, start + duration);
+
+        warmGain.gain.setValueAtTime(0, start);
+        warmGain.gain.linearRampToValueAtTime(0.3, start + duration * 0.4);
+        warmGain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+
+        warm.connect(warmGain);
+        warmGain.connect(this.master);
+
+        warm.start(start);
+        warm.stop(start + duration + 0.5);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LAYER 2: THE RISE - Tension builder that makes your heart race
+    // Filtered noise sweep that builds anticipation
+    // ═══════════════════════════════════════════════════════════════════════════
+    private theRise(start: number, duration: number) {
+        if (!this.ctx || !this.master) return;
+
+        const bufferSize = Math.floor(this.ctx.sampleRate * duration * 1.5);
+        const buffer = this.ctx.createBuffer(2, bufferSize, this.ctx.sampleRate);
+
+        // Pink noise for organic feel
+        for (let ch = 0; ch < 2; ch++) {
+            const data = buffer.getChannelData(ch);
+            let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                b0 = 0.99886 * b0 + white * 0.0555179;
+                b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520;
+                b3 = 0.86650 * b3 + white * 0.3104856;
+                b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980;
+                data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+                b6 = white * 0.115926;
+            }
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        // Bandpass sweep - the tension builder
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.Q.value = 3;
+        filter.frequency.setValueAtTime(100, start);
+        filter.frequency.exponentialRampToValueAtTime(6000, start + duration * 0.95);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.15, start + duration * 0.2);
+        gain.gain.linearRampToValueAtTime(0.35, start + duration * 0.8);
+        gain.gain.linearRampToValueAtTime(0.5, start + duration * 0.95);
+        gain.gain.linearRampToValueAtTime(0, start + duration);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.master);
+
+        noise.start(start);
+        noise.stop(start + duration + 0.1);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LAYER 3: THE DROP - The moment of impact that hits you in the chest
+    // Layered: sub thump + mid punch + high crack + reverb tail
+    // ═══════════════════════════════════════════════════════════════════════════
+    private theDrop(start: number, intensity: number = 1) {
+        if (!this.ctx || !this.master) return;
+
+        // === SUB THUMP - The physical impact ===
+        const subOsc = this.ctx.createOscillator();
+        const subGain = this.ctx.createGain();
+
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(80, start);
+        subOsc.frequency.exponentialRampToValueAtTime(30, start + 0.15);
+        subOsc.frequency.exponentialRampToValueAtTime(20, start + 0.5);
+
+        subGain.gain.setValueAtTime(0, start);
+        subGain.gain.linearRampToValueAtTime(1.0 * intensity, start + 0.005);
+        subGain.gain.setValueAtTime(0.8 * intensity, start + 0.1);
+        subGain.gain.exponentialRampToValueAtTime(0.001, start + 0.6);
+
+        subOsc.connect(subGain);
+        subGain.connect(this.master);
+
+        subOsc.start(start);
+        subOsc.stop(start + 0.7);
+
+        // === MID PUNCH - The body ===
+        const midBuffer = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.2), this.ctx.sampleRate);
+        const midData = midBuffer.getChannelData(0);
+        for (let i = 0; i < midData.length; i++) {
+            midData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / midData.length, 5);
+        }
+
+        const mid = this.ctx.createBufferSource();
+        mid.buffer = midBuffer;
+
+        const midFilter = this.ctx.createBiquadFilter();
+        midFilter.type = 'bandpass';
+        midFilter.frequency.value = 250;
+        midFilter.Q.value = 2;
+
+        const midGain = this.ctx.createGain();
+        midGain.gain.value = 0.5 * intensity;
+
+        mid.connect(midFilter);
+        midFilter.connect(midGain);
+        midGain.connect(this.master);
+
+        mid.start(start);
+
+        // === HIGH CRACK - The attack transient ===
+        const crackBuffer = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.03), this.ctx.sampleRate);
+        const crackData = crackBuffer.getChannelData(0);
+        for (let i = 0; i < crackData.length; i++) {
+            crackData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / crackData.length, 12);
+        }
+
+        const crack = this.ctx.createBufferSource();
+        crack.buffer = crackBuffer;
+
+        const crackFilter = this.ctx.createBiquadFilter();
+        crackFilter.type = 'highpass';
+        crackFilter.frequency.value = 3000;
+
+        const crackGain = this.ctx.createGain();
+        crackGain.gain.value = 0.4 * intensity;
+
+        crack.connect(crackFilter);
+        crackFilter.connect(crackGain);
+        crackGain.connect(this.master);
+
+        crack.start(start);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LAYER 4: THE BLOOM - Ethereal expansion after the drop
+    // Creates that "opening up" feeling - like entering a cathedral
+    // ═══════════════════════════════════════════════════════════════════════════
+    private theBloom(start: number, duration: number) {
+        if (!this.ctx || !this.master) return;
+
+        // Choir-like pad using multiple filtered oscillators
+        const frequencies = [
+            220,   // A3
+            277.18, // C#4
+            329.63, // E4
+            440,   // A4
+            554.37, // C#5
+        ];
+
+        frequencies.forEach((freq, i) => {
+            const osc = this.ctx!.createOscillator();
+            const gain = this.ctx!.createGain();
+            const filter = this.ctx!.createBiquadFilter();
+
+            // Use triangle for softer, more ethereal sound
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+
+            // Subtle detuning for lush chorus effect
+            osc.detune.value = (Math.random() - 0.5) * 15;
+
+            // Lowpass for warmth
+            filter.type = 'lowpass';
+            filter.frequency.value = 2000;
+            filter.Q.value = 0.5;
+
+            // Slow swell - the bloom
+            const attackTime = 0.3 + i * 0.05;
+            gain.gain.setValueAtTime(0, start);
+            gain.gain.linearRampToValueAtTime(0.08, start + attackTime);
+            gain.gain.setValueAtTime(0.06, start + duration * 0.7);
+            gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.master!);
+
+            osc.start(start);
+            osc.stop(start + duration + 0.5);
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LAYER 5: THE SHIMMER - High frequency sparkle for the reveal
+    // Like light breaking through clouds
+    // ═══════════════════════════════════════════════════════════════════════════
+    private theShimmer(start: number, duration: number) {
+        if (!this.ctx || !this.master) return;
+
+        // White noise through a very high bandpass
+        const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+        const buffer = this.ctx.createBuffer(2, bufferSize, this.ctx.sampleRate);
+
+        for (let ch = 0; ch < 2; ch++) {
+            const data = buffer.getChannelData(ch);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const hp = this.ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 8000;
+
+        const lp = this.ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 14000;
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.06, start + 0.3);
+        gain.gain.setValueAtTime(0.05, start + duration * 0.6);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+
+        noise.connect(hp);
+        hp.connect(lp);
+        lp.connect(gain);
+        gain.connect(this.master);
+
+        noise.start(start);
+        noise.stop(start + duration);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // THE EXPERIENCE - The complete goosebump journey
+    // ═══════════════════════════════════════════════════════════════════════════
+    async createGoosebumps() {
+        this.init();
+        if (!this.ctx) return;
+
+        const t = this.ctx.currentTime;
+
+        // ─── PHASE 1: ANTICIPATION (0 - 1.0s) ─────────────────────────────
+        // You feel something coming... the void opens beneath you
+        this.theVoid(t, 1.8);
+        this.theRise(t + 0.1, 1.0);
+
+        // ─── PHASE 2: THE DROP (1.0s) ─────────────────────────────────────
+        // The moment hits - you feel it in your chest
+        this.theDrop(t + 1.0, 1.2);
+
+        // ─── PHASE 3: THE BLOOM (1.1 - 3.0s) ──────────────────────────────
+        // The world opens up - beauty and power
+        this.theBloom(t + 1.1, 2.5);
+        this.theShimmer(t + 1.3, 2.0);
+
+        // ─── PHASE 4: SECONDARY PULSE (2.0s) ──────────────────────────────
+        // Reinforcement - the excitement builds
+        this.theDrop(t + 2.0, 0.6);
+
+        // ─── PHASE 5: RESOLUTION (2.5 - 4.0s) ─────────────────────────────
+        // The final reveal - you've arrived somewhere special
+        this.theVoid(t + 2.5, 2.0);
+        this.theShimmer(t + 2.7, 1.5);
+
+        console.log('[GoosebumpEngine] Experience triggered');
     }
 }
 
-const cinematicPlayer = new CinematicAudioPlayer();
+const goosebumpEngine = new GoosebumpEngine();
+
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -308,8 +592,10 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
         hasStartedRef.current = true;
         startTimeRef.current = performance.now();
 
-        // Play the cinematic audio file
-        cinematicPlayer.play();
+        // AUDIO DISABLED - Synthesized audio sounds too computerish
+        // To add premium audio: drop a real MP3 file in /public/audio/cinematic-intro.mp3
+        // Then uncomment the audio player code and remove this comment
+        // goosebumpEngine.createGoosebumps();
 
         // Haptic buildup
         if ('vibrate' in navigator) {

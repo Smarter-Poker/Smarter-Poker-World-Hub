@@ -51,6 +51,152 @@ function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
     );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 🎬 FULL SCREEN VIDEO VIEWER - TikTok/Reels style immersive viewer
+// ═══════════════════════════════════════════════════════════════════════════
+
+function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onComment, onShare }) {
+    const videoRef = useRef(null);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [showControls, setShowControls] = useState(true);
+
+    useEffect(() => {
+        // Auto-hide controls after 3 seconds
+        const timer = setTimeout(() => setShowControls(false), 3000);
+        return () => clearTimeout(timer);
+    }, [showControls]);
+
+    useEffect(() => {
+        // Prevent body scroll when modal is open
+        document.body.style.overflow = 'hidden';
+        return () => { document.body.style.overflow = ''; };
+    }, []);
+
+    const togglePlay = () => {
+        if (videoRef.current) {
+            if (videoRef.current.paused) {
+                videoRef.current.play();
+                setIsPlaying(true);
+            } else {
+                videoRef.current.pause();
+                setIsPlaying(false);
+            }
+        }
+    };
+
+    return (
+        <div
+            style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                background: '#000', zIndex: 9999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+            onClick={() => setShowControls(true)}
+        >
+            {/* Close Button */}
+            <button
+                onClick={onClose}
+                style={{
+                    position: 'absolute', top: 16, left: 16, zIndex: 10001,
+                    width: 44, height: 44, borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)',
+                    border: 'none', cursor: 'pointer', color: 'white', fontSize: 24,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+            >✕</button>
+
+            {/* Video Container */}
+            <video
+                ref={videoRef}
+                src={videoUrl}
+                autoPlay
+                loop
+                playsInline
+                onClick={togglePlay}
+                style={{
+                    maxWidth: '100%', maxHeight: '100%',
+                    width: 'auto', height: '100%',
+                    objectFit: 'contain', cursor: 'pointer'
+                }}
+            />
+
+            {/* Play/Pause Overlay */}
+            {!isPlaying && (
+                <div
+                    onClick={togglePlay}
+                    style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 80, height: 80, borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', fontSize: 36, color: 'white'
+                    }}
+                >▶</div>
+            )}
+
+            {/* Author Info & Caption Overlay */}
+            <div style={{
+                position: 'absolute', bottom: 80, left: 16, right: 80,
+                color: 'white', textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                opacity: showControls ? 1 : 0.7,
+                transition: 'opacity 0.3s'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <img
+                        src={author?.avatar || '/default-avatar.png'}
+                        alt={author?.name}
+                        style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid white' }}
+                    />
+                    <div>
+                        <div style={{ fontWeight: 600, fontSize: 16 }}>{author?.name || 'Player'}</div>
+                        <div style={{ fontSize: 12, opacity: 0.8 }}>Smarter.Poker</div>
+                    </div>
+                </div>
+                {caption && (
+                    <div style={{ fontSize: 14, lineHeight: 1.4, maxHeight: 80, overflow: 'hidden' }}>
+                        {caption}
+                    </div>
+                )}
+            </div>
+
+            {/* Right Side Engagement Buttons */}
+            <div style={{
+                position: 'absolute', right: 16, bottom: 120,
+                display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center'
+            }}>
+                <button onClick={onLike} style={{
+                    background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
+                    border: 'none', borderRadius: '50%', width: 48, height: 48,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', cursor: 'pointer', fontSize: 22
+                }}>❤️</button>
+
+                <button onClick={onComment} style={{
+                    background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
+                    border: 'none', borderRadius: '50%', width: 48, height: 48,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', cursor: 'pointer', fontSize: 22
+                }}>💬</button>
+
+                <button onClick={onShare} style={{
+                    background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
+                    border: 'none', borderRadius: '50%', width: 48, height: 48,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', cursor: 'pointer', fontSize: 22
+                }}>↗️</button>
+            </div>
+
+            {/* Bottom Gradient */}
+            <div style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0, height: 200,
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+                pointerEvents: 'none'
+            }} />
+        </div>
+    );
+}
+
 // StoriesBar imported from '../../src/components/social/Stories'
 
 const MAX_MEDIA = 10;
@@ -276,6 +422,7 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
     const [newComment, setNewComment] = useState('');
     const [loadingComments, setLoadingComments] = useState(false);
     const [commentCount, setCommentCount] = useState(post.commentCount || 0);
+    const [fullScreenVideo, setFullScreenVideo] = useState(null);
 
     const handleLike = async () => {
         const newLiked = !liked;
@@ -345,7 +492,40 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                     {post.mediaUrls.length === 1 ? (
                         // Single media - full width
                         post.contentType === 'video' ? (
-                            <video controls style={{ width: '100%', display: 'block' }} src={post.mediaUrls[0]} />
+                            // VIDEO: Clickable thumbnail that opens full-screen viewer
+                            <div
+                                onClick={() => setFullScreenVideo(post.mediaUrls[0])}
+                                style={{
+                                    position: 'relative',
+                                    cursor: 'pointer',
+                                    aspectRatio: '16/9',
+                                    background: '#000',
+                                    overflow: 'hidden'
+                                }}
+                            >
+                                <video
+                                    src={post.mediaUrls[0]}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    muted
+                                    playsInline
+                                    preload="metadata"
+                                />
+                                {/* Play Button Overlay */}
+                                <div style={{
+                                    position: 'absolute', top: '50%', left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: 64, height: 64, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: 'white', fontSize: 28, pointerEvents: 'none'
+                                }}>▶</div>
+                                {/* "Tap to view" hint */}
+                                <div style={{
+                                    position: 'absolute', bottom: 8, left: 8,
+                                    background: 'rgba(0,0,0,0.6)', padding: '4px 10px',
+                                    borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
+                                }}>🎬 Tap to view full screen</div>
+                            </div>
                         ) : (
                             <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
                         )
@@ -455,6 +635,26 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                         <button onClick={handleSubmitComment} disabled={!newComment.trim()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: newComment.trim() ? C.blue : C.textSec, fontWeight: 600, fontSize: 13 }}>Post</button>
                     </div>
                 </div>
+            )}
+
+            {/* Full Screen Video Viewer Modal */}
+            {fullScreenVideo && (
+                <FullScreenVideoViewer
+                    videoUrl={fullScreenVideo}
+                    author={post.author}
+                    caption={post.content}
+                    onClose={() => setFullScreenVideo(null)}
+                    onLike={handleLike}
+                    onComment={() => { setFullScreenVideo(null); setShowComments(true); }}
+                    onShare={() => {
+                        const shareUrl = `${window.location.origin}/hub/post/${post.id}`;
+                        if (navigator.share) {
+                            navigator.share({ title: 'Check out this video on Smarter.Poker', url: shareUrl }).catch(() => { });
+                        } else {
+                            navigator.clipboard.writeText(shareUrl);
+                        }
+                    }}
+                />
             )}
         </div>
     );

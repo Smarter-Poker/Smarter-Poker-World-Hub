@@ -284,29 +284,37 @@ class VideoClipper {
     /**
      * Convert horizontal video to vertical (9:16) format for TikTok/Reels
      * Uses blur background technique for best results
+     * Limited to 45 seconds and compressed for Supabase upload
      */
     async convertToVertical(inputPath, options = {}) {
         const outputId = `vert_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         const outputPath = path.join(CONFIG.CLIPS_DIR, `${outputId}.mp4`);
+
+        // Use smaller resolution for file size (720x1280 instead of 1080x1920)
+        const width = 720;
+        const height = 1280;
+        const maxDuration = options.maxDuration || 45; // Limit to 45 seconds
 
         // FFmpeg filter to:
         // 1. Create blurred background at 9:16
         // 2. Scale original video to fit
         // 3. Overlay on center
         const filterComplex = `
-            [0:v]scale=${CONFIG.OUTPUT_WIDTH}:${CONFIG.OUTPUT_HEIGHT}:force_original_aspect_ratio=increase,
-            crop=${CONFIG.OUTPUT_WIDTH}:${CONFIG.OUTPUT_HEIGHT},
-            boxblur=20:10[bg];
-            [0:v]scale=${CONFIG.OUTPUT_WIDTH}:-2:force_original_aspect_ratio=decrease[fg];
+            [0:v]scale=${width}:${height}:force_original_aspect_ratio=increase,
+            crop=${width}:${height},
+            boxblur=15:8[bg];
+            [0:v]scale=${width}:-2:force_original_aspect_ratio=decrease[fg];
             [bg][fg]overlay=(W-w)/2:(H-h)/2
         `.replace(/\s+/g, '');
 
+        // Higher CRF (28) + lower bitrate for smaller files
         const ffmpegCmd = `ffmpeg -y \
             -i "${inputPath}" \
+            -t ${maxDuration} \
             -filter_complex "${filterComplex}" \
-            -c:v libx264 -preset fast -crf 23 \
-            -c:a aac -b:a ${CONFIG.AUDIO_BITRATE} \
-            -r ${CONFIG.FPS} \
+            -c:v libx264 -preset fast -crf 28 \
+            -c:a aac -b:a 128k \
+            -r 24 \
             -movflags +faststart \
             "${outputPath}"`;
 

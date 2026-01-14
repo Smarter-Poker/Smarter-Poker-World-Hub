@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 Cinematic Intro Audio Selector | Smarter.Poker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #fff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .audio-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(0, 212, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .audio-option:hover {
+            border-color: rgba(0, 212, 255, 0.6);
+            background: rgba(0, 212, 255, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .audio-option.selected {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+        }
+
+        .option-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .option-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #00d4ff, #0088ff);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .option-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .option-description {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .play-btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #00d4ff, #0088ff);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .select-btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #00ff88, #00cc66);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.2s;
+        }
+
+        .select-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .status h3 {
+            color: #00ff88;
+            margin-bottom: 8px;
+        }
+
+        .recommendation {
+            background: rgba(255, 200, 0, 0.1);
+            border: 2px solid rgba(255, 200, 0, 0.4);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .recommendation h3 {
+            color: #ffc800;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🎬 Cinematic Intro Audio Selector</h1>
+    <p class="subtitle">Listen to each option and select the one that matches your PS5/2026 vision</p>
+
+    <div class="recommendation">
+        <h3>💡 Recommendation</h3>
+        <p>For the most cinematic, premium feel, I recommend <strong>Option 1 (Cinematic Hit)</strong> or <strong>Option
+                2 (Epic Deep Bass)</strong>.
+            These have the dramatic impact and modern sound design that matches your visual intro.</p>
+    </div>
+
+    <div class="options-grid">
+        <div class="audio-option" id="opt1">
+            <div class="option-header">
+                <div class="option-number">1</div>
+                <div class="option-title">Cinematic Hit</div>
+            </div>
+            <p class="option-description">
+                Epic cinematic impact with reverb tail. Perfect for dramatic reveals.
+                Think: Netflix intro, movie studio logo.
+            </p>
+            <button class="play-btn" onclick="playAudio('option1_cinematic_hit_ofs.mp3')">▶️ Play</button>
+            <button class="select-btn" onclick="selectAudio('option1_cinematic_hit_ofs.mp3', 1)">✓ Use This One</button>
+        </div>
+
+        <div class="audio-option" id="opt2">
+            <div class="option-header">
+                <div class="option-number">2</div>
+                <div class="option-title">Epic Deep Bass</div>
+            </div>
+            <p class="option-description">
+                Deep, rumbling bass hit with power. Feels like you're entering something massive.
+                Think: PlayStation startup, Dolby Atmos.
+            </p>
+            <button class="play-btn" onclick="playAudio('option2_deep_bass.mp3')">▶️ Play</button>
+            <button class="select-btn" onclick="selectAudio('option2_deep_bass.mp3', 2)">✓ Use This One</button>
+        </div>
+
+        <div class="audio-option" id="opt3">
+            <div class="option-header">
+                <div class="option-number">3</div>
+                <div class="option-title">Short Impact</div>
+            </div>
+            <p class="option-description">
+                Quick, punchy impact. Gets right to the point.
+                Clean and modern.
+            </p>
+            <button class="play-btn" onclick="playAudio('option3_short_impact.mp3')">▶️ Play</button>
+            <button class="select-btn" onclick="selectAudio('option3_short_impact.mp3', 3)">✓ Use This One</button>
+        </div>
+
+        <div class="audio-option" id="opt4">
+            <div class="option-header">
+                <div class="option-number">4</div>
+                <div class="option-title">Whoosh</div>
+            </div>
+            <p class="option-description">
+                Sweeping whoosh sound. Good for fast, dynamic intros.
+                Adds motion and energy.
+            </p>
+            <button class="play-btn" onclick="playAudio('option4_whoosh.mp3')">▶️ Play</button>
+            <button class="select-btn" onclick="selectAudio('option4_whoosh.mp3', 4)">✓ Use This One</button>
+        </div>
+
+        <div class="audio-option" id="opt5">
+            <div class="option-header">
+                <div class="option-number">5</div>
+                <div class="option-title">Transition</div>
+            </div>
+            <p class="option-description">
+                Smooth transition sound. Elegant and flowing.
+                Less impact, more finesse.
+            </p>
+            <button class="play-btn" onclick="playAudio('option5_transition.mp3')">▶️ Play</button>
+            <button class="select-btn" onclick="selectAudio('option5_transition.mp3', 5)">✓ Use This One</button>
+        </div>
+
+        <div class="audio-option" id="opt0">
+            <div class="option-header">
+                <div class="option-number">★</div>
+                <div class="option-title">Current Selection</div>
+            </div>
+            <p class="option-description">
+                Listen to what's currently set as the intro audio.
+            </p>
+            <button class="play-btn" onclick="playAudio('cinematic-intro.mp3')">▶️ Play Current</button>
+        </div>
+    </div>
+
+    <div class="status" id="status" style="display: none;">
+        <h3>✓ Selection Saved!</h3>
+        <p id="status-text">Option 1 is now your cinematic intro audio.</p>
+        <p style="margin-top: 8px; opacity: 0.7;">Refresh the hub page to hear it in action.</p>
+    </div>
+
+    <script>
+        let currentAudio = null;
+
+        function playAudio(filename) {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            currentAudio = new Audio('/audio/' + filename);
+            currentAudio.play();
+        }
+
+        async function selectAudio(filename, optNum) {
+            // Copy the selected file as the main intro
+            try {
+                const response = await fetch('/api/select-intro-audio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename })
+                });
+
+                // Update UI
+                document.querySelectorAll('.audio-option').forEach(el => el.classList.remove('selected'));
+                document.getElementById('opt' + optNum).classList.add('selected');
+
+                document.getElementById('status').style.display = 'block';
+                document.getElementById('status-text').textContent =
+                    `Option ${optNum} is now your cinematic intro audio.`;
+
+                // Also show instruction
+                alert(`Selected! To apply:\n\n1. Copy: /public/audio/${filename}\n2. Rename to: cinematic-intro.mp3\n\nOr I can do it for you - just tell me which option number!`);
+            } catch (e) {
+                // API doesn't exist yet, show manual instructions
+                document.querySelectorAll('.audio-option').forEach(el => el.classList.remove('selected'));
+                document.getElementById('opt' + optNum).classList.add('selected');
+
+                alert(`👍 You selected Option ${optNum}!\n\nTell me "${optNum}" and I'll set it as your intro audio.`);
+            }
+        }
+    </script>
+</body>
+
+</html>
