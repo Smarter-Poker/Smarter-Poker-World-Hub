@@ -1,6 +1,7 @@
 /**
- * SMARTER.POKER FRIENDS PAGE
- * View friends, friend requests, and discover suggested connections
+ * SMARTER.POKER FRIENDS & FOLLOWERS PAGE
+ * View friends, friend requests, following, followers, and discover suggested connections
+ * Features Facebook-style follow system with auto-follow on declined requests
  */
 
 import Head from 'next/head';
@@ -14,79 +15,200 @@ const supabase = createClient(
 );
 
 const C = {
-    bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
-    border: '#DADDE1', blue: '#1877F2', green: '#42B72A', red: '#FA383E',
+    bg: '#0a0a0a', card: '#1a1a1a', cardHover: '#252525', text: '#FFFFFF', textSec: '#9ca3af',
+    border: '#2a2a2a', blue: '#3b82f6', green: '#22c55e', red: '#ef4444',
+    purple: '#8b5cf6', pink: '#ec4899', orange: '#f97316', cyan: '#06b6d4',
+    gradient1: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+    gradient2: 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)',
+    gradient3: 'linear-gradient(135deg, #22c55e 0%, #06b6d4 100%)',
 };
 
-function Avatar({ src, name, size = 60 }) {
+function Avatar({ src, name, size = 60, hasStory = false }) {
     return (
-        <img
-            src={src || '/default-avatar.png'}
-            alt={name || 'User'}
-            style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }}
-        />
+        <div style={{
+            width: size + (hasStory ? 6 : 0),
+            height: size + (hasStory ? 6 : 0),
+            borderRadius: '50%',
+            background: hasStory ? C.gradient2 : 'transparent',
+            padding: hasStory ? 3 : 0,
+            flexShrink: 0
+        }}>
+            <img
+                src={src || '/default-avatar.png'}
+                alt={name || 'User'}
+                style={{
+                    width: size,
+                    height: size,
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: hasStory ? `3px solid ${C.card}` : 'none'
+                }}
+            />
+        </div>
     );
 }
 
-function FriendRequestCard({ request, onAccept, onIgnore }) {
+// ═══════════════════════════════════════════════════════════════════════════
+// FOLLOW BUTTON - Premium animated follow/unfollow button
+// ═══════════════════════════════════════════════════════════════════════════
+function FollowButton({ isFollowing, onFollow, onUnfollow, size = 'normal' }) {
+    const [hovering, setHovering] = useState(false);
+
+    const baseStyle = {
+        padding: size === 'small' ? '6px 14px' : '8px 18px',
+        borderRadius: 20,
+        border: 'none',
+        fontWeight: 600,
+        fontSize: size === 'small' ? 12 : 14,
+        cursor: 'pointer',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+    };
+
+    if (isFollowing) {
+        return (
+            <button
+                onClick={onUnfollow}
+                onMouseEnter={() => setHovering(true)}
+                onMouseLeave={() => setHovering(false)}
+                style={{
+                    ...baseStyle,
+                    background: hovering ? 'rgba(239, 68, 68, 0.15)' : 'rgba(139, 92, 246, 0.15)',
+                    color: hovering ? C.red : C.purple,
+                    border: `1px solid ${hovering ? C.red : C.purple}`,
+                }}
+            >
+                {hovering ? '✕ Unfollow' : '✓ Following'}
+            </button>
+        );
+    }
+
+    return (
+        <button
+            onClick={onFollow}
+            style={{
+                ...baseStyle,
+                background: C.gradient2,
+                color: 'white',
+                boxShadow: '0 4px 15px rgba(236, 72, 153, 0.3)',
+            }}
+        >
+            <span style={{ fontSize: size === 'small' ? 10 : 12 }}>👤</span> Follow
+        </button>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FRIEND REQUEST CARD - With Accept/Decline (auto-follow on decline)
+// ═══════════════════════════════════════════════════════════════════════════
+function FriendRequestCard({ request, onAccept, onDecline }) {
     const user = request.requester;
+
     return (
         <div style={{
-            background: C.card, borderRadius: 12, padding: 16,
-            display: 'flex', alignItems: 'center', gap: 16,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.1)', border: `2px solid ${C.blue}`
+            background: C.card,
+            borderRadius: 16,
+            padding: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            border: `2px solid ${C.blue}`,
+            boxShadow: '0 4px 20px rgba(59, 130, 246, 0.15)',
+            transition: 'all 0.3s ease'
         }}>
             <Link href={`/hub/user/${user?.id}`} style={{ flexShrink: 0 }}>
-                <Avatar src={user?.avatar_url} name={user?.full_name || user?.username} size={80} />
+                <Avatar src={user?.avatar_url} name={user?.full_name || user?.username} size={70} />
             </Link>
             <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 17, color: C.text, marginBottom: 4 }}>
+                <div style={{ fontWeight: 700, fontSize: 17, color: C.text, marginBottom: 4 }}>
                     {user?.full_name || user?.username || 'Poker Player'}
                 </div>
-                <div style={{ fontSize: 13, color: C.blue, marginBottom: 8 }}>
-                    🤝 Friend Request
+                <div style={{ fontSize: 13, color: C.blue, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ animation: 'pulse 2s infinite' }}>🤝</span> Wants to be friends
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 10 }}>
                     <button
                         onClick={() => onAccept(request)}
                         style={{
-                            padding: '8px 20px', borderRadius: 6, border: 'none',
-                            background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer'
+                            padding: '10px 24px',
+                            borderRadius: 10,
+                            border: 'none',
+                            background: C.gradient1,
+                            color: 'white',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                            transition: 'transform 0.2s',
                         }}
                     >
-                        Accept
+                        ✓ Accept
                     </button>
                     <button
-                        onClick={() => onIgnore(request)}
+                        onClick={() => onDecline(request)}
                         style={{
-                            padding: '8px 20px', borderRadius: 6, border: `1px solid ${C.border}`,
-                            background: C.card, color: C.text, fontWeight: 600, cursor: 'pointer'
+                            padding: '10px 24px',
+                            borderRadius: 10,
+                            border: `1px solid ${C.border}`,
+                            background: 'transparent',
+                            color: C.textSec,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
                         }}
+                        title="They'll become your follower"
                     >
-                        Ignore
+                        Decline
                     </button>
+                </div>
+                <div style={{ fontSize: 11, color: C.textSec, marginTop: 8, fontStyle: 'italic' }}>
+                    💡 Declining will convert them to a follower
                 </div>
             </div>
         </div>
     );
 }
 
-function FriendCard({ user, isFriend, isPending, onAddFriend, onRemoveFriend }) {
+// ═══════════════════════════════════════════════════════════════════════════
+// USER CARD - For friends, followers, following, and suggestions
+// ═══════════════════════════════════════════════════════════════════════════
+function UserCard({
+    user,
+    isFriend,
+    isPending,
+    isFollowing,
+    isFollower,
+    onAddFriend,
+    onRemoveFriend,
+    onFollow,
+    onUnfollow
+}) {
     return (
         <div style={{
-            background: C.card, borderRadius: 12, padding: 16,
-            display: 'flex', alignItems: 'center', gap: 16,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+            background: C.card,
+            borderRadius: 16,
+            padding: 16,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            transition: 'all 0.3s ease',
+            border: `1px solid ${C.border}`,
         }}>
             <Link href={`/hub/user/${user.id}`} style={{ flexShrink: 0 }}>
-                <Avatar src={user.avatar_url} name={user.full_name || user.username} size={80} />
+                <Avatar src={user.avatar_url} name={user.full_name || user.username} size={70} />
             </Link>
             <div style={{ flex: 1, minWidth: 0 }}>
                 <Link href={`/hub/user/${user.id}`} style={{ textDecoration: 'none' }}>
-                    <div style={{ fontWeight: 600, fontSize: 17, color: C.text, marginBottom: 4 }}>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 4 }}>
                         {user.full_name || user.username || 'Poker Player'}
                     </div>
                 </Link>
+                {isFollower && !isFriend && (
+                    <div style={{ fontSize: 12, color: C.pink, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span>💜</span> Follows you
+                    </div>
+                )}
                 {user.city && user.state && (
                     <div style={{ fontSize: 13, color: C.textSec, marginBottom: 4 }}>
                         📍 {user.city}, {user.state}
@@ -98,51 +220,135 @@ function FriendCard({ user, isFriend, isPending, onAddFriend, onRemoveFriend }) 
                     </div>
                 )}
             </div>
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
                 {isFriend ? (
                     <button
                         onClick={() => onRemoveFriend(user.id)}
                         style={{
-                            padding: '8px 16px', borderRadius: 6, border: `1px solid ${C.border}`,
-                            background: C.card, color: C.text, fontWeight: 600, cursor: 'pointer'
+                            padding: '8px 16px',
+                            borderRadius: 10,
+                            border: `1px solid ${C.green}`,
+                            background: 'rgba(34, 197, 94, 0.15)',
+                            color: C.green,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
                         }}
                     >
                         ✓ Friends
                     </button>
-                ) : isPending ? (
-                    <button
-                        disabled
-                        style={{
-                            padding: '8px 16px', borderRadius: 6, border: `1px solid ${C.border}`,
-                            background: '#f0f0f0', color: C.textSec, fontWeight: 600, cursor: 'not-allowed'
-                        }}
-                    >
-                        ⏳ Pending
-                    </button>
                 ) : (
-                    <button
-                        onClick={() => onAddFriend(user.id)}
-                        style={{
-                            padding: '8px 16px', borderRadius: 6, border: 'none',
-                            background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer'
-                        }}
-                    >
-                        + Add Friend
-                    </button>
+                    <>
+                        {/* Follow/Unfollow Button */}
+                        <FollowButton
+                            isFollowing={isFollowing}
+                            onFollow={() => onFollow(user.id)}
+                            onUnfollow={() => onUnfollow(user.id)}
+                            size="small"
+                        />
+
+                        {/* Add Friend Button (if not already pending) */}
+                        {!isPending ? (
+                            <button
+                                onClick={() => onAddFriend(user.id)}
+                                style={{
+                                    padding: '6px 14px',
+                                    borderRadius: 20,
+                                    border: `1px solid ${C.blue}`,
+                                    background: 'transparent',
+                                    color: C.blue,
+                                    fontWeight: 600,
+                                    fontSize: 12,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                }}
+                            >
+                                👋 Add Friend
+                            </button>
+                        ) : (
+                            <div style={{
+                                padding: '6px 14px',
+                                borderRadius: 20,
+                                background: 'rgba(156, 163, 175, 0.15)',
+                                color: C.textSec,
+                                fontWeight: 600,
+                                fontSize: 12,
+                            }}>
+                                ⏳ Request Sent
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>
     );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// TAB BUTTON
+// ═══════════════════════════════════════════════════════════════════════════
+function TabButton({ active, onClick, icon, label, count }) {
+    return (
+        <button
+            onClick={onClick}
+            style={{
+                padding: '12px 20px',
+                borderRadius: 12,
+                border: 'none',
+                background: active ? C.gradient1 : 'transparent',
+                color: active ? 'white' : C.textSec,
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                transition: 'all 0.3s ease',
+                position: 'relative',
+            }}
+        >
+            <span>{icon}</span>
+            <span>{label}</span>
+            {count > 0 && (
+                <span style={{
+                    background: active ? 'rgba(255,255,255,0.25)' : C.purple,
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: 10,
+                    fontSize: 11,
+                    fontWeight: 700,
+                }}>
+                    {count}
+                </span>
+            )}
+        </button>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════════════════
 export default function FriendsPage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('requests'); // requests, friends, following, followers, discover
+
+    // Data states
     const [friends, setFriends] = useState([]);
     const [friendRequests, setFriendRequests] = useState([]);
+    const [following, setFollowing] = useState([]);
+    const [followers, setFollowers] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
+
+    // ID sets for quick lookup
     const [friendIds, setFriendIds] = useState(new Set());
     const [pendingIds, setPendingIds] = useState(new Set());
+    const [followingIds, setFollowingIds] = useState(new Set());
+    const [followerIds, setFollowerIds] = useState(new Set());
 
     const fetchData = async () => {
         const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -186,7 +392,29 @@ export default function FriendsPage() {
             setPendingIds(new Set(outgoingRequests.map(r => r.friend_id)));
         }
 
-        // Fetch suggested friends (all other users not already friends or pending)
+        // Fetch people I'm following
+        const { data: myFollowing } = await supabase
+            .from('follows')
+            .select('following_id, following:profiles!follows_following_id_fkey(*)')
+            .eq('follower_id', authUser.id);
+
+        if (myFollowing) {
+            setFollowing(myFollowing.map(f => f.following));
+            setFollowingIds(new Set(myFollowing.map(f => f.following_id)));
+        }
+
+        // Fetch my followers
+        const { data: myFollowers } = await supabase
+            .from('follows')
+            .select('follower_id, follower:profiles!follows_follower_id_fkey(*)')
+            .eq('following_id', authUser.id);
+
+        if (myFollowers) {
+            setFollowers(myFollowers.map(f => f.follower));
+            setFollowerIds(new Set(myFollowers.map(f => f.follower_id)));
+        }
+
+        // Fetch suggested users (not already friends)
         const { data: allUsers } = await supabase
             .from('profiles')
             .select('*')
@@ -202,6 +430,15 @@ export default function FriendsPage() {
             ));
         }
 
+        // Auto-select best tab
+        if (incomingRequests?.length > 0) {
+            setActiveTab('requests');
+        } else if (friendships?.length > 0) {
+            setActiveTab('friends');
+        } else {
+            setActiveTab('discover');
+        }
+
         setLoading(false);
     };
 
@@ -209,16 +446,53 @@ export default function FriendsPage() {
         fetchData();
     }, []);
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // HANDLERS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const handleFollow = async (userId) => {
+        if (!user) return;
+
+        const { error } = await supabase
+            .from('follows')
+            .insert({ follower_id: user.id, following_id: userId, source: 'direct' });
+
+        if (!error) {
+            // Find the user profile and add to following
+            const targetUser = suggestions.find(u => u.id === userId) ||
+                followers.find(u => u.id === userId);
+            if (targetUser) {
+                setFollowing(prev => [...prev, targetUser]);
+            }
+            setFollowingIds(prev => new Set([...prev, userId]));
+        }
+    };
+
+    const handleUnfollow = async (userId) => {
+        if (!user) return;
+
+        await supabase
+            .from('follows')
+            .delete()
+            .eq('follower_id', user.id)
+            .eq('following_id', userId);
+
+        setFollowing(prev => prev.filter(f => f.id !== userId));
+        setFollowingIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(userId);
+            return newSet;
+        });
+    };
+
     const handleAddFriend = async (friendId) => {
         if (!user) return;
 
-        // Create friend request (pending status)
         const { error } = await supabase
             .from('friendships')
             .insert({ user_id: user.id, friend_id: friendId, status: 'pending' });
 
         if (!error) {
-            // Move to pending
             setPendingIds(prev => new Set([...prev, friendId]));
         }
     };
@@ -234,7 +508,7 @@ export default function FriendsPage() {
 
         if (updateError) return;
 
-        // Also create the reverse friendship
+        // Create reverse friendship
         await supabase
             .from('friendships')
             .insert({ user_id: user.id, friend_id: request.user_id, status: 'accepted' });
@@ -246,14 +520,34 @@ export default function FriendsPage() {
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
     };
 
-    const handleIgnoreRequest = async (request) => {
+    // 🔥 DECLINE = AUTO-FOLLOW (Facebook style)
+    const handleDeclineRequest = async (request) => {
         if (!user) return;
 
+        // Delete the friend request
         await supabase
             .from('friendships')
             .delete()
             .eq('id', request.id);
 
+        // 🔥 Auto-convert declined requester to follower
+        // The REQUESTER now FOLLOWS the person who declined
+        await supabase
+            .from('follows')
+            .upsert({
+                follower_id: request.user_id,     // Person who sent request
+                following_id: user.id,             // Person who declined (me)
+                source: 'declined_friend_request'
+            }, { onConflict: 'follower_id,following_id' });
+
+        // Update UI - add them to followers
+        const newFollower = request.requester;
+        if (newFollower && !followerIds.has(newFollower.id)) {
+            setFollowers(prev => [...prev, newFollower]);
+            setFollowerIds(prev => new Set([...prev, newFollower.id]));
+        }
+
+        // Remove from requests
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
     };
 
@@ -285,96 +579,281 @@ export default function FriendsPage() {
         }
     };
 
-    if (loading) return <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
+    // ═══════════════════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════════════════
+
+    if (loading) return (
+        <div style={{
+            minHeight: '100vh',
+            background: C.bg,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: C.text
+        }}>
+            <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 48, marginBottom: 16, animation: 'pulse 1.5s infinite' }}>👥</div>
+                <div>Loading connections...</div>
+            </div>
+        </div>
+    );
+
     if (!user) return (
         <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ textAlign: 'center' }}>
+            <div style={{ textAlign: 'center', color: C.text }}>
                 <h2>Please log in to view friends</h2>
                 <Link href="/auth/login" style={{ color: C.blue }}>Log In</Link>
             </div>
         </div>
     );
 
+    const renderContent = () => {
+        switch (activeTab) {
+            case 'requests':
+                return friendRequests.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        {friendRequests.map(request => (
+                            <FriendRequestCard
+                                key={request.id}
+                                request={request}
+                                onAccept={handleAcceptRequest}
+                                onDecline={handleDeclineRequest}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <EmptyState icon="🤷" message="No pending friend requests" />
+                );
+
+            case 'friends':
+                return friends.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {friends.map(friend => (
+                            <UserCard
+                                key={friend.id}
+                                user={friend}
+                                isFriend={true}
+                                isFollowing={followingIds.has(friend.id)}
+                                isFollower={followerIds.has(friend.id)}
+                                onRemoveFriend={handleRemoveFriend}
+                                onFollow={handleFollow}
+                                onUnfollow={handleUnfollow}
+                                onAddFriend={handleAddFriend}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <EmptyState icon="👥" message="You haven't added any friends yet" />
+                );
+
+            case 'following':
+                return following.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {following.map(person => (
+                            <UserCard
+                                key={person.id}
+                                user={person}
+                                isFriend={friendIds.has(person.id)}
+                                isPending={pendingIds.has(person.id)}
+                                isFollowing={true}
+                                isFollower={followerIds.has(person.id)}
+                                onRemoveFriend={handleRemoveFriend}
+                                onFollow={handleFollow}
+                                onUnfollow={handleUnfollow}
+                                onAddFriend={handleAddFriend}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <EmptyState icon="🔍" message="You're not following anyone yet" />
+                );
+
+            case 'followers':
+                return followers.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {followers.map(person => (
+                            <UserCard
+                                key={person.id}
+                                user={person}
+                                isFriend={friendIds.has(person.id)}
+                                isPending={pendingIds.has(person.id)}
+                                isFollowing={followingIds.has(person.id)}
+                                isFollower={true}
+                                onRemoveFriend={handleRemoveFriend}
+                                onFollow={handleFollow}
+                                onUnfollow={handleUnfollow}
+                                onAddFriend={handleAddFriend}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <EmptyState icon="💜" message="No followers yet" />
+                );
+
+            case 'discover':
+            default:
+                return suggestions.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {suggestions.map(person => (
+                            <UserCard
+                                key={person.id}
+                                user={person}
+                                isFriend={false}
+                                isPending={pendingIds.has(person.id)}
+                                isFollowing={followingIds.has(person.id)}
+                                isFollower={followerIds.has(person.id)}
+                                onRemoveFriend={handleRemoveFriend}
+                                onFollow={handleFollow}
+                                onUnfollow={handleUnfollow}
+                                onAddFriend={handleAddFriend}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <EmptyState icon="✨" message="No suggestions available" />
+                );
+        }
+    };
+
     return (
         <>
-            <Head><title>Friends | Smarter.Poker</title></Head>
-            <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
+            <Head>
+                <title>Friends & Followers | Smarter.Poker</title>
+                <style>{`
+                    @keyframes pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.5; }
+                    }
+                `}</style>
+            </Head>
+            <div style={{
+                minHeight: '100vh',
+                background: C.bg,
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
+                color: C.text
+            }}>
                 {/* Header */}
-                <header style={{ background: C.card, padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
-                    <Link href="/hub" style={{ fontWeight: 700, fontSize: 22, color: C.blue, textDecoration: 'none' }}>Smarter.Poker</Link>
-                    <div style={{ fontWeight: 600, fontSize: 18, color: C.text }}>Friends</div>
-                    <Link href="/hub/social-media" style={{ color: C.textSec, textDecoration: 'none' }}>← Back</Link>
+                <header style={{
+                    background: 'linear-gradient(180deg, rgba(26,26,26,0.98) 0%, rgba(10,10,10,0.95) 100%)',
+                    backdropFilter: 'blur(20px)',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderBottom: `1px solid ${C.border}`,
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 100
+                }}>
+                    <Link href="/hub/social-media" style={{ color: C.textSec, textDecoration: 'none', fontSize: 20 }}>
+                        ←
+                    </Link>
+                    <div style={{ fontWeight: 700, fontSize: 18 }}>Friends & Followers</div>
+                    <div style={{ width: 20 }} />
                 </header>
 
+                {/* Stats Bar */}
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: 32,
+                    padding: '20px 16px',
+                    background: C.card,
+                    borderBottom: `1px solid ${C.border}`,
+                }}>
+                    <StatItem label="Friends" value={friends.length} color={C.green} />
+                    <StatItem label="Following" value={following.length} color={C.pink} />
+                    <StatItem label="Followers" value={followers.length} color={C.purple} />
+                </div>
+
+                {/* Tabs */}
+                <div style={{
+                    display: 'flex',
+                    gap: 8,
+                    padding: '16px',
+                    overflowX: 'auto',
+                    background: C.bg,
+                    borderBottom: `1px solid ${C.border}`,
+                }}>
+                    <TabButton
+                        active={activeTab === 'requests'}
+                        onClick={() => setActiveTab('requests')}
+                        icon="🔔"
+                        label="Requests"
+                        count={friendRequests.length}
+                    />
+                    <TabButton
+                        active={activeTab === 'friends'}
+                        onClick={() => setActiveTab('friends')}
+                        icon="👥"
+                        label="Friends"
+                        count={friends.length}
+                    />
+                    <TabButton
+                        active={activeTab === 'following'}
+                        onClick={() => setActiveTab('following')}
+                        icon="💜"
+                        label="Following"
+                        count={following.length}
+                    />
+                    <TabButton
+                        active={activeTab === 'followers'}
+                        onClick={() => setActiveTab('followers')}
+                        icon="⭐"
+                        label="Followers"
+                        count={followers.length}
+                    />
+                    <TabButton
+                        active={activeTab === 'discover'}
+                        onClick={() => setActiveTab('discover')}
+                        icon="✨"
+                        label="Discover"
+                        count={0}
+                    />
+                </div>
+
+                {/* Content */}
                 <div style={{ maxWidth: 700, margin: '0 auto', padding: 16 }}>
-                    {/* Friend Requests */}
-                    {friendRequests.length > 0 && (
-                        <div style={{ marginBottom: 32 }}>
-                            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, color: C.text }}>
-                                🔔 Friend Requests ({friendRequests.length})
-                            </h2>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                {friendRequests.map(request => (
-                                    <FriendRequestCard
-                                        key={request.id}
-                                        request={request}
-                                        onAccept={handleAcceptRequest}
-                                        onIgnore={handleIgnoreRequest}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Current Friends */}
-                    <div style={{ marginBottom: 32 }}>
-                        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, color: C.text }}>
-                            👥 Your Friends ({friends.length})
-                        </h2>
-                        {friends.length > 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                {friends.map(friend => (
-                                    <FriendCard
-                                        key={friend.id}
-                                        user={friend}
-                                        isFriend={true}
-                                        onRemoveFriend={handleRemoveFriend}
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            <div style={{ background: C.card, borderRadius: 12, padding: 32, textAlign: 'center', color: C.textSec }}>
-                                You haven't added any friends yet. Check out the suggestions below!
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Suggested Friends */}
-                    <div>
-                        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, color: C.text }}>
-                            ✨ Suggested Friends
-                        </h2>
-                        {suggestions.length > 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                {suggestions.map(suggested => (
-                                    <FriendCard
-                                        key={suggested.id}
-                                        user={suggested}
-                                        isFriend={false}
-                                        isPending={pendingIds.has(suggested.id)}
-                                        onAddFriend={handleAddFriend}
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            <div style={{ background: C.card, borderRadius: 12, padding: 32, textAlign: 'center', color: C.textSec }}>
-                                No suggestions available right now.
-                            </div>
-                        )}
-                    </div>
+                    {renderContent()}
                 </div>
             </div>
         </>
     );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function StatItem({ label, value, color }) {
+    return (
+        <div style={{ textAlign: 'center' }}>
+            <div style={{
+                fontSize: 28,
+                fontWeight: 800,
+                color,
+                textShadow: `0 0 20px ${color}40`
+            }}>
+                {value}
+            </div>
+            <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>{label}</div>
+        </div>
+    );
+}
+
+function EmptyState({ icon, message }) {
+    return (
+        <div style={{
+            background: C.card,
+            borderRadius: 16,
+            padding: 48,
+            textAlign: 'center',
+            color: C.textSec,
+            border: `1px solid ${C.border}`
+        }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>{icon}</div>
+            <div>{message}</div>
+        </div>
+    );
+}

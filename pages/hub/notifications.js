@@ -119,11 +119,11 @@ export default function NotificationsPage() {
                             >
                                 <div style={{
                                     width: 56, height: 56, borderRadius: '50%',
-                                    background: n.type === 'like' ? '#ff6b6b' : n.type === 'comment' ? C.blue : n.type === 'mention' ? '#7c3aed' : n.type === 'friend_request' ? C.green : C.textSec,
+                                    background: n.type === 'like' ? '#ff6b6b' : n.type === 'comment' ? C.blue : n.type === 'mention' ? '#7c3aed' : n.type === 'friend_request' ? C.green : n.type === 'new_follow' ? '#ec4899' : n.type === 'friend_accepted' ? C.green : C.textSec,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     fontSize: 24, flexShrink: 0
                                 }}>
-                                    {n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : n.type === 'friend_accepted' ? '✓' : '🔔'}
+                                    {n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : n.type === 'friend_accepted' ? '✓' : n.type === 'new_follow' ? '💜' : '🔔'}
                                 </div>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ fontWeight: 600, fontSize: 15, color: C.text }}>{n.title}</div>
