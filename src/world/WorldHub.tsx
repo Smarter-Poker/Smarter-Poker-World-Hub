@@ -2,6 +2,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    HUB VANGUARD — POKERBROS WORLD HUB (6 FOOTER CARDS)
    Profile with reactive glow + 6 most visited cards at bottom
+   
+   v19.1 — Baked-in Assets Standard (no duplicate labels)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { Suspense, useMemo, useState, useEffect, useRef } from 'react';
