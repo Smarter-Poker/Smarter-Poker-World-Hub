@@ -736,6 +736,13 @@ export default function SocialMediaPage() {
     const globalSearchTimeout = useRef(null);
     const lastScrollY = useRef(0);
 
+    // ♾️ INFINITE SCROLL STATE
+    const [feedOffset, setFeedOffset] = useState(0);
+    const [hasMorePosts, setHasMorePosts] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const loadMoreRef = useRef(null);
+    const POSTS_PER_PAGE = 20;
+
     // Global unread message count
     const { unreadCount } = useUnreadCount();
 
@@ -789,8 +796,10 @@ export default function SocialMediaPage() {
         })();
     }, []);
 
-    const loadFeed = async () => {
+    const loadFeed = async (offset = 0, append = false) => {
         try {
+            if (append) setLoadingMore(true);
+
             const { data: { user: authUser } } = await supabase.auth.getUser();
 
             // Get friend IDs for prioritization
@@ -817,70 +826,40 @@ export default function SocialMediaPage() {
             // Combine friends and following for priority
             const priorityUserIds = [...new Set([...friendIds, ...followingIds])];
 
-            // 🎯 Facebook-style feed algorithm:
-            // 1. Fetch priority content (friends + following) - 70% of feed
-            // 2. Fetch global/discovery content - 30% of feed
-            // 3. Interleave for natural discovery experience
-
-            let priorityPosts = [];
-            let globalPosts = [];
-
-            // Fetch priority posts (friends and following)
-            if (priorityUserIds.length > 0) {
-                const { data: priority } = await supabase
-                    .from('social_posts')
-                    .select('id, content, content_type, media_urls, like_count, comment_count, share_count, created_at, author_id')
-                    .in('author_id', priorityUserIds)
-                    .or('visibility.eq.public,visibility.is.null')
-                    .order('created_at', { ascending: false })
-                    .limit(35); // 70% of 50
-                if (priority) priorityPosts = priority;
-            }
-
-            // Fetch global/discovery posts (excluding priority users to avoid duplicates)
-            const { data: global, error } = await supabase
+            // ♾️ INFINITE SCROLL: Fetch posts with offset
+            // Fetch all posts with pagination
+            const { data: allPostsData, error } = await supabase
                 .from('social_posts')
                 .select('id, content, content_type, media_urls, like_count, comment_count, share_count, created_at, author_id')
                 .or('visibility.eq.public,visibility.is.null')
-                .not('author_id', 'in', priorityUserIds.length > 0 ? `(${priorityUserIds.join(',')})` : '(00000000-0000-0000-0000-000000000000)')
                 .order('created_at', { ascending: false })
-                .limit(priorityUserIds.length > 0 ? 15 : 50); // 30% if we have friends, 100% otherwise
+                .range(offset, offset + POSTS_PER_PAGE - 1);
 
             if (error) throw error;
-            if (global) globalPosts = global;
 
-            // 🔀 INTERLEAVE: Mix priority and global posts for natural discovery
-            // Pattern: 2-3 priority posts, then 1 global post
-            const mixedFeed = [];
-            let pIdx = 0, gIdx = 0;
-            let priorityStreak = 0;
-
-            while (pIdx < priorityPosts.length || gIdx < globalPosts.length) {
-                // Add priority posts (2-3 in a row)
-                if (pIdx < priorityPosts.length && (priorityStreak < 3 || gIdx >= globalPosts.length)) {
-                    mixedFeed.push({ ...priorityPosts[pIdx], isPriority: true });
-                    pIdx++;
-                    priorityStreak++;
-                }
-                // Add 1 global post for discovery
-                else if (gIdx < globalPosts.length) {
-                    mixedFeed.push({ ...globalPosts[gIdx], isPriority: false });
-                    gIdx++;
-                    priorityStreak = 0;
-                }
+            // Check if there are more posts
+            if (!allPostsData || allPostsData.length < POSTS_PER_PAGE) {
+                setHasMorePosts(false);
+            } else {
+                setHasMorePosts(true);
             }
 
+            // Mark priority posts
+            const mixedFeed = (allPostsData || []).map(p => ({
+                ...p,
+                isPriority: priorityUserIds.includes(p.author_id)
+            }));
+
             // Fetch author profiles
-            const allPosts = mixedFeed;
-            if (allPosts.length > 0) {
-                const authorIds = [...new Set(allPosts.map(p => p.author_id).filter(Boolean))];
+            if (mixedFeed.length > 0) {
+                const authorIds = [...new Set(mixedFeed.map(p => p.author_id).filter(Boolean))];
                 let authorMap = {};
                 if (authorIds.length) {
                     const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url').in('id', authorIds);
                     if (profiles) authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
                 }
 
-                setPosts(allPosts.map(p => ({
+                const formattedPosts = mixedFeed.map(p => ({
                     id: p.id,
                     authorId: p.author_id,
                     content: p.content,
@@ -898,10 +877,45 @@ export default function SocialMediaPage() {
                         name: authorMap[p.author_id]?.username || 'Player',
                         avatar: authorMap[p.author_id]?.avatar_url || null
                     }
-                })));
+                }));
+
+                if (append) {
+                    setPosts(prev => [...prev, ...formattedPosts]);
+                } else {
+                    setPosts(formattedPosts);
+                }
             }
         } catch (e) { console.error('Feed error:', e); }
+        finally {
+            setLoadingMore(false);
+        }
     };
+
+    // ♾️ INFINITE SCROLL: Load more posts when scrolling
+    const loadMorePosts = async () => {
+        if (loadingMore || !hasMorePosts) return;
+        const newOffset = feedOffset + POSTS_PER_PAGE;
+        setFeedOffset(newOffset);
+        await loadFeed(newOffset, true);
+    };
+
+    // ♾️ INFINITE SCROLL: IntersectionObserver for triggering load
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMorePosts && !loadingMore) {
+                    loadMorePosts();
+                }
+            },
+            { threshold: 0.1, rootMargin: '200px' }
+        );
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [hasMorePosts, loadingMore, feedOffset]);
 
     const handlePost = async (content, urls, type, mentions = []) => {
         if (!user?.id) return false;
@@ -1495,6 +1509,44 @@ export default function SocialMediaPage() {
                                     {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
                                 </>
                             ))}
+
+                            {/* ♾️ INFINITE SCROLL: Load more trigger */}
+                            <div ref={loadMoreRef} style={{
+                                padding: '20px',
+                                textAlign: 'center',
+                                minHeight: 60
+                            }}>
+                                {loadingMore && (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 8,
+                                        color: C.textSec
+                                    }}>
+                                        <span style={{
+                                            width: 20,
+                                            height: 20,
+                                            border: `2px solid ${C.border}`,
+                                            borderTopColor: C.blue,
+                                            borderRadius: '50%',
+                                            animation: 'spin 1s linear infinite'
+                                        }} />
+                                        Loading more posts...
+                                    </div>
+                                )}
+                                {!hasMorePosts && posts.length > 0 && (
+                                    <p style={{ color: C.textSec, fontSize: 14 }}>
+                                        🎉 You've seen all the posts!
+                                    </p>
+                                )}
+                            </div>
+
+                            <style jsx>{`
+                                @keyframes spin {
+                                    to { transform: rotate(360deg); }
+                                }
+                            `}</style>
                         </>
                     )}
                 </main>
