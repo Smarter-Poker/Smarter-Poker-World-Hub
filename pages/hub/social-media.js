@@ -874,7 +874,7 @@ export default function SocialMediaPage() {
                         { icon: '💎', label: 'Diamond Store', href: '/hub/diamond-store' },
                         { icon: '🏆', label: 'Tournaments', href: '/hub/tournaments' },
                         { icon: '🎯', label: 'GTO Training', href: '/hub/gto-trainer' },
-                        { icon: '📺', label: 'Watch', href: '/hub/watch' },
+                        { icon: '🎬', label: 'Reels', href: '/hub/reels' },
                         { icon: '⚙️', label: 'Settings', href: '/hub/settings' },
                     ].map((item, i) => (
                         <Link key={i} href={item.href} onClick={() => setSidebarOpen(false)} style={{
@@ -1183,7 +1183,7 @@ export default function SocialMediaPage() {
                         <span style={{ fontSize: 24 }}>🏠</span>
                         <span style={{ fontSize: 10, marginTop: 2 }}>Home</span>
                     </Link>
-                    <Link href="/hub/watch" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec, position: 'relative' }}>
+                    <Link href="/hub/reels" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', color: C.textSec, position: 'relative' }}>
                         <span style={{ fontSize: 24 }}>📺</span>
                         <span style={{ fontSize: 10, marginTop: 2 }}>Reels</span>
                     </Link>

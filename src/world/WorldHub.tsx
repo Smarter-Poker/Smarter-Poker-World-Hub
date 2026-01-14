@@ -14,6 +14,7 @@ import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, s
 import { useWorldStore } from '../state/worldStore';
 import type { OrbConfig } from '../orbs/manifest/registry';
 import { NeuronLights } from './components/NeuronLights';
+import { LaunchPad, useLaunchAnimation } from './components/LaunchPad';
 
 // UI Components
 import { DiamondStat, XPStat } from './components/HeaderStats';
@@ -50,6 +51,7 @@ interface FooterCardProps {
     orb: OrbConfig;
     index: number;
     onSelect: (id: string) => void;
+    isIntroComplete: boolean;
 }
 
 // Holographic edge glow colors (cyan/blue/green/white only)
@@ -62,9 +64,19 @@ const HOLO_EDGE_COLORS = [
     { main: 'rgba(255, 255, 255, 0.6)', glow: 'rgba(200, 255, 255, 0.3)' }, // Ice White
 ];
 
-function FooterCard({ orb, index, onSelect }: FooterCardProps) {
+function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) {
     const [edgeOpacity, setEdgeOpacity] = useState(0.3);
     const [floatY, setFloatY] = useState(0);
+    const [hasAnimatedIn, setHasAnimatedIn] = useState(false);
+
+    // Intro animation - stagger each card (faster timing)
+    useEffect(() => {
+        if (isIntroComplete && !hasAnimatedIn) {
+            const delay = 200 + index * 80; // Faster: 200ms base + 80ms stagger
+            const timer = setTimeout(() => setHasAnimatedIn(true), delay);
+            return () => clearTimeout(timer);
+        }
+    }, [isIntroComplete, index, hasAnimatedIn]);
 
     // Each card gets a unique edge glow color
     const edgeColor = useMemo(() => HOLO_EDGE_COLORS[index % HOLO_EDGE_COLORS.length], [index]);
@@ -107,10 +119,13 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                 flexDirection: 'column',
                 alignItems: 'center',
                 cursor: 'pointer',
-                transform: `translateY(${floatY}px) perspective(800px) rotateX(10deg)`,
+                transform: hasAnimatedIn
+                    ? `translateY(${floatY}px) perspective(800px) rotateX(10deg) scale(1)`
+                    : `translateY(150px) perspective(800px) rotateX(-20deg) scale(0.5)`,
+                opacity: hasAnimatedIn ? 1 : 0,
                 flex: 1,
                 maxWidth: 'calc(17% - 6px)',
-                transition: 'transform 0.3s ease-out',
+                transition: 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease-out',
                 transformStyle: 'preserve-3d',
             }}
             onClick={() => onSelect(orb.id)}
@@ -394,6 +409,9 @@ export default function WorldHub() {
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const profileOrbRef = useRef<HTMLDivElement>(null);
 
+    // Launch animation state
+    const { isLaunching, isComplete: isIntroComplete, onBurst } = useLaunchAnimation();
+
     // Notification counts - users start with 0 (no seed data)
     const [messageCount] = useState(0);
     const [notificationCount] = useState(0);
@@ -599,11 +617,15 @@ export default function WorldHub() {
                         color="#00d4ff"
                     />
 
+                    {/* Launch Pad Animation */}
+                    <LaunchPad isActive={isLaunching} onBurst={onBurst} />
+
                     {/* Card Carousel with Snap */}
                     <CarouselEngine
                         onOrbSelect={handleOrbSelect}
                         initialIndex={getLastCarouselIndex()}
                         onIndexChange={setLastCarouselIndex}
+                        isIntroComplete={isIntroComplete}
                     />
                 </Suspense>
             </Canvas>
@@ -788,6 +810,7 @@ export default function WorldHub() {
                             orb={orb}
                             index={index}
                             onSelect={handleCardSelect}
+                            isIntroComplete={isIntroComplete}
                         />
                     ))}
                 </div>

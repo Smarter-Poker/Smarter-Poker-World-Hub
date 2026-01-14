@@ -80,17 +80,48 @@ const POST_TYPES = [
     }
 ];
 
-// Image prompts for poker content
-const IMAGE_PROMPTS = [
-    "Poker table with cards and chips, dramatic casino lighting, professional photography",
-    "Close up of poker chips stacked on green felt, cinematic depth of field",
-    "Poker hand being dealt, cards on table, atmospheric lighting",
-    "Casino poker room ambiance, soft lighting, professional quality",
-    "Poker cards face down on felt with chip stacks, professional photo",
-    "Player's view of poker table with community cards, dramatic lighting",
-    "Stack of poker chips with ace of spades, dark background, studio lighting",
-    "Poker tournament setting, green felt table, cinematic shot"
-];
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTEXTUAL IMAGE PROMPTS - Match the post vibe
+// LAW: NO TEXT-ONLY POSTS ALLOWED - Every post MUST have an image
+// ═══════════════════════════════════════════════════════════════════════════
+const IMAGE_PROMPTS_BY_TYPE = {
+    session_result: [
+        "Poker chip stack on green felt table, dramatic casino lighting, player's perspective, photorealistic",
+        "Professional poker room at night, warm ambient lighting, rows of tables, cinematic photo",
+        "Close up of cards and chips on table after poker session, moody lighting, professional",
+        "Poker table from player's view showing chip stack, casino background, authentic feel"
+    ],
+    bad_beat: [
+        "Dramatic poker moment, cards on felt, intense lighting, close up, cinematic",
+        "Frustrated poker scene, chips scattered on table, moody casino lighting, emotional",
+        "Close up of pocket aces vs pocket kings on board, dramatic river card, dark atmosphere",
+        "Poker bad beat moment, stunning visual of cards on felt, dark dramatic lighting"
+    ],
+    life_moment: [
+        "Inside a casino poker room, beautiful ambient lighting, luxury atmosphere, candid feel",
+        "Late night home poker game setup, warm lighting, cozy atmosphere, authentic",
+        "Poker player perspective walking into casino, grand entrance, cinematic shot",
+        "Poker table at home game, friends playing, warm authentic atmosphere, natural"
+    ],
+    win_celebration: [
+        "Winner's chip stack at poker table, golden hour lighting, triumphant feel, stunning",
+        "Big poker pot being pushed to winner, chips piled high, casino excitement, vibrant",
+        "Victorious poker moment, stacked chips gleaming, luxury casino setting, celebration",
+        "Poker tournament final table victory, dramatic lighting, champion's view"
+    ],
+    random_thought: [
+        "Contemplative poker scene, cards face down, thoughtful atmosphere, artistic",
+        "Abstract poker aesthetic, chips and cards, moody lighting, artistic composition",
+        "Poker room at dawn, empty tables, peaceful atmosphere, reflective mood",
+        "Stylish poker flatlay, cards chips and felt, top down view, instagram aesthetic"
+    ],
+    question: [
+        "Interactive poker scene, community cards showing, decision point, engaging",
+        "Poker hand in progress, betting action, dramatic moment, viewer engagement",
+        "Close up of poker decision, cards and chips, tension in the air, cinematic",
+        "Poker strategy moment, hand revealed, community pondering, authentic"
+    ]
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MEMORY SERVICE
@@ -150,51 +181,82 @@ const MemoryService = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// IMAGE GENERATION
+// IMAGE GENERATION - REQUIRED FOR ALL POSTS (LAW: No text-only posts)
 // ═══════════════════════════════════════════════════════════════════════════
-async function generatePostImage(topic) {
+async function generatePostImages(postType, count = 1) {
+    const prompts = IMAGE_PROMPTS_BY_TYPE[postType] || IMAGE_PROMPTS_BY_TYPE.session_result;
+    const images = [];
+
+    for (let i = 0; i < count; i++) {
+        try {
+            const basePrompt = prompts[Math.floor(Math.random() * prompts.length)];
+
+            console.log(`🎨 Generating image ${i + 1}/${count}...`);
+            const response = await openai.images.generate({
+                model: "dall-e-3",
+                prompt: `${basePrompt}. High quality, photorealistic, no text, no watermarks, social media ready.`,
+                n: 1,
+                size: "1024x1024",
+                quality: "standard"
+            });
+
+            const tempUrl = response.data[0].url;
+
+            // Download and upload to Supabase storage
+            const imageResponse = await fetch(tempUrl);
+            const blob = await imageResponse.blob();
+            const buffer = Buffer.from(await blob.arrayBuffer());
+
+            const fileName = `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+            const filePath = `photos/horses/${fileName}`;
+
+            const { error } = await supabase.storage
+                .from('social-media')
+                .upload(filePath, buffer, {
+                    contentType: 'image/png',
+                    upsert: false
+                });
+
+            if (!error) {
+                const { data: urlData } = supabase.storage
+                    .from('social-media')
+                    .getPublicUrl(filePath);
+                images.push(urlData.publicUrl);
+                console.log(`✅ Image ${i + 1} uploaded`);
+            }
+        } catch (error) {
+            console.error(`Image ${i + 1} generation failed:`, error.message);
+        }
+
+        // Small delay between image generations
+        if (i < count - 1) await new Promise(r => setTimeout(r, 1000));
+    }
+
+    return images;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STORY POSTING - All media goes to stories too
+// ═══════════════════════════════════════════════════════════════════════════
+async function postToStory(authorId, mediaUrl, mediaType = 'image') {
     try {
-        // Pick a random base prompt and add topic context
-        const basePrompt = IMAGE_PROMPTS[Math.floor(Math.random() * IMAGE_PROMPTS.length)];
-
-        const response = await openai.images.generate({
-            model: "dall-e-3",
-            prompt: `${basePrompt}. High quality, photorealistic, no text or watermarks.`,
-            n: 1,
-            size: "1024x1024",
-            quality: "standard"
-        });
-
-        const tempUrl = response.data[0].url;
-
-        // Download and upload to Supabase storage
-        const imageResponse = await fetch(tempUrl);
-        const blob = await imageResponse.blob();
-        const buffer = Buffer.from(await blob.arrayBuffer());
-
-        const fileName = `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
-        const filePath = `social-media/photos/horses/${fileName}`;
-
-        const { data, error } = await supabase.storage
-            .from('social-media')
-            .upload(filePath, buffer, {
-                contentType: 'image/png',
-                upsert: false
+        const { error } = await supabase
+            .from('stories')
+            .insert({
+                author_id: authorId,
+                media_url: mediaUrl,
+                media_type: mediaType,
+                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
             });
 
         if (error) {
-            console.error('Image upload error:', error);
-            return null;
+            console.error('Story post error:', error.message);
+            return false;
         }
-
-        const { data: urlData } = supabase.storage
-            .from('social-media')
-            .getPublicUrl(filePath);
-
-        return urlData.publicUrl;
-    } catch (error) {
-        console.error('Image generation error:', error.message);
-        return null;
+        return true;
+    } catch (e) {
+        console.error('Story error:', e);
+        return false;
     }
 }
 
@@ -249,9 +311,16 @@ Write ONE post. Short. Real. Raw.`;
 
         const content = response.choices[0].message.content;
 
-        // Generate image for the post
-        console.log(`🎨 Generating image for ${horse.name}'s post...`);
-        const imageUrl = await generatePostImage(postType.type);
+        // LAW: NO TEXT-ONLY POSTS - Generate images (1-2 random)
+        const imageCount = Math.random() > 0.5 ? 2 : 1; // 50% chance of 2 images
+        console.log(`🎨 Generating ${imageCount} image(s) for ${horse.name}'s ${postType.type} post...`);
+        const images = await generatePostImages(postType.type, imageCount);
+
+        // LAW ENFORCEMENT: If no images, post is rejected
+        if (images.length === 0) {
+            console.error(`❌ ${horse.name}: Failed to generate images - POST REJECTED (no text-only)`);
+            return null;
+        }
 
         // Record memory
         await MemoryService.recordMemory(
@@ -264,13 +333,14 @@ Write ONE post. Short. Real. Raw.`;
         return {
             author_id: horse.profile_id,
             content: content,
-            content_type: imageUrl ? 'photo' : 'text',
-            media_urls: imageUrl ? [imageUrl] : [],
+            content_type: 'photo',  // Always photo since images required
+            media_urls: images,
             visibility: 'public',
             _meta: {
                 horse_id: horse.id,
                 horse_name: horse.name,
-                post_type: postType.type
+                post_type: postType.type,
+                image_count: images.length
             }
         };
     } catch (error) {
@@ -326,11 +396,19 @@ export default async function handler(req, res) {
                     });
 
                 if (!insertError) {
-                    console.log(`✅ ${horse.name} posted (${post._meta.post_type})`);
+                    // Also post all images to stories
+                    let storiesPosted = 0;
+                    for (const mediaUrl of post.media_urls) {
+                        const storySuccess = await postToStory(post.author_id, mediaUrl, 'image');
+                        if (storySuccess) storiesPosted++;
+                    }
+
+                    console.log(`✅ ${horse.name} posted (${post._meta.post_type}) + ${storiesPosted} stories`);
                     results.push({
                         horse: horse.name,
                         type: post._meta.post_type,
-                        hasImage: post.media_urls.length > 0,
+                        images: post.media_urls.length,
+                        stories: storiesPosted,
                         success: true
                     });
                 } else {

@@ -20,9 +20,10 @@ interface CarouselEngineProps {
     onOrbSelect?: (id: string) => void;
     initialIndex?: number;
     onIndexChange?: (index: number) => void;
+    isIntroComplete?: boolean;
 }
 
-export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange }: CarouselEngineProps) {
+export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, isIntroComplete = true }: CarouselEngineProps) {
     const groupRef = useRef<Group>(null);
     const [scrollPosition, setScrollPosition] = useState(initialIndex);
     const [targetPosition, setTargetPosition] = useState(initialIndex);
@@ -31,6 +32,31 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange }:
     const lastX = useRef(0);
     const velocityX = useRef(0);
     const lastTime = useRef(0);
+
+    // Intro animation state
+    const [introProgress, setIntroProgress] = useState(0);
+
+    useEffect(() => {
+        if (isIntroComplete) {
+            // Animate cards flying in - FAST 800ms
+            const startTime = Date.now();
+            const duration = 800; // Reduced from 1500ms
+
+            const animate = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(1, elapsed / duration);
+                // Easing function for smooth deceleration
+                const eased = 1 - Math.pow(1 - progress, 3);
+                setIntroProgress(eased);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            };
+
+            requestAnimationFrame(animate);
+        }
+    }, [isIntroComplete]);
 
     const { size, gl, viewport } = useThree();
 
@@ -225,8 +251,13 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange }:
                 return (
                     <group
                         key={config.id}
-                        position={[xPos, yPos, zPos]}
-                        scale={scale}
+                        position={[
+                            xPos * introProgress,
+                            yPos * introProgress,
+                            zPos * introProgress + (1 - introProgress) * 15
+                        ]}
+                        scale={scale * (0.1 + introProgress * 0.9)}
+                        rotation={[0, (1 - introProgress) * Math.PI * 2, 0]}
                         onClick={(e) => {
                             e.stopPropagation();
                             handleOrbClick(config.id, offset);
