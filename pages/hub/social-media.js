@@ -1,6 +1,6 @@
 /**
  * SMARTER.POKER SOCIAL HUB - Full Sngine Reconstruction
- * Light Theme + Working Supabase Integration
+ * Light Theme + Working Supabase Integration + Go Live Streaming
  */
 
 import Head from 'next/head';
@@ -11,6 +11,10 @@ import { createClient } from '@supabase/supabase-js';
 import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
 import { StoriesBar, ShareToStoryPrompt } from '../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../src/components/social/ReelsFeedCarousel';
+import { GoLiveModal } from '../../src/components/social/GoLiveModal';
+import { LiveStreamCard } from '../../src/components/social/LiveStreamCard';
+import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
+import LiveStreamService from '../../src/services/LiveStreamService';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -396,7 +400,7 @@ function PostCreator({ user, onPost, isPosting }) {
                             color: media.length >= MAX_MEDIA ? '#ccc' : C.textSec, fontSize: 13
                         }}
                     >{uploading ? '⏳' : '🖼️'} Photo/Video</button>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>📺 Live</button>
+                    <button onClick={() => setShowGoLiveModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>📺 Live</button>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>🃏 Share Hand</button>
                     <Link
                         href="/hub/reels"
@@ -756,6 +760,11 @@ export default function SocialMediaPage() {
     // Global unread message count
     const { unreadCount } = useUnreadCount();
 
+    // 📺 LIVE STREAMING STATE
+    const [showGoLiveModal, setShowGoLiveModal] = useState(false);
+    const [liveStreams, setLiveStreams] = useState([]);
+    const [watchingStream, setWatchingStream] = useState(null);
+
     // Hide bottom nav when scrolling up, show when scrolling down
     useEffect(() => {
         const handleScroll = () => {
@@ -806,6 +815,11 @@ export default function SocialMediaPage() {
                     if (notifs) setNotifications(notifs);
                 }
                 await loadFeed();
+                // Load live streams
+                try {
+                    const streams = await LiveStreamService.getLiveStreams();
+                    setLiveStreams(streams || []);
+                } catch (e) { console.log('No live streams:', e); }
             } catch (e) { console.error(e); }
             setLoading(false);
         })();
@@ -1513,6 +1527,25 @@ export default function SocialMediaPage() {
                         </div>
                     )}
 
+                    {/* 📺 LIVE STREAMS SECTION */}
+                    {liveStreams.length > 0 && (
+                        <div style={{ marginBottom: 12 }}>
+                            <h4 style={{ margin: '0 0 10px 4px', fontSize: 16, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                🔴 Live Now
+                            </h4>
+                            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
+                                {liveStreams.map(stream => (
+                                    <div key={stream.id} style={{ flexShrink: 0, width: 280 }}>
+                                        <LiveStreamCard
+                                            stream={stream}
+                                            onClick={() => setWatchingStream(stream)}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Posts Feed */}
                     {posts.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
@@ -1634,6 +1667,30 @@ export default function SocialMediaPage() {
                 <div style={{ position: 'fixed', bottom: 70, right: 16, display: 'flex', gap: 8, zIndex: 1000 }}>
                     {openChats.map(ch => <ChatWindow key={ch.id} chat={ch} messages={chatMsgs[ch.id] || []} currentUserId={user?.id} onSend={txt => handleSendMsg(ch.id, txt)} onClose={() => setOpenChats(prev => prev.filter(x => x.id !== ch.id))} />)}
                 </div>
+
+                {/* Go Live Modal */}
+                <GoLiveModal
+                    isOpen={showGoLiveModal}
+                    onClose={() => {
+                        setShowGoLiveModal(false);
+                        // Refresh live streams after closing
+                        LiveStreamService.getLiveStreams().then(setLiveStreams).catch(() => { });
+                    }}
+                    user={user}
+                />
+
+                {/* Live Stream Viewer Modal */}
+                {watchingStream && (
+                    <LiveStreamViewer
+                        stream={watchingStream}
+                        userId={user?.id}
+                        onClose={() => {
+                            setWatchingStream(null);
+                            // Refresh live streams
+                            LiveStreamService.getLiveStreams().then(setLiveStreams).catch(() => { });
+                        }}
+                    />
+                )}
             </div>
         </>
     );
