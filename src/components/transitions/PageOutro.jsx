@@ -92,16 +92,16 @@ export function PageOutro({ isActive, onComplete }) {
                     ? 'transform 0.5s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.4s ease-in'
                     : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out',
             }}>
-                {/* Brain Logo - Translucent */}
+                {/* Brain Logo - Translucent SVG */}
                 <img
-                    src="/brain-icon.png"
+                    src="/brain-icon.svg"
                     alt="Smarter.Poker"
                     style={{
                         width: 100,
-                        height: 'auto',
+                        height: 100,
                         marginBottom: 20,
-                        opacity: 0.9,
-                        filter: 'drop-shadow(0 0 30px rgba(0, 212, 255, 0.8)) drop-shadow(0 0 60px rgba(0, 212, 255, 0.4))',
+                        opacity: 0.85,
+                        filter: 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.8)) drop-shadow(0 0 40px rgba(0, 212, 255, 0.5))',
                         animation: phase === 1 ? 'outroPulse 1s ease-in-out infinite' : undefined,
                     }}
                 />

@@ -67,20 +67,26 @@ async function getRecentlyPostedClipIds() {
 
     const { data: recentPosts } = await supabase
         .from('social_posts')
-        .select('content')
+        .select('metadata')
         .eq('content_type', 'video')
         .gte('created_at', cutoff.toISOString())
-        .limit(100);
+        .limit(200);
 
-    // Extract clip IDs from post content (they contain the video URL)
-    const usedUrls = new Set();
+    // Extract clip IDs from post metadata
+    const usedClipIds = new Set();
     (recentPosts || []).forEach(post => {
-        // Extract YouTube video IDs from URLs in content
-        const matches = post.content?.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/g) || [];
-        matches.forEach(m => usedUrls.add(m));
+        // Check metadata.clip_id (preferred)
+        if (post.metadata?.clip_id) {
+            usedClipIds.add(post.metadata.clip_id);
+        }
+        // Also check metadata.source_video_id for fallback
+        if (post.metadata?.source_video_id) {
+            usedClipIds.add(post.metadata.source_video_id);
+        }
     });
 
-    return usedUrls;
+    console.log(`   Found ${usedClipIds.size} recently used clip IDs`);
+    return usedClipIds;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -117,9 +123,8 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 const candidate = getRandomClip();
                 if (!candidate) break;
 
-                // Check if this clip was recently used or used this session
-                const clipUrl = candidate.source_url || '';
-                const isRecentlyUsed = recentlyUsedClips.has(clipUrl) ||
+                // Check if this clip was recently used (by ID) or used this session
+                const isRecentlyUsed = recentlyUsedClips.has(candidate.id) ||
                     usedClipsThisSession.has(candidate.id);
 
                 if (!isRecentlyUsed) {
@@ -162,7 +167,7 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
         // Generate caption
         const caption = await generateClipCaption(horse, clipData);
 
-        // Create the post
+        // Create the post with clip metadata for deduplication
         const { data: post, error: postError } = await supabase
             .from('social_posts')
             .insert({
@@ -170,7 +175,13 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 content: caption,
                 content_type: 'video',
                 media_urls: [videoUrl],
-                visibility: 'public'
+                visibility: 'public',
+                metadata: {
+                    clip_id: clipData.id,
+                    source_video_id: clipData.video_id || clipData.id,
+                    source: clipData.source || 'unknown',
+                    category: clipData.category || 'unknown'
+                }
             })
             .select()
             .single();
