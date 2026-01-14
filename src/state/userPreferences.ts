@@ -9,10 +9,10 @@ import type { OrbConfig } from '../orbs/manifest/registry';
 // Default 6 cards when no user data exists
 const DEFAULT_FOOTER_CARDS = [
     'social-media',
+    'video-library',
     'club-arena',
     'training',
     'trivia',
-    'bankroll-manager',
     'diamond-arena',
 ];
 
