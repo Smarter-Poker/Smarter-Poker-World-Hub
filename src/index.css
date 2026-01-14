@@ -23,6 +23,8 @@ html {
   color: white;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
   overflow-y: auto;
 }

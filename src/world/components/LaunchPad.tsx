@@ -8,6 +8,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useSpring, animated, config } from '@react-spring/three';
 import { useFrame } from '@react-three/fiber';
+import { SoundEngine } from '../../audio/SoundEngine';
 import * as THREE from 'three';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -377,7 +378,8 @@ export function LaunchPad({ isActive, onBurst }: LaunchPadProps) {
 
         // Start the cinematic sequence
         setPhase('charging');
-        audioEngine.playCinematicIntro();
+        // Play Main Intro.mp3 via SoundEngine instead of synthesized audio
+        SoundEngine.play('cinematicIntro');
         hapticEngine.buildUp();
 
         // THE BIG MOMENT at 1.2 seconds
@@ -395,7 +397,7 @@ export function LaunchPad({ isActive, onBurst }: LaunchPadProps) {
 
             // Finish and fade out
             setTimeout(() => {
-                audioEngine.playFinish();
+                // Note: audioEngine.playFinish() disabled - using Main Intro.mp3 only
                 setPhase('done');
             }, 1100);
         }, 1200);

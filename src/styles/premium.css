@@ -1,0 +1,546 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   HUB VANGUARD — PREMIUM VISUAL SYSTEM
+   High-Definition, Crisp, Luxurious Design Layer
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Premium Typography - Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   🎨 PREMIUM DESIGN TOKENS
+   ───────────────────────────────────────────────────────────────────────────── */
+:root {
+    /* Premium Color System (HSL for depth) */
+    --premium-black: hsl(240, 15%, 3%);
+    --premium-void: hsl(240, 20%, 6%);
+    --premium-surface: hsl(240, 15%, 10%);
+    --premium-elevated: hsl(240, 12%, 14%);
+
+    /* Premium Accents */
+    --premium-gold: hsl(45, 100%, 55%);
+    --premium-platinum: hsl(220, 15%, 75%);
+    --premium-diamond: hsl(195, 100%, 70%);
+    --premium-ruby: hsl(350, 80%, 55%);
+    --premium-emerald: hsl(160, 70%, 45%);
+
+    /* Premium Typography */
+    --font-premium-display: 'Space Grotesk', 'Orbitron', sans-serif;
+    --font-premium-body: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+
+    /* Premium Spacing */
+    --premium-radius-sm: 8px;
+    --premium-radius-md: 12px;
+    --premium-radius-lg: 16px;
+    --premium-radius-xl: 24px;
+
+    /* Premium Shadows (Multi-layer for depth) */
+    --premium-shadow-sm:
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.2);
+    --premium-shadow-md:
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        0 8px 16px rgba(0, 0, 0, 0.25),
+        0 16px 32px rgba(0, 0, 0, 0.15);
+    --premium-shadow-lg:
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        0 16px 32px rgba(0, 0, 0, 0.3),
+        0 32px 64px rgba(0, 0, 0, 0.2);
+    --premium-shadow-glow:
+        0 0 20px rgba(0, 212, 255, 0.15),
+        0 0 40px rgba(0, 212, 255, 0.08);
+
+    /* Premium Glass */
+    --premium-glass-bg: linear-gradient(135deg,
+            rgba(255, 255, 255, 0.06) 0%,
+            rgba(255, 255, 255, 0.02) 100%);
+    --premium-glass-border: rgba(255, 255, 255, 0.1);
+    --premium-glass-blur: 32px;
+
+    /* Premium Transitions */
+    --premium-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --premium-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --premium-duration: 0.3s;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   📐 HIGH-DPI SHARPNESS & TEXT RENDERING
+   ───────────────────────────────────────────────────────────────────────────── */
+html {
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    font-family: var(--font-premium-body);
+    letter-spacing: -0.01em;
+    line-height: 1.6;
+}
+
+/* Crisp image rendering for icons and UI elements */
+img,
+svg,
+.icon {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+/* Photo images should use smooth rendering */
+img[data-type="photo"],
+.photo-image {
+    image-rendering: auto;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   🔤 PREMIUM TYPOGRAPHY SYSTEM
+   ───────────────────────────────────────────────────────────────────────────── */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-premium-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+h3 {
+    font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+}
+
+h4 {
+    font-size: clamp(1.1rem, 2vw, 1.25rem);
+}
+
+p,
+span,
+label,
+input,
+button,
+select,
+textarea {
+    font-family: var(--font-premium-body);
+}
+
+/* Premium gradient text */
+.premium-gradient-text {
+    background: linear-gradient(135deg, #00f6ff 0%, #9d4edd 50%, #ff006e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.premium-gold-text {
+    background: linear-gradient(135deg, #ffd700 0%, #ffaa00 50%, #ffd700 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   🪟 PREMIUM GLASS CARDS
+   ───────────────────────────────────────────────────────────────────────────── */
+.premium-card {
+    background: var(--premium-glass-bg);
+    backdrop-filter: blur(var(--premium-glass-blur));
+    -webkit-backdrop-filter: blur(var(--premium-glass-blur));
+    border: 1px solid var(--premium-glass-border);
+    border-radius: var(--premium-radius-lg);
+    box-shadow: var(--premium-shadow-md);
+    position: relative;
+    overflow: hidden;
+    transition:
+        transform var(--premium-duration) var(--premium-ease),
+        box-shadow var(--premium-duration) var(--premium-ease);
+}
+
+/* Inner glow highlight */
+.premium-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.2) 50%,
+            transparent 100%);
+    opacity: 1;
+}
+
+.premium-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--premium-shadow-lg), var(--premium-shadow-glow);
+}
+
+/* Elevated variant */
+.premium-card-elevated {
+    background: linear-gradient(145deg,
+            rgba(30, 35, 55, 0.9) 0%,
+            rgba(20, 25, 40, 0.95) 100%);
+    box-shadow: var(--premium-shadow-lg);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   🔘 PREMIUM BUTTONS
+   ───────────────────────────────────────────────────────────────────────────── */
+.premium-button {
+    font-family: var(--font-premium-body);
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--premium-radius-md);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition:
+        transform var(--premium-duration) var(--premium-ease),
+        box-shadow var(--premium-duration) var(--premium-ease);
+
+    /* Default: primary gradient */
+    background: linear-gradient(135deg, #00d4ff 0%, #0096ff 100%);
+    color: #000;
+    box-shadow:
+        0 4px 15px rgba(0, 212, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Shimmer effect on hover */
+.premium-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.3) 50%,
+            transparent 100%);
+    transition: left 0.5s var(--premium-ease);
+}
+
+.premium-button:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 8px 25px rgba(0, 212, 255, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.premium-button:hover::before {
+    left: 100%;
+}
+
+.premium-button:active {
+    transform: translateY(0);
+    box-shadow:
+        0 2px 10px rgba(0, 212, 255, 0.3),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Secondary button */
+.premium-button-secondary {
+    background: transparent;
+    border: 1px solid var(--premium-glass-border);
+    color: #fff;
+    box-shadow: none;
+}
+
+.premium-button-secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: var(--premium-shadow-glow);
+}
+
+/* Gold button */
+.premium-button-gold {
+    background: linear-gradient(135deg, #ffd700 0%, #ff9500 100%);
+    color: #000;
+    box-shadow:
+        0 4px 15px rgba(255, 215, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.premium-button-gold:hover {
+    box-shadow:
+        0 8px 25px rgba(255, 215, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   📝 PREMIUM INPUTS
+   ───────────────────────────────────────────────────────────────────────────── */
+.premium-input {
+    font-family: var(--font-premium-body);
+    font-size: 1rem;
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--premium-radius-md);
+    color: #fff;
+    transition:
+        border-color var(--premium-duration) var(--premium-ease),
+        box-shadow var(--premium-duration) var(--premium-ease),
+        background var(--premium-duration) var(--premium-ease);
+}
+
+.premium-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.premium-input:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.premium-input:focus {
+    outline: none;
+    border-color: rgba(0, 212, 255, 0.5);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow:
+        0 0 0 3px rgba(0, 212, 255, 0.15),
+        0 0 20px rgba(0, 212, 255, 0.1);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   🎬 PREMIUM ANIMATIONS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Shimmer loading effect */
+@keyframes premium-shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.premium-shimmer {
+    position: relative;
+    overflow: hidden;
+}
+
+.premium-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.08) 50%,
+            transparent 100%);
+    animation: premium-shimmer 2s infinite;
+}
+
+/* Gentle float animation */
+@keyframes premium-float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+.premium-float {
+    animation: premium-float 3s ease-in-out infinite;
+}
+
+/* Pulse glow effect */
+@keyframes premium-pulse-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 40px rgba(0, 212, 255, 0.4);
+    }
+}
+
+.premium-pulse-glow {
+    animation: premium-pulse-glow 2s ease-in-out infinite;
+}
+
+/* Fade in animation */
+@keyframes premium-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.premium-fade-in {
+    animation: premium-fade-in 0.4s var(--premium-ease) forwards;
+}
+
+/* Scale in animation */
+@keyframes premium-scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.premium-scale-in {
+    animation: premium-scale-in 0.3s var(--premium-ease) forwards;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   📜 PREMIUM SCROLLBAR
+   ───────────────────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg,
+            rgba(255, 255, 255, 0.15) 0%,
+            rgba(255, 255, 255, 0.08) 100%);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg,
+            rgba(255, 255, 255, 0.25) 0%,
+            rgba(255, 255, 255, 0.15) 100%);
+    background-clip: padding-box;
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) rgba(255, 255, 255, 0.02);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ✨ SELECTION & FOCUS STATES
+   ───────────────────────────────────────────────────────────────────────────── */
+::selection {
+    background: rgba(0, 212, 255, 0.3);
+    color: #fff;
+}
+
+::-moz-selection {
+    background: rgba(0, 212, 255, 0.3);
+    color: #fff;
+}
+
+/* Premium focus ring */
+:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 2px var(--premium-void),
+        0 0 0 4px rgba(0, 212, 255, 0.5);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   🌟 PREMIUM UTILITY CLASSES
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Hover lift effect */
+.premium-hover-lift {
+    transition: transform var(--premium-duration) var(--premium-ease);
+}
+
+.premium-hover-lift:hover {
+    transform: translateY(-4px);
+}
+
+/* Hover glow effect */
+.premium-hover-glow:hover {
+    box-shadow: var(--premium-shadow-glow);
+}
+
+/* GPU acceleration hint */
+.premium-gpu {
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* Smooth transitions for all interactive elements */
+a,
+button,
+input,
+select,
+textarea,
+[role="button"] {
+    transition:
+        background var(--premium-duration) var(--premium-ease),
+        color var(--premium-duration) var(--premium-ease),
+        border-color var(--premium-duration) var(--premium-ease),
+        box-shadow var(--premium-duration) var(--premium-ease),
+        transform var(--premium-duration) var(--premium-ease);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   📱 PREMIUM MOBILE OPTIMIZATIONS
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    :root {
+        --premium-radius-lg: 12px;
+        --premium-radius-xl: 16px;
+        --premium-glass-blur: 20px;
+    }
+
+    /* Reduce animation complexity on mobile */
+    .premium-shimmer::after {
+        animation-duration: 3s;
+    }
+
+    .premium-float {
+        animation: none;
+    }
+}
+
+/* Prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

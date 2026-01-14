@@ -66,7 +66,7 @@ function getUniqueClipWithRotation() {
     // Try to get clip from different source than last time
     const availableClips = CLIP_LIBRARY.filter(c =>
         !usedClipIds.has(c.id) &&
-        !stable.hasUsedClip(c.id)
+        stable.isClipAvailable(c.id)
     );
 
     if (availableClips.length === 0) return null;
@@ -235,7 +235,7 @@ async function postForHorse(horse, attemptNumber = 1) {
 
         // Mark as used in both local and stable
         markClipUsed(clip.id);
-        stable.recordUsedClip(clip.id, horse.profile_id);
+        stable.reserveClip(clip.id, horse.profile_id, horse.name);
 
         console.log(`   ✅ SUCCESS! Post: ${post.id}`);
         if (story) console.log(`   ✅ Story: ${story.id}`);
