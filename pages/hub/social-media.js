@@ -252,10 +252,15 @@ function PostCreator({ user, onPost, isPosting }) {
                     >{uploading ? '⏳' : '🖼️'} Photo/Video</button>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>📺 Live</button>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>🃏 Share Hand</button>
-                    <button
-                        onClick={() => { setContent(prev => prev + ' @'); inputRef.current?.focus(); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}
-                    >👤 Tag</button>
+                    <Link
+                        href="/hub/reels"
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8,
+                            border: 'none', background: 'linear-gradient(135deg, #E91E63 0%, #9C27B0 100%)',
+                            cursor: 'pointer', color: 'white', fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                            boxShadow: '0 2px 8px rgba(156, 39, 176, 0.3)'
+                        }}
+                    >🎬 Reels</Link>
                 </div>
                 <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length)} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length) ? 0.5 : 1 }}>Post</button>
             </div>
