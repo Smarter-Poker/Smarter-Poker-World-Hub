@@ -50,6 +50,12 @@ export const AUDIO_SLOTS: Record<string, AudioSlot> = {
         description: 'Ambient background music for video sections',
         preload: false
     },
+    hubReturn: {
+        file: null,  // <-- Add audio file later (e.g., 'whoosh-burst.mp3')
+        volume: 0.7,
+        description: 'Quick burst sound when returning to hub (1-2 seconds)',
+        preload: false
+    },
 
     // ─────────────────────────────────────────────────────────────────
     // 🖱️ UI INTERACTIONS - Clicks, hovers, navigation

@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { MediaLibrary } from '../../src/components/social/MediaLibrary';
+import { ProfilePictureHistory } from '../../src/components/social/ProfilePictureHistory';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -229,6 +231,7 @@ export default function ProfilePage() {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [libraryOpen, setLibraryOpen] = useState(false);
 
     // Profile fields
     const [profile, setProfile] = useState({
@@ -435,6 +438,16 @@ export default function ProfilePage() {
                 }}>
                     <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)' }}>
                         <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
+                        <button
+                            onClick={() => setLibraryOpen(true)}
+                            style={{
+                                position: 'absolute', bottom: -8, right: -8, background: C.blue, color: 'white',
+                                border: 'none', borderRadius: 20, padding: '6px 12px', fontSize: 11,
+                                fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                            }}
+                        >
+                            📸 Library
+                        </button>
                     </div>
                 </div>
 
@@ -458,6 +471,14 @@ export default function ProfilePage() {
                             <ProfileField label="Username" value={profile.username} onChange={updateField('username')} placeholder="@johndoe" icon="@" />
                         </div>
                         <ProfileField label="Bio" value={profile.bio} onChange={updateField('bio')} type="textarea" placeholder="Tell us about yourself and your poker journey..." icon="📝" />
+
+                        {/* Profile Picture History */}
+                        <ProfilePictureHistory
+                            userId={user?.id}
+                            supabase={supabase}
+                            onViewAll={() => setLibraryOpen(true)}
+                            limit={6}
+                        />
                     </div>
 
                     {/* Location */}
@@ -569,6 +590,15 @@ export default function ProfilePage() {
                     </button>
                 </div>
             </div>
+
+            {/* Media Library Modal */}
+            <MediaLibrary
+                isOpen={libraryOpen}
+                onClose={() => setLibraryOpen(false)}
+                userId={user?.id}
+                supabase={supabase}
+                mode="browse"
+            />
         </>
     );
 }

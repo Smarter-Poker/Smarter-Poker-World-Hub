@@ -18,6 +18,7 @@ import type { OrbConfig } from '../orbs/manifest/registry';
 import { NeuronLights } from './components/NeuronLights';
 import { LaunchPad, useLaunchAnimation } from './components/LaunchPad';
 import { useCinematicIntro } from './components/CinematicIntro';
+import { useReturnBurst } from './components/ReturnBurst';
 
 // UI Components
 import { DiamondStat, XPStat } from './components/HeaderStats';
@@ -386,10 +387,36 @@ export default function WorldHub() {
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const profileOrbRef = useRef<HTMLDivElement>(null);
 
-    // Cinematic intro state
+    // ═══════════════════════════════════════════════════════════════════════
+    // RETURN VISIT DETECTION — Skip cinematic if user has visited hub this session
+    // ═══════════════════════════════════════════════════════════════════════
+    const [isReturnVisit, setIsReturnVisit] = useState(false);
+
+    useEffect(() => {
+        // Check if user has already visited hub this session
+        const hasVisitedHub = sessionStorage.getItem('hub_visited');
+        if (hasVisitedHub) {
+            setIsReturnVisit(true);
+        } else {
+            // Mark hub as visited for this session
+            sessionStorage.setItem('hub_visited', 'true');
+        }
+    }, []);
+
+    // Cinematic intro state (for first visit only)
     const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro();
 
-    // Launch animation state (triggers after cinematic intro)
+    // Return burst state (for return visits)
+    const { showBurst, burstComplete, ReturnBurstComponent, triggerBurst } = useReturnBurst();
+
+    // Trigger return burst on return visits
+    useEffect(() => {
+        if (isReturnVisit && !showBurst && !burstComplete) {
+            triggerBurst();
+        }
+    }, [isReturnVisit, showBurst, burstComplete, triggerBurst]);
+
+    // Launch animation state (triggers after any intro completes)
     const { isLaunching, isComplete: isIntroComplete, onBurst } = useLaunchAnimation();
 
     // Notification counts - users start with 0 (no seed data)
@@ -502,8 +529,11 @@ export default function WorldHub() {
 
     return (
         <>
-            {/* EPIC CINEMATIC INTRO - Shows before hub loads */}
-            {CinematicIntroComponent}
+            {/* EPIC CINEMATIC INTRO - Shows on FIRST visit only */}
+            {!isReturnVisit && CinematicIntroComponent}
+
+            {/* RETURN BURST - Shows when returning to hub */}
+            {isReturnVisit && ReturnBurstComponent}
 
             <div style={{
                 position: 'fixed',
@@ -513,7 +543,7 @@ export default function WorldHub() {
                 height: '100vh',
                 background: 'linear-gradient(180deg, #0a0a12 0%, #050510 50%, #0a1218 100%)',
                 overflow: 'hidden',
-                opacity: showIntro ? 0 : 1,
+                opacity: (showIntro || showBurst) ? 0 : 1,
                 transition: 'opacity 0.5s ease-out',
             }}>
                 {/* ═══════════════════════════════════════════════════════════════

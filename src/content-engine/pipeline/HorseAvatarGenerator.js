@@ -143,7 +143,7 @@ function generatePrompt(horse) {
     }
 
     // Build the prompt following the Law with variety
-    const prompt = `A ${gender} poker player seated at a ${tableStyle} with ${feltColor} felt. ${personalityNote}${expression}. ${attire}${accessory ? ', ' + accessory : ''}. ${chips} in front of them. Arms resting on the table. ${venue}. Professional tournament photography style, warm ambient lighting, shallow depth of field. Upper body portrait, highly realistic, authentic poker player aesthetic. Shot with Canon 5D, 85mm lens, f/2.8.`;
+    const prompt = `A ${gender} poker player seated at a ${tableStyle} with solid ${feltColor} felt (clean, no text or logos). Plain ${feltColor === 'green' ? 'wooden' : 'leather padded'} rail without any lettering or markings. ${personalityNote}${expression}. ${attire}${accessory ? ', ' + accessory : ''}. ${chips} in front of them. Arms resting on the table. ${venue}. Professional tournament photography style, warm ambient lighting, shallow depth of field. Upper body portrait, highly realistic, authentic poker player aesthetic. Shot with Canon 5D, 85mm lens, f/2.8.`;
 
     return {
         prompt,
