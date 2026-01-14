@@ -19,8 +19,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
-import { videoClipper } from '../../src/content-engine/pipeline/VideoClipper.js';
-import { getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES } from '../../src/content-engine/pipeline/ClipLibrary.js';
+import { videoClipper } from '../../../src/content-engine/pipeline/VideoClipper.js';
+import { getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES } from '../../../src/content-engine/pipeline/ClipLibrary.js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
