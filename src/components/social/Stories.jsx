@@ -453,7 +453,7 @@ function timeAgo(d) {
 
 // Create Story Modal
 function CreateStoryModal({ userId, onClose, onCreated }) {
-    const [mode, setMode] = useState('text'); // 'text' or 'media'
+    const [mode, setMode] = useState('text'); // 'text' or 'media' or 'link'
     const [text, setText] = useState('');
     const [selectedGradient, setSelectedGradient] = useState(0);
     const [mediaUrl, setMediaUrl] = useState(null);
@@ -461,6 +461,78 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
     const [uploading, setUploading] = useState(false);
     const [creating, setCreating] = useState(false);
     const fileInputRef = useRef(null);
+
+    // 🔗 LINK PREVIEW STATE
+    const [linkPreview, setLinkPreview] = useState(null);
+    const [fetchingPreview, setFetchingPreview] = useState(false);
+    const linkTimeoutRef = useRef(null);
+
+    // Detect URLs in text and fetch preview
+    const detectAndFetchLink = async (inputText) => {
+        const urlRegex = /(https?:\/\/[^\s]+)/gi;
+        const matches = inputText.match(urlRegex);
+
+        if (matches && matches.length > 0) {
+            const url = matches[0];
+
+            // Don't refetch same URL
+            if (linkPreview?.url === url) return;
+
+            setFetchingPreview(true);
+            try {
+                // Use a CORS proxy or API route to fetch OG data
+                // For now, use a simple approach with a free OG API
+                const response = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`);
+                const data = await response.json();
+
+                if (data.status === 'success' && data.data) {
+                    setLinkPreview({
+                        url: url,
+                        title: data.data.title || 'Link Preview',
+                        description: data.data.description || '',
+                        image: data.data.image?.url || data.data.logo?.url || null,
+                        siteName: data.data.publisher || new URL(url).hostname,
+                    });
+                    setMode('link');
+                }
+            } catch (e) {
+                console.log('Link preview failed:', e);
+                // Fallback: just show the URL as title
+                try {
+                    const hostname = new URL(url).hostname;
+                    setLinkPreview({
+                        url: url,
+                        title: url.slice(0, 50) + '...',
+                        description: '',
+                        image: null,
+                        siteName: hostname,
+                    });
+                    setMode('link');
+                } catch (urlError) {
+                    // Invalid URL, ignore
+                }
+            }
+            setFetchingPreview(false);
+        }
+    };
+
+    // Handle text change with debounced link detection
+    const handleTextChange = (e) => {
+        const newText = e.target.value;
+        setText(newText);
+
+        // Debounce link detection
+        if (linkTimeoutRef.current) clearTimeout(linkTimeoutRef.current);
+        linkTimeoutRef.current = setTimeout(() => {
+            detectAndFetchLink(newText);
+        }, 800);
+    };
+
+    // Remove URL from text for final story
+    const getCleanText = () => {
+        if (!linkPreview?.url) return text;
+        return text.replace(linkPreview.url, '').trim();
+    };
 
     const handleFileSelect = async (e) => {
         const file = e.target.files?.[0];
@@ -485,19 +557,31 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
         setMediaUrl(publicUrl);
         setMediaType(isVideo ? 'video' : 'image');
         setMode('media');
+        setLinkPreview(null); // Clear link preview when uploading media
         setUploading(false);
     };
 
     const handleCreate = async () => {
-        if (!text && !mediaUrl) return;
+        if (!text && !mediaUrl && !linkPreview) return;
         setCreating(true);
 
         try {
+            // Use link preview image as media if no other media
+            const finalMediaUrl = mediaUrl || linkPreview?.image;
+            const finalMediaType = mediaUrl ? mediaType : (linkPreview?.image ? 'image' : null);
+            const cleanText = getCleanText();
+
+            // Build story content - include link title if we have a link
+            let storyContent = cleanText;
+            if (linkPreview && !cleanText) {
+                storyContent = linkPreview.title;
+            }
+
             const { data: storyId, error } = await supabase.rpc('fn_create_story', {
                 p_user_id: userId,
-                p_content: text || null,
-                p_media_url: mediaUrl || null,
-                p_media_type: mediaType,
+                p_content: storyContent || null,
+                p_media_url: finalMediaUrl || null,
+                p_media_type: finalMediaType,
                 p_background_color: mode === 'text' ? STORY_GRADIENTS[selectedGradient] : null,
             });
 
@@ -508,7 +592,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 await supabase.from('social_reels').insert({
                     author_id: userId,
                     video_url: mediaUrl,
-                    caption: text || null,
+                    caption: cleanText || null,
                     source_story_id: storyId,
                 });
             }
@@ -547,7 +631,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                     <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Create Story</h3>
                     <button
                         onClick={handleCreate}
-                        disabled={(!text && !mediaUrl) || creating}
+                        disabled={(!text && !mediaUrl && !linkPreview) || creating}
                         style={{
                             background: C.blue,
                             color: 'white',
@@ -555,8 +639,8 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                             borderRadius: 6,
                             padding: '8px 16px',
                             fontWeight: 600,
-                            cursor: (!text && !mediaUrl) || creating ? 'not-allowed' : 'pointer',
-                            opacity: (!text && !mediaUrl) || creating ? 0.5 : 1,
+                            cursor: (!text && !mediaUrl && !linkPreview) || creating ? 'not-allowed' : 'pointer',
+                            opacity: (!text && !mediaUrl && !linkPreview) || creating ? 0.5 : 1,
                         }}
                     >
                         {creating ? 'Sharing...' : 'Share'}
@@ -566,11 +650,16 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 {/* Preview */}
                 <div style={{
                     height: 400,
-                    background: mode === 'text' ? STORY_GRADIENTS[selectedGradient] : '#000',
+                    background: mode === 'link' && linkPreview?.image
+                        ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url(${linkPreview.image})`
+                        : mode === 'text' ? STORY_GRADIENTS[selectedGradient] : '#000',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     position: 'relative',
+                    flexDirection: 'column',
                 }}>
                     {mode === 'media' && mediaUrl ? (
                         mediaType === 'video' ? (
@@ -578,24 +667,79 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                         ) : (
                             <img src={mediaUrl} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                         )
+                    ) : mode === 'link' && linkPreview ? (
+                        /* 🔗 LINK PREVIEW CARD */
+                        <div style={{
+                            background: 'rgba(255,255,255,0.95)',
+                            borderRadius: 12,
+                            overflow: 'hidden',
+                            width: '85%',
+                            maxWidth: 350,
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                        }}>
+                            {linkPreview.image && (
+                                <img
+                                    src={linkPreview.image}
+                                    style={{ width: '100%', height: 180, objectFit: 'cover' }}
+                                    alt=""
+                                />
+                            )}
+                            <div style={{ padding: 16 }}>
+                                <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase', marginBottom: 4 }}>
+                                    {linkPreview.siteName}
+                                </div>
+                                <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 8, lineHeight: 1.3 }}>
+                                    {linkPreview.title}
+                                </div>
+                                {linkPreview.description && (
+                                    <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.4 }}>
+                                        {linkPreview.description.slice(0, 100)}{linkPreview.description.length > 100 ? '...' : ''}
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => { setLinkPreview(null); setMode('text'); }}
+                                style={{
+                                    position: 'absolute', top: 60, right: 30,
+                                    width: 28, height: 28, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.6)', border: 'none',
+                                    color: 'white', fontSize: 14, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}
+                            >✕</button>
+                        </div>
                     ) : (
-                        <textarea
-                            value={text}
-                            onChange={(e) => setText(e.target.value)}
-                            placeholder="Start typing..."
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: 'white',
-                                fontSize: 24,
-                                fontWeight: 600,
-                                textAlign: 'center',
-                                width: '80%',
-                                resize: 'none',
-                                outline: 'none',
-                            }}
-                            rows={4}
-                        />
+                        <>
+                            <textarea
+                                value={text}
+                                onChange={handleTextChange}
+                                placeholder="Start typing or paste a link..."
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'white',
+                                    fontSize: 24,
+                                    fontWeight: 600,
+                                    textAlign: 'center',
+                                    width: '80%',
+                                    resize: 'none',
+                                    outline: 'none',
+                                }}
+                                rows={4}
+                            />
+                            {fetchingPreview && (
+                                <div style={{
+                                    marginTop: 16,
+                                    color: 'rgba(255,255,255,0.8)',
+                                    fontSize: 14,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8
+                                }}>
+                                    🔗 Fetching link preview...
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 
