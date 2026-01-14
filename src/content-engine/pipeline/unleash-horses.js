@@ -1,10 +1,27 @@
 /**
- * 🐴 UNLEASH THE HORSES - Mass Video Clip Posting
- * Posts video clips for ALL active horses at once
+ * 🐴 UNLEASH THE HORSES - HARDENED Video Clip Posting
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * HARDENING FEATURES:
+ * ✅ HorseStable integration for source rotation & deduplication
+ * ✅ Retry logic for failed downloads (3 attempts)
+ * ✅ Auto-generate source_url from video_id
+ * ✅ Graceful fallback when clips unavailable
+ * ✅ Rate limiting to avoid YouTube blocks
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { videoClipper } from './VideoClipper.js';
-import { getRandomClip, getRandomCaption, markClipUsed, CLIP_LIBRARY } from './ClipLibrary.js';
+import {
+    getRandomClip,
+    getRandomCaption,
+    markClipUsed,
+    CLIP_LIBRARY,
+    getClipWithSourceRotation,
+    CLIP_SOURCES
+} from './ClipLibrary.js';
+import { HorseStable } from './HorseStable.js';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 
@@ -17,40 +34,130 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Track which clips we've used this run
-const usedClipIds = new Set();
+// ═══════════════════════════════════════════════════════════════════════════
+// HARDENING CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════
+const MAX_DOWNLOAD_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
+const HORSE_DELAY_MS = { min: 3000, max: 7000 }; // Rate limiting
 
-function getUniqueClip() {
-    const availableClips = CLIP_LIBRARY.filter(c => !usedClipIds.has(c.id));
+// Initialize HorseStable coordinator
+const stable = new HorseStable();
+const usedClipIds = new Set();
+let lastSource = null;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate source_url from video_id if missing
+ */
+function ensureSourceUrl(clip) {
+    if (clip.source_url) return clip.source_url;
+    if (clip.video_id) return `https://www.youtube.com/watch?v=${clip.video_id}`;
+    return null;
+}
+
+/**
+ * Get unique clip with source rotation
+ */
+function getUniqueClipWithRotation() {
+    // Try to get clip from different source than last time
+    const availableClips = CLIP_LIBRARY.filter(c =>
+        !usedClipIds.has(c.id) &&
+        !stable.hasUsedClip(c.id)
+    );
+
     if (availableClips.length === 0) return null;
-    const clip = availableClips[Math.floor(Math.random() * availableClips.length)];
+
+    // Prefer different source than last
+    let candidates = availableClips.filter(c => c.source !== lastSource);
+    if (candidates.length === 0) candidates = availableClips;
+
+    const clip = candidates[Math.floor(Math.random() * candidates.length)];
     usedClipIds.add(clip.id);
+    lastSource = clip.source;
+
     return clip;
 }
 
-async function postForHorse(horse) {
+/**
+ * Sleep utility
+ */
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Download with retry logic
+ */
+async function downloadWithRetry(sourceUrl, maxRetries = MAX_DOWNLOAD_RETRIES) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`   📥 Attempt ${attempt}/${maxRetries}...`);
+            const result = await videoClipper.downloadVideo(sourceUrl);
+
+            if (result.success) {
+                return result;
+            }
+
+            console.log(`   ⚠️ Download failed, retrying...`);
+            await sleep(RETRY_DELAY_MS * attempt); // Exponential backoff
+
+        } catch (error) {
+            console.log(`   ⚠️ Attempt ${attempt} error: ${error.message}`);
+            if (attempt < maxRetries) {
+                await sleep(RETRY_DELAY_MS * attempt);
+            }
+        }
+    }
+
+    return { success: false };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN POSTING FUNCTION
+// ═══════════════════════════════════════════════════════════════════════════
+async function postForHorse(horse, attemptNumber = 1) {
     console.log(`\n🐴 ${horse.name} (@${horse.username || 'unknown'})`);
     console.log('─'.repeat(50));
 
     try {
-        // Get unique clip
-        const clip = getUniqueClip();
+        // Get unique clip with source rotation
+        const clip = getUniqueClipWithRotation();
         if (!clip) {
             console.log('   ⚠️ No more clips available');
             return { success: false, reason: 'no_clips' };
         }
 
+        // Ensure source_url exists
+        const sourceUrl = ensureSourceUrl(clip);
+        if (!sourceUrl) {
+            console.log('   ⚠️ No valid URL for clip, trying another...');
+            if (attemptNumber < 3) {
+                return postForHorse(horse, attemptNumber + 1);
+            }
+            return { success: false, reason: 'no_valid_url' };
+        }
+
+        const sourceName = CLIP_SOURCES[clip.source]?.name || clip.source;
         console.log(`   📹 Clip: ${clip.title.slice(0, 40)}...`);
+        console.log(`   🎬 Source: ${sourceName}`);
 
         // Get caption
         const caption = getRandomCaption(clip.category);
         console.log(`   💬 Caption: "${caption}"`);
 
-        // Download
-        console.log(`   📥 Downloading...`);
-        const downloadResult = await videoClipper.downloadVideo(clip.source_url);
+        // Download with retry
+        console.log(`   📥 Downloading from ${clip.source}...`);
+        const downloadResult = await downloadWithRetry(sourceUrl);
+
         if (!downloadResult.success) {
-            console.log(`   ❌ Download failed`);
+            console.log(`   ❌ Download failed after ${MAX_DOWNLOAD_RETRIES} attempts`);
+            // Try a different clip
+            if (attemptNumber < 3) {
+                console.log(`   🔄 Trying different clip...`);
+                return postForHorse(horse, attemptNumber + 1);
+            }
             return { success: false, reason: 'download_failed' };
         }
 
@@ -59,6 +166,7 @@ async function postForHorse(horse) {
         const verticalResult = await videoClipper.convertToVertical(downloadResult.path, {
             deleteOriginal: true
         });
+
         if (!verticalResult.success) {
             console.log(`   ❌ Conversion failed`);
             return { success: false, reason: 'conversion_failed' };
@@ -125,7 +233,9 @@ async function postForHorse(horse) {
             fs.unlinkSync(verticalResult.path);
         }
 
+        // Mark as used in both local and stable
         markClipUsed(clip.id);
+        stable.recordUsedClip(clip.id, horse.profile_id);
 
         console.log(`   ✅ SUCCESS! Post: ${post.id}`);
         if (story) console.log(`   ✅ Story: ${story.id}`);
@@ -133,6 +243,7 @@ async function postForHorse(horse) {
         return {
             success: true,
             horse: horse.name,
+            source: clip.source,
             clip: clip.title,
             caption,
             postId: post.id,
@@ -146,9 +257,13 @@ async function postForHorse(horse) {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN ORCHESTRATION
+// ═══════════════════════════════════════════════════════════════════════════
 async function unleashTheHorses() {
-    console.log('\n🐴🐴🐴 UNLEASHING THE HORSES 🐴🐴🐴');
+    console.log('\n🐴🐴🐴 UNLEASHING THE HORSES (HARDENED) 🐴🐴🐴');
     console.log('═'.repeat(60));
+    console.log('Features: Source rotation • Retry logic • Deduplication');
     console.log('Loading all active horses...\n');
 
     // Get all active horses
@@ -163,21 +278,29 @@ async function unleashTheHorses() {
         return;
     }
 
-    console.log(`Found ${horses.length} active horses\n`);
+    console.log(`Found ${horses.length} active horses`);
+    console.log(`Available clips: ${CLIP_LIBRARY.length}\n`);
 
     const results = [];
+    const sourceStats = {};
 
     for (const horse of horses) {
-        // Random delay between horses (2-5 seconds)
-        await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000));
+        // Rate limiting delay
+        const delay = HORSE_DELAY_MS.min + Math.random() * (HORSE_DELAY_MS.max - HORSE_DELAY_MS.min);
+        await sleep(delay);
 
         const result = await postForHorse(horse);
         results.push(result);
+
+        // Track source distribution
+        if (result.success && result.source) {
+            sourceStats[result.source] = (sourceStats[result.source] || 0) + 1;
+        }
     }
 
     // Summary
     console.log('\n' + '═'.repeat(60));
-    console.log('📊 RESULTS SUMMARY');
+    console.log('📊 HARDENED RESULTS SUMMARY');
     console.log('═'.repeat(60));
 
     const successful = results.filter(r => r.success);
@@ -186,10 +309,34 @@ async function unleashTheHorses() {
     console.log(`\n✅ Successful: ${successful.length}`);
     console.log(`❌ Failed: ${failed.length}`);
 
+    if (Object.keys(sourceStats).length > 0) {
+        console.log('\n📺 SOURCE DISTRIBUTION:');
+        Object.entries(sourceStats)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([source, count]) => {
+                const name = CLIP_SOURCES[source]?.name || source;
+                console.log(`   ${name}: ${count} clips`);
+            });
+    }
+
     if (successful.length > 0) {
         console.log('\n📝 Posts Created:');
-        successful.forEach(r => {
-            console.log(`   • ${r.horse}: "${r.caption}"`);
+        successful.slice(0, 10).forEach(r => {
+            console.log(`   • ${r.horse} (${r.source}): "${r.caption.slice(0, 30)}..."`);
+        });
+        if (successful.length > 10) {
+            console.log(`   ... and ${successful.length - 10} more`);
+        }
+    }
+
+    if (failed.length > 0) {
+        console.log('\n⚠️ Failed reasons:');
+        const reasons = {};
+        failed.forEach(r => {
+            reasons[r.reason] = (reasons[r.reason] || 0) + 1;
+        });
+        Object.entries(reasons).forEach(([reason, count]) => {
+            console.log(`   ${reason}: ${count}`);
         });
     }
 
