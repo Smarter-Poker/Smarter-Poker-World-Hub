@@ -211,32 +211,6 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                     <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
                     <div style={{ position: 'absolute', top: 8, bottom: 8, left: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
                     <div style={{ position: 'absolute', top: 8, bottom: 8, right: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
-
-                    {/* Label text inside card at top */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: 14,
-                            left: 12,
-                            right: 12,
-                            textAlign: 'center',
-                            zIndex: 10,
-                        }}
-                    >
-                        <span
-                            style={{
-                                fontSize: 11,
-                                fontWeight: 800,
-                                fontFamily: 'Orbitron, sans-serif',
-                                color: '#ffffff',
-                                textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 0, 0, 0.5)',
-                                letterSpacing: '1px',
-                                textTransform: 'uppercase',
-                            }}
-                        >
-                            {orb.label}
-                        </span>
-                    </div>
                 </div>
             </div>
         </div>

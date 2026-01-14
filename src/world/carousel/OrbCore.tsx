@@ -140,25 +140,6 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                     />
                 );
             })()}
-
-            {/* ═══════════════════════════════════════════════════════════════
-                LABEL TEXT - Inside card at top (matching mockup)
-                ═══════════════════════════════════════════════════════════════ */}
-            <Text
-                position={[0, cardHeight / 2 - 0.12, 0.05]}
-                fontSize={0.1}
-                color="#ffffff"
-                anchorX="center"
-                anchorY="top"
-                maxWidth={0.9}
-                textAlign="center"
-                fontWeight="bold"
-                outlineWidth={0.003}
-                outlineColor="#000000"
-            >
-                {label.toUpperCase()}
-            </Text>
         </group>
     );
 }
-
