@@ -641,6 +641,31 @@ export default function SocialMediaPage() {
                 }
             }
 
+            // AUTO-SAVE VIDEOS TO REELS 🎬
+            // When a video is posted, automatically create a Reel entry
+            if (type === 'video' && urls.length > 0) {
+                const videoUrl = urls.find(url =>
+                    url.includes('.mp4') || url.includes('.webm') || url.includes('.mov') ||
+                    url.includes('video') || !url.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                ) || urls[0];
+
+                try {
+                    await supabase.from('social_reels').insert({
+                        author_id: user.id,
+                        video_url: videoUrl,
+                        caption: content || null,
+                        source_post_id: data.id,
+                        is_public: true,
+                        view_count: 0,
+                        like_count: 0
+                    });
+                    console.log('🎬 Video auto-saved to Reels!');
+                } catch (reelError) {
+                    console.error('Failed to auto-save to Reels:', reelError);
+                    // Don't fail the post if Reel creation fails
+                }
+            }
+
             setPosts(prev => [{
                 id: data.id, authorId: user.id, content, contentType: type,
                 mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
