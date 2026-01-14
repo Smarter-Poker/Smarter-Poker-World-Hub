@@ -1,7 +1,8 @@
 // @ts-nocheck
 /* ═══════════════════════════════════════════════════════════════════════════
-   HUB VANGUARD — PS5-QUALITY LAUNCH ANIMATION
-   Premium AAA-game intro with particles, shockwaves, and cinematic effects
+   HUB VANGUARD — CINEMATIC LAUNCH ANIMATION
+   Premium AAA-game intro with particles, shockwaves, and cinematic audio
+   Duration: 2.5 seconds for full "WOW" impact
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRef, useEffect, useState, useMemo } from 'react';
@@ -10,9 +11,9 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AUDIO ENGINE - Premium sound effects
+// CINEMATIC AUDIO ENGINE - Epic soundtrack + layered sound design
 // ─────────────────────────────────────────────────────────────────────────────
-class LaunchAudioEngine {
+class CinematicAudioEngine {
     private audioContext: AudioContext | null = null;
 
     private getContext(): AudioContext | null {
@@ -26,177 +27,215 @@ class LaunchAudioEngine {
         return this.audioContext;
     }
 
-    // Deep bass thud on initial charge
-    playChargeSound() {
+    // Epic cinematic intro - building tension + release
+    playCinematicIntro() {
         const ctx = this.getContext();
         if (!ctx) return;
 
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
+        // Layer 1: Deep bass drone (builds tension)
+        const bassDrone = ctx.createOscillator();
+        const bassGain = ctx.createGain();
+        bassDrone.connect(bassGain);
+        bassGain.connect(ctx.destination);
+        bassDrone.type = 'sine';
+        bassDrone.frequency.setValueAtTime(40, ctx.currentTime);
+        bassDrone.frequency.linearRampToValueAtTime(60, ctx.currentTime + 1.5);
+        bassGain.gain.setValueAtTime(0.3, ctx.currentTime);
+        bassGain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 1.2);
+        bassGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 2.5);
+        bassDrone.start(ctx.currentTime);
+        bassDrone.stop(ctx.currentTime + 2.5);
 
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
+        // Layer 2: Rising synth sweep
+        const synth = ctx.createOscillator();
+        const synthGain = ctx.createGain();
+        synth.connect(synthGain);
+        synthGain.connect(ctx.destination);
+        synth.type = 'sawtooth';
+        synth.frequency.setValueAtTime(200, ctx.currentTime);
+        synth.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 1.5);
+        synth.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 2.5);
+        synthGain.gain.setValueAtTime(0.05, ctx.currentTime);
+        synthGain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 1.2);
+        synthGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 2.5);
+        synth.start(ctx.currentTime);
+        synth.stop(ctx.currentTime + 2.5);
 
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(60, ctx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.3);
+        // Layer 3: Impact hit at 1.2s (the "BOOM")
+        setTimeout(() => {
+            this.playImpactHit();
+        }, 1200);
 
-        gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-
-        oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.4);
+        // Layer 4: Whoosh at 1.4s (cards flying)
+        setTimeout(() => {
+            this.playWhoosh();
+        }, 1400);
     }
 
-    // Epic whoosh with rising pitch on burst
-    playBurstSound() {
+    // Heavy impact hit - the "BOOM" moment
+    private playImpactHit() {
         const ctx = this.getContext();
         if (!ctx) return;
 
-        // Layer 1: Low whoosh
-        const osc1 = ctx.createOscillator();
-        const gain1 = ctx.createGain();
-        osc1.connect(gain1);
-        gain1.connect(ctx.destination);
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(100, ctx.currentTime);
-        osc1.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.5);
-        gain1.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-        osc1.start(ctx.currentTime);
-        osc1.stop(ctx.currentTime + 0.5);
+        // Sub bass impact
+        const impact = ctx.createOscillator();
+        const impactGain = ctx.createGain();
+        impact.connect(impactGain);
+        impactGain.connect(ctx.destination);
+        impact.type = 'sine';
+        impact.frequency.setValueAtTime(80, ctx.currentTime);
+        impact.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 0.3);
+        impactGain.gain.setValueAtTime(0.6, ctx.currentTime);
+        impactGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        impact.start(ctx.currentTime);
+        impact.stop(ctx.currentTime + 0.4);
 
-        // Layer 2: High sweep
-        const osc2 = ctx.createOscillator();
-        const gain2 = ctx.createGain();
-        osc2.connect(gain2);
-        gain2.connect(ctx.destination);
-        osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(800, ctx.currentTime);
-        osc2.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.4);
-        gain2.gain.setValueAtTime(0.15, ctx.currentTime);
-        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-        osc2.start(ctx.currentTime);
-        osc2.stop(ctx.currentTime + 0.4);
-
-        // Layer 3: Impact thud
-        const osc3 = ctx.createOscillator();
-        const gain3 = ctx.createGain();
-        osc3.connect(gain3);
-        gain3.connect(ctx.destination);
-        osc3.type = 'sine';
-        osc3.frequency.setValueAtTime(50, ctx.currentTime);
-        osc3.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 0.2);
-        gain3.gain.setValueAtTime(0.5, ctx.currentTime);
-        gain3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-        osc3.start(ctx.currentTime);
-        osc3.stop(ctx.currentTime + 0.3);
+        // White noise burst for "crack"
+        const bufferSize = ctx.sampleRate * 0.1;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+        const noiseGain = ctx.createGain();
+        noise.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noiseGain.gain.setValueAtTime(0.3, ctx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+        noise.start(ctx.currentTime);
     }
 
-    // Card fly-out whoosh
-    playCardFlySound() {
+    // Whoosh for flying cards
+    private playWhoosh() {
         const ctx = this.getContext();
         if (!ctx) return;
 
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.connect(gain);
+        const filter = ctx.createBiquadFilter();
+
+        osc.connect(filter);
+        filter.connect(gain);
         gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(400, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.5);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(2000, ctx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.5);
+
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.3);
+        osc.stop(ctx.currentTime + 0.5);
+    }
+
+    // Final flourish - shimmering finish
+    playFinish() {
+        const ctx = this.getContext();
+        if (!ctx) return;
+
+        // Shimmering high notes
+        [1200, 1500, 1800, 2000].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.05);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime + i * 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.05 + 0.3);
+            osc.start(ctx.currentTime + i * 0.05);
+            osc.stop(ctx.currentTime + i * 0.05 + 0.3);
+        });
     }
 }
 
-const audioEngine = new LaunchAudioEngine();
+const audioEngine = new CinematicAudioEngine();
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HAPTIC ENGINE - Premium vibration patterns
+// HAPTIC ENGINE - Cinematic vibration patterns
 // ─────────────────────────────────────────────────────────────────────────────
 const hapticEngine = {
-    // Triple pulse pattern for charge
-    chargePattern() {
+    // Building rumble pattern
+    buildUp() {
         if ('vibrate' in navigator) {
-            navigator.vibrate([20, 50, 20, 50, 30]);
+            navigator.vibrate([30, 100, 50, 100, 80, 100, 100]);
         }
     },
-    // Heavy impact burst
-    burstPattern() {
+    // Heavy impact
+    impact() {
         if ('vibrate' in navigator) {
-            navigator.vibrate([100, 30, 50]);
+            navigator.vibrate([150, 50, 100]);
         }
     },
-    // Light flutter for cards
-    cardFlyPattern() {
+    // Cards flying flutter
+    flutter() {
         if ('vibrate' in navigator) {
-            navigator.vibrate([15, 20, 15]);
+            navigator.vibrate([20, 30, 20, 30, 20]);
         }
     }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PARTICLE SYSTEM - Glowing spark particles
+// PARTICLE BURST SYSTEM - Cinematic spark explosion
 // ─────────────────────────────────────────────────────────────────────────────
-interface Particle {
-    position: THREE.Vector3;
-    velocity: THREE.Vector3;
-    life: number;
-    maxLife: number;
-    size: number;
-    color: THREE.Color;
-}
-
-function ParticleSystem({ active, count = 100 }: { active: boolean; count?: number }) {
+function ParticleExplosion({ active, count = 120 }: { active: boolean; count?: number }) {
     const meshRef = useRef<THREE.InstancedMesh>(null);
-    const particlesRef = useRef<Particle[]>([]);
+    const particlesRef = useRef<{
+        position: THREE.Vector3;
+        velocity: THREE.Vector3;
+        life: number;
+        maxLife: number;
+        size: number;
+    }[]>([]);
     const dummy = useMemo(() => new THREE.Object3D(), []);
+    const [initialized, setInitialized] = useState(false);
 
-    // Initialize particles
+    // Initialize particles on activation
     useEffect(() => {
-        if (active && particlesRef.current.length === 0) {
-            const particles: Particle[] = [];
+        if (active && !initialized) {
+            const particles = [];
             for (let i = 0; i < count; i++) {
-                const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
-                const speed = 3 + Math.random() * 5;
-                const upward = Math.random() * 2;
+                const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
+                const speed = 4 + Math.random() * 8;
+                const upward = (Math.random() - 0.3) * 3;
 
                 particles.push({
-                    position: new THREE.Vector3(0, 0, 5),
+                    position: new THREE.Vector3(0, 0, 0),
                     velocity: new THREE.Vector3(
                         Math.cos(angle) * speed,
                         upward,
-                        Math.sin(angle) * speed
+                        Math.sin(angle) * speed * 0.5
                     ),
                     life: 1,
-                    maxLife: 0.8 + Math.random() * 0.4,
-                    size: 0.05 + Math.random() * 0.1,
-                    color: new THREE.Color().setHSL(0.5 + Math.random() * 0.1, 1, 0.6),
+                    maxLife: 0.6 + Math.random() * 0.6,
+                    size: 0.03 + Math.random() * 0.08,
                 });
             }
             particlesRef.current = particles;
+            setInitialized(true);
         }
-    }, [active, count]);
+    }, [active, count, initialized]);
 
     // Animate particles
     useFrame((_, delta) => {
-        if (!meshRef.current || !active) return;
+        if (!meshRef.current || !active || !initialized) return;
 
         particlesRef.current.forEach((particle, i) => {
             if (particle.life > 0) {
-                // Update position
                 particle.position.add(particle.velocity.clone().multiplyScalar(delta));
-                // Apply gravity
-                particle.velocity.y -= delta * 3;
-                // Decay
+                particle.velocity.y -= delta * 4; // gravity
+                particle.velocity.multiplyScalar(0.98); // drag
                 particle.life -= delta / particle.maxLife;
 
-                // Update instance
                 dummy.position.copy(particle.position);
-                const scale = particle.size * (particle.life * 2);
+                const scale = particle.size * Math.max(0, particle.life * 1.5);
                 dummy.scale.setScalar(scale);
                 dummy.updateMatrix();
                 meshRef.current!.setMatrixAt(i, dummy.matrix);
@@ -214,41 +253,44 @@ function ParticleSystem({ active, count = 100 }: { active: boolean; count?: numb
 
     return (
         <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-            <sphereGeometry args={[1, 8, 8]} />
-            <meshBasicMaterial color="#00ffff" transparent opacity={0.8} />
+            <sphereGeometry args={[1, 6, 6]} />
+            <meshBasicMaterial color="#00ffff" transparent opacity={0.9} />
         </instancedMesh>
     );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SHOCKWAVE RING - Expanding energy wave
+// SHOCKWAVE RING - Expanding cinematic ring
 // ─────────────────────────────────────────────────────────────────────────────
-function ShockwaveRing({ active }: { active: boolean }) {
+function ShockwaveRing({ active, delay = 0 }: { active: boolean; delay?: number }) {
     const ringRef = useRef<THREE.Mesh>(null);
-    const [triggered, setTriggered] = useState(false);
+    const [started, setStarted] = useState(false);
     const startTimeRef = useRef(0);
 
     useEffect(() => {
-        if (active && !triggered) {
-            setTriggered(true);
-            startTimeRef.current = Date.now();
+        if (active && !started) {
+            const timer = setTimeout(() => {
+                setStarted(true);
+                startTimeRef.current = Date.now();
+            }, delay);
+            return () => clearTimeout(timer);
         }
-    }, [active, triggered]);
+    }, [active, started, delay]);
 
     useFrame(() => {
-        if (!ringRef.current || !triggered) return;
+        if (!ringRef.current || !started) return;
 
         const elapsed = (Date.now() - startTimeRef.current) / 1000;
-        const duration = 0.8;
+        const duration = 1.0;
         const progress = Math.min(elapsed / duration, 1);
 
-        // Exponential expansion
-        const scale = 1 + progress * 15;
+        // Smooth expansion with easing
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const scale = 0.5 + eased * 20;
         ringRef.current.scale.setScalar(scale);
 
-        // Fade out
         const material = ringRef.current.material as THREE.MeshBasicMaterial;
-        material.opacity = (1 - progress) * 0.6;
+        material.opacity = (1 - progress) * 0.5;
 
         if (progress >= 1) {
             ringRef.current.visible = false;
@@ -258,15 +300,56 @@ function ShockwaveRing({ active }: { active: boolean }) {
     if (!active) return null;
 
     return (
-        <mesh ref={ringRef} position={[0, 0, 5]} rotation={[Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.8, 1, 64]} />
-            <meshBasicMaterial color="#00d4ff" transparent opacity={0.6} side={THREE.DoubleSide} />
+        <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.9, 1, 64]} />
+            <meshBasicMaterial color="#00d4ff" transparent opacity={0.5} side={THREE.DoubleSide} />
         </mesh>
     );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LAUNCH PAD - Main component with premium effects
+// ENERGY CORE - Pulsing central orb
+// ─────────────────────────────────────────────────────────────────────────────
+function EnergyCore({ phase }: { phase: string }) {
+    const coreRef = useRef<THREE.Mesh>(null);
+    const glowRef = useRef<THREE.Mesh>(null);
+
+    useFrame((state) => {
+        if (!coreRef.current) return;
+
+        const time = state.clock.elapsedTime;
+        const pulse = 1 + Math.sin(time * 10) * 0.1;
+
+        if (phase === 'charging') {
+            coreRef.current.scale.setScalar(0.3 * pulse);
+            if (glowRef.current) glowRef.current.scale.setScalar(0.5 * pulse);
+        }
+    });
+
+    const { scale, opacity } = useSpring({
+        scale: phase === 'burst' ? 4 : phase === 'charging' ? 0.4 : 0.2,
+        opacity: phase === 'done' ? 0 : phase === 'burst' ? 0.3 : 0.9,
+        config: phase === 'burst' ? { tension: 400, friction: 20 } : config.wobbly,
+    });
+
+    if (phase === 'done') return null;
+
+    return (
+        <group>
+            <animated.mesh ref={coreRef} scale={scale}>
+                <sphereGeometry args={[1, 32, 32]} />
+                <animated.meshBasicMaterial color="#00ffff" transparent opacity={opacity} />
+            </animated.mesh>
+            <animated.mesh ref={glowRef} scale={scale.to(s => s * 1.5)}>
+                <sphereGeometry args={[1, 16, 16]} />
+                <animated.meshBasicMaterial color="#0088ff" transparent opacity={opacity.to(o => o * 0.3)} />
+            </animated.mesh>
+        </group>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LAUNCH PAD - Main cinematic launch component (2.5 second intro)
 // ─────────────────────────────────────────────────────────────────────────────
 interface LaunchPadProps {
     isActive: boolean;
@@ -274,113 +357,121 @@ interface LaunchPadProps {
 }
 
 export function LaunchPad({ isActive, onBurst }: LaunchPadProps) {
-    const ringRef = useRef<THREE.Mesh>(null);
-    const innerGlowRef = useRef<THREE.Mesh>(null);
+    const outerRingRef = useRef<THREE.Mesh>(null);
+    const innerRingRef = useRef<THREE.Mesh>(null);
     const [phase, setPhase] = useState<'idle' | 'charging' | 'burst' | 'done'>('idle');
     const [showParticles, setShowParticles] = useState(false);
     const [showShockwave, setShowShockwave] = useState(false);
     const rotationRef = useRef(0);
 
-    // Start immediately when component mounts
+    // ═══════════════════════════════════════════════════════════════════════
+    // CINEMATIC SEQUENCE - 2.5 second intro
+    // Timeline:
+    // 0.0s - Start charging, play cinematic audio
+    // 1.2s - BURST! Particles + shockwave + impact sound
+    // 1.4s - Cards begin flying out
+    // 2.5s - Animation complete
+    // ═══════════════════════════════════════════════════════════════════════
     useEffect(() => {
         if (phase !== 'idle') return;
 
-        // Immediately start charging
+        // Start the cinematic sequence
         setPhase('charging');
-        audioEngine.playChargeSound();
-        hapticEngine.chargePattern();
+        audioEngine.playCinematicIntro();
+        hapticEngine.buildUp();
 
-        // Quick burst after 300ms
+        // THE BIG MOMENT at 1.2 seconds
         const burstTimer = setTimeout(() => {
             setPhase('burst');
             setShowParticles(true);
             setShowShockwave(true);
-            audioEngine.playBurstSound();
-            hapticEngine.burstPattern();
-            onBurst();
+            hapticEngine.impact();
 
-            // Play card fly sound slightly delayed
+            // Trigger cards to fly out
             setTimeout(() => {
-                audioEngine.playCardFlySound();
-                hapticEngine.cardFlyPattern();
-            }, 100);
+                onBurst();
+                hapticEngine.flutter();
+            }, 200);
 
-            // Fade out
+            // Finish and fade out
             setTimeout(() => {
+                audioEngine.playFinish();
                 setPhase('done');
-            }, 400);
-        }, 250);
+            }, 1100);
+        }, 1200);
 
         return () => clearTimeout(burstTimer);
     }, []);
 
-    // Animate rotation
+    // Animate ring rotation
     useFrame((_, delta) => {
-        rotationRef.current += delta * (phase === 'charging' ? 8 : phase === 'burst' ? 20 : 2);
+        const speed = phase === 'charging' ? 4 : phase === 'burst' ? 15 : 1;
+        rotationRef.current += delta * speed;
 
-        if (ringRef.current) {
-            ringRef.current.rotation.z = rotationRef.current;
+        if (outerRingRef.current) {
+            outerRingRef.current.rotation.z = rotationRef.current;
         }
-        if (innerGlowRef.current) {
-            innerGlowRef.current.rotation.z = -rotationRef.current * 1.5;
+        if (innerRingRef.current) {
+            innerRingRef.current.rotation.z = -rotationRef.current * 1.3;
         }
     });
 
-    // Ring animation springs
-    const { scale, opacity } = useSpring({
-        scale: phase === 'burst' ? 12 : phase === 'charging' ? 1.8 : 1,
-        opacity: phase === 'done' ? 0 : phase === 'burst' ? 0.2 : 0.95,
-        config: phase === 'burst'
-            ? { tension: 300, friction: 15 }
-            : { tension: 200, friction: 20 },
-    });
-
-    // Pulsing core
-    const { coreScale, coreOpacity } = useSpring({
-        coreScale: phase === 'charging' ? [1, 1.3, 1] : phase === 'burst' ? 3 : 0.5,
-        coreOpacity: phase === 'done' ? 0 : phase === 'burst' ? 0.4 : 0.8,
-        config: config.wobbly,
+    // Ring animations
+    const { ringScale, ringOpacity } = useSpring({
+        ringScale: phase === 'burst' ? 15 : phase === 'charging' ? 2 : 1,
+        ringOpacity: phase === 'done' ? 0 : phase === 'burst' ? 0.15 : 0.85,
+        config: phase === 'burst' ? { tension: 350, friction: 18 } : { tension: 120, friction: 14 },
     });
 
     if (phase === 'done') return null;
 
     return (
         <group position={[0, 0, 5]}>
-            {/* Outer ring with glow */}
-            <animated.mesh ref={ringRef} scale={scale} rotation={[Math.PI / 2, 0, 0]}>
-                <torusGeometry args={[1.5, 0.06, 16, 64]} />
-                <animated.meshBasicMaterial color="#00d4ff" transparent opacity={opacity} />
+            {/* Outer rotating ring */}
+            <animated.mesh
+                ref={outerRingRef}
+                scale={ringScale}
+                rotation={[Math.PI / 2, 0, 0]}
+            >
+                <torusGeometry args={[1.2, 0.05, 16, 64]} />
+                <animated.meshBasicMaterial color="#00d4ff" transparent opacity={ringOpacity} />
             </animated.mesh>
 
-            {/* Secondary ring (counter-rotating) */}
-            <animated.mesh ref={innerGlowRef} scale={scale.to(s => s * 0.8)} rotation={[Math.PI / 2, 0, 0]}>
-                <torusGeometry args={[1.2, 0.04, 16, 64]} />
-                <animated.meshBasicMaterial color="#00ffff" transparent opacity={opacity.to(o => o * 0.7)} />
+            {/* Inner counter-rotating ring */}
+            <animated.mesh
+                ref={innerRingRef}
+                scale={ringScale.to(s => s * 0.7)}
+                rotation={[Math.PI / 2, 0, 0]}
+            >
+                <torusGeometry args={[1, 0.04, 16, 64]} />
+                <animated.meshBasicMaterial color="#00ffff" transparent opacity={ringOpacity.to(o => o * 0.8)} />
             </animated.mesh>
 
-            {/* Inner glow ring */}
-            <animated.mesh scale={scale.to(s => s * 0.6)} rotation={[Math.PI / 2, 0, 0]}>
-                <torusGeometry args={[0.9, 0.03, 16, 64]} />
-                <animated.meshBasicMaterial color="#ffffff" transparent opacity={opacity.to(o => o * 0.5)} />
+            {/* Third ring for depth */}
+            <animated.mesh
+                scale={ringScale.to(s => s * 0.5)}
+                rotation={[Math.PI / 2, 0, 0]}
+            >
+                <torusGeometry args={[0.8, 0.03, 16, 64]} />
+                <animated.meshBasicMaterial color="#ffffff" transparent opacity={ringOpacity.to(o => o * 0.5)} />
             </animated.mesh>
 
-            {/* Center energy core */}
-            <animated.mesh scale={coreScale as any}>
-                <sphereGeometry args={[0.4, 32, 32]} />
-                <animated.meshBasicMaterial color="#00ffff" transparent opacity={coreOpacity} />
-            </animated.mesh>
+            {/* Energy core */}
+            <EnergyCore phase={phase} />
 
             {/* Particle explosion */}
-            <ParticleSystem active={showParticles} count={80} />
+            <ParticleExplosion active={showParticles} count={100} />
 
-            {/* Shockwave */}
-            <ShockwaveRing active={showShockwave} />
+            {/* Shockwave rings (staggered) */}
+            <ShockwaveRing active={showShockwave} delay={0} />
+            <ShockwaveRing active={showShockwave} delay={100} />
+            <ShockwaveRing active={showShockwave} delay={200} />
         </group>
     );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ANIMATED CARD WRAPPER - Wraps cards with spring animation from center
+// ANIMATED CARD WRAPPER - Cards fly out with spring physics
 // ─────────────────────────────────────────────────────────────────────────────
 interface AnimatedCardWrapperProps {
     children: React.ReactNode;
@@ -430,15 +521,13 @@ export function AnimatedCardWrapper({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LAUNCH ANIMATION HOOK - Controls the overall launch sequence
-// INSTANT PLAYBACK - no delays, immediate animation on mount
+// LAUNCH ANIMATION HOOK - Controls the 2.5s cinematic sequence
 // ─────────────────────────────────────────────────────────────────────────────
 export function useLaunchAnimation() {
-    // Start immediately in 'launching' state for instant feel
     const [introState, setIntroState] = useState<'launching' | 'complete'>('launching');
 
     const onBurst = () => {
-        // Immediately transition to complete - no delay
+        // Transition to complete immediately when burst happens
         setIntroState('complete');
     };
 
@@ -446,7 +535,7 @@ export function useLaunchAnimation() {
         introState,
         isLaunching: introState === 'launching',
         isComplete: introState === 'complete',
-        startLaunch: () => { }, // No-op, animation auto-starts
+        startLaunch: () => { },
         onBurst,
     };
 }
