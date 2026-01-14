@@ -117,10 +117,14 @@ export default function ClubArenaPage() {
                 ref={iframeRef}
                 src="https://club-arena.vercel.app"
                 style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
                     width: '100vw',
                     height: '100vh',
                     border: 'none',
-                    display: 'block'
+                    display: 'block',
+                    zIndex: 9999,
                 }}
                 title="Club Arena"
                 allow="fullscreen"
@@ -129,3 +133,4 @@ export default function ClubArenaPage() {
         </>
     );
 }
+
