@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
+import { StoriesBar, ShareToStoryPrompt } from '../../src/components/social/Stories';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -49,19 +50,7 @@ function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
     );
 }
 
-function StoriesBar({ currentUser, onAddStory }) {
-    return (
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '8px 0', marginBottom: 1 }}>
-            <div onClick={onAddStory} style={{ minWidth: 110, height: 190, borderRadius: 12, background: C.card, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', cursor: 'pointer', overflow: 'hidden', border: `1px solid ${C.border}` }}>
-                <div style={{ height: '75%', background: currentUser?.avatar ? `url(${currentUser.avatar}) center/cover` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }} />
-                <div style={{ height: '25%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: -16, width: 32, height: 32, borderRadius: '50%', background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 20, border: '3px solid white' }}>+</div>
-                    <span style={{ fontSize: 12, fontWeight: 500, marginTop: 8 }}>Create Story</span>
-                </div>
-            </div>
-        </div>
-    );
-}
+// StoriesBar imported from '../../src/components/social/Stories'
 
 const MAX_MEDIA = 10;
 
@@ -1153,7 +1142,7 @@ export default function SocialMediaPage() {
                 {/* Main Feed - Full Width */}
                 <main style={{ maxWidth: 680, margin: '0 auto', padding: '8px' }}>
                     {/* Stories Bar */}
-                    <StoriesBar currentUser={user} onAddStory={() => { }} />
+                    {user && <StoriesBar userId={user.id} />}
 
                     {/* Post Creator */}
                     {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} />}

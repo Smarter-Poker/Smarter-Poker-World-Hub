@@ -21,55 +21,61 @@ const CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// HUMAN-LIKE POST TEMPLATES - Casual, authentic, varied
+// REALISTIC POST TYPES - What poker players ACTUALLY post
 // ═══════════════════════════════════════════════════════════════════════════
 const POST_TYPES = [
     {
-        type: 'session_update',
+        type: 'session_result',
+        weight: 25,
         prompts: [
-            "Share a quick update about your poker session today. Be casual, mention specific hands or situations. Include your mood and energy.",
-            "Just finished a session - talk about how it went, any interesting spots, your read on the table.",
-            "Post about what you're doing poker-wise right now. Could be studying, playing, watching streams, etc."
+            "Post your session result. Just won or lost, the amount if you want, maybe a brief feeling. 1-2 sentences max.",
+            "Quick session update - how'd it go today? Keep it super brief.",
+            "End of session post. Brief result, vibe check."
         ]
     },
     {
-        type: 'hot_take',
+        type: 'bad_beat',
+        weight: 20,
         prompts: [
-            "Share a slightly controversial poker opinion you have. Be bold but back it up with your experience.",
-            "Give your honest take on something in poker that most people get wrong. Be conversational.",
-            "React to something that happened at the tables recently that got you thinking."
+            "You just got coolered or sucked out on. Vent briefly. 1-2 sentences. Be frustrated but not dramatic.",
+            "Quick bad beat rant. Keep it short and real.",
+            "Just lost a big pot in a gross way. Brief frustrated post."
         ]
     },
     {
-        type: 'tip_drop',
+        type: 'life_moment',
+        weight: 20,
         prompts: [
-            "Share a quick tip you wish you knew earlier in your poker journey. Keep it real and casual.",
-            "Drop some wisdom from your experience - something that clicked for you recently.",
-            "Help out the newer players with something you've noticed works well for you."
+            "Share something from your poker lifestyle - at the casino, traveling, eating, grinding late. Brief observation.",
+            "Quick life update relating to poker. Where you are, what you're doing.",
+            "Post about your day as a poker player. Not strategy - just life stuff."
         ]
     },
     {
-        type: 'story_time',
+        type: 'win_celebration',
+        weight: 15,
         prompts: [
-            "Tell a quick story from a recent session - a cool hand, a funny moment, or a tough spot.",
-            "Share something memorable that happened at the poker table recently.",
-            "Talk about a hand that's been living rent-free in your head lately."
+            "You just had a nice win or hit a big pot. Brief celebration post. Don't brag too hard.",
+            "Good session! Brief happy post about your win.",
+            "Quick positive update - things went well today."
+        ]
+    },
+    {
+        type: 'random_thought',
+        weight: 10,
+        prompts: [
+            "Random poker-related thought or observation. Could be funny, weird, philosophical. Very brief.",
+            "Something random on your mind about the poker life.",
+            "Quick observation about something at the tables or in the poker world."
         ]
     },
     {
         type: 'question',
+        weight: 10,
         prompts: [
-            "Ask the community a genuine poker question - something you're actually curious about.",
-            "Pose a situational question to get people's thoughts. Be specific about the scenario.",
-            "Share a spot you weren't sure about and ask what others would do."
-        ]
-    },
-    {
-        type: 'life_update',
-        prompts: [
-            "Share something about your life outside poker that relates to your grind.",
-            "Talk about balance, travel, or something personal that connects to your poker journey.",
-            "Share what motivates you or what's on your mind as a poker player."
+            "Ask a genuine casual question to the community. Not technical - more like polling opinions.",
+            "Quick question for poker twitter. Keep it light.",
+            "Curious about something - ask the community."
         ]
     }
 ];
@@ -203,27 +209,32 @@ async function generateHorsePost(horse) {
     const prompt = postType.prompts[Math.floor(Math.random() * postType.prompts.length)];
     const memorySection = MemoryService.buildPromptSection(memoryContext);
 
-    // Human-like system prompt - emphasis on authenticity
-    const systemPrompt = `You are ${horse.name}, a real poker player posting on social media.
+    // Human-like system prompt - ULTRA SHORT, Twitter style
+    const systemPrompt = `You are ${horse.name}, posting on poker Twitter/X.
 
-WHO YOU ARE:
-- From ${horse.location || 'Las Vegas'}
-- You play ${horse.specialty?.replace('_', ' ') || 'cash games'} at ${horse.stakes || '2/5 NLH'}
-- Your vibe: ${horse.voice || 'casual and real'}
-- Bio: ${horse.bio || 'Experienced poker player'}
+ABOUT YOU: ${horse.stakes || '2/5'} ${horse.specialty?.replace('_', ' ') || 'cash game'} player from ${horse.location || 'Vegas'}. ${horse.voice || 'casual'} vibe.
+
+CRITICAL RULES - FOLLOW EXACTLY:
+1. MAX 1-3 SHORT SENTENCES TOTAL. Like a tweet.
+2. Sound like a real person, not an AI. Be raw, unpolished.
+3. Use poker slang naturally (coolered, bricked, ran it twice, punt, ship it, etc)
+4. Can include: frustration, excitement, sarcasm, humor, random thoughts
+5. NO paragraphs. NO explanations. NO teaching.
+6. Reference real stakes, real situations, real feelings
+7. Typos and informal grammar are GOOD
+8. 1-2 emojis max IF it fits
+
+EXAMPLES OF GOOD POSTS:
+- "ran KK into AA for the 3rd time today. sick of this game lol"
+- "2/5 session: +$1,847. Table was so soft I almost felt bad 😂"  
+- "anyone else just punt off a stack then immediately regret every life choice?"
+- "studying ranges at 2am. why am i like this"
+- "hit a 2 outer on the river vs a reg. he didnt say a word for 20 mins 🤣"
+- "1/3 to 2/5 to 5/10 this year. slow grind but we're getting there"
 
 ${memorySection}
 
-IMPORTANT - SOUND HUMAN:
-- Write like you're texting a friend or posting on Twitter/X
-- Use casual language, contractions, maybe a typo here and there
-- Short sentences. Fragments are fine.
-- Share real feelings - frustration, excitement, curiosity
-- Reference specific situations, stakes, venues when relevant
-- DON'T sound like a textbook or AI - be a real person
-- 1-3 short paragraphs max (50-150 words total)
-- Can use 1-2 emojis if it fits your personality
-- NO hashtags ever`;
+Write ONE post. Short. Real. Raw.`;
 
     try {
         const response = await openai.chat.completions.create({
@@ -232,7 +243,7 @@ IMPORTANT - SOUND HUMAN:
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: prompt }
             ],
-            max_tokens: 300,
+            max_tokens: 100,
             temperature: 0.95  // Higher temp for more variety
         });
 
