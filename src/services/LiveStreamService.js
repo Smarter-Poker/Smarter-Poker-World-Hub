@@ -10,12 +10,30 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// STUN/TURN servers for NAT traversal
+// ═══════════════════════════════════════════════════════════════════════════
+// HARDENING CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════
+const CONNECTION_TIMEOUT_MS = 30000; // 30 seconds max for WebRTC connection
+const SIGNALING_RETRY_ATTEMPTS = 3;
+const SIGNALING_RETRY_DELAY_MS = 1000;
+const ICE_GATHERING_TIMEOUT_MS = 10000; // 10 seconds for ICE gathering
+
+// STUN/TURN servers for NAT traversal (with fallbacks)
 const ICE_SERVERS = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
 ];
+
+/**
+ * Log errors with context for debugging
+ */
+const logError = (context, error) => {
+    console.error(`[LiveStream:${context}]`, error?.message || error);
+    // Could integrate with error tracking service here
+};
 
 /**
  * LiveStreamService — Manages WebRTC connections for live streaming
@@ -292,19 +310,40 @@ class LiveStreamService {
     }
 
     /**
-     * Send signaling message to another user
+     * Send signaling message to another user with retry logic
      * @param {string} toUserId - Recipient user ID
      * @param {string} messageType - offer, answer, or ice-candidate
      * @param {object} payload - WebRTC data
      */
     async sendSignal(toUserId, messageType, payload) {
-        await supabase.from('live_signaling').insert({
-            stream_id: this.currentStreamId,
-            from_user_id: this.currentUserId,
-            to_user_id: toUserId,
-            message_type: messageType,
-            payload: payload,
-        });
+        let lastError = null;
+        
+        for (let attempt = 1; attempt <= SIGNALING_RETRY_ATTEMPTS; attempt++) {
+            try {
+                const { error } = await supabase.from('live_signaling').insert({
+                    stream_id: this.currentStreamId,
+                    from_user_id: this.currentUserId,
+                    to_user_id: toUserId,
+                    message_type: messageType,
+                    payload: payload,
+                });
+                
+                if (error) throw error;
+                return; // Success
+            } catch (err) {
+                lastError = err;
+                logError(`sendSignal:${messageType}:attempt${attempt}`, err);
+                
+                if (attempt < SIGNALING_RETRY_ATTEMPTS) {
+                    // Wait before retry with exponential backoff
+                    await new Promise(r => setTimeout(r, SIGNALING_RETRY_DELAY_MS * attempt));
+                }
+            }
+        }
+        
+        // All retries failed
+        logError('sendSignal:failed', `Failed after ${SIGNALING_RETRY_ATTEMPTS} attempts: ${lastError?.message}`);
+        throw lastError;
     }
 
     /**

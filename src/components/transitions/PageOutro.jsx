@@ -92,16 +92,18 @@ export function PageOutro({ isActive, onComplete }) {
                     ? 'transform 0.5s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.4s ease-in'
                     : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out',
             }}>
-                {/* Brain Logo - Transparent PNG of Smarter.Poker brain */}
+                {/* Brain Logo - Using circuit-brain with blend mode for transparency */}
                 <img
-                    src="/brain-only.png"
+                    src="/circuit-brain-bg.png"
                     alt="Smarter.Poker Brain"
                     style={{
-                        width: 100,
-                        height: 100,
+                        width: 250,
+                        height: 250,
                         marginBottom: 20,
-                        opacity: 0.9,
-                        filter: 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.8)) drop-shadow(0 0 40px rgba(0, 212, 255, 0.5))',
+                        objectFit: 'contain',
+                        objectPosition: 'right center',
+                        mixBlendMode: 'lighten',
+                        filter: 'drop-shadow(0 0 30px rgba(0, 212, 255, 0.9)) drop-shadow(0 0 60px rgba(0, 212, 255, 0.6))',
                         animation: phase === 1 ? 'outroPulse 1s ease-in-out infinite' : undefined,
                     }}
                 />

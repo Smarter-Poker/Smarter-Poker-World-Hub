@@ -20,29 +20,8 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
-// Dynamic imports to avoid Vercel bundling issues with Node.js native modules
-let videoClipper = null;
-let getRandomClip = () => null;
-let getRandomCaption = () => '';
-let markClipUsed = () => { };
-let CLIP_CATEGORIES = { FUNNY: 'funny' };
-
-// Lazy load the video processing modules (optional in serverless)
-async function loadClipModules() {
-    if (!videoClipper) {
-        try {
-            const clipperMod = await import('../../../src/content-engine/pipeline/VideoClipper.js');
-            const libraryMod = await import('../../../src/content-engine/pipeline/ClipLibrary.js');
-            videoClipper = clipperMod.videoClipper;
-            getRandomClip = libraryMod.getRandomClip;
-            getRandomCaption = libraryMod.getRandomCaption;
-            markClipUsed = libraryMod.markClipUsed;
-            CLIP_CATEGORIES = libraryMod.CLIP_CATEGORIES;
-        } catch (e) {
-            console.warn('Clip modules not available:', e.message);
-        }
-    }
-}
+// Static import for ClipLibrary (pure JS, no native modules)
+import { getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES } from '../../../src/content-engine/pipeline/ClipLibrary.js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -392,9 +371,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Lazy load clip modules for serverless environment
-        await loadClipModules();
-
         // Get recently posted clips to avoid duplicates (horse coordination)
         const recentlyUsedClips = await getRecentlyPostedClipIds();
         console.log(`📋 Found ${recentlyUsedClips.size} recently posted clips to avoid`);
