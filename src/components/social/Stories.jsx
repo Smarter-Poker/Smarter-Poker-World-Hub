@@ -481,7 +481,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
         setCreating(true);
 
         try {
-            const { data, error } = await supabase.rpc('fn_create_story', {
+            const { data: storyId, error } = await supabase.rpc('fn_create_story', {
                 p_user_id: userId,
                 p_content: text || null,
                 p_media_url: mediaUrl || null,
@@ -490,6 +490,17 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
             });
 
             if (error) throw error;
+
+            // Auto-save videos to Reels (permanent archive)
+            if (mediaType === 'video' && mediaUrl) {
+                await supabase.from('social_reels').insert({
+                    author_id: userId,
+                    video_url: mediaUrl,
+                    caption: text || null,
+                    source_story_id: storyId,
+                });
+            }
+
             onCreated();
         } catch (e) {
             console.error('Create story error:', e);
