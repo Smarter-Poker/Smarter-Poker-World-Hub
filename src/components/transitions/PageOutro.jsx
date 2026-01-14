@@ -92,19 +92,28 @@ export function PageOutro({ isActive, onComplete }) {
                     ? 'transform 0.5s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.4s ease-in'
                     : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out',
             }}>
-                {/* Brain Logo - Translucent SVG */}
-                <img
-                    src="/brain-icon.svg"
-                    alt="Smarter.Poker"
-                    style={{
-                        width: 100,
-                        height: 100,
-                        marginBottom: 20,
-                        opacity: 0.85,
-                        filter: 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.8)) drop-shadow(0 0 40px rgba(0, 212, 255, 0.5))',
-                        animation: phase === 1 ? 'outroPulse 1s ease-in-out infinite' : undefined,
-                    }}
-                />
+                {/* Brain Logo - Cropped from actual Smarter.Poker logo */}
+                <div style={{
+                    width: 100,
+                    height: 100,
+                    marginBottom: 20,
+                    overflow: 'hidden',
+                    opacity: 0.85,
+                    filter: 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.8)) drop-shadow(0 0 40px rgba(0, 212, 255, 0.5))',
+                    animation: phase === 1 ? 'outroPulse 1s ease-in-out infinite' : undefined,
+                }}>
+                    <img
+                        src="/smarter-poker-logo.png"
+                        alt="Smarter.Poker"
+                        style={{
+                            width: 'auto',
+                            height: '200%',
+                            objectFit: 'contain',
+                            marginLeft: '-5%',
+                            marginTop: '-50%',
+                        }}
+                    />
+                </div>
 
                 {/* Logo Text */}
                 <div style={{
