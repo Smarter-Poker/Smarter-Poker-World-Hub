@@ -81,55 +81,68 @@ const POST_TYPES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// AUTHENTIC POKER IMAGE PROMPTS - Based on real poker Twitter/Reddit research
-// LAW: NO TEXT-ONLY POSTS - Images must look like ACTUAL poker player photos
+// 🔒 AUTHENTIC POKER IMAGE PROMPTS - HARD LAW v1.0
+// See: AUTHENTIC_POKER_IMAGERY_LAW.md for full documentation
 // 
-// RESEARCH FINDINGS from r/chipporn and poker Twitter:
-// ✓ Chips are NEATLY STACKED in organized formations (stacks of 20)
-// ✓ "Chip castles" - carefully built tower formations showing big wins
-// ✓ Card reveals - showing hole cards (AA, KK) from player's POV
-// ✓ Cash + chips together on the table
-// ✓ Player seat perspective looking down at their spot
-// ✓ Cashier cage with chip racks
-// ✗ NEVER: Random scattered chips (dead giveaway of AI)
-// ✗ NEVER: Chips knocked over or in chaos
+// ✓ REQUIRED: Neatly stacked chips, organized by denomination
+// ✓ REQUIRED: Player POV perspective, realistic phone quality
+// ✓ REQUIRED: Authentic casino/home game environments
+// ✗ FORBIDDEN: Scattered/chaotic chips, dramatic lighting, cinematic effects
+// ✗ FORBIDDEN: Blackjack tables, baccarat tables, roulette, any non-poker games
 // ═══════════════════════════════════════════════════════════════════════════
+
+// Anti-AI suffix added to all prompts to ensure authenticity
+// HARD LAW: POKER TABLES ONLY - No blackjack, baccarat, roulette, or other games
+const AUTHENTICITY_SUFFIX = ", POKER TABLE ONLY not blackjack or baccarat, casual phone photo quality, no dramatic lighting, no lens flare, no HDR, realistic amateur photography";
+
 const IMAGE_PROMPTS_BY_TYPE = {
     session_result: [
-        "Phone photo of neatly stacked poker chips organized in tall towers on green felt, player's seat perspective, casino table, dim ambient lighting, realistic",
-        "Overhead phone photo of organized chip stacks in multiple colors sorted by denomination on casino table, drink in corner, authentic",
-        "Casual photo of chip racks filled with neatly organized chips at casino cashier cage, cash bills visible, fluorescent lighting",
-        "Player POV photo looking down at their organized chip stack on poker table, cards face down, other players blurred in background"
+        "Phone photo of neatly stacked poker chips organized in tall towers by denomination on green felt, player seat perspective, casino table, flat ambient lighting" + AUTHENTICITY_SUFFIX,
+        "Overhead shot of organized chip stacks in red, green, and black sorted into neat rows on casino poker table, water bottle in corner" + AUTHENTICITY_SUFFIX,
+        "Casual photo of chip racks at casino cashier cage window, chips organized by color in rows, cash bills on counter, fluorescent overhead lighting" + AUTHENTICITY_SUFFIX,
+        "Player POV looking down at their organized chip stack on poker table, cards face down waiting, dealer button visible, other players blurred" + AUTHENTICITY_SUFFIX,
+        "Photo of chip rack being filled with neatly stacked chips at casino cage, cashing out session, money counter in background" + AUTHENTICITY_SUFFIX,
+        "Simple overhead photo of organized poker chips in stacks of 20 on green felt, player's spot at table, coffee cup edge of frame" + AUTHENTICITY_SUFFIX
     ],
     bad_beat: [
-        "Phone photo of two hole cards (pocket aces) face up next to community cards on green felt, neatly stacked chips in background, casino lighting",
-        "Close-up photo of poker hand showing cooler - two strong hands revealed on felt, organized chip stacks visible, dim lighting",
-        "Player perspective photo of bad beat - hole cards visible next to the board, neat chip stacks, casino atmosphere",
-        "Candid photo showing cards face up on poker table after an all-in, neatly organized remaining chips, authentic casino feel"
+        "Phone photo of two hole cards (pocket aces) face up flat on green felt next to five community cards, neatly stacked chips in background" + AUTHENTICITY_SUFFIX,
+        "Close-up of poker showdown - two hands revealed flat on felt, community board visible, organized chip stacks around" + AUTHENTICITY_SUFFIX,
+        "Player perspective photo looking at hole cards next to the board after a cooler, neat chip stacks visible, casino table" + AUTHENTICITY_SUFFIX,
+        "Candid photo of cards face up on poker table after all-in, both hands visible flat on felt, chips neatly organized nearby" + AUTHENTICITY_SUFFIX,
+        "Phone photo of poker runout showing bad beat board, hole cards revealed face up on felt, organized remaining chips" + AUTHENTICITY_SUFFIX,
+        "Close-up of river card completing a suckout, hole cards visible, neatly stacked chips in frame, casino felt texture" + AUTHENTICITY_SUFFIX
     ],
     life_moment: [
-        "Wide phone photo of busy casino poker room with multiple tables, players seated, overhead lighting, authentic atmosphere",
-        "Casual photo of poker room from entrance, rows of tables visible, casino carpet, blurry players in motion",
-        "Phone snapshot of late night poker room, some empty tables, dealers waiting, dim casino ambiance",
-        "Photo of home poker game setup - proper table with organized chip stacks, friends seated around, warm lighting"
+        "Wide phone photo of busy casino poker room with rows of active tables, players seated, overhead fluorescent lighting, casino carpet visible" + AUTHENTICITY_SUFFIX,
+        "Casual photo from poker room entrance, multiple tables visible in rows, dealers in uniform, typical casino atmosphere" + AUTHENTICITY_SUFFIX,
+        "Phone snapshot of late night casino poker room, some tables with players, dim ambient lighting, authentic atmosphere" + AUTHENTICITY_SUFFIX,
+        "Photo of home poker game on proper table, friends seated around, organized chip stacks at each seat, warm lamp lighting" + AUTHENTICITY_SUFFIX,
+        "Candid photo walking into casino poker room, check-in desk visible, TVs showing sports, casino environment" + AUTHENTICITY_SUFFIX,
+        "Phone photo of poker room at 3am, half-full tables, tired players, empty coffee cups, authentic late-night grind atmosphere" + AUTHENTICITY_SUFFIX
     ],
     win_celebration: [
-        "Phone photo of impressive chip castle - tall organized stacks built into tower formation on felt, big win energy, casino table",
-        "Excited photo of massive chip stack neatly organized by color on poker table, player seat perspective, celebrating",
-        "Photo of chip racks full of organized high-denomination chips at cashier cage, cashing out a big win, realistic",
-        "Overhead phone photo of huge organized chip stack sorted into neat rows by denomination, green felt, authentic casino"
+        "Phone photo of tall chip castle - multiple stacks built into organized tower formation on green felt, player's winning stack" + AUTHENTICITY_SUFFIX,
+        "Excited POV photo of massive chip stack sorted neatly by denomination, different colored towers on casino table, big win" + AUTHENTICITY_SUFFIX,
+        "Photo of chip racks at cashier cage, multiple racks full of organized high-denomination chips, cashing out big session" + AUTHENTICITY_SUFFIX,
+        "Overhead phone photo of huge chip stack organized into neat rows by color on green felt, player's seat perspective" + AUTHENTICITY_SUFFIX,
+        "Photo of organized chips being counted into racks at casino cage, cash being handed over, successful session" + AUTHENTICITY_SUFFIX,
+        "Phone photo of impressive organized chip fortress built from session winnings, stacks of 20 in multiple colors" + AUTHENTICITY_SUFFIX
     ],
     random_thought: [
-        "Quiet phone photo of empty poker table between sessions, dealer button visible, stacked chips waiting, ambient casino light",
-        "Atmospheric photo of poker room at dawn, empty tables clean and ready, peaceful casino morning vibe",
-        "Casual photo of coffee cup next to neatly stacked chips on poker table, morning session, soft lighting",
-        "Phone photo of cards and organized chips on felt during a break, contemplative poker moment"
+        "Quiet phone photo of empty poker table between sessions, dealer button in position, stacked chips waiting, ambient casino lighting" + AUTHENTICITY_SUFFIX,
+        "Atmospheric photo of poker room during slow hours, empty clean tables ready for action, peaceful casino morning" + AUTHENTICITY_SUFFIX,
+        "Casual photo of coffee cup sitting next to neatly stacked chips on green felt, early morning session, soft overhead light" + AUTHENTICITY_SUFFIX,
+        "Phone photo of organized chips on felt during a break, cards face down, contemplative moment at poker table" + AUTHENTICITY_SUFFIX,
+        "Photo of poker room view from seat, other tables visible in background, quiet moment during session" + AUTHENTICITY_SUFFIX,
+        "Candid photo of poker table felt texture close-up, dealer button and organized chips at edge of frame" + AUTHENTICITY_SUFFIX
     ],
     question: [
-        "Phone photo of interesting poker board - five community cards face up on felt, organized chip stacks around, decision point",
-        "Close-up of hole cards partially revealed with community cards visible, neat chip stacks in background, strategy moment",
-        "Photo of poker hand in progress - visible board texture, organized chip stacks, asking for opinions vibe",
-        "Player POV photo of tournament spot - board cards visible, well-organized chip stack, authentic casino lighting"
+        "Phone photo of poker board showing five community cards face up on felt, organized chip stacks visible, decision point setup" + AUTHENTICITY_SUFFIX,
+        "Close-up of hole cards partially lifted showing hand, community board visible, neat chip stacks in background" + AUTHENTICITY_SUFFIX,
+        "Photo of poker situation in progress - visible flop texture on felt, organized chip stacks, strategic moment" + AUTHENTICITY_SUFFIX,
+        "Player POV of tournament spot - board cards laid out on felt, well-organized chip stack, casino poker room" + AUTHENTICITY_SUFFIX,
+        "Phone photo of tricky board texture, five cards on green felt, chip stacks organized around, asking opinions vibe" + AUTHENTICITY_SUFFIX,
+        "Candid photo of interesting poker hand, community cards visible face up, organized chips, authentic table setting" + AUTHENTICITY_SUFFIX
     ]
 };
 
