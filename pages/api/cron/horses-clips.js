@@ -1,0 +1,402 @@
+/**
+ * 🐴 HORSES VIDEO CLIP CRON - 90% VIDEO CLIPS
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * LAW: 90% of Horse content should be VIDEO CLIPS from real poker streams
+ * 
+ * This cron:
+ * 1. Selects random Horses to post
+ * 2. 90% chance: Posts a video clip from the clip library
+ * 3. 10% chance: Posts AI-generated text + image (original content)
+ * 
+ * Video clips come from:
+ * - Hustler Casino Live
+ * - Twitch poker streamers  
+ * - Other poker content creators
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+import { createClient } from '@supabase/supabase-js';
+import OpenAI from 'openai';
+import { videoClipper } from '../../src/content-engine/pipeline/VideoClipper.js';
+import { getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES } from '../../src/content-engine/pipeline/ClipLibrary.js';
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const CONFIG = {
+    HORSES_PER_TRIGGER: 3,
+    VIDEO_CLIP_PROBABILITY: 0.90,  // LAW: 90% video clips
+    MAX_CLIPS_PER_DAY: 50
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VIDEO CLIP POSTING
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Post a video clip for a Horse
+ */
+async function postVideoClip(horse) {
+    console.log(`🎬 ${horse.name}: Posting video clip...`);
+
+    try {
+        // Try database first for processed clips
+        const { data: dbClip } = await supabase.rpc('get_random_clip', {
+            p_category: null,
+            p_exclude_horse_id: horse.id
+        });
+
+        let clipData = null;
+        let videoUrl = null;
+
+        if (dbClip && dbClip.processed_url) {
+            // Use pre-processed clip from database
+            clipData = dbClip;
+            videoUrl = dbClip.processed_url;
+            console.log(`   Using pre-processed clip: ${clipData.id}`);
+        } else {
+            // Fall back to ClipLibrary and process on-the-fly
+            const libraryClip = getRandomClip();
+
+            if (!libraryClip) {
+                console.log(`   No clips available in library`);
+                return null;
+            }
+
+            console.log(`   Processing clip: ${libraryClip.id}`);
+
+            // Process the clip (download, convert, upload)
+            const processResult = await videoClipper.processVideo(
+                libraryClip.source_url,
+                {
+                    startTime: libraryClip.start_time,
+                    duration: libraryClip.duration,
+                    addCaptions: true,
+                    authorId: horse.profile_id
+                }
+            );
+
+            if (!processResult.success) {
+                console.error(`   Clip processing failed: ${processResult.error}`);
+                return null;
+            }
+
+            videoUrl = processResult.publicUrl;
+            clipData = libraryClip;
+            markClipUsed(libraryClip.id);
+        }
+
+        // Generate caption
+        const caption = await generateClipCaption(horse, clipData);
+
+        // Create the post
+        const { data: post, error: postError } = await supabase
+            .from('social_posts')
+            .insert({
+                author_id: horse.profile_id,
+                content: caption,
+                content_type: 'video',
+                media_urls: [videoUrl],
+                visibility: 'public'
+            })
+            .select()
+            .single();
+
+        if (postError) {
+            console.error(`   Post creation failed: ${postError.message}`);
+            return null;
+        }
+
+        // Log clip usage in database
+        if (clipData.id) {
+            await supabase.rpc('mark_clip_used', {
+                p_clip_id: clipData.id,
+                p_horse_id: horse.id,
+                p_post_id: post.id,
+                p_caption: caption
+            }).catch(() => { }); // Ignore if RPC doesn't exist yet
+        }
+
+        // Also post to stories
+        await postToStory(horse.profile_id, videoUrl, 'video');
+
+        console.log(`✅ ${horse.name}: Video clip posted!`);
+
+        return {
+            type: 'video_clip',
+            post_id: post.id,
+            clip_id: clipData.id,
+            caption
+        };
+
+    } catch (error) {
+        console.error(`❌ ${horse.name}: Video clip failed - ${error.message}`);
+        return null;
+    }
+}
+
+/**
+ * Generate an authentic caption for a clip
+ */
+async function generateClipCaption(horse, clipData) {
+    // Get template caption based on category
+    const templateCaption = getRandomCaption(clipData.category || CLIP_CATEGORIES.FUNNY);
+
+    // Optionally personalize with GPT (brief, natural)
+    try {
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages: [{
+                role: 'system',
+                content: `You are ${horse.name}, a poker player posting a video clip. 
+                         Style: ${horse.voice || 'casual'}, plays ${horse.stakes || '2/5'}.
+                         Keep it VERY short (1-2 sentences max). Sound like a real person sharing a clip.
+                         Reference: "${templateCaption}"`
+            }, {
+                role: 'user',
+                content: `Write a brief caption for sharing this poker clip: ${clipData.description || 'sick hand'}. Max 1-2 sentences.`
+            }],
+            max_tokens: 60,
+            temperature: 0.9
+        });
+
+        return response.choices[0].message.content;
+    } catch {
+        // Fall back to template
+        return templateCaption;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORIGINAL CONTENT (10% of posts) - Fallback to AI-generated
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function postOriginalContent(horse) {
+    console.log(`📝 ${horse.name}: Posting original content...`);
+
+    // Use existing image generation logic from horses-post.js
+    // This is the 10% fallback when not posting clips
+
+    const postTypes = ['session_result', 'bad_beat', 'win_celebration', 'random_thought'];
+    const postType = postTypes[Math.floor(Math.random() * postTypes.length)];
+
+    // Generate brief text
+    const content = await generateOriginalText(horse, postType);
+
+    // Generate image
+    const imageUrl = await generateOriginalImage(postType);
+
+    if (!content || !imageUrl) {
+        return null;
+    }
+
+    const { data: post, error } = await supabase
+        .from('social_posts')
+        .insert({
+            author_id: horse.profile_id,
+            content,
+            content_type: 'photo',
+            media_urls: [imageUrl],
+            visibility: 'public'
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error(`   Original post failed: ${error.message}`);
+        return null;
+    }
+
+    await postToStory(horse.profile_id, imageUrl, 'image');
+
+    console.log(`✅ ${horse.name}: Original content posted!`);
+
+    return {
+        type: 'original',
+        post_id: post.id,
+        content
+    };
+}
+
+async function generateOriginalText(horse, postType) {
+    const prompts = {
+        session_result: "Post a brief session result (1-2 sentences).",
+        bad_beat: "Brief bad beat rant (1-2 sentences).",
+        win_celebration: "Quick win celebration (1-2 sentences).",
+        random_thought: "Random poker thought (1-2 sentences)."
+    };
+
+    try {
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages: [{
+                role: 'system',
+                content: `You are ${horse.name}, a ${horse.stakes || '2/5'} poker player. 
+                         Style: ${horse.voice || 'casual'}. Keep it SHORT and authentic.`
+            }, {
+                role: 'user',
+                content: prompts[postType]
+            }],
+            max_tokens: 80,
+            temperature: 0.95
+        });
+        return response.choices[0].message.content;
+    } catch {
+        return null;
+    }
+}
+
+async function generateOriginalImage(postType) {
+    // Simplified image generation - use authentic prompts
+    const prompts = {
+        session_result: "Phone photo of organized poker chips on casino felt, player seat perspective, realistic",
+        bad_beat: "Phone photo of poker cards on green felt after a hand, casual snapshot",
+        win_celebration: "Overhead phone photo of chip stacks on poker table, celebrating",
+        random_thought: "Casual photo of poker room, ambient lighting, authentic atmosphere"
+    };
+
+    try {
+        const response = await openai.images.generate({
+            model: 'dall-e-3',
+            prompt: `${prompts[postType]}. Phone camera quality, no dramatic lighting, realistic amateur photo.`,
+            n: 1,
+            size: '1024x1024',
+            quality: 'standard'
+        });
+
+        const tempUrl = response.data[0].url;
+
+        // Upload to Supabase
+        const imageResponse = await fetch(tempUrl);
+        const blob = await imageResponse.blob();
+        const buffer = Buffer.from(await blob.arrayBuffer());
+
+        const fileName = `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+        const filePath = `photos/horses/${fileName}`;
+
+        const { error } = await supabase.storage
+            .from('social-media')
+            .upload(filePath, buffer, { contentType: 'image/png' });
+
+        if (error) return null;
+
+        const { data: urlData } = supabase.storage
+            .from('social-media')
+            .getPublicUrl(filePath);
+
+        return urlData.publicUrl;
+    } catch {
+        return null;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STORY POSTING
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function postToStory(authorId, mediaUrl, mediaType = 'video') {
+    try {
+        await supabase.from('stories').insert({
+            author_id: authorId,
+            media_url: mediaUrl,
+            media_type: mediaType,
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN CRON HANDLER
+// ═══════════════════════════════════════════════════════════════════════════
+
+export default async function handler(req, res) {
+    console.log('\n🐴 HORSES CLIP CRON - 90% VIDEO CLIPS');
+    console.log('═'.repeat(50));
+
+    if (!SUPABASE_URL || !process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ error: 'Missing env vars' });
+    }
+
+    try {
+        // Get random active horses
+        const { data: horses, error: horseError } = await supabase
+            .from('content_authors')
+            .select('*')
+            .eq('is_active', true)
+            .not('profile_id', 'is', null)
+            .limit(CONFIG.HORSES_PER_TRIGGER * 2);
+
+        if (horseError || !horses?.length) {
+            return res.status(200).json({
+                success: true,
+                message: 'No horses available',
+                posted: 0
+            });
+        }
+
+        // Shuffle and select
+        const shuffled = horses.sort(() => Math.random() - 0.5);
+        const selectedHorses = shuffled.slice(0, CONFIG.HORSES_PER_TRIGGER);
+
+        const results = [];
+
+        for (const horse of selectedHorses) {
+            // Random delay
+            await new Promise(r => setTimeout(r, Math.random() * 4000 + 2000));
+
+            // 90% video clips, 10% original content
+            const postVideoClipContent = Math.random() < CONFIG.VIDEO_CLIP_PROBABILITY;
+
+            let result;
+            if (postVideoClipContent) {
+                result = await postVideoClip(horse);
+            }
+
+            // Fall back to original content if clip failed or 10% chance
+            if (!result) {
+                result = await postOriginalContent(horse);
+            }
+
+            if (result) {
+                results.push({
+                    horse: horse.name,
+                    ...result,
+                    success: true
+                });
+            } else {
+                results.push({
+                    horse: horse.name,
+                    success: false
+                });
+            }
+        }
+
+        const videoClips = results.filter(r => r.type === 'video_clip').length;
+        const originalPosts = results.filter(r => r.type === 'original').length;
+
+        console.log('\n📊 RESULTS:');
+        console.log(`   Video Clips: ${videoClips}`);
+        console.log(`   Original: ${originalPosts}`);
+        console.log(`   Failed: ${results.filter(r => !r.success).length}`);
+
+        return res.status(200).json({
+            success: true,
+            posted: results.filter(r => r.success).length,
+            video_clips: videoClips,
+            original_posts: originalPosts,
+            results,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Cron error:', error);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+}
