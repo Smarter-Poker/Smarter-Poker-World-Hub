@@ -195,38 +195,33 @@ function FooterCard({ orb, index, onSelect }: FooterCardProps) {
                     <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
                     <div style={{ position: 'absolute', top: 8, bottom: 8, left: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
                     <div style={{ position: 'absolute', top: 8, bottom: 8, right: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
-                </div>
-            </div>
 
-            {/* Card label - Premium Oval Pill */}
-            <div
-                style={{
-                    marginTop: 20,
-                    padding: '10px 24px',
-                    background: 'linear-gradient(180deg, rgba(10, 30, 60, 0.9), rgba(5, 20, 40, 0.95))',
-                    backdropFilter: 'blur(10px)',
-                    borderRadius: 30,
-                    border: '2px solid rgba(0, 212, 255, 0.5)',
-                    boxShadow: `
-                        0 0 20px rgba(0, 212, 255, 0.25),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.15),
-                        0 4px 15px rgba(0, 0, 0, 0.5)
-                    `,
-                }}
-            >
-                <span
-                    style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        fontFamily: 'Orbitron, sans-serif',
-                        color: '#ffffff',
-                        textShadow: '0 0 15px rgba(0, 212, 255, 0.6)',
-                        letterSpacing: '1px',
-                        whiteSpace: 'nowrap',
-                    }}
-                >
-                    {orb.label}
-                </span>
+                    {/* Label text inside card at top */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 14,
+                            left: 12,
+                            right: 12,
+                            textAlign: 'center',
+                            zIndex: 10,
+                        }}
+                    >
+                        <span
+                            style={{
+                                fontSize: 11,
+                                fontWeight: 800,
+                                fontFamily: 'Orbitron, sans-serif',
+                                color: '#ffffff',
+                                textShadow: '0 2px 4px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 0, 0, 0.5)',
+                                letterSpacing: '1px',
+                                textTransform: 'uppercase',
+                            }}
+                        >
+                            {orb.label}
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -613,95 +608,6 @@ export default function WorldHub() {
                 </Suspense>
             </Canvas>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                HOLOGRAPHIC LIGHT BEAM BASE — Blue/White shining lights
-                ═══════════════════════════════════════════════════════════════ */}
-            <div
-                style={{
-                    position: 'absolute',
-                    bottom: '22%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 400,
-                    height: 200,
-                    pointerEvents: 'none',
-                    zIndex: 6,
-                }}
-            >
-                {/* Main light beam - upward cone */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: 280,
-                        height: 180,
-                        background: `
-                            radial-gradient(ellipse at center bottom, 
-                                rgba(0, 180, 255, 0.25) 0%, 
-                                rgba(100, 200, 255, 0.15) 20%,
-                                rgba(0, 150, 255, 0.08) 40%,
-                                transparent 70%)
-                        `,
-                        filter: 'blur(3px)',
-                    }}
-                />
-
-                {/* Secondary light rays */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: 200,
-                        height: 150,
-                        background: `
-                            radial-gradient(ellipse at center bottom, 
-                                rgba(255, 255, 255, 0.2) 0%, 
-                                rgba(200, 240, 255, 0.1) 30%,
-                                transparent 60%)
-                        `,
-                        filter: 'blur(2px)',
-                    }}
-                />
-
-                {/* Holographic pedestal ring */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        bottom: 10,
-                        left: '50%',
-                        width: 300,
-                        height: 50,
-                        transform: 'translateX(-50%) rotateX(75deg)',
-                        borderRadius: '50%',
-                        border: '3px solid rgba(0, 212, 255, 0.5)',
-                        boxShadow: `
-                            0 0 30px rgba(0, 212, 255, 0.4),
-                            0 0 60px rgba(0, 180, 255, 0.2),
-                            inset 0 0 20px rgba(0, 212, 255, 0.2)
-                        `,
-                        animation: 'pedestalPulse 3s ease-in-out infinite',
-                    }}
-                />
-
-                {/* Inner ring */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        bottom: 15,
-                        left: '50%',
-                        width: 220,
-                        height: 35,
-                        transform: 'translateX(-50%) rotateX(75deg)',
-                        borderRadius: '50%',
-                        border: '2px solid rgba(255, 255, 255, 0.4)',
-                        boxShadow: '0 0 20px rgba(255, 255, 255, 0.3)',
-                    }}
-                />
-            </div>
 
             {/* Keyframe animations for shine and pedestal effects */}
             <style jsx global>{`
