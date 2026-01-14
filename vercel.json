@@ -22,6 +22,10 @@
     {
       "path": "/api/cron/horses-news",
       "schedule": "30 */4 * * *"
+    },
+    {
+      "path": "/api/cron/horses-memes",
+      "schedule": "15 */5 * * *"
     }
   ],
   "github": {
