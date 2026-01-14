@@ -5,6 +5,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { SoundEngine } from '../../audio/SoundEngine';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GOOSEBUMP ENGINE - Creates spine-tingling, emotional audio
@@ -592,10 +593,8 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
         hasStartedRef.current = true;
         startTimeRef.current = performance.now();
 
-        // AUDIO DISABLED - Synthesized audio sounds too computerish
-        // To add premium audio: drop a real MP3 file in /public/audio/cinematic-intro.mp3
-        // Then uncomment the audio player code and remove this comment
-        // goosebumpEngine.createGoosebumps();
+        // Play the cinematic intro audio via SoundEngine
+        SoundEngine.play('cinematicIntro');
 
         // Haptic buildup
         if ('vibrate' in navigator) {

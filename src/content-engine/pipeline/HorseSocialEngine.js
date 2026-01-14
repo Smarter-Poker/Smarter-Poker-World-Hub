@@ -21,75 +21,115 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ═══════════════════════════════════════════════════════════════════════════
-// AUTHENTIC COMMENT TEMPLATES
+// AUTHENTIC COMMENT TEMPLATES (100+ phrases)
 // ═══════════════════════════════════════════════════════════════════════════
 const COMMENT_TEMPLATES = {
     video: [
-        "🔥🔥🔥",
-        "this is SICK",
-        "bro this hand is insane",
-        "need to study this spot more",
-        "the read tho 👀",
-        "ice cold",
-        "legendary play",
-        "GTO says fold but soul says call 😂",
-        "this is why i love poker",
-        "sending this to my home game group",
-        "been watching this on repeat",
-        "mariano is built different",
-        "airball is a menace fr",
-        "imagine being at that table",
-        "the commentary makes it 10x better",
-        "i would've folded pre tbh",
-        "hero call of the year",
-        "the tank was so painful to watch",
-        "exploitative poker at its finest",
-        "studying this for my next session"
+        // Fire reactions
+        "🔥🔥🔥", "this is SICK", "bro this hand is insane", "absolute madness",
+        "ice cold", "legendary play", "unreal", "that was beautiful",
+
+        // Strategic observations
+        "need to study this spot more", "the read tho 👀", "exploitative poker at its finest",
+        "GTO says fold but soul says call 😂", "this is a solved spot actually",
+        "the sizing tells the story", "perfect bet sizing", "range advantage is real",
+
+        // Personal reactions
+        "this is why i love poker", "sending this to my home game group",
+        "been watching this on repeat", "i would've folded pre tbh",
+        "imagine being at that table", "the tank was so painful to watch",
+        "studying this for my next session", "taking notes rn",
+
+        // Player specific
+        "mariano is built different", "airball is a menace fr", "garret is on another level",
+        "wesley plays so aggro", "henry always finds a fold", "polk is a sicko",
+        "dwan would've called here", "negreanu reads are insane",
+
+        // Commentary
+        "the commentary makes it 10x better", "bart's analysis is spot on",
+        "love the hand breakdown", "this is textbook poker",
+
+        // Hero calls/folds
+        "hero call of the year", "discipline on display", "soul read fr",
+        "he knew. HE KNEW.", "the read was too good", "heart of a champion"
     ],
+
     photo: [
-        "nice hit! 🔥",
-        "congrats on the session!",
-        "love to see it",
-        "stack looking good",
-        "get that bread 🍞",
-        "grind never stops",
-        "LFG 💪",
-        "been there, feels good",
-        "jealous of that action",
-        "what stakes?"
+        // Stack pics
+        "nice hit! 🔥", "stack looking good 💰", "get that bread 🍞",
+        "that's a nice tower", "love to see it", "congrats on the session!",
+        "jeez thats a lot of chips", "rack em up!", "casino hates this guy",
+
+        // Grind culture
+        "grind never stops", "LFG 💪", "lets gooo", "back at it 💯",
+        "the commitment is real", "outwork everyone", "session god",
+
+        // Curiosity
+        "what stakes?", "where is this?", "that bellagio?", "commerce?",
+        "jealous of that action", "been there, feels good", "wish my games ran this good"
     ],
+
     bad_beat: [
-        "brutal 💀",
-        "pain.",
-        "been there way too many times",
-        "variance is cruel",
-        "you got coolered so hard",
-        "thats poker unfortunately",
-        "i felt that in my soul",
-        "recovery session incoming?",
-        "bouncing back soon 🙏",
-        "at least its not real money... wait"
+        // Sympathy
+        "brutal 💀", "pain.", "been there way too many times", "variance is cruel",
+        "you got coolered so hard", "thats poker unfortunately", "i felt that in my soul",
+        "RIP bankroll", "F in chat", "happens to the best of us",
+
+        // Dark humor
+        "at least its not real money... wait", "poker is not a game of skill i guess",
+        "dealer had other plans", "the deck hates you fr", "run bad is real",
+        "one outer strikes again", "runner runner gods were angry",
+
+        // Encouragement
+        "recovery session incoming?", "bouncing back soon 🙏", "next session different",
+        "variance evens out", "you played it right tho", "long run will be kind",
+        "shake it off king/queen", "book says you won that pot"
     ],
+
     general: [
-        "facts",
-        "💯",
-        "this is the way",
-        "couldn't agree more",
-        "real talk",
-        "same tbh",
-        "underrated take",
-        "big if true",
-        "W post",
-        "based"
+        // Agreement
+        "facts", "💯", "this is the way", "couldn't agree more", "real talk",
+        "same tbh", "underrated take", "big if true", "W post", "based",
+
+        // Casual
+        "fr fr", "no cap", "lowkey valid", "kinda true", "honest",
+        "vibes", "true", "deadass", "literally me", "i felt this",
+
+        // Hype
+        "let's GOOO", "banger post", "needed this today", "saving this",
+        "legendary content", "chef's kiss", "immaculate", "perfect"
+    ],
+
+    // HCL specific
+    hcl: [
+        "HCL never disappoints", "hustler games are different",
+        "this is why HCL is the best stream", "RIP production budget",
+        "dgaf about entertainment value", "peak HCL content"
+    ],
+
+    // Tournament specific
+    tournament: [
+        "ICM nightmare", "bubble factor is wild", "chip leader mentality",
+        "final table vibes", "bracelet or bust", "deep run loading",
+        "satellite paid off", "field was tough"
+    ],
+
+    // PLO specific  
+    plo: [
+        "PLO is a different beast", "wrap city", "double suited for value",
+        "thats so PLO", "aces cracked as usual", "runout was brutal",
+        "running it twice saved him"
     ]
 };
 
 // Horse personality modifiers for comments
 const PERSONALITY_MODIFIERS = {
-    aggressive: ["fr fr", "no cap", "straight up", "period"],
-    chill: ["honestly", "ngl", "lowkey", "vibes"],
-    analytical: ["mathematically", "from a GTO perspective", "if we think about ranges"],
-    funny: ["😂", "lmaooo", "bro", "dead 💀"]
+    aggressive: ["fr fr", "no cap", "straight up", "period", "on god", "deadass"],
+    chill: ["honestly", "ngl", "lowkey", "vibes", "kinda", "maybe"],
+    analytical: ["mathematically", "from a GTO perspective", "if we think about ranges", "+EV move", "solver approved"],
+    funny: ["😂", "lmaooo", "bro", "dead 💀", "crying", "i cant 😭"],
+    supportive: ["king 👑", "legend", "goated", "built different", "respect"],
+    skeptical: ["idk about this one", "sus play ngl", "questionable", "risky but ok"]
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

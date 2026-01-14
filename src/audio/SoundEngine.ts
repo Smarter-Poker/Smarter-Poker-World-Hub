@@ -33,7 +33,7 @@ export const AUDIO_SLOTS: Record<string, AudioSlot> = {
     // 🎬 CINEMATIC - Big moments, intro/outro, reveals
     // ─────────────────────────────────────────────────────────────────
     cinematicIntro: {
-        file: null,  // <- PUT YOUR INTRO SOUND HERE (e.g., 'cinematic-whoosh.mp3')
+        file: 'main-intro.mp3',  // Main Intro from Epidemic Sound
         volume: 0.85,
         description: 'Epic intro sequence (2-4 seconds, logo reveal type)',
         preload: true
