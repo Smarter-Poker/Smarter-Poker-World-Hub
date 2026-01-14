@@ -125,14 +125,21 @@ class VideoClipper {
         if (process.env.OPENAI_API_KEY) {
             this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
         }
-        // Supabase is optional - only needed for upload
-        if (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
-            this.supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL,
-                process.env.SUPABASE_SERVICE_ROLE_KEY
-            );
-        }
+        // Supabase is lazy-initialized when needed (to ensure env vars are loaded)
+        this.supabase = null;
         this.ensureDirectories();
+    }
+
+    // Lazy init Supabase client when needed
+    getSupabase() {
+        if (!this.supabase) {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            if (supabaseUrl && supabaseKey) {
+                this.supabase = createClient(supabaseUrl, supabaseKey);
+            }
+        }
+        return this.supabase;
     }
 
     ensureDirectories() {
@@ -426,12 +433,17 @@ class VideoClipper {
 
         console.log(`☁️ Uploading clip to storage...`);
 
+        const supabase = this.getSupabase();
+        if (!supabase) {
+            return { success: false, error: 'Supabase client not configured' };
+        }
+
         try {
             // Read file
             const fileBuffer = fs.readFileSync(clipPath);
 
             // Upload to Supabase storage
-            const { error: uploadError } = await this.supabase.storage
+            const { error: uploadError } = await supabase.storage
                 .from(CONFIG.STORAGE_BUCKET)
                 .upload(storagePath, fileBuffer, {
                     contentType: 'video/mp4',
@@ -441,7 +453,7 @@ class VideoClipper {
             if (uploadError) throw uploadError;
 
             // Get public URL
-            const { data: urlData } = this.supabase.storage
+            const { data: urlData } = supabase.storage
                 .from(CONFIG.STORAGE_BUCKET)
                 .getPublicUrl(storagePath);
 
@@ -450,7 +462,7 @@ class VideoClipper {
 
             // Create reel record if author provided
             if (metadata.authorId) {
-                const { data: reel, error: reelError } = await this.supabase
+                const { data: reel, error: reelError } = await supabase
                     .from('social_reels')
                     .insert({
                         author_id: metadata.authorId,

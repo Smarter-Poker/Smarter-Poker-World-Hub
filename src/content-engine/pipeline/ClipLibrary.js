@@ -5,9 +5,14 @@
  * REAL CLIPS from HCL Poker Clips YouTube channel
  * These are pre-clipped viral hands from Hustler Casino Live
  * 
+ * LAW: Clips must be 2+ YEARS OLD for copyright safety
+ * 
  * 90% of Horse content should come from these real video clips
  * ═══════════════════════════════════════════════════════════════════════════
  */
+
+// Clips must be from videos uploaded before this date (2+ years old)
+export const CLIP_MIN_AGE_DATE = new Date('2024-01-14'); // 2 years before current date
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLIP CATEGORIES
@@ -454,6 +459,17 @@ export const CLIP_LIBRARY = [
  */
 export function getRandomClip(options = {}) {
     let candidates = [...CLIP_LIBRARY];
+
+    // Ensure all clips have source_url (construct from video_id if missing)
+    candidates = candidates.map(clip => {
+        if (!clip.source_url && clip.video_id) {
+            return { ...clip, source_url: `https://www.youtube.com/watch?v=${clip.video_id}` };
+        }
+        return clip;
+    });
+
+    // Filter out clips without valid source_url
+    candidates = candidates.filter(c => c.source_url);
 
     // Filter by category if specified
     if (options.category) {

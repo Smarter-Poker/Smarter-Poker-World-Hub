@@ -162,7 +162,7 @@ const GameCard = ({ game, onClick, isHovered, onHover }) => {
 
 const GameLane = ({ lane, onGameClick, hoveredGame, onHover }) => {
     return (
-        <div style={{ marginBottom: 25, padding: '0 20px' }}>
+        <div style={{ marginBottom: 25, padding: '0 20px', position: 'relative', zIndex: 5 }}>
             {/* Lane Header */}
             <div style={{
                 display: 'flex',
@@ -170,10 +170,10 @@ const GameLane = ({ lane, onGameClick, hoveredGame, onHover }) => {
                 gap: 12,
                 marginBottom: 12,
             }}>
-                <span style={{ color: '#FF6B35', fontSize: 13, fontWeight: 700 }}>&gt;&gt;</span>
+                <span style={{ color: '#FF6B35', fontSize: 14, fontWeight: 700 }}>&gt;&gt;</span>
                 <h3 style={{
                     color: '#FF6B35',
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: 700,
                     letterSpacing: 2,
                     margin: 0,
@@ -222,7 +222,9 @@ const FilterBar = ({ active, onFilter }) => {
             justifyContent: 'center',
             gap: 10,
             padding: '18px 0',
-            background: 'rgba(15,12,25,0.95)',
+            background: '#1a1525',
+            position: 'relative',
+            zIndex: 10,
         }}>
             {FILTERS.map(filter => {
                 const isActive = active === filter.id;
@@ -262,10 +264,11 @@ const HeroSection = ({ onPlayNow }) => {
     return (
         <div style={{
             position: 'relative',
-            height: 180,
+            height: 380,
             overflow: 'hidden',
+            zIndex: 5,
         }}>
-            {/* Reference image as background - cropped to show hero only */}
+            {/* Reference image as background - shows hero content including PLAY NOW */}
             <img
                 src="/images/training_reference.jpg"
                 alt=""
@@ -338,6 +341,8 @@ export default function TrainingPage() {
             <div style={{
                 minHeight: '100vh',
                 background: '#0a0a15',
+                position: 'relative',
+                zIndex: 1,
             }}>
                 {/* Logo */}
                 <div style={{

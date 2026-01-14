@@ -16,8 +16,12 @@
       "schedule": "0 3 * * 0"
     },
     {
-      "path": "/api/cron/horses-post",
-      "schedule": "*/30 9-22 * * *"
+      "path": "/api/cron/horses-clips",
+      "schedule": "0 */3 * * *"
+    },
+    {
+      "path": "/api/cron/horses-news",
+      "schedule": "30 */4 * * *"
     }
   ],
   "github": {

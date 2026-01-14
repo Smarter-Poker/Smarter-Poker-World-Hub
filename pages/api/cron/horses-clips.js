@@ -52,17 +52,44 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const CONFIG = {
     HORSES_PER_TRIGGER: 3,
     VIDEO_CLIP_PROBABILITY: 0.90,  // LAW: 90% video clips
-    MAX_CLIPS_PER_DAY: 50
+    MAX_CLIPS_PER_DAY: 50,
+    CLIP_COOLDOWN_HOURS: 48  // Don't repost same clip within 48 hours
 };
+
+// Track clips used in this session to prevent duplicates within same cron run
+const usedClipsThisSession = new Set();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GET RECENTLY POSTED CLIPS (for coordination between horses)
+// ═══════════════════════════════════════════════════════════════════════════
+async function getRecentlyPostedClipIds() {
+    const cutoff = new Date(Date.now() - CONFIG.CLIP_COOLDOWN_HOURS * 60 * 60 * 1000);
+
+    const { data: recentPosts } = await supabase
+        .from('social_posts')
+        .select('content')
+        .eq('content_type', 'video')
+        .gte('created_at', cutoff.toISOString())
+        .limit(100);
+
+    // Extract clip IDs from post content (they contain the video URL)
+    const usedUrls = new Set();
+    (recentPosts || []).forEach(post => {
+        // Extract YouTube video IDs from URLs in content
+        const matches = post.content?.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/g) || [];
+        matches.forEach(m => usedUrls.add(m));
+    });
+
+    return usedUrls;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VIDEO CLIP POSTING
-// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Post a video clip for a Horse
  */
-async function postVideoClip(horse) {
+async function postVideoClip(horse, recentlyUsedClips = new Set()) {
     console.log(`🎬 ${horse.name}: Posting video clip...`);
 
     try {
@@ -81,11 +108,31 @@ async function postVideoClip(horse) {
             videoUrl = dbClip.processed_url;
             console.log(`   Using pre-processed clip: ${clipData.id}`);
         } else {
-            // Fall back to ClipLibrary and process on-the-fly
-            const libraryClip = getRandomClip();
+            // Fall back to ClipLibrary - get a clip NOT recently used
+            let libraryClip = null;
+            let attempts = 0;
+            const maxAttempts = 20;
+
+            while (!libraryClip && attempts < maxAttempts) {
+                const candidate = getRandomClip();
+                if (!candidate) break;
+
+                // Check if this clip was recently used or used this session
+                const clipUrl = candidate.source_url || '';
+                const isRecentlyUsed = recentlyUsedClips.has(clipUrl) ||
+                    usedClipsThisSession.has(candidate.id);
+
+                if (!isRecentlyUsed) {
+                    libraryClip = candidate;
+                    usedClipsThisSession.add(candidate.id); // Mark as used this session
+                } else {
+                    console.log(`   Skipping ${candidate.id} (recently used)`);
+                }
+                attempts++;
+            }
 
             if (!libraryClip) {
-                console.log(`   No clips available in library`);
+                console.log(`   No unique clips available after ${attempts} attempts`);
                 return null;
             }
 
@@ -350,6 +397,10 @@ export default async function handler(req, res) {
         // Lazy load clip modules for serverless environment
         await loadClipModules();
 
+        // Get recently posted clips to avoid duplicates (horse coordination)
+        const recentlyUsedClips = await getRecentlyPostedClipIds();
+        console.log(`📋 Found ${recentlyUsedClips.size} recently posted clips to avoid`);
+
         // Get random active horses
         const { data: horses, error: horseError } = await supabase
             .from('content_authors')
@@ -376,18 +427,8 @@ export default async function handler(req, res) {
             // Random delay
             await new Promise(r => setTimeout(r, Math.random() * 4000 + 2000));
 
-            // 90% video clips, 10% original content
-            const postVideoClipContent = Math.random() < CONFIG.VIDEO_CLIP_PROBABILITY;
-
-            let result;
-            if (postVideoClipContent) {
-                result = await postVideoClip(horse);
-            }
-
-            // Fall back to original content if clip failed or 10% chance
-            if (!result) {
-                result = await postOriginalContent(horse);
-            }
+            // 100% VIDEO CLIPS ONLY - no AI generated content
+            const result = await postVideoClip(horse, recentlyUsedClips);
 
             if (result) {
                 results.push({
