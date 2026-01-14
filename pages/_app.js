@@ -7,6 +7,7 @@ import '../src/index.css';
 import dynamic from 'next/dynamic';
 import { AntiGravityProvider } from '../src/providers/AntiGravityProvider';
 import { ThemeProvider } from '../src/providers/ThemeProvider';
+import { UnreadProvider } from '../src/hooks/useUnreadCount';
 
 // Dynamic import to avoid SSR issues with celebration animations
 const CelebrationManager = dynamic(
@@ -17,6 +18,7 @@ const CelebrationManager = dynamic(
 /**
  * App Root - AntiGravityProvider wraps everything for automatic boot.
  * ThemeProvider handles dark/light mode with localStorage persistence.
+ * UnreadProvider tracks unread message count globally.
  * On startup, Anti-Gravity:
  *   1. Verifies required env vars
  *   2. Initializes runtime
@@ -29,8 +31,10 @@ export default function App({ Component, pageProps }) {
   return (
     <AntiGravityProvider>
       <ThemeProvider>
-        <Component {...pageProps} />
-        <CelebrationManager />
+        <UnreadProvider>
+          <Component {...pageProps} />
+          <CelebrationManager />
+        </UnreadProvider>
       </ThemeProvider>
     </AntiGravityProvider>
   );

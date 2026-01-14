@@ -1,88 +1,101 @@
 /**
- * 🐴 HORSES CRON TRIGGER
+ * 🐴 HORSES CONTENT CRON - HUMAN-LIKE POSTS WITH MEDIA
  * ═══════════════════════════════════════════════════════════════════════════
- * Vercel Cron Job - Triggers horses to post automatically
- * Schedule: Every 30 minutes during peak hours (9 AM - 10 PM)
- * 
- * Add to vercel.json:
- * {
- *   "crons": [
- *     { "path": "/api/cron/horses-post", "schedule": "0,30 9-22 * * *" }
- *   ]
- * }
+ * Generates authentic, human-feeling posts with images
+ * Posts feel like real poker players sharing their experience
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
-// Use NEXT_PUBLIC vars which are available in Vercel, or fallback to server-side vars
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CONFIGURATION
-// ═══════════════════════════════════════════════════════════════════════════
-
 const CONFIG = {
-    HORSES_PER_TRIGGER: 3,           // How many horses post per cron run
-    TOPIC_COOLDOWN_HOURS: 48,        // Hours before horse can repeat a topic
-    MAX_POSTS_PER_DAY: 100,          // Total platform limit
-    CRON_SECRET: process.env.CRON_SECRET || ''
+    HORSES_PER_TRIGGER: 3,
+    TOPIC_COOLDOWN_HOURS: 48,
+    MAX_POSTS_PER_DAY: 100
 };
 
-const CONTENT_TYPES = [
-    'strategy_tip', 'hand_analysis', 'mindset_post', 'beginner_guide',
-    'advanced_concept', 'bankroll_advice', 'tournament_tip'
+// ═══════════════════════════════════════════════════════════════════════════
+// HUMAN-LIKE POST TEMPLATES - Casual, authentic, varied
+// ═══════════════════════════════════════════════════════════════════════════
+const POST_TYPES = [
+    {
+        type: 'session_update',
+        prompts: [
+            "Share a quick update about your poker session today. Be casual, mention specific hands or situations. Include your mood and energy.",
+            "Just finished a session - talk about how it went, any interesting spots, your read on the table.",
+            "Post about what you're doing poker-wise right now. Could be studying, playing, watching streams, etc."
+        ]
+    },
+    {
+        type: 'hot_take',
+        prompts: [
+            "Share a slightly controversial poker opinion you have. Be bold but back it up with your experience.",
+            "Give your honest take on something in poker that most people get wrong. Be conversational.",
+            "React to something that happened at the tables recently that got you thinking."
+        ]
+    },
+    {
+        type: 'tip_drop',
+        prompts: [
+            "Share a quick tip you wish you knew earlier in your poker journey. Keep it real and casual.",
+            "Drop some wisdom from your experience - something that clicked for you recently.",
+            "Help out the newer players with something you've noticed works well for you."
+        ]
+    },
+    {
+        type: 'story_time',
+        prompts: [
+            "Tell a quick story from a recent session - a cool hand, a funny moment, or a tough spot.",
+            "Share something memorable that happened at the poker table recently.",
+            "Talk about a hand that's been living rent-free in your head lately."
+        ]
+    },
+    {
+        type: 'question',
+        prompts: [
+            "Ask the community a genuine poker question - something you're actually curious about.",
+            "Pose a situational question to get people's thoughts. Be specific about the scenario.",
+            "Share a spot you weren't sure about and ask what others would do."
+        ]
+    },
+    {
+        type: 'life_update',
+        prompts: [
+            "Share something about your life outside poker that relates to your grind.",
+            "Talk about balance, travel, or something personal that connects to your poker journey.",
+            "Share what motivates you or what's on your mind as a poker player."
+        ]
+    }
 ];
 
-const CONTENT_TEMPLATES = {
-    strategy_tip: {
-        prompt: "Write a poker strategy tip about {topic}. Be specific and actionable.",
-        topics: ["3-betting light", "continuation bets", "pocket pairs", "check-raising", "river sizing"]
-    },
-    hand_analysis: {
-        prompt: "Analyze this poker scenario: {topic}",
-        topics: ["AK on dry flop", "set mining math", "bluff catching rivers", "ICM pressure spots"]
-    },
-    mindset_post: {
-        prompt: "Write about poker mindset regarding: {topic}",
-        topics: ["handling bad beats", "session management", "tilt control", "confidence building"]
-    },
-    beginner_guide: {
-        prompt: "Explain this concept for beginners: {topic}",
-        topics: ["position basics", "pot odds", "starting hands", "bankroll management"]
-    },
-    advanced_concept: {
-        prompt: "Dive deep into: {topic}",
-        topics: ["range construction", "blockers", "GTO vs exploitative", "equity realization"]
-    },
-    bankroll_advice: {
-        prompt: "Give bankroll advice about: {topic}",
-        topics: ["moving up stakes", "shot taking", "stop losses", "variance management"]
-    },
-    tournament_tip: {
-        prompt: "Share tournament advice about: {topic}",
-        topics: ["bubble play", "final table", "short stack strategy", "ICM decisions"]
-    }
-};
+// Image prompts for poker content
+const IMAGE_PROMPTS = [
+    "Poker table with cards and chips, dramatic casino lighting, professional photography",
+    "Close up of poker chips stacked on green felt, cinematic depth of field",
+    "Poker hand being dealt, cards on table, atmospheric lighting",
+    "Casino poker room ambiance, soft lighting, professional quality",
+    "Poker cards face down on felt with chip stacks, professional photo",
+    "Player's view of poker table with community cards, dramatic lighting",
+    "Stack of poker chips with ace of spades, dark background, studio lighting",
+    "Poker tournament setting, green felt table, cinematic shot"
+];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MEMORY SERVICE (Inline)
+// MEMORY SERVICE
 // ═══════════════════════════════════════════════════════════════════════════
-
 const MemoryService = {
     async getMemoryContext(authorId) {
-        const [memories, personality, cooldowns] = await Promise.all([
+        const [memories, personality] = await Promise.all([
             this.getRecentMemories(authorId),
-            this.getPersonality(authorId),
-            this.getTopicsOnCooldown(authorId)
+            this.getPersonality(authorId)
         ]);
-        return { recentMemories: memories, personality, topicsOnCooldown: cooldowns };
+        return { recentMemories: memories, personality };
     },
 
     async getRecentMemories(authorId, limit = 5) {
@@ -101,22 +114,6 @@ const MemoryService = {
         } catch { return null; }
     },
 
-    async getTopicsOnCooldown(authorId) {
-        try {
-            const { data } = await supabase
-                .from('horse_topic_cooldowns')
-                .select('topic, last_posted_at, cooldown_hours')
-                .eq('author_id', authorId);
-            if (!data) return [];
-            const now = new Date();
-            return data.filter(row => {
-                const cooldownEnd = new Date(row.last_posted_at);
-                cooldownEnd.setHours(cooldownEnd.getHours() + row.cooldown_hours);
-                return cooldownEnd > now;
-            }).map(row => row.topic);
-        } catch { return []; }
-    },
-
     async recordMemory(authorId, memoryType, contentSummary, options = {}) {
         try {
             await supabase.rpc('record_horse_memory', {
@@ -131,96 +128,138 @@ const MemoryService = {
         } catch (e) { console.error('Memory record error:', e); }
     },
 
-    async setTopicCooldown(authorId, topic, hours = 48) {
-        try {
-            await supabase.rpc('set_topic_cooldown', {
-                p_author_id: authorId, p_topic: topic, p_cooldown_hours: hours
-            });
-        } catch (e) { console.error('Cooldown error:', e); }
-    },
-
     buildPromptSection(context) {
         const sections = [];
         if (context.personality) {
             const p = context.personality;
-            sections.push(`PERSONALITY: Aggression ${p.aggression_level}/10, Humor ${p.humor_level}/10, Technical ${p.technical_depth}/10`);
-            if (p.catchphrases?.length) sections.push(`CATCHPHRASES: ${p.catchphrases.join(', ')}`);
+            if (p.catchphrases?.length) sections.push(`You sometimes say: "${p.catchphrases[0]}"`);
+            if (p.origin_story) sections.push(`Background: ${p.origin_story}`);
         }
         if (context.recentMemories?.length > 0) {
-            const lines = context.recentMemories.slice(0, 3).map(m => `- ${m.content_summary}`);
-            sections.push(`RECENT POSTS (stay consistent):\n${lines.join('\n')}`);
+            const recent = context.recentMemories.slice(0, 2).map(m => m.content_summary);
+            sections.push(`Your recent posts were about: ${recent.join(', ')} - don't repeat these topics.`);
         }
-        if (context.topicsOnCooldown?.length > 0) {
-            sections.push(`AVOID TOPICS: ${context.topicsOnCooldown.join(', ')}`);
-        }
-        return sections.length > 0 ? '\n\n' + sections.join('\n\n') : '';
+        return sections.join('\n');
     }
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MAIN CONTENT GENERATION
+// IMAGE GENERATION
 // ═══════════════════════════════════════════════════════════════════════════
+async function generatePostImage(topic) {
+    try {
+        // Pick a random base prompt and add topic context
+        const basePrompt = IMAGE_PROMPTS[Math.floor(Math.random() * IMAGE_PROMPTS.length)];
 
-async function generateHorsePost(horse) {
-    // Get memory context
-    const memoryContext = await MemoryService.getMemoryContext(horse.id);
+        const response = await openai.images.generate({
+            model: "dall-e-3",
+            prompt: `${basePrompt}. High quality, photorealistic, no text or watermarks.`,
+            n: 1,
+            size: "1024x1024",
+            quality: "standard"
+        });
 
-    // Pick content type and topic (avoiding cooldowns)
-    const contentType = CONTENT_TYPES[Math.floor(Math.random() * CONTENT_TYPES.length)];
-    const template = CONTENT_TEMPLATES[contentType];
+        const tempUrl = response.data[0].url;
 
-    const availableTopics = template.topics.filter(
-        t => !memoryContext.topicsOnCooldown.some(cd => t.toLowerCase().includes(cd.toLowerCase()))
-    );
+        // Download and upload to Supabase storage
+        const imageResponse = await fetch(tempUrl);
+        const blob = await imageResponse.blob();
+        const buffer = Buffer.from(await blob.arrayBuffer());
 
-    if (availableTopics.length === 0) {
-        console.log(`⏸️ ${horse.name}: All topics on cooldown`);
+        const fileName = `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+        const filePath = `social-media/photos/horses/${fileName}`;
+
+        const { data, error } = await supabase.storage
+            .from('social-media')
+            .upload(filePath, buffer, {
+                contentType: 'image/png',
+                upsert: false
+            });
+
+        if (error) {
+            console.error('Image upload error:', error);
+            return null;
+        }
+
+        const { data: urlData } = supabase.storage
+            .from('social-media')
+            .getPublicUrl(filePath);
+
+        return urlData.publicUrl;
+    } catch (error) {
+        console.error('Image generation error:', error.message);
         return null;
     }
+}
 
-    const topic = availableTopics[Math.floor(Math.random() * availableTopics.length)];
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTENT GENERATION - Human-like, authentic posts
+// ═══════════════════════════════════════════════════════════════════════════
+async function generateHorsePost(horse) {
+    const memoryContext = await MemoryService.getMemoryContext(horse.id);
+
+    // Pick random post type
+    const postType = POST_TYPES[Math.floor(Math.random() * POST_TYPES.length)];
+    const prompt = postType.prompts[Math.floor(Math.random() * postType.prompts.length)];
     const memorySection = MemoryService.buildPromptSection(memoryContext);
 
-    const systemPrompt = `You are ${horse.name}, a poker player from ${horse.location || 'Las Vegas'}.
-Specialty: ${horse.specialty || 'cash games'} at ${horse.stakes || '2/5 NLH'}
-Bio: ${horse.bio || 'Experienced poker player'}
-Voice: ${horse.voice || 'casual'}
+    // Human-like system prompt - emphasis on authenticity
+    const systemPrompt = `You are ${horse.name}, a real poker player posting on social media.
+
+WHO YOU ARE:
+- From ${horse.location || 'Las Vegas'}
+- You play ${horse.specialty?.replace('_', ' ') || 'cash games'} at ${horse.stakes || '2/5 NLH'}
+- Your vibe: ${horse.voice || 'casual and real'}
+- Bio: ${horse.bio || 'Experienced poker player'}
+
 ${memorySection}
 
-Write authentically as this person. 100-250 words. No hashtags. Stay consistent with past posts.`;
-
-    const userPrompt = template.prompt.replace('{topic}', topic);
+IMPORTANT - SOUND HUMAN:
+- Write like you're texting a friend or posting on Twitter/X
+- Use casual language, contractions, maybe a typo here and there
+- Short sentences. Fragments are fine.
+- Share real feelings - frustration, excitement, curiosity
+- Reference specific situations, stakes, venues when relevant
+- DON'T sound like a textbook or AI - be a real person
+- 1-3 short paragraphs max (50-150 words total)
+- Can use 1-2 emojis if it fits your personality
+- NO hashtags ever`;
 
     try {
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
+            model: 'gpt-4o',  // Using GPT-4o for more human-like output
             messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
+                { role: 'user', content: prompt }
             ],
-            max_tokens: 400,
-            temperature: 0.85
+            max_tokens: 300,
+            temperature: 0.95  // Higher temp for more variety
         });
 
         const content = response.choices[0].message.content;
 
-        // Record memory
-        const topicKey = topic.split(' ').slice(0, 2).join('_').toLowerCase();
-        await MemoryService.recordMemory(horse.id, 'POST', `Posted about ${contentType}: ${topic}`, { relatedTopic: topicKey });
-        await MemoryService.setTopicCooldown(horse.id, topicKey, CONFIG.TOPIC_COOLDOWN_HOURS);
+        // Generate image for the post
+        console.log(`🎨 Generating image for ${horse.name}'s post...`);
+        const imageUrl = await generatePostImage(postType.type);
 
-        // Return format for social_posts table
+        // Record memory
+        await MemoryService.recordMemory(
+            horse.id,
+            'POST',
+            `${postType.type}: ${content.slice(0, 100)}...`,
+            { relatedTopic: postType.type }
+        );
+
         return {
-            author_id: horse.profile_id,  // UUID from profiles table
+            author_id: horse.profile_id,
             content: content,
-            content_type: 'text',
+            content_type: imageUrl ? 'photo' : 'text',
+            media_urls: imageUrl ? [imageUrl] : [],
             visibility: 'public',
-            // Store metadata for reference
             _meta: {
                 horse_id: horse.id,
                 horse_name: horse.name,
-                topic: topic,
-                category: contentType
+                post_type: postType.type
             }
         };
     } catch (error) {
@@ -232,62 +271,15 @@ Write authentically as this person. 100-250 words. No hashtags. Stay consistent 
 // ═══════════════════════════════════════════════════════════════════════════
 // CRON HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
-
 export default async function handler(req, res) {
-    // Log that we're starting
-    console.log('🐴 Horses Cron Trigger Started');
+    console.log('🐴 Horses Cron - Human-Like Posts Started');
 
-    // Check required env vars
-    if (!SUPABASE_URL) {
-        console.error('Missing SUPABASE_URL');
-        return res.status(500).json({ error: 'Missing SUPABASE_URL env var' });
-    }
-    if (!SUPABASE_KEY) {
-        console.error('Missing SUPABASE_KEY');
-        return res.status(500).json({ error: 'Missing SUPABASE_KEY env var' });
-    }
-
-    // OpenAI is optional - we can skip generation if not set
-    const hasOpenAI = !!process.env.OPENAI_API_KEY;
-    if (!hasOpenAI) {
-        console.log('No OPENAI_API_KEY - returning test response');
-        return res.status(200).json({
-            success: true,
-            message: 'OpenAI not configured, horses sleeping',
-            posted: 0,
-            env: {
-                hasSupabaseUrl: !!SUPABASE_URL,
-                hasSupabaseKey: !!SUPABASE_KEY,
-                hasOpenAI
-            }
-        });
-    }
-
-    // Verify cron secret (optional in dev)
-    const authHeader = req.headers.authorization;
-    if (CONFIG.CRON_SECRET && authHeader !== `Bearer ${CONFIG.CRON_SECRET}`) {
-        if (process.env.NODE_ENV === 'production') {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
+    if (!SUPABASE_URL || !process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ error: 'Missing env vars' });
     }
 
     try {
-        // Check daily limit
-        const today = new Date().toISOString().split('T')[0];
-        const { count: todayCount } = await supabase
-            .from('seeded_content')
-            .select('*', { count: 'exact', head: true })
-            .gte('published_at', `${today}T00:00:00Z`);
-
-        if (todayCount >= CONFIG.MAX_POSTS_PER_DAY) {
-            return res.status(200).json({
-                success: true,
-                message: 'Daily limit reached',
-                posted: 0
-            });
-        }
-
-        // Get random active horses that have user profiles
+        // Get random active horses with profiles
         const { data: horses, error: horseError } = await supabase
             .from('content_authors')
             .select('*')
@@ -295,56 +287,47 @@ export default async function handler(req, res) {
             .not('profile_id', 'is', null)
             .limit(CONFIG.HORSES_PER_TRIGGER * 2);
 
-        if (horseError) {
-            console.error('Horse fetch error:', horseError);
-            return res.status(500).json({ success: false, error: horseError.message });
+        if (horseError || !horses?.length) {
+            return res.status(200).json({ success: true, message: 'No horses available', posted: 0 });
         }
 
-        if (!horses?.length) {
-            console.log('No active horses found - check is_active column');
-            return res.status(200).json({
-                success: true,
-                message: 'No active horses - set is_active=true on horses to deploy them',
-                posted: 0
-            });
-        }
-
-        // Randomly shuffle and pick horses
+        // Shuffle and pick
         const shuffled = horses.sort(() => Math.random() - 0.5);
         const selectedHorses = shuffled.slice(0, CONFIG.HORSES_PER_TRIGGER);
 
         const results = [];
 
         for (const horse of selectedHorses) {
-            // Add random delay (1-5 seconds) for natural feel
-            await new Promise(r => setTimeout(r, Math.random() * 4000 + 1000));
+            // Random delay 2-6 seconds
+            await new Promise(r => setTimeout(r, Math.random() * 4000 + 2000));
 
             const post = await generateHorsePost(horse);
+
             if (post && post.author_id) {
-                // Insert into social_posts (real social feed)
                 const { error: insertError } = await supabase
                     .from('social_posts')
                     .insert({
                         author_id: post.author_id,
                         content: post.content,
                         content_type: post.content_type,
+                        media_urls: post.media_urls,
                         visibility: post.visibility
                     });
 
                 if (!insertError) {
-                    console.log(`✅ ${horse.name} posted about ${post._meta.topic}`);
-                    results.push({ horse: horse.name, topic: post._meta.topic, success: true });
+                    console.log(`✅ ${horse.name} posted (${post._meta.post_type})`);
+                    results.push({
+                        horse: horse.name,
+                        type: post._meta.post_type,
+                        hasImage: post.media_urls.length > 0,
+                        success: true
+                    });
                 } else {
-                    console.error(`❌ ${horse.name} error:`, insertError.message);
+                    console.error(`❌ ${horse.name}:`, insertError.message);
                     results.push({ horse: horse.name, success: false, error: insertError.message });
                 }
-            } else if (post) {
-                // Horse doesn't have profile_id linked
-                results.push({ horse: horse.name, success: false, error: 'No profile_id linked' });
             }
         }
-
-        console.log(`🐴 Horses Cron Complete: ${results.filter(r => r.success).length} posts`);
 
         return res.status(200).json({
             success: true,
@@ -358,5 +341,3 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, error: error.message });
     }
 }
-// trigger rebuild Tue Jan 13 14:15:35 CST 2026
-// redeploy Tue Jan 13 14:48:38 CST 2026

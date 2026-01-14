@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -540,6 +541,9 @@ export default function SocialMediaPage() {
     const globalSearchTimeout = useRef(null);
     const lastScrollY = useRef(0);
 
+    // Global unread message count
+    const { unreadCount } = useUnreadCount();
+
     // Hide bottom nav when scrolling up, show when scrolling down
     useEffect(() => {
         const handleScroll = () => {
@@ -966,8 +970,12 @@ export default function SocialMediaPage() {
                         <Link href="/hub/messenger" style={{
                             width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb',
                             border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
-                            alignItems: 'center', justifyContent: 'center', textDecoration: 'none'
-                        }}>💬</Link>
+                            alignItems: 'center', justifyContent: 'center', textDecoration: 'none',
+                            position: 'relative',
+                        }}>
+                            💬
+                            <UnreadBadge count={unreadCount} size="small" />
+                        </Link>
                         <Link href="/hub/profile" style={{ display: 'block' }}>
                             <Avatar src={user?.avatar} name={user?.name} size={40} />
                         </Link>

@@ -150,7 +150,7 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
 // 📝 MESSAGE INPUT COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageInput({ onSend, disabled }) {
+function MessageInput({ onSend, onTyping, disabled }) {
     const [text, setText] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
     const inputRef = useRef(null);
@@ -169,6 +169,14 @@ function MessageInput({ onSend, disabled }) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSend();
+        }
+    };
+
+    const handleChange = (e) => {
+        setText(e.target.value);
+        // Broadcast typing indicator
+        if (onTyping && e.target.value.length > 0) {
+            onTyping();
         }
     };
 
@@ -211,7 +219,7 @@ function MessageInput({ onSend, disabled }) {
                     ref={inputRef}
                     type="text"
                     value={text}
-                    onChange={e => setText(e.target.value)}
+                    onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     placeholder="Aa"
                     disabled={disabled}
@@ -368,7 +376,6 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
     const StatusIcon = () => {
         if (!isOwn) return null;
         if (status === 'sending') return <span style={{ opacity: 0.7, fontSize: 10 }}>○</span>;
-        if (status === 'sent') return <span style={{ color: '#31A24C', fontSize: 10 }}>✓</span>;
         if (status === 'failed') return (
             <span
                 onClick={() => onRetry?.(message)}
@@ -376,7 +383,11 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                 title="Failed - tap to retry"
             >⚠</span>
         );
-        return <span style={{ color: '#0084FF', fontSize: 10 }}>✓✓</span>;
+        if (status === 'read' || message.is_read) {
+            return <span style={{ color: '#0084FF', fontSize: 10 }} title="Read">✓✓</span>;
+        }
+        // Delivered/sent
+        return <span style={{ color: '#31A24C', fontSize: 10 }} title="Delivered">✓</span>;
     };
 
     const handleReaction = async (emoji) => {
@@ -843,6 +854,35 @@ export default function MessengerPage() {
 
         return () => supabase.removeChannel(channel);
     }, [user, activeConversation]);
+
+    // Typing indicator broadcast
+    useEffect(() => {
+        if (!user || !activeConversation) return;
+
+        const typingChannel = supabase
+            .channel(`typing:${activeConversation.id}`)
+            .on('broadcast', { event: 'typing' }, (payload) => {
+                // Someone else is typing
+                if (payload.payload.userId !== user.id) {
+                    setOtherTyping(true);
+                    // Clear after 3 seconds
+                    setTimeout(() => setOtherTyping(false), 3000);
+                }
+            })
+            .subscribe();
+
+        return () => supabase.removeChannel(typingChannel);
+    }, [user, activeConversation]);
+
+    // Broadcast our typing state
+    const broadcastTyping = () => {
+        if (!user || !activeConversation) return;
+        supabase.channel(`typing:${activeConversation.id}`).send({
+            type: 'broadcast',
+            event: 'typing',
+            payload: { userId: user.id, username: user.username },
+        });
+    };
 
     const loadConversations = async (userId) => {
         try {
@@ -1553,7 +1593,7 @@ export default function MessengerPage() {
                             </div>
 
                             {/* Message Input */}
-                            <MessageInput onSend={handleSendMessage} />
+                            <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} />
                         </>
                     ) : (
                         /* No conversation selected */
