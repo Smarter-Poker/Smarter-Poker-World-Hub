@@ -475,7 +475,14 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                     </Link>
                     <div style={{ fontSize: 12, color: C.textSec }}>{post.timeAgo}</div>
                 </div>
-                {post.authorId === currentUserId && <button onClick={() => onDelete(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 16 }}>⋯</button>}
+                {(post.authorId === currentUserId || post.isGodMode) && (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        {post.authorId !== currentUserId && post.isGodMode && (
+                            <span style={{ fontSize: 10, background: '#FFD700', color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>👑 GOD</span>
+                        )}
+                        <button onClick={() => onDelete(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 16 }}>🗑️</button>
+                    </div>
+                )}
             </div>
             {post.content && (
                 <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>
@@ -743,6 +750,9 @@ export default function SocialMediaPage() {
     const loadMoreRef = useRef(null);
     const POSTS_PER_PAGE = 20;
 
+    // 👑 GOD MODE STATE
+    const [isGodMode, setIsGodMode] = useState(false);
+
     // Global unread message count
     const { unreadCount } = useUnreadCount();
 
@@ -768,12 +778,17 @@ export default function SocialMediaPage() {
             try {
                 const { data: { user: au } } = await supabase.auth.getUser();
                 if (au) {
-                    const { data: p } = await supabase.from('profiles').select('username, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish').eq('id', au.id).maybeSingle();
+                    const { data: p } = await supabase.from('profiles').select('username, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', au.id).maybeSingle();
+                    // 👑 Check for God Mode
+                    if (p?.role === 'god') {
+                        setIsGodMode(true);
+                    }
                     setUser({
                         id: au.id,
                         name: p?.username || au.email?.split('@')[0] || 'Player',
                         avatar: p?.avatar_url || null,
                         tier: p?.skill_tier,
+                        role: p?.role || 'user',
                         hendon: p?.hendon_url ? {
                             url: p.hendon_url,
                             cashes: p.hendon_total_cashes,
@@ -1504,7 +1519,7 @@ export default function SocialMediaPage() {
                             {/* Render posts with Reels carousel inserted after every 3 posts */}
                             {posts.map((p, index) => (
                                 <>
-                                    <PostCard key={p.id} post={p} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />
+                                    <PostCard key={p.id} post={{ ...p, isGodMode }} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />
                                     {/* Insert Reels carousel after 3rd post */}
                                     {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
                                 </>
