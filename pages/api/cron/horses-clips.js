@@ -94,27 +94,28 @@ async function getRecentlyPostedClipIds() {
 
 /**
  * Post a video clip for a Horse
+ * Uses YouTube URLs directly (yt-dlp/ffmpeg don't work on Vercel serverless)
  */
 async function postVideoClip(horse, recentlyUsedClips = new Set()) {
     console.log(`🎬 ${horse.name}: Posting video clip...`);
 
     try {
-        // Try database first for processed clips
+        // Try database first for pre-processed clips with storage URLs
         const { data: dbClip } = await supabase.rpc('get_random_clip', {
             p_category: null,
             p_exclude_horse_id: horse.id
-        });
+        }).catch(() => ({ data: null }));
 
         let clipData = null;
         let videoUrl = null;
 
         if (dbClip && dbClip.processed_url) {
-            // Use pre-processed clip from database
+            // Use pre-processed clip from database (has storage URL)
             clipData = dbClip;
             videoUrl = dbClip.processed_url;
             console.log(`   Using pre-processed clip: ${clipData.id}`);
         } else {
-            // Fall back to ClipLibrary - get a clip NOT recently used
+            // Use ClipLibrary - get a clip NOT recently used
             let libraryClip = null;
             let attempts = 0;
             const maxAttempts = 20;
@@ -141,25 +142,11 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 return null;
             }
 
-            console.log(`   Processing clip: ${libraryClip.id}`);
+            console.log(`   Using YouTube clip: ${libraryClip.id}`);
 
-            // Process the clip (download, convert, upload)
-            const processResult = await videoClipper.processVideo(
-                libraryClip.source_url,
-                {
-                    startTime: libraryClip.start_time,
-                    duration: libraryClip.duration,
-                    addCaptions: true,
-                    authorId: horse.profile_id
-                }
-            );
-
-            if (!processResult.success) {
-                console.error(`   Clip processing failed: ${processResult.error}`);
-                return null;
-            }
-
-            videoUrl = processResult.publicUrl;
+            // Use YouTube URL directly (no processing on serverless)
+            // Format: YouTube video URL for embedding/linking
+            videoUrl = libraryClip.source_url;
             clipData = libraryClip;
             markClipUsed(libraryClip.id);
         }
