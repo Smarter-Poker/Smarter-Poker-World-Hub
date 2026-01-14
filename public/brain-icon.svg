@@ -1,0 +1,52 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="brainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0099cc;stop-opacity:0.8" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Brain outline with circuit pattern -->
+  <g fill="none" stroke="url(#brainGradient)" stroke-width="2" filter="url(#glow)" opacity="0.9">
+    <!-- Left hemisphere -->
+    <path d="M50 15 C30 15 20 30 20 45 C20 55 25 65 30 70 C25 75 22 80 25 85 C28 90 40 88 45 85 L50 80" />
+    
+    <!-- Right hemisphere -->
+    <path d="M50 15 C70 15 80 30 80 45 C80 55 75 65 70 70 C75 75 78 80 75 85 C72 90 60 88 55 85 L50 80" />
+    
+    <!-- Brain folds -->
+    <path d="M35 35 C40 30 45 32 50 35" />
+    <path d="M50 35 C55 32 60 30 65 35" />
+    <path d="M30 50 C38 45 45 48 50 50" />
+    <path d="M50 50 C55 48 62 45 70 50" />
+    <path d="M35 65 C42 60 48 62 50 65" />
+    <path d="M50 65 C52 62 58 60 65 65" />
+    
+    <!-- Circuit nodes -->
+    <circle cx="30" cy="35" r="2" fill="#00d4ff"/>
+    <circle cx="70" cy="35" r="2" fill="#00d4ff"/>
+    <circle cx="25" cy="50" r="2" fill="#00d4ff"/>
+    <circle cx="75" cy="50" r="2" fill="#00d4ff"/>
+    <circle cx="35" cy="70" r="2" fill="#00d4ff"/>
+    <circle cx="65" cy="70" r="2" fill="#00d4ff"/>
+    <circle cx="50" cy="25" r="2" fill="#00d4ff"/>
+    <circle cx="50" cy="75" r="2" fill="#00d4ff"/>
+    
+    <!-- Circuit lines -->
+    <line x1="30" y1="35" x2="25" y2="50" />
+    <line x1="70" y1="35" x2="75" y2="50" />
+    <line x1="25" y1="50" x2="35" y2="70" />
+    <line x1="75" y1="50" x2="65" y2="70" />
+  </g>
+  
+  <!-- Brain stem -->
+  <path d="M45 85 L47 95 M55 85 L53 95 M47 95 C48 97 52 97 53 95" 
+        fill="none" stroke="url(#brainGradient)" stroke-width="2" filter="url(#glow)" opacity="0.9"/>
+</svg>
