@@ -7,364 +7,71 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2026 PREMIUM CINEMATIC SCORE - Not sound effects, actual MUSIC
-// Warm analog pads + brass power + epic strings + atmospheric depth
+// 2026 PREMIUM CINEMATIC AUDIO - Real audio files, not synthesized sounds
+// For true PS5/Netflix quality, we use actual recorded audio
 // ─────────────────────────────────────────────────────────────────────────────
-class CinematicMusicScore {
-    private ctx: AudioContext | null = null;
-    private master: GainNode | null = null;
-    private reverb: ConvolverNode | null = null;
-    private reverbGain: GainNode | null = null;
 
-    async init() {
-        if (this.ctx) return;
+// Audio file options (all royalty-free):
+// 1. Local: /public/audio/cinematic-intro.mp3 (add your own premium audio)
+// 2. Mixkit CDN: https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3 (cinematic impact)
+
+const CINEMATIC_AUDIO_URL = '/audio/cinematic-intro.mp3'; // Local file (recommended)
+const FALLBACK_AUDIO_URL = 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'; // Mixkit fallback
+
+class CinematicAudioPlayer {
+    private audio: HTMLAudioElement | null = null;
+    private loaded: boolean = false;
+
+    constructor() {
+        // Pre-load audio on construction
+        if (typeof window !== 'undefined') {
+            this.preload();
+        }
+    }
+
+    private preload() {
+        this.audio = new Audio();
+        this.audio.preload = 'auto';
+        this.audio.volume = 0.7;
+
+        // Try local file first, fall back to CDN
+        this.audio.src = CINEMATIC_AUDIO_URL;
+
+        this.audio.addEventListener('canplaythrough', () => {
+            this.loaded = true;
+            console.log('[CinematicAudio] Audio loaded successfully');
+        });
+
+        this.audio.addEventListener('error', () => {
+            console.log('[CinematicAudio] Local audio not found, trying fallback...');
+            if (this.audio) {
+                this.audio.src = FALLBACK_AUDIO_URL;
+            }
+        });
+
+        // Force load
+        this.audio.load();
+    }
+
+    async play() {
+        if (!this.audio) {
+            this.preload();
+        }
+
         try {
-            this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-
-            // Create lush reverb for cinematic depth
-            this.reverb = this.ctx.createConvolver();
-            this.reverb.buffer = await this.createReverbImpulse(3, 3);
-
-            this.reverbGain = this.ctx.createGain();
-            this.reverbGain.gain.value = 0.4;
-
-            // Master with subtle compression
-            const compressor = this.ctx.createDynamicsCompressor();
-            compressor.threshold.value = -18;
-            compressor.knee.value = 20;
-            compressor.ratio.value = 4;
-            compressor.attack.value = 0.003;
-            compressor.release.value = 0.25;
-
-            this.master = this.ctx.createGain();
-            this.master.gain.value = 0.7;
-
-            // Signal flow
-            this.reverb.connect(this.reverbGain);
-            this.reverbGain.connect(compressor);
-            this.master.connect(compressor);
-            this.master.connect(this.reverb);
-            compressor.connect(this.ctx.destination);
+            if (this.audio) {
+                this.audio.currentTime = 0;
+                await this.audio.play();
+                console.log('[CinematicAudio] Playing cinematic intro audio');
+            }
         } catch (e) {
-            console.log('Audio not available');
+            console.log('[CinematicAudio] Playback failed (likely needs user interaction):', e);
         }
-    }
-
-    // Generate reverb impulse response
-    private async createReverbImpulse(duration: number, decay: number): Promise<AudioBuffer> {
-        const length = this.ctx!.sampleRate * duration;
-        const buffer = this.ctx!.createBuffer(2, length, this.ctx!.sampleRate);
-
-        for (let ch = 0; ch < 2; ch++) {
-            const data = buffer.getChannelData(ch);
-            for (let i = 0; i < length; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
-            }
-        }
-        return buffer;
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // WARM ANALOG PAD - The foundation of the cinematic sound
-    // Uses multiple detuned oscillators for analog warmth
-    // ═══════════════════════════════════════════════════════════════════════════
-    private playWarmPad(notes: number[], start: number, duration: number, vol: number = 0.15) {
-        if (!this.ctx || !this.master) return;
-
-        notes.forEach((freq, idx) => {
-            // Each note has 3 oscillators for warmth
-            for (let layer = 0; layer < 3; layer++) {
-                const osc = this.ctx!.createOscillator();
-                const gain = this.ctx!.createGain();
-                const filter = this.ctx!.createBiquadFilter();
-
-                // Alternate between sine and triangle for richness
-                osc.type = layer === 0 ? 'sine' : 'triangle';
-                osc.frequency.value = freq;
-
-                // Subtle detuning for analog feel (±5 cents per layer)
-                osc.detune.value = (layer - 1) * 7 + (Math.random() - 0.5) * 4;
-
-                // Warm lowpass filter
-                filter.type = 'lowpass';
-                filter.frequency.value = 1200 + idx * 200;
-                filter.Q.value = 0.5;
-
-                // Slow attack for lush swell
-                const attackTime = 0.4 + idx * 0.1;
-                const releaseTime = 0.6;
-                gain.gain.setValueAtTime(0, start);
-                gain.gain.linearRampToValueAtTime(vol / 3, start + attackTime);
-                gain.gain.setValueAtTime(vol / 3 * 0.8, start + duration - releaseTime);
-                gain.gain.linearRampToValueAtTime(0, start + duration);
-
-                osc.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.master!);
-
-                osc.start(start);
-                osc.stop(start + duration + 0.5);
-            }
-        });
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // BRASS POWER STAB - The epic impact moment
-    // Aggressive sawtooth with quick attack, brass-like timbre
-    // ═══════════════════════════════════════════════════════════════════════════
-    private playBrassStab(notes: number[], start: number, duration: number, vol: number = 0.25) {
-        if (!this.ctx || !this.master) return;
-
-        notes.forEach((freq, idx) => {
-            const osc = this.ctx!.createOscillator();
-            const gain = this.ctx!.createGain();
-            const filter = this.ctx!.createBiquadFilter();
-
-            osc.type = 'sawtooth';
-            osc.frequency.value = freq;
-
-            // Brass-like filter sweep
-            filter.type = 'lowpass';
-            filter.Q.value = 2;
-            filter.frequency.setValueAtTime(800, start);
-            filter.frequency.linearRampToValueAtTime(3000, start + 0.05);
-            filter.frequency.linearRampToValueAtTime(1500, start + duration);
-
-            // Quick attack, medium decay
-            gain.gain.setValueAtTime(0, start);
-            gain.gain.linearRampToValueAtTime(vol, start + 0.02);
-            gain.gain.setValueAtTime(vol * 0.7, start + 0.1);
-            gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
-
-            osc.connect(filter);
-            filter.connect(gain);
-            gain.connect(this.master!);
-
-            osc.start(start);
-            osc.stop(start + duration + 0.1);
-        });
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // SUB BASS - Physical rumble foundation
-    // ═══════════════════════════════════════════════════════════════════════════
-    private playSub(freq: number, start: number, duration: number, vol: number = 0.5) {
-        if (!this.ctx || !this.master) return;
-
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, start);
-        osc.frequency.exponentialRampToValueAtTime(freq * 0.5, start + duration);
-
-        gain.gain.setValueAtTime(0, start);
-        gain.gain.linearRampToValueAtTime(vol, start + 0.02);
-        gain.gain.setValueAtTime(vol * 0.7, start + duration * 0.6);
-        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
-
-        osc.connect(gain);
-        gain.connect(this.master);
-
-        osc.start(start);
-        osc.stop(start + duration + 0.1);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // CINEMATIC RISER - Building tension with filtered noise sweep
-    // ═══════════════════════════════════════════════════════════════════════════
-    private playRiser(start: number, duration: number, vol: number = 0.2) {
-        if (!this.ctx || !this.master) return;
-
-        const bufferSize = Math.floor(this.ctx.sampleRate * duration);
-        const buffer = this.ctx.createBuffer(2, bufferSize, this.ctx.sampleRate);
-
-        // Pink noise for smoother sweep
-        for (let ch = 0; ch < 2; ch++) {
-            const data = buffer.getChannelData(ch);
-            let b0 = 0, b1 = 0, b2 = 0;
-            for (let i = 0; i < bufferSize; i++) {
-                const white = Math.random() * 2 - 1;
-                b0 = 0.99765 * b0 + white * 0.0990460;
-                b1 = 0.96300 * b1 + white * 0.2965164;
-                b2 = 0.57000 * b2 + white * 1.0526913;
-                data[i] = (b0 + b1 + b2 + white * 0.1848) * 0.11;
-            }
-        }
-
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buffer;
-
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.Q.value = 2;
-        filter.frequency.setValueAtTime(150, start);
-        filter.frequency.exponentialRampToValueAtTime(8000, start + duration);
-
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0, start);
-        gain.gain.linearRampToValueAtTime(vol * 0.3, start + duration * 0.3);
-        gain.gain.linearRampToValueAtTime(vol, start + duration * 0.9);
-        gain.gain.linearRampToValueAtTime(0, start + duration);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.master);
-
-        noise.start(start);
-        noise.stop(start + duration);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // IMPACT HIT - The big moment with layered transients
-    // ═══════════════════════════════════════════════════════════════════════════
-    private playImpact(start: number, intensity: number = 1) {
-        if (!this.ctx || !this.master) return;
-
-        // Layer 1: Sub thump
-        this.playSub(55, start, 0.6, 0.6 * intensity);
-
-        // Layer 2: Mid punch
-        const midBuffer = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.15), this.ctx.sampleRate);
-        const midData = midBuffer.getChannelData(0);
-        for (let i = 0; i < midData.length; i++) {
-            midData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / midData.length, 4);
-        }
-
-        const mid = this.ctx.createBufferSource();
-        mid.buffer = midBuffer;
-
-        const midFilter = this.ctx.createBiquadFilter();
-        midFilter.type = 'bandpass';
-        midFilter.frequency.value = 300;
-        midFilter.Q.value = 1.5;
-
-        const midGain = this.ctx.createGain();
-        midGain.gain.value = 0.4 * intensity;
-
-        mid.connect(midFilter);
-        midFilter.connect(midGain);
-        midGain.connect(this.master);
-        mid.start(start);
-
-        // Layer 3: High transient crack
-        const crackBuffer = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.04), this.ctx.sampleRate);
-        const crackData = crackBuffer.getChannelData(0);
-        for (let i = 0; i < crackData.length; i++) {
-            crackData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / crackData.length, 8);
-        }
-
-        const crack = this.ctx.createBufferSource();
-        crack.buffer = crackBuffer;
-
-        const crackFilter = this.ctx.createBiquadFilter();
-        crackFilter.type = 'highpass';
-        crackFilter.frequency.value = 2000;
-
-        const crackGain = this.ctx.createGain();
-        crackGain.gain.value = 0.35 * intensity;
-
-        crack.connect(crackFilter);
-        crackFilter.connect(crackGain);
-        crackGain.connect(this.master);
-        crack.start(start);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // SHIMMER - Ethereal high-frequency sparkle for reveals
-    // ═══════════════════════════════════════════════════════════════════════════
-    private playShimmer(start: number, duration: number, vol: number = 0.1) {
-        if (!this.ctx || !this.master) return;
-
-        // Multiple high sine waves with slight modulation
-        const baseFreqs = [2637, 3520, 4186, 5274, 6272]; // High harmonics
-
-        baseFreqs.forEach((freq, i) => {
-            const osc = this.ctx!.createOscillator();
-            const gain = this.ctx!.createGain();
-
-            osc.type = 'sine';
-            osc.frequency.value = freq;
-
-            // Subtle vibrato
-            const lfo = this.ctx!.createOscillator();
-            const lfoGain = this.ctx!.createGain();
-            lfo.frequency.value = 4 + i;
-            lfoGain.gain.value = 10;
-            lfo.connect(lfoGain);
-            lfoGain.connect(osc.frequency);
-            lfo.start(start);
-            lfo.stop(start + duration);
-
-            // Staggered entry
-            const entryDelay = i * 0.08;
-            gain.gain.setValueAtTime(0, start);
-            gain.gain.linearRampToValueAtTime(vol / baseFreqs.length, start + entryDelay + 0.2);
-            gain.gain.setValueAtTime(vol / baseFreqs.length * 0.7, start + duration * 0.7);
-            gain.gain.linearRampToValueAtTime(0, start + duration);
-
-            osc.connect(gain);
-            gain.connect(this.master!);
-
-            osc.start(start + entryDelay);
-            osc.stop(start + duration);
-        });
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // THE 2026 CINEMATIC SCORE - 4-act structure matching the visual
-    // ═══════════════════════════════════════════════════════════════════════════
-    async playCinematicScore() {
-        await this.init();
-        if (!this.ctx) return;
-
-        const t = this.ctx.currentTime;
-
-        // Note frequencies (A minor scale - cinematic and powerful)
-        const A2 = 110, C3 = 130.81, E3 = 164.81, G3 = 196;
-        const A3 = 220, C4 = 261.63, E4 = 329.63, G4 = 392;
-        const A4 = 440, C5 = 523.25, E5 = 659.25;
-
-        // ═══════════════════════════════════════════════════════════════════
-        // ACT 1: THE AWAKENING (0 - 0.8s) - Deep, mysterious build
-        // ═══════════════════════════════════════════════════════════════════
-        this.playSub(A2 / 2, t, 1.5, 0.4);                    // Ultra-low foundation
-        this.playWarmPad([A2, E3], t + 0.1, 1.5, 0.12);       // Ominous fifth interval
-        this.playRiser(t, 0.85, 0.15);                         // Building tension
-
-        // ═══════════════════════════════════════════════════════════════════
-        // ACT 2: THE IMPACT (0.8s) - Massive cinematic hit
-        // ═══════════════════════════════════════════════════════════════════
-        this.playImpact(t + 0.8, 1.2);                         // The big hit
-        this.playBrassStab([A2, E3, A3], t + 0.8, 0.4, 0.3);  // Power chord stab
-
-        // ═══════════════════════════════════════════════════════════════════
-        // ACT 3: THE EXPANSION (1.0 - 2.5s) - Epic spreading power
-        // ═══════════════════════════════════════════════════════════════════
-        this.playWarmPad([A2, C3, E3, A3], t + 1.0, 2.0, 0.2);  // Full Am chord
-        this.playRiser(t + 1.0, 1.0, 0.12);                      // Secondary rise
-        this.playSub(A2, t + 1.2, 1.5, 0.35);                    // Sustained bass
-
-        // Rising melodic motion
-        this.playBrassStab([E4], t + 1.5, 0.25, 0.15);
-        this.playBrassStab([G4], t + 1.75, 0.25, 0.15);
-        this.playBrassStab([A4], t + 2.0, 0.4, 0.2);
-
-        // ═══════════════════════════════════════════════════════════════════
-        // ACT 4: THE REVELATION (2.5 - 4s) - Triumphant resolution
-        // ═══════════════════════════════════════════════════════════════════
-        this.playImpact(t + 2.4, 0.8);                           // Arrival hit
-        this.playWarmPad([A2, C3, E3, G3, A3], t + 2.5, 2.0, 0.25); // Rich chord
-        this.playBrassStab([A3, C4, E4], t + 2.5, 0.8, 0.2);    // Major resolution feel
-        this.playShimmer(t + 2.6, 1.8, 0.12);                    // Sparkle on logo
-        this.playSub(A2 / 2, t + 2.5, 2.0, 0.35);               // Final foundation
-
-        // Triumphant high note
-        this.playBrassStab([A4, E5], t + 3.0, 1.2, 0.15);
     }
 }
 
-const musicScore = new CinematicMusicScore();
+const cinematicPlayer = new CinematicAudioPlayer();
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ADVANCED PARTICLE SYSTEM - GPU-like performance with Canvas 2D
@@ -601,8 +308,8 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
         hasStartedRef.current = true;
         startTimeRef.current = performance.now();
 
-        // Play the cinematic score
-        musicScore.playCinematicScore();
+        // Play the cinematic audio file
+        cinematicPlayer.play();
 
         // Haptic buildup
         if ('vibrate' in navigator) {
