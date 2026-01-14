@@ -61,7 +61,7 @@ function StoryRing({ hasUnviewed, children, size = 64, onClick }) {
 }
 
 // Story Avatar - individual story in the bar
-function StoryAvatar({ story, onClick, isOwn, hasStory }) {
+function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory }) {
     const hasUnviewed = !story?.is_viewed && !isOwn;
 
     return (
@@ -85,14 +85,16 @@ function StoryAvatar({ story, onClick, isOwn, hasStory }) {
                     />
                     {/* Plus badge on avatar for "Your Story" */}
                     {isOwn && (
-                        <div style={{
-                            position: 'absolute', bottom: -2, right: -2,
-                            width: 24, height: 24, borderRadius: '50%',
-                            background: C.blue, border: '3px solid white',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 16, color: 'white', fontWeight: 700,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                        }}>+</div>
+                        <div
+                            onClick={(e) => { e.stopPropagation(); onCreateStory?.(); }}
+                            style={{
+                                position: 'absolute', bottom: -2, right: -2,
+                                width: 24, height: 24, borderRadius: '50%',
+                                background: C.blue, border: '3px solid white',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 16, color: 'white', fontWeight: 700,
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            }}>+</div>
                     )}
                 </div>
             </StoryRing>
@@ -109,20 +111,22 @@ function StoryAvatar({ story, onClick, isOwn, hasStory }) {
             </span>
             {/* Plus button below "Your Story" */}
             {isOwn && (
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 4,
-                    padding: '4px 12px',
-                    background: C.blue,
-                    borderRadius: 16,
-                    color: 'white',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    marginTop: 2,
-                    boxShadow: '0 2px 6px rgba(24, 119, 242, 0.4)',
-                }}>
+                <div
+                    onClick={(e) => { e.stopPropagation(); onCreateStory?.(); }}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4,
+                        padding: '4px 12px',
+                        background: C.blue,
+                        borderRadius: 16,
+                        color: 'white',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        marginTop: 2,
+                        boxShadow: '0 2px 6px rgba(24, 119, 242, 0.4)',
+                    }}>
                     <span style={{ fontSize: 14, fontWeight: 700 }}>+</span>
                     Add
                 </div>
@@ -209,6 +213,7 @@ export function StoriesBar({ userId, onCreateStory }) {
                         isOwn={true}
                         hasStory={!!ownStory}
                         onClick={() => ownStory ? handleViewStory(ownStory) : setShowCreate(true)}
+                        onCreateStory={() => setShowCreate(true)}
                     />
 
                     {/* Other stories */}
