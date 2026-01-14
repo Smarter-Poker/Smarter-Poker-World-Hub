@@ -1119,7 +1119,13 @@ export default function SocialMediaPage() {
 
     return (
         <>
-            <Head><title>Social Hub | Smarter.Poker</title></Head>
+            <Head>
+                <title>Social Hub | Smarter.Poker</title>
+                {/* Override global dark theme for social page */}
+                <style>{`
+                    html, body { background: ${C.bg} !important; }
+                `}</style>
+            </Head>
 
             {/* Slide-out Sidebar Overlay */}
             {sidebarOpen && (
