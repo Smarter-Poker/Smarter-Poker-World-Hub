@@ -86,32 +86,25 @@ export function PageOutro({ isActive, onComplete }) {
                 alignItems: 'center',
                 transform: phase === 0 ? 'scale(0.8) translateY(20px)' :
                     phase === 1 ? 'scale(1) translateY(0)' :
-                        'scale(1.1) translateX(-100vw)',
+                        'scale(1.1) translate(-100vw, 50vh)',
                 opacity: phase === 0 ? 0 : phase === 1 ? 1 : 0,
                 transition: phase === 2
-                    ? 'transform 0.6s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.5s ease-in'
+                    ? 'transform 0.5s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.4s ease-in'
                     : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out',
             }}>
-                {/* Poker chip icon */}
-                <div style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #00d4ff, #ffffff)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 40,
-                    marginBottom: 20,
-                    boxShadow: `
-                        0 0 30px rgba(0, 212, 255, 0.6),
-                        0 0 60px rgba(0, 212, 255, 0.3),
-                        inset 0 2px 10px rgba(255,255,255,0.3)
-                    `,
-                    animation: phase === 1 ? 'outroPulse 1s ease-in-out infinite' : undefined,
-                }}>
-                    🔵
-                </div>
+                {/* Brain Logo - Translucent */}
+                <img
+                    src="/brain-icon.png"
+                    alt="Smarter.Poker"
+                    style={{
+                        width: 100,
+                        height: 'auto',
+                        marginBottom: 20,
+                        opacity: 0.9,
+                        filter: 'drop-shadow(0 0 30px rgba(0, 212, 255, 0.8)) drop-shadow(0 0 60px rgba(0, 212, 255, 0.4))',
+                        animation: phase === 1 ? 'outroPulse 1s ease-in-out infinite' : undefined,
+                    }}
+                />
 
                 {/* Logo Text */}
                 <div style={{
@@ -182,8 +175,8 @@ export function PageOutro({ isActive, onComplete }) {
                     100% { transform: translateX(-100%); }
                 }
                 @keyframes outroParticle {
-                    0% { transform: translateX(0) scale(1); opacity: 1; }
-                    100% { transform: translateX(-150vw) scale(0); opacity: 0; }
+                    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+                    100% { transform: translate(-150vw, 80vh) scale(0); opacity: 0; }
                 }
             `}</style>
         </div>

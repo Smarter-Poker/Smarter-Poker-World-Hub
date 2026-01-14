@@ -205,7 +205,7 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
 
 const MAX_MEDIA = 10;
 
-function PostCreator({ user, onPost, isPosting }) {
+function PostCreator({ user, onPost, isPosting, onGoLive }) {
     const [content, setContent] = useState('');
     const [media, setMedia] = useState([]);
     const [uploading, setUploading] = useState(false);
@@ -400,7 +400,7 @@ function PostCreator({ user, onPost, isPosting }) {
                             color: media.length >= MAX_MEDIA ? '#ccc' : C.textSec, fontSize: 13
                         }}
                     >{uploading ? '⏳' : '🖼️'} Photo/Video</button>
-                    <button onClick={() => setShowGoLiveModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>📺 Live</button>
+                    <button onClick={onGoLive} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>📺 Live</button>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>🃏 Share Hand</button>
                     <Link
                         href="/hub/reels"
@@ -1514,7 +1514,7 @@ export default function SocialMediaPage() {
                     {user && <StoriesBar userId={user.id} />}
 
                     {/* Post Creator */}
-                    {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} />}
+                    {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} />}
 
                     {/* Login prompt */}
                     {!user && (
