@@ -83,6 +83,7 @@ export default function SettingsPage() {
         friendActivity: false,
 
         // Privacy
+        postIdentity: 'realname', // 'realname' or 'alias'
         profileVisibility: 'public',
         showOnlineStatus: true,
         showHandHistory: true,
@@ -269,6 +270,18 @@ export default function SettingsPage() {
                                 <h2 style={styles.sectionTitle}>Privacy Settings</h2>
 
                                 <div style={styles.card}>
+                                    <Select
+                                        label="Post As"
+                                        value={settings.postIdentity || 'realname'}
+                                        onChange={(v) => updateSetting('postIdentity', v)}
+                                        options={[
+                                            { value: 'realname', label: 'Real Name (e.g., John Smith)' },
+                                            { value: 'alias', label: 'Alias/Username (e.g., @pokerpro123)' },
+                                        ]}
+                                    />
+                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: -8, marginBottom: 16, paddingLeft: 4 }}>
+                                        Choose how your name appears on posts and comments
+                                    </div>
                                     <Select
                                         label="Profile Visibility"
                                         value={settings.profileVisibility}
