@@ -122,7 +122,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 45,  // Clip first 45 seconds
         category: CLIP_CATEGORIES.SOUL_READ,
-        tags: ['hcl', 'trap', 'henry', 'high_stakes'],
+        source: 'HCL', tags: ['hcl', 'trap', 'henry', 'high_stakes'],
         used_count: 0,
         last_used: null
     },
@@ -134,7 +134,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 45,
         category: CLIP_CATEGORIES.TABLE_DRAMA,
-        tags: ['hcl', 'drama', 'table_talk'],
+        source: 'HCL', tags: ['hcl', 'drama', 'table_talk'],
         used_count: 0,
         last_used: null
     },
@@ -146,7 +146,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 50,
         category: CLIP_CATEGORIES.MASSIVE_POT,
-        tags: ['hcl', 'massive_pot', 'high_stakes', '92k'],
+        source: 'HCL', tags: ['hcl', 'massive_pot', 'high_stakes', '92k'],
         used_count: 0,
         last_used: null
     },
@@ -158,7 +158,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 45,
         category: CLIP_CATEGORIES.BAD_BEAT,
-        tags: ['hcl', 'bad_beat', 'pain', 'showdown'],
+        source: 'HCL', tags: ['hcl', 'bad_beat', 'pain', 'showdown'],
         used_count: 0,
         last_used: null
     },
@@ -174,7 +174,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 45,
         category: CLIP_CATEGORIES.CELEBRITY,
-        tags: ['hcl', 'nik_airball', 'celebrity', 'high_stakes'],
+        source: 'HCL', tags: ['hcl', 'nik_airball', 'celebrity', 'high_stakes'],
         used_count: 0,
         last_used: null
     },
@@ -186,7 +186,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 50,
         category: CLIP_CATEGORIES.BLUFF,
-        tags: ['hcl', 'nik_airball', 'bluff', 'hero_call'],
+        source: 'HCL', tags: ['hcl', 'nik_airball', 'bluff', 'hero_call'],
         used_count: 0,
         last_used: null
     },
@@ -202,7 +202,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 45,
         category: CLIP_CATEGORIES.MASSIVE_POT,
-        tags: ['hcl', 'mariano', 'crushing', 'domination'],
+        source: 'HCL', tags: ['hcl', 'mariano', 'crushing', 'domination'],
         used_count: 0,
         last_used: null
     },
@@ -214,7 +214,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 45,
         category: CLIP_CATEGORIES.BAD_BEAT,
-        tags: ['hcl', 'mariano', 'disbelief', 'bad_beat'],
+        source: 'HCL', tags: ['hcl', 'mariano', 'disbelief', 'bad_beat'],
         used_count: 0,
         last_used: null
     },
@@ -226,7 +226,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 50,
         category: CLIP_CATEGORIES.BLUFF,
-        tags: ['hcl', 'mariano', 'river_bluff', 'sizing'],
+        source: 'HCL', tags: ['hcl', 'mariano', 'river_bluff', 'sizing'],
         used_count: 0,
         last_used: null
     },
@@ -238,7 +238,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 55,
         category: CLIP_CATEGORIES.MASSIVE_POT,
-        tags: ['hcl', 'mariano', 'miracle', '125k', 'all_in'],
+        source: 'HCL', tags: ['hcl', 'mariano', 'miracle', '125k', 'all_in'],
         used_count: 0,
         last_used: null
     },
@@ -250,7 +250,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 50,
         category: CLIP_CATEGORIES.BLUFF,
-        tags: ['hcl', 'mariano', 'outrageous', 'river'],
+        source: 'HCL', tags: ['hcl', 'mariano', 'outrageous', 'river'],
         used_count: 0,
         last_used: null
     },
@@ -266,7 +266,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 55,
         category: CLIP_CATEGORIES.TABLE_DRAMA,
-        tags: ['hcl', 'britney', 'revenge', 'newcomer'],
+        source: 'HCL', tags: ['hcl', 'britney', 'revenge', 'newcomer'],
         used_count: 0,
         last_used: null
     },
@@ -278,7 +278,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 50,
         category: CLIP_CATEGORIES.BAD_BEAT,
-        tags: ['hcl', 'britney', 'outplayed', 'devastated'],
+        source: 'HCL', tags: ['hcl', 'britney', 'outplayed', 'devastated'],
         used_count: 0,
         last_used: null
     },
@@ -294,7 +294,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 45,
         category: CLIP_CATEGORIES.SOUL_READ,
-        tags: ['hcl', 'straight', 'speechless', 'flopped'],
+        source: 'HCL', tags: ['hcl', 'straight', 'speechless', 'flopped'],
         used_count: 0,
         last_used: null
     },
@@ -306,7 +306,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 45,
         category: CLIP_CATEGORIES.TABLE_DRAMA,
-        tags: ['hcl', 'tilt', 'frustration', 'emotional'],
+        source: 'HCL', tags: ['hcl', 'tilt', 'frustration', 'emotional'],
         used_count: 0,
         last_used: null
     },
@@ -318,7 +318,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 50,
         category: CLIP_CATEGORIES.FUNNY,
-        tags: ['hcl', 'stubborn', 'advice', 'funny'],
+        source: 'HCL', tags: ['hcl', 'stubborn', 'advice', 'funny'],
         used_count: 0,
         last_used: null
     },
@@ -330,7 +330,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 50,
         category: CLIP_CATEGORIES.BAD_BEAT,
-        tags: ['hcl', 'mistake', 'outclassed', 'lesson'],
+        source: 'HCL', tags: ['hcl', 'mistake', 'outclassed', 'lesson'],
         used_count: 0,
         last_used: null
     },
@@ -342,7 +342,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 50,
         category: CLIP_CATEGORIES.SOUL_READ,
-        tags: ['hcl', 'comeback', 'revenge', 'turnaround'],
+        source: 'HCL', tags: ['hcl', 'comeback', 'revenge', 'turnaround'],
         used_count: 0,
         last_used: null
     },
@@ -355,7 +355,7 @@ export const CLIP_LIBRARY = [
         start_time: 0,
         duration: 45,
         category: CLIP_CATEGORIES.FUNNY,
-        tags: ['hcl', 'mike_x', 'speechless', 'funny'],
+        source: 'HCL', tags: ['hcl', 'mike_x', 'speechless', 'funny'],
         used_count: 0,
         last_used: null
     },

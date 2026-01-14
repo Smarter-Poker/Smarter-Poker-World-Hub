@@ -791,24 +791,113 @@ export default function SocialMediaPage() {
 
     const loadFeed = async () => {
         try {
-            const { data, error } = await supabase.from('social_posts')
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+
+            // Get friend IDs for prioritization
+            let friendIds = [];
+            let followingIds = [];
+
+            if (authUser) {
+                // Fetch friends (accepted friendships)
+                const { data: friendships } = await supabase
+                    .from('friendships')
+                    .select('friend_id')
+                    .eq('user_id', authUser.id)
+                    .eq('status', 'accepted');
+                if (friendships) friendIds = friendships.map(f => f.friend_id);
+
+                // Fetch people I'm following
+                const { data: follows } = await supabase
+                    .from('follows')
+                    .select('following_id')
+                    .eq('follower_id', authUser.id);
+                if (follows) followingIds = follows.map(f => f.following_id);
+            }
+
+            // Combine friends and following for priority
+            const priorityUserIds = [...new Set([...friendIds, ...followingIds])];
+
+            // 🎯 Facebook-style feed algorithm:
+            // 1. Fetch priority content (friends + following) - 70% of feed
+            // 2. Fetch global/discovery content - 30% of feed
+            // 3. Interleave for natural discovery experience
+
+            let priorityPosts = [];
+            let globalPosts = [];
+
+            // Fetch priority posts (friends and following)
+            if (priorityUserIds.length > 0) {
+                const { data: priority } = await supabase
+                    .from('social_posts')
+                    .select('id, content, content_type, media_urls, like_count, comment_count, share_count, created_at, author_id')
+                    .in('author_id', priorityUserIds)
+                    .or('visibility.eq.public,visibility.is.null')
+                    .order('created_at', { ascending: false })
+                    .limit(35); // 70% of 50
+                if (priority) priorityPosts = priority;
+            }
+
+            // Fetch global/discovery posts (excluding priority users to avoid duplicates)
+            const { data: global, error } = await supabase
+                .from('social_posts')
                 .select('id, content, content_type, media_urls, like_count, comment_count, share_count, created_at, author_id')
                 .or('visibility.eq.public,visibility.is.null')
+                .not('author_id', 'in', priorityUserIds.length > 0 ? `(${priorityUserIds.join(',')})` : '(00000000-0000-0000-0000-000000000000)')
                 .order('created_at', { ascending: false })
-                .limit(50);
+                .limit(priorityUserIds.length > 0 ? 15 : 50); // 30% if we have friends, 100% otherwise
+
             if (error) throw error;
-            if (data) {
-                const authorIds = [...new Set(data.map(p => p.author_id).filter(Boolean))];
+            if (global) globalPosts = global;
+
+            // 🔀 INTERLEAVE: Mix priority and global posts for natural discovery
+            // Pattern: 2-3 priority posts, then 1 global post
+            const mixedFeed = [];
+            let pIdx = 0, gIdx = 0;
+            let priorityStreak = 0;
+
+            while (pIdx < priorityPosts.length || gIdx < globalPosts.length) {
+                // Add priority posts (2-3 in a row)
+                if (pIdx < priorityPosts.length && (priorityStreak < 3 || gIdx >= globalPosts.length)) {
+                    mixedFeed.push({ ...priorityPosts[pIdx], isPriority: true });
+                    pIdx++;
+                    priorityStreak++;
+                }
+                // Add 1 global post for discovery
+                else if (gIdx < globalPosts.length) {
+                    mixedFeed.push({ ...globalPosts[gIdx], isPriority: false });
+                    gIdx++;
+                    priorityStreak = 0;
+                }
+            }
+
+            // Fetch author profiles
+            const allPosts = mixedFeed;
+            if (allPosts.length > 0) {
+                const authorIds = [...new Set(allPosts.map(p => p.author_id).filter(Boolean))];
                 let authorMap = {};
                 if (authorIds.length) {
-                    const { data: profiles } = await supabase.from('profiles').select('id, username').in('id', authorIds);
+                    const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url').in('id', authorIds);
                     if (profiles) authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
                 }
-                setPosts(data.map(p => ({
-                    id: p.id, authorId: p.author_id, content: p.content, contentType: p.content_type,
-                    mediaUrls: p.media_urls || [], likeCount: p.like_count || 0, commentCount: p.comment_count || 0,
-                    shareCount: p.share_count || 0, timeAgo: timeAgo(p.created_at), isLiked: false,
-                    author: { name: authorMap[p.author_id]?.username || 'Player', avatar: null }
+
+                setPosts(allPosts.map(p => ({
+                    id: p.id,
+                    authorId: p.author_id,
+                    content: p.content,
+                    contentType: p.content_type,
+                    mediaUrls: p.media_urls || [],
+                    likeCount: p.like_count || 0,
+                    commentCount: p.comment_count || 0,
+                    shareCount: p.share_count || 0,
+                    timeAgo: timeAgo(p.created_at),
+                    isLiked: false,
+                    isPriority: p.isPriority,
+                    isFriend: friendIds.includes(p.author_id),
+                    isFollowing: followingIds.includes(p.author_id),
+                    author: {
+                        name: authorMap[p.author_id]?.username || 'Player',
+                        avatar: authorMap[p.author_id]?.avatar_url || null
+                    }
                 })));
             }
         } catch (e) { console.error('Feed error:', e); }
