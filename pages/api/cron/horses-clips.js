@@ -20,13 +20,23 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
-// Static import for ClipLibrary (pure JS, no native modules)
-import { getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES } from '../../../src/content-engine/pipeline/ClipLibrary.js';
+// Dynamic import for ClipLibrary (works on Vercel)
+let getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES;
+try {
+    const lib = await import('../../../src/content-engine/pipeline/ClipLibrary.js');
+    getRandomClip = lib.getRandomClip;
+    getRandomCaption = lib.getRandomCaption;
+    markClipUsed = lib.markClipUsed;
+    CLIP_CATEGORIES = lib.CLIP_CATEGORIES;
+} catch (e) {
+    console.error('Failed to load ClipLibrary:', e.message);
+}
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 const CONFIG = {
     HORSES_PER_TRIGGER: 3,
