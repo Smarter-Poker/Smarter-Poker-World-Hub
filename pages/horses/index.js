@@ -385,7 +385,23 @@ export default function HorsesAdmin() {
                                     <div key={persona.id} className={`${styles.personaCard} ${persona.is_active ? styles.active : styles.inactive}`}>
                                         <div className={styles.personaHeader}>
                                             <div className={styles.personaAvatar}>
-                                                {persona.gender === 'female' ? '👩' : '👨'}
+                                                {persona.avatar_url ? (
+                                                    <img
+                                                        src={persona.avatar_url}
+                                                        alt={persona.name}
+                                                        className={styles.avatarImage}
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                            e.target.nextSibling.style.display = 'flex';
+                                                        }}
+                                                    />
+                                                ) : null}
+                                                <span
+                                                    className={styles.avatarFallback}
+                                                    style={{ display: persona.avatar_url ? 'none' : 'flex' }}
+                                                >
+                                                    {persona.gender === 'female' ? '👩' : '👨'}
+                                                </span>
                                             </div>
                                             <div className={styles.personaInfo}>
                                                 <h3>{persona.name}</h3>
@@ -518,7 +534,15 @@ export default function HorsesAdmin() {
                                             <tr key={persona.id}>
                                                 <td>
                                                     <div className={styles.horseCell}>
-                                                        <span>{persona.gender === 'female' ? '👩' : '👨'}</span>
+                                                        {persona.avatar_url ? (
+                                                            <img
+                                                                src={persona.avatar_url}
+                                                                alt={persona.name}
+                                                                className={styles.tableCellAvatar}
+                                                            />
+                                                        ) : (
+                                                            <span>{persona.gender === 'female' ? '👩' : '👨'}</span>
+                                                        )}
                                                         <div>
                                                             <strong>{persona.name}</strong>
                                                             <small>@{persona.alias}</small>

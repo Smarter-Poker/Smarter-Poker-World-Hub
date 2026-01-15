@@ -1,313 +1,211 @@
 /**
- * 🎮 TRAINING PAGE — PIXEL-PERFECT MATCH TO REFERENCE
+ * 🎮 TRAINING PAGE — 100-Game Library with Video Game Feel
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * - Hero: Uses reference image as background
- * - Cards: Slanted parallelograms, full-width grid (4 cards = 100% width)
- * - Layout: Matches reference exactly
+ * Features:
+ * - Complete 100-game library across 5 categories
+ * - User progress tracking with NEW/MASTERED indicators
+ * - Animated game cards with framer-motion
+ * - Category filter system (ALL, GTO, EXPLOITATIVE, MATH)
+ * - Netflix-style horizontal scrolling lanes
+ * - Overall user stats display
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import GameCard from '../../../src/components/training/GameCard';
+import { TRAINING_LIBRARY, TRAINING_LANES, getGamesByCategory, getGamesByTag } from '../../../src/data/TRAINING_LIBRARY';
+import useTrainingProgress from '../../../src/hooks/useTrainingProgress';
+import { getGameImage } from '../../../src/data/GAME_IMAGES';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// DATA
-// ═══════════════════════════════════════════════════════════════════════════
-
-const LANES = [
-    {
-        id: 'gto-basics',
-        title: 'GTO BASICS',
-        games: [
-            { id: 'gto-grid', name: 'GTO Grid', rank: 'S' },
-            { id: 'icm-mastery', name: 'ICM Mastery', rank: 'A' },
-            { id: 'preflop-drills', name: 'Preflop Drills', rank: 'B' },
-            { id: 'range-builder', name: 'Range Builder', rank: 'B' },
-        ],
-    },
-    {
-        id: 'tournament-life',
-        title: 'TOURNAMENT LIFE',
-        games: [
-            { id: 'final-table', name: 'Final Table ICM', rank: 'A' },
-            { id: 'bubble-defense', name: 'Bubble Defense', rank: 'B' },
-            { id: 'short-stack', name: 'Short Stack Play', rank: 'B' },
-            { id: 'push-fold', name: 'Push/Fold', rank: 'S' },
-        ],
-    },
-    {
-        id: 'fix-your-leaks',
-        title: 'FIX YOUR LEAKS',
-        badge: 'BELOW 70%!',
-        games: [
-            { id: 'tilt-control', name: 'Tilt Control', rank: 'C' },
-            { id: 'river-mistakes', name: 'River Mistakes', rank: 'C' },
-            { id: 'bet-sizing', name: 'Bet Sizing Errors', rank: 'D' },
-            { id: 'position-leaks', name: 'Position Leaks', rank: 'C' },
-        ],
-    },
-];
-
+// Filter options
 const FILTERS = [
-    { id: 'ALL', color: null },  // White filled when active
-    { id: 'GTO', color: '#FFD700' },  // Gold/Yellow
-    { id: 'EXPLOITATIVE', color: '#4CAF50' },  // Green
-    { id: 'MATH', color: '#2196F3' },  // Blue
+    { id: 'ALL', color: '#fff', activeColor: '#0a0a15' },
+    { id: 'GTO', color: '#4CAF50' },
+    { id: 'EXPLOITATIVE', color: '#FF6B35' },
+    { id: 'MATH', color: '#2196F3' },
 ];
 
-const RANK_COLORS = {
-    S: { bg: '#FFD700', text: '#000' },
-    A: { bg: '#4CAF50', text: '#fff' },
-    B: { bg: '#2196F3', text: '#fff' },
-    C: { bg: '#FF9800', text: '#fff' },
-    D: { bg: '#9E9E9E', text: '#fff' },
-};
+// Category definitions
+const CATEGORIES = [
+    { id: 'MTT', title: 'MTT MASTERY', icon: '🏆', color: '#FF6B35' },
+    { id: 'CASH', title: 'CASH GAME GRIND', icon: '💵', color: '#4CAF50' },
+    { id: 'SPINS', title: 'SPINS & SNGS', icon: '⚡', color: '#FFD700' },
+    { id: 'PSYCHOLOGY', title: 'MENTAL GAME', icon: '🧠', color: '#9C27B0' },
+    { id: 'ADVANCED', title: 'ADVANCED THEORY', icon: '🤖', color: '#2196F3' },
+];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COMPONENT: Slanted Rank Badge
+// HERO SECTION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const RankBadge = ({ rank }) => {
-    const colors = RANK_COLORS[rank] || RANK_COLORS.D;
+function HeroSection({ stats, onPlayFeatured }) {
     return (
-        <div style={{
-            position: 'absolute',
-            top: 8,
-            right: -25,
-            width: 90,
-            textAlign: 'center',
-            background: colors.bg,
-            color: colors.text,
-            fontSize: 10,
-            fontWeight: 800,
-            padding: '3px 0',
-            transform: 'rotate(40deg)',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
-            letterSpacing: 0.5,
-            zIndex: 20,
-        }}>
-            {rank}-RANK
-        </div>
-    );
-};
+        <div style={styles.hero}>
+            {/* Background gradient */}
+            <div style={styles.heroBackground} />
 
-// ═══════════════════════════════════════════════════════════════════════════
-// COMPONENT: SLANTED Game Card (parallelogram, LARGE - fills screen)
-// ═══════════════════════════════════════════════════════════════════════════
-
-const GameCard = ({ game, onClick, isHovered, onHover }) => {
-    return (
-        <div
-            onClick={() => onClick(game)}
-            onMouseEnter={() => onHover(game.id)}
-            onMouseLeave={() => onHover(null)}
-            style={{
-                position: 'relative',
-                // 4 cards = 100% width, minus gaps
-                width: 'calc(25% - 15px)',
-                height: 120,
-                background: 'linear-gradient(150deg, rgba(50,40,65,0.95) 0%, rgba(25,20,35,0.98) 100%)',
-                borderRadius: 10,
-                overflow: 'visible',
-                cursor: 'pointer',
-                border: isHovered ? '2px solid #FF6B35' : '1px solid rgba(255,107,53,0.3)',
-                transition: 'all 0.2s ease',
-                // PARALLELOGRAM SKEW
-                transform: isHovered ? 'skewX(-5deg) scale(1.02)' : 'skewX(-5deg)',
-                boxShadow: isHovered
-                    ? '8px 8px 25px rgba(0,0,0,0.6), 0 0 20px rgba(255,107,53,0.3)'
-                    : '5px 5px 15px rgba(0,0,0,0.5)',
-            }}
-        >
-            {/* Rank Badge */}
-            <RankBadge rank={game.rank} />
-
-            {/* Inner content - counter-skew to keep text readable */}
-            <div style={{ transform: 'skewX(5deg)', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                {/* Image placeholder */}
-                <div style={{
-                    flex: 1,
-                    background: 'linear-gradient(135deg, rgba(80,60,100,0.4) 0%, rgba(40,30,55,0.6) 100%)',
-                    borderRadius: '10px 10px 0 0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}>
-                    <div style={{ fontSize: 36, opacity: 0.4 }}>🎴</div>
-                </div>
-
-                {/* Title bar */}
-                <div style={{
-                    padding: '10px 12px',
-                    background: 'rgba(0,0,0,0.5)',
-                    borderRadius: '0 0 10px 10px',
-                }}>
-                    <div style={{
-                        color: '#fff',
-                        fontSize: 13,
-                        fontWeight: 600,
-                    }}>{game.name}</div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// COMPONENT: Game Lane (FULL WIDTH - 4 cards centered)
-// ═══════════════════════════════════════════════════════════════════════════
-
-const GameLane = ({ lane, onGameClick, hoveredGame, onHover }) => {
-    return (
-        <div style={{ marginBottom: 25, padding: '0 20px', position: 'relative', zIndex: 5 }}>
-            {/* Lane Header */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                marginBottom: 12,
-            }}>
-                <span style={{ color: '#FF6B35', fontSize: 14, fontWeight: 700 }}>&gt;&gt;</span>
-                <h3 style={{
-                    color: '#FF6B35',
-                    fontSize: 15,
-                    fontWeight: 700,
-                    letterSpacing: 2,
-                    margin: 0,
-                }}>{lane.title}</h3>
-
-                {lane.badge && (
-                    <span style={{
-                        background: 'linear-gradient(90deg, #FF5722, #FF9800)',
-                        color: '#fff',
-                        fontSize: 10,
-                        fontWeight: 800,
-                        padding: '4px 10px',
-                        borderRadius: 4,
-                    }}>{lane.badge}</span>
-                )}
-            </div>
-
-            {/* 4 cards grid - full width, centered */}
-            <div style={{
-                display: 'flex',
-                gap: 20,
-                justifyContent: 'center',
-            }}>
-                {lane.games.map(game => (
-                    <GameCard
-                        key={game.id}
-                        game={game}
-                        onClick={onGameClick}
-                        isHovered={hoveredGame === game.id}
-                        onHover={onHover}
+            {/* Floating particles effect */}
+            <div style={styles.particleOverlay}>
+                {[...Array(12)].map((_, i) => (
+                    <motion.div
+                        key={i}
+                        style={{
+                            ...styles.particle,
+                            left: `${Math.random() * 100}%`,
+                            top: `${Math.random() * 100}%`,
+                        }}
+                        animate={{
+                            y: [0, -20, 0],
+                            opacity: [0.3, 0.8, 0.3],
+                        }}
+                        transition={{
+                            duration: 2 + Math.random() * 2,
+                            repeat: Infinity,
+                            delay: Math.random() * 2,
+                        }}
                     />
                 ))}
             </div>
+
+            {/* Content */}
+            <div style={styles.heroContent}>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                >
+                    <span style={styles.heroLabel}>Daily Challenge</span>
+                    <h1 style={styles.heroTitle}>HIGH STAKES BLUFFS</h1>
+                    <p style={styles.heroSubtitle}>Master river bluffing spots • 20 Hands • 85% to Pass</p>
+                </motion.div>
+
+                {/* Stats row */}
+                <motion.div
+                    style={styles.statsRow}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                >
+                    <div style={styles.statItem}>
+                        <span style={styles.statValue}>{stats.gamesPlayed}</span>
+                        <span style={styles.statLabel}>Games Played</span>
+                    </div>
+                    <div style={styles.statDivider} />
+                    <div style={styles.statItem}>
+                        <span style={styles.statValue}>{stats.gamesMastered}</span>
+                        <span style={styles.statLabel}>Mastered</span>
+                    </div>
+                    <div style={styles.statDivider} />
+                    <div style={styles.statItem}>
+                        <span style={{ ...styles.statValue, color: '#FFD700' }}>
+                            {stats.totalXP.toLocaleString()}
+                        </span>
+                        <span style={styles.statLabel}>Total XP</span>
+                    </div>
+                </motion.div>
+
+                {/* CTA */}
+                <motion.button
+                    style={styles.playButton}
+                    onClick={onPlayFeatured}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                >
+                    <span style={styles.playIcon}>▶</span>
+                    PLAY NOW
+                    <span style={styles.xpBadge}>×2.5 XP</span>
+                </motion.button>
+            </div>
         </div>
     );
-};
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COMPONENT: Filter Pills
+// FILTER BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-const FilterBar = ({ active, onFilter }) => {
+function FilterBar({ active, onFilter, gameCount }) {
     return (
-        <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 10,
-            padding: '18px 0',
-            background: '#1a1525',
-            position: 'relative',
-            zIndex: 10,
-        }}>
-            {FILTERS.map(filter => {
-                const isActive = active === filter.id;
-                const neonColor = filter.color || '#fff';
-                return (
-                    <button
-                        key={filter.id}
-                        onClick={() => onFilter(filter.id)}
-                        style={{
-                            padding: '10px 24px',
-                            borderRadius: 22,
-                            // DIFFERENT NEON COLORS PER FILTER
-                            border: isActive ? 'none' : `2px solid ${neonColor}`,
-                            background: isActive ? '#fff' : 'transparent',
-                            color: isActive ? '#0a0a15' : '#fff',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            letterSpacing: 1.5,
-                            cursor: 'pointer',
-                            boxShadow: isActive
-                                ? 'none'
-                                : `0 0 12px ${neonColor}66, inset 0 0 8px ${neonColor}33`,
-                            transition: 'all 0.2s ease',
-                        }}
-                    >{filter.id}</button>
-                );
-            })}
+        <div style={styles.filterBar}>
+            <div style={styles.filterPills}>
+                {FILTERS.map(filter => {
+                    const isActive = active === filter.id;
+                    return (
+                        <motion.button
+                            key={filter.id}
+                            onClick={() => onFilter(filter.id)}
+                            style={{
+                                ...styles.filterPill,
+                                background: isActive ? '#fff' : 'transparent',
+                                color: isActive ? '#0a0a15' : '#fff',
+                                border: isActive ? 'none' : `2px solid ${filter.color}`,
+                                boxShadow: isActive ? 'none' : `0 0 12px ${filter.color}44`,
+                            }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            {filter.id}
+                        </motion.button>
+                    );
+                })}
+            </div>
+            <span style={styles.gameCount}>{gameCount} games</span>
         </div>
     );
-};
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COMPONENT: Hero Section (REFERENCE IMAGE AS BACKGROUND)
+// GAME LANE (Horizontal scroll)
 // ═══════════════════════════════════════════════════════════════════════════
 
-const HeroSection = ({ onPlayNow }) => {
+function GameLane({ title, icon, color, games, onGameClick, getProgress, badge }) {
+    if (!games || games.length === 0) return null;
+
     return (
-        <div style={{
-            position: 'relative',
-            height: 380,
-            overflow: 'hidden',
-            zIndex: 5,
-        }}>
-            {/* Reference image as background - shows hero content including PLAY NOW */}
-            <img
-                src="/images/training_reference.jpg"
-                alt=""
-                style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: 'auto',
-                    minHeight: '100%',
-                    objectFit: 'cover',
-                    objectPosition: 'top center',
-                }}
-            />
+        <div style={styles.lane}>
+            {/* Lane header */}
+            <div style={styles.laneHeader}>
+                <span style={{ ...styles.laneChevron, color }}>»</span>
+                <span style={styles.laneIcon}>{icon}</span>
+                <h2 style={{ ...styles.laneTitle, color }}>{title}</h2>
+                {badge && (
+                    <motion.span
+                        style={styles.laneBadge}
+                        animate={{ scale: [1, 1.05, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                    >
+                        {badge}
+                    </motion.span>
+                )}
+                <span style={styles.laneCount}>{games.length} games</span>
+            </div>
 
-            {/* Dark overlay for text readability */}
-            <div style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.5) 100%)',
-            }} />
-
-            {/* Clickable PLAY NOW overlay positioned exactly on the button in the image */}
-            <div
-                onClick={onPlayNow}
-                style={{
-                    position: 'absolute',
-                    top: '68%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 120,
-                    height: 36,
-                    cursor: 'pointer',
-                    borderRadius: 4,
-                }}
-            />
+            {/* Horizontal scrolling cards */}
+            <div style={styles.laneScroller}>
+                <div style={styles.laneCards}>
+                    {games.map((game, i) => (
+                        <GameCard
+                            key={game.id}
+                            game={game}
+                            progress={getProgress(game.id)}
+                            onClick={onGameClick}
+                            index={i}
+                            image={getGameImage(game.id)}
+                        />
+                    ))}
+                </div>
+            </div>
         </div>
     );
-};
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
@@ -316,65 +214,442 @@ const HeroSection = ({ onPlayNow }) => {
 export default function TrainingPage() {
     const router = useRouter();
     const [activeFilter, setActiveFilter] = useState('ALL');
-    const [hoveredGame, setHoveredGame] = useState(null);
+    const {
+        isLoaded,
+        getGameProgress,
+        getOverallStats,
+        getUnplayedGames,
+        getLeakGames,
+        recordSession,
+    } = useTrainingProgress();
 
+    // Get filtered games
+    const getFilteredGames = () => {
+        if (activeFilter === 'ALL') return TRAINING_LIBRARY;
+        return getGamesByTag(activeFilter.toLowerCase());
+    };
+
+    const filteredGames = getFilteredGames();
+    const stats = getOverallStats();
+    const newGames = getUnplayedGames(TRAINING_LIBRARY).slice(0, 8);
+    const leakGames = getLeakGames(TRAINING_LIBRARY);
+
+    // Handle game click
     const handleGameClick = (game) => {
-        console.log('🎮 Game clicked:', game.name);
-        alert(`Launching: ${game.name}\n\n20-question run. 85% to pass.`);
+        // For now, show alert. Later, route to arena
+        console.log('🎮 Launching game:', game.name);
+
+        // Demo: Record a session immediately for testing
+        // In production, this would happen after completing a run
+        router.push(`/hub/training/play/${game.id}`);
     };
 
-    const handlePlayNow = () => {
-        console.log('🎯 Daily Challenge');
-        alert('Daily Challenge: HIGH STAKES BLUFFS\n\n20 questions, XP ×2.5!');
+    // Handle featured play
+    const handlePlayFeatured = () => {
+        const featuredGame = TRAINING_LIBRARY[0];
+        handleGameClick(featuredGame);
     };
+
+    if (!isLoaded) {
+        return (
+            <div style={styles.loading}>
+                <motion.div
+                    style={styles.loadingSpinner}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                />
+                <p>Loading training library...</p>
+            </div>
+        );
+    }
 
     return (
         <>
             <Head>
-                <title>Training — PokerIQ</title>
+                <title>Training — PokerIQ | 100 Games to Master</title>
                 <style>{`
                     * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { background: #0a0a15; }
+                    body { 
+                        background: #0a0a15; 
+                        overflow-x: hidden;
+                    }
+                    ::-webkit-scrollbar { height: 6px; }
+                    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+                    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
                 `}</style>
             </Head>
 
-            <div style={{
-                minHeight: '100vh',
-                background: '#0a0a15',
-                position: 'relative',
-                zIndex: 1,
-            }}>
+            <div style={styles.page}>
                 {/* Logo */}
-                <div style={{
-                    position: 'absolute',
-                    top: 12,
-                    left: 16,
-                    zIndex: 100,
-                }}>
-                    <span style={{ fontSize: 16, color: '#FF6B35' }}>
-                        Poker<strong>IQ</strong>
-                    </span>
+                <div style={styles.logo}>
+                    <span style={{ color: '#FF6B35' }}>Poker</span>
+                    <strong style={{ color: '#fff' }}>IQ</strong>
                 </div>
 
-                {/* Hero - reference image as background */}
-                <HeroSection onPlayNow={handlePlayNow} />
+                {/* Hero */}
+                <HeroSection stats={stats} onPlayFeatured={handlePlayFeatured} />
 
                 {/* Filters */}
-                <FilterBar active={activeFilter} onFilter={setActiveFilter} />
+                <FilterBar
+                    active={activeFilter}
+                    onFilter={setActiveFilter}
+                    gameCount={filteredGames.length}
+                />
 
-                {/* Game Lanes - full width */}
-                <div style={{ paddingTop: 20, paddingBottom: 30 }}>
-                    {LANES.map(lane => (
+                {/* Game Lanes */}
+                <div style={styles.lanesContainer}>
+                    {/* NEW FOR YOU lane */}
+                    {newGames.length > 0 && activeFilter === 'ALL' && (
                         <GameLane
-                            key={lane.id}
-                            lane={lane}
+                            title="NEW FOR YOU"
+                            icon="✨"
+                            color="#00D4FF"
+                            games={newGames}
                             onGameClick={handleGameClick}
-                            hoveredGame={hoveredGame}
-                            onHover={setHoveredGame}
+                            getProgress={getGameProgress}
+                            badge="FRESH!"
                         />
-                    ))}
+                    )}
+
+                    {/* FIX YOUR LEAKS lane */}
+                    {leakGames.length > 0 && activeFilter === 'ALL' && (
+                        <GameLane
+                            title="FIX YOUR LEAKS"
+                            icon="🔧"
+                            color="#FF4444"
+                            games={leakGames}
+                            onGameClick={handleGameClick}
+                            getProgress={getGameProgress}
+                            badge="BELOW 70%!"
+                        />
+                    )}
+
+                    {/* Category lanes */}
+                    {activeFilter === 'ALL' ? (
+                        // Show all category lanes
+                        CATEGORIES.map(cat => (
+                            <GameLane
+                                key={cat.id}
+                                title={cat.title}
+                                icon={cat.icon}
+                                color={cat.color}
+                                games={getGamesByCategory(cat.id)}
+                                onGameClick={handleGameClick}
+                                getProgress={getGameProgress}
+                            />
+                        ))
+                    ) : (
+                        // Show filtered games in a single lane
+                        <GameLane
+                            title={`${activeFilter} TRAINING`}
+                            icon={activeFilter === 'GTO' ? '📐' : activeFilter === 'MATH' ? '🧮' : '🎣'}
+                            color={FILTERS.find(f => f.id === activeFilter)?.color || '#fff'}
+                            games={filteredGames}
+                            onGameClick={handleGameClick}
+                            getProgress={getGameProgress}
+                        />
+                    )}
+                </div>
+
+                {/* Footer stats */}
+                <div style={styles.footer}>
+                    <span>100 Training Games</span>
+                    <span>•</span>
+                    <span>2,000 Levels</span>
+                    <span>•</span>
+                    <span>85% to Master</span>
                 </div>
             </div>
         </>
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STYLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+const styles = {
+    page: {
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
+        color: '#fff',
+        fontFamily: 'Inter, -apple-system, sans-serif',
+        paddingBottom: 40,
+    },
+
+    logo: {
+        position: 'fixed',
+        top: 16,
+        left: 20,
+        fontSize: 18,
+        zIndex: 100,
+    },
+
+    loading: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        background: '#0a0a15',
+        color: '#fff',
+        gap: 16,
+    },
+
+    loadingSpinner: {
+        width: 40,
+        height: 40,
+        border: '3px solid rgba(255,255,255,0.1)',
+        borderTopColor: '#00D4FF',
+        borderRadius: '50%',
+    },
+
+    // Hero - FIXED SIZE, mobile-first
+    hero: {
+        position: 'relative',
+        height: 240, // Fixed height, optimized for mobile
+        minHeight: 240,
+        maxHeight: 240,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        paddingTop: 44, // Account for fixed header
+    },
+
+    heroBackground: {
+        position: 'absolute',
+        inset: 0,
+        background: `
+            radial-gradient(circle at 20% 50%, rgba(255,107,53,0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 50%, rgba(0,212,255,0.2) 0%, transparent 50%),
+            linear-gradient(180deg, #0a0a15 0%, #1a2744 100%)
+        `,
+    },
+
+    particleOverlay: {
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+    },
+
+    particle: {
+        position: 'absolute',
+        width: 4,
+        height: 4,
+        borderRadius: '50%',
+        background: '#FFD700',
+    },
+
+    heroContent: {
+        position: 'relative',
+        textAlign: 'center',
+        zIndex: 1,
+    },
+
+    heroLabel: {
+        display: 'block',
+        fontSize: 14,
+        color: '#FFD700',
+        fontStyle: 'italic',
+        marginBottom: 8,
+    },
+
+    heroTitle: {
+        fontSize: 28, // Fixed size for mobile
+        fontWeight: 800,
+        margin: '0 0 6px 0',
+        letterSpacing: 1,
+        textShadow: '0 0 30px rgba(255,107,53,0.5)',
+        lineHeight: 1.1,
+    },
+
+    heroSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.6)',
+        margin: 0,
+    },
+
+    statsRow: {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 24,
+        margin: '24px 0',
+    },
+
+    statItem: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+    },
+
+    statValue: {
+        fontSize: 24,
+        fontWeight: 700,
+        color: '#fff',
+    },
+
+    statLabel: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.5)',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+
+    statDivider: {
+        width: 1,
+        height: 28,
+        background: 'rgba(255,255,255,0.2)',
+    },
+
+    playButton: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '12px 24px', // Smaller for mobile
+        background: 'linear-gradient(135deg, #FF6B35, #E64A19)',
+        border: 'none',
+        borderRadius: 24,
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 700,
+        cursor: 'pointer',
+        boxShadow: '0 4px 20px rgba(255,107,53,0.4)',
+        letterSpacing: 0.5,
+        WebkitTapHighlightColor: 'transparent',
+    },
+
+    playIcon: {
+        fontSize: 12,
+    },
+
+    xpBadge: {
+        padding: '3px 8px',
+        background: 'rgba(255,255,255,0.2)',
+        borderRadius: 12,
+        fontSize: 11,
+        fontWeight: 600,
+    },
+
+    // Filters - FIXED SIZE header, mobile-first
+    filterBar: {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 16px',
+        height: 56, // FIXED height
+        minHeight: 56,
+        maxHeight: 56,
+        background: 'rgba(10,10,21,0.98)',
+        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+    },
+
+    filterPills: {
+        display: 'flex',
+        gap: 6,
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+    },
+
+    filterPill: {
+        padding: '8px 16px', // Compact for mobile
+        borderRadius: 18,
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: 1,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+        WebkitTapHighlightColor: 'transparent',
+    },
+
+    gameCount: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.4)',
+    },
+
+    // Lanes
+    lanesContainer: {
+        padding: '20px 0',
+    },
+
+    lane: {
+        marginBottom: 32,
+    },
+
+    laneHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '0 16px', // Tighter padding for mobile
+        marginBottom: 12,
+        height: 32, // Fixed height
+        minHeight: 32,
+    },
+
+    laneChevron: {
+        fontSize: 20,
+        fontWeight: 800,
+    },
+
+    laneIcon: {
+        fontSize: 20,
+    },
+
+    laneTitle: {
+        fontSize: 16,
+        fontWeight: 700,
+        letterSpacing: 2,
+        margin: 0,
+        textTransform: 'uppercase',
+    },
+
+    laneBadge: {
+        padding: '4px 10px',
+        background: 'linear-gradient(90deg, #FF5722, #FF9800)',
+        borderRadius: 4,
+        fontSize: 10,
+        fontWeight: 800,
+        color: '#fff',
+    },
+
+    laneCount: {
+        marginLeft: 'auto',
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.4)',
+    },
+
+    laneScroller: {
+        overflowX: 'auto',
+        overflowY: 'hidden',
+        padding: '0 24px',
+    },
+
+    laneCards: {
+        display: 'flex',
+        gap: 12, // Tighter gap for mobile
+        paddingBottom: 8,
+        paddingRight: 16, // Extra space at end
+    },
+
+    // Footer
+    footer: {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 16,
+        padding: '40px 0',
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.3)',
+        borderTop: '1px solid rgba(255,255,255,0.05)',
+        marginTop: 40,
+    },
+};
