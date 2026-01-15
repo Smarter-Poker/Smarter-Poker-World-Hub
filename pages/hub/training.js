@@ -17,10 +17,10 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import GameCard from '../../../src/components/training/GameCard';
-import { TRAINING_LIBRARY, TRAINING_LANES, getGamesByCategory, getGamesByTag } from '../../../src/data/TRAINING_LIBRARY';
-import useTrainingProgress from '../../../src/hooks/useTrainingProgress';
-import { getGameImage } from '../../../src/data/GAME_IMAGES';
+import GameCard from '../../src/components/training/GameCard';
+import { TRAINING_LIBRARY, TRAINING_LANES, getGamesByCategory, getGamesByTag } from '../../src/data/TRAINING_LIBRARY';
+import useTrainingProgress from '../../src/hooks/useTrainingProgress';
+import { getGameImage } from '../../src/data/GAME_IMAGES';
 
 // Filter options
 const FILTERS = [
