@@ -83,7 +83,7 @@ async function getRecentlyPostedClipIds() {
 
 /**
  * Post a video clip for a Horse
- * Uses YouTube URLs directly (yt-dlp/ffmpeg don't work on Vercel serverless)
+ * Simplified version that matches working debug endpoint
  */
 async function postVideoClip(horse, recentlyUsedClips = new Set()) {
     console.log(`🎬 ${horse.name}: Posting video clip...`);
@@ -95,77 +95,48 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             return null;
         }
 
-        // Try database first for pre-processed clips with storage URLs
-        const { data: dbClip } = await supabase.rpc('get_random_clip', {
-            p_category: null,
-            p_exclude_horse_id: horse.id
-        }).catch(() => ({ data: null }));
-
-        let clipData = null;
-        let videoUrl = null;
-
-        if (dbClip && dbClip.processed_url) {
-            // Use pre-processed clip from database (has storage URL)
-            clipData = dbClip;
-            videoUrl = dbClip.processed_url;
-            console.log(`   Using pre-processed clip: ${clipData.id}`);
-        } else {
-            // Use ClipLibrary - get a clip NOT recently used
-            let libraryClip = null;
-            let attempts = 0;
-            const maxAttempts = 20;
-
-            while (!libraryClip && attempts < maxAttempts) {
-                const candidate = getRandomClip();
-                if (!candidate) break;
-
-                // Check if this clip was recently used (by ID) or used this session
-                const isRecentlyUsed = recentlyUsedClips.has(candidate.id) ||
-                    usedClipsThisSession.has(candidate.id);
-
-                if (!isRecentlyUsed) {
-                    libraryClip = candidate;
-                    usedClipsThisSession.add(candidate.id); // Mark as used this session
-                } else {
-                    console.log(`   Skipping ${candidate.id} (recently used)`);
-                }
-                attempts++;
-            }
-
-            if (!libraryClip) {
-                console.log(`   No unique clips available after ${attempts} attempts`);
-                return null;
-            }
-
-            console.log(`   Using YouTube clip: ${libraryClip.id}`);
-
-            // Use YouTube URL directly (no processing on serverless)
-            // Format: YouTube video URL for embedding/linking
-            videoUrl = libraryClip.source_url;
-            clipData = libraryClip;
-            markClipUsed(libraryClip.id);
+        // Get a random clip from the library
+        const clip = getRandomClip();
+        if (!clip) {
+            console.error(`   No clips available`);
+            return null;
         }
 
-        // Generate caption
-        const caption = await generateClipCaption(horse, clipData);
+        console.log(`   Selected clip: ${clip.id}`);
 
-        // Create the post with clip metadata for deduplication
+        // Generate caption using template
+        const templateCaption = getRandomCaption ? getRandomCaption(clip.category || 'funny') : 'Check out this hand! 🔥';
+
+        let caption = templateCaption;
+        try {
+            const response = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [{
+                    role: 'user',
+                    content: `Write 1 short poker clip caption (10 words max): ${templateCaption}`
+                }],
+                max_tokens: 30
+            });
+            caption = response.choices[0].message.content;
+        } catch (e) {
+            console.log(`   Using template caption (OpenAI error: ${e.message})`);
+        }
+
+        // Create the post (matches debug endpoint exactly)
         const { data: post, error: postError } = await supabase
             .from('social_posts')
             .insert({
                 author_id: horse.profile_id,
                 content: caption,
                 content_type: 'video',
-                media_urls: [videoUrl],
+                media_urls: [clip.source_url],
                 visibility: 'public',
                 metadata: {
-                    clip_id: clipData.id,
-                    source_video_id: clipData.video_id || clipData.id,
-                    source: clipData.source || 'unknown',
-                    category: clipData.category || 'unknown'
+                    clip_id: clip.id,
+                    source: clip.source || 'unknown'
                 }
             })
-            .select()
+            .select('id')
             .single();
 
         if (postError) {
@@ -173,25 +144,12 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             return null;
         }
 
-        // Log clip usage in database
-        if (clipData.id) {
-            await supabase.rpc('mark_clip_used', {
-                p_clip_id: clipData.id,
-                p_horse_id: horse.id,
-                p_post_id: post.id,
-                p_caption: caption
-            }).catch(() => { }); // Ignore if RPC doesn't exist yet
-        }
-
-        // Also post to stories
-        await postToStory(horse.profile_id, videoUrl, 'video');
-
-        console.log(`✅ ${horse.name}: Video clip posted!`);
+        console.log(`✅ ${horse.name}: Video clip posted! Post ID: ${post.id}`);
 
         return {
             type: 'video_clip',
             post_id: post.id,
-            clip_id: clipData.id,
+            clip_id: clip.id,
             caption
         };
 
