@@ -14,10 +14,10 @@ const generateQuestions = (gameId, category, count = 20) => {
         heroHand: ['Ah', 'Kh'],    // Placeholder hand
         action: 'Hero is BTN. CO opens 2.5bb. Hero?',
         options: [
-            { id: 'fold', text: 'Fold', correct: false },
-            { id: 'call', text: 'Call', correct: false },
-            { id: 'raise', text: 'Raise to 8bb', correct: true },
-            { id: 'shove', text: 'All-In', correct: false }
+            { id: 'fold', text: 'Fold', isCorrect: false },
+            { id: 'call', text: 'Call', isCorrect: false },
+            { id: 'raise', text: 'Raise to 8bb', isCorrect: true },
+            { id: 'shove', text: 'All-In', isCorrect: false }
         ],
         explanation: `This is a standard value 3-bet configuration for ${category} strategy in this specific spot.`,
         difficulty: Math.min(5, Math.floor(i / 4) + 1)

@@ -553,9 +553,9 @@ export default function TrainingPlayPage() {
                             {/* Board cards */}
                             <div style={styles.boardArea}>
                                 {currentScenario.board.length > 0 ? (
-                                    currentScenario.board.map((card, i) => (
+                                    (currentScenario.board?.map((card, i) => (
                                         <PlayingCard key={i} card={card} size="small" delay={i * 0.1} />
-                                    ))
+                                    )) || null)
                                 ) : (
                                     <span style={styles.preFlopLabel}>PREFLOP</span>
                                 )}
@@ -583,9 +583,9 @@ export default function TrainingPlayPage() {
 
                     {/* Hero cards */}
                     <motion.div style={styles.holeCards}>
-                        {currentScenario.heroCards.map((card, i) => (
+                        {currentScenario.heroCards?.map((card, i) => (
                             <PlayingCard key={i} card={card} size="large" delay={0.3 + i * 0.15} />
-                        ))}
+                        )) || null}
                     </motion.div>
 
                     {/* Timer */}
@@ -614,7 +614,7 @@ export default function TrainingPlayPage() {
                                 animate={{ y: 0, opacity: 1 }}
                                 exit={{ y: -20, opacity: 0 }}
                             >
-                                {currentScenario.options.map((option, i) => (
+                                {currentScenario.options?.map((option, i) => (
                                     <motion.button
                                         key={option.id}
                                         style={styles.actionButton}
@@ -626,7 +626,7 @@ export default function TrainingPlayPage() {
                                     >
                                         {option.text}
                                     </motion.button>
-                                ))}
+                                )) || null}
                             </motion.div>
                         ) : (
                             <motion.div
