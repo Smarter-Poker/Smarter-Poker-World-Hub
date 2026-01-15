@@ -599,8 +599,8 @@ export default function TrainingPlayPage() {
 
                 {/* Situation */}
                 <div style={styles.situationPanel}>
-                    <h3 style={styles.situationTitle}>{currentScenario.title}</h3>
-                    <p style={styles.situationText}>{currentScenario.situation}</p>
+                    <h3 style={styles.situationTitle}>{currentScenario.title || currentScenario.scenario}</h3>
+                    <p style={styles.situationText}>{currentScenario.situation || currentScenario.action}</p>
                 </div>
 
                 {/* Actions */}
