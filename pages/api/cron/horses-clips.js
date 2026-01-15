@@ -89,6 +89,12 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
     console.log(`🎬 ${horse.name}: Posting video clip...`);
 
     try {
+        // Check if ClipLibrary loaded correctly
+        if (typeof getRandomClip !== 'function') {
+            console.error(`   ClipLibrary not loaded: getRandomClip is ${typeof getRandomClip}`);
+            return null;
+        }
+
         // Try database first for pre-processed clips with storage URLs
         const { data: dbClip } = await supabase.rpc('get_random_clip', {
             p_category: null,
