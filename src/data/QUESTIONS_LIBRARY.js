@@ -9,6 +9,7 @@ const generateQuestions = (gameId, category, count = 20) => {
     return Array.from({ length: count }).map((_, i) => ({
         id: `${gameId}-q${i + 1}`,
         scenario: `Level ${i + 1} Scenario for ${gameId}`,
+        potSize: 12 + i,
         board: ['As', 'Kd', '7h'], // Placeholder board
         heroHand: ['Ah', 'Kh'],    // Placeholder hand
         action: 'Hero is BTN. CO opens 2.5bb. Hero?',

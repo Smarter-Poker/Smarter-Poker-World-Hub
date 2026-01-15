@@ -22,7 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getGameById, TRAINING_LIBRARY } from '../../../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import feedback, { EFFECT_STYLES, screenEffects } from '../../../../src/engine/HapticsFeedback';
-import { getQuestionsForGame } from '../../../../src/data/questions';
+import { getQuestionsForGame } from '../../../../src/data/QUESTIONS_LIBRARY';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -562,7 +562,7 @@ export default function TrainingPlayPage() {
                             </div>
 
                             {/* Pot */}
-                            <ChipStack amount={currentScenario.potSize} />
+                            <ChipStack amount={currentScenario.potSize || 12} />
 
                             {/* Seats */}
                             {SEATS.map(seat => (
