@@ -363,7 +363,12 @@ export default function VideoLibraryPage() {
                                         }
                                     }}
                                     onError={(e) => {
-                                        e.target.src = `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`;
+                                        // Fallback chain: try hqdefault, then mqdefault
+                                        if (e.target.src.includes('maxresdefault')) {
+                                            e.target.src = `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`;
+                                        } else if (e.target.src.includes('hqdefault')) {
+                                            e.target.src = `https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg`;
+                                        }
                                     }}
                                 />
                                 {/* Duration badge */}
