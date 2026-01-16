@@ -25,17 +25,17 @@ import { useReturnBurst } from './components/ReturnBurst';
 // ─────────────────────────────────────────────────────────────────────────────
 function useIsMobile() {
     const [isMobile, setIsMobile] = useState(false);
-    
+
     useEffect(() => {
         const checkMobile = () => {
             setIsMobile(window.innerWidth < 768);
         };
-        
+
         checkMobile();
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
-    
+
     return isMobile;
 }
 
@@ -680,6 +680,10 @@ export default function WorldHub() {
                     50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
                     100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
                 }
+                /* Hide scrollbar for mobile footer */
+                div::-webkit-scrollbar {
+                    display: none;
+                }
             `}</style>
 
                 {/* ═══════════════════════════════════════════════════════════════
@@ -862,7 +866,7 @@ export default function WorldHub() {
                             ))}
                         </div>
                     )}
-                    
+
                     {/* MOBILE: Horizontal scrolling footer */}
                     {isMobile && (
                         <div
@@ -881,11 +885,6 @@ export default function WorldHub() {
                                 msOverflowStyle: 'none',
                             }}
                         >
-                            <style jsx>{`
-                                div::-webkit-scrollbar {
-                                    display: none;
-                                }
-                            `}</style>
                             {footerCards.map((orb, index) => (
                                 <div
                                     key={orb.id}
