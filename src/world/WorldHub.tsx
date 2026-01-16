@@ -410,34 +410,36 @@ export default function WorldHub() {
     const profileOrbRef = useRef<HTMLDivElement>(null);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // INTRO DETECTION — Play intro when user just signed in or signed up
-    // Auth pages set 'just_authenticated' flag, we check and clear it
+    // RETURN VISIT DETECTION — Skip cinematic if user has visited hub this session
     // ═══════════════════════════════════════════════════════════════════════
-    const [playIntro, setPlayIntro] = useState(() => {
-        // Check if user just authenticated (came from login/signup)
-        if (typeof window !== 'undefined') {
-            const justAuthenticated = sessionStorage.getItem('just_authenticated');
-            if (justAuthenticated) {
-                // Clear the flag so intro doesn't play on next navigation
-                sessionStorage.removeItem('just_authenticated');
-                return true; // Play the intro
-            }
+    const [isReturnVisit, setIsReturnVisit] = useState(false);
+
+    useEffect(() => {
+        // Check if user has already visited hub this session
+        const hasVisitedHub = sessionStorage.getItem('hub_visited');
+        if (hasVisitedHub) {
+            setIsReturnVisit(true);
+        } else {
+            // Mark hub as visited for this session
+            sessionStorage.setItem('hub_visited', 'true');
         }
-        return false; // Don't play intro (regular navigation)
-    });
+    }, []);
 
-    // For compatibility with existing code
-    const isReturnVisit = !playIntro;
+    // Cinematic intro state (for first visit only)
+    const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro();
 
-    // ═══════════════════════════════════════════════════════════════
-    // INTRO ANIMATIONS — ONLY when coming from auth (sign in/up)
-    // Pass playIntro to enable/disable - when false, no sounds/visuals
-    // ═══════════════════════════════════════════════════════════════
-    const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro(playIntro);
+    // Return burst state (for return visits)
+    const { showBurst, burstComplete, ReturnBurstComponent, triggerBurst } = useReturnBurst();
+
+    // Trigger return burst on return visits
+    useEffect(() => {
+        if (isReturnVisit && !showBurst && !burstComplete) {
+            triggerBurst();
+        }
+    }, [isReturnVisit, showBurst, burstComplete, triggerBurst]);
+
+    // Launch animation state (triggers after any intro completes)
     const { isLaunching, isComplete: isIntroComplete, onBurst } = useLaunchAnimation();
-
-    // ReturnBurst DISABLED - no outro effects when going back
-    // const { showBurst, burstComplete, ReturnBurstComponent, triggerBurst } = useReturnBurst();
 
     // Notification counts - users start with 0 (no seed data)
     const [messageCount] = useState(0);
@@ -549,12 +551,11 @@ export default function WorldHub() {
 
     return (
         <>
-            {/* ═══════════════════════════════════════════════════════════════
-                CINEMATIC INTRO — Plays on FIRST visit (sign in/up) only
-                OUTRO/RETURN BURST — DISABLED (no effects when going back)
-                ═══════════════════════════════════════════════════════════════ */}
+            {/* EPIC CINEMATIC INTRO - Shows on FIRST visit only */}
             {!isReturnVisit && CinematicIntroComponent}
-            {/* ReturnBurst DISABLED - no outro effects when going back */}
+
+            {/* RETURN BURST - Shows when returning to hub */}
+            {isReturnVisit && ReturnBurstComponent}
 
             <div style={{
                 position: 'fixed',
@@ -654,8 +655,8 @@ export default function WorldHub() {
                             color="#00d4ff"
                         />
 
-                        {/* Launch Pad Animation — Only when intro is playing */}
-                        {playIntro && <LaunchPad isActive={isLaunching} onBurst={onBurst} />}
+                        {/* Launch Pad Animation */}
+                        <LaunchPad isActive={isLaunching} onBurst={onBurst} />
 
                         {/* Card Carousel with Snap */}
                         <CarouselEngine

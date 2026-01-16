@@ -93,7 +93,8 @@ const SAMPLE_SCENARIOS = [
     {
         id: 1,
         title: 'River Bluff Spot',
-        heroPosition: 'CO', // Hero is in CO position
+        heroPosition: 'CO',
+        heroStack: 55, // Hero has 55BB
         situation: 'You raised preflop from CO with A♠K♦, BB called. Flop: J♠7♥2♣. You c-bet, villain calls. Turn: 4♦. Check-check. River: 9♠. Villain checks.',
         heroCards: ['As', 'Kd'],
         board: ['Js', '7h', '2c', '4d', '9s'],
@@ -110,7 +111,8 @@ const SAMPLE_SCENARIOS = [
     {
         id: 2,
         title: 'Value Bet Sizing',
-        heroPosition: 'BB', // Hero is in BB position
+        heroPosition: 'BB',
+        heroStack: 85, // Hero has 85BB
         situation: 'BTN raises, you 3-bet from BB with Q♥Q♠, BTN calls. Flop: Q♦8♣3♠. You bet 33%, BTN calls. Turn: 5♥. What\'s your action?',
         heroCards: ['Qh', 'Qs'],
         board: ['Qd', '8c', '3s', '5h'],
@@ -127,7 +129,8 @@ const SAMPLE_SCENARIOS = [
     {
         id: 3,
         title: 'ICM Pressure',
-        heroPosition: 'SB', // Hero is in SB position
+        heroPosition: 'SB',
+        heroStack: 25, // Hero has 25BB - critical for this ICM spot
         situation: 'Final table bubble, 6 left pay 5. You have 25BB in SB. Folds to you. BB covers with 40BB. You have K♠J♠.',
         heroCards: ['Ks', 'Js'],
         board: [],
@@ -650,7 +653,7 @@ export default function TrainingPlayPage() {
                                 </div>
                                 <div style={styles.heroStackDisplay}>
                                     <span style={styles.heroStackAmount}>
-                                        {currentScenario.heroStack || 25} BB
+                                        {currentScenario.heroStack} BB
                                     </span>
                                 </div>
                             </div>
@@ -866,23 +869,22 @@ const styles = {
         background: '#0a0a0a',
     },
 
-    // Premium table container - HORIZONTAL landscape orientation
+    // Premium table container - VERTICAL portrait orientation
     premiumTableContainer: {
         position: 'relative',
         width: '100%',
-        maxWidth: 400,
-        aspectRatio: '16 / 10', // Wide horizontal
+        maxWidth: 320, // Narrower for vertical
+        aspectRatio: '10 / 16', // VERTICAL tall pill shape
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden',
     },
     tableImage: {
-        width: '170%', // Larger to fill after rotation
-        height: '170%',
+        width: '100%',
+        height: '100%',
         objectFit: 'contain',
         filter: 'brightness(1.1) contrast(1.05) saturate(1.05)',
-        transform: 'rotate(90deg)', // ROTATE to horizontal
+        // NO ROTATION - keep vertical
     },
     tableGlow: {
         position: 'absolute',
