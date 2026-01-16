@@ -553,3 +553,25 @@ Import trace for requested module:
  GET /images/training/avatar-hero.png 404 in 2ms
  GET /images/training/avatar-villain.png 404 in 2ms
  GET /images/training/avatar-hero.png 404 in 2ms
+ ⚠ Fast Refresh had to perform a full reload when ./src/lib/AntiGravityBoot.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./src/lib/AntiGravityBoot.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./src/lib/AntiGravityBoot.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./src/lib/AntiGravityBoot.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./src/lib/AntiGravityBoot.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ✓ Compiled in 256ms (812 modules)
+ GET /hub/training/play/mtt-001?v=18 200 in 87ms
+ GET /hub/training/play/mtt-001?v=22 200 in 60ms
+ GET /hub/training/play/mtt-001?v=19 200 in 61ms
+ GET /hub/training/play/mtt-001?v=20 200 in 53ms
+ GET /hub/training/play/mtt-001?v=21 200 in 92ms
+ ✓ Compiled /404 in 38ms (816 modules)
+ GET /images/training/avatar-villain.png 404 in 50ms
+ GET /images/training/avatar-hero.png 404 in 50ms
+ GET /images/training/avatar-villain.png 404 in 3ms
+ GET /images/training/avatar-hero.png 404 in 3ms
+ GET /images/training/avatar-villain.png 404 in 2ms
+ GET /images/training/avatar-hero.png 404 in 2ms
+ GET /images/training/avatar-villain.png 404 in 3ms
+ GET /images/training/avatar-hero.png 404 in 3ms
+ GET /images/training/avatar-villain.png 404 in 2ms
+ GET /images/training/avatar-hero.png 404 in 2ms
