@@ -766,7 +766,7 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
                     textShadow: '0 0 40px rgba(0,200,255,0.8)',
                     fontFamily: 'system-ui, -apple-system, sans-serif',
                 }}>
-                    SMARTER
+                    SMARTER.POKER
                 </div>
 
                 <div style={{
