@@ -92,32 +92,32 @@ export default function GameCard({
                         {game.icon}
                     </div>
                 )}
+            </div>
 
-                {/* NEON S-RANK BADGE - Upper Right */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        top: 6,
-                        right: -8,
-                        padding: '6px 16px 6px 20px',
-                        background: 'rgba(20, 20, 20, 0.9)',
-                        border: '3px solid #FFD700',
-                        borderRadius: 5,
-                        clipPath: 'polygon(12% 0%, 100% 0%, 100% 100%, 12% 100%, 0% 50%)',
-                        boxShadow: '0 0 20px #FFD700, 0 0 40px #FFD700, 0 0 60px rgba(255,215,0,0.6)',
-                        zIndex: 10,
-                    }}
-                >
-                    <span style={{
-                        fontSize: 11,
-                        fontWeight: 900,
-                        color: '#fff',
-                        textTransform: 'uppercase',
-                        letterSpacing: 0.5,
-                    }}>
-                        S-RANK
-                    </span>
-                </div>
+            {/* NEON S-RANK BADGE - Upper Right - OUTSIDE card to avoid transform */}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 16,
+                    right: 2,
+                    padding: '6px 16px 6px 20px',
+                    background: 'rgba(20, 20, 20, 0.9)',
+                    border: '3px solid #FFD700',
+                    borderRadius: 5,
+                    clipPath: 'polygon(12% 0%, 100% 0%, 100% 100%, 12% 100%, 0% 50%)',
+                    boxShadow: '0 0 20px #FFD700, 0 0 40px #FFD700, 0 0 60px rgba(255,215,0,0.6)',
+                    zIndex: 10,
+                }}
+            >
+                <span style={{
+                    fontSize: 11,
+                    fontWeight: 900,
+                    color: '#fff',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                }}>
+                    S-RANK
+                </span>
             </div>
 
             {/* TITLE BELOW */}

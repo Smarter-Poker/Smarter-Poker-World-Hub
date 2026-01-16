@@ -289,27 +289,41 @@ export default function VideoLibraryPage() {
                                 key={source.id}
                                 onClick={() => setSelectedSource(source.id)}
                                 style={{
-                                    padding: '10px 18px',
+                                    padding: '12px 20px',
                                     background: selectedSource === source.id
                                         ? 'linear-gradient(135deg, #FF4444, #FF6B6B)'
                                         : C.card,
                                     border: `1px solid ${selectedSource === source.id ? 'transparent' : C.border}`,
-                                    borderRadius: 20,
+                                    borderRadius: 24,
                                     color: C.text,
                                     fontSize: 14,
-                                    fontWeight: 500,
+                                    fontWeight: 600,
                                     cursor: 'pointer',
                                     whiteSpace: 'nowrap',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: 8,
+                                    gap: 10,
                                     transition: 'all 0.2s',
                                 }}
                             >
                                 {source.logo && (
-                                    <img src={source.logo} alt={source.name} style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                                    <div style={{
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: 12,
+                                        background: 'rgba(255, 255, 255, 0.08)',
+                                        backdropFilter: 'blur(10px)',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: 6,
+                                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                                    }}>
+                                        <img src={source.logo} alt={source.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                    </div>
                                 )}
-                                {source.id === 'ALL' && <span>🌍</span>}
+                                {source.id === 'ALL' && <span style={{ fontSize: 20 }}>🌍</span>}
                                 {source.name}
                             </button>
                         ))}
@@ -437,18 +451,32 @@ export default function VideoLibraryPage() {
                                         fontSize: 12,
                                         fontWeight: 600,
                                         background: 'rgba(255,68,68,0.15)',
-                                        padding: '4px 10px',
+                                        padding: '6px 12px',
                                         borderRadius: 12,
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: 6,
+                                        gap: 8,
                                     }}>
                                         {SOURCES.find(s => s.id === video.source)?.logo && (
-                                            <img
-                                                src={SOURCES.find(s => s.id === video.source)?.logo}
-                                                alt=""
-                                                style={{ width: 16, height: 16, objectFit: 'contain' }}
-                                            />
+                                            <div style={{
+                                                width: 26,
+                                                height: 26,
+                                                borderRadius: 8,
+                                                background: 'rgba(255, 255, 255, 0.1)',
+                                                backdropFilter: 'blur(8px)',
+                                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                padding: 4,
+                                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                                            }}>
+                                                <img
+                                                    src={SOURCES.find(s => s.id === video.source)?.logo}
+                                                    alt=""
+                                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                                />
+                                            </div>
                                         )}
                                         {video.source.replace('_', ' ')}
                                     </span>
@@ -574,18 +602,32 @@ export default function VideoLibraryPage() {
                                 fontSize: 13,
                                 fontWeight: 600,
                                 background: 'rgba(255,68,68,0.2)',
-                                padding: '4px 12px',
+                                padding: '6px 14px',
                                 borderRadius: 12,
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: 6,
+                                gap: 8,
                             }}>
                                 {SOURCES.find(s => s.id === selectedVideo.source)?.logo && (
-                                    <img
-                                        src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
-                                        alt=""
-                                        style={{ width: 18, height: 18, objectFit: 'contain' }}
-                                    />
+                                    <div style={{
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: 8,
+                                        background: 'rgba(255, 255, 255, 0.12)',
+                                        backdropFilter: 'blur(8px)',
+                                        border: '1px solid rgba(255, 255, 255, 0.18)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: 4,
+                                        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
+                                    }}>
+                                        <img
+                                            src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
+                                            alt=""
+                                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                        />
+                                    </div>
                                 )}
                                 {selectedVideo.source.replace('_', ' ')}
                             </span>
