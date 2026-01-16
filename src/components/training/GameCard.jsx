@@ -34,14 +34,21 @@ export default function GameCard({ game, onClick, index = 0, image }) {
                     width: 200,
                     height: 120,
                     background: '#1a2744',
-                    border: `3px solid ${categoryColor}`,
                     borderRadius: 10,
                     boxShadow: `0 0 20px ${categoryColor}50, 0 8px 20px rgba(0,0,0,0.6)`,
-                    overflow: 'hidden',
-                    transform: 'perspective(1000px) rotateY(-5deg)',
-                    transformStyle: 'preserve-3d',
+                    clipPath: 'polygon(0 0, 100% 3%, 100% 97%, 0 100%)',
                 }}
             >
+                {/* Border overlay */}
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    border: `3px solid ${categoryColor}`,
+                    borderRadius: 10,
+                    clipPath: 'polygon(0 0, 100% 3%, 100% 97%, 0 100%)',
+                    pointerEvents: 'none',
+                }} />
+
                 {(image || game.image) && (
                     <img
                         src={image || game.image}
