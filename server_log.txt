@@ -420,3 +420,27 @@ Import trace for requested module:
  GET /hub/training/play/mtt-001?v=8 200 in 22ms
  GET /hub/training/play/mtt-001?v=8 200 in 4ms
  ✓ Compiled in 86ms (810 modules)
+ ✓ Compiled in 87ms (810 modules)
+ ✓ Compiled /404 in 86ms (814 modules)
+ GET /images/training/avatar-hero.png 404 in 102ms
+ GET /images/training/avatar-hero.png 404 in 1ms
+ GET /images/training/avatar-hero.png 404 in 2ms
+ ✓ Compiled in 77ms (814 modules)
+ GET /hub/training/play/mtt-001?v=9 200 in 19ms
+ GET /images/training/avatar-hero.png 404 in 4ms
+ ✓ Compiled in 170ms (810 modules)
+ ⚠ Fast Refresh had to perform a full reload when ./src/providers/AntiGravityProvider.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./src/providers/AntiGravityProvider.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./src/providers/AntiGravityProvider.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./src/providers/AntiGravityProvider.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /hub/training/play/mtt-001?v=9 200 in 14ms
+ GET /hub/training/play/mtt-001?v=7 200 in 3ms
+ GET /hub/training/play/mtt-001?v=8 200 in 5ms
+ GET /hub/training/play/mtt-001?v=8 200 in 4ms
+ ✓ Compiled /404 in 37ms (814 modules)
+ GET /images/training/avatar-hero.png 404 in 44ms
+ GET /images/training/avatar-hero.png 404 in 2ms
+ GET /images/training/avatar-hero.png 404 in 2ms
+ GET /images/training/avatar-hero.png 404 in 2ms
+ ✓ Compiled in 59ms (814 modules)
+ ✓ Compiled in 91ms (814 modules)

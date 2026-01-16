@@ -158,6 +158,7 @@ function PlayingCard({ card, size = 'medium', delay = 0, faceDown = false }) {
     const suitConfig = SUITS[suit] || SUITS.s;
 
     const sizes = {
+        tiny: { w: 28, h: 40, font: 10, suit: 10 }, // For 5 cards to fit
         small: { w: 36, h: 50, font: 12, suit: 14 },
         medium: { w: 48, h: 68, font: 16, suit: 18 },
         large: { w: 60, h: 84, font: 20, suit: 24 },
@@ -597,40 +598,42 @@ export default function TrainingPlayPage() {
 
                     {/* Premium Poker Table */}
                     <div style={styles.premiumTableContainer}>
-                        {/* Table image - new clean version */}
+                        {/* Table image - VERTICAL orientation */}
                         <img
                             src="/images/training/poker-table-clean.png"
                             alt=""
                             style={styles.tableImage}
                         />
 
-                        {/* Board & Pot - centered on table */}
-                        <div style={styles.tableOverlay}>
-                            {/* Board cards - sized for 5 cards */}
-                            <div style={styles.boardArea}>
-                                {currentScenario.board && currentScenario.board.length > 0 ? (
-                                    currentScenario.board.map((card, i) => (
-                                        <PlayingCard key={i} card={card} size="medium" delay={i * 0.1} />
-                                    ))
-                                ) : (
-                                    <div style={styles.preFlopBadge}>PREFLOP</div>
-                                )}
-                            </div>
-
-                            {/* Pot */}
-                            <div style={styles.potDisplay}>
-                                <span style={styles.potLabel}>POT</span>
-                                <span style={styles.potAmount}>{currentScenario.potSize || 12} BB</span>
-                            </div>
+                        {/* POT Display - ABOVE board cards */}
+                        <div style={styles.potDisplayTop}>
+                            <span style={styles.potChip}>💰</span>
+                            <span style={styles.potLabelTop}>POT</span>
+                            <span style={styles.potAmountTop}>{currentScenario.potSize || 12}</span>
                         </div>
 
-                        {/* Dealer Button - moves based on hero position */}
+                        {/* Board Cards - CENTER of table, SMALL enough for 5 */}
+                        <div style={styles.boardAreaCenter}>
+                            {currentScenario.board && currentScenario.board.length > 0 ? (
+                                currentScenario.board.map((card, i) => (
+                                    <PlayingCard key={i} card={card} size="small" delay={i * 0.08} />
+                                ))
+                            ) : (
+                                <div style={styles.preFlopBadge}>PREFLOP</div>
+                            )}
+                        </div>
+
+                        {/* Game Info - below board */}
+                        <div style={styles.gameInfoCenter}>
+                            <span style={styles.gameType}>NLH</span>
+                        </div>
+
+                        {/* Dealer Button */}
                         <motion.div
                             style={{
                                 ...styles.dealerButton,
-                                // Position on the felt
-                                top: `${50 + Math.sin(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 22}%`,
-                                left: `${50 + Math.cos(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 28}%`,
+                                top: `${50 + Math.sin(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 35}%`,
+                                left: `${50 + Math.cos(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 35}%`,
                             }}
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
@@ -639,45 +642,53 @@ export default function TrainingPlayPage() {
                             <span style={styles.dealerButtonText}>D</span>
                         </motion.div>
 
-                        {/* Hero Avatar with Stack and Hole Cards - always at bottom */}
-                        <motion.div
-                            style={styles.heroSection}
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.1 }}
-                        >
-                            {/* Avatar */}
-                            <div style={styles.heroAvatar}>
-                                <div style={styles.avatarCircle}>
-                                    <span style={styles.avatarEmoji}>🎯</span>
-                                </div>
-                                <div style={styles.heroStackDisplay}>
-                                    <span style={styles.heroStackAmount}>
-                                        {currentScenario.heroStack} BB
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Hero Hole Cards - ON the table */}
-                            <div style={styles.heroHoleCards}>
-                                {(currentScenario.heroCards || currentScenario.heroHand)?.map((card, i) => (
-                                    <PlayingCard key={i} card={card} size="medium" delay={0.3 + i * 0.15} />
-                                )) || null}
-                            </div>
-                        </motion.div>
-
-                        {/* Villain Stack - top of table */}
+                        {/* Villain Player - TOP of table */}
                         {currentScenario.villainStack && (
                             <motion.div
-                                style={styles.villainStack}
+                                style={styles.villainPlayer}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.3 }}
                             >
-                                <span style={styles.villainStackLabel}>Villain</span>
-                                <span style={styles.villainStackAmount}>{currentScenario.villainStack} BB</span>
+                                <div style={styles.playerAvatar}>
+                                    <img src="/images/training/avatar-villain.png" alt="" style={styles.avatarImage}
+                                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                    />
+                                    <div style={{ ...styles.avatarFallback, display: 'none' }}>👤</div>
+                                </div>
+                                <div style={styles.playerName}>Villain</div>
+                                <div style={styles.playerStack}>{currentScenario.villainStack}</div>
                             </motion.div>
                         )}
+
+                        {/* HERO Section - BOTTOM of table */}
+                        <motion.div
+                            style={styles.heroPlayer}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.1 }}
+                        >
+                            {/* Hero Avatar + Name + Stack */}
+                            <div style={styles.heroInfo}>
+                                <div style={styles.playerAvatar}>
+                                    <img src="/images/training/avatar-hero.png" alt="" style={styles.avatarImage}
+                                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                    />
+                                    <div style={{ ...styles.avatarFallback, display: 'none' }}>🎮</div>
+                                </div>
+                                <div style={styles.heroNameBox}>
+                                    <span style={styles.heroName}>Hero</span>
+                                </div>
+                                <div style={styles.heroStackBox}>{currentScenario.heroStack}</div>
+                            </div>
+
+                            {/* Hero Hole Cards - ON the table, RIGHT of avatar */}
+                            <div style={styles.heroHoleCards}>
+                                {(currentScenario.heroCards || currentScenario.heroHand)?.map((card, i) => (
+                                    <PlayingCard key={i} card={card} size="small" delay={0.3 + i * 0.1} />
+                                )) || null}
+                            </div>
+                        </motion.div>
                     </div>
 
                     {/* Timer */}
@@ -865,7 +876,6 @@ const styles = {
         justifyContent: 'center',
         position: 'relative',
         padding: '0 12px',
-        // Match the table image dark background exactly
         background: '#0a0a0a',
     },
 
@@ -873,7 +883,7 @@ const styles = {
     premiumTableContainer: {
         position: 'relative',
         width: '100%',
-        maxWidth: 320, // Narrower for vertical
+        maxWidth: 340,
         aspectRatio: '10 / 16', // VERTICAL tall pill shape
         display: 'flex',
         alignItems: 'center',
@@ -884,90 +894,174 @@ const styles = {
         height: '100%',
         objectFit: 'contain',
         filter: 'brightness(1.1) contrast(1.05) saturate(1.05)',
-        // NO ROTATION - keep vertical
-    },
-    tableGlow: {
-        position: 'absolute',
-        inset: '5%',
-        borderRadius: '50%',
-        background: 'radial-gradient(ellipse at center 40%, rgba(255, 200, 100, 0.08) 0%, transparent 70%)',
-        pointerEvents: 'none',
-    },
-    tableOverlay: {
-        position: 'absolute',
-        top: '50%', // Center on horizontal table
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 8,
     },
 
-    boardArea: {
+    // POT Display - positioned at top of table
+    potDisplayTop: {
+        position: 'absolute',
+        top: '18%',
+        left: '50%',
+        transform: 'translateX(-50%)',
         display: 'flex',
+        alignItems: 'center',
         gap: 6,
-        padding: '10px 14px',
-        background: 'rgba(0, 0, 0, 0.4)',
-        borderRadius: 12,
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(255, 215, 0, 0.2)',
+        padding: '6px 12px',
+        background: 'rgba(0, 0, 0, 0.7)',
+        borderRadius: 20,
+        border: '1px solid rgba(255, 215, 0, 0.3)',
     },
+    potChip: {
+        fontSize: 14,
+    },
+    potLabelTop: {
+        fontSize: 10,
+        fontWeight: 600,
+        color: 'rgba(255, 255, 255, 0.6)',
+    },
+    potAmountTop: {
+        fontSize: 16,
+        fontWeight: 800,
+        color: '#fff',
+    },
+
+    // Board Cards - CENTER of table
+    boardAreaCenter: {
+        position: 'absolute',
+        top: '32%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: 3,
+    },
+
     preFlopBadge: {
-        padding: '10px 24px',
+        padding: '8px 20px',
         background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 140, 0, 0.25))',
         border: '2px solid rgba(255, 215, 0, 0.5)',
-        borderRadius: 25,
-        fontSize: 13,
+        borderRadius: 20,
+        fontSize: 12,
         fontWeight: 800,
         color: '#FFD700',
-        letterSpacing: 4,
-        textShadow: '0 0 15px rgba(255, 215, 0, 0.6)',
+        letterSpacing: 3,
     },
-    potDisplay: {
+
+    // Game Info - below board
+    gameInfoCenter: {
+        position: 'absolute',
+        top: '45%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        textAlign: 'center',
+    },
+    gameType: {
+        fontSize: 14,
+        fontWeight: 800,
+        color: '#FFD700',
+        letterSpacing: 2,
+    },
+
+    // Villain Player - TOP of table
+    villainPlayer: {
+        position: 'absolute',
+        top: '5%',
+        left: '50%',
+        transform: 'translateX(-50%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: 2,
-        padding: '10px 20px',
-        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(30, 20, 10, 0.7))',
-        borderRadius: 16,
-        border: '1px solid rgba(255, 215, 0, 0.4)',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
+        zIndex: 15,
     },
-    potLabel: {
-        fontSize: 10,
-        fontWeight: 700,
-        color: 'rgba(255, 215, 0, 0.8)',
-        letterSpacing: 2,
+    playerAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        border: '2px solid rgba(255, 255, 255, 0.3)',
     },
-    potAmount: {
-        fontSize: 22,
-        fontWeight: 800,
-        color: '#FFD700',
-        textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
+    avatarImage: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
     },
-    seatBadge: {
-        position: 'absolute',
-        transform: 'translate(-50%, -50%)',
-        padding: '5px 10px',
-        borderRadius: 8,
+    avatarFallback: {
+        width: '100%',
+        height: '100%',
+        background: 'linear-gradient(135deg, #444, #222)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        minWidth: 38,
-        zIndex: 10,
+        fontSize: 20,
     },
-    // Hero Section - avatar + hole cards container at bottom of table
-    heroSection: {
+    playerName: {
+        fontSize: 10,
+        fontWeight: 600,
+        color: '#fff',
+    },
+    playerStack: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: '#4CAF50',
+    },
+
+    // HERO Section - BOTTOM of table
+    heroPlayer: {
         position: 'absolute',
         bottom: '5%',
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: 15,
         display: 'flex',
         alignItems: 'center',
         gap: 8,
+        zIndex: 15,
+    },
+    heroInfo: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 2,
+    },
+    heroNameBox: {
+        padding: '2px 10px',
+        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        borderRadius: 8,
+        border: '1px solid #FFD700',
+    },
+    heroName: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: '#1a1a2e',
+    },
+    heroStackBox: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: '#4CAF50',
+    },
+    heroHoleCards: {
+        display: 'flex',
+        gap: 2,
+    },
+
+    // Dealer Button
+    dealerButton: {
+        position: 'absolute',
+        transform: 'translate(-50%, -50%)',
+        width: 24,
+        height: 24,
+        borderRadius: '50%',
+        background: 'linear-gradient(180deg, #ffffff, #e0e0e0)',
+        border: '2px solid #333',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        zIndex: 20,
+    },
+    dealerButtonText: {
+        fontSize: 12,
+        fontWeight: 900,
+        color: '#1a1a2e',
+        fontFamily: 'Arial Black, sans-serif',
     },
 
     // Hero Avatar

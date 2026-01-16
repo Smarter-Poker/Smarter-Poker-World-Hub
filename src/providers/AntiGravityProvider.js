@@ -43,7 +43,7 @@ export function AntiGravityProvider({ children }) {
         boot();
     }, []);
 
-    // Loading state
+    // Loading state - Clean branded loading (no internal system names)
     if (loading) {
         return (
             <div style={{
@@ -56,8 +56,8 @@ export function AntiGravityProvider({ children }) {
                 fontFamily: 'Inter, sans-serif',
             }}>
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>🚀</div>
-                    <div style={{ fontSize: 18, fontWeight: 600 }}>Initializing Anti-Gravity...</div>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}>♦️</div>
+                    <div style={{ fontSize: 18, fontWeight: 600 }}>Loading...</div>
                 </div>
             </div>
         );

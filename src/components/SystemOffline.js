@@ -23,7 +23,7 @@ export default function SystemOffline({ bootState }) {
                 {/* Status */}
                 <div style={styles.status}>
                     <p style={styles.subtitle}>
-                        Anti-Gravity initialization failed. The system is in fail-closed mode.
+                        System initialization failed. The system is in fail-closed mode.
                     </p>
                 </div>
 
