@@ -619,12 +619,11 @@ export default function WorldHub() {
                 {/* ═══════════════════════════════════════════════════════════════
                 3D SPATIAL LAYER — Camera for massive main card
                 z-index: 5 puts cards ABOVE background but BELOW HUD (z-index: 10)
-                Mobile: Camera closer (z=14) with wider FOV (75) to show multiple cards
                 ═══════════════════════════════════════════════════════════════ */}
                 <Canvas
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 5 }}
                     dpr={[1, 2]}
-                    camera={{ position: [0, 0, isMobile ? 14 : 24], fov: isMobile ? 75 : 60 }}
+                    camera={{ position: [0, 0, 24], fov: 60 }}
                     gl={{
                         antialias: true,
                         powerPreference: 'high-performance',

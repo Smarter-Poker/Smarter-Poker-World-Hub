@@ -411,3 +411,7 @@ Import trace for requested module:
  GET /hub/training/play/mtt-001?v=6 200 in 20ms
  ✓ Compiled in 101ms (810 modules)
  ✓ Compiled in 94ms (810 modules)
+ ✓ Compiled in 100ms (810 modules)
+ ✓ Compiled in 82ms (810 modules)
+ ✓ Compiled in 69ms (810 modules)
+ GET /hub/training/play/mtt-001?v=7 200 in 22ms

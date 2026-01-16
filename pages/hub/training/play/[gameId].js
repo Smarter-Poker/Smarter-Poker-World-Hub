@@ -636,20 +636,30 @@ export default function TrainingPlayPage() {
                             <span style={styles.dealerButtonText}>D</span>
                         </motion.div>
 
-                        {/* Hero Avatar with Stack - always at bottom */}
+                        {/* Hero Avatar with Stack and Hole Cards - always at bottom */}
                         <motion.div
-                            style={styles.heroAvatar}
+                            style={styles.heroSection}
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: 0.1 }}
                         >
-                            <div style={styles.avatarCircle}>
-                                <span style={styles.avatarEmoji}>🎯</span>
+                            {/* Avatar */}
+                            <div style={styles.heroAvatar}>
+                                <div style={styles.avatarCircle}>
+                                    <span style={styles.avatarEmoji}>🎯</span>
+                                </div>
+                                <div style={styles.heroStackDisplay}>
+                                    <span style={styles.heroStackAmount}>
+                                        {currentScenario.heroStack || 25} BB
+                                    </span>
+                                </div>
                             </div>
-                            <div style={styles.heroStackDisplay}>
-                                <span style={styles.heroStackAmount}>
-                                    {currentScenario.heroStack || 25} BB
-                                </span>
+
+                            {/* Hero Hole Cards - ON the table */}
+                            <div style={styles.heroHoleCards}>
+                                {(currentScenario.heroCards || currentScenario.heroHand)?.map((card, i) => (
+                                    <PlayingCard key={i} card={card} size="medium" delay={0.3 + i * 0.15} />
+                                )) || null}
                             </div>
                         </motion.div>
 
@@ -666,13 +676,6 @@ export default function TrainingPlayPage() {
                             </motion.div>
                         )}
                     </div>
-
-                    {/* Hero hole cards - positioned below table */}
-                    <motion.div style={styles.heroCards}>
-                        {(currentScenario.heroCards || currentScenario.heroHand)?.map((card, i) => (
-                            <PlayingCard key={i} card={card} size="large" delay={0.3 + i * 0.15} />
-                        )) || null}
-                    </motion.div>
 
                     {/* Timer */}
                     <div style={styles.timerPosition}>
@@ -953,28 +956,84 @@ const styles = {
         minWidth: 38,
         zIndex: 10,
     },
-
-    // Hero Avatar - positioned at bottom of table
-    heroAvatar: {
+    // Hero Section - avatar + hole cards container at bottom of table
+    heroSection: {
         position: 'absolute',
         bottom: '5%',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 15,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+    },
+
+    // Hero Avatar
+    heroAvatar: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 4,
+    },
+
+    // Hero Hole Cards - on the table next to avatar
+    heroHoleCards: {
+        display: 'flex',
+        gap: 4,
     },
     avatarCircle: {
-        width: 40,
-        height: 40,
+        width: 36,
+        height: 36,
         borderRadius: '50%',
         background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-        border: '3px solid #fff',
+        border: '2px solid #fff',
         boxShadow: '0 4px 15px rgba(255, 215, 0, 0.5)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
     },
     avatarEmoji: {
-        fontSize: 18,
+        fontSize: 16,
+    },
+    heroStackDisplay: {
+        padding: '3px 10px',
+        background: 'rgba(0, 0, 0, 0.8)',
+        borderRadius: 10,
+        border: '1px solid rgba(255, 215, 0, 0.4)',
+    },
+    heroStackAmount: {
+        fontSize: 11,
+        fontWeight: 700,
+        color: '#4CAF50',
+    },
+
+    // Villain Stack - positioned at top of table
+    villainStack: {
+        position: 'absolute',
+        top: '8%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 2,
+        padding: '4px 12px',
+        background: 'rgba(0, 0, 0, 0.8)',
+        borderRadius: 10,
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        zIndex: 15,
+    },
+    villainStackLabel: {
+        fontSize: 9,
+        fontWeight: 600,
+        color: 'rgba(255, 255, 255, 0.6)',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    villainStackAmount: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: '#fff',
     },
 
     // Dealer Button - classic white circle with D
