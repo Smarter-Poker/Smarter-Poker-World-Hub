@@ -41,17 +41,17 @@ const SUITS = {
     c: { symbol: '♣', color: '#43a047' },
 };
 
-// Fixed table seats - HERO always at bottom (position 0 / 270°)
-// Positions go clockwise from HERO's perspective
+// Fixed table seats - HERO always at bottom (position 0 / 90° in CSS coordinates)
+// In CSS: angle 90° = bottom, 270° = top, 0° = right, 180° = left
 const TABLE_SEATS = [
-    { position: 0, angle: 270, label: 'HERO', isHero: true }, // Bottom - always HERO
-    { position: 1, angle: 225 },  // Bottom-left
-    { position: 2, angle: 180 },  // Left
-    { position: 3, angle: 135 },  // Top-left
-    { position: 4, angle: 90 },   // Top
-    { position: 5, angle: 45 },   // Top-right
+    { position: 0, angle: 90, label: 'HERO', isHero: true },  // Bottom - always HERO
+    { position: 1, angle: 135 },  // Bottom-left
+    { position: 2, angle: 180 },  // Left 
+    { position: 3, angle: 225 },  // Top-left
+    { position: 4, angle: 270 },  // Top
+    { position: 5, angle: 315 },  // Top-right
     { position: 6, angle: 0 },    // Right
-    { position: 7, angle: 315 },  // Bottom-right
+    { position: 7, angle: 45 },   // Bottom-right
 ];
 
 // Get seat label based on hero's position and seat offset
@@ -70,18 +70,22 @@ function getSeatLabel(heroPosition, seatOffset) {
 }
 
 // Calculate dealer button position based on hero's position
+// In CSS: 90° = bottom, 270° = top, 0° = right, 180° = left
 function getDealerButtonAngle(heroPosition) {
+    // When hero is BTN, button is at bottom (90°)
+    // When hero is SB, button is one seat clockwise from hero (bottom-right = 45°)
+    // etc.
     const positionAngles = {
-        'BTN': 270, // HERO at BTN = button at bottom
-        'SB': 315,  // HERO at SB = button one seat right
-        'BB': 0,    // HERO at BB = button two seats right
-        'UTG': 45,
-        'UTG+1': 90,
-        'MP': 135,
+        'BTN': 90,   // HERO at BTN = button at bottom with hero
+        'SB': 45,    // HERO at SB = button one seat right (bottom-right)
+        'BB': 0,     // HERO at BB = button two seats right
+        'UTG': 315,
+        'UTG+1': 270,
+        'MP': 225,
         'HJ': 180,
-        'CO': 225,
+        'CO': 135,
     };
-    return positionAngles[heroPosition.toUpperCase()] || 270;
+    return positionAngles[heroPosition.toUpperCase()] || 90;
 }
 
 // Sample scenarios
@@ -89,6 +93,7 @@ const SAMPLE_SCENARIOS = [
     {
         id: 1,
         title: 'River Bluff Spot',
+        heroPosition: 'CO', // Hero is in CO position
         situation: 'You raised preflop from CO with A♠K♦, BB called. Flop: J♠7♥2♣. You c-bet, villain calls. Turn: 4♦. Check-check. River: 9♠. Villain checks.',
         heroCards: ['As', 'Kd'],
         board: ['Js', '7h', '2c', '4d', '9s'],
@@ -105,6 +110,7 @@ const SAMPLE_SCENARIOS = [
     {
         id: 2,
         title: 'Value Bet Sizing',
+        heroPosition: 'BB', // Hero is in BB position
         situation: 'BTN raises, you 3-bet from BB with Q♥Q♠, BTN calls. Flop: Q♦8♣3♠. You bet 33%, BTN calls. Turn: 5♥. What\'s your action?',
         heroCards: ['Qh', 'Qs'],
         board: ['Qd', '8c', '3s', '5h'],
@@ -121,6 +127,7 @@ const SAMPLE_SCENARIOS = [
     {
         id: 3,
         title: 'ICM Pressure',
+        heroPosition: 'SB', // Hero is in SB position
         situation: 'Final table bubble, 6 left pay 5. You have 25BB in SB. Folds to you. BB covers with 40BB. You have K♠J♠.',
         heroCards: ['Ks', 'Js'],
         board: [],
@@ -957,6 +964,28 @@ const styles = {
         justifyContent: 'center',
         minWidth: 38,
         zIndex: 10,
+    },
+
+    // Dealer Button - classic white circle with D
+    dealerButton: {
+        position: 'absolute',
+        transform: 'translate(-50%, -50%)',
+        width: 28,
+        height: 28,
+        borderRadius: '50%',
+        background: 'linear-gradient(180deg, #ffffff, #e0e0e0)',
+        border: '2px solid #333',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.4), inset 0 -2px 4px rgba(0,0,0,0.1)',
+        zIndex: 15,
+    },
+    dealerButtonText: {
+        fontSize: 14,
+        fontWeight: 900,
+        color: '#1a1a2e',
+        fontFamily: 'Arial Black, sans-serif',
     },
 
     // Hero cards - below the table

@@ -226,8 +226,8 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
     const viewportScalingFactor = isMobile ? (1200 / size.width) : 1.0;
 
     // Vertical offset - center cards in the available space between header and footer
-    // Mobile: position cards higher but not too high to leave space balanced
-    const verticalOffset = isMobile ? 2.5 : 2.8;
+    // Mobile: position cards lower to fill center gap (was 2.5, too high)
+    const verticalOffset = isMobile ? 0.5 : 2.8;
 
     return (
         <group ref={groupRef} position={[0, verticalOffset, isMobile ? 5 : 0]}>
