@@ -41,17 +41,48 @@ const SUITS = {
     c: { symbol: '♣', color: '#43a047' },
 };
 
-// Seat positions - Hero at bottom middle (270°)
-const SEATS = [
-    { id: 'hero', angle: 270, label: 'HERO', isHero: true },
-    { id: 'sb', angle: 225, label: 'SB' },
-    { id: 'bb', angle: 180, label: 'BB' },
-    { id: 'utg', angle: 135, label: 'UTG' },
-    { id: 'hj', angle: 90, label: 'HJ' },
-    { id: 'co', angle: 45, label: 'CO' },
-    { id: 'btn', angle: 315, label: 'BTN' },
-    { id: 'mp', angle: 0, label: 'MP' },
+// Fixed table seats - HERO always at bottom (position 0 / 270°)
+// Positions go clockwise from HERO's perspective
+const TABLE_SEATS = [
+    { position: 0, angle: 270, label: 'HERO', isHero: true }, // Bottom - always HERO
+    { position: 1, angle: 225 },  // Bottom-left
+    { position: 2, angle: 180 },  // Left
+    { position: 3, angle: 135 },  // Top-left
+    { position: 4, angle: 90 },   // Top
+    { position: 5, angle: 45 },   // Top-right
+    { position: 6, angle: 0 },    // Right
+    { position: 7, angle: 315 },  // Bottom-right
 ];
+
+// Get seat label based on hero's position and seat offset
+// Hero's position determines where the BTN is relative to hero
+function getSeatLabel(heroPosition, seatOffset) {
+    const positions = ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'HJ', 'CO'];
+    // Rotate positions based on where hero is sitting
+    // If hero is BTN (position 0), labels are: HERO=BTN, +1=SB, +2=BB, etc
+    // If hero is BB (position 2), labels wrap differently
+    const heroIndex = positions.indexOf(heroPosition.toUpperCase());
+    if (heroIndex === -1) return '';
+
+    // Calculate which position label this seat should have
+    const labelIndex = (heroIndex + seatOffset) % 8;
+    return positions[labelIndex];
+}
+
+// Calculate dealer button position based on hero's position
+function getDealerButtonAngle(heroPosition) {
+    const positionAngles = {
+        'BTN': 270, // HERO at BTN = button at bottom
+        'SB': 315,  // HERO at SB = button one seat right
+        'BB': 0,    // HERO at BB = button two seats right
+        'UTG': 45,
+        'UTG+1': 90,
+        'MP': 135,
+        'HJ': 180,
+        'CO': 225,
+    };
+    return positionAngles[heroPosition.toUpperCase()] || 270;
+}
 
 // Sample scenarios
 const SAMPLE_SCENARIOS = [
@@ -556,15 +587,12 @@ export default function TrainingPlayPage() {
 
                     {/* Premium Poker Table */}
                     <div style={styles.premiumTableContainer}>
-                        {/* Table image */}
+                        {/* Table image - new clean version */}
                         <img
-                            src="/images/training/premium-table.jpg"
+                            src="/images/training/poker-table-clean.png"
                             alt=""
                             style={styles.tableImage}
                         />
-
-                        {/* Ambient glow */}
-                        <div style={styles.tableGlow} />
 
                         {/* Board & Pot - centered on table */}
                         <div style={styles.tableOverlay}>
@@ -586,38 +614,64 @@ export default function TrainingPlayPage() {
                             </div>
                         </div>
 
-                        {/* Seat badges around table */}
-                        {SEATS.map(seat => (
-                            <motion.div
-                                key={seat.id}
-                                style={{
-                                    ...styles.seatBadge,
-                                    top: `${50 + Math.sin(seat.angle * Math.PI / 180) * 42}%`,
-                                    left: `${50 + Math.cos(seat.angle * Math.PI / 180) * 40}%`,
-                                    background: seat.isHero
-                                        ? 'linear-gradient(135deg, #FFD700, #FFA500)'
-                                        : 'rgba(20, 20, 40, 0.95)',
-                                    boxShadow: seat.isHero
-                                        ? '0 0 20px rgba(255, 215, 0, 0.6)'
-                                        : '0 2px 10px rgba(0,0,0,0.5)',
-                                    border: seat.isHero
-                                        ? '2px solid #FFD700'
-                                        : '1px solid rgba(255, 215, 0, 0.3)',
-                                }}
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ delay: 0.1 }}
-                            >
-                                <span style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    color: seat.isHero ? '#1a1a2e' : '#FFD700',
-                                    letterSpacing: 1,
-                                }}>
-                                    {seat.label}
-                                </span>
-                            </motion.div>
-                        ))}
+                        {/* Dealer Button - moves based on hero position */}
+                        <motion.div
+                            style={{
+                                ...styles.dealerButton,
+                                top: `${50 + Math.sin(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 38}%`,
+                                left: `${50 + Math.cos(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 36}%`,
+                            }}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.2 }}
+                        >
+                            <span style={styles.dealerButtonText}>D</span>
+                        </motion.div>
+
+                        {/* HERO seat badge - always at bottom */}
+                        <motion.div
+                            style={{
+                                ...styles.seatBadge,
+                                top: `${50 + Math.sin(270 * Math.PI / 180) * 42}%`,
+                                left: `${50 + Math.cos(270 * Math.PI / 180) * 40}%`,
+                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                boxShadow: '0 0 20px rgba(255, 215, 0, 0.6)',
+                                border: '2px solid #FFD700',
+                            }}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.1 }}
+                        >
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#1a1a2e', letterSpacing: 1 }}>
+                                HERO
+                            </span>
+                        </motion.div>
+
+                        {/* Other position labels around table */}
+                        {TABLE_SEATS.filter(seat => !seat.isHero).map((seat, i) => {
+                            const labelOffset = seat.position;
+                            const label = getSeatLabel(currentScenario.heroPosition || 'BTN', labelOffset);
+                            return (
+                                <motion.div
+                                    key={seat.position}
+                                    style={{
+                                        ...styles.seatBadge,
+                                        top: `${50 + Math.sin(seat.angle * Math.PI / 180) * 42}%`,
+                                        left: `${50 + Math.cos(seat.angle * Math.PI / 180) * 40}%`,
+                                        background: 'rgba(20, 20, 40, 0.95)',
+                                        boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
+                                        border: '1px solid rgba(255, 215, 0, 0.3)',
+                                    }}
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: 0.1 + i * 0.02 }}
+                                >
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: '#FFD700', letterSpacing: 1 }}>
+                                        {label}
+                                    </span>
+                                </motion.div>
+                            );
+                        })}
                     </div>
 
                     {/* Hero hole cards - positioned below table */}

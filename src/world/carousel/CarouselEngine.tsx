@@ -225,12 +225,12 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
     // On mobile, we want cards to fill ~60-70% of screen width
     const viewportScalingFactor = isMobile ? (1200 / size.width) : 1.0;
 
-    // Vertical offset to shift carousel up
-    // Move cards higher on mobile to use vertical space better
-    const verticalOffset = isMobile ? 5.0 : 2.8;
+    // Vertical offset - center cards in the available space between header and footer
+    // Mobile: position cards higher but not too high to leave space balanced
+    const verticalOffset = isMobile ? 2.5 : 2.8;
 
     return (
-        <group ref={groupRef} position={[0, verticalOffset, isMobile ? 8 : 0]}>
+        <group ref={groupRef} position={[0, verticalOffset, isMobile ? 5 : 0]}>
             {visibleOrbs.map(({ config, offset }) => {
                 const absOffset = Math.abs(offset);
 
