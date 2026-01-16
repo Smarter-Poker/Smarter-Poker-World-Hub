@@ -31,8 +31,8 @@ export default function GameCard({ game, onClick, index = 0, image }) {
             <div
                 style={{
                     position: 'relative',
-                    width: 200,
-                    height: 120,
+                    width: 160,
+                    height: 160,
                     background: '#1a2744',
                     border: `3px solid ${categoryColor}`,
                     borderRadius: 10,

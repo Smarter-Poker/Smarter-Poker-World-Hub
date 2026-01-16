@@ -55,6 +55,10 @@ export default function SignUpPage() {
     const [aliasAvailable, setAliasAvailable] = useState(null);
     const [glowPulse, setGlowPulse] = useState(0);
 
+    // Password visibility toggles
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
     // 18+ Age Verification (2026 AB 831 Compliance)
     const [ageConfirmed, setAgeConfirmed] = useState(false);
 
@@ -440,29 +444,77 @@ export default function SignUpPage() {
                             {/* Password */}
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Password</label>
-                                <input
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    placeholder="••••••••"
-                                    style={styles.inputSingle}
-                                    minLength={6}
-                                    required
-                                />
+                                <div style={styles.passwordWrapper}>
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        placeholder="••••••••"
+                                        style={styles.inputSingle}
+                                        minLength={6}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        style={styles.eyeButton}
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                                                <line x1="1" y1="1" x2="23" y2="23" />
+                                            </svg>
+                                        ) : (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Confirm Password */}
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Confirm Password</label>
-                                <input
-                                    type="password"
-                                    value={formData.confirmPassword}
-                                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                    placeholder="••••••••"
-                                    style={styles.inputSingle}
-                                    minLength={6}
-                                    required
-                                />
+                                <div style={styles.passwordWrapper}>
+                                    <input
+                                        type={showConfirmPassword ? 'text' : 'password'}
+                                        value={formData.confirmPassword}
+                                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                        placeholder="••••••••"
+                                        style={styles.inputSingle}
+                                        minLength={6}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        style={styles.eyeButton}
+                                        tabIndex={-1}
+                                    >
+                                        {showConfirmPassword ? (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                                                <line x1="1" y1="1" x2="23" y2="23" />
+                                            </svg>
+                                        ) : (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
+                                {/* Forgot Password Link */}
+                                <button
+                                    type="button"
+                                    onClick={() => router.push('/auth/forgot-password')}
+                                    style={styles.forgotPasswordLink}
+                                >
+                                    Forgot your password?
+                                </button>
                             </div>
 
                             {/* Birthdate - 18+ Verification */}
@@ -956,6 +1008,38 @@ const styles = {
     fieldError: {
         fontSize: '11px',
         color: '#ff4d4d',
+    },
+    passwordWrapper: {
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+    },
+    eyeButton: {
+        position: 'absolute',
+        right: '12px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        color: 'rgba(0, 212, 255, 0.6)',
+        padding: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'color 0.2s ease',
+    },
+    forgotPasswordLink: {
+        background: 'none',
+        border: 'none',
+        color: 'rgba(0, 212, 255, 0.7)',
+        fontSize: '12px',
+        fontFamily: 'Inter, sans-serif',
+        cursor: 'pointer',
+        marginTop: '8px',
+        textAlign: 'right',
+        alignSelf: 'flex-end',
+        transition: 'color 0.2s ease',
     },
     phoneInput: {
         display: 'flex',
