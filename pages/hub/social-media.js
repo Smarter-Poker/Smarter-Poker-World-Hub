@@ -15,6 +15,7 @@ import { GoLiveModal } from '../../src/components/social/GoLiveModal';
 import { LiveStreamCard } from '../../src/components/social/LiveStreamCard';
 import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../src/services/LiveStreamService';
+import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

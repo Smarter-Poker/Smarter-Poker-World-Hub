@@ -21,13 +21,16 @@ import GameCard from '../../src/components/training/GameCard';
 import { TRAINING_LIBRARY, TRAINING_LANES, getGamesByCategory, getGamesByTag } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
+import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 
-// Filter options
+// Filter options - Category based filters that link to game lanes
 const FILTERS = [
-    { id: 'ALL', color: '#fff', activeColor: '#0a0a15' },
-    { id: 'GTO', color: '#4CAF50' },
-    { id: 'EXPLOITATIVE', color: '#FF6B35' },
-    { id: 'MATH', color: '#2196F3' },
+    { id: 'ALL', label: 'ALL', color: '#fff', activeColor: '#0a0a15' },
+    { id: 'MTT', label: 'TOURNAMENTS', color: '#FF6B35', laneTitle: 'MTT MASTERY' },
+    { id: 'CASH', label: 'CASH GAMES', color: '#4CAF50', laneTitle: 'CASH GAME GRIND' },
+    { id: 'SPINS', label: "SIT N GO'S", color: '#FFD700', laneTitle: 'SPINS & SNGS' },
+    { id: 'PSYCHOLOGY', label: 'PSYCHOLOGY', color: '#9C27B0', laneTitle: 'MENTAL GAME' },
+    { id: 'ADVANCED', label: 'ADVANCED', color: '#2196F3', laneTitle: 'ADVANCED THEORY' },
 ];
 
 // Category definitions
@@ -152,7 +155,7 @@ function FilterBar({ active, onFilter, gameCount }) {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >
-                            {filter.id}
+                            {filter.label}
                         </motion.button>
                     );
                 })}
@@ -226,7 +229,7 @@ export default function TrainingPage() {
     // Get filtered games
     const getFilteredGames = () => {
         if (activeFilter === 'ALL') return TRAINING_LIBRARY;
-        return getGamesByTag(activeFilter.toLowerCase());
+        return getGamesByCategory(activeFilter);
     };
 
     const filteredGames = getFilteredGames();
@@ -280,11 +283,8 @@ export default function TrainingPage() {
             </Head>
 
             <div style={styles.page}>
-                {/* Logo */}
-                <div style={styles.logo}>
-                    <span style={{ color: '#FF6B35' }}>Poker</span>
-                    <strong style={{ color: '#fff' }}>IQ</strong>
-                </div>
+                {/* Brain Home Button */}
+                <BrainHomeButton />
 
                 {/* Hero */}
                 <HeroSection stats={stats} onPlayFeatured={handlePlayFeatured} />
@@ -339,15 +339,21 @@ export default function TrainingPage() {
                             />
                         ))
                     ) : (
-                        // Show filtered games in a single lane
-                        <GameLane
-                            title={`${activeFilter} TRAINING`}
-                            icon={activeFilter === 'GTO' ? '📐' : activeFilter === 'MATH' ? '🧮' : '🎣'}
-                            color={FILTERS.find(f => f.id === activeFilter)?.color || '#fff'}
-                            games={filteredGames}
-                            onGameClick={handleGameClick}
-                            getProgress={getGameProgress}
-                        />
+                        // Show filtered games in a single lane for the selected category
+                        (() => {
+                            const activeCategory = CATEGORIES.find(c => c.id === activeFilter);
+                            const activeFilterConfig = FILTERS.find(f => f.id === activeFilter);
+                            return (
+                                <GameLane
+                                    title={activeCategory?.title || activeFilterConfig?.laneTitle || `${activeFilter} TRAINING`}
+                                    icon={activeCategory?.icon || '🎮'}
+                                    color={activeCategory?.color || activeFilterConfig?.color || '#fff'}
+                                    games={filteredGames}
+                                    onGameClick={handleGameClick}
+                                    getProgress={getGameProgress}
+                                />
+                            );
+                        })()
                     )}
                 </div>
 

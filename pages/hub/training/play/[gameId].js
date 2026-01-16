@@ -23,6 +23,7 @@ import { getGameById, TRAINING_LIBRARY } from '../../../../src/data/TRAINING_LIB
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import feedback, { EFFECT_STYLES, screenEffects } from '../../../../src/engine/HapticsFeedback';
 import { getQuestionsForGame } from '../../../../src/data/QUESTIONS_LIBRARY';
+import { WorldNavHeader } from '../../../../src/components/navigation/WorldNavHeader';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -528,19 +529,12 @@ export default function TrainingPlayPage() {
             `}</style>
 
             <div ref={arenaRef} style={styles.arena}>
-                {/* Header - Fixed 48px */}
-                <div style={styles.header}>
-                    <motion.button style={styles.backButton} onClick={handleExit} whileTap={{ scale: 0.95 }}>
-                        ← Exit
-                    </motion.button>
-                    <div style={styles.gameInfo}>
-                        <span style={styles.gameName}>{game.name}</span>
-                    </div>
-                    <div style={styles.progressInfo}>
-                        <span style={styles.questionCount}>{questionIndex + 1}/{QUESTIONS_PER_RUN}</span>
-                        <span style={styles.correctBadge}>✓ {correctCount}</span>
-                    </div>
-                </div>
+                {/* World Navigation Header */}
+                <WorldNavHeader
+                    title={game.name}
+                    backTo="/hub/training"
+                    backLabel="Training"
+                />
 
                 {/* Table Area */}
                 <div style={styles.tableArea}>

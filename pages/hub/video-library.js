@@ -6,6 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 
 // Full video catalog with YouTube embeds - 138 VIDEOS (96 cash + 42 tournaments)
 const FULL_VIDEOS = [
@@ -284,13 +285,12 @@ export default function VideoLibraryPage() {
                         justifyContent: 'space-between',
                         marginBottom: 20,
                     }}>
-                        <Link href="/hub" style={{
+                        <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 12,
-                            textDecoration: 'none',
+                            gap: 16,
                         }}>
-                            <span style={{ fontSize: 24 }}>←</span>
+                            <BrainHomeButton style={{ position: 'relative', top: 0, left: 0 }} />
                             <h1 style={{
                                 color: C.text,
                                 fontSize: 28,
@@ -299,7 +299,7 @@ export default function VideoLibraryPage() {
                             }}>
                                 📺 Video Library
                             </h1>
-                        </Link>
+                        </div>
 
                         {/* Search */}
                         <div style={{

@@ -5,6 +5,7 @@
 
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
+import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 
 export default function ClubArenaPage() {
     const [iframeLoaded, setIframeLoaded] = useState(false);
@@ -17,6 +18,9 @@ export default function ClubArenaPage() {
             </Head>
 
             <div style={styles.container}>
+                {/* Brain Home Button */}
+                <BrainHomeButton style={{ zIndex: 10001 }} />
+
                 {/* Loading state */}
                 {!iframeLoaded && (
                     <div style={styles.loadingContainer}>
