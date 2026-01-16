@@ -12,6 +12,8 @@ const generateQuestions = (gameId, category, count = 20) => {
         potSize: 12 + i,
         board: ['As', 'Kd', '7h'], // Placeholder board
         heroHand: ['Ah', 'Kh'],    // Placeholder hand
+        heroStack: 20,   // Default 20 BB
+        villainStack: 20, // Default 20 BB
         action: 'Hero is BTN. CO opens 2.5bb. Hero?',
         options: [
             { id: 'fold', text: 'Fold', isCorrect: false, frequency: 0 },

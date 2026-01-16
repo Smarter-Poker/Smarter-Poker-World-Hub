@@ -487,3 +487,20 @@ Import trace for requested module:
  ✓ Compiled /404 in 51ms (814 modules)
  GET /images/training/avatar-hero.png 404 in 63ms
  ✓ Compiled in 120ms (810 modules)
+ ✓ Compiled in 82ms (810 modules)
+ GET /hub/training/play/mtt-001?v=19 200 in 21ms
+ ✓ Compiled /404 in 37ms (814 modules)
+ GET /images/training/avatar-hero.png 404 in 49ms
+ ✓ Compiled in 81ms (810 modules)
+ GET /hub/training/play/mtt-001?v=20 200 in 13ms
+ ✓ Compiled /404 in 38ms (814 modules)
+ GET /images/training/avatar-hero.png 404 in 43ms
+ ✓ Compiled in 52ms (810 modules)
+ ✓ Compiled /404 in 41ms (814 modules)
+ GET /images/training/avatar-villain.png 404 in 47ms
+ GET /images/training/avatar-villain.png 404 in 2ms
+ GET /images/training/avatar-villain.png 404 in 2ms
+ ✓ Compiled in 55ms (814 modules)
+ GET /hub/training/play/mtt-001?v=21 200 in 15ms
+ GET /images/training/avatar-villain.png 404 in 3ms
+ GET /images/training/avatar-hero.png 404 in 3ms

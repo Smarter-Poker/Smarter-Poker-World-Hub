@@ -158,8 +158,8 @@ function PlayingCard({ card, size = 'medium', delay = 0, faceDown = false }) {
     const suitConfig = SUITS[suit] || SUITS.s;
 
     const sizes = {
-        tiny: { w: 38, h: 53, font: 12, suit: 13 }, // Board cards - 5 fit across
-        small: { w: 42, h: 59, font: 13, suit: 14 }, // Hero hole cards
+        tiny: { w: 35, h: 49, font: 11, suit: 12 }, // Board - 5 cards fit
+        small: { w: 35, h: 49, font: 11, suit: 12 }, // Hero cards same size
         medium: { w: 56, h: 78, font: 18, suit: 20 },
         large: { w: 68, h: 95, font: 22, suit: 26 },
     };
@@ -941,7 +941,7 @@ const styles = {
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
-        gap: 3,
+        gap: 2, // Smaller gap so 5 cards fit
     },
 
     preFlopBadge: {
@@ -968,6 +968,12 @@ const styles = {
         fontWeight: 800,
         color: '#FFD700',
         letterSpacing: 2,
+    },
+    brandingText: {
+        fontSize: 11,
+        fontWeight: 600,
+        color: 'rgba(255, 255, 255, 0.5)',
+        marginTop: 4,
     },
 
     // Villain Player - TOP of table
@@ -1019,10 +1025,10 @@ const styles = {
         position: 'absolute',
         bottom: '5%',
         left: '50%',
-        transform: 'translateX(-50%)', // Center the entire hero section
+        transform: 'translateX(-55%)', // Offset for cards on right
         display: 'flex',
-        alignItems: 'center',
-        gap: 6,
+        alignItems: 'flex-end', // Align to bottom
+        gap: 4,
         zIndex: 15,
     },
     heroInfo: {

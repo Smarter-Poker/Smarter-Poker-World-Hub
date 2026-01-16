@@ -891,7 +891,7 @@ export default function WorldHub() {
                                     onClick={() => handleCardSelect(orb.id)}
                                     style={{
                                         flex: '0 0 auto',
-                                        width: 100,
+                                        width: 115,
                                         cursor: 'pointer',
                                     }}
                                 >
