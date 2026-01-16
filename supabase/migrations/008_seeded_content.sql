@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS content_authors (
 
 -- Seeded Content Posts
 CREATE TABLE IF NOT EXISTS seeded_content (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     persona_id INTEGER REFERENCES content_authors(id),
     author_name TEXT NOT NULL,
     author_alias TEXT NOT NULL,
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS seeded_content (
 
 -- Content Schedule Queue
 CREATE TABLE IF NOT EXISTS content_schedule (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     content_id UUID REFERENCES seeded_content(id) ON DELETE CASCADE,
     scheduled_time TIMESTAMPTZ NOT NULL,
     posted BOOLEAN DEFAULT FALSE,

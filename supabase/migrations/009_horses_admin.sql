@@ -66,7 +66,7 @@ CREATE TRIGGER settings_timestamp_trigger
 
 -- Admin Generation Log
 CREATE TABLE IF NOT EXISTS content_generation_log (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     triggered_by TEXT,
     count_requested INTEGER,
     count_generated INTEGER,

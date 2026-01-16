@@ -6,7 +6,7 @@
 
 -- Clip library table - stores all available clips
 CREATE TABLE IF NOT EXISTS clip_library (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Source information
     source_url TEXT NOT NULL,
@@ -54,7 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_clips_tags ON clip_library USING GIN(tags);
 
 -- Clip usage log - tracks which horses posted which clips
 CREATE TABLE IF NOT EXISTS clip_usage_log (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     clip_id UUID REFERENCES clip_library(id),
     horse_id INTEGER REFERENCES content_authors(id),
     post_id UUID REFERENCES social_posts(id),

@@ -702,8 +702,9 @@ export default function TrainingPlayPage() {
                             style={styles.tableImage}
                         />
 
-                        {/* POT Display - ABOVE board cards, NO EMOJI */}
+                        {/* POT Display - ABOVE board cards */}
                         <div style={styles.potDisplayTop}>
+                            <span style={styles.potChip}>🪙</span>
                             <span style={styles.potLabelTop}>POT</span>
                             <span style={styles.potAmountTop}>{currentScenario.potSize || 12}</span>
                         </div>
@@ -1080,15 +1081,15 @@ const styles = {
         textAlign: 'center',
     },
     gameType: {
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: 800,
-        color: '#FFD700',
+        color: '#FFFFFF',
         letterSpacing: 2,
     },
     brandingText: {
-        fontSize: 11,
-        fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: 14,
+        fontWeight: 700,
+        color: '#FFD700',
         marginTop: 4,
     },
 
@@ -1141,17 +1142,18 @@ const styles = {
         position: 'absolute',
         bottom: '5%',
         left: '50%',
-        transform: 'translateX(-50%)', // Dead center
+        transform: 'translateX(-50%)',
         display: 'flex',
-        alignItems: 'flex-end',
+        flexDirection: 'column',
+        alignItems: 'center',
         gap: 4,
         zIndex: 15,
     },
     heroInfo: {
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         alignItems: 'center',
-        gap: 2,
+        gap: 8,
     },
     heroNameBox: {
         padding: '2px 10px',

@@ -17,7 +17,7 @@ ADD COLUMN IF NOT EXISTS original_source_name TEXT;
 
 -- Video generation queue
 CREATE TABLE IF NOT EXISTS video_generation_queue (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Request
     persona_id INTEGER REFERENCES content_authors(id),
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS video_generation_queue (
 
 -- RSS feed tracking
 CREATE TABLE IF NOT EXISTS rss_articles_seen (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     source_id TEXT NOT NULL,
     article_guid TEXT NOT NULL,
     title TEXT,
@@ -57,7 +57,7 @@ CREATE INDEX IF NOT EXISTS idx_rss_articles_unprocessed
 
 -- Pipeline run log
 CREATE TABLE IF NOT EXISTS pipeline_runs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Configuration
     run_type TEXT CHECK (run_type IN ('test', 'daily', 'manual', 'cycle')),
