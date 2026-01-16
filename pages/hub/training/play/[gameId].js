@@ -605,18 +605,17 @@ export default function TrainingPlayPage() {
                             style={styles.tableImage}
                         />
 
-                        {/* POT Display - ABOVE board cards */}
+                        {/* POT Display - ABOVE board cards, NO EMOJI */}
                         <div style={styles.potDisplayTop}>
-                            <span style={styles.potChip}>💰</span>
                             <span style={styles.potLabelTop}>POT</span>
                             <span style={styles.potAmountTop}>{currentScenario.potSize || 12}</span>
                         </div>
 
-                        {/* Board Cards - CENTER of table, SMALL enough for 5 */}
+                        {/* Board Cards - CENTER of table, TINY for 5 to fit */}
                         <div style={styles.boardAreaCenter}>
                             {currentScenario.board && currentScenario.board.length > 0 ? (
                                 currentScenario.board.map((card, i) => (
-                                    <PlayingCard key={i} card={card} size="small" delay={i * 0.08} />
+                                    <PlayingCard key={i} card={card} size="tiny" delay={i * 0.08} />
                                 ))
                             ) : (
                                 <div style={styles.preFlopBadge}>PREFLOP</div>
@@ -654,7 +653,7 @@ export default function TrainingPlayPage() {
                                     <img src="/images/training/avatar-villain.png" alt="" style={styles.avatarImage}
                                         onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                     />
-                                    <div style={{ ...styles.avatarFallback, display: 'none' }}>👤</div>
+                                    <div style={{ ...styles.avatarFallback, display: 'none' }}>V</div>
                                 </div>
                                 <div style={styles.playerName}>Villain</div>
                                 <div style={styles.playerStack}>{currentScenario.villainStack}</div>
@@ -674,7 +673,7 @@ export default function TrainingPlayPage() {
                                     <img src="/images/training/avatar-hero.png" alt="" style={styles.avatarImage}
                                         onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                     />
-                                    <div style={{ ...styles.avatarFallback, display: 'none' }}>🎮</div>
+                                    <div style={{ ...styles.avatarFallback, display: 'none' }}>H</div>
                                 </div>
                                 <div style={styles.heroNameBox}>
                                     <span style={styles.heroName}>Hero</span>
@@ -685,7 +684,7 @@ export default function TrainingPlayPage() {
                             {/* Hero Hole Cards - ON the table, RIGHT of avatar */}
                             <div style={styles.heroHoleCards}>
                                 {(currentScenario.heroCards || currentScenario.heroHand)?.map((card, i) => (
-                                    <PlayingCard key={i} card={card} size="small" delay={0.3 + i * 0.1} />
+                                    <PlayingCard key={i} card={card} size="tiny" delay={0.3 + i * 0.1} />
                                 )) || null}
                             </div>
                         </motion.div>
@@ -875,16 +874,17 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
-        padding: '0 12px',
+        padding: 0,
         background: '#0a0a0a',
+        overflow: 'hidden',
     },
 
-    // Premium table container - VERTICAL portrait orientation
+    // Premium table container - FULL PAGE
     premiumTableContainer: {
         position: 'relative',
         width: '100%',
-        maxWidth: 340,
-        aspectRatio: '10 / 16', // VERTICAL tall pill shape
+        height: '100%',
+        maxHeight: '70vh', // Leave room for question and buttons
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

@@ -11,6 +11,14 @@ const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || FALLBACK_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create Supabase client with explicit session persistence
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+   auth: {
+      autoRefreshToken: true,      // Automatically refresh tokens before they expire
+      persistSession: true,         // Persist session in localStorage
+      detectSessionInUrl: true,     // Detect OAuth redirects
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+   }
+});
 
 export default supabase;

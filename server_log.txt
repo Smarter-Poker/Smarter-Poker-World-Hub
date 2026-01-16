@@ -444,3 +444,9 @@ Import trace for requested module:
  GET /images/training/avatar-hero.png 404 in 2ms
  ✓ Compiled in 59ms (814 modules)
  ✓ Compiled in 91ms (814 modules)
+ ✓ Compiled in 71ms (810 modules)
+ ✓ Compiled in 106ms (810 modules)
+ ✓ Compiled in 89ms (810 modules)
+ GET /hub/training/play/mtt-001?v=10 200 in 22ms
+ ✓ Compiled /404 in 38ms (814 modules)
+ GET /images/training/avatar-hero.png 404 in 52ms
