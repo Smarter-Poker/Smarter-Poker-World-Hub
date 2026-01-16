@@ -57,6 +57,7 @@ export default function AuthCallback() {
                 if (existingProfile?.player_number) {
                     // Profile already exists, go to hub
                     setStatus('Welcome back! Redirecting...');
+                    sessionStorage.setItem('just_authenticated', 'true');
                     setTimeout(() => router.replace('/hub'), 1000);
                     return;
                 }
@@ -119,7 +120,8 @@ export default function AuthCallback() {
                     setStatus('Account created! Redirecting...');
                 }
 
-                // Redirect to hub
+                // Redirect to hub with intro
+                sessionStorage.setItem('just_authenticated', 'true');
                 setTimeout(() => router.replace('/hub'), 1500);
 
             } catch (err) {

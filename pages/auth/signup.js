@@ -777,7 +777,11 @@ export default function SignUpPage() {
                             </div>
 
                             <button
-                                onClick={() => router.push('/hub')}
+                                onClick={() => {
+                                    // Set flag so hub plays intro animation
+                                    sessionStorage.setItem('just_authenticated', 'true');
+                                    router.push('/hub');
+                                }}
                                 style={styles.submitButton}
                             >
                                 Enter the Hub →

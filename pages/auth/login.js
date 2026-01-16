@@ -28,6 +28,8 @@ export default function LoginPage() {
         async function checkSession() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
+                // Set flag so hub plays intro animation
+                sessionStorage.setItem('just_authenticated', 'true');
                 router.push('/hub');
             }
         }
@@ -48,7 +50,9 @@ export default function LoginPage() {
             if (authError) throw authError;
 
             console.log('✅ Login successful:', data.user?.email);
-            router.push('/hub/social-media');
+            // Set flag so hub plays intro animation
+            sessionStorage.setItem('just_authenticated', 'true');
+            router.push('/hub');
         } catch (err) {
             console.error('Login error:', err);
             setError(err.message || 'Login failed');
@@ -80,7 +84,9 @@ export default function LoginPage() {
             } else if (data.session) {
                 // Auto-confirmed (for development)
                 console.log('✅ Signup successful:', data.user?.email);
-                router.push('/hub/social-media');
+                // Set flag so hub plays intro animation
+                sessionStorage.setItem('just_authenticated', 'true');
+                router.push('/hub');
             }
         } catch (err) {
             console.error('Signup error:', err);

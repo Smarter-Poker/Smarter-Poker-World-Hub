@@ -694,20 +694,14 @@ export default function TrainingPlayPage() {
                                     <div style={styles.cardBody}>
                                         {/* Explanation Section */}
                                         <div style={styles.sectionCard}>
-                                            <div style={styles.sectionHeader}>
-                                                <span style={styles.sectionIcon}>💡</span>
-                                                <span style={styles.sectionLabel}>Explanation</span>
-                                            </div>
+                                            <div style={styles.sectionLabel}>Explanation</div>
                                             <p style={styles.sectionText}>{currentScenario.explanation}</p>
                                         </div>
 
                                         {/* GTO Approach Section */}
                                         {currentScenario.gtoStrategy && (
                                             <div style={styles.sectionCardHighlight}>
-                                                <div style={styles.sectionHeader}>
-                                                    <span style={styles.sectionIconCyan}>↗</span>
-                                                    <span style={styles.sectionLabelCyan}>GTO Approach</span>
-                                                </div>
+                                                <div style={styles.sectionLabel}>GTO Approach</div>
                                                 <p style={styles.sectionText}>{currentScenario.gtoStrategy.reasoning}</p>
                                             </div>
                                         )}
@@ -719,18 +713,11 @@ export default function TrainingPlayPage() {
                                                 {currentScenario.alternatives.map((alt, i) => (
                                                     <div key={i} style={styles.altLineItem}>
                                                         <div style={styles.altLineTop}>
-                                                            <span style={styles.altLineAction}>{alt.action.toUpperCase()}</span>
-                                                            <span style={styles.altLineFreq}>— {alt.frequency}% FREQUENCY</span>
+                                                            <span style={styles.altLineAction}>{alt.action}</span>
+                                                            <span style={styles.altLineFreq}>{alt.frequency}%</span>
                                                         </div>
                                                     </div>
                                                 ))}
-                                                {/* Add a second alternate line for completeness */}
-                                                <div style={styles.altLineItem}>
-                                                    <div style={styles.altLineTop}>
-                                                        <span style={styles.altLineAction}>RAISE — LARGE SIZING</span>
-                                                        <span style={styles.altLineFreq}>— 0% FREQUENCY</span>
-                                                    </div>
-                                                </div>
                                             </>
                                         )}
                                     </div>
@@ -825,37 +812,36 @@ const styles = {
         justifyContent: 'center',
         position: 'relative',
         padding: '0 12px',
-        // Premium poker room background with ambient lighting
-        background: 'radial-gradient(ellipse at 50% 60%, rgba(80, 50, 20, 0.3) 0%, transparent 60%), radial-gradient(ellipse at 50% 100%, rgba(255, 180, 80, 0.08) 0%, transparent 50%), linear-gradient(180deg, #080810 0%, #0d0a14 50%, #080810 100%)',
+        // Match the table image dark background exactly
+        background: '#0a0a0a',
     },
 
-    // Premium table container - crops to show only the table
+    // Premium table container - FULL TABLE display for live dealing
     premiumTableContainer: {
         position: 'relative',
         width: '100%',
-        maxWidth: 320,
-        height: 200,
-        overflow: 'hidden',
-        borderRadius: 100, // Oval shape to match table
+        maxWidth: 380,
+        aspectRatio: '597 / 1024', // Match the original image aspect ratio
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     tableImage: {
         width: '100%',
-        height: '240%', // Zoom in to crop background
-        objectFit: 'cover',
-        objectPosition: 'center 15%', // Focus on the table, cut off dark background
-        filter: 'brightness(1.15) contrast(1.1) saturate(1.1)',
+        height: '100%',
+        objectFit: 'contain', // Show full image, no cropping
+        filter: 'brightness(1.1) contrast(1.05) saturate(1.05)',
     },
     tableGlow: {
         position: 'absolute',
-        inset: 0,
-        borderRadius: 100,
-        background: 'radial-gradient(ellipse at center, rgba(255, 200, 100, 0.1) 0%, transparent 60%)',
+        inset: '5%',
+        borderRadius: '50%',
+        background: 'radial-gradient(ellipse at center 40%, rgba(255, 200, 100, 0.08) 0%, transparent 70%)',
         pointerEvents: 'none',
-        boxShadow: 'inset 0 0 40px rgba(255, 180, 80, 0.15), 0 0 60px rgba(255, 180, 80, 0.2)',
     },
     tableOverlay: {
         position: 'absolute',
-        top: '50%',
+        top: '35%', // Position content on the table surface
         left: '50%',
         transform: 'translate(-50%, -50%)',
         display: 'flex',
@@ -1054,26 +1040,143 @@ const styles = {
     resultOverlay: {
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.85)',
-        backdropFilter: 'blur(8px)',
+        background: 'rgba(0, 0, 0, 0.9)',
+        backdropFilter: 'blur(10px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 20,
+        padding: 16,
         zIndex: 1000,
     },
     resultCard: {
         width: '100%',
-        maxWidth: 400,
-        maxHeight: '85vh',
-        background: 'linear-gradient(180deg, #1a1a2e 0%, #0d0d1a 100%)',
-        borderRadius: 20,
-        border: '1px solid rgba(255, 215, 0, 0.2)',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.1)',
+        maxWidth: 420,
+        maxHeight: '90vh',
+        background: 'linear-gradient(180deg, #15151f 0%, #0d0d14 100%)',
+        borderRadius: 24,
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: '0 25px 80px rgba(0, 0, 0, 0.6)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
     },
+
+    // Answer Badge (at top)
+    answerBadgeContainer: {
+        display: 'flex',
+        justifyContent: 'center',
+        padding: '20px 20px 16px',
+    },
+    answerBadge: {
+        padding: '12px 40px',
+        borderRadius: 30,
+        fontSize: 18,
+        fontWeight: 800,
+        color: '#fff',
+        letterSpacing: 1,
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+    },
+
+    cardBody: {
+        flex: 1,
+        overflowY: 'auto',
+        padding: '0 20px 16px',
+    },
+
+    // Clean Section Cards - Simple consistent styling
+    sectionCard: {
+        marginBottom: 16,
+    },
+    sectionCardHighlight: {
+        marginBottom: 16,
+        padding: '14px 16px',
+        background: 'rgba(255, 255, 255, 0.04)',
+        borderRadius: 12,
+    },
+    sectionHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
+    },
+    sectionIcon: {
+        fontSize: 14,
+        opacity: 0.6,
+    },
+    sectionIconCyan: {
+        fontSize: 14,
+        opacity: 0.8,
+    },
+    sectionLabel: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: 'rgba(255, 255, 255, 0.5)',
+        textTransform: 'capitalize',
+        letterSpacing: 0.5,
+        marginBottom: 8,
+    },
+    sectionLabelCyan: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: 'rgba(255, 255, 255, 0.5)',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    sectionText: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.85)',
+        lineHeight: 1.7,
+        margin: 0,
+        textTransform: 'capitalize',
+    },
+
+    // Alternate Lines - Clean simple style
+    altLinesHeader: {
+        fontSize: 11,
+        fontWeight: 600,
+        color: 'rgba(255, 255, 255, 0.35)',
+        textTransform: 'capitalize',
+        letterSpacing: 0.5,
+        marginTop: 20,
+        marginBottom: 10,
+    },
+    altLineItem: {
+        padding: '12px 14px',
+        background: 'rgba(255, 255, 255, 0.03)',
+        borderRadius: 10,
+        marginBottom: 6,
+    },
+    altLineTop: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    altLineAction: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: 'rgba(255, 255, 255, 0.9)',
+        textTransform: 'capitalize',
+    },
+    altLineFreq: {
+        fontSize: 12,
+        fontWeight: 500,
+        color: 'rgba(255, 255, 255, 0.4)',
+    },
+
+    cardNextButton: {
+        margin: '8px 20px 20px',
+        padding: '16px 32px',
+        background: '#fff',
+        border: 'none',
+        borderRadius: 30,
+        color: '#1a1a2e',
+        fontSize: 15,
+        fontWeight: 700,
+        cursor: 'pointer',
+        letterSpacing: 0.5,
+    },
+
+    // Keep old card styles for backwards compatibility
     cardHeader: {
         display: 'flex',
         alignItems: 'center',
@@ -1090,11 +1193,6 @@ const styles = {
         fontWeight: 800,
         color: '#fff',
         letterSpacing: 2,
-    },
-    cardBody: {
-        flex: 1,
-        overflowY: 'auto',
-        padding: '16px 20px',
     },
 
     // GTO Card Section (inside popup)

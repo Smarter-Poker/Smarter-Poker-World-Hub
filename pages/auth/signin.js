@@ -47,7 +47,8 @@ export default function SignInPage() {
 
             if (error) throw error;
 
-            // Redirect to hub on success
+            // Redirect to hub on success - set flag so intro plays
+            sessionStorage.setItem('just_authenticated', 'true');
             router.push('/hub');
         } catch (err) {
             console.error('Sign in error:', err);
