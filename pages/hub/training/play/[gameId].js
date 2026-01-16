@@ -158,8 +158,8 @@ function PlayingCard({ card, size = 'medium', delay = 0, faceDown = false }) {
     const suitConfig = SUITS[suit] || SUITS.s;
 
     const sizes = {
-        tiny: { w: 44, h: 62, font: 14, suit: 14 }, // Board cards - 5 fit across felt
-        small: { w: 48, h: 67, font: 15, suit: 16 }, // Hero hole cards
+        tiny: { w: 38, h: 53, font: 12, suit: 13 }, // Board cards - 5 fit across
+        small: { w: 42, h: 59, font: 13, suit: 14 }, // Hero hole cards
         medium: { w: 56, h: 78, font: 18, suit: 20 },
         large: { w: 68, h: 95, font: 22, suit: 26 },
     };
@@ -625,6 +625,7 @@ export default function TrainingPlayPage() {
                         {/* Game Info - below board */}
                         <div style={styles.gameInfoCenter}>
                             <span style={styles.gameType}>NLH</span>
+                            <div style={styles.brandingText}>Smarter.Poker</div>
                         </div>
 
                         {/* Dealer Button */}
@@ -1018,7 +1019,7 @@ const styles = {
         position: 'absolute',
         bottom: '5%',
         left: '50%',
-        transform: 'translateX(-60%)', // Offset to center the avatar
+        transform: 'translateX(-50%)', // Center the entire hero section
         display: 'flex',
         alignItems: 'center',
         gap: 6,
@@ -1199,9 +1200,8 @@ const styles = {
     },
     timerPosition: {
         position: 'absolute',
-        right: 12,
-        top: '50%',
-        transform: 'translateY(-50%)',
+        left: 12,
+        bottom: 120, // Above action buttons
     },
     timerContainer: {
         position: 'relative',
