@@ -13,6 +13,7 @@ import { useEffect, createContext, useState, useContext } from 'react';
 import { AntiGravityProvider } from '../src/providers/AntiGravityProvider';
 import { ThemeProvider } from '../src/providers/ThemeProvider';
 import { UnreadProvider } from '../src/hooks/useUnreadCount';
+import { SoundEngine } from '../src/audio/SoundEngine';
 
 // Dynamic import to avoid SSR issues with celebration animations
 const CelebrationManager = dynamic(
@@ -35,6 +36,9 @@ function NavigationGuard({ children }) {
   const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
+    // Initialize SoundEngine for audio playback
+    SoundEngine.init().catch(err => console.warn('[App] SoundEngine init failed:', err));
+
     // Inject the hiding CSS on mount
     const style = document.createElement('style');
     style.id = 'nav-guard-style';

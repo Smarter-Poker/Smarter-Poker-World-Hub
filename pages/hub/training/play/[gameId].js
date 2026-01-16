@@ -158,8 +158,8 @@ function PlayingCard({ card, size = 'medium', delay = 0, faceDown = false }) {
     const suitConfig = SUITS[suit] || SUITS.s;
 
     const sizes = {
-        tiny: { w: 35, h: 49, font: 11, suit: 12 }, // Board - 5 cards fit
-        small: { w: 35, h: 49, font: 11, suit: 12 }, // Hero cards same size
+        tiny: { w: 32, h: 45, font: 11, suit: 11 }, // 5 cards fit across
+        small: { w: 32, h: 45, font: 11, suit: 11 }, // Same as board
         medium: { w: 56, h: 78, font: 18, suit: 20 },
         large: { w: 68, h: 95, font: 22, suit: 26 },
     };
@@ -680,14 +680,17 @@ export default function TrainingPlayPage() {
                                     <span style={styles.heroName}>Hero</span>
                                 </div>
                                 <div style={{
-                                    fontSize: 14,
-                                    fontWeight: 700,
-                                    color: '#4CAF50',
-                                    background: 'rgba(0,0,0,0.8)',
                                     padding: '2px 10px',
-                                    borderRadius: 4,
+                                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                    borderRadius: 8,
+                                    border: '1px solid #FFD700',
+                                    marginTop: 2,
                                 }}>
-                                    {currentScenario.heroStack || '??'}
+                                    <span style={{
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                        color: '#1a1a2e',
+                                    }}>{currentScenario.heroStack || '??'}</span>
                                 </div>
                             </div>
 
@@ -1020,14 +1023,14 @@ const styles = {
         color: '#4CAF50',
     },
 
-    // HERO Section - BOTTOM of table, AVATAR at dead center
+    // HERO Section - PERFECTLY CENTERED at bottom
     heroPlayer: {
         position: 'absolute',
         bottom: '5%',
         left: '50%',
-        transform: 'translateX(-55%)', // Offset for cards on right
+        transform: 'translateX(-50%)', // Dead center
         display: 'flex',
-        alignItems: 'flex-end', // Align to bottom
+        alignItems: 'flex-end',
         gap: 4,
         zIndex: 15,
     },

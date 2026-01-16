@@ -504,3 +504,52 @@ Import trace for requested module:
  GET /hub/training/play/mtt-001?v=21 200 in 15ms
  GET /images/training/avatar-villain.png 404 in 3ms
  GET /images/training/avatar-hero.png 404 in 3ms
+ ✓ Compiled in 176ms (810 modules)
+ ✓ Compiled in 92ms (810 modules)
+ GET /hub/training/play/mtt-001?v=22 200 in 22ms
+ ✓ Compiled /404 in 43ms (814 modules)
+ GET /images/training/avatar-villain.png 404 in 57ms
+ GET /images/training/avatar-hero.png 404 in 57ms
+ ✓ Compiled in 126ms (812 modules)
+ ⚠ Fast Refresh had to perform a full reload when ./pages/_app.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./pages/_app.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./pages/_app.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./pages/_app.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./pages/_app.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /hub/training/play/mtt-001?v=22 200 in 25ms
+ GET /hub/training/play/mtt-001?v=18 200 in 5ms
+ GET /hub/training/play/mtt-001?v=21 200 in 9ms
+ GET /hub/training/play/mtt-001?v=20 200 in 9ms
+ GET /hub/training/play/mtt-001?v=19 200 in 9ms
+ ✓ Compiled /404 in 39ms (816 modules)
+ GET /images/training/avatar-villain.png 404 in 47ms
+ GET /images/training/avatar-hero.png 404 in 46ms
+ GET /images/training/avatar-villain.png 404 in 3ms
+ GET /images/training/avatar-hero.png 404 in 3ms
+ GET /images/training/avatar-villain.png 404 in 4ms
+ GET /images/training/avatar-hero.png 404 in 4ms
+ GET /images/training/avatar-villain.png 404 in 4ms
+ GET /images/training/avatar-hero.png 404 in 3ms
+ GET /images/training/avatar-villain.png 404 in 3ms
+ GET /images/training/avatar-hero.png 404 in 3ms
+ ⚠ Fast Refresh had to perform a full reload when ./pages/_app.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./pages/_app.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ✓ Compiled in 58ms (816 modules)
+ ⚠ Fast Refresh had to perform a full reload when ./pages/_app.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload when ./pages/_app.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /hub/training/play/mtt-001?v=22 200 in 18ms
+ GET /hub/training/play/mtt-001?v=21 200 in 20ms
+ ⚠ Fast Refresh had to perform a full reload when ./pages/_app.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /hub/training/play/mtt-001?v=18 200 in 7ms
+ GET /hub/training/play/mtt-001?v=20 200 in 7ms
+ GET /hub/training/play/mtt-001?v=19 200 in 4ms
+ GET /images/training/avatar-hero.png 404 in 4ms
+ GET /images/training/avatar-villain.png 404 in 5ms
+ GET /images/training/avatar-villain.png 404 in 3ms
+ GET /images/training/avatar-hero.png 404 in 2ms
+ GET /images/training/avatar-villain.png 404 in 3ms
+ GET /images/training/avatar-hero.png 404 in 3ms
+ GET /images/training/avatar-villain.png 404 in 2ms
+ GET /images/training/avatar-hero.png 404 in 2ms
+ GET /images/training/avatar-villain.png 404 in 2ms
+ GET /images/training/avatar-hero.png 404 in 2ms
