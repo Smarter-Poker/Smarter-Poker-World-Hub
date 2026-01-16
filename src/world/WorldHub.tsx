@@ -427,18 +427,20 @@ export default function WorldHub() {
         }
     }, []);
 
-    // Cinematic intro state (for first visit only)
-    const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro();
+    // ═══════════════════════════════════════════════════════════════
+    // INTRO/OUTRO ANIMATIONS — DISABLED (User request)
+    // ═══════════════════════════════════════════════════════════════
+    // const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro();
+    // const { showBurst, burstComplete, ReturnBurstComponent, triggerBurst } = useReturnBurst();
+    // useEffect(() => {
+    //     if (isReturnVisit && !showBurst && !burstComplete) {
+    //         triggerBurst();
+    //     }
+    // }, [isReturnVisit, showBurst, burstComplete, triggerBurst]);
 
-    // Return burst state (for return visits)
-    const { showBurst, burstComplete, ReturnBurstComponent, triggerBurst } = useReturnBurst();
-
-    // Trigger return burst on return visits
-    useEffect(() => {
-        if (isReturnVisit && !showBurst && !burstComplete) {
-            triggerBurst();
-        }
-    }, [isReturnVisit, showBurst, burstComplete, triggerBurst]);
+    // Stub values for disabled features
+    const showIntro = false;
+    const introComplete = true;
 
     // Launch animation state (triggers after any intro completes)
     const { isLaunching, isComplete: isIntroComplete, onBurst } = useLaunchAnimation();

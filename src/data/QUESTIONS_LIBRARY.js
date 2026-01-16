@@ -14,12 +14,26 @@ const generateQuestions = (gameId, category, count = 20) => {
         heroHand: ['Ah', 'Kh'],    // Placeholder hand
         action: 'Hero is BTN. CO opens 2.5bb. Hero?',
         options: [
-            { id: 'fold', text: 'Fold', isCorrect: false },
-            { id: 'call', text: 'Call', isCorrect: false },
-            { id: 'raise', text: 'Raise to 8bb', isCorrect: true },
-            { id: 'shove', text: 'All-In', isCorrect: false }
+            { id: 'fold', text: 'Fold', isCorrect: false, frequency: 0 },
+            { id: 'call', text: 'Call', isCorrect: false, frequency: 15 },
+            { id: 'raise', text: 'Raise to 8bb', isCorrect: true, frequency: 85 },
+            { id: 'shove', text: 'All-In', isCorrect: false, frequency: 0 }
         ],
         explanation: `This is a standard value 3-bet configuration for ${category} strategy in this specific spot.`,
+        // GTO Strategy breakdown
+        gtoStrategy: {
+            primary: 'Raise to 8bb',
+            frequency: 85,
+            reasoning: 'AKs is a premium hand that plays well as a 3-bet. We have blockers to AA/KK and excellent playability postflop.',
+        },
+        // Alternative plays when GTO isn't 100%
+        alternatives: [
+            {
+                action: 'Call',
+                frequency: 15,
+                when: 'Against very tight 3-bet callers or when you want to disguise your range.',
+            },
+        ],
         difficulty: Math.min(5, Math.floor(i / 4) + 1)
     }));
 };

@@ -315,3 +315,10 @@
  GET /images/training/psychology_game_card_art.png 404 in 3ms
  GET /images/training/advanced_spr.png 404 in 2ms
  GET /images/training/advanced_game_card_art.png 404 in 2ms
+ ✓ Compiled in 85ms (810 modules)
+ ✓ Compiled in 75ms (810 modules)
+ GET /hub/training/play/mtt-001 200 in 23ms
+ GET /hub/training/play/mtt-001 200 in 5ms
+ ✓ Compiled in 49ms (810 modules)
+ ✓ Compiled in 88ms (810 modules)
+ ✓ Compiled in 66ms (810 modules)

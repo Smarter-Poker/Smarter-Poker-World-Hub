@@ -536,48 +536,93 @@ export default function TrainingPlayPage() {
                     backLabel="Training"
                 />
 
-                {/* Table Area */}
+                {/* ═══════════════════════════════════════════════════════════════════
+                    SITUATION PANEL — TOP (Easy to read)
+                ═══════════════════════════════════════════════════════════════════ */}
+                <div style={styles.situationPanel}>
+                    <div style={styles.questionNumber}>
+                        QUESTION {questionIndex + 1} of {QUESTIONS_PER_RUN}
+                    </div>
+                    <h2 style={styles.situationTitle}>{currentScenario.title || currentScenario.scenario}</h2>
+                    <p style={styles.situationText}>{currentScenario.situation || currentScenario.action}</p>
+                </div>
+
+                {/* ═══════════════════════════════════════════════════════════════════
+                    TABLE AREA — CENTER (Premium poker room)
+                ═══════════════════════════════════════════════════════════════════ */}
                 <div style={styles.tableArea}>
                     {/* Streak display */}
                     <StreakFire streak={streak} />
 
-                    {/* Poker table */}
-                    <div style={styles.table}>
-                        <div style={styles.tableFelt}>
+                    {/* Premium Poker Table */}
+                    <div style={styles.premiumTableContainer}>
+                        {/* Table image */}
+                        <img
+                            src="/images/training/premium-table.jpg"
+                            alt=""
+                            style={styles.tableImage}
+                        />
+
+                        {/* Ambient glow */}
+                        <div style={styles.tableGlow} />
+
+                        {/* Board & Pot - centered on table */}
+                        <div style={styles.tableOverlay}>
                             {/* Board cards */}
                             <div style={styles.boardArea}>
-                                {currentScenario.board.length > 0 ? (
-                                    (currentScenario.board?.map((card, i) => (
-                                        <PlayingCard key={i} card={card} size="small" delay={i * 0.1} />
-                                    )) || null)
+                                {currentScenario.board && currentScenario.board.length > 0 ? (
+                                    currentScenario.board.map((card, i) => (
+                                        <PlayingCard key={i} card={card} size="medium" delay={i * 0.1} />
+                                    ))
                                 ) : (
-                                    <span style={styles.preFlopLabel}>PREFLOP</span>
+                                    <div style={styles.preFlopBadge}>PREFLOP</div>
                                 )}
                             </div>
 
                             {/* Pot */}
-                            <ChipStack amount={currentScenario.potSize || 12} />
-
-                            {/* Seats */}
-                            {SEATS.map(seat => (
-                                <div
-                                    key={seat.id}
-                                    style={{
-                                        ...styles.seat,
-                                        transform: `rotate(${seat.angle}deg) translateY(-110px) rotate(-${seat.angle}deg)`,
-                                        background: seat.isHero ? 'rgba(255,215,0,0.2)' : 'rgba(0,0,0,0.4)',
-                                        border: seat.isHero ? '2px solid #FFD700' : '1px solid rgba(255,255,255,0.2)',
-                                    }}
-                                >
-                                    <span style={{ fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{seat.label}</span>
-                                </div>
-                            ))}
+                            <div style={styles.potDisplay}>
+                                <span style={styles.potLabel}>POT</span>
+                                <span style={styles.potAmount}>{currentScenario.potSize || 12} BB</span>
+                            </div>
                         </div>
+
+                        {/* Seat badges around table */}
+                        {SEATS.map(seat => (
+                            <motion.div
+                                key={seat.id}
+                                style={{
+                                    ...styles.seatBadge,
+                                    top: `${50 + Math.sin(seat.angle * Math.PI / 180) * 42}%`,
+                                    left: `${50 + Math.cos(seat.angle * Math.PI / 180) * 40}%`,
+                                    background: seat.isHero
+                                        ? 'linear-gradient(135deg, #FFD700, #FFA500)'
+                                        : 'rgba(20, 20, 40, 0.95)',
+                                    boxShadow: seat.isHero
+                                        ? '0 0 20px rgba(255, 215, 0, 0.6)'
+                                        : '0 2px 10px rgba(0,0,0,0.5)',
+                                    border: seat.isHero
+                                        ? '2px solid #FFD700'
+                                        : '1px solid rgba(255, 215, 0, 0.3)',
+                                }}
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: 0.1 }}
+                            >
+                                <span style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    color: seat.isHero ? '#1a1a2e' : '#FFD700',
+                                    letterSpacing: 1,
+                                }}>
+                                    {seat.label}
+                                </span>
+                            </motion.div>
+                        ))}
                     </div>
 
-                    {/* Hero cards */}
-                    <motion.div style={styles.holeCards}>
-                        {currentScenario.heroCards?.map((card, i) => (
+                    {/* Hero hole cards - positioned below table */}
+                    <motion.div style={styles.heroCards}>
+                        {(currentScenario.heroCards || currentScenario.heroHand)?.map((card, i) => (
                             <PlayingCard key={i} card={card} size="large" delay={0.3 + i * 0.15} />
                         )) || null}
                     </motion.div>
@@ -591,13 +636,9 @@ export default function TrainingPlayPage() {
                     <XPBurst amount={lastXP} isVisible={showXPBurst} />
                 </div>
 
-                {/* Situation */}
-                <div style={styles.situationPanel}>
-                    <h3 style={styles.situationTitle}>{currentScenario.title || currentScenario.scenario}</h3>
-                    <p style={styles.situationText}>{currentScenario.situation || currentScenario.action}</p>
-                </div>
-
-                {/* Actions */}
+                {/* ═══════════════════════════════════════════════════════════════════
+                    ACTION HUD — BOTTOM
+                ═══════════════════════════════════════════════════════════════════ */}
                 <div style={styles.actionHUD}>
                     <AnimatePresence mode="wait">
                         {!showResult ? (
@@ -629,6 +670,7 @@ export default function TrainingPlayPage() {
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                             >
+                                {/* Result Banner */}
                                 <motion.div
                                     style={{
                                         ...styles.resultBanner,
@@ -647,7 +689,49 @@ export default function TrainingPlayPage() {
                                         {currentScenario.options.find(o => o.id === selectedAnswer)?.isCorrect ? 'CORRECT!' : 'INCORRECT'}
                                     </span>
                                 </motion.div>
+
+                                {/* GTO Strategy Section */}
+                                {currentScenario.gtoStrategy && (
+                                    <div style={styles.gtoSection}>
+                                        <div style={styles.gtoHeader}>
+                                            <span style={styles.gtoLabel}>GTO STRATEGY</span>
+                                            <span style={styles.gtoFrequency}>{currentScenario.gtoStrategy.frequency}%</span>
+                                        </div>
+                                        <div style={styles.gtoPrimary}>{currentScenario.gtoStrategy.primary}</div>
+                                        <div style={styles.frequencyBar}>
+                                            <motion.div
+                                                style={{
+                                                    ...styles.frequencyFill,
+                                                    width: `${currentScenario.gtoStrategy.frequency}%`,
+                                                }}
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${currentScenario.gtoStrategy.frequency}%` }}
+                                                transition={{ duration: 0.5, delay: 0.2 }}
+                                            />
+                                        </div>
+                                        <p style={styles.gtoReasoning}>{currentScenario.gtoStrategy.reasoning}</p>
+                                    </div>
+                                )}
+
+                                {/* Alternative Plays */}
+                                {currentScenario.alternatives && currentScenario.alternatives.length > 0 && (
+                                    <div style={styles.alternativesSection}>
+                                        <div style={styles.altHeader}>ALTERNATIVE PLAYS</div>
+                                        {currentScenario.alternatives.map((alt, i) => (
+                                            <div key={i} style={styles.altItem}>
+                                                <div style={styles.altTop}>
+                                                    <span style={styles.altAction}>{alt.action}</span>
+                                                    <span style={styles.altFreq}>{alt.frequency}%</span>
+                                                </div>
+                                                <p style={styles.altWhen}>{alt.when}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Original explanation */}
                                 <p style={styles.explanation}>{currentScenario.explanation}</p>
+
                                 <motion.button
                                     style={styles.nextButton}
                                     onClick={handleNext}
@@ -731,103 +815,115 @@ const styles = {
     tableArea: {
         flex: 1,
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
-        padding: 12,
-        // Premium poker room background
-        background: 'radial-gradient(ellipse at 50% 30%, rgba(60, 40, 20, 0.4) 0%, transparent 50%), radial-gradient(ellipse at 50% 100%, rgba(255, 180, 80, 0.1) 0%, transparent 40%), linear-gradient(180deg, #0a0a12 0%, #1a1520 50%, #0d0a10 100%)',
+        padding: '0 12px',
+        // Premium poker room background with ambient lighting
+        background: 'radial-gradient(ellipse at 50% 60%, rgba(80, 50, 20, 0.3) 0%, transparent 60%), radial-gradient(ellipse at 50% 100%, rgba(255, 180, 80, 0.08) 0%, transparent 50%), linear-gradient(180deg, #080810 0%, #0d0a14 50%, #080810 100%)',
     },
 
-    // Premium table with image
-    premiumTable: {
+    // Premium table container - crops to show only the table
+    premiumTableContainer: {
         position: 'relative',
         width: '100%',
-        maxWidth: 380,
-        aspectRatio: '3 / 4',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        maxWidth: 320,
+        height: 200,
+        overflow: 'hidden',
+        borderRadius: 100, // Oval shape to match table
     },
     tableImage: {
         width: '100%',
-        height: '100%',
-        objectFit: 'contain',
-        filter: 'brightness(1.1) contrast(1.05)',
+        height: '240%', // Zoom in to crop background
+        objectFit: 'cover',
+        objectPosition: 'center 15%', // Focus on the table, cut off dark background
+        filter: 'brightness(1.15) contrast(1.1) saturate(1.1)',
     },
     tableGlow: {
         position: 'absolute',
-        inset: '10%',
-        borderRadius: '50%',
-        background: 'radial-gradient(ellipse, rgba(255, 180, 80, 0.15) 0%, transparent 70%)',
+        inset: 0,
+        borderRadius: 100,
+        background: 'radial-gradient(ellipse at center, rgba(255, 200, 100, 0.1) 0%, transparent 60%)',
         pointerEvents: 'none',
+        boxShadow: 'inset 0 0 40px rgba(255, 180, 80, 0.15), 0 0 60px rgba(255, 180, 80, 0.2)',
     },
-    tableContent: {
+    tableOverlay: {
         position: 'absolute',
-        top: '35%',
+        top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 16,
+        gap: 12,
     },
 
     boardArea: {
         display: 'flex',
         gap: 6,
-        padding: 8,
-        background: 'rgba(0, 0, 0, 0.3)',
-        borderRadius: 8,
-        backdropFilter: 'blur(4px)',
+        padding: '10px 14px',
+        background: 'rgba(0, 0, 0, 0.4)',
+        borderRadius: 12,
+        backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255, 215, 0, 0.2)',
     },
     preFlopBadge: {
-        padding: '8px 20px',
-        background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.2))',
-        border: '1px solid rgba(255, 215, 0, 0.4)',
-        borderRadius: 20,
-        fontSize: 12,
-        fontWeight: 700,
+        padding: '10px 24px',
+        background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 140, 0, 0.25))',
+        border: '2px solid rgba(255, 215, 0, 0.5)',
+        borderRadius: 25,
+        fontSize: 13,
+        fontWeight: 800,
         color: '#FFD700',
-        letterSpacing: 3,
-        textShadow: '0 0 10px rgba(255, 215, 0, 0.5)',
+        letterSpacing: 4,
+        textShadow: '0 0 15px rgba(255, 215, 0, 0.6)',
     },
     potDisplay: {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: 2,
-        padding: '8px 16px',
-        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(30, 20, 10, 0.6))',
-        borderRadius: 12,
-        border: '1px solid rgba(255, 215, 0, 0.3)',
+        padding: '10px 20px',
+        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(30, 20, 10, 0.7))',
+        borderRadius: 16,
+        border: '1px solid rgba(255, 215, 0, 0.4)',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
     },
     potLabel: {
-        fontSize: 9,
-        fontWeight: 600,
-        color: 'rgba(255, 215, 0, 0.7)',
+        fontSize: 10,
+        fontWeight: 700,
+        color: 'rgba(255, 215, 0, 0.8)',
         letterSpacing: 2,
     },
     potAmount: {
-        fontSize: 18,
+        fontSize: 22,
         fontWeight: 800,
         color: '#FFD700',
-        textShadow: '0 0 15px rgba(255, 215, 0, 0.4)',
+        textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
     },
     seatBadge: {
         position: 'absolute',
         transform: 'translate(-50%, -50%)',
-        padding: '6px 10px',
+        padding: '5px 10px',
         borderRadius: 8,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        minWidth: 36,
+        minWidth: 38,
+        zIndex: 10,
+    },
+
+    // Hero cards - below the table
+    heroCards: {
+        display: 'flex',
+        gap: 8,
+        marginTop: 16,
     },
 
     // Keep old styles for backwards compatibility
     table: {
-        display: 'none', // Hidden - using premiumTable now
+        display: 'none',
     },
     tableFelt: {
         display: 'none',
@@ -850,7 +946,7 @@ const styles = {
     },
     timerPosition: {
         position: 'absolute',
-        right: 16,
+        right: 12,
         top: '50%',
         transform: 'translateY(-50%)',
     },
@@ -900,13 +996,33 @@ const styles = {
         color: '#FFD700',
         textShadow: '0 0 20px rgba(255,215,0,0.8)',
     },
+
+    // Situation Panel - TOP of page, prominent
     situationPanel: {
-        padding: '12px 16px',
-        background: 'rgba(0,0,0,0.3)',
-        borderTop: '1px solid rgba(255,255,255,0.1)',
+        padding: '16px 20px',
+        background: 'linear-gradient(180deg, rgba(20, 15, 30, 0.95), rgba(15, 12, 25, 0.9))',
+        borderBottom: '1px solid rgba(255, 215, 0, 0.2)',
     },
-    situationTitle: { fontSize: 14, fontWeight: 600, color: '#FFD700', marginBottom: 4 },
-    situationText: { fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 },
+    questionNumber: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: '#00D4FF',
+        letterSpacing: 2,
+        marginBottom: 8,
+        textTransform: 'uppercase',
+    },
+    situationTitle: {
+        fontSize: 18,
+        fontWeight: 700,
+        color: '#fff',
+        marginBottom: 8,
+        lineHeight: 1.3,
+    },
+    situationText: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.85)',
+        lineHeight: 1.5,
+    },
     actionHUD: {
         padding: '12px 16px 24px',
         background: 'rgba(0,0,0,0.4)',
@@ -938,6 +1054,101 @@ const styles = {
         marginBottom: 10,
         color: '#fff',
     },
+
+    // GTO Strategy Section
+    gtoSection: {
+        width: '100%',
+        marginBottom: 12,
+        padding: 12,
+        background: 'rgba(0, 212, 255, 0.1)',
+        borderRadius: 10,
+        border: '1px solid rgba(0, 212, 255, 0.3)',
+    },
+    gtoHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    gtoLabel: {
+        fontSize: 9,
+        fontWeight: 700,
+        color: '#00D4FF',
+        letterSpacing: 2,
+    },
+    gtoFrequency: {
+        fontSize: 14,
+        fontWeight: 800,
+        color: '#00D4FF',
+    },
+    gtoPrimary: {
+        fontSize: 16,
+        fontWeight: 700,
+        color: '#fff',
+        marginBottom: 8,
+    },
+    frequencyBar: {
+        width: '100%',
+        height: 6,
+        background: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: 3,
+        overflow: 'hidden',
+        marginBottom: 8,
+    },
+    frequencyFill: {
+        height: '100%',
+        background: 'linear-gradient(90deg, #00D4FF, #4CAF50)',
+        borderRadius: 3,
+    },
+    gtoReasoning: {
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.7)',
+        lineHeight: 1.4,
+        margin: 0,
+    },
+
+    // Alternative Plays Section
+    alternativesSection: {
+        width: '100%',
+        marginBottom: 12,
+    },
+    altHeader: {
+        fontSize: 9,
+        fontWeight: 700,
+        color: '#FFD700',
+        letterSpacing: 2,
+        marginBottom: 8,
+    },
+    altItem: {
+        padding: 10,
+        background: 'rgba(255, 215, 0, 0.08)',
+        borderRadius: 8,
+        border: '1px solid rgba(255, 215, 0, 0.2)',
+        marginBottom: 6,
+    },
+    altTop: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    altAction: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#FFD700',
+    },
+    altFreq: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: 'rgba(255, 215, 0, 0.8)',
+    },
+    altWhen: {
+        fontSize: 10,
+        color: 'rgba(255, 255, 255, 0.6)',
+        lineHeight: 1.4,
+        margin: 0,
+    },
+
     explanation: {
         fontSize: 11,
         color: 'rgba(255,255,255,0.7)',
