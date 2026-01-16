@@ -6,6 +6,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 
 export default function DiamondArenaPage() {
     const [iframeLoaded, setIframeLoaded] = useState(false);
@@ -33,13 +34,8 @@ export default function DiamondArenaPage() {
             </Head>
 
             <div style={styles.container}>
-                {/* Back Button */}
-                <Link href="/hub" style={styles.backButton}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M19 12H5M12 19l-7-7 7-7" />
-                    </svg>
-                    <span>Back to Hub</span>
-                </Link>
+                {/* Brain Home Button */}
+                <BrainHomeButton style={{ zIndex: 1001 }} />
 
                 {/* Loading Overlay */}
                 {!iframeLoaded && (

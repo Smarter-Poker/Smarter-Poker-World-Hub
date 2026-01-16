@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { MediaLibrary } from '../../src/components/social/MediaLibrary';
 import { ProfilePictureHistory } from '../../src/components/social/ProfilePictureHistory';
+import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -425,8 +426,10 @@ export default function ProfilePage() {
             <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 {/* Header */}
                 <header style={{ background: C.card, padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
-                    <Link href="/hub" style={{ fontWeight: 700, fontSize: 22, color: C.blue, textDecoration: 'none' }}>Smarter.Poker</Link>
-                    <div style={{ fontWeight: 600, fontSize: 18, color: C.text }}>Edit Profile</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <BrainHomeButton style={{ position: 'relative', top: 0, left: 0, width: 40, height: 40 }} />
+                        <span style={{ fontWeight: 600, fontSize: 18, color: C.text }}>Edit Profile</span>
+                    </div>
                     <Link href="/hub/social-media" style={{ color: C.textSec, textDecoration: 'none' }}>← Back to Social</Link>
                 </header>
 
