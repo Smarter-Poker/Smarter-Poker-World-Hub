@@ -664,81 +664,86 @@ export default function TrainingPlayPage() {
                                 )) || null}
                             </motion.div>
                         ) : (
+                            /* GTO STRATEGY POPUP CARD - Reference Design */
                             <motion.div
                                 key="result"
-                                style={styles.resultPanel}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
+                                style={styles.resultOverlay}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
                             >
-                                {/* Result Banner */}
                                 <motion.div
-                                    style={{
-                                        ...styles.resultBanner,
-                                        background: currentScenario.options.find(o => o.id === selectedAnswer)?.isCorrect
-                                            ? 'linear-gradient(135deg, #4CAF50, #2E7D32)'
-                                            : 'linear-gradient(135deg, #E53935, #C62828)',
-                                    }}
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ type: 'spring' }}
+                                    style={styles.resultCard}
+                                    initial={{ scale: 0.8, y: 50 }}
+                                    animate={{ scale: 1, y: 0 }}
+                                    transition={{ type: 'spring', damping: 20 }}
                                 >
-                                    <span style={{ fontSize: 20 }}>
-                                        {currentScenario.options.find(o => o.id === selectedAnswer)?.isCorrect ? '✓' : '✗'}
-                                    </span>
-                                    <span style={{ fontWeight: 700, letterSpacing: 1 }}>
-                                        {currentScenario.options.find(o => o.id === selectedAnswer)?.isCorrect ? 'CORRECT!' : 'INCORRECT'}
-                                    </span>
-                                </motion.div>
-
-                                {/* GTO Strategy Section */}
-                                {currentScenario.gtoStrategy && (
-                                    <div style={styles.gtoSection}>
-                                        <div style={styles.gtoHeader}>
-                                            <span style={styles.gtoLabel}>GTO STRATEGY</span>
-                                            <span style={styles.gtoFrequency}>{currentScenario.gtoStrategy.frequency}%</span>
+                                    {/* Answer Badge */}
+                                    <div style={styles.answerBadgeContainer}>
+                                        <div style={{
+                                            ...styles.answerBadge,
+                                            background: currentScenario.options.find(o => o.id === selectedAnswer)?.isCorrect
+                                                ? 'linear-gradient(135deg, #4CAF50, #2E7D32)'
+                                                : 'linear-gradient(135deg, #E53935, #C62828)',
+                                        }}>
+                                            {currentScenario.gtoStrategy?.primary || 'Raise'}
                                         </div>
-                                        <div style={styles.gtoPrimary}>{currentScenario.gtoStrategy.primary}</div>
-                                        <div style={styles.frequencyBar}>
-                                            <motion.div
-                                                style={{
-                                                    ...styles.frequencyFill,
-                                                    width: `${currentScenario.gtoStrategy.frequency}%`,
-                                                }}
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${currentScenario.gtoStrategy.frequency}%` }}
-                                                transition={{ duration: 0.5, delay: 0.2 }}
-                                            />
-                                        </div>
-                                        <p style={styles.gtoReasoning}>{currentScenario.gtoStrategy.reasoning}</p>
                                     </div>
-                                )}
 
-                                {/* Alternative Plays */}
-                                {currentScenario.alternatives && currentScenario.alternatives.length > 0 && (
-                                    <div style={styles.alternativesSection}>
-                                        <div style={styles.altHeader}>ALTERNATIVE PLAYS</div>
-                                        {currentScenario.alternatives.map((alt, i) => (
-                                            <div key={i} style={styles.altItem}>
-                                                <div style={styles.altTop}>
-                                                    <span style={styles.altAction}>{alt.action}</span>
-                                                    <span style={styles.altFreq}>{alt.frequency}%</span>
-                                                </div>
-                                                <p style={styles.altWhen}>{alt.when}</p>
+                                    {/* Card Body - Scrollable */}
+                                    <div style={styles.cardBody}>
+                                        {/* Explanation Section */}
+                                        <div style={styles.sectionCard}>
+                                            <div style={styles.sectionHeader}>
+                                                <span style={styles.sectionIcon}>💡</span>
+                                                <span style={styles.sectionLabel}>Explanation</span>
                                             </div>
-                                        ))}
+                                            <p style={styles.sectionText}>{currentScenario.explanation}</p>
+                                        </div>
+
+                                        {/* GTO Approach Section */}
+                                        {currentScenario.gtoStrategy && (
+                                            <div style={styles.sectionCardHighlight}>
+                                                <div style={styles.sectionHeader}>
+                                                    <span style={styles.sectionIconCyan}>↗</span>
+                                                    <span style={styles.sectionLabelCyan}>GTO Approach</span>
+                                                </div>
+                                                <p style={styles.sectionText}>{currentScenario.gtoStrategy.reasoning}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Alternate Lines Section */}
+                                        {currentScenario.alternatives && currentScenario.alternatives.length > 0 && (
+                                            <>
+                                                <div style={styles.altLinesHeader}>Alternate Lines</div>
+                                                {currentScenario.alternatives.map((alt, i) => (
+                                                    <div key={i} style={styles.altLineItem}>
+                                                        <div style={styles.altLineTop}>
+                                                            <span style={styles.altLineAction}>{alt.action.toUpperCase()}</span>
+                                                            <span style={styles.altLineFreq}>— {alt.frequency}% FREQUENCY</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {/* Add a second alternate line for completeness */}
+                                                <div style={styles.altLineItem}>
+                                                    <div style={styles.altLineTop}>
+                                                        <span style={styles.altLineAction}>RAISE — LARGE SIZING</span>
+                                                        <span style={styles.altLineFreq}>— 0% FREQUENCY</span>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
-                                )}
 
-                                {/* Original explanation */}
-                                <p style={styles.explanation}>{currentScenario.explanation}</p>
-
-                                <motion.button
-                                    style={styles.nextButton}
-                                    onClick={handleNext}
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                    {questionIndex + 1 >= QUESTIONS_PER_RUN ? 'VIEW RESULTS' : 'NEXT →'}
-                                </motion.button>
+                                    {/* Next Button */}
+                                    <motion.button
+                                        style={styles.cardNextButton}
+                                        onClick={handleNext}
+                                        whileTap={{ scale: 0.95 }}
+                                    >
+                                        {questionIndex + 1 >= QUESTIONS_PER_RUN ? 'VIEW RESULTS' : 'NEXT HAND →'}
+                                    </motion.button>
+                                </motion.div>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -1044,7 +1049,176 @@ const styles = {
         cursor: 'pointer',
         boxShadow: '0 4px 12px rgba(37,99,235,0.3)',
     },
-    resultPanel: { textAlign: 'center' },
+
+    // GTO Result Popup Card
+    resultOverlay: {
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.85)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+        zIndex: 1000,
+    },
+    resultCard: {
+        width: '100%',
+        maxWidth: 400,
+        maxHeight: '85vh',
+        background: 'linear-gradient(180deg, #1a1a2e 0%, #0d0d1a 100%)',
+        borderRadius: 20,
+        border: '1px solid rgba(255, 215, 0, 0.2)',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.1)',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    cardHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        padding: '16px 20px',
+    },
+    cardHeaderIcon: {
+        fontSize: 24,
+        color: '#fff',
+    },
+    cardHeaderText: {
+        fontSize: 18,
+        fontWeight: 800,
+        color: '#fff',
+        letterSpacing: 2,
+    },
+    cardBody: {
+        flex: 1,
+        overflowY: 'auto',
+        padding: '16px 20px',
+    },
+
+    // GTO Card Section (inside popup)
+    gtoCard: {
+        padding: 16,
+        background: 'rgba(0, 212, 255, 0.08)',
+        borderRadius: 14,
+        border: '1px solid rgba(0, 212, 255, 0.25)',
+        marginBottom: 16,
+    },
+    gtoCardLabel: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: '#00D4FF',
+        letterSpacing: 3,
+        marginBottom: 10,
+    },
+    gtoCardMain: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    gtoCardAction: {
+        fontSize: 20,
+        fontWeight: 800,
+        color: '#fff',
+    },
+    gtoCardFreq: {
+        fontSize: 24,
+        fontWeight: 800,
+        color: '#00D4FF',
+    },
+    frequencyBarLarge: {
+        width: '100%',
+        height: 8,
+        background: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: 4,
+        overflow: 'hidden',
+        marginBottom: 12,
+    },
+    frequencyFillLarge: {
+        height: '100%',
+        background: 'linear-gradient(90deg, #00D4FF, #4CAF50)',
+        borderRadius: 4,
+    },
+    gtoCardReason: {
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.75)',
+        lineHeight: 1.5,
+        margin: 0,
+    },
+
+    // Alternative Card Section (inside popup)
+    altCard: {
+        padding: 14,
+        background: 'rgba(255, 215, 0, 0.06)',
+        borderRadius: 14,
+        border: '1px solid rgba(255, 215, 0, 0.2)',
+        marginBottom: 16,
+    },
+    altCardLabel: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: '#FFD700',
+        letterSpacing: 3,
+        marginBottom: 10,
+    },
+    altCardItem: {
+        padding: 12,
+        background: 'rgba(0, 0, 0, 0.3)',
+        borderRadius: 10,
+        marginBottom: 8,
+    },
+    altCardTop: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    altCardAction: {
+        fontSize: 15,
+        fontWeight: 700,
+        color: '#FFD700',
+    },
+    altCardFreq: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: 'rgba(255, 215, 0, 0.8)',
+    },
+    altCardWhen: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.6)',
+        lineHeight: 1.4,
+        margin: 0,
+    },
+    cardSummary: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.6)',
+        lineHeight: 1.5,
+        textAlign: 'center',
+        margin: 0,
+    },
+    cardNextButton: {
+        margin: 16,
+        padding: '16px 32px',
+        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        border: 'none',
+        borderRadius: 30,
+        color: '#1a1a2e',
+        fontSize: 16,
+        fontWeight: 800,
+        cursor: 'pointer',
+        letterSpacing: 1,
+        boxShadow: '0 4px 20px rgba(255, 215, 0, 0.3)',
+    },
+
+    // Keep old styles for backwards compatibility
+    resultPanel: {
+        textAlign: 'center',
+        maxHeight: '60vh',
+        overflowY: 'auto',
+        padding: '0 4px',
+    },
     resultBanner: {
         display: 'inline-flex',
         alignItems: 'center',

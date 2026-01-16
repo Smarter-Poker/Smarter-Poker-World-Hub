@@ -442,8 +442,11 @@ export default function WorldHub() {
     const showIntro = false;
     const introComplete = true;
 
-    // Launch animation state (triggers after any intro completes)
-    const { isLaunching, isComplete: isIntroComplete, onBurst } = useLaunchAnimation();
+    // Launch animation state — DISABLED (plays cinematicIntro sound)
+    // const { isLaunching, isComplete: isIntroComplete, onBurst } = useLaunchAnimation();
+    const isLaunching = false;
+    const isIntroComplete = true;
+    const onBurst = () => { };
 
     // Notification counts - users start with 0 (no seed data)
     const [messageCount] = useState(0);
@@ -660,8 +663,9 @@ export default function WorldHub() {
                             color="#00d4ff"
                         />
 
-                        {/* Launch Pad Animation */}
+                        {/* Launch Pad Animation — DISABLED (plays cinematicIntro sound)
                         <LaunchPad isActive={isLaunching} onBurst={onBurst} />
+                        */}
 
                         {/* Card Carousel with Snap */}
                         <CarouselEngine

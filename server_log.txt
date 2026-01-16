@@ -322,3 +322,44 @@
  ✓ Compiled in 49ms (810 modules)
  ✓ Compiled in 88ms (810 modules)
  ✓ Compiled in 66ms (810 modules)
+ ✓ Compiled in 69ms (810 modules)
+ GET /hub/training/play/mtt-001 200 in 24ms
+ ⨯ ./pages/hub/training/play/[gameId].js
+Error: 
+  [31mx[0m Expected ',', got '{'
+     ,-[[36;1;4m/Users/smarter.poker/Documents/hub-vanguard/pages/hub/training/play/[gameId].js[0m:663:1]
+ [2m663[0m |                                     </motion.button>
+ [2m664[0m |                                 )) || null}
+ [2m665[0m |                             </motion.div>
+ [2m666[0m |                             {/* GTO STRATEGY POPUP CARD */}
+     : [31;1m                            ^[0m
+ [2m667[0m |                         <motion.div
+ [2m668[0m |                             key="result"
+ [2m669[0m |                             style={styles.resultOverlay}
+     `----
+
+Caused by:
+    Syntax Error
+ ✓ Compiled in 94ms (810 modules)
+ ✓ Compiled in 75ms (810 modules)
+ GET /hub/training/play/mtt-001 200 in 22ms
+ ⨯ ./src/data/QUESTIONS_LIBRARY.js
+Error: 
+  [31mx[0m Expected ',', got 'when'
+    ,-[[36;1;4m/Users/smarter.poker/Documents/hub-vanguard/src/data/QUESTIONS_LIBRARY.js[0m:36:1]
+ [2m36[0m | 
+ [2m37[0m |         // Alternate Lines section
+ [2m38[0m |         alternateLines: [
+ [2m39[0m |             { action: 'Call', frequency: 5. when: 'To trap against aggressive 4-bettors or balance your cold-call range.' },
+    : [31;1m                                            ^^^^[0m
+ [2m40[0m |             { action: 'Raise — Large Sizing', frequency: 20, when: 'Against loose EP openers who call too wide to 3-bets.' },
+ [2m41[0m |         ],
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/data/QUESTIONS_LIBRARY.js
+ ✓ Compiled in 51ms (810 modules)
+ ✓ Compiled in 112ms (810 modules)
