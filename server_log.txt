@@ -575,3 +575,9 @@ Import trace for requested module:
  GET /images/training/avatar-hero.png 404 in 3ms
  GET /images/training/avatar-villain.png 404 in 2ms
  GET /images/training/avatar-hero.png 404 in 2ms
+ ✓ Compiled in 180ms (812 modules)
+ ✓ Compiled in 106ms (812 modules)
+ GET /hub/training/play/mtt-001?v=23 200 in 25ms
+ ✓ Compiled /404 in 40ms (816 modules)
+ GET /images/training/avatar-villain.png 404 in 56ms
+ GET /images/training/avatar-hero.png 404 in 55ms

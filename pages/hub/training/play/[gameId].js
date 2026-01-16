@@ -24,6 +24,7 @@ import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import feedback, { EFFECT_STYLES, screenEffects } from '../../../../src/engine/HapticsFeedback';
 import { getQuestionsForGame } from '../../../../src/data/QUESTIONS_LIBRARY';
 import { WorldNavHeader } from '../../../../src/components/navigation/WorldNavHeader';
+import { getPlayerCount } from '../../../../src/data/PLAYER_COUNT_MAP';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -41,44 +42,75 @@ const SUITS = {
     c: { symbol: '♣', color: '#43a047' },
 };
 
-// Fixed table seats - HERO always at bottom (position 0 / 90° in CSS coordinates)
-// In CSS: angle 90° = bottom, 270° = top, 0° = right, 180° = left
-const TABLE_SEATS = [
-    { position: 0, angle: 90, label: 'HERO', isHero: true },  // Bottom - always HERO
-    { position: 1, angle: 135 },  // Bottom-left
-    { position: 2, angle: 180 },  // Left 
-    { position: 3, angle: 225 },  // Top-left
-    { position: 4, angle: 270 },  // Top
-    { position: 5, angle: 315 },  // Top-right
-    { position: 6, angle: 0 },    // Right
-    { position: 7, angle: 45 },   // Bottom-right
+// Avatar mapping - Cycle through characters
+const AVATAR_CHARACTERS = [
+    { name: 'shark', path: '/images/training/avatars/shark.png' },
+    { name: 'octopus', path: '/images/training/avatars/octopus.png' },
+    { name: 'turtle', path: '/images/training/avatars/turtle.png' },
+    { name: 'crab', path: '/images/training/avatars/crab.png' },
+    { name: 'jellyfish', path: '/images/training/avatars/jellyfish.png' },
 ];
 
-// Get seat label based on hero's position and seat offset
-// Hero's position determines where the BTN is relative to hero
-function getSeatLabel(heroPosition, seatOffset) {
-    const positions = ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'HJ', 'CO'];
-    // Rotate positions based on where hero is sitting
-    // If hero is BTN (position 0), labels are: HERO=BTN, +1=SB, +2=BB, etc
-    // If hero is BB (position 2), labels wrap differently
-    const heroIndex = positions.indexOf(heroPosition.toUpperCase());
-    if (heroIndex === -1) return '';
+// Get villain avatar by index (cycles through available characters)
+function getVillainAvatar(index) {
+    return AVATAR_CHARACTERS[index % AVATAR_CHARACTERS.length].path;
+}
 
-    // Calculate which position label this seat should have
-    const labelIndex = (heroIndex + seatOffset) % 8;
-    return positions[labelIndex];
+// Player positioning for different table formats
+// Returns array of player positions with {top, left, playerIndex} for each seat
+function getPlayerPositions(playerCount) {
+    // All layouts use % positioning relative to table container
+    // Hero is always at bottom center
+
+    if (playerCount === 2) {
+        // Heads Up: Villain top, Hero bottom
+        return [
+            { top: '5%', left: '50%', transform: 'translateX(-50%)', playerIndex: 1 }, // Villain
+        ];
+    }
+
+    if (playerCount === 3) {
+        // 3-Max: Triangle formation
+        return [
+            { top: '5%', left: '50%', transform: 'translateX(-50%)', playerIndex: 1 }, // Top center
+            { top: '35%', left: '85%', transform: 'translateX(-50%)', playerIndex: 2 }, // Right
+        ];
+    }
+
+    if (playerCount === 6) {
+        // 6-Max: Approved mockup design
+        return [
+            { top: '5%', left: '50%', transform: 'translateX(-50%)', playerIndex: 1 }, // Top center
+            { top: '20%', left: '85%', transform: 'translateX(-50%)', playerIndex: 2 }, // Right upper
+            { top: '55%', left: '15%', transform: 'translateX(-50%)', playerIndex: 3 }, // Left lower
+            { top: '20%', left: '15%', transform: 'translateX(-50%)', playerIndex: 4 }, // Left upper
+        ];
+    }
+
+    if (playerCount === 9) {
+        // 9-Max: Full ring
+        return [
+            { top: '5%', left: '50%', transform: 'translateX(-50%)', playerIndex: 1 }, // Top center
+            { top: '10%', left: '75%', transform: 'translateX(-50%)', playerIndex: 2 }, // Top right
+            { top: '30%', left: '85%', transform: 'translateX(-50%)', playerIndex: 3 }, // Right upper
+            { top: '50%', left: '85%', transform: 'translateX(-50%)', playerIndex: 4 }, // Right lower
+            { top: '70%', left: '75%', transform: 'translateX(-50%)', playerIndex: 5 }, // Bottom right
+            { top: '70%', left: '25%', transform: 'translateX(-50%)', playerIndex: 6 }, // Bottom left
+            { top: '50%', left: '15%', transform: 'translateX(-50%)', playerIndex: 7 }, // Left lower
+            { top: '30%', left: '15%', transform: 'translateX(-50%)', playerIndex: 8 }, // Left upper
+        ];
+    }
+
+    // Default to 6-max if invalid count
+    return getPlayerPositions(6);
 }
 
 // Calculate dealer button position based on hero's position
-// In CSS: 90° = bottom, 270° = top, 0° = right, 180° = left
 function getDealerButtonAngle(heroPosition) {
-    // When hero is BTN, button is at bottom (90°)
-    // When hero is SB, button is one seat clockwise from hero (bottom-right = 45°)
-    // etc.
     const positionAngles = {
-        'BTN': 90,   // HERO at BTN = button at bottom with hero
-        'SB': 45,    // HERO at SB = button one seat right (bottom-right)
-        'BB': 0,     // HERO at BB = button two seats right
+        'BTN': 90,
+        'SB': 45,
+        'BB': 0,
         'UTG': 315,
         'UTG+1': 270,
         'MP': 225,
@@ -158,8 +190,8 @@ function PlayingCard({ card, size = 'medium', delay = 0, faceDown = false }) {
     const suitConfig = SUITS[suit] || SUITS.s;
 
     const sizes = {
-        tiny: { w: 32, h: 45, font: 11, suit: 11 }, // 5 cards fit across
-        small: { w: 32, h: 45, font: 11, suit: 11 }, // Same as board
+        tiny: { w: 50, h: 70, font: 14, suit: 16 }, // Board - 5 cards span felt
+        small: { w: 50, h: 70, font: 14, suit: 16 }, // Hero cards - same size
         medium: { w: 56, h: 78, font: 18, suit: 20 },
         large: { w: 68, h: 95, font: 22, suit: 26 },
     };
@@ -220,8 +252,8 @@ function ChipStack({ amount }) {
     );
 }
 
-// INTENSE PRESSURE TIMER with haptics and visual effects
-function PressureTimer({ timeLeft, maxTime, onTick }) {
+// INTENSE PRESSURE TIMER with haptics, visual effects, and heartbeat audio
+function PressureTimer({ timeLeft, maxTime, onTick, onHeartbeat }) {
     const percent = (timeLeft / maxTime) * 100;
     const isLow = percent < 30;
     const isCritical = percent < 15;
@@ -235,6 +267,28 @@ function PressureTimer({ timeLeft, maxTime, onTick }) {
             feedback.pressure();
         }
     }, [Math.round(timeLeft), isLow, isCritical]);
+
+    // Trigger heartbeat based on time remaining
+    useEffect(() => {
+        if (!onHeartbeat) return;
+
+        let interval;
+        if (timeLeft <= 5) {
+            // Critical: 2 beats per second
+            interval = setInterval(() => onHeartbeat('critical'), 500);
+        } else if (timeLeft <= 10) {
+            // Fast: 1 beat per second
+            interval = setInterval(() => onHeartbeat('fast'), 1000);
+        } else if (timeLeft <= 15) {
+            // Medium: 1 beat per 1.5s
+            interval = setInterval(() => onHeartbeat('medium'), 1500);
+        } else {
+            // Slow: 1 beat per 2s
+            interval = setInterval(() => onHeartbeat('slow'), 2000);
+        }
+
+        return () => clearInterval(interval);
+    }, [timeLeft, onHeartbeat]);
 
     const getColor = () => {
         if (isCritical) return '#FF1744';
@@ -274,7 +328,7 @@ function PressureTimer({ timeLeft, maxTime, onTick }) {
                 <motion.span
                     style={{
                         ...styles.timerValue,
-                        color: getColor(),
+                        color: '#FFFFFF', // WHITE as per spec
                         fontSize: isCritical ? 28 : 22,
                     }}
                     animate={isCritical ? { scale: [1, 1.2, 1] } : {}}
@@ -348,6 +402,7 @@ export default function TrainingPlayPage() {
     const { gameId } = router.query;
     const { recordSession, getGameProgress } = useTrainingProgress();
     const arenaRef = useRef(null);
+    const heartbeatAudioRef = useRef(null);
 
     // State
     const [game, setGame] = useState(null);
@@ -363,9 +418,18 @@ export default function TrainingPlayPage() {
     const [xpEarned, setXpEarned] = useState(0);
     const [showXPBurst, setShowXPBurst] = useState(false);
     const [lastXP, setLastXP] = useState(0);
+    const [playerCount, setPlayerCount] = useState(6); // Dynamic player count
 
     const timerRef = useRef(null);
     const currentScenario = questions[questionIndex] || questions[0];
+
+    // Initialize heartbeat audio
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            heartbeatAudioRef.current = new Audio('/sounds/heartbeat.mp3');
+            heartbeatAudioRef.current.loop = false;
+        }
+    }, []);
 
     // Load game and questions
     useEffect(() => {
@@ -373,12 +437,40 @@ export default function TrainingPlayPage() {
             const foundGame = getGameById(gameId);
             if (foundGame) {
                 setGame(foundGame);
+                // Get dynamic player count for this game
+                const count = getPlayerCount(gameId);
+                setPlayerCount(count);
                 // Load questions from database
                 const gameQuestions = getQuestionsForGame(gameId);
                 setQuestions(gameQuestions);
             }
         }
     }, [gameId]);
+
+    // Heartbeat sound callback
+    const playHeartbeat = useCallback((intensity) => {
+        if (!heartbeatAudioRef.current) return;
+
+        const audio = heartbeatAudioRef.current;
+        audio.currentTime = 0;
+
+        // Adjust volume based on intensity
+        if (intensity === 'critical') {
+            audio.volume = 1.0;
+            audio.playbackRate = 1.2;
+        } else if (intensity === 'fast') {
+            audio.volume = 0.7;
+            audio.playbackRate = 1.0;
+        } else if (intensity === 'medium') {
+            audio.volume = 0.5;
+            audio.playbackRate = 0.9;
+        } else {
+            audio.volume = 0.3;
+            audio.playbackRate = 0.8;
+        }
+
+        audio.play().catch(() => { }); // Ignore autoplay errors
+    }, []);
 
     // Timer with haptic feedback
     useEffect(() => {
@@ -570,7 +662,12 @@ export default function TrainingPlayPage() {
                 button { -webkit-tap-highlight-color: transparent; }
             `}</style>
 
-            <div ref={arenaRef} style={styles.arena}>
+            <motion.div
+                ref={arenaRef}
+                style={styles.arena}
+                animate={timeLeft <= 5 && !showResult ? { scale: [1, 1.02, 1] } : { scale: 1 }}
+                transition={{ duration: 0.5, repeat: timeLeft <= 5 && !showResult ? Infinity : 0 }}
+            >
                 {/* World Navigation Header */}
                 <WorldNavHeader
                     title={game.name}
@@ -624,7 +721,7 @@ export default function TrainingPlayPage() {
 
                         {/* Game Info - below board */}
                         <div style={styles.gameInfoCenter}>
-                            <span style={styles.gameType}>NLH</span>
+                            <span style={styles.gameType}>{game?.name || 'NLH'}</span>
                             <div style={styles.brandingText}>Smarter.Poker</div>
                         </div>
 
@@ -642,24 +739,38 @@ export default function TrainingPlayPage() {
                             <span style={styles.dealerButtonText}>D</span>
                         </motion.div>
 
-                        {/* Villain Player - TOP of table */}
-                        {currentScenario.villainStack && (
+                        {/* Dynamic Villain Players - Based on player count */}
+                        {getPlayerPositions(playerCount).map((pos, index) => (
                             <motion.div
-                                style={styles.villainPlayer}
+                                key={`villain-${index}`}
+                                style={{
+                                    position: 'absolute',
+                                    top: pos.top,
+                                    left: pos.left,
+                                    transform: pos.transform,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: 2,
+                                    zIndex: 15,
+                                }}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                transition={{ delay: 0.3 }}
+                                transition={{ delay: 0.3 + index * 0.1 }}
                             >
-                                <div style={styles.playerAvatar}>
-                                    <img src="/images/training/avatar-villain.png" alt="" style={styles.avatarImage}
+                                <div style={{ ...styles.playerAvatar, width: 70, height: 70, border: '2px solid rgba(255, 255, 255, 0.3)' }}>
+                                    <img
+                                        src={getVillainAvatar(index)}
+                                        alt=""
+                                        style={styles.avatarImage}
                                         onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                     />
-                                    <div style={{ ...styles.avatarFallback, display: 'none' }}>V</div>
+                                    <div style={{ ...styles.avatarFallback, display: 'none' }}>V{index + 1}</div>
                                 </div>
-                                <div style={styles.playerName}>Villain</div>
-                                <div style={styles.playerStack}>{currentScenario.villainStack}</div>
+                                <div style={styles.playerName}>Villain {index + 1}</div>
+                                <div style={styles.playerStack}>20 BB</div>
                             </motion.div>
-                        )}
+                        ))}
 
                         {/* HERO Section - BOTTOM of table */}
                         <motion.div
@@ -670,8 +781,11 @@ export default function TrainingPlayPage() {
                         >
                             {/* Hero Avatar + Name + Stack */}
                             <div style={styles.heroInfo}>
-                                <div style={styles.playerAvatar}>
-                                    <img src="/images/training/avatar-hero.png" alt="" style={styles.avatarImage}
+                                <div style={{ ...styles.playerAvatar, width: 100, height: 100, border: '3px solid #FFD700' }}>
+                                    <img
+                                        src="/images/training/avatars/fish.png"
+                                        alt=""
+                                        style={styles.avatarImage}
                                         onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                     />
                                     <div style={{ ...styles.avatarFallback, display: 'none' }}>H</div>
@@ -703,9 +817,9 @@ export default function TrainingPlayPage() {
                         </motion.div>
                     </div>
 
-                    {/* Timer */}
+                    {/* Timer with heartbeat */}
                     <div style={styles.timerPosition}>
-                        <PressureTimer timeLeft={timeLeft} maxTime={TIME_PER_QUESTION} />
+                        <PressureTimer timeLeft={timeLeft} maxTime={TIME_PER_QUESTION} onHeartbeat={playHeartbeat} />
                     </div>
 
                     {/* XP Burst */}
@@ -821,7 +935,7 @@ export default function TrainingPlayPage() {
                 >
                     ⚡ {xpEarned.toLocaleString()} XP
                 </motion.div>
-            </div>
+            </motion.div>
         </>
     );
 }
@@ -937,14 +1051,13 @@ const styles = {
         color: '#fff',
     },
 
-    // Board Cards - CENTER of table
     boardAreaCenter: {
         position: 'absolute',
         top: '32%',
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
-        gap: 2, // Smaller gap so 5 cards fit
+        gap: 4, // 4px gap for 5 large cards
     },
 
     preFlopBadge: {
