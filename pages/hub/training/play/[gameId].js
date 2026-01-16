@@ -603,7 +603,7 @@ export default function TrainingPlayPage() {
 
                         {/* Board & Pot - centered on table */}
                         <div style={styles.tableOverlay}>
-                            {/* Board cards */}
+                            {/* Board cards - sized for 5 cards */}
                             <div style={styles.boardArea}>
                                 {currentScenario.board && currentScenario.board.length > 0 ? (
                                     currentScenario.board.map((card, i) => (
@@ -625,7 +625,7 @@ export default function TrainingPlayPage() {
                         <motion.div
                             style={{
                                 ...styles.dealerButton,
-                                // Position ON the black felt - elliptical positioning
+                                // Position on the felt
                                 top: `${50 + Math.sin(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 22}%`,
                                 left: `${50 + Math.cos(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 28}%`,
                             }}
@@ -636,55 +636,35 @@ export default function TrainingPlayPage() {
                             <span style={styles.dealerButtonText}>D</span>
                         </motion.div>
 
-                        {/* HERO seat badge - always at bottom, ON THE BLACK FELT */}
+                        {/* Hero Avatar with Stack - always at bottom */}
                         <motion.div
-                            style={{
-                                ...styles.seatBadge,
-                                // Position on the felt - ellipse (smaller Y, wider X)
-                                top: `${50 + Math.sin(90 * Math.PI / 180) * 24}%`,
-                                left: `${50 + Math.cos(90 * Math.PI / 180) * 30}%`,
-                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                                boxShadow: '0 0 20px rgba(255, 215, 0, 0.6)',
-                                border: '2px solid #FFD700',
-                            }}
+                            style={styles.heroAvatar}
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: 0.1 }}
                         >
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#1a1a2e', letterSpacing: 1 }}>
-                                HERO
-                            </span>
+                            <div style={styles.avatarCircle}>
+                                <span style={styles.avatarEmoji}>🎯</span>
+                            </div>
+                            <div style={styles.heroStackDisplay}>
+                                <span style={styles.heroStackAmount}>
+                                    {currentScenario.heroStack || 25} BB
+                                </span>
+                            </div>
                         </motion.div>
 
-                        {/* Other position labels ON THE BLACK FELT */}
-                        {TABLE_SEATS.filter(seat => !seat.isHero).map((seat, i) => {
-                            const labelOffset = seat.position;
-                            const label = getSeatLabel(currentScenario.heroPosition || 'BTN', labelOffset);
-                            // Use elliptical radius - smaller Y for pill shape, wider X
-                            const yRadius = 24; // Compressed vertically
-                            const xRadius = 30; // Wider horizontally
-                            return (
-                                <motion.div
-                                    key={seat.position}
-                                    style={{
-                                        ...styles.seatBadge,
-                                        // Elliptical position on the felt
-                                        top: `${50 + Math.sin(seat.angle * Math.PI / 180) * yRadius}%`,
-                                        left: `${50 + Math.cos(seat.angle * Math.PI / 180) * xRadius}%`,
-                                        background: 'rgba(20, 20, 40, 0.95)',
-                                        boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
-                                        border: '1px solid rgba(255, 215, 0, 0.3)',
-                                    }}
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ delay: 0.1 + i * 0.02 }}
-                                >
-                                    <span style={{ fontSize: 10, fontWeight: 700, color: '#FFD700', letterSpacing: 1 }}>
-                                        {label}
-                                    </span>
-                                </motion.div>
-                            );
-                        })}
+                        {/* Villain Stack - top of table */}
+                        {currentScenario.villainStack && (
+                            <motion.div
+                                style={styles.villainStack}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.3 }}
+                            >
+                                <span style={styles.villainStackLabel}>Villain</span>
+                                <span style={styles.villainStackAmount}>{currentScenario.villainStack} BB</span>
+                            </motion.div>
+                        )}
                     </div>
 
                     {/* Hero hole cards - positioned below table */}
@@ -883,21 +863,23 @@ const styles = {
         background: '#0a0a0a',
     },
 
-    // Premium table container - FULL TABLE display for live dealing
+    // Premium table container - HORIZONTAL landscape orientation
     premiumTableContainer: {
         position: 'relative',
         width: '100%',
-        maxWidth: 380,
-        aspectRatio: '597 / 1024', // Match the original image aspect ratio
+        maxWidth: 400,
+        aspectRatio: '16 / 10', // Wide horizontal
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
     },
     tableImage: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'contain', // Show full image, no cropping
+        width: '170%', // Larger to fill after rotation
+        height: '170%',
+        objectFit: 'contain',
         filter: 'brightness(1.1) contrast(1.05) saturate(1.05)',
+        transform: 'rotate(90deg)', // ROTATE to horizontal
     },
     tableGlow: {
         position: 'absolute',
@@ -908,13 +890,13 @@ const styles = {
     },
     tableOverlay: {
         position: 'absolute',
-        top: '35%', // Position content on the table surface
+        top: '50%', // Center on horizontal table
         left: '50%',
         transform: 'translate(-50%, -50%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 12,
+        gap: 8,
     },
 
     boardArea: {
@@ -970,6 +952,29 @@ const styles = {
         justifyContent: 'center',
         minWidth: 38,
         zIndex: 10,
+    },
+
+    // Hero Avatar - positioned at bottom of table
+    heroAvatar: {
+        position: 'absolute',
+        bottom: '5%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 15,
+    },
+    avatarCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        border: '3px solid #fff',
+        boxShadow: '0 4px 15px rgba(255, 215, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    avatarEmoji: {
+        fontSize: 18,
     },
 
     // Dealer Button - classic white circle with D
