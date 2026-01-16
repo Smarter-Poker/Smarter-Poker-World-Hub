@@ -796,15 +796,26 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HOOK TO MANAGE INTRO STATE
+// Pass enabled=false to completely skip the intro (no sounds, no visuals)
 // ─────────────────────────────────────────────────────────────────────────────
-export function useCinematicIntro() {
-    const [showIntro, setShowIntro] = useState(true);
-    const [introComplete, setIntroComplete] = useState(false);
+export function useCinematicIntro(enabled: boolean = true) {
+    const [showIntro, setShowIntro] = useState(enabled);
+    const [introComplete, setIntroComplete] = useState(!enabled);
 
     const handleIntroComplete = () => {
         setShowIntro(false);
         setIntroComplete(true);
     };
+
+    // If disabled, return null component and completed state
+    if (!enabled) {
+        return {
+            showIntro: false,
+            introComplete: true,
+            handleIntroComplete,
+            CinematicIntroComponent: null,
+        };
+    }
 
     return {
         showIntro,

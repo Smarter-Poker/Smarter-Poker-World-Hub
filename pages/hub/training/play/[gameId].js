@@ -990,9 +990,9 @@ const styles = {
 
     // Situation Panel - TOP of page, prominent
     situationPanel: {
-        padding: '16px 20px',
-        background: 'linear-gradient(180deg, rgba(20, 15, 30, 0.95), rgba(15, 12, 25, 0.9))',
-        borderBottom: '1px solid rgba(255, 215, 0, 0.2)',
+        padding: '8px 24px 20px',
+        background: '#0a0a0a',
+        textAlign: 'center',
     },
     questionNumber: {
         fontSize: 10,
@@ -1003,16 +1003,17 @@ const styles = {
         textTransform: 'uppercase',
     },
     situationTitle: {
-        fontSize: 18,
+        fontSize: 24,
         fontWeight: 700,
         color: '#fff',
-        marginBottom: 8,
-        lineHeight: 1.3,
+        marginBottom: 0,
+        lineHeight: 1.4,
     },
     situationText: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.85)',
-        lineHeight: 1.5,
+        fontSize: 24,
+        fontWeight: 600,
+        color: '#fff',
+        lineHeight: 1.4,
     },
     actionHUD: {
         padding: '12px 16px 24px',
@@ -1127,7 +1128,6 @@ const styles = {
         color: 'rgba(255, 255, 255, 0.85)',
         lineHeight: 1.7,
         margin: 0,
-        textTransform: 'capitalize',
     },
 
     // Alternate Lines - Clean simple style
@@ -1299,15 +1299,14 @@ const styles = {
     cardNextButton: {
         margin: 16,
         padding: '16px 32px',
-        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        background: '#fff',
         border: 'none',
         borderRadius: 30,
         color: '#1a1a2e',
         fontSize: 16,
-        fontWeight: 800,
+        fontWeight: 700,
         cursor: 'pointer',
-        letterSpacing: 1,
-        boxShadow: '0 4px 20px rgba(255, 215, 0, 0.3)',
+        letterSpacing: 0.5,
     },
 
     // Keep old styles for backwards compatibility

@@ -430,16 +430,14 @@ export default function WorldHub() {
     const isReturnVisit = !playIntro;
 
     // ═══════════════════════════════════════════════════════════════
-    // INTRO ANIMATIONS — ENABLED for first visit only
-    // OUTRO/RETURN ANIMATIONS — DISABLED (no effects when going back)
+    // INTRO ANIMATIONS — ONLY when coming from auth (sign in/up)
+    // Pass playIntro to enable/disable - when false, no sounds/visuals
     // ═══════════════════════════════════════════════════════════════
-    const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro();
-
-    // ReturnBurst DISABLED - this is what was playing when going back
-    // const { showBurst, burstComplete, ReturnBurstComponent, triggerBurst } = useReturnBurst();
-
-    // Launch animation state (triggers after cinematic intro completes)
+    const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro(playIntro);
     const { isLaunching, isComplete: isIntroComplete, onBurst } = useLaunchAnimation();
+
+    // ReturnBurst DISABLED - no outro effects when going back
+    // const { showBurst, burstComplete, ReturnBurstComponent, triggerBurst } = useReturnBurst();
 
     // Notification counts - users start with 0 (no seed data)
     const [messageCount] = useState(0);
@@ -656,8 +654,8 @@ export default function WorldHub() {
                             color="#00d4ff"
                         />
 
-                        {/* Launch Pad Animation — First visit intro */}
-                        <LaunchPad isActive={isLaunching} onBurst={onBurst} />
+                        {/* Launch Pad Animation — Only when intro is playing */}
+                        {playIntro && <LaunchPad isActive={isLaunching} onBurst={onBurst} />}
 
                         {/* Card Carousel with Snap */}
                         <CarouselEngine
