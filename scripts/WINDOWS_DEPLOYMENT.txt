@@ -1,0 +1,89 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# 🔥 GOD MODE WINDOWS DEPLOYMENT PACK
+# ═══════════════════════════════════════════════════════════════════════════
+# 
+# SUPABASE CREDENTIALS - COPY TO WINDOWS MACHINE
+# 
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# CRITICAL CREDENTIALS - DO NOT SHARE PUBLICLY
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## Supabase Project URL
+SUPABASE_URL=https://kuklfnapbkmacvwxktbh.supabase.co
+
+## Supabase Service Role Key (ADMIN ACCESS - KEEP SECRET!)
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.oZxe_-RYdGvfPHxg7EhSJx-E3Tl6nYG3YZGP8Q7bYc0
+
+## Supabase Anon Key (Public access - safe for client-side)
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo
+
+# ═══════════════════════════════════════════════════════════════════════════
+# WINDOWS SETUP INSTRUCTIONS
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Step 1: Install Python 3.10+ ##
+# Download from: https://www.python.org/downloads/
+# During install, CHECK "Add Python to PATH"
+
+## Step 2: Install Dependencies ##
+# Open PowerShell or CMD and run:
+pip install -r requirements.txt
+
+# Or install individually:
+pip install supabase-py pandas python-dotenv
+
+## Step 3: Set Environment Variables (Windows PowerShell) ##
+$env:SUPABASE_URL="https://kuklfnapbkmacvwxktbh.supabase.co"
+$env:SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.oZxe_-RYdGvfPHxg7EhSJx-E3Tl6nYG3YZGP8Q7bYc0"
+
+## Step 4: Create Folder Structure ##
+# Follow structure in GOD_MODE_FOLDER_STRUCTURE.md
+# Example:
+C:\PokerSolver\Raw\MTT\ICM\40bb\Turn\
+
+## Step 5: Run Ingestion ##
+python ingest_god_mode.py C:\PokerSolver\Raw
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ALTERNATIVE: Use .env File (Recommended for Windows) ##
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Create a file named `.env` in the same directory as ingest_god_mode.py
+# Add these lines to .env:
+
+SUPABASE_URL=https://kuklfnapbkmacvwxktbh.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.oZxe_-RYdGvfPHxg7EhSJx-E3Tl6nYG3YZGP8Q7bYc0
+
+# Then update ingest_god_mode.py to use python-dotenv:
+# from dotenv import load_dotenv
+# load_dotenv()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# QUICK TEST
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Test connection (run in Python):
+python -c "from supabase import create_client; import os; client = create_client(os.getenv('SUPABASE_URL'), os.getenv('SUPABASE_KEY')); print('✅ Connected!')"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# FILES TO COPY TO WINDOWS
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Required files:
+# 1. ingest_god_mode.py (the main script)
+# 2. requirements.txt (dependencies)
+# 3. This credentials file (for reference)
+# 4. GOD_MODE_FOLDER_STRUCTURE.md (folder structure guide)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SECURITY NOTES
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ⚠️  The SERVICE_ROLE_KEY has FULL ADMIN ACCESS to your database
+# ⚠️  Never commit this to git or share publicly
+# ⚠️  Keep this file secure on your Windows machine
+# ⚠️  Consider using environment variables instead of hardcoding
+
+# ═══════════════════════════════════════════════════════════════════════════

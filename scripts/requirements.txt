@@ -1,0 +1,11 @@
+# Python Requirements for God Mode Ingestion
+# Windows Deployment Pack
+# Install with: pip install -r requirements.txt
+
+# Core Supabase client
+supabase-py==2.15.0
+
+# Optional but recommended
+pandas==2.2.0          # For advanced CSV processing
+python-dotenv==1.0.1    # For .env file support
+psycopg2-binary==2.9.9  # Direct PostgreSQL access (optional)
