@@ -22,6 +22,7 @@ import { TRAINING_LIBRARY, TRAINING_LANES, getGamesByCategory, getGamesByTag } f
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+import GameIntroSplash from '../../src/components/training/GameIntroSplash';
 
 // Filter options - Category based filters that link to game lanes
 const FILTERS = [
@@ -217,6 +218,8 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge }
 export default function TrainingPage() {
     const router = useRouter();
     const [activeFilter, setActiveFilter] = useState('ALL');
+    const [showIntro, setShowIntro] = useState(false);
+    const [pendingGame, setPendingGame] = useState(null);
     const {
         isLoaded,
         getGameProgress,
@@ -237,14 +240,20 @@ export default function TrainingPage() {
     const newGames = getUnplayedGames(TRAINING_LIBRARY).slice(0, 8);
     const leakGames = getLeakGames(TRAINING_LIBRARY);
 
-    // Handle game click
+    // Handle game click - Show intro video first, then navigate
     const handleGameClick = (game) => {
-        // For now, show alert. Later, route to arena
         console.log('🎮 Launching game:', game.name);
+        setPendingGame(game);
+        setShowIntro(true);
+    };
 
-        // Demo: Record a session immediately for testing
-        // In production, this would happen after completing a run
-        router.push(`/hub/training/play/${game.id}`);
+    // After intro video completes, navigate to the game
+    const handleIntroComplete = () => {
+        setShowIntro(false);
+        if (pendingGame) {
+            router.push(`/hub/training/play/${pendingGame.id}`);
+            setPendingGame(null);
+        }
     };
 
     // Handle featured play
@@ -281,6 +290,13 @@ export default function TrainingPage() {
                     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
                 `}</style>
             </Head>
+
+            {/* Video Intro Splash - Shows before loading any game */}
+            <GameIntroSplash
+                isVisible={showIntro}
+                game={pendingGame ? { ...pendingGame, image: getGameImage(pendingGame.id) } : null}
+                onComplete={handleIntroComplete}
+            />
 
             <div style={styles.page}>
                 {/* Brain Home Button */}
