@@ -625,8 +625,9 @@ export default function TrainingPlayPage() {
                         <motion.div
                             style={{
                                 ...styles.dealerButton,
-                                top: `${50 + Math.sin(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 38}%`,
-                                left: `${50 + Math.cos(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 36}%`,
+                                // Position ON the black felt - elliptical positioning
+                                top: `${50 + Math.sin(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 22}%`,
+                                left: `${50 + Math.cos(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 28}%`,
                             }}
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
@@ -635,12 +636,13 @@ export default function TrainingPlayPage() {
                             <span style={styles.dealerButtonText}>D</span>
                         </motion.div>
 
-                        {/* HERO seat badge - always at bottom */}
+                        {/* HERO seat badge - always at bottom, ON THE BLACK FELT */}
                         <motion.div
                             style={{
                                 ...styles.seatBadge,
-                                top: `${50 + Math.sin(270 * Math.PI / 180) * 42}%`,
-                                left: `${50 + Math.cos(270 * Math.PI / 180) * 40}%`,
+                                // Position on the felt - ellipse (smaller Y, wider X)
+                                top: `${50 + Math.sin(90 * Math.PI / 180) * 24}%`,
+                                left: `${50 + Math.cos(90 * Math.PI / 180) * 30}%`,
                                 background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                                 boxShadow: '0 0 20px rgba(255, 215, 0, 0.6)',
                                 border: '2px solid #FFD700',
@@ -654,17 +656,21 @@ export default function TrainingPlayPage() {
                             </span>
                         </motion.div>
 
-                        {/* Other position labels around table */}
+                        {/* Other position labels ON THE BLACK FELT */}
                         {TABLE_SEATS.filter(seat => !seat.isHero).map((seat, i) => {
                             const labelOffset = seat.position;
                             const label = getSeatLabel(currentScenario.heroPosition || 'BTN', labelOffset);
+                            // Use elliptical radius - smaller Y for pill shape, wider X
+                            const yRadius = 24; // Compressed vertically
+                            const xRadius = 30; // Wider horizontally
                             return (
                                 <motion.div
                                     key={seat.position}
                                     style={{
                                         ...styles.seatBadge,
-                                        top: `${50 + Math.sin(seat.angle * Math.PI / 180) * 42}%`,
-                                        left: `${50 + Math.cos(seat.angle * Math.PI / 180) * 40}%`,
+                                        // Elliptical position on the felt
+                                        top: `${50 + Math.sin(seat.angle * Math.PI / 180) * yRadius}%`,
+                                        left: `${50 + Math.cos(seat.angle * Math.PI / 180) * xRadius}%`,
                                         background: 'rgba(20, 20, 40, 0.95)',
                                         boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
                                         border: '1px solid rgba(255, 215, 0, 0.3)',

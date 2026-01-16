@@ -394,3 +394,11 @@ Import trace for requested module:
  GET /hub/training/play/mtt-001?refresh=1 200 in 22ms
  ✓ Compiled in 68ms (810 modules)
  ✓ Compiled in 80ms (810 modules)
+ ✓ Compiled in 72ms (810 modules)
+ GET /hub/training/play/mtt-001?v=2 200 in 17ms
+ ✓ Compiled in 73ms (810 modules)
+ GET /hub/training/play/mtt-001?v=3 200 in 14ms
+ ✓ Compiled in 68ms (810 modules)
+ GET /hub/training/play/mtt-001?v=4 200 in 17ms
+ ✓ Compiled in 77ms (810 modules)
+ GET /hub/training/play/mtt-001?v=5 200 in 16ms
