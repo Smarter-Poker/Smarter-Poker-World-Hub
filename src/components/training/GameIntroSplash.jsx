@@ -101,82 +101,80 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
                         </motion.div>
                     )}
 
-                    {/* READY POPUP PHASE */}
+                    {/* READY POPUP PHASE - FULL SCREEN MOBILE */}
                     {phase === 'ready' && (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
                             transition={{ duration: 0.4, ease: 'easeOut' }}
-                            style={styles.readyContainer}
+                            style={styles.readyFullScreen}
                         >
-                            <div style={styles.readyCard}>
-                                {/* Game Icon/Image */}
-                                {game?.image && (
-                                    <div style={styles.gameImageContainer}>
-                                        <img
-                                            src={game.image}
-                                            alt={game?.name || 'Game'}
-                                            style={styles.gameImage}
-                                        />
-                                    </div>
-                                )}
-
-                                {/* Category Badge */}
-                                {game?.category && (
-                                    <div style={{
-                                        ...styles.categoryBadge,
-                                        background: getCategoryColor(game.category),
-                                    }}>
-                                        {game.category}
-                                    </div>
-                                )}
-
-                                {/* Game Title */}
-                                <h1 style={styles.gameTitle}>
-                                    {game?.name || 'Training Game'}
-                                </h1>
-
-                                {/* Game Description */}
-                                <p style={styles.gameDescription}>
-                                    {game?.description || 'Master this poker concept through interactive scenarios and real-time feedback.'}
-                                </p>
-
-                                {/* Game Stats */}
-                                <div style={styles.gameStats}>
-                                    <div style={styles.statItem}>
-                                        <span style={styles.statValue}>{game?.hands || 20}</span>
-                                        <span style={styles.statLabel}>Hands</span>
-                                    </div>
-                                    <div style={styles.statDivider} />
-                                    <div style={styles.statItem}>
-                                        <span style={styles.statValue}>{game?.passThreshold || 85}%</span>
-                                        <span style={styles.statLabel}>To Pass</span>
-                                    </div>
-                                    <div style={styles.statDivider} />
-                                    <div style={styles.statItem}>
-                                        <span style={{ ...styles.statValue, color: '#FFD700' }}>
-                                            {game?.xpReward || 100} XP
-                                        </span>
-                                        <span style={styles.statLabel}>Reward</span>
-                                    </div>
+                            {/* Category Badge */}
+                            {game?.category && (
+                                <div style={{
+                                    ...styles.categoryBadge,
+                                    background: getCategoryColor(game.category),
+                                }}>
+                                    {game.category}
                                 </div>
+                            )}
 
-                                {/* Ready Button */}
-                                <motion.button
-                                    style={styles.readyButton}
-                                    onClick={handleReady}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                    <span style={styles.readyIcon}>▶</span>
-                                    I'M READY
-                                </motion.button>
+                            {/* Game Title - Title Case */}
+                            <h1 style={styles.gameTitle}>
+                                {game?.name || 'Training Game'}
+                            </h1>
 
-                                {/* Tips */}
-                                <p style={styles.tipText}>
-                                    💡 Tap the correct answer as fast as you can for bonus XP
+                            {/* Purpose Section */}
+                            <div style={styles.purposeSection}>
+                                <div style={styles.sectionLabel}>Purpose</div>
+                                <p style={styles.sectionText}>
+                                    {game?.purpose || 'Master Critical Decision Making In Common Poker Spots Through Repetition And Instant Feedback.'}
                                 </p>
                             </div>
+
+                            {/* What You'll Learn Section */}
+                            <div style={styles.learnSection}>
+                                <div style={styles.sectionLabel}>What You'll Improve</div>
+                                <div style={styles.skillsList}>
+                                    {(game?.skills || ['Preflop Hand Selection', 'Position Awareness', 'Bet Sizing', 'Fold Equity']).map((skill, i) => (
+                                        <div key={i} style={styles.skillItem}>
+                                            <span style={styles.skillCheck}>✓</span>
+                                            <span style={styles.skillText}>{skill}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Game Stats */}
+                            <div style={styles.gameStatsRow}>
+                                <div style={styles.statBox}>
+                                    <span style={styles.statValue}>{game?.hands || 20}</span>
+                                    <span style={styles.statLabel}>Hands</span>
+                                </div>
+                                <div style={styles.statBox}>
+                                    <span style={styles.statValue}>{game?.passThreshold || 85}%</span>
+                                    <span style={styles.statLabel}>To Pass</span>
+                                </div>
+                                <div style={styles.statBox}>
+                                    <span style={{ ...styles.statValue, color: '#FFD700' }}>{game?.xpReward || 100}</span>
+                                    <span style={styles.statLabel}>XP Reward</span>
+                                </div>
+                            </div>
+
+                            {/* Ready Button */}
+                            <motion.button
+                                style={styles.readyButton}
+                                onClick={handleReady}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                I'm Ready
+                            </motion.button>
+
+                            {/* Tip */}
+                            <p style={styles.tipText}>
+                                Answer Quickly For Bonus XP
+                            </p>
                         </motion.div>
                     )}
                 </motion.div>
@@ -233,9 +231,160 @@ const styles = {
         fontSize: 14,
         fontFamily: 'Inter, -apple-system, sans-serif',
         letterSpacing: 1,
+        textTransform: 'capitalize',
     },
 
-    // Ready popup styles
+    // FULL SCREEN MOBILE - Ready popup styles
+    readyFullScreen: {
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 24px',
+        background: 'linear-gradient(180deg, #0d0d14 0%, #0a0a0a 100%)',
+        fontFamily: 'Inter, -apple-system, sans-serif',
+        textAlign: 'center',
+        overflowY: 'auto',
+    },
+
+    categoryBadge: {
+        display: 'inline-block',
+        padding: '8px 20px',
+        borderRadius: 20,
+        fontSize: 12,
+        fontWeight: 700,
+        letterSpacing: 2,
+        color: '#fff',
+        marginBottom: 16,
+        textTransform: 'uppercase',
+    },
+
+    gameTitle: {
+        fontSize: 28,
+        fontWeight: 800,
+        color: '#fff',
+        margin: '0 0 32px 0',
+        letterSpacing: 0.5,
+        lineHeight: 1.2,
+    },
+
+    // Purpose Section
+    purposeSection: {
+        width: '100%',
+        maxWidth: 360,
+        marginBottom: 24,
+        textAlign: 'left',
+    },
+
+    sectionLabel: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: 'rgba(255, 255, 255, 0.5)',
+        marginBottom: 8,
+        textTransform: 'capitalize',
+        letterSpacing: 0.5,
+    },
+
+    sectionText: {
+        fontSize: 15,
+        color: 'rgba(255, 255, 255, 0.85)',
+        lineHeight: 1.6,
+        margin: 0,
+    },
+
+    // Learn Section
+    learnSection: {
+        width: '100%',
+        maxWidth: 360,
+        marginBottom: 32,
+        textAlign: 'left',
+    },
+
+    skillsList: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+    },
+
+    skillItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 16px',
+        background: 'rgba(255, 255, 255, 0.04)',
+        borderRadius: 10,
+    },
+
+    skillCheck: {
+        fontSize: 14,
+        color: '#4CAF50',
+        fontWeight: 700,
+    },
+
+    skillText: {
+        fontSize: 14,
+        color: '#fff',
+        fontWeight: 500,
+    },
+
+    // Stats Row
+    gameStatsRow: {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 16,
+        marginBottom: 32,
+        width: '100%',
+        maxWidth: 360,
+    },
+
+    statBox: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '16px 12px',
+        background: 'rgba(255, 255, 255, 0.04)',
+        borderRadius: 12,
+        gap: 4,
+    },
+
+    statValue: {
+        fontSize: 22,
+        fontWeight: 700,
+        color: '#fff',
+    },
+
+    statLabel: {
+        fontSize: 10,
+        color: 'rgba(255, 255, 255, 0.5)',
+        textTransform: 'capitalize',
+        letterSpacing: 0.5,
+    },
+
+    readyButton: {
+        width: '100%',
+        maxWidth: 360,
+        padding: '18px 32px',
+        background: '#fff',
+        border: 'none',
+        borderRadius: 30,
+        color: '#0a0a0a',
+        fontSize: 16,
+        fontWeight: 700,
+        cursor: 'pointer',
+        marginBottom: 16,
+        WebkitTapHighlightColor: 'transparent',
+    },
+
+    tipText: {
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.4)',
+        margin: 0,
+    },
+
+    // Keep old styles for backwards compatibility
     readyContainer: {
         width: '100%',
         height: '100%',
@@ -245,7 +394,6 @@ const styles = {
         padding: 20,
         background: 'radial-gradient(circle at center, #1a2744 0%, #0a0a15 100%)',
     },
-
     readyCard: {
         width: '100%',
         maxWidth: 400,
@@ -256,7 +404,6 @@ const styles = {
         boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 212, 255, 0.1)',
         textAlign: 'center',
     },
-
     gameImageContainer: {
         width: 120,
         height: 120,
@@ -266,41 +413,17 @@ const styles = {
         border: '3px solid rgba(255, 107, 53, 0.5)',
         boxShadow: '0 0 30px rgba(255, 107, 53, 0.3)',
     },
-
     gameImage: {
         width: '100%',
         height: '100%',
         objectFit: 'cover',
     },
-
-    categoryBadge: {
-        display: 'inline-block',
-        padding: '6px 16px',
-        borderRadius: 20,
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: 2,
-        color: '#fff',
-        marginBottom: 12,
-        textTransform: 'uppercase',
-    },
-
-    gameTitle: {
-        fontSize: 24,
-        fontWeight: 800,
-        color: '#fff',
-        margin: '0 0 12px 0',
-        letterSpacing: 0.5,
-        textShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
-    },
-
     gameDescription: {
         fontSize: 14,
         color: 'rgba(255, 255, 255, 0.7)',
         lineHeight: 1.6,
         margin: '0 0 24px 0',
     },
-
     gameStats: {
         display: 'flex',
         justifyContent: 'center',
@@ -311,60 +434,18 @@ const styles = {
         borderTop: '1px solid rgba(255, 255, 255, 0.1)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     },
-
     statItem: {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: 4,
     },
-
-    statValue: {
-        fontSize: 20,
-        fontWeight: 700,
-        color: '#fff',
-    },
-
-    statLabel: {
-        fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.5)',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-
     statDivider: {
         width: 1,
         height: 32,
         background: 'rgba(255, 255, 255, 0.2)',
     },
-
-    readyButton: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        width: '100%',
-        padding: '16px 32px',
-        background: 'linear-gradient(135deg, #FF6B35, #E64A19)',
-        border: 'none',
-        borderRadius: 30,
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 800,
-        letterSpacing: 2,
-        cursor: 'pointer',
-        boxShadow: '0 4px 20px rgba(255, 107, 53, 0.4), 0 0 30px rgba(255, 107, 53, 0.2)',
-        marginBottom: 16,
-        WebkitTapHighlightColor: 'transparent',
-    },
-
     readyIcon: {
         fontSize: 14,
-    },
-
-    tipText: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.4)',
-        margin: 0,
     },
 };
