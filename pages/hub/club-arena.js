@@ -1,14 +1,54 @@
 /**
  * ♠ SMARTER.POKER HUB — Club Arena (Orb #2)
  * Loads Club Engine iframe from club.smarter.poker
+ * 
+ * FIX: Proper cleanup on navigation to prevent page freeze
  */
 
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 
 export default function ClubArenaPage() {
+    const router = useRouter();
+    const iframeRef = useRef(null);
     const [iframeLoaded, setIframeLoaded] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false);
+
+    // Cleanup iframe on unmount or navigation
+    useEffect(() => {
+        const handleRouteChangeStart = () => {
+            setIsNavigating(true);
+            // Immediately clear iframe to prevent freeze
+            if (iframeRef.current) {
+                iframeRef.current.src = 'about:blank';
+            }
+        };
+
+        const handleRouteChangeComplete = () => {
+            setIsNavigating(false);
+        };
+
+        router.events.on('routeChangeStart', handleRouteChangeStart);
+        router.events.on('routeChangeComplete', handleRouteChangeComplete);
+        router.events.on('routeChangeError', handleRouteChangeComplete);
+
+        return () => {
+            // Cleanup on unmount
+            if (iframeRef.current) {
+                iframeRef.current.src = 'about:blank';
+            }
+            router.events.off('routeChangeStart', handleRouteChangeStart);
+            router.events.off('routeChangeComplete', handleRouteChangeComplete);
+            router.events.off('routeChangeError', handleRouteChangeComplete);
+        };
+    }, [router.events]);
+
+    // Don't render iframe content if navigating away
+    if (isNavigating) {
+        return null;
+    }
 
     return (
         <>
@@ -31,6 +71,7 @@ export default function ClubArenaPage() {
 
                 {/* Club Engine iframe */}
                 <iframe
+                    ref={iframeRef}
                     src="https://club.smarter.poker"
                     style={{
                         ...styles.iframe,

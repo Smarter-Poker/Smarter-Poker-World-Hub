@@ -1,20 +1,60 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    DIAMOND ARENA — Live Poker Room
    Embeds the Diamond Arena poker application
+   
+   FIX: Proper cleanup on navigation to prevent page freeze
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/router';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 
 export default function DiamondArenaPage() {
+    const router = useRouter();
+    const iframeRef = useRef(null);
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false);
 
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    // Cleanup iframe on unmount or navigation
+    useEffect(() => {
+        const handleRouteChangeStart = () => {
+            setIsNavigating(true);
+            // Immediately clear iframe to prevent freeze
+            if (iframeRef.current) {
+                iframeRef.current.src = 'about:blank';
+            }
+        };
+
+        const handleRouteChangeComplete = () => {
+            setIsNavigating(false);
+        };
+
+        router.events.on('routeChangeStart', handleRouteChangeStart);
+        router.events.on('routeChangeComplete', handleRouteChangeComplete);
+        router.events.on('routeChangeError', handleRouteChangeComplete);
+
+        return () => {
+            // Cleanup on unmount
+            if (iframeRef.current) {
+                iframeRef.current.src = 'about:blank';
+            }
+            router.events.off('routeChangeStart', handleRouteChangeStart);
+            router.events.off('routeChangeComplete', handleRouteChangeComplete);
+            router.events.off('routeChangeError', handleRouteChangeComplete);
+        };
+    }, [router.events]);
+
+    // Don't render iframe content if navigating away
+    if (isNavigating) {
+        return null;
+    }
 
     if (!mounted) {
         return (
@@ -53,6 +93,7 @@ export default function DiamondArenaPage() {
 
                 {/* Diamond Arena iframe */}
                 <iframe
+                    ref={iframeRef}
                     src="https://diamond.smarter.poker"
                     style={{
                         ...styles.iframe,
