@@ -735,27 +735,103 @@ const styles = {
         justifyContent: 'center',
         position: 'relative',
         padding: 12,
+        // Premium poker room background
+        background: 'radial-gradient(ellipse at 50% 30%, rgba(60, 40, 20, 0.4) 0%, transparent 50%), radial-gradient(ellipse at 50% 100%, rgba(255, 180, 80, 0.1) 0%, transparent 40%), linear-gradient(180deg, #0a0a12 0%, #1a1520 50%, #0d0a10 100%)',
     },
-    table: {
-        width: 280,
-        height: 180,
-        background: 'linear-gradient(135deg, #1a472a, #2d5a3d)',
-        borderRadius: '50%',
-        padding: 4,
-        boxShadow: '0 0 40px rgba(0,0,0,0.5)',
-    },
-    tableFelt: {
-        width: '100%',
-        height: '100%',
-        background: 'linear-gradient(135deg, #1e5631, #2d7a47)',
-        borderRadius: '50%',
+
+    // Premium table with image
+    premiumTable: {
         position: 'relative',
+        width: '100%',
+        maxWidth: 380,
+        aspectRatio: '3 / 4',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        border: '3px solid #3d2a1a',
     },
-    boardArea: { display: 'flex', gap: 4 },
+    tableImage: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain',
+        filter: 'brightness(1.1) contrast(1.05)',
+    },
+    tableGlow: {
+        position: 'absolute',
+        inset: '10%',
+        borderRadius: '50%',
+        background: 'radial-gradient(ellipse, rgba(255, 180, 80, 0.15) 0%, transparent 70%)',
+        pointerEvents: 'none',
+    },
+    tableContent: {
+        position: 'absolute',
+        top: '35%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 16,
+    },
+
+    boardArea: {
+        display: 'flex',
+        gap: 6,
+        padding: 8,
+        background: 'rgba(0, 0, 0, 0.3)',
+        borderRadius: 8,
+        backdropFilter: 'blur(4px)',
+    },
+    preFlopBadge: {
+        padding: '8px 20px',
+        background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.2))',
+        border: '1px solid rgba(255, 215, 0, 0.4)',
+        borderRadius: 20,
+        fontSize: 12,
+        fontWeight: 700,
+        color: '#FFD700',
+        letterSpacing: 3,
+        textShadow: '0 0 10px rgba(255, 215, 0, 0.5)',
+    },
+    potDisplay: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 2,
+        padding: '8px 16px',
+        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(30, 20, 10, 0.6))',
+        borderRadius: 12,
+        border: '1px solid rgba(255, 215, 0, 0.3)',
+    },
+    potLabel: {
+        fontSize: 9,
+        fontWeight: 600,
+        color: 'rgba(255, 215, 0, 0.7)',
+        letterSpacing: 2,
+    },
+    potAmount: {
+        fontSize: 18,
+        fontWeight: 800,
+        color: '#FFD700',
+        textShadow: '0 0 15px rgba(255, 215, 0, 0.4)',
+    },
+    seatBadge: {
+        position: 'absolute',
+        transform: 'translate(-50%, -50%)',
+        padding: '6px 10px',
+        borderRadius: 8,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 36,
+    },
+
+    // Keep old styles for backwards compatibility
+    table: {
+        display: 'none', // Hidden - using premiumTable now
+    },
+    tableFelt: {
+        display: 'none',
+    },
     preFlopLabel: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 2 },
     seat: {
         position: 'absolute',

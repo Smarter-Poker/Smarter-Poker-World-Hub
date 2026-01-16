@@ -553,11 +553,12 @@ export default function WorldHub() {
 
     return (
         <>
-            {/* EPIC CINEMATIC INTRO - Shows on FIRST visit only */}
-            {!isReturnVisit && CinematicIntroComponent}
-
-            {/* RETURN BURST - Shows when returning to hub */}
-            {isReturnVisit && ReturnBurstComponent}
+            {/* ═══════════════════════════════════════════════════════════════
+                CINEMATIC INTRO/OUTRO ANIMATIONS — DISABLED
+                User request: No intros or outros when switching pages
+                ═══════════════════════════════════════════════════════════════ */}
+            {/* {!isReturnVisit && CinematicIntroComponent} */}
+            {/* {isReturnVisit && ReturnBurstComponent} */}
 
             <div style={{
                 position: 'fixed',
@@ -567,7 +568,7 @@ export default function WorldHub() {
                 height: '100vh',
                 background: 'linear-gradient(180deg, #0a0a12 0%, #050510 50%, #0a1218 100%)',
                 overflow: 'hidden',
-                opacity: showIntro ? 0 : 1,
+                opacity: 1, // Always visible (cinematic intro disabled)
                 transition: 'opacity 0.5s ease-out',
             }}>
                 {/* ═══════════════════════════════════════════════════════════════

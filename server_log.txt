@@ -302,3 +302,16 @@
  GET /images/training/psychology_game_card_art.png 404 in 3ms
  GET /images/training/advanced_spr.png 404 in 2ms
  GET /images/training/advanced_game_card_art.png 404 in 3ms
+ ✓ Compiled in 70ms (814 modules)
+ GET /hub/training 200 in 9ms
+ GET /images/training/mtt_3max_blitz.png 404 in 5ms
+ GET /images/training/mtt_blind_defense.png 404 in 4ms
+ GET /images/training/cash_position_power.png 404 in 3ms
+ GET /images/training/cash_check_raise.png 404 in 3ms
+ GET /images/training/cash_game_card_art.png 404 in 3ms
+ GET /images/training/spins_aggression.png 404 in 2ms
+ GET /images/training/spins_game_card_art.png 404 in 2ms
+ GET /images/training/psychology_confidence.png 404 in 3ms
+ GET /images/training/psychology_game_card_art.png 404 in 3ms
+ GET /images/training/advanced_spr.png 404 in 2ms
+ GET /images/training/advanced_game_card_art.png 404 in 2ms
