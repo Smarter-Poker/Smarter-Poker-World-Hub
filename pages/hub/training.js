@@ -379,10 +379,17 @@ const styles = {
 
     logo: {
         position: 'fixed',
-        top: 16,
-        left: 20,
+        top: 12,
+        left: 16,
         fontSize: 18,
         zIndex: 100,
+        padding: '8px 12px',
+        background: 'rgba(10, 10, 21, 0.95)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        borderRadius: 8,
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
     },
 
     loading: {
