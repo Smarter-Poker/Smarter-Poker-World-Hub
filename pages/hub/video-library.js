@@ -149,14 +149,14 @@ const FULL_VIDEOS = [
 ];
 
 const SOURCES = [
-    { id: 'ALL', name: 'All Sources', icon: '🌍' },
-    { id: 'HCL', name: 'Hustler Casino Live', icon: '🎰' },
-    { id: 'LODGE', name: 'The Lodge', icon: '🏠' },
-    { id: 'TRITON', name: 'Triton Poker', icon: '💎' },
-    { id: 'LATB', name: 'Live at the Bike', icon: '🚲' },
-    { id: 'TCH', name: 'TCH Live', icon: '🤠' },
-    { id: 'WSOP', name: 'WSOP', icon: '🏆' },
-    { id: 'BRAD_OWEN', name: 'Brad Owen', icon: '🎬' },
+    { id: 'ALL', name: 'All Sources', logo: null },
+    { id: 'HCL', name: 'Hustler Casino Live', logo: '/images/video-sources/hcl.png' },
+    { id: 'LODGE', name: 'The Lodge', logo: '/images/video-sources/lodge.png' },
+    { id: 'TRITON', name: 'Triton Poker', logo: '/images/video-sources/triton.png' },
+    { id: 'LATB', name: 'Live at the Bike', logo: '/images/video-sources/latb.png' },
+    { id: 'TCH', name: 'TCH Live', logo: '/images/video-sources/tch.png' },
+    { id: 'WSOP', name: 'WSOP', logo: '/images/video-sources/wsop.png' },
+    { id: 'BRAD_OWEN', name: 'Brad Owen', logo: '/images/video-sources/brad_owen.png' },
 ];
 
 const C = {
@@ -302,11 +302,14 @@ export default function VideoLibraryPage() {
                                     whiteSpace: 'nowrap',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: 6,
+                                    gap: 8,
                                     transition: 'all 0.2s',
                                 }}
                             >
-                                <span>{source.icon}</span>
+                                {source.logo && (
+                                    <img src={source.logo} alt={source.name} style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                                )}
+                                {source.id === 'ALL' && <span>🌍</span>}
                                 {source.name}
                             </button>
                         ))}
@@ -436,8 +439,18 @@ export default function VideoLibraryPage() {
                                         background: 'rgba(255,68,68,0.15)',
                                         padding: '4px 10px',
                                         borderRadius: 12,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6,
                                     }}>
-                                        {SOURCES.find(s => s.id === video.source)?.icon} {video.source.replace('_', ' ')}
+                                        {SOURCES.find(s => s.id === video.source)?.logo && (
+                                            <img
+                                                src={SOURCES.find(s => s.id === video.source)?.logo}
+                                                alt=""
+                                                style={{ width: 16, height: 16, objectFit: 'contain' }}
+                                            />
+                                        )}
+                                        {video.source.replace('_', ' ')}
                                     </span>
                                     <span style={{
                                         color: C.textSec,
@@ -563,8 +576,18 @@ export default function VideoLibraryPage() {
                                 background: 'rgba(255,68,68,0.2)',
                                 padding: '4px 12px',
                                 borderRadius: 12,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
                             }}>
-                                {SOURCES.find(s => s.id === selectedVideo.source)?.icon} {selectedVideo.source.replace('_', ' ')}
+                                {SOURCES.find(s => s.id === selectedVideo.source)?.logo && (
+                                    <img
+                                        src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
+                                        alt=""
+                                        style={{ width: 18, height: 18, objectFit: 'contain' }}
+                                    />
+                                )}
+                                {selectedVideo.source.replace('_', ' ')}
                             </span>
                             <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>
                                 {selectedVideo.views} views
