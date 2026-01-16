@@ -412,15 +412,17 @@ export default function WorldHub() {
     // ═══════════════════════════════════════════════════════════════════════
     // RETURN VISIT DETECTION — Skip cinematic if user has visited hub this session
     // ═══════════════════════════════════════════════════════════════════════
-    const [isReturnVisit, setIsReturnVisit] = useState(false);
+    const [isReturnVisit, setIsReturnVisit] = useState(() => {
+        // Check synchronously on mount to prevent intro flash
+        if (typeof window !== 'undefined') {
+            return !!sessionStorage.getItem('hub_visited');
+        }
+        return false;
+    });
 
     useEffect(() => {
-        // Check if user has already visited hub this session
-        const hasVisitedHub = sessionStorage.getItem('hub_visited');
-        if (hasVisitedHub) {
-            setIsReturnVisit(true);
-        } else {
-            // Mark hub as visited for this session
+        // Mark hub as visited for this session (only once)
+        if (!sessionStorage.getItem('hub_visited')) {
             sessionStorage.setItem('hub_visited', 'true');
         }
     }, []);
