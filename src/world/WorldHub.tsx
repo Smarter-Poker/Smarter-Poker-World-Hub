@@ -18,26 +18,6 @@ import type { OrbConfig } from '../orbs/manifest/registry';
 import { NeuronLights } from './components/NeuronLights';
 import { LaunchPad, useLaunchAnimation } from './components/LaunchPad';
 import { useCinematicIntro } from './components/CinematicIntro';
-import { useReturnBurst } from './components/ReturnBurst';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 📱 MOBILE DETECTION HOOK
-// ─────────────────────────────────────────────────────────────────────────────
-function useIsMobile() {
-    const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768);
-        };
-
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
-
-    return isMobile;
-}
 
 // UI Components
 import { DiamondStat, XPStat } from './components/HeaderStats';
@@ -396,9 +376,6 @@ export default function WorldHub() {
     // Next.js router for actual page navigation
     const router = useRouter();
 
-    // Mobile detection
-    const isMobile = useIsMobile();
-
     // Get the 6 footer cards (most visited or defaults)
     const footerCards = useMemo(() => getFooterCards(), []);
 
@@ -409,34 +386,10 @@ export default function WorldHub() {
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const profileOrbRef = useRef<HTMLDivElement>(null);
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // INTRO DETECTION — Play intro ONLY when user just signed in or signed up
-    // Auth pages set 'just_authenticated' flag, we check and clear it
-    // ═══════════════════════════════════════════════════════════════════════
-    const [playIntro, setPlayIntro] = useState(() => {
-        // Check if user just authenticated (came from login/signup)
-        if (typeof window !== 'undefined') {
-            const justAuthenticated = sessionStorage.getItem('just_authenticated');
-            if (justAuthenticated) {
-                // Clear the flag so intro doesn't play on next navigation
-                sessionStorage.removeItem('just_authenticated');
-                return true; // Play the intro with audio
-            }
-        }
-        return false; // Don't play intro (regular navigation)
-    });
+    // Cinematic intro state
+    const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro();
 
-    // For compatibility with existing code
-    const isReturnVisit = !playIntro;
-
-    // Cinematic intro state - ONLY when coming from auth (sign in/up)
-    // Pass playIntro to enable/disable - when false, no sounds/visuals
-    const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro(playIntro);
-
-    // Return burst DISABLED - no outro effects when navigating back
-    // const { showBurst, burstComplete, ReturnBurstComponent, triggerBurst } = useReturnBurst();
-
-    // Launch animation state (triggers after any intro completes)
+    // Launch animation state (triggers after cinematic intro)
     const { isLaunching, isComplete: isIntroComplete, onBurst } = useLaunchAnimation();
 
     // Notification counts - users start with 0 (no seed data)
@@ -549,12 +502,8 @@ export default function WorldHub() {
 
     return (
         <>
-            {/* ═══════════════════════════════════════════════════════════════
-                CINEMATIC INTRO — Plays on SIGN IN/UP only (with audio)
-                OUTRO/RETURN BURST — DISABLED (no effects when navigating back)
-                ═══════════════════════════════════════════════════════════════ */}
-            {playIntro && CinematicIntroComponent}
-            {/* ReturnBurst DISABLED - no outro effects */}
+            {/* EPIC CINEMATIC INTRO - Shows before hub loads */}
+            {CinematicIntroComponent}
 
             <div style={{
                 position: 'fixed',
@@ -654,8 +603,8 @@ export default function WorldHub() {
                             color="#00d4ff"
                         />
 
-                        {/* Launch Pad Animation — Only during intro */}
-                        {playIntro && <LaunchPad isActive={isLaunching} onBurst={onBurst} />}
+                        {/* Launch Pad Animation */}
+                        <LaunchPad isActive={isLaunching} onBurst={onBurst} />
 
                         {/* Card Carousel with Snap */}
                         <CarouselEngine
@@ -678,10 +627,6 @@ export default function WorldHub() {
                     0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
                     50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
                     100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
-                }
-                /* Hide scrollbar for mobile footer */
-                div::-webkit-scrollbar {
-                    display: none;
                 }
             `}</style>
 
@@ -738,7 +683,7 @@ export default function WorldHub() {
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            padding: isMobile ? '12px 16px' : '16px 40px',
+                            padding: '16px 40px',
                             background: 'linear-gradient(180deg, rgba(10, 22, 40, 0.92), rgba(5, 15, 30, 0.95))',
                             backdropFilter: 'blur(15px)',
                             WebkitBackdropFilter: 'blur(15px)',
@@ -756,7 +701,7 @@ export default function WorldHub() {
                                 alt="Smarter Poker — Return to Home"
                                 onClick={handleLogoClick}
                                 style={{
-                                    height: isMobile ? 40 : 60,
+                                    height: 60,
                                     width: 'auto',
                                     objectFit: 'contain',
                                     filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6))',
@@ -776,18 +721,16 @@ export default function WorldHub() {
                         </div>
 
                         {/* CENTER SECTION: Stats */}
-                        {!isMobile && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                <DiamondStat onBuyClick={handleBuyDiamonds} />
-                                <XPStat />
-                            </div>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <DiamondStat onBuyClick={handleBuyDiamonds} />
+                            <XPStat />
+                        </div>
 
                         {/* RIGHT SECTION: Icons */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 12, position: 'relative' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
                             {/* PROFILE ORB */}
                             <div ref={profileOrbRef}>
-                                <ProfileOrbInline onClick={handleProfileClick} size={isMobile ? 36 : 56} avatarUrl={userAvatarUrl} />
+                                <ProfileOrbInline onClick={handleProfileClick} size={56} avatarUrl={userAvatarUrl} />
                             </div>
                             <ProfileDropdown
                                 isOpen={isProfileDropdownOpen}
@@ -795,38 +738,32 @@ export default function WorldHub() {
                                 anchorRef={profileOrbRef}
                             />
 
-                            {/* MESSAGES ORB - Hidden on mobile */}
-                            {!isMobile && (
-                                <HudIconOrb
-                                    iconUrl="/message-orb-icon.png"
-                                    title="Messages"
-                                    size={56}
-                                    badgeCount={messageCount}
-                                    onClick={() => handleNavigate('messages')}
-                                />
-                            )}
+                            {/* MESSAGES ORB */}
+                            <HudIconOrb
+                                iconUrl="/message-orb-icon.png"
+                                title="Messages"
+                                size={56}
+                                badgeCount={messageCount}
+                                onClick={() => handleNavigate('messages')}
+                            />
 
-                            {/* NOTIFICATIONS ORB - Hidden on mobile */}
-                            {!isMobile && (
-                                <HudIconOrb
-                                    iconUrl="/notification-orb-icon.png"
-                                    title="Notifications"
-                                    size={56}
-                                    badgeCount={notificationCount}
-                                    onClick={() => handleNavigate('notifications')}
-                                />
-                            )}
+                            {/* NOTIFICATIONS ORB */}
+                            <HudIconOrb
+                                iconUrl="/notification-orb-icon.png"
+                                title="Notifications"
+                                size={56}
+                                badgeCount={notificationCount}
+                                onClick={() => handleNavigate('notifications')}
+                            />
 
                             {/* SEARCH ORB */}
-                            <SearchOrb onClick={() => setIsSearchOpen(true)} size={isMobile ? 36 : 56} />
+                            <SearchOrb onClick={() => setIsSearchOpen(true)} size={56} />
 
-                            {/* SETTINGS ORB - Hidden on mobile */}
-                            {!isMobile && (
-                                <SettingsOrb onClick={handleSettings} size={56} />
-                            )}
+                            {/* SETTINGS ORB */}
+                            <SettingsOrb onClick={handleSettings} size={56} />
 
                             {/* LIVE HELP ORB */}
-                            <LiveHelpOrb onClick={liveHelp.openHelp} size={isMobile ? 36 : 56} />
+                            <LiveHelpOrb onClick={liveHelp.openHelp} size={56} />
                         </div>
                     </div>
 
@@ -841,97 +778,28 @@ export default function WorldHub() {
                     <StreakPopup />
 
                     {/* 6 MOST VISITED CARDS AT BOTTOM */}
-                    {!isMobile && (
-                        <div
-                            style={{
-                                position: 'absolute',
-                                bottom: 64,
-                                left: 32,
-                                right: 32,
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-end',
-                                gap: 16,
-                            }}
-                        >
-                            {footerCards.map((orb, index) => (
-                                <FooterCard
-                                    key={orb.id}
-                                    orb={orb}
-                                    index={index}
-                                    onSelect={handleCardSelect}
-                                    isIntroComplete={isIntroComplete}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                    {/* MOBILE: Horizontal scrolling footer */}
-                    {isMobile && (
-                        <div
-                            style={{
-                                position: 'absolute',
-                                bottom: 20,
-                                left: 0,
-                                right: 0,
-                                overflowX: 'auto',
-                                overflowY: 'hidden',
-                                WebkitOverflowScrolling: 'touch',
-                                display: 'flex',
-                                gap: 12,
-                                padding: '0 16px 12px 16px',
-                                scrollbarWidth: 'none',
-                                msOverflowStyle: 'none',
-                            }}
-                        >
-                            {footerCards.map((orb, index) => (
-                                <div
-                                    key={orb.id}
-                                    onClick={() => handleCardSelect(orb.id)}
-                                    style={{
-                                        flex: '0 0 auto',
-                                        width: 100,
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            width: '100%',
-                                            aspectRatio: '2 / 3',
-                                            borderRadius: 8,
-                                            background: orb.imageUrl
-                                                ? `url('${orb.imageUrl}') center/cover`
-                                                : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                                            border: '2px solid rgba(0, 212, 255, 0.6)',
-                                            boxShadow: '0 0 15px rgba(0, 212, 255, 0.3)',
-                                            position: 'relative',
-                                        }}
-                                    >
-                                        {/* Inner border frame */}
-                                        <div style={{ position: 'absolute', top: 4, left: 4, right: 4, height: 1.5, background: 'rgba(255, 255, 255, 0.9)' }} />
-                                        <div style={{ position: 'absolute', bottom: 4, left: 4, right: 4, height: 1.5, background: 'rgba(255, 255, 255, 0.9)' }} />
-                                        <div style={{ position: 'absolute', top: 4, bottom: 4, left: 4, width: 1.5, background: 'rgba(255, 255, 255, 0.9)' }} />
-                                        <div style={{ position: 'absolute', top: 4, bottom: 4, right: 4, width: 1.5, background: 'rgba(255, 255, 255, 0.9)' }} />
-                                    </div>
-                                    <div
-                                        style={{
-                                            marginTop: 6,
-                                            fontSize: 10,
-                                            fontWeight: 600,
-                                            color: 'rgba(255, 255, 255, 0.9)',
-                                            textAlign: 'center',
-                                            textShadow: '0 0 8px rgba(0, 212, 255, 0.5)',
-                                            whiteSpace: 'nowrap',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                        }}
-                                    >
-                                        {orb.label}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            bottom: 64,
+                            left: 32,
+                            right: 32,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-end',
+                            gap: 16,
+                        }}
+                    >
+                        {footerCards.map((orb, index) => (
+                            <FooterCard
+                                key={orb.id}
+                                orb={orb}
+                                index={index}
+                                onSelect={handleCardSelect}
+                                isIntroComplete={isIntroComplete}
+                            />
+                        ))}
+                    </div>
                 </div>
 
                 {/* ═══════════════════════════════════════════════════════════════

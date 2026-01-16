@@ -678,7 +678,16 @@ export default function TrainingPlayPage() {
                                 <div style={styles.heroNameBox}>
                                     <span style={styles.heroName}>Hero</span>
                                 </div>
-                                <div style={styles.heroStackBox}>{currentScenario.heroStack}</div>
+                                <div style={{
+                                    fontSize: 14,
+                                    fontWeight: 700,
+                                    color: '#4CAF50',
+                                    background: 'rgba(0,0,0,0.8)',
+                                    padding: '2px 10px',
+                                    borderRadius: 4,
+                                }}>
+                                    {currentScenario.heroStack || '??'}
+                                </div>
                             </div>
 
                             {/* Hero Hole Cards - ON the table, RIGHT of avatar */}
@@ -1033,9 +1042,13 @@ const styles = {
         color: '#1a1a2e',
     },
     heroStackBox: {
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 700,
         color: '#4CAF50',
+        padding: '2px 8px',
+        background: 'rgba(0, 0, 0, 0.7)',
+        borderRadius: 4,
+        marginTop: 2,
     },
     heroHoleCards: {
         display: 'flex',
