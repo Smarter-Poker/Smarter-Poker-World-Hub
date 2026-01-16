@@ -410,33 +410,31 @@ export default function WorldHub() {
     const profileOrbRef = useRef<HTMLDivElement>(null);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // RETURN VISIT DETECTION — Skip cinematic if user has visited hub this session
+    // INTRO DETECTION — Play intro ONLY when user just signed in or signed up
+    // Auth pages set 'just_authenticated' flag, we check and clear it
     // ═══════════════════════════════════════════════════════════════════════
-    const [isReturnVisit, setIsReturnVisit] = useState(false);
-
-    useEffect(() => {
-        // Check if user has already visited hub this session
-        const hasVisitedHub = sessionStorage.getItem('hub_visited');
-        if (hasVisitedHub) {
-            setIsReturnVisit(true);
-        } else {
-            // Mark hub as visited for this session
-            sessionStorage.setItem('hub_visited', 'true');
+    const [playIntro, setPlayIntro] = useState(() => {
+        // Check if user just authenticated (came from login/signup)
+        if (typeof window !== 'undefined') {
+            const justAuthenticated = sessionStorage.getItem('just_authenticated');
+            if (justAuthenticated) {
+                // Clear the flag so intro doesn't play on next navigation
+                sessionStorage.removeItem('just_authenticated');
+                return true; // Play the intro with audio
+            }
         }
-    }, []);
+        return false; // Don't play intro (regular navigation)
+    });
 
-    // Cinematic intro state (for first visit only)
-    const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro();
+    // For compatibility with existing code
+    const isReturnVisit = !playIntro;
 
-    // Return burst state (for return visits)
-    const { showBurst, burstComplete, ReturnBurstComponent, triggerBurst } = useReturnBurst();
+    // Cinematic intro state - ONLY when coming from auth (sign in/up)
+    // Pass playIntro to enable/disable - when false, no sounds/visuals
+    const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro(playIntro);
 
-    // Trigger return burst on return visits
-    useEffect(() => {
-        if (isReturnVisit && !showBurst && !burstComplete) {
-            triggerBurst();
-        }
-    }, [isReturnVisit, showBurst, burstComplete, triggerBurst]);
+    // Return burst DISABLED - no outro effects when navigating back
+    // const { showBurst, burstComplete, ReturnBurstComponent, triggerBurst } = useReturnBurst();
 
     // Launch animation state (triggers after any intro completes)
     const { isLaunching, isComplete: isIntroComplete, onBurst } = useLaunchAnimation();
@@ -551,11 +549,12 @@ export default function WorldHub() {
 
     return (
         <>
-            {/* EPIC CINEMATIC INTRO - Shows on FIRST visit only */}
-            {!isReturnVisit && CinematicIntroComponent}
-
-            {/* RETURN BURST - Shows when returning to hub */}
-            {isReturnVisit && ReturnBurstComponent}
+            {/* ═══════════════════════════════════════════════════════════════
+                CINEMATIC INTRO — Plays on SIGN IN/UP only (with audio)
+                OUTRO/RETURN BURST — DISABLED (no effects when navigating back)
+                ═══════════════════════════════════════════════════════════════ */}
+            {playIntro && CinematicIntroComponent}
+            {/* ReturnBurst DISABLED - no outro effects */}
 
             <div style={{
                 position: 'fixed',
@@ -655,8 +654,8 @@ export default function WorldHub() {
                             color="#00d4ff"
                         />
 
-                        {/* Launch Pad Animation */}
-                        <LaunchPad isActive={isLaunching} onBurst={onBurst} />
+                        {/* Launch Pad Animation — Only during intro */}
+                        {playIntro && <LaunchPad isActive={isLaunching} onBurst={onBurst} />}
 
                         {/* Card Carousel with Snap */}
                         <CarouselEngine

@@ -31,7 +31,7 @@ import { WorldNavHeader } from '../../../../src/components/navigation/WorldNavHe
 
 const QUESTIONS_PER_RUN = 20;
 const PASS_THRESHOLD = 85;
-const TIME_PER_QUESTION = 15;
+const TIME_PER_QUESTION = 24; // 24 seconds for level 1 and 2
 
 // Card suits
 const SUITS = {
@@ -158,10 +158,10 @@ function PlayingCard({ card, size = 'medium', delay = 0, faceDown = false }) {
     const suitConfig = SUITS[suit] || SUITS.s;
 
     const sizes = {
-        tiny: { w: 28, h: 40, font: 10, suit: 10 }, // For 5 cards to fit
-        small: { w: 36, h: 50, font: 12, suit: 14 },
-        medium: { w: 48, h: 68, font: 16, suit: 18 },
-        large: { w: 60, h: 84, font: 20, suit: 24 },
+        tiny: { w: 44, h: 62, font: 14, suit: 14 }, // Board cards - 5 fit across felt
+        small: { w: 48, h: 67, font: 15, suit: 16 }, // Hero hole cards
+        medium: { w: 56, h: 78, font: 18, suit: 20 },
+        large: { w: 68, h: 95, font: 22, suit: 26 },
     };
     const s = sizes[size] || sizes.medium;
 
@@ -631,8 +631,8 @@ export default function TrainingPlayPage() {
                         <motion.div
                             style={{
                                 ...styles.dealerButton,
-                                top: `${50 + Math.sin(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 35}%`,
-                                left: `${50 + Math.cos(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 35}%`,
+                                top: `${50 + Math.sin(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 25}%`,
+                                left: `${50 + Math.cos(getDealerButtonAngle(currentScenario.heroPosition || 'BTN') * Math.PI / 180) * 25}%`,
                             }}
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
@@ -1004,15 +1004,15 @@ const styles = {
         color: '#4CAF50',
     },
 
-    // HERO Section - BOTTOM of table
+    // HERO Section - BOTTOM of table, AVATAR at dead center
     heroPlayer: {
         position: 'absolute',
         bottom: '5%',
         left: '50%',
-        transform: 'translateX(-50%)',
+        transform: 'translateX(-60%)', // Offset to center the avatar
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
+        gap: 6,
         zIndex: 15,
     },
     heroInfo: {
