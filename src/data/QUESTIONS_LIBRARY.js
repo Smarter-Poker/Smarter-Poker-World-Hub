@@ -60,10 +60,10 @@ for (let i = 1; i <= 20; i++) {
         heroHand: [],
         action: 'After losing a 80/20 pot for your tournament life, you feel heat rising. What is the best immediate response?',
         options: [
-            { id: 'A', text: 'Scream into a pillow', correct: false },
-            { id: 'B', text: 'Take a deep breath and reset', correct: true },
-            { id: 'C', text: 'Check the lobby for the next tourney instantly', correct: false },
-            { id: 'D', text: 'Complaint in chat', correct: false }
+            { id: 'A', text: 'Scream into a pillow', isCorrect: false },
+            { id: 'B', text: 'Take a deep breath and reset', isCorrect: true },
+            { id: 'C', text: 'Check the lobby for the next tourney instantly', isCorrect: false },
+            { id: 'D', text: 'Complaint in chat', isCorrect: false }
         ],
         explanation: 'Resetting your physiological state is the first priority to prevent tilt carryover.',
         difficulty: Math.min(5, Math.floor(q / 4) + 1)

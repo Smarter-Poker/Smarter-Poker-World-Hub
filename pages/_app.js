@@ -22,6 +22,7 @@ const CelebrationManager = dynamic(
 
 // ═══════════════════════════════════════════════════════════════════════════
 // NAVIGATION GUARD — Prevents loading freeze when pressing back button
+// Uses SYNCHRONOUS DOM manipulation for instant hiding (no React state delay)
 // ═══════════════════════════════════════════════════════════════════════════
 const NavigationContext = createContext({ isNavigating: false });
 
@@ -34,22 +35,62 @@ function NavigationGuard({ children }) {
   const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
+    // Inject the hiding CSS on mount
+    const style = document.createElement('style');
+    style.id = 'nav-guard-style';
+    style.textContent = `
+      body.page-transitioning * {
+        animation-play-state: paused !important;
+        transition: none !important;
+      }
+      body.page-transitioning video,
+      body.page-transitioning audio,
+      body.page-transitioning iframe,
+      body.page-transitioning canvas,
+      body.page-transitioning .loading-overlay,
+      body.page-transitioning [class*="loading"],
+      body.page-transitioning [class*="spinner"],
+      body.page-transitioning [class*="intro"],
+      body.page-transitioning [class*="outro"],
+      body.page-transitioning [class*="modal"],
+      body.page-transitioning [class*="overlay"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+      }
+    `;
+    if (!document.getElementById('nav-guard-style')) {
+      document.head.appendChild(style);
+    }
+
     const handleStart = () => {
-      setIsNavigating(true);
-      // Force stop all videos on the page
+      // SYNCHRONOUS: Add class immediately (no React state delay)
+      document.body.classList.add('page-transitioning');
+
+      // Force stop all media SYNCHRONOUSLY
       document.querySelectorAll('video').forEach(video => {
-        video.pause();
-        video.src = '';
+        try {
+          video.pause();
+          video.currentTime = 0;
+          video.src = '';
+          video.load();
+        } catch (e) { }
       });
-      // Force stop all audio
       document.querySelectorAll('audio').forEach(audio => {
-        audio.pause();
+        try { audio.pause(); } catch (e) { }
       });
+      document.querySelectorAll('iframe').forEach(iframe => {
+        try { iframe.src = 'about:blank'; } catch (e) { }
+      });
+
+      // Also set React state (for components that check it)
+      setIsNavigating(true);
     };
 
     const handleComplete = () => {
-      // Small delay to ensure page transition is complete
-      setTimeout(() => setIsNavigating(false), 100);
+      // Remove the hiding class
+      document.body.classList.remove('page-transitioning');
+      setIsNavigating(false);
     };
 
     router.events.on('routeChangeStart', handleStart);
@@ -60,13 +101,14 @@ function NavigationGuard({ children }) {
       router.events.off('routeChangeStart', handleStart);
       router.events.off('routeChangeComplete', handleComplete);
       router.events.off('routeChangeError', handleComplete);
+      // Cleanup class if component unmounts during transition
+      document.body.classList.remove('page-transitioning');
     };
   }, [router.events]);
 
   return (
     <NavigationContext.Provider value={{ isNavigating }}>
-      {/* When navigating, render nothing to immediately clear all UI */}
-      {isNavigating ? null : children}
+      {children}
     </NavigationContext.Provider>
   );
 }

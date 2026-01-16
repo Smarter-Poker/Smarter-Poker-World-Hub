@@ -41,16 +41,16 @@ const SUITS = {
     c: { symbol: '♣', color: '#43a047' },
 };
 
-// Seat positions
+// Seat positions - Hero at bottom middle (270°)
 const SEATS = [
-    { id: 'hero', angle: 180, label: 'HERO', isHero: true },
-    { id: 'sb', angle: 210, label: 'SB' },
-    { id: 'bb', angle: 240, label: 'BB' },
-    { id: 'utg', angle: 280, label: 'UTG' },
-    { id: 'hj', angle: 330, label: 'HJ' },
-    { id: 'co', angle: 30, label: 'CO' },
-    { id: 'btn', angle: 80, label: 'BTN' },
-    { id: 'mp', angle: 130, label: 'MP' },
+    { id: 'hero', angle: 270, label: 'HERO', isHero: true },
+    { id: 'sb', angle: 225, label: 'SB' },
+    { id: 'bb', angle: 180, label: 'BB' },
+    { id: 'utg', angle: 135, label: 'UTG' },
+    { id: 'hj', angle: 90, label: 'HJ' },
+    { id: 'co', angle: 45, label: 'CO' },
+    { id: 'btn', angle: 315, label: 'BTN' },
+    { id: 'mp', angle: 0, label: 'MP' },
 ];
 
 // Sample scenarios
@@ -357,7 +357,7 @@ export default function TrainingPlayPage() {
 
     // Handle answer
     const handleAnswer = useCallback((optionId) => {
-        if (showResult) return;
+        if (showResult || !currentScenario?.options) return;
         clearInterval(timerRef.current);
         feedback.tap();
 
@@ -434,7 +434,7 @@ export default function TrainingPlayPage() {
         router.push('/hub/training');
     };
 
-    if (!game || questions.length === 0 || !currentScenario) {
+    if (!game || questions.length === 0 || !currentScenario || !currentScenario.options) {
         return (
             <div style={styles.loading}>
                 <motion.div
