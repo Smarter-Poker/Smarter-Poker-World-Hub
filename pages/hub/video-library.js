@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
-// Full video catalog with YouTube embeds - 96 VERIFIED VIDEOS
+// Full video catalog with YouTube embeds - 138 VIDEOS (96 cash + 42 tournaments)
 const FULL_VIDEOS = [
     // ═══════════════════════════════════════════════════════════════════
     // HUSTLER CASINO LIVE - 28 Premium Episodes
