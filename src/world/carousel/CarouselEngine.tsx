@@ -221,32 +221,33 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
     // Mobile detection: screen width < 768px typically
     const isMobile = size.width < 768;
 
-    // Mobile-responsive scale multiplier (larger cards on mobile)
-    const mobileScaleMultiplier = isMobile ? 1.6 : 1.0;
+    // Calculate scale based on viewport - make cards proportionally larger on mobile
+    // On mobile, we want cards to fill ~60-70% of screen width
+    const viewportScalingFactor = isMobile ? (1200 / size.width) : 1.0;
 
-    // Vertical offset to shift carousel up (336px ≈ 2.8 units in 3D space)
-    // Move cards up more on mobile to center in available space
-    const verticalOffset = isMobile ? 3.5 : 2.8;
+    // Vertical offset to shift carousel up
+    // Move cards higher on mobile to use vertical space better
+    const verticalOffset = isMobile ? 5.0 : 2.8;
 
     return (
-        <group ref={groupRef} position={[0, verticalOffset, 0]}>
+        <group ref={groupRef} position={[0, verticalOffset, isMobile ? 8 : 0]}>
             {visibleOrbs.map(({ config, offset }) => {
                 const absOffset = Math.abs(offset);
 
                 // SINGLE SMOOTH FORMULA - Consistent spacing throughout rotation
                 // No jumps, no overlap, completely fluid
 
-                // Scale: smoothly decreases from center to edges
-                // Mobile: larger base scale for touch-friendly cards
-                const maxScale = isMobile ? 10 : 8;
-                const minScale = isMobile ? 4.5 : 3.5;
-                const scaleRange = maxScale - minScale;
-                let scale = maxScale - (absOffset * scaleRange / 2.5);
+                // Scale: DRAMATICALLY larger on mobile for touch-friendly cards
+                // Mobile: scale up to fill the viewport appropriately
+                const baseScale = isMobile ? 14 : 8;  // Much larger on mobile
+                const minScale = isMobile ? 6 : 3.5;
+                const scaleRange = baseScale - minScale;
+                let scale = baseScale - (absOffset * scaleRange / 2.5);
                 scale = Math.max(minScale, scale); // Clamp to minimum
 
                 // X Position: linear, consistent spacing
-                // Tighter spacing on mobile for better fit
-                const spacing = isMobile ? 4.5 : 5.5;
+                // Much tighter spacing on mobile since cards are larger
+                const spacing = isMobile ? 3.0 : 5.5;
                 const xPos = offset * spacing;
 
                 // Z Depth: smoothly moves back with distance

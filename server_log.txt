@@ -384,3 +384,6 @@ Import trace for requested module:
  GET /hub/training/play/mtt-001?fresh=1 200 in 24ms
  GET /hub/training/play/mtt-001?fresh=1 200 in 4ms
  GET /hub/training/play/mtt-001?fresh=1 200 in 4ms
+ GET /hub/training/play/mtt-001 200 in 3ms
+ GET /hub/training/play/mtt-002?fresh=1 200 in 3ms
+ GET /hub/training/play/mtt-001?fresh=1 200 in 4ms
