@@ -629,6 +629,9 @@ export default function TrainingPage() {
                 {/* Promo/Ad Section */}
                 <PromoSection onPlayFeatured={handlePlayFeatured} />
 
+                {/* Streaks Badge */}
+                <StreaksBadge bestStreak={bestStreak} />
+
                 {/* Filters */}
                 <FilterBar
                     active={activeFilter}
