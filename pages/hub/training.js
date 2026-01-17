@@ -272,7 +272,7 @@ export default function TrainingPage() {
         return challenges;
     };
 
-    const dailyChallenges = getDailyChallenge();
+    const dailyChallenges = getDailyChallenge().slice(0, 3); // Only show 3 daily challenges
     const leakGames = getLeakGames(TRAINING_LIBRARY);
 
     // Handle game click - Show intro video first, then navigate
