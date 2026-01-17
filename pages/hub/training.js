@@ -21,8 +21,8 @@ import GameCard from '../../src/components/training/GameCard';
 import { TRAINING_LIBRARY, TRAINING_LANES, getGamesByCategory, getGamesByTag } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
-import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import GameIntroSplash from '../../src/components/training/GameIntroSplash';
+
 
 // Filter options - Category based filters that link to game lanes
 const FILTERS = [
