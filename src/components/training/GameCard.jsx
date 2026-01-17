@@ -25,7 +25,11 @@ export default function GameCard({ game, onClick, index = 0, image }) {
                 position: 'relative',
                 cursor: 'pointer',
                 flexShrink: 0,
-                padding: '10px 20px 10px 10px',
+                padding: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
             }}
         >
             <div
@@ -59,6 +63,9 @@ export default function GameCard({ game, onClick, index = 0, image }) {
                 fontWeight: 800,
                 color: '#fff',
                 textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                textAlign: 'center',
+                width: '100%',
+                maxWidth: 160,
             }}>
                 {game.name}
             </h3>
