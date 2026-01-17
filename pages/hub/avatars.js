@@ -26,10 +26,20 @@ export default function AvatarsPage() {
             <Head>
                 <title>Avatar Selection | Smarter Poker</title>
                 <meta name="description" content="Choose your poker avatar from preset options or create a custom AI-generated avatar" />
+                <meta name="viewport" content="width=800, user-scalable=no" />
+                <style>{`
+                    .avatars-page-wrapper { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
+                    @media (max-width: 500px) { .avatars-page-wrapper { zoom: 0.5; } }
+                    @media (min-width: 501px) and (max-width: 700px) { .avatars-page-wrapper { zoom: 0.75; } }
+                    @media (min-width: 701px) and (max-width: 900px) { .avatars-page-wrapper { zoom: 0.95; } }
+                    @media (min-width: 901px) { .avatars-page-wrapper { zoom: 1.2; } }
+                    @media (min-width: 1400px) { .avatars-page-wrapper { zoom: 1.5; } }
+                `}</style>
             </Head>
 
-            <div className="avatars-page">
-                <style jsx>{`
+            <div className="avatars-page-wrapper">
+                <div className="avatars-page">
+                    <style jsx>{`
                     .avatars-page {
                         min-height: 100vh;
                         background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d0d2e 100%);
@@ -105,31 +115,32 @@ export default function AvatarsPage() {
                     }
                 `}</style>
 
-                {/* Header */}
-                <div className="header">
-                    <Link href="/hub/profile" className="back-btn">
-                        ← Back to Profile
-                    </Link>
+                    {/* Header */}
+                    <div className="header">
+                        <Link href="/hub/profile" className="back-btn">
+                            ← Back to Profile
+                        </Link>
 
-                    {avatar && (
-                        <div className="current-avatar">
-                            <img
-                                src={avatar.imageUrl || '/avatars/free/shark.png'}
-                                alt="Current Avatar"
-                                className="current-avatar-img"
-                            />
-                            <div className="current-avatar-info">
-                                <div className="current-avatar-label">Current Avatar</div>
-                                <div className="current-avatar-name">{avatar.name || 'Custom Avatar'}</div>
+                        {avatar && (
+                            <div className="current-avatar">
+                                <img
+                                    src={avatar.imageUrl || '/avatars/free/shark.png'}
+                                    alt="Current Avatar"
+                                    className="current-avatar-img"
+                                />
+                                <div className="current-avatar-info">
+                                    <div className="current-avatar-label">Current Avatar</div>
+                                    <div className="current-avatar-name">{avatar.name || 'Custom Avatar'}</div>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    <BrainHomeButton />
+                        <BrainHomeButton />
+                    </div>
+
+                    {/* Avatar Gallery - Custom avatars at top for VIP, then preset avatars */}
+                    <AvatarGallery />
                 </div>
-
-                {/* Avatar Gallery - Custom avatars at top for VIP, then preset avatars */}
-                <AvatarGallery />
             </div>
         </>
     );
