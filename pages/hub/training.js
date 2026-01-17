@@ -167,16 +167,33 @@ function FilterBar({ active, onFilter, gameCount }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GAME LANE (Horizontal scroll)
+// GAME LANE (Horizontal scroll) - Mobile Optimized
 // ═══════════════════════════════════════════════════════════════════════════
 
-function GameLane({ title, icon, color, games, onGameClick, getProgress, badge }) {
+function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, categoryId, onCategoryClick }) {
+    const router = useRouter();
     if (!games || games.length === 0) return null;
+
+    // Limit to 4 games for mobile view (users can scroll for more)
+    const displayGames = games.slice(0, 4);
+    const hasMore = games.length > 4;
+
+    const handleHeaderClick = () => {
+        if (categoryId && onCategoryClick) {
+            onCategoryClick(categoryId);
+        }
+    };
 
     return (
         <div style={styles.lane}>
-            {/* Lane header */}
-            <div style={styles.laneHeader}>
+            {/* Clickable Lane header */}
+            <div
+                style={{
+                    ...styles.laneHeader,
+                    cursor: categoryId ? 'pointer' : 'default'
+                }}
+                onClick={handleHeaderClick}
+            >
                 <span style={{ ...styles.laneChevron, color }}>»</span>
                 <span style={styles.laneIcon}>{icon}</span>
                 <h2 style={{ ...styles.laneTitle, color }}>{title}</h2>
@@ -189,13 +206,16 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge }
                         {badge}
                     </motion.span>
                 )}
-                <span style={styles.laneCount}>{games.length} games</span>
+                <span style={styles.laneCount}>
+                    {games.length} games
+                    {hasMore && <span style={{ marginLeft: 4 }}>→</span>}
+                </span>
             </div>
 
-            {/* Horizontal scrolling cards */}
+            {/* Horizontal scrolling cards - Shows 4, scroll for more */}
             <div style={styles.laneScroller}>
                 <div style={styles.laneCards}>
-                    {games.map((game, i) => (
+                    {displayGames.map((game, i) => (
                         <GameCard
                             key={game.id}
                             game={game}
@@ -205,6 +225,21 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge }
                             image={getGameImage(game.id)}
                         />
                     ))}
+                    {/* Show "View All" card if more games exist */}
+                    {hasMore && (
+                        <motion.div
+                            style={styles.viewAllCard}
+                            onClick={handleHeaderClick}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            <div style={styles.viewAllContent}>
+                                <span style={styles.viewAllIcon}>→</span>
+                                <span style={styles.viewAllText}>View All</span>
+                                <span style={styles.viewAllCount}>+{games.length - 4}</span>
+                            </div>
+                        </motion.div>
+                    )}
                 </div>
             </div>
         </div>
@@ -237,7 +272,27 @@ export default function TrainingPage() {
 
     const filteredGames = getFilteredGames();
     const stats = getOverallStats();
-    const newGames = getUnplayedGames(TRAINING_LIBRARY).slice(0, 8);
+
+    // Daily Challenge: 1 game from each category, changes daily, difficulty 5-10
+    const getDailyChallenge = () => {
+        const today = new Date().toDateString();
+        const seed = today.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+        const challenges = [];
+        CATEGORIES.forEach((cat, index) => {
+            const catGames = getGamesByCategory(cat.id).filter(g =>
+                g.difficulty >= 5 && g.difficulty <= 10
+            );
+            if (catGames.length > 0) {
+                // Pseudo-random selection based on date + category
+                const randomIndex = (seed + index * 37) % catGames.length;
+                challenges.push(catGames[randomIndex]);
+            }
+        });
+        return challenges;
+    };
+
+    const dailyChallenges = getDailyChallenge();
     const leakGames = getLeakGames(TRAINING_LIBRARY);
 
     // Handle game click - Show intro video first, then navigate
@@ -245,6 +300,11 @@ export default function TrainingPage() {
         console.log('🎮 Launching game:', game.name);
         setPendingGame(game);
         setShowIntro(true);
+    };
+
+    // Handle category click - Navigate to category page
+    const handleCategoryClick = (categoryId) => {
+        router.push(`/hub/training/category/${categoryId}`);
     };
 
     // After intro video completes, navigate to the game
@@ -314,16 +374,16 @@ export default function TrainingPage() {
 
                 {/* Game Lanes */}
                 <div style={styles.lanesContainer}>
-                    {/* NEW FOR YOU lane */}
-                    {newGames.length > 0 && activeFilter === 'ALL' && (
+                    {/* TODAY'S DAILY CHALLENGE lane */}
+                    {dailyChallenges.length > 0 && activeFilter === 'ALL' && (
                         <GameLane
-                            title="NEW FOR YOU"
-                            icon="✨"
-                            color="#00D4FF"
-                            games={newGames}
+                            title="TODAY'S DAILY CHALLENGE"
+                            icon="🔥"
+                            color="#FFD700"
+                            games={dailyChallenges}
                             onGameClick={handleGameClick}
                             getProgress={getGameProgress}
-                            badge="FRESH!"
+                            badge="×2 REWARDS!"
                         />
                     )}
 
@@ -342,7 +402,7 @@ export default function TrainingPage() {
 
                     {/* Category lanes */}
                     {activeFilter === 'ALL' ? (
-                        // Show all category lanes
+                        // Show all category lanes (4 games each, clickable headers)
                         CATEGORIES.map(cat => (
                             <GameLane
                                 key={cat.id}
@@ -352,6 +412,8 @@ export default function TrainingPage() {
                                 games={getGamesByCategory(cat.id)}
                                 onGameClick={handleGameClick}
                                 getProgress={getGameProgress}
+                                categoryId={cat.id}
+                                onCategoryClick={handleCategoryClick}
                             />
                         ))
                     ) : (
@@ -668,6 +730,45 @@ const styles = {
         gap: 12, // Tighter gap for mobile
         paddingBottom: 8,
         paddingRight: 16, // Extra space at end
+    },
+
+    // View All Card
+    viewAllCard: {
+        minWidth: 160,
+        height: 220,
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
+        border: '2px dashed rgba(255,255,255,0.3)',
+        borderRadius: 12,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+    },
+
+    viewAllContent: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 8,
+    },
+
+    viewAllIcon: {
+        fontSize: 32,
+        color: '#00D4FF',
+    },
+
+    viewAllText: {
+        fontSize: 14,
+        fontWeight: 600,
+        color: '#fff',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+
+    viewAllCount: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.6)',
     },
 
     // Footer
