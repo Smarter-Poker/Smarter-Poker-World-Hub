@@ -444,7 +444,17 @@ export default function ProfilePage() {
                     position: 'relative'
                 }}>
                     <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)' }}>
-                        <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
+                        <Avatar src={avatar?.imageUrl || profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
+                        <button
+                            onClick={() => setShowAvatarSelector(true)}
+                            style={{
+                                position: 'absolute', bottom: -8, left: -8, background: 'linear-gradient(135deg, #00f5ff, #0099ff)', color: '#0a0e27',
+                                border: 'none', borderRadius: 20, padding: '6px 12px', fontSize: 11,
+                                fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,245,255,0.4)'
+                            }}
+                        >
+                            🎨 Avatar
+                        </button>
                         <button
                             onClick={() => setLibraryOpen(true)}
                             style={{
