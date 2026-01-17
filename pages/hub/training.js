@@ -191,7 +191,7 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
                 onClick={handleHeaderClick}
             >
                 <span style={{ ...styles.laneChevron, color }}>»</span>
-                <span style={styles.laneIcon}>{icon}</span>
+                {/* Icons removed */}
                 <h2 className="vp-lane-title" style={{ ...styles.laneTitle, color }}>{title}</h2>
                 {badge && (
                     <motion.span
