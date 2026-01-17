@@ -544,7 +544,6 @@ export default function TrainingPage() {
                             games={dailyChallenges}
                             onGameClick={handleGameClick}
                             getProgress={getGameProgress}
-                            badge="×2 REWARDS!"
                         />
                     )}
 
