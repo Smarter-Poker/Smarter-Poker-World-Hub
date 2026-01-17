@@ -645,11 +645,10 @@ const styles = {
         color: 'rgba(255,255,255,0.4)',
     },
 
-    // Lanes
+    // Lanes - responsive via global CSS variables
     lanesContainer: {
-        padding: '20px 0',
-        maxWidth: 900, // Lock to ~4-5 cards visible (mobile-first design)
-        margin: '0 auto',
+        padding: 'var(--lane-padding, 20px) 0',
+        // maxWidth handled by .lanes-container-responsive class in index.css
     },
 
     lane: {
@@ -708,9 +707,9 @@ const styles = {
 
     laneCards: {
         display: 'flex',
-        gap: 12,
+        gap: 'var(--card-gap, 12px)', // Responsive gap from global CSS
         paddingBottom: 8,
-        paddingRight: 16,
+        paddingRight: 'var(--lane-padding, 16px)',
         width: 'fit-content', // Cards determine the width, not container
     },
 
