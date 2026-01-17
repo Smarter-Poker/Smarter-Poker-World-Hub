@@ -61,47 +61,47 @@ function getVillainAvatar(index) {
 // Player positioning for different table formats
 // Returns array of player positions with {top, left, playerIndex} for each seat
 function getPlayerPositions(playerCount) {
-    // Players sit AT THE TABLE RAIL - overlapping the golden border
-    // Positions are in an elliptical arrangement around the table edge
+    // Players sit AT THE TABLE RAIL following a natural ellipse
+    // Positioned to overlap the golden border naturally
     // Hero is always at bottom center (handled separately)
 
     if (playerCount === 2) {
         // Heads Up: Villain at top
         return [
-            { top: '8%', left: '50%', transform: 'translateX(-50%)' },
+            { top: '10%', left: '50%', transform: 'translateX(-50%)' },
         ];
     }
 
     if (playerCount === 3) {
-        // 3-Max: Top + two sides
+        // 3-Max: Top + two sides on the curve
         return [
-            { top: '8%', left: '50%', transform: 'translateX(-50%)' },
-            { top: '40%', left: '88%', transform: 'translateX(-50%)' },
+            { top: '10%', left: '50%', transform: 'translateX(-50%)' },
+            { top: '42%', left: '82%', transform: 'translateX(-50%)' },
         ];
     }
 
     if (playerCount === 6) {
-        // 6-Max: Elliptical arrangement at table edge
+        // 6-Max: Natural ellipse around table rail
         return [
-            { top: '8%', left: '50%', transform: 'translateX(-50%)' },   // Top center
-            { top: '18%', left: '82%', transform: 'translateX(-50%)' },  // Top right
-            { top: '55%', left: '82%', transform: 'translateX(-50%)' },  // Right
-            { top: '55%', left: '18%', transform: 'translateX(-50%)' },  // Left
-            { top: '18%', left: '18%', transform: 'translateX(-50%)' },  // Top left
+            { top: '10%', left: '50%', transform: 'translateX(-50%)' },   // Top center
+            { top: '20%', left: '72%', transform: 'translateX(-50%)' },   // Top right  
+            { top: '52%', left: '78%', transform: 'translateX(-50%)' },   // Right
+            { top: '52%', left: '22%', transform: 'translateX(-50%)' },   // Left
+            { top: '20%', left: '28%', transform: 'translateX(-50%)' },   // Top left
         ];
     }
 
     if (playerCount === 9) {
-        // 9-Max: Full ring at table rail (8 villains + hero)
+        // 9-Max: Full elliptical ring following table curve (8 villains + hero)
         return [
-            { top: '8%', left: '50%', transform: 'translateX(-50%)' },   // Top center (V1)
-            { top: '12%', left: '78%', transform: 'translateX(-50%)' },  // Top right (V2)
-            { top: '38%', left: '88%', transform: 'translateX(-50%)' },  // Right upper (V3)
-            { top: '58%', left: '85%', transform: 'translateX(-50%)' },  // Right lower (V4)
-            { top: '75%', left: '72%', transform: 'translateX(-50%)' },  // Bottom right (V5)
-            { top: '75%', left: '28%', transform: 'translateX(-50%)' },  // Bottom left (V6)
-            { top: '58%', left: '15%', transform: 'translateX(-50%)' },  // Left lower (V7)
-            { top: '38%', left: '12%', transform: 'translateX(-50%)' },  // Left upper (V8)
+            { top: '10%', left: '50%', transform: 'translateX(-50%)' },   // V1: Top center
+            { top: '15%', left: '68%', transform: 'translateX(-50%)' },   // V2: Top right
+            { top: '35%', left: '80%', transform: 'translateX(-50%)' },   // V3: Right upper
+            { top: '55%', left: '80%', transform: 'translateX(-50%)' },   // V4: Right lower
+            { top: '72%', left: '68%', transform: 'translateX(-50%)' },   // V5: Bottom right
+            { top: '72%', left: '32%', transform: 'translateX(-50%)' },   // V6: Bottom left
+            { top: '55%', left: '20%', transform: 'translateX(-50%)' },   // V7: Left lower
+            { top: '35%', left: '20%', transform: 'translateX(-50%)' },   // V8: Left upper
         ];
     }
 

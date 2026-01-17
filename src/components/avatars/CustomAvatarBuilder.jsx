@@ -9,7 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
 
-export default function CustomAvatarBuilder({ isVip = false }) {
+export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
   const { user, createCustomAvatar, isVip: contextIsVip } = useAvatar();
   const effectiveVip = isVip || contextIsVip;
 
@@ -152,17 +152,16 @@ export default function CustomAvatarBuilder({ isVip = false }) {
   }
 
   function handleAccept() {
-    // Close the overlay FIRST, then show confirmation
+    // Reset state
     setShowResult(false);
     setGeneratedImage(null);
     setPrompt('');
     removePhoto();
-    // Reload gallery to update slot count
-    loadCustomAvatars();
-    // Use setTimeout to ensure overlay closes before alert
-    setTimeout(() => {
-      alert('✅ Avatar accepted and set as your active avatar!');
-    }, 100);
+
+    // Close the modal immediately - no popup needed
+    if (onClose) {
+      onClose();
+    }
   }
 
   function handleRegenerate() {

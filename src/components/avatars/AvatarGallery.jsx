@@ -105,9 +105,7 @@ export default function AvatarGallery({ onSelect }) {
   async function handleDeleteCustomAvatar(e, avatarId) {
     e.stopPropagation(); // Prevent selecting the avatar when clicking delete
 
-    if (!confirm('Delete this custom avatar? This action cannot be undone.')) {
-      return;
-    }
+    // Delete directly - no double confirmation needed
 
     try {
       const { deleteCustomAvatar } = await import('../../services/avatar-service');
@@ -334,7 +332,7 @@ export default function AvatarGallery({ onSelect }) {
           <button className="builder-close" onClick={handleCloseBuilder}>
             ✕ Close
           </button>
-          <CustomAvatarBuilder isVip={isVip} />
+          <CustomAvatarBuilder isVip={isVip} onClose={handleCloseBuilder} />
         </div>
       )}
 
@@ -359,7 +357,6 @@ export default function AvatarGallery({ onSelect }) {
                     alt={`Custom Avatar ${index + 1}`}
                     className="avatar-image"
                   />
-                  <span className="tier-badge custom">CUSTOM</span>
 
                   {/* DELETE BUTTON */}
                   <button
