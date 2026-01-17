@@ -319,41 +319,57 @@ export default function TrainingPage() {
         <>
             <Head>
                 <title>Training — PokerIQ | 100 Games to Master</title>
-                {/* TRUE SCALE-DOWN MODEL: Design for 650px (3 cards visible) */}
-                <meta name="viewport" content="width=650, initial-scale=0.6, maximum-scale=1.0, user-scalable=no" />
+                {/* 
+                    SMARTER.POKER GLOBAL SCALING MODEL
+                    ---------------------------------
+                    DESIGN WIDTH: 800px (standard desktop build mode)
+                    - 3 cards visible per lane
+                    - All 6 filter pills visible
+                    - Everything fits within 800px with margins
+                    
+                    CSS ZOOM: Scales entire page uniformly for any device
+                    - iPhone (393px): zoom = 393/800 = 0.49x (49% of desktop size)
+                    - iPad (768px): zoom = 768/800 = 0.96x (96% of desktop size)
+                    - Desktop (1440px): zoom = 1440/800 = 1.8x (180% of desktop size - capped)
+                */}
+                <meta name="viewport" content="width=800, user-scalable=no" />
                 <style>{`
                     /* Scrollbar styling */
                     ::-webkit-scrollbar { height: 6px; }
                     ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
                     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
                     
-                    /* The page is designed for 650px width = 3 cards visible */
-                    /* CSS zoom scales EVERYTHING uniformly on all devices */
+                    /* ═══════════════════════════════════════════════════════════════════
+                       SMARTER.POKER TRUE SCALE MODEL
+                       Design at 800px, zoom scales uniformly for all devices
+                       ═══════════════════════════════════════════════════════════════════ */
                     .training-page {
-                        width: 650px;
+                        width: 800px !important;
+                        max-width: 800px !important;
                         margin: 0 auto;
-                        transform-origin: top center;
+                        overflow-x: hidden;
                     }
                     
-                    /* Scale down on smaller screens - TRUE uniform scaling */
-                    @media (max-width: 650px) {
+                    /* TRUE UNIFORM SCALING via CSS zoom */
+                    /* This scales EVERYTHING - text, images, spacing - uniformly */
+                    @media screen {
                         .training-page {
-                            zoom: calc(100vw / 650);
+                            zoom: calc(100vw / 800);
                         }
                     }
                     
-                    /* Scale UP on larger screens */
-                    @media (min-width: 651px) {
+                    /* Cap max zoom at 1.5x for very large screens */
+                    @media (min-width: 1200px) {
                         .training-page {
-                            zoom: calc(100vw / 650);
+                            zoom: 1.5;
                         }
                     }
                     
-                    /* Fallback for browsers that don't support zoom */
+                    /* Safari fallback using transform */
                     @supports not (zoom: 1) {
                         .training-page {
-                            transform: scale(calc(100vw / 650px));
-                            transform-origin: top left;
+                            transform: scale(calc(100vw / 800));
+                            transform-origin: top center;
                         }
                     }
                 `}</style>
