@@ -138,6 +138,32 @@ export function AvatarProvider({ children }) {
         return result;
     }
 
+    async function setActiveAvatar(imageUrl, type = 'custom', avatarId = null, prompt = null) {
+        if (!user) return { success: false, error: 'Not authenticated' };
+
+        try {
+            // Update user avatar in database
+            const { error } = await supabase
+                .from('user_avatars')
+                .upsert({
+                    user_id: user.id,
+                    avatar_id: avatarId,
+                    avatar_type: type,
+                    custom_image_url: imageUrl,
+                    custom_prompt: prompt,
+                    updated_at: new Date().toISOString()
+                });
+
+            if (error) throw error;
+
+            await loadAvatar(); // Refresh avatar
+            return { success: true };
+        } catch (error) {
+            console.error('Error setting active avatar:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
     const value = {
         avatar,
         loading,
@@ -145,6 +171,7 @@ export function AvatarProvider({ children }) {
         isVip,
         selectPresetAvatar,
         createCustomAvatar,
+        setActiveAvatar,
         refreshAvatar: loadAvatar,
         refreshUser
     };
