@@ -684,6 +684,8 @@ export default function TrainingPlayPage() {
             </Head>
             <style>{EFFECT_STYLES}</style>
             <style>{`
+                /* CRITICAL: Reset any inherited zoom from parent pages */
+                html, body { zoom: 1 !important; }
                 * { box-sizing: border-box; margin: 0; padding: 0; }
                 body { background: #0a1628; overflow: hidden; touch-action: manipulation; }
                 button { -webkit-tap-highlight-color: transparent; }
