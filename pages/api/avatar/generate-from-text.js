@@ -1,13 +1,20 @@
 /**
  * 🤖 AI AVATAR GENERATION - TEXT TO IMAGE
  * Uses OpenAI's DALL-E 3 to generate avatars from text descriptions
+ * Downloads and uploads to Supabase Storage to avoid CORS issues
  */
 
 import OpenAI from 'openai';
+import { createClient } from '@supabase/supabase-js';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -15,7 +22,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { prompt } = req.body;
+        const { prompt, userId } = req.body;
 
         if (!prompt) {
             return res.status(400).json({ error: 'Prompt is required' });
@@ -33,13 +40,44 @@ export default async function handler(req, res) {
             style: "vivid"
         });
 
-        const imageUrl = response.data[0].url;
+        const openaiImageUrl = response.data[0].url;
+        console.log('✅ DALL-E generated image, now downloading...');
 
-        console.log('✅ Avatar generated successfully');
+        // Download the image from OpenAI (server-side, no CORS issue)
+        const imageResponse = await fetch(openaiImageUrl);
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Generate unique filename
+        const timestamp = Date.now();
+        const safeUserId = userId || 'anonymous';
+        const filename = `${safeUserId}_${timestamp}.png`;
+        const storagePath = `generated/${filename}`;
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('custom-avatars')
+            .upload(storagePath, buffer, {
+                contentType: 'image/png',
+                cacheControl: '3600',
+                upsert: true
+            });
+
+        if (uploadError) {
+            console.error('❌ Supabase upload error:', uploadError);
+            throw new Error('Failed to upload avatar to storage');
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('custom-avatars')
+            .getPublicUrl(storagePath);
+
+        console.log('✅ Avatar uploaded to Supabase:', publicUrl);
 
         return res.status(200).json({
             success: true,
-            imageUrl: imageUrl
+            imageUrl: publicUrl
         });
 
     } catch (error) {
