@@ -473,17 +473,16 @@ const styles = {
         borderRadius: '50%',
     },
 
-    // Hero - VIEWPORT-SCALED
+    // Hero - RESPONSIVE (taller on mobile, scaled on desktop)
     hero: {
         position: 'relative',
-        height: '30vw', // Viewport-scaled height
-        minHeight: '30vw',
-        maxHeight: '30vw',
+        height: 'clamp(200px, 35vw, 300px)', // Proper height on all devices
+        minHeight: 'clamp(200px, 35vw, 300px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        paddingTop: '5vw', // Viewport-scaled padding
+        paddingTop: 'clamp(40px, 5vw, 60px)', // Account for header
     },
 
     heroBackground: {
