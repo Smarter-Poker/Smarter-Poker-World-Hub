@@ -19,16 +19,22 @@ export default function AvatarGallery({ onSelect, showCustomTab = true }) {
   const [previewAvatar, setPreviewAvatar] = useState(null);
 
   useEffect(() => {
-    if (user) {
-      loadAvatars();
-    }
+    loadAvatars();
   }, [user, selectedTier]);
 
   async function loadAvatars() {
     setLoading(true);
-    const data = await getAvailableAvatars(user.id, selectedTier);
-    setAvatars(data);
-    setLoading(false);
+    try {
+      // If user is logged in, get personalized unlock data
+      // Otherwise, show all avatars in preview mode (VIP marked as locked)
+      const data = await getAvailableAvatars(user?.id || null, selectedTier);
+      setAvatars(data);
+    } catch (error) {
+      console.error('Error loading avatars:', error);
+      setAvatars([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSelectAvatar(avatarId) {
