@@ -136,10 +136,12 @@ export default function App({ Component, pageProps }) {
     <AntiGravityProvider>
       <ThemeProvider>
         <UnreadProvider>
-          <NavigationGuard>
-            <Component {...pageProps} />
-            <CelebrationManager />
-          </NavigationGuard>
+          <AvatarProvider>
+            <NavigationGuard>
+              <Component {...pageProps} />
+              <CelebrationManager />
+            </NavigationGuard>
+          </AvatarProvider>
         </UnreadProvider>
       </ThemeProvider>
     </AntiGravityProvider>
