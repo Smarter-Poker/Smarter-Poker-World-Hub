@@ -566,19 +566,20 @@ export default function CustomAvatarBuilder({ isVip = false }) {
       {/* Matrix Loading Overlay */}
       {generating && (
         <div className="matrix-overlay">
-          {matrixChars.map((c, i) => (
-            <span
-              key={i}
-              className="matrix-char"
+          {matrixColumns.map((col) => (
+            <div
+              key={col.id}
+              className="matrix-column"
               style={{
-                left: `${c.x}%`,
-                top: `${c.y}%`,
-                opacity: c.opacity,
-                animationDuration: `${c.speed}s`
+                left: `${col.x}%`,
+                animationDuration: `${col.speed}s`,
+                animationDelay: `${col.startDelay}s`
               }}
             >
-              {c.char}
-            </span>
+              {col.chars.map((char, idx) => (
+                <span key={idx}>{char}</span>
+              ))}
+            </div>
           ))}
           <div className="loading-content">
             <div className="loading-spinner" />
