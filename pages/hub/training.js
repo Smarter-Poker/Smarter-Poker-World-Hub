@@ -439,6 +439,7 @@ const styles = {
         color: '#fff',
         fontFamily: 'Inter, -apple-system, sans-serif',
         paddingBottom: 40,
+        overflowX: 'hidden', // Prevent page-level horizontal scroll
     },
 
     logo: {
