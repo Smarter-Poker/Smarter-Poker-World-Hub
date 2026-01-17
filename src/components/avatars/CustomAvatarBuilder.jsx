@@ -140,6 +140,101 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           font-size: 14px;
         }
 
+        .photo-upload-section {
+          margin-bottom: 30px;
+        }
+
+        .section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 15px;
+        }
+
+        .helper-text {
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 12px;
+          color: #888;
+          font-style: italic;
+        }
+
+        .upload-zone {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 40px;
+          background: rgba(0, 0, 0, 0.3);
+          border: 2px dashed rgba(0, 245, 255, 0.4);
+          border-radius: 16px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover {
+          border-color: #00f5ff;
+          background: rgba(0, 245, 255, 0.05);
+          transform: translateY(-2px);
+        }
+
+        .upload-icon {
+          font-size: 48px;
+          margin-bottom: 15px;
+        }
+
+        .upload-text {
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 16px;
+          color: #00f5ff;
+          font-weight: 600;
+          margin-bottom: 8px;
+        }
+
+        .upload-hint {
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 12px;
+          color: #666;
+        }
+
+        .photo-preview-container {
+          position: relative;
+          max-width: 400px;
+          margin: 0 auto;
+        }
+
+        .photo-preview {
+          width: 100%;
+          border-radius: 12px;
+          border: 2px solid #00f5ff;
+          box-shadow: 0 5px 20px rgba(0, 245, 255, 0.3);
+        }
+
+        .remove-photo-btn {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          padding: 8px 16px;
+          background: rgba(255, 0, 0, 0.8);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .remove-photo-btn:hover:not(:disabled) {
+          background: rgba(255, 0, 0, 1);
+          transform: scale(1.05);
+        }
+
+        .remove-photo-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
         .prompt-section {
           margin-bottom: 30px;
         }
