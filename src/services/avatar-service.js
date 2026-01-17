@@ -5,7 +5,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { AVATAR_LIBRARY } from '../data/AVATAR_LIBRARY';
+import { getAll, getByTier, getAvatarById } from '../data/AVATAR_LIBRARY';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -41,7 +41,7 @@ export async function getUserAvatar(userId) {
 
         // Return formatted avatar
         if (data.avatar_type === 'preset') {
-            const avatarData = AVATAR_LIBRARY.getById(data.preset_avatar_id);
+            const avatarData = getAvatarById(data.preset_avatar_id);
             return {
                 type: 'preset',
                 id: data.preset_avatar_id,
