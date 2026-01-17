@@ -1,101 +1,215 @@
 ---
 description: Viewport-based scaling template for building responsive pages
 ---
-# Viewport Scaling Template
 
-## Core Principle
-**5 cards always visible at any screen size.** The entire layout scales proportionally like a photograph.
+# Viewport Scaling Standard — Smarter.Poker
 
-## Design Size
-When building any page in hub-vanguard, design for the **same viewport** the training page uses. The CSS will automatically scale it to all devices.
+**PURPOSE**: Ensure every page looks identical across all devices (mobile to 4K) by using viewport-relative CSS units and standardized design canvases.
 
-## CSS Variables (Defined Globally in `src/index.css`)
+## 🎯 Core Principle
 
-### Card & Layout Sizing
+**All UI elements must scale with the viewport** using `clamp()`, `vh`, and `vw` units. Never use fixed pixel values except as min/max bounds in `clamp()`.
+
+---
+
+## 📐 Design Canvas Models
+
+Choose ONE model per page type:
+
+### Model A: Viewport-Based Scaling (Flexible Layouts)
+**Use for**: Hubs, libraries, grids, lists, dashboards
+
+**Pattern**:
 ```css
---vp-card-size: 17vw;      /* Card width/height - 5 fit in 100vw */
---vp-card-gap: 1.5vw;      /* Gap between cards */
---vp-lane-padding: 2vw;    /* Padding on lane sides */
---vp-section-gap: 3vw;     /* Gap between sections */
+/* Cards/Elements scale with viewport */
+width: clamp(140px, 17vw, 186px);
+font-size: clamp(12px, 1.7vh, 18px);
+padding: clamp(10px, 1.5vh, 16px);
 ```
 
-### Typography Scaling
-```css
---vp-font-xs: clamp(6px, 1.2vw, 11px);   /* Labels, captions */
---vp-font-sm: clamp(8px, 1.4vw, 13px);   /* Small text, pills */
---vp-font-md: clamp(10px, 1.6vw, 15px);  /* Body text */
---vp-font-lg: clamp(12px, 2vw, 18px);    /* Headings */
---vp-font-xl: clamp(16px, 3vw, 28px);    /* Large numbers */
---vp-font-xxl: clamp(18px, 4vw, 36px);   /* Hero titles */
---vp-font-hero: clamp(24px, 5vw, 48px);  /* Main hero text */
-```
+**Examples**: World Hub, Training Library, Social Feed
 
-### Spacing Scaling
-```css
---vp-space-xs: 0.5vw;
---vp-space-sm: 1vw;
---vp-space-md: 2vw;
---vp-space-lg: 3vw;
---vp-space-xl: 4vw;
-```
+---
 
-### Border Radius Scaling
-```css
---vp-radius-sm: 0.5vw;
---vp-radius-md: 0.8vw;
---vp-radius-lg: 1.2vw;
---vp-radius-xl: 2vw;
-```
+### Model B: Fixed Aspect Ratio Canvas (Game Tables, Cinematics)
+**Use for**: Poker tables, full-screen experiences, games
 
-## Global CSS Classes (Auto-Apply Scaling)
-
-Add these classes to your elements for automatic viewport scaling:
-
-| Class | Purpose |
-|-------|---------|
-| `.vp-lane-cards` | Horizontal card container with proper gaps |
-| `.vp-card` | Individual card wrapper (17vw × 17vw) |
-| `.vp-card-image` | Card image container |
-| `.vp-card-title` | Card title text |
-| `.vp-lane-title` | Lane/section heading |
-| `.vp-hero-title` | Hero section title |
-| `.vp-hero-subtitle` | Hero section subtitle |
-| `.vp-pill` | Filter pills/buttons |
-| `.vp-stat-value` | Large stat numbers |
-| `.vp-stat-label` | Small stat labels |
-
-## Usage Examples
-
-### Card Lane
-```jsx
-<div className="vp-lane-cards">
-  {games.map(game => (
-    <div className="vp-card">
-      <div className="vp-card-image">
-        <img src={game.image} />
-      </div>
-      <h3 className="vp-card-title">{game.name}</h3>
-    </div>
-  ))}
-</div>
-```
-
-### Inline Style with Variables
-```jsx
+**Pattern**:
+```tsx
+// Container with fixed aspect ratio that scales to fit viewport
 <div style={{
-  width: 'var(--vp-card-size)',
-  padding: 'var(--vp-space-md)',
-  fontSize: 'var(--vp-font-lg)',
-  borderRadius: 'var(--vp-radius-md)'
+    position: 'relative',
+    width: '100vw',
+    height: `${(100 * DESIGN_HEIGHT) / DESIGN_WIDTH}vw`,
+    maxHeight: '100vh',
+    maxWidth: `${(100 * DESIGN_WIDTH) / DESIGN_HEIGHT}vh`,
+    margin: 'auto',
 }}>
-  Content
+    {/* All internal elements use percentages relative to canvas */}
 </div>
 ```
 
-## Key Rules
+**Common Canvases**:
+- **Cinematic (16:9)**: 1920×1080
+- **Portrait Game (3:4)**: 600×800
+- **Square**: 1000×1000
 
-1. **NEVER use fixed pixel values** for widths, heights, or font sizes
-2. **ALWAYS use vw units or CSS variables** from the template
-3. **5 cards per row** is the standard layout
-4. **Test on both mobile (393px) and desktop (1200px)** to verify scaling
-5. **clamp() ensures readability** - fonts won't get too small or too large
+**Examples**: Training game tables, Cinematic intro, Avatar selection
+
+---
+
+## 🔧 Scaling Utilities
+
+Use these standardized helper functions:
+
+### TypeScript/React Hook
+```typescript
+// src/utils/viewport.ts
+export const useViewportScale = (designWidth = 1920, designHeight = 1080) => {
+    // Convert design canvas pixels to viewport percentages
+    const toVw = (px: number) => `${(px / designWidth) * 100}vw`;
+    const toVh = (px: number) => `${(px / designHeight) * 100}vh`;
+    
+    // Responsive clamp with min/max bounds
+    const clampVw = (min: number, ideal: number, max: number) => 
+        `clamp(${min}px, ${(ideal / designWidth) * 100}vw, ${max}px)`;
+    
+    const clampVh = (min: number, ideal: number, max: number) => 
+        `clamp(${min}px, ${(ideal / designHeight) * 100}vh, ${max}px)`;
+    
+    return { toVw, toVh, clampVw, clampVh };
+};
+```
+
+### CSS Variables (Global)
+```css
+/* styles/globals.css */
+:root {
+    /* Design canvas dimensions */
+    --canvas-width: 1920;
+    --canvas-height: 1080;
+    
+    /* Viewport scaling functions */
+    --scale-vw: calc(100vw / var(--canvas-width));
+    --scale-vh: calc(100vh / var(--canvas-height));
+}
+
+/* Helper classes */
+.viewport-text-sm { font-size: clamp(12px, 1.7vh, 18px); }
+.viewport-text-md { font-size: clamp(32px, 5.9vh, 64px); }
+.viewport-text-lg { font-size: clamp(80px, 13vh, 140px); }
+
+.viewport-padding-sm { padding: clamp(10px, 1.5vh, 16px); }
+.viewport-padding-md { padding: clamp(14px, 2.5vh, 24px); }
+.viewport-padding-lg { padding: clamp(32px, 5vh, 48px); }
+```
+
+---
+
+## 📋 Implementation Checklist
+
+When building/updating a page:
+
+### 1. Choose Design Canvas Model
+- [ ] Viewport-Based (flexible grids) OR Fixed Aspect Ratio (games/cinematics)
+
+### 2. Replace All Fixed Pixels
+- [ ] Font sizes → `clamp()`
+- [ ] Padding/margins → `clamp()` with vh/vw
+- [ ] Element sizes → `clamp()` or percentages
+- [ ] Gaps/spacing → viewport-relative
+
+### 3. Test Breakpoints
+- [ ] Mobile (375×667)
+- [ ] Tablet (768×1024)
+- [ ] Desktop (1920×1080)
+- [ ] 4K (3840×2160)
+
+### 4. Verify Visual Parity
+- [ ] Text remains readable (12px minimum)
+- [ ] Layout doesn't break
+- [ ] No overflow/clipping
+- [ ] Hover states work
+
+---
+
+## 🎨 Common Patterns
+
+### Header Bars
+```typescript
+style={{
+    padding: isMobile 
+        ? 'clamp(10px, 1.5vh, 12px) clamp(12px, 2vh, 16px)' 
+        : 'clamp(14px, 1.5vh, 16px) clamp(32px, 3.7vh, 40px)',
+}}
+```
+
+### Logo
+```typescript
+height: isMobile ? 'clamp(32px, 6vh, 40px)' : 'clamp(48px, 5.6vh, 60px)'
+```
+
+### Card Grids
+```typescript
+width: clamp(140px, 17vw, 186px)  // Desktop
+width: clamp(100px, 18vw, 115px)  // Mobile
+```
+
+### Icon Orbs
+```typescript
+size: isMobile ? 36 : Math.min(56, Math.max(48, window.innerHeight * 0.052))
+```
+
+### Text Hierarchy
+```css
+/* Hero Title */
+font-size: clamp(80px, 13vh, 140px);
+
+/* Page Title */
+font-size: clamp(32px, 5.9vh, 64px);
+
+/* Subtitle */
+font-size: clamp(12px, 1.7vh, 18px);
+
+/* Body Text */
+font-size: clamp(14px, 2vh, 16px);
+
+/* Small Label */
+font-size: clamp(9px, 1.2vh, 10px);
+```
+
+---
+
+## 🚨 Hard Rules
+
+1. **NO fixed pixels** except in `clamp()` min/max bounds
+2. **Always test mobile first** (375px width)
+3. **Maintain aspect ratios** for images/cards using `aspect-ratio` CSS
+4. **Use relative units**: vw, vh, %, rem (never px standalone)
+5. **Every new page** must follow this standard
+
+---
+
+## 📚 Reference Examples
+
+- **Cinematic Intro**: `/src/world/components/CinematicIntro.tsx`
+- **World Hub**: `/src/world/WorldHub.tsx`
+- **Training Game Table**: Uses 600×800 canvas with percentage-based positioning
+
+---
+
+## 🔄 Migration Guide
+
+To update an existing page:
+
+1. Identify all fixed pixel values
+2. Categorize: text, spacing, sizes
+3. Replace with appropriate `clamp()` formulas
+4. Test at 375px, 1920px, 3840px
+5. Commit with: `"🎨 Apply viewport scaling to [Page Name]"`
+6. Deploy immediately
+
+---
+
+**Last Updated**: 2026-01-17 (Step 566)
+**Status**: ✅ PRODUCTION STANDARD

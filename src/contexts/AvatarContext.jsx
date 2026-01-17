@@ -31,8 +31,15 @@ export function AvatarProvider({ children }) {
             return;
         }
         try {
-            // Query the user's metadata directly from auth.users via admin API
-            const { data, error } = await supabase.rpc('get_user_vip_status', { p_user_id: userId });
+            // Set a 5 second timeout for the RPC call
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('VIP status check timeout')), 5000)
+            );
+
+            const rpcPromise = supabase.rpc('get_user_vip_status', { p_user_id: userId });
+
+            const { data, error } = await Promise.race([rpcPromise, timeoutPromise]);
+
             if (!error && data !== null) {
                 setIsVip(data === true);
             } else {
@@ -42,7 +49,13 @@ export function AvatarProvider({ children }) {
             }
         } catch (err) {
             console.error('Error fetching VIP status:', err);
-            setIsVip(false);
+            // Fallback to metadata on any error
+            try {
+                const { data: { user: freshUser } } = await supabase.auth.getUser();
+                setIsVip(freshUser?.user_metadata?.is_vip || false);
+            } catch {
+                setIsVip(false);
+            }
         }
     }
 
