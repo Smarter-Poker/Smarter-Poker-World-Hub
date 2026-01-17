@@ -620,11 +620,10 @@ const styles = {
 
     filterPills: {
         display: 'flex',
-        gap: 'clamp(4px, 1vw, 8px)', // Smaller gaps
-        overflowX: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
+        flexWrap: 'wrap', // WRAP to multiple lines
+        gap: 'clamp(4px, 1vw, 8px)',
+        justifyContent: 'center',
+        alignItems: 'center',
         padding: '0 clamp(8px, 2vw, 16px)',
     },
 
