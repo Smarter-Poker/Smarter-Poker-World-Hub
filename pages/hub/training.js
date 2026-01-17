@@ -379,7 +379,7 @@ export default function TrainingPage() {
                 />
 
                 {/* Game Lanes */}
-                <div style={styles.lanesContainer}>
+                <div className="lanes-container-responsive" style={styles.lanesContainer}>
                     {/* TODAY'S DAILY CHALLENGE lane */}
                     {dailyChallenges.length > 0 && activeFilter === 'ALL' && (
                         <GameLane
