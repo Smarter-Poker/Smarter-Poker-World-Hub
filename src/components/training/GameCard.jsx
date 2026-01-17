@@ -1,6 +1,5 @@
 /**
- * GAME CARD — Fixed Design for 800px Layout (3 cards visible)
- * 3 cards × 230px + gaps + padding = ~750px (fits in 800px with margins)
+ * GAME CARD — Finalized badge design with three states
  */
 
 import { motion } from 'framer-motion';
@@ -38,7 +37,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                 position: 'relative',
                 cursor: 'pointer',
                 flexShrink: 0,
-                width: 230, // 3 cards × 230px + gaps = ~750px (fits 800px)
+                width: 230,
                 padding: 6,
                 display: 'flex',
                 flexDirection: 'column',
@@ -52,10 +51,14 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                     width: 210,
                     height: 210,
                     background: '#1a2744',
-                    border: `3px solid ${categoryColor}`,
                     borderRadius: 14,
-                    boxShadow: `0 0 24px ${categoryColor}, 0 0 48px ${categoryColor}80, 0 10px 24px rgba(0,0,0,0.6)`,
-                    overflow: 'hidden',
+                    overflow: 'visible',
+                    border: isMastered
+                        ? '4px solid #FFD700'
+                        : `3px solid ${categoryColor}`,
+                    boxShadow: isMastered
+                        ? '0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3), 0 10px 24px rgba(0,0,0,0.6)'
+                        : `0 0 24px ${categoryColor}, 0 0 48px ${categoryColor}80, 0 10px 24px rgba(0,0,0,0.6)`,
                 }}
             >
                 {(image || game.image) && (
@@ -66,8 +69,27 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                             width: '100%',
                             height: '100%',
                             objectFit: 'cover',
+                            borderRadius: 10,
                         }}
                     />
+                )}
+
+                {/* CROWN ICON - Only for mastered games */}
+                {isMastered && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            fontSize: 52,
+                            opacity: 0.25,
+                            filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6))',
+                            zIndex: 1,
+                        }}
+                    >
+                        👑
+                    </div>
                 )}
 
                 {/* MASTERED BADGE - Shows when all 10 levels complete */}
@@ -87,6 +109,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                             letterSpacing: 1,
                             textAlign: 'center',
                             boxShadow: '0 4px 12px rgba(255, 215, 0, 0.6)',
+                            zIndex: 5,
                         }}
                     >
                         ✓ MASTERED
@@ -101,19 +124,20 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                             bottom: 8,
                             left: 8,
                             right: 8,
-                            padding: '4px 8px',
+                            padding: '5px 10px',
                             background: 'rgba(255, 107, 53, 0.95)',
                             borderRadius: 6,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 4,
+                            gap: 6,
                             boxShadow: '0 2px 8px rgba(255, 107, 53, 0.5)',
+                            zIndex: 5,
                         }}
                     >
-                        <span style={{ fontSize: 12 }}>🔥</span>
+                        <span style={{ fontSize: 14 }}>🔥</span>
                         <span style={{
-                            fontSize: 10,
+                            fontSize: 11,
                             fontWeight: 800,
                             color: '#fff',
                             letterSpacing: 0.5,
@@ -123,52 +147,47 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                     </div>
                 )}
 
-                {/* S-RANK STYLE LEVEL + SCORE TAG - Hanging off upper right corner */}
+                {/* LEVEL + SCORE BADGE - Straight pill shape overlapping corner */}
                 {hasPlayed && !isMastered && (
                     <div
                         style={{
                             position: 'absolute',
-                            top: -6,
-                            right: -6,
-                            padding: '8px 12px',
-                            background: 'linear-gradient(135deg, rgba(30, 30, 35, 0.98), rgba(15, 15, 20, 0.95))',
-                            border: '2px solid rgba(255, 255, 255, 0.9)',
-                            borderRadius: 8,
+                            top: -8,
+                            right: -8,
+                            padding: '5px 12px',
+                            background: 'linear-gradient(135deg, rgba(200, 200, 210, 0.98), rgba(170, 170, 185, 0.95))',
+                            border: '3px solid #fff',
+                            borderRadius: 20,
                             display: 'flex',
-                            flexDirection: 'column',
+                            flexDirection: 'row',
                             alignItems: 'center',
-                            gap: 2,
+                            justifyContent: 'center',
+                            gap: 6,
                             boxShadow: `
-                                0 0 20px rgba(255, 255, 255, 0.6),
-                                0 0 40px rgba(255, 255, 255, 0.4),
+                                0 0 20px rgba(255, 255, 255, 0.8),
+                                0 0 40px rgba(255, 255, 255, 0.5),
                                 0 4px 12px rgba(0, 0, 0, 0.7)
                             `,
-                            minWidth: 50,
+                            zIndex: 10,
                         }}
                     >
                         <div style={{
                             fontSize: 11,
                             fontWeight: 900,
-                            color: '#fff',
-                            letterSpacing: 1,
-                            textShadow: `
-                                0 0 10px rgba(255, 255, 255, 0.8),
-                                0 0 20px rgba(255, 255, 255, 0.5),
-                                0 2px 4px rgba(0, 0, 0, 0.5)
-                            `,
+                            color: '#1a1a1a',
+                            letterSpacing: 1.2,
+                            textTransform: 'uppercase',
+                            lineHeight: 1,
+                            whiteSpace: 'nowrap',
                         }}>
                             LVL {currentLevel}
                         </div>
                         <div style={{
-                            fontSize: 13,
+                            fontSize: 11,
                             fontWeight: 900,
-                            color: lastScore >= 85 ? '#4CAF50' : '#FFD700',
+                            color: lastScore >= 85 ? '#4CAF50' : '#FF6B35',
                             letterSpacing: 0.5,
-                            textShadow: `
-                                0 0 10px ${lastScore >= 85 ? 'rgba(76, 175, 80, 0.8)' : 'rgba(255, 215, 0, 0.8)'},
-                                0 0 20px ${lastScore >= 85 ? 'rgba(76, 175, 80, 0.5)' : 'rgba(255, 215, 0, 0.5)'},
-                                0 2px 4px rgba(0, 0, 0, 0.5)
-                            `,
+                            lineHeight: 1,
                         }}>
                             {lastScore}%
                         </div>
