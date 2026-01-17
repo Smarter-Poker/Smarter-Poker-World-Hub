@@ -169,9 +169,9 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
 }
 
 /**
- * Generate avatar from photo using FLUX or Stable Diffusion
+ * Generate avatar from photo using GPT-4 Vision + DALL-E 3
  */
-async function generateAvatarFromPhoto(photoFile, additionalPrompt = '') {
+async function generateAvatarFromPhoto(photoFile, additionalPrompt = '', userId = null) {
     try {
         // Convert photo to base64
         const reader = new FileReader();
@@ -180,13 +180,14 @@ async function generateAvatarFromPhoto(photoFile, additionalPrompt = '') {
             reader.readAsDataURL(photoFile);
         });
 
-        // Call Replicate API for image-to-image generation
+        // Call API for image-to-image generation
         const response = await fetch('/api/avatar/generate-from-photo', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 photoBase64,
-                prompt: additionalPrompt || 'Transform into a 3D Pixar-style poker avatar with white background, professional quality, detailed facial features'
+                prompt: additionalPrompt,
+                userId
             })
         });
 
