@@ -25,6 +25,9 @@ import feedback, { EFFECT_STYLES, screenEffects } from '../../../../src/engine/H
 import { getQuestionsForGame } from '../../../../src/data/QUESTIONS_LIBRARY';
 import { WorldNavHeader } from '../../../../src/components/navigation/WorldNavHeader';
 import { getPlayerCount } from '../../../../src/data/PLAYER_COUNT_MAP';
+import { generateLevelQuiz } from '../../../../lib/god-mode-service';
+import { submitAnswer } from '../../../../lib/game-engine-service';
+import { useUser } from '@supabase/auth-helpers-react';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -431,21 +434,59 @@ export default function TrainingPlayPage() {
         }
     }, []);
 
-    // Load game and questions
+    // Load game and questions (God Mode with fallback)
     useEffect(() => {
-        if (gameId) {
+        async function loadGameAndQuiz() {
+            if (!gameId) return;
+
             const foundGame = getGameById(gameId);
-            if (foundGame) {
-                setGame(foundGame);
-                // Get dynamic player count for this game
-                const count = getPlayerCount(gameId);
-                setPlayerCount(count);
-                // Load questions from database
-                const gameQuestions = getQuestionsForGame(gameId);
-                setQuestions(gameQuestions);
+            if (!foundGame) return;
+
+            setGame(foundGame);
+            const count = getPlayerCount(gameId);
+            setPlayerCount(count);
+
+            // Try to load from God Mode if user is logged in
+            if (user) {
+                console.log('🎯 Attempting God Mode quiz generation...');
+                const levelId = getLevelIdFromGameId(gameId);
+                const godModeQuiz = await generateLevelQuiz(user.id, levelId);
+
+                if (godModeQuiz && godModeQuiz.questions.length > 0) {
+                    console.log('✅ God Mode quiz loaded:', godModeQuiz.questions.length, 'questions');
+                    setQuestions(godModeQuiz.questions);
+                    return;
+                }
+
+                console.log('⚠️ God Mode returned no questions, using fallback');
             }
+
+            // Fallback to dummy questions
+            console.log('📚 Loading dummy questions for development');
+            const gameQuestions = getQuestionsForGame(gameId);
+            setQuestions(gameQuestions);
         }
-    }, [gameId]);
+
+        loadGameAndQuiz();
+    }, [gameId, user]);
+
+    // Helper: Map gameId to levelId
+    function getLevelIdFromGameId(gameId) {
+        // Map game IDs to level IDs (1-10)
+        const mapping = {
+            'flop-mastery': 1,
+            'turn-tactics': 2,
+            'river-play': 3,
+            'full-street-mix': 4,
+            'advanced-flops': 5,
+            'advanced-turns': 6,
+            'mtt-fundamentals': 7,
+            'mtt-turn-play': 8,
+            'short-stack': 9,
+            'cash-mastery': 10,
+        };
+        return mapping[gameId] || 1; // Default to level 1
+    }
 
     // Heartbeat sound callback
     const playHeartbeat = useCallback((intensity) => {
