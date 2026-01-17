@@ -364,23 +364,22 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   POKER AVATAR BACKGROUND REMOVAL
-   Automatically removes white backgrounds from avatar images on poker tables
+   POKER TABLE AVATAR BACKGROUND REMOVAL
+   ONLY applies to avatars IN poker tables, NOT avatar galleries
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Remove white backgrounds from all poker table avatars */
-img[src*="avatar"],
-img[alt*="avatar" i],
-img[alt*="villain" i],
-img[alt*="player" i],
-.poker-avatar,
-.player-avatar {
-  /* Use multiply blend mode to knock out white backgrounds on dark surfaces */
-  mix-blend-mode: multiply;
-  background: transparent;
+/* Isolate poker table to prevent multiply from affecting other elements */
+.poker-table,
+.table-area,
+.tableInner {
+  isolation: isolate;
 }
 
-/* For avatars on light backgrounds, use screen mode instead */
-.avatar-light-bg img[src*="avatar"] {
-  mix-blend-mode: screen;
+/* Remove white backgrounds ONLY from poker table avatars */
+.poker-table img,
+.table-area img,
+.player-avatar-poker,
+.villain-avatar-poker {
+  mix-blend-mode: multiply;
+  background: transparent;
 }
