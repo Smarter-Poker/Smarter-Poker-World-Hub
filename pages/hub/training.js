@@ -620,20 +620,20 @@ const styles = {
 
     filterPills: {
         display: 'flex',
-        gap: 'var(--vp-space-xs, 6px)',
+        gap: 'clamp(4px, 1vw, 8px)', // Smaller gaps
         overflowX: 'auto',
         WebkitOverflowScrolling: 'touch',
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
-        padding: '0 var(--vp-lane-padding, 2vw)',
+        padding: '0 clamp(8px, 2vw, 16px)',
     },
 
     filterPill: {
-        padding: 'clamp(6px, 1.5vw, 12px) clamp(12px, 3vw, 20px)', // Proper padding
-        borderRadius: 18, // ALWAYS oval - never square
-        fontSize: 'clamp(10px, 2.5vw, 13px)', // Readable on mobile
+        padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 16px)', // Smaller on mobile
+        borderRadius: 14, // ALWAYS oval - never square
+        fontSize: 'clamp(9px, 2vw, 12px)', // Smaller to fit all 6
         fontWeight: 700,
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
         cursor: 'pointer',
         transition: 'all 0.2s ease',
         whiteSpace: 'nowrap',
@@ -642,8 +642,9 @@ const styles = {
     },
 
     gameCount: {
-        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
+        fontSize: 'clamp(8px, 2vw, 12px)',
         color: 'rgba(255,255,255,0.4)',
+        flexShrink: 0,
     },
 
     // Lanes - responsive via global CSS variables
