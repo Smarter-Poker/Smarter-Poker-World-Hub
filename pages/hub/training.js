@@ -627,15 +627,15 @@ const styles = {
         fontWeight: 600,
     },
 
-    // Filters - RESPONSIVE (auto-height for wrapping)
+    // Filters - FIXED design (CSS zoom handles scaling)
     filterBar: {
         display: 'flex',
-        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 'clamp(4px, 1vw, 8px)',
-        padding: 'clamp(8px, 2vw, 12px) clamp(12px, 3vw, 24px)',
-        // height: auto - let it grow to fit wrapped pills
+        gap: 12,
+        padding: '12px 24px',
+        height: 60,
+        minHeight: 60,
         background: 'rgba(10,10,21,0.98)',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
         position: 'sticky',
@@ -647,19 +647,19 @@ const styles = {
 
     filterPills: {
         display: 'flex',
-        flexWrap: 'wrap', // WRAP to multiple lines
-        gap: 'clamp(4px, 1vw, 8px)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '0 clamp(8px, 2vw, 16px)',
+        gap: 8,
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
     },
 
     filterPill: {
-        padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 16px)', // Smaller on mobile
-        borderRadius: 14, // ALWAYS oval - never square
-        fontSize: 'clamp(9px, 2vw, 12px)', // Smaller to fit all 6
+        padding: '10px 20px',
+        borderRadius: 20,
+        fontSize: 13,
         fontWeight: 700,
-        letterSpacing: 0.3,
+        letterSpacing: 0.5,
         cursor: 'pointer',
         transition: 'all 0.2s ease',
         whiteSpace: 'nowrap',
@@ -668,9 +668,9 @@ const styles = {
     },
 
     gameCount: {
-        fontSize: 'clamp(8px, 2vw, 12px)',
+        fontSize: 13,
         color: 'rgba(255,255,255,0.4)',
-        flexShrink: 0,
+        marginLeft: 12,
     },
 
     // Lanes - responsive via global CSS variables
