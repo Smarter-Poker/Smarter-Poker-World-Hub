@@ -30,13 +30,28 @@ export default async function handler(req, res) {
 
         console.log('🎨 Generating avatar from text with DALL-E 3:', prompt);
 
+        // STRICT AVATAR PROMPT - Character only, no backgrounds, poker table style portrait
+        const strictAvatarPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT ONLY. 
+Subject: ${prompt}
+STRICT RULES:
+- ONLY the character's head and upper shoulders (bust portrait)
+- PURE SOLID WHITE BACKGROUND - nothing else
+- NO poker tables, NO cards, NO chips, NO props
+- NO scene, NO environment, NO accessories around character
+- Face must be the MAIN FOCUS
+- High quality 3D render like Pixar/Disney animation
+- Vibrant colors, detailed facial features
+- Professional avatar suitable for profile picture
+- The character should embody the description given: ${prompt}
+IMPORTANT: This is for a poker player avatar - just the character portrait, nothing else.`;
+
         // Use DALL-E 3 for high-quality generation
         const response = await openai.images.generate({
             model: "dall-e-3",
-            prompt: prompt,
+            prompt: strictAvatarPrompt,
             n: 1,
             size: "1024x1024",
-            quality: "standard",
+            quality: "hd",
             style: "vivid"
         });
 
