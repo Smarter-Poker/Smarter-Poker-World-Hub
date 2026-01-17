@@ -745,37 +745,37 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
                 pointerEvents: 'none',
             }}>
                 <div style={{
-                    fontSize: '140px',
+                    fontSize: `clamp(80px, 13vh, 140px)`, // 140px ideal, scales down to 80px min
                     color: '#fff',
                     textShadow: `
-                        0 0 40px rgba(0,200,255,1),
-                        0 0 80px rgba(0,200,255,0.8),
-                        0 0 120px rgba(0,200,255,0.5)
+                        0 0 clamp(20px, 3.7vh, 40px) rgba(0,200,255,1),
+                        0 0 clamp(40px, 7.4vh, 80px) rgba(0,200,255,0.8),
+                        0 0 clamp(60px, 11vh, 120px) rgba(0,200,255,0.5)
                     `,
-                    filter: 'drop-shadow(0 0 20px rgba(0,200,255,0.8))',
+                    filter: `drop-shadow(0 0 clamp(10px, 1.8vh, 20px) rgba(0,200,255,0.8))`,
                 }}>
                     ♠
                 </div>
 
                 <div style={{
-                    fontSize: '64px',
+                    fontSize: `clamp(32px, 5.9vh, 64px)`, // 64px ideal, scales down to 32px min
                     fontWeight: 800,
-                    letterSpacing: '16px',
+                    letterSpacing: `clamp(8px, 1.5vh, 16px)`,
                     color: '#fff',
-                    textTransform: 'uppercase',
-                    textShadow: '0 0 40px rgba(0,200,255,0.8)',
+                    textTransform: 'uppercase' as const,
+                    textShadow: `0 0 clamp(20px, 3.7vh, 40px) rgba(0,200,255,0.8)`,
                     fontFamily: 'system-ui, -apple-system, sans-serif',
                 }}>
                     SMARTER.POKER
                 </div>
 
                 <div style={{
-                    fontSize: '18px',
-                    letterSpacing: '10px',
+                    fontSize: `clamp(12px, 1.7vh, 18px)`, // 18px ideal, scales down to 12px min
+                    letterSpacing: `clamp(5px, 0.9vh, 10px)`,
                     color: 'rgba(0,200,255,1)',
-                    textTransform: 'uppercase',
+                    textTransform: 'uppercase' as const,
                     fontWeight: 500,
-                    marginTop: '-8px',
+                    marginTop: `clamp(-6px, -0.7vh, -8px)`,
                 }}>
                     MASTER YOUR GAME
                 </div>
