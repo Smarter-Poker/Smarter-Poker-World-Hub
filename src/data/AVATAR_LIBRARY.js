@@ -316,7 +316,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: ' wild',
-        image: '/avatars/vip/rock-legend.png',
+        image: '/avatars/vip/rock_legend.png',
         tags: ['music', 'legendary', 'passionate']
     },
     {
@@ -326,7 +326,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/tech-mogul.png',
+        image: '/avatars/vip/tech_mogul.png',
         tags: ['tech', 'innovative', 'ambitious']
     },
     {
@@ -336,7 +336,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'wild',
-        image: '/avatars/vip/space-pioneer.png',
+        image: '/avatars/vip/space_pioneer.png',
         tags: ['visionary', 'bold', 'ambitious']
     },
     {
@@ -346,7 +346,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/silent-actor.png',
+        image: '/avatars/vip/silent_actor.png',
         tags: ['classic', 'expressive', 'artistic']
     },
     {
@@ -376,7 +376,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'friendly',
-        image: '/avatars/vip/hollywood-star.png',
+        image: '/avatars/vip/hollywood.png',
         tags: ['glamorous', 'charismatic', 'dazzling']
     },
     {
@@ -396,7 +396,7 @@ export const AVATAR_LIBRARY = [
         category: 'sports',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/football-pro.png',
+        image: '/avatars/vip/football.png',
         tags: ['athletic', 'competitive', 'focused']
     },
     {
@@ -406,7 +406,7 @@ export const AVATAR_LIBRARY = [
         category: 'sports',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/basketball-star.png',
+        image: '/avatars/vip/basketball.png',
         tags: ['athletic', 'skilled', 'dominant']
     },
     {
@@ -416,7 +416,7 @@ export const AVATAR_LIBRARY = [
         category: 'sports',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/soccer-champ.png',
+        image: '/avatars/vip/soccer.png',
         tags: ['athletic', 'global', 'talented']
     },
     {
@@ -476,7 +476,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'friendly',
-        image: '/avatars/vip/country-singer.png',
+        image: '/avatars/vip/country.png',
         tags: ['music', 'soulful', 'authentic']
     },
     {
@@ -486,7 +486,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/jazz-musician.png',
+        image: '/avatars/vip/jazz.png',
         tags: ['music', 'smooth', 'artistic']
     },
     {
@@ -508,7 +508,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/agent.png',
+        image: '/avatars/vip/secret_agent.png',
         tags: ['spy', 'suave', 'tactical']
     },
     {
@@ -578,7 +578,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/cyborg.png',
+        image: '/avatars/vip/elite_cyborg.png',
         tags: ['tech', 'advanced', 'powerful']
     },
     {
@@ -588,7 +588,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/plague-doctor.png',
+        image: '/avatars/vip/plague_doctor.png',
         tags: ['historical', 'eerie', 'unique']
     },
     {
@@ -598,7 +598,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'friendly',
-        image: '/avatars/vip/space-ranger.png',
+        image: '/avatars/vip/space_ranger.png',
         tags: ['hero', 'adventurous', 'brave']
     },
     {
@@ -628,7 +628,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'nit',
-        image: '/avatars/vip/ice-queen.png',
+        image: '/avatars/vip/ice_queen.png',
         tags: ['magical', 'elegant', 'powerful']
     },
     {
@@ -638,7 +638,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'wild',
-        image: '/avatars/vip/fire-demon.png',
+        image: '/avatars/vip/fire_demon.png',
         tags: ['fierce', 'powerful', 'aggressive']
     },
     {
@@ -660,7 +660,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'nit',
-        image: '/avatars/vip/grumpy-cat.png',
+        image: '/avatars/vip/grumpy_cat.png',
         tags: ['meme', 'sassy', 'funny']
     },
     {
@@ -670,7 +670,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'shark',
-        image: '/avatars/vip/business-cat.png',
+        image: '/avatars/vip/business_cat.png',
         tags: ['meme', 'professional', 'ambitious']
     },
     {
@@ -700,7 +700,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'wild',
-        image: '/avatars/vip/honey-badger.png',
+        image: '/avatars/vip/badger.png',
         tags: ['fearless', 'aggressive', 'tough']
     },
     {
@@ -750,7 +750,7 @@ export const AVATAR_LIBRARY = [
         category: 'animals',
         tier: 'VIP',
         personality: 'intimidating',
-        image: '/avatars/vip/grizzly.png',
+        image: '/avatars/vip/bear.png',
         tags: ['powerful', 'fierce', 'dominant']
     },
 
@@ -772,7 +772,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'VIP',
         personality: 'wild',
-        image: '/avatars/vip/viking.png',
+        image: '/avatars/vip/viking_warrior.png',
         tags: ['warrior', 'fierce', 'bold']
     },
     {
@@ -782,7 +782,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/geisha.png',
+        image: '/avatars/vip/geisha_master.png',
         tags: ['elegant', 'cultural', 'refined']
     },
     {
@@ -792,7 +792,7 @@ export const AVATAR_LIBRARY = [
         category: 'culture',
         tier: 'VIP',
         personality: 'intimidating',
-        image: '/avatars/vip/aztec.png',
+        image: '/avatars/vip/aztec_warrior.png',
         tags: ['historical', 'warrior', 'fierce']
     },
     {
