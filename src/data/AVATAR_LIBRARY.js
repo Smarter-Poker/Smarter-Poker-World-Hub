@@ -64,7 +64,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'FREE',
         personality: 'nit',
-        image: '/avatars/free/scientist.png',
+        image: '/avatars/free/wizard.png',
         tags: ['science', 'smart', 'methodical']
     },
     {
@@ -74,7 +74,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'FREE',
         personality: 'wild',
-        image: '/avatars/free/inventor.png',
+        image: '/avatars/free/cyborg.png',
         tags: ['science', 'wild', 'eccentric']
     },
     {
@@ -94,7 +94,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'FREE',
         personality: 'friendly',
-        image: '/avatars/free/comedian.png',
+        image: '/avatars/free/rockstar.png',
         tags: ['comedy', 'fun', 'energetic']
     },
     {
@@ -104,7 +104,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'FREE',
         personality: 'friendly',
-        image: '/avatars/free/popstar.png',
+        image: '/avatars/free/musician.png',
         tags: ['music', 'glamorous', 'confident']
     },
     {
@@ -114,7 +114,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'FREE',
         personality: 'shark',
-        image: '/avatars/free/astronaut.png',
+        image: '/avatars/free/space_captain.png',
         tags: ['space', 'adventurous', 'brave']
     },
 
@@ -218,7 +218,7 @@ export const AVATAR_LIBRARY = [
         category: 'archetypes',
         tier: 'FREE',
         personality: 'shark',
-        image: '/avatars/free/businessman.png',
+        image: '/avatars/free/business.png',
         tags: ['professional', 'calculating', 'ambitious']
     },
     {
@@ -285,12 +285,12 @@ export const AVATAR_LIBRARY = [
     },
     {
         id: 'free-mix-005',
-        name: 'android Bot',
+        name: 'Android Bot',
         description: 'Pure logic, no emotion',
         category: 'fantasy',
         tier: 'FREE',
         personality: 'nit',
-        image: '/avatars/free/robot.png',
+        image: '/avatars/free/android.png',
         tags: ['ai', 'calculated', 'methodical']
     },
 
