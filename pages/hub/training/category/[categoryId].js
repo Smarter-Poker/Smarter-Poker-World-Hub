@@ -12,11 +12,11 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import GameCard from '../../components/training/GameCard';
-import { getGamesByCategory } from '../../data/TRAINING_LIBRARY';
-import useTrainingProgress from '../../hooks/useTrainingProgress';
-import { getGameImage } from '../../data/GAME_IMAGES';
-import GameIntroSplash from '../../components/training/GameIntroSplash';
+import GameCard from '../../../../src/components/training/GameCard';
+import { getGamesByCategory } from '../../../../src/data/TRAINING_LIBRARY';
+import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
+import { getGameImage } from '../../../../src/data/GAME_IMAGES';
+import GameIntroSplash from '../../../../src/components/training/GameIntroSplash';
 
 // Category metadata
 const CATEGORY_META = {

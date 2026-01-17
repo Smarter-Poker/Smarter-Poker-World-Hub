@@ -4,8 +4,13 @@
  * Supports preset library avatars and custom AI-generated avatars
  */
 
-import { supabase } from '../lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 import { AVATAR_LIBRARY } from '../data/AVATAR_LIBRARY';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 /**
  * Get user's current active avatar
