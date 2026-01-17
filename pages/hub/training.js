@@ -652,7 +652,7 @@ const styles = {
     // Lanes
     lanesContainer: {
         padding: '20px 0',
-        maxWidth: '100vw', // Lock to viewport width (mobile-first)
+        maxWidth: 900, // Lock to ~4-5 cards visible (mobile-first design)
         margin: '0 auto',
     },
 
