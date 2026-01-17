@@ -2,19 +2,23 @@
  * 🎨 CUSTOM AVATAR BUILDER
  * AI-powered custom avatar generation tool
  * FREE users: 1 custom avatar | VIP users: Unlimited
+ * Features: Matrix-style loading, Accept/Regenerate flow for VIP
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 
 export default function CustomAvatarBuilder({ isVip = false }) {
-  const { user, createCustomAvatar } = useAvatar();
+  const { user, createCustomAvatar, isVip: contextIsVip } = useAvatar();
+  const effectiveVip = isVip || contextIsVip;
 
   const [prompt, setPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState(null);
   const [uploadedPhoto, setUploadedPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [showResult, setShowResult] = useState(false);
+  const [matrixChars, setMatrixChars] = useState([]);
 
   const examplePrompts = [
     "Fierce warrior with flaming sword",
@@ -25,29 +29,51 @@ export default function CustomAvatarBuilder({ isVip = false }) {
     "Pirate captain with treasure map"
   ];
 
+  // Matrix rain effect during generation
+  useEffect(() => {
+    if (!generating) {
+      setMatrixChars([]);
+      return;
+    }
+
+    const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン♠♥♦♣★';
+    const columns = 30;
+    const interval = setInterval(() => {
+      setMatrixChars(prev => {
+        const newChars = [];
+        for (let i = 0; i < columns; i++) {
+          newChars.push({
+            char: chars[Math.floor(Math.random() * chars.length)],
+            x: (i / columns) * 100,
+            y: Math.random() * 100,
+            speed: 2 + Math.random() * 3,
+            opacity: 0.3 + Math.random() * 0.7
+          });
+        }
+        return [...prev.slice(-100), ...newChars];
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [generating]);
+
   function handlePhotoUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file');
       return;
     }
 
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       alert('Image must be smaller than 10MB');
       return;
     }
 
     setUploadedPhoto(file);
-
-    // Create preview
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setPhotoPreview(e.target.result);
-    };
+    reader.onload = (e) => setPhotoPreview(e.target.result);
     reader.readAsDataURL(file);
   }
 
@@ -63,15 +89,15 @@ export default function CustomAvatarBuilder({ isVip = false }) {
     }
 
     setGenerating(true);
+    setShowResult(false);
+    setGeneratedImage(null);
 
     try {
-      const result = await createCustomAvatar(prompt, isVip, uploadedPhoto);
+      const result = await createCustomAvatar(prompt, effectiveVip, uploadedPhoto);
 
       if (result.success) {
         setGeneratedImage(result.imageUrl);
-        alert('✅ Custom avatar generated and set as active!');
-        setPrompt('');
-        removePhoto();
+        setShowResult(true);
       } else {
         alert(`❌ ${result.error}`);
       }
@@ -80,6 +106,23 @@ export default function CustomAvatarBuilder({ isVip = false }) {
     } finally {
       setGenerating(false);
     }
+  }
+
+  function handleAccept() {
+    alert('✅ Avatar accepted and set as your active avatar!');
+    setShowResult(false);
+    setPrompt('');
+    removePhoto();
+  }
+
+  function handleRegenerate() {
+    setShowResult(false);
+    handleGenerate();
+  }
+
+  function handleStartOver() {
+    setShowResult(false);
+    setGeneratedImage(null);
   }
 
   return (
@@ -94,6 +137,8 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           border: 2px solid rgba(0, 245, 255, 0.3);
           border-radius: 20px;
           backdrop-filter: blur(10px);
+          position: relative;
+          overflow: hidden;
         }
 
         .builder-title {
@@ -140,6 +185,176 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           font-size: 14px;
         }
 
+        /* Matrix Loading Overlay */
+        .matrix-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 10, 0, 0.95);
+          z-index: 100;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+
+        .matrix-char {
+          position: absolute;
+          color: #00ff00;
+          font-family: 'Courier New', monospace;
+          font-size: 16px;
+          text-shadow: 0 0 10px #00ff00;
+          animation: fall 2s linear infinite;
+        }
+
+        @keyframes fall {
+          0% { transform: translateY(-20px); opacity: 1; }
+          100% { transform: translateY(100vh); opacity: 0; }
+        }
+
+        .loading-content {
+          z-index: 101;
+          text-align: center;
+        }
+
+        .loading-text {
+          font-family: 'Orbitron', sans-serif;
+          font-size: 24px;
+          color: #00ff00;
+          text-shadow: 0 0 20px #00ff00;
+          margin-bottom: 20px;
+          animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+
+        .loading-spinner {
+          width: 80px;
+          height: 80px;
+          border: 4px solid transparent;
+          border-top: 4px solid #00ff00;
+          border-right: 4px solid #00ff00;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .loading-subtext {
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 14px;
+          color: rgba(0, 255, 0, 0.7);
+        }
+
+        /* Result Overlay */
+        .result-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(10, 14, 39, 0.98);
+          z-index: 100;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 30px;
+        }
+
+        .result-title {
+          font-family: 'Orbitron', sans-serif;
+          font-size: 24px;
+          color: #00f5ff;
+          margin-bottom: 20px;
+          text-align: center;
+        }
+
+        .result-image {
+          max-width: 280px;
+          max-height: 280px;
+          border-radius: 16px;
+          border: 3px solid #00f5ff;
+          box-shadow: 0 20px 60px rgba(0, 245, 255, 0.5);
+          animation: popIn 0.5s ease-out;
+        }
+
+        @keyframes popIn {
+          0% { transform: scale(0); opacity: 0; }
+          50% { transform: scale(1.1); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+
+        .result-buttons {
+          display: flex;
+          gap: 15px;
+          margin-top: 25px;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .result-btn {
+          padding: 12px 30px;
+          border-radius: 10px;
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-transform: uppercase;
+        }
+
+        .accept-btn {
+          background: linear-gradient(135deg, #00ff00, #00cc00);
+          border: none;
+          color: #000;
+        }
+
+        .accept-btn:hover {
+          box-shadow: 0 5px 20px rgba(0, 255, 0, 0.5);
+          transform: translateY(-2px);
+        }
+
+        .regenerate-btn {
+          background: transparent;
+          border: 2px solid #ff8c00;
+          color: #ff8c00;
+        }
+
+        .regenerate-btn:hover {
+          background: rgba(255, 140, 0, 0.2);
+        }
+
+        .back-btn {
+          background: transparent;
+          border: 2px solid #888;
+          color: #888;
+        }
+
+        .back-btn:hover {
+          border-color: #fff;
+          color: #fff;
+        }
+
+        .vip-note {
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 12px;
+          color: #ffd700;
+          margin-top: 15px;
+          text-align: center;
+        }
+
+        /* Form Sections */
         .photo-upload-section {
           margin-bottom: 30px;
         }
@@ -177,11 +392,7 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           transform: translateY(-2px);
         }
 
-        .upload-icon {
-          font-size: 48px;
-          margin-bottom: 15px;
-        }
-
+        .upload-icon { font-size: 48px; margin-bottom: 15px; }
         .upload-text {
           font-family: 'Rajdhani', sans-serif;
           font-size: 16px;
@@ -189,7 +400,6 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           font-weight: 600;
           margin-bottom: 8px;
         }
-
         .upload-hint {
           font-family: 'Rajdhani', sans-serif;
           font-size: 12px;
@@ -222,22 +432,9 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           font-size: 14px;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.3s ease;
         }
 
-        .remove-photo-btn:hover:not(:disabled) {
-          background: rgba(255, 0, 0, 1);
-          transform: scale(1.05);
-        }
-
-        .remove-photo-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .prompt-section {
-          margin-bottom: 30px;
-        }
+        .prompt-section { margin-bottom: 30px; }
 
         .prompt-label {
           font-family: 'Rajdhani', sans-serif;
@@ -268,9 +465,7 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
         }
 
-        .examples-section {
-          margin-bottom: 30px;
-        }
+        .examples-section { margin-bottom: 30px; }
 
         .examples-label {
           font-family: 'Rajdhani', sans-serif;
@@ -318,8 +513,6 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
-          position: relative;
-          overflow: hidden;
         }
 
         .generate-btn:hover:not(:disabled) {
@@ -332,33 +525,6 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           cursor: not-allowed;
         }
 
-        .generating-animation {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-          animation: shimmer 1.5s infinite;
-        }
-
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-
-        .preview-section {
-          margin-top: 30px;
-          text-align: center;
-        }
-
-        .preview-image {
-          max-width: 300px;
-          border-radius: 16px;
-          border: 3px solid #00f5ff;
-          box-shadow: 0 10px 40px rgba(0, 245, 255, 0.4);
-        }
-
         .powered-by {
           margin-top: 20px;
           text-align: center;
@@ -368,15 +534,69 @@ export default function CustomAvatarBuilder({ isVip = false }) {
         }
       `}</style>
 
+      {/* Matrix Loading Overlay */}
+      {generating && (
+        <div className="matrix-overlay">
+          {matrixChars.map((c, i) => (
+            <span
+              key={i}
+              className="matrix-char"
+              style={{
+                left: `${c.x}%`,
+                top: `${c.y}%`,
+                opacity: c.opacity,
+                animationDuration: `${c.speed}s`
+              }}
+            >
+              {c.char}
+            </span>
+          ))}
+          <div className="loading-content">
+            <div className="loading-spinner" />
+            <div className="loading-text">BUILDING YOUR AVATAR</div>
+            <div className="loading-subtext">AI is crafting your unique character...</div>
+          </div>
+        </div>
+      )}
+
+      {/* Result Overlay with Accept/Regenerate */}
+      {showResult && generatedImage && (
+        <div className="result-overlay">
+          <div className="result-title">✨ YOUR AVATAR IS READY ✨</div>
+          <img
+            src={generatedImage}
+            alt="Generated Avatar"
+            className="result-image"
+          />
+          <div className="result-buttons">
+            <button className="result-btn accept-btn" onClick={handleAccept}>
+              ✓ Accept Avatar
+            </button>
+            {effectiveVip && (
+              <button className="result-btn regenerate-btn" onClick={handleRegenerate}>
+                🔄 Regenerate
+              </button>
+            )}
+            <button className="result-btn back-btn" onClick={handleStartOver}>
+              ← Try Different Style
+            </button>
+          </div>
+          {effectiveVip && (
+            <div className="vip-note">💎 VIP: Unlimited regenerations</div>
+          )}
+        </div>
+      )}
+
+      {/* Main Form */}
       <h2 className="builder-title">
         🤖 AI Avatar Generator
-        {isVip && <span className="vip-badge">VIP</span>}
+        {effectiveVip && <span className="vip-badge">VIP</span>}
       </h2>
       <p className="builder-subtitle">
         Create a unique custom avatar using AI
       </p>
 
-      {!isVip && (
+      {!effectiveVip && (
         <div className="limit-warning">
           ⚠️ FREE users can create 1 custom avatar. Upgrade to VIP for unlimited custom avatars!
         </div>
@@ -440,27 +660,10 @@ export default function CustomAvatarBuilder({ isVip = false }) {
       <button
         className="generate-btn"
         onClick={handleGenerate}
-        disabled={generating || !prompt.trim()}
+        disabled={generating || (!prompt.trim() && !uploadedPhoto)}
       >
-        {generating ? (
-          <>
-            <span>Generating...</span>
-            <div className="generating-animation" />
-          </>
-        ) : (
-          '⚡ Generate Avatar'
-        )}
+        ⚡ Generate Avatar
       </button>
-
-      {generatedImage && (
-        <div className="preview-section">
-          <img
-            src={generatedImage}
-            alt="Generated Avatar"
-            className="preview-image"
-          />
-        </div>
-      )}
 
       <div className="powered-by">
         Powered by AI Image Generation
