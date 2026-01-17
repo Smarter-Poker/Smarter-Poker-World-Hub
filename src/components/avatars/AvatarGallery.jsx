@@ -275,20 +275,24 @@ export default function AvatarGallery({ onSelect, showCustomTab = true }) {
         <div className="stats-bar">
           <div className="stat-item">
             <div className="stat-value">{avatars.length}</div>
-            <div className="stat-label">Total Avatars</div>
+            <div className="stat-label">{isVip ? 'Total Available' : 'Total Avatars'}</div>
           </div>
           <div className="stat-item">
-            <div className="stat-value">
-              {avatars.filter(a => !a.isLocked).length}
-            </div>
+            <div className="stat-value">{unlockedCount}</div>
             <div className="stat-label">Unlocked</div>
           </div>
-          <div className="stat-item">
-            <div className="stat-value">
-              {avatars.filter(a => a.isLocked).length}
+          {!isVip && lockedCount > 0 && (
+            <div className="stat-item">
+              <div className="stat-value">{lockedCount}</div>
+              <div className="stat-label">Locked</div>
             </div>
-            <div className="stat-label">Locked</div>
-          </div>
+          )}
+          {isVip && (
+            <div className="stat-item">
+              <div className="stat-value" style={{ color: '#ffd700' }}>💎</div>
+              <div className="stat-label" style={{ color: '#ffd700' }}>VIP ACCESS</div>
+            </div>
+          )}
         </div>
 
         <div className="filters">
