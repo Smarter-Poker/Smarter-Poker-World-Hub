@@ -501,16 +501,16 @@ const styles = {
         borderRadius: '50%',
     },
 
-    // Hero - RESPONSIVE (taller on mobile, scaled on desktop)
+    // Hero - FIXED design (CSS zoom handles scaling)
     hero: {
         position: 'relative',
-        height: 'clamp(200px, 35vw, 300px)', // Proper height on all devices
-        minHeight: 'clamp(200px, 35vw, 300px)',
+        height: 280, // Fixed design height
+        minHeight: 280,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        paddingTop: 'clamp(40px, 5vw, 60px)', // Account for header
+        paddingTop: 60,
     },
 
     heroBackground: {
