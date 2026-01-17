@@ -628,11 +628,11 @@ const styles = {
     },
 
     filterPill: {
-        padding: 'var(--vp-space-xs, 0.5vw) var(--vp-space-sm, 1vw)', // Viewport-scaled padding
-        borderRadius: 'var(--vp-radius-lg, 1.2vw)',
-        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))', // Viewport-scaled font
+        padding: 'clamp(6px, 1.5vw, 12px) clamp(12px, 3vw, 20px)', // Proper padding
+        borderRadius: 18, // ALWAYS oval - never square
+        fontSize: 'clamp(10px, 2.5vw, 13px)', // Readable on mobile
         fontWeight: 700,
-        letterSpacing: '0.05vw',
+        letterSpacing: 0.5,
         cursor: 'pointer',
         transition: 'all 0.2s ease',
         whiteSpace: 'nowrap',
