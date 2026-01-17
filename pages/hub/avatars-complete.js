@@ -185,6 +185,22 @@ export default function AvatarsComplete() {
         <>
             <Head>
                 <title>Avatar Selection | Smarter Poker</title>
+                <style>{`
+                    /* Remove white backgrounds from all avatar images */
+                    img[src*="/avatars/"],
+                    img[alt*="avatar" i],
+                    img[alt*="Avatar"] {
+                        mix-blend-mode: screen;
+                        background: transparent !important;
+                    }
+                    
+                    /* For images on dark backgrounds, invert if needed */
+                    @supports (mix-blend-mode: screen) {
+                        img[src*="/avatars/"] {
+                            filter: brightness(1.1) contrast(1.1);
+                        }
+                    }
+                `}</style>
             </Head>
 
             <div style={{
