@@ -115,9 +115,11 @@ export function AvatarProvider({ children }) {
         avatar,
         loading,
         user,
+        isVip,
         selectPresetAvatar,
         createCustomAvatar,
-        refreshAvatar: loadAvatar
+        refreshAvatar: loadAvatar,
+        refreshUser
     };
 
     return (
