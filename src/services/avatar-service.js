@@ -201,17 +201,16 @@ async function generateAvatarFromPhoto(photoFile, additionalPrompt = '') {
 }
 
 /**
- * Generate avatar from text description using FLUX
+ * Generate avatar from text description using DALL-E 3
  */
-async function generateAvatarFromText(prompt) {
+async function generateAvatarFromText(prompt, userId = null) {
     try {
-        const enhancedPrompt = `${prompt}, 3D Pixar style character portrait, white background, professional quality, detailed, vibrant colors, poker avatar`;
-
-        // Call Replicate API for text-to-image generation
+        // Call OpenAI API for text-to-image generation
+        // The API now handles the full prompt enhancement
         const response = await fetch('/api/avatar/generate-from-text', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: enhancedPrompt })
+            body: JSON.stringify({ prompt, userId })
         });
 
         if (!response.ok) throw new Error('AI generation failed');
