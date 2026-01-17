@@ -621,19 +621,20 @@ const styles = {
 
     filterPills: {
         display: 'flex',
-        gap: 6,
+        gap: 'var(--vp-space-xs, 6px)',
         overflowX: 'auto',
         WebkitOverflowScrolling: 'touch',
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
+        padding: '0 var(--vp-lane-padding, 2vw)',
     },
 
     filterPill: {
-        padding: '8px 16px', // Compact for mobile
-        borderRadius: 18,
-        fontSize: 11,
+        padding: 'var(--vp-space-xs, 0.5vw) var(--vp-space-sm, 1vw)', // Viewport-scaled padding
+        borderRadius: 'var(--vp-radius-lg, 1.2vw)',
+        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))', // Viewport-scaled font
         fontWeight: 700,
-        letterSpacing: 1,
+        letterSpacing: '0.05vw',
         cursor: 'pointer',
         transition: 'all 0.2s ease',
         whiteSpace: 'nowrap',
@@ -642,7 +643,7 @@ const styles = {
     },
 
     gameCount: {
-        fontSize: 12,
+        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
         color: 'rgba(255,255,255,0.4)',
     },
 
