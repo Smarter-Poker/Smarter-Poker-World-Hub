@@ -90,7 +90,7 @@ function TrainingHeader({ gamesPlayed = 0 }) {
                 style={headerStyles.logoContainer}
             >
                 <img
-                    src="/smarter-poker-logo.png"
+                    src="/smarter-poker-logo-transparent.png"
                     alt="Smarter Poker"
                     style={headerStyles.logo}
                 />
@@ -554,7 +554,7 @@ export default function TrainingPage() {
 
             <div className="training-page" style={styles.page}>
                 {/* Fixed Header */}
-                <TrainingHeader />
+                <TrainingHeader gamesPlayed={stats.gamesPlayed} />
 
                 {/* Promo/Ad Section */}
                 <PromoSection onPlayFeatured={handlePlayFeatured} />
