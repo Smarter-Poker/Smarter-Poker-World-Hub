@@ -411,18 +411,22 @@ export default function WorldHub() {
 
     // ═══════════════════════════════════════════════════════════════════════
     // LOGIN DETECTION — Cinematic intro ONLY on login, not navigation
+    // Check sessionStorage SYNCHRONOUSLY during initial render so the hook
+    // gets the correct value on first render (useEffect would be too late)
     // ═══════════════════════════════════════════════════════════════════════
-    const [shouldShowCinematic, setShouldShowCinematic] = useState(false);
-
-    useEffect(() => {
-        // Check if user just logged in (flag set by login/signup pages)
-        const justAuthenticated = sessionStorage.getItem('just_authenticated');
-        if (justAuthenticated === 'true') {
-            setShouldShowCinematic(true);
-            // Clear the flag so it doesn't trigger again
-            sessionStorage.removeItem('just_authenticated');
+    const [shouldShowCinematic] = useState(() => {
+        // Must check during initial state - useEffect runs AFTER first render
+        if (typeof window !== 'undefined') {
+            const justAuthenticated = sessionStorage.getItem('just_authenticated');
+            if (justAuthenticated === 'true') {
+                // Clear immediately to prevent re-triggering
+                sessionStorage.removeItem('just_authenticated');
+                console.log('[WorldHub] 🎬 Login detected! Triggering cinematic intro...');
+                return true;
+            }
         }
-    }, []);
+        return false;
+    });
 
     // Cinematic intro state (ONLY for login)
     const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro(shouldShowCinematic);

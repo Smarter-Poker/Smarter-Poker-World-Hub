@@ -94,6 +94,11 @@ export default function AvatarGallery({ onSelect }) {
   }
 
   function handleCreateNewCustom() {
+    // Check if at limit
+    if (customAvatars.length >= 5) {
+      alert('⚠️ You have 5/5 custom avatars! Please delete one to create a new avatar.');
+      return;
+    }
     setShowCustomBuilder(true);
   }
 
@@ -406,45 +411,30 @@ export default function AvatarGallery({ onSelect }) {
             ))}
           </div>
 
-          {/* CREATE CUSTOM AVATAR BUTTON - Always visible for VIP */}
+          {/* CREATE CUSTOM AVATAR BUTTON - ALWAYS visible for VIP */}
           <div style={{
             marginTop: '20px',
             textAlign: 'center'
           }}>
-            {customAvatars.length < 5 ? (
-              <button
-                onClick={handleCreateNewCustom}
-                style={{
-                  padding: '15px 40px',
-                  background: 'linear-gradient(135deg, #ff00f5, #00f5ff)',
-                  border: 'none',
-                  borderRadius: '12px',
-                  color: '#fff',
-                  fontFamily: "'Orbitron', sans-serif",
-                  fontSize: '16px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  textTransform: 'uppercase',
-                  boxShadow: '0 4px 20px rgba(255, 0, 245, 0.5)',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                🤖 Create Custom Avatar
-              </button>
-            ) : (
-              <div style={{
-                padding: '15px 30px',
-                background: 'rgba(255, 140, 0, 0.15)',
-                border: '1px solid rgba(255, 140, 0, 0.4)',
+            <button
+              onClick={handleCreateNewCustom}
+              style={{
+                padding: '15px 40px',
+                background: 'linear-gradient(135deg, #ff00f5, #00f5ff)',
+                border: 'none',
                 borderRadius: '12px',
-                color: '#ff8c00',
-                fontFamily: "'Rajdhani', sans-serif",
-                fontSize: '14px',
-                display: 'inline-block'
-              }}>
-                ⚠️ All 5 slots filled! Delete an existing avatar to create a new one.
-              </div>
-            )}
+                color: '#fff',
+                fontFamily: "'Orbitron', sans-serif",
+                fontSize: '16px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                textTransform: 'uppercase',
+                boxShadow: '0 4px 20px rgba(255, 0, 245, 0.5)',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              🤖 Create Custom Avatar
+            </button>
           </div>
         </div>
       )}
