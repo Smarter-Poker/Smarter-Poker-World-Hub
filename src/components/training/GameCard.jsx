@@ -1,7 +1,7 @@
 /**
- * GAME CARD — Responsive Component
- * Uses global CSS variables from index.css for automatic sizing across all devices
- * No hardcoded pixel values - adapts to viewport automatically
+ * GAME CARD — Viewport-Scaled Component
+ * Uses CSS classes for viewport-based sizing so 5 cards ALWAYS fit at any screen size
+ * The entire layout scales proportionally like a photograph
  */
 
 import { motion } from 'framer-motion';
@@ -27,31 +27,26 @@ export default function GameCard({ game, onClick, index = 0, image }) {
             transition={{ delay: index * 0.05 }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="game-card-responsive"
+            className="training-card"
             style={{
                 position: 'relative',
                 cursor: 'pointer',
                 flexShrink: 0,
-                padding: '10px',
+                padding: '0.5vw',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 textAlign: 'center',
-                // Width adapts via CSS variable
-                width: 'var(--card-size, 160px)',
             }}
         >
             <div
-                className="game-card-image-responsive"
+                className="training-card-image"
                 style={{
                     position: 'relative',
-                    // Size adapts via CSS variables
-                    width: 'var(--card-size, 160px)',
-                    height: 'var(--card-size, 160px)',
                     background: '#1a2744',
                     border: `3px solid ${categoryColor}`,
-                    borderRadius: 10,
-                    boxShadow: `0 0 20px ${categoryColor}, 0 0 40px ${categoryColor}80, 0 8px 20px rgba(0,0,0,0.6)`,
+                    borderRadius: '0.8vw',
+                    boxShadow: `0 0 2vw ${categoryColor}, 0 0 4vw ${categoryColor}80, 0 0.8vw 2vw rgba(0,0,0,0.6)`,
                     overflow: 'hidden',
                 }}
             >
@@ -68,16 +63,17 @@ export default function GameCard({ game, onClick, index = 0, image }) {
                 )}
             </div>
 
-            <h3 style={{
-                margin: '8px 0 0 0',
-                fontSize: 'clamp(12px, 3.5vw, 14px)', // Responsive font size
-                fontWeight: 800,
-                color: '#fff',
-                textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                textAlign: 'center',
-                width: '100%',
-                maxWidth: 'var(--card-size, 160px)',
-            }}>
+            <h3
+                className="training-card-title"
+                style={{
+                    margin: '0.5vw 0 0 0',
+                    fontWeight: 800,
+                    color: '#fff',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                    textAlign: 'center',
+                    width: '100%',
+                }}
+            >
                 {game.name}
             </h3>
         </motion.div>
