@@ -403,7 +403,7 @@ export default function TrainingPage() {
                 onComplete={handleIntroComplete}
             />
 
-            <div style={styles.page}>
+            <div className="training-page" style={styles.page}>
                 {/* Brain Home Button */}
                 <BrainHomeButton />
 
