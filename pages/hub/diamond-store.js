@@ -196,10 +196,20 @@ export default function DiamondStorePage() {
             <Head>
                 <title>Diamond Store — Smarter.Poker</title>
                 <meta name="description" content="Purchase diamonds to unlock premium features" />
+                <meta name="viewport" content="width=800, user-scalable=no" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+                <style>{`
+                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
+                    .diamond-store-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
+                    @media (max-width: 500px) { .diamond-store-page { zoom: 0.5; } }
+                    @media (min-width: 501px) and (max-width: 700px) { .diamond-store-page { zoom: 0.75; } }
+                    @media (min-width: 701px) and (max-width: 900px) { .diamond-store-page { zoom: 0.95; } }
+                    @media (min-width: 901px) { .diamond-store-page { zoom: 1.2; } }
+                    @media (min-width: 1400px) { .diamond-store-page { zoom: 1.5; } }
+                `}</style>
             </Head>
 
-            <div style={styles.container}>
+            <div className="diamond-store-page" style={styles.container}>
                 {/* Background */}
                 <div style={styles.bgGrid} />
                 <div style={styles.bgGlow} />
