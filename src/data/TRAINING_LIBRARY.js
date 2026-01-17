@@ -119,7 +119,7 @@ export const TRAINING_LIBRARY = [
     { id: 'cash-022', name: 'Texture Reading', focus: 'Board analysis', category: 'CASH', difficulty: 3, icon: '🔬', tags: ['gto'] },
     { id: 'cash-023', name: 'Equity Denial', focus: 'Protection betting', category: 'CASH', difficulty: 3, icon: '🚫', tags: ['gto'] },
     { id: 'cash-024', name: 'Pot Control', focus: 'Medium strength hands', category: 'CASH', difficulty: 3, icon: '⚖️', tags: ['gto'] },
-    { id: 'cash-025', name: 'Boss: Cash King', focus: 'Full session grind', category: 'CASH', difficulty: 5, icon: '👑', tags: ['gto', 'math', 'exploitative'] },
+    { id: 'cash-025', name: 'Level 10: Cash King', focus: 'Full session grind', category: 'CASH', difficulty: 5, icon: '👑', tags: ['gto', 'math', 'exploitative'] },
 
     // ═══════════════════════════════════════════════════════════════════════
     // SPINS (10)
@@ -133,7 +133,7 @@ export const TRAINING_LIBRARY = [
     { id: 'spins-007', name: '50/50 Survival', focus: 'Extreme ICM', category: 'SPINS', difficulty: 4, icon: '⚖️', tags: ['math', 'gto'] },
     { id: 'spins-008', name: 'Aggression Mode', focus: 'Constant pressure', category: 'SPINS', difficulty: 3, icon: '🔥', tags: ['exploitative'] },
     { id: 'spins-009', name: 'Chip Lead Lock', focus: 'Protecting the lead', category: 'SPINS', difficulty: 3, icon: '🔒', tags: ['gto'] },
-    { id: 'spins-010', name: 'Boss: Spin Master', focus: 'Full spin simulation', category: 'SPINS', difficulty: 5, icon: '🌀', tags: ['gto', 'math', 'exploitative'] },
+    { id: 'spins-010', name: 'Level 10: Spin Master', focus: 'Full spin simulation', category: 'SPINS', difficulty: 5, icon: '🌀', tags: ['gto', 'math', 'exploitative'] },
 
     // ═══════════════════════════════════════════════════════════════════════
     // PSYCHOLOGY (20)
@@ -157,7 +157,7 @@ export const TRAINING_LIBRARY = [
     { id: 'psy-017', name: 'Study Habits', focus: 'Effective learning', category: 'PSYCHOLOGY', difficulty: 2, icon: '📖', tags: [] },
     { id: 'psy-018', name: 'Table Image', focus: 'Perception awareness', category: 'PSYCHOLOGY', difficulty: 3, icon: '🎭', tags: ['exploitative'] },
     { id: 'psy-019', name: 'Autopilot Escape', focus: 'Staying present', category: 'PSYCHOLOGY', difficulty: 3, icon: '✈️', tags: [] },
-    { id: 'psy-020', name: 'Boss: Mind Master', focus: 'Full mental game', category: 'PSYCHOLOGY', difficulty: 5, icon: '🧠', tags: [] },
+    { id: 'psy-020', name: 'Level 10: Mind Master', focus: 'Full mental game', category: 'PSYCHOLOGY', difficulty: 5, icon: '🧠', tags: [] },
 
     // ═══════════════════════════════════════════════════════════════════════
     // ADVANCED (20)
@@ -181,7 +181,7 @@ export const TRAINING_LIBRARY = [
     { id: 'adv-017', name: 'Capped Ranges', focus: 'Playing condensed', category: 'ADVANCED', difficulty: 4, icon: '📦', tags: ['gto'] },
     { id: 'adv-018', name: 'Polarity Index', focus: 'Range splitting', category: 'ADVANCED', difficulty: 5, icon: '🧲', tags: ['gto'] },
     { id: 'adv-019', name: 'Solver Scripts', focus: 'Sim interpretation', category: 'ADVANCED', difficulty: 5, icon: '💻', tags: ['gto'] },
-    { id: 'adv-020', name: 'Boss: GTO Apex', focus: 'Ultimate theory test', category: 'ADVANCED', difficulty: 5, icon: '🏛️', tags: ['gto', 'math', 'exploitative'] },
+    { id: 'adv-020', name: 'Level 10: GTO Apex', focus: 'Ultimate theory test', category: 'ADVANCED', difficulty: 5, icon: '🏛️', tags: ['gto', 'math', 'exploitative'] },
 ];
 
 // Helper functions
