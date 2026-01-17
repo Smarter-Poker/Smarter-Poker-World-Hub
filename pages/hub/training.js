@@ -161,7 +161,7 @@ function FilterBar({ active, onFilter, gameCount }) {
                     );
                 })}
             </div>
-            <span style={styles.gameCount}>{gameCount} games</span>
+            {/* Game count removed to fit all 6 pills */}
         </div>
     );
 }
