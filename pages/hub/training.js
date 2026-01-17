@@ -34,13 +34,13 @@ const FILTERS = [
     { id: 'ADVANCED', label: 'ADVANCED', color: '#2196F3', laneTitle: 'ADVANCED THEORY' },
 ];
 
-// Category definitions
+// Category definitions (no icons)
 const CATEGORIES = [
-    { id: 'MTT', title: 'MTT MASTERY', icon: '🏆', color: '#FF6B35' },
-    { id: 'CASH', title: 'CASH GAME GRIND', icon: '💵', color: '#4CAF50' },
-    { id: 'SPINS', title: 'SPINS & SNGS', icon: '⚡', color: '#FFD700' },
-    { id: 'PSYCHOLOGY', title: 'MENTAL GAME', icon: '🧠', color: '#9C27B0' },
-    { id: 'ADVANCED', title: 'ADVANCED THEORY', icon: '🤖', color: '#2196F3' },
+    { id: 'MTT', title: 'MTT MASTERY', color: '#FF6B35' },
+    { id: 'CASH', title: 'CASH GAME GRIND', color: '#4CAF50' },
+    { id: 'SPINS', title: 'SPINS & SNGS', color: '#FFD700' },
+    { id: 'PSYCHOLOGY', title: 'MENTAL GAME', color: '#9C27B0' },
+    { id: 'ADVANCED', title: 'ADVANCED THEORY', color: '#2196F3' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
