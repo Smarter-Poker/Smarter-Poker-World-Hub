@@ -720,14 +720,22 @@ export default function FriendsPage() {
         <>
             <Head>
                 <title>Friends & Followers | Smarter.Poker</title>
+                <meta name="viewport" content="width=800, user-scalable=no" />
                 <style>{`
+                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
+                    .friends-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
+                    @media (max-width: 500px) { .friends-page { zoom: 0.5; } }
+                    @media (min-width: 501px) and (max-width: 700px) { .friends-page { zoom: 0.75; } }
+                    @media (min-width: 701px) and (max-width: 900px) { .friends-page { zoom: 0.95; } }
+                    @media (min-width: 901px) { .friends-page { zoom: 1.2; } }
+                    @media (min-width: 1400px) { .friends-page { zoom: 1.5; } }
                     @keyframes pulse {
                         0%, 100% { opacity: 1; }
                         50% { opacity: 0.5; }
                     }
                 `}</style>
             </Head>
-            <div style={{
+            <div className="friends-page" style={{
                 minHeight: '100vh',
                 background: C.bg,
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
