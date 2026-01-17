@@ -5,54 +5,52 @@
  */
 
 import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { useAvatar } from '../../contexts/AvatarContext';
 
 export default function CustomAvatarBuilder({ isVip = false }) {
-    const { user } = useAuth();
-    const { createCustomAvatar } = useAvatar();
+  const { user, createCustomAvatar } = useAvatar();
 
-    const [prompt, setPrompt] = useState('');
-    const [generating, setGenerating] = useState(false);
-    const [generatedImage, setGeneratedImage] = useState(null);
+  const [prompt, setPrompt] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState(null);
 
-    const examplePrompts = [
-        "Fierce warrior with flaming sword",
-        "Mystical wizard with glowing staff",
-        "Cyberpunk hacker with neon visor",
-        "Ancient samurai with katana",
-        "Space explorer in futuristic suit",
-        "Pirate captain with treasure map"
-    ];
+  const examplePrompts = [
+    "Fierce warrior with flaming sword",
+    "Mystical wizard with glowing staff",
+    "Cyberpunk hacker with neon visor",
+    "Ancient samurai with katana",
+    "Space explorer in futuristic suit",
+    "Pirate captain with treasure map"
+  ];
 
-    async function handleGenerate() {
-        if (!prompt.trim()) {
-            alert('Please enter a description for your avatar');
-            return;
-        }
-
-        setGenerating(true);
-
-        try {
-            const result = await createCustomAvatar(prompt, isVip);
-
-            if (result.success) {
-                setGeneratedImage(result.imageUrl);
-                alert('✅ Custom avatar generated and set as active!');
-                setPrompt('');
-            } else {
-                alert(`❌ ${result.error}`);
-            }
-        } catch (error) {
-            alert('Error generating avatar. Please try again.');
-        } finally {
-            setGenerating(false);
-        }
+  async function handleGenerate() {
+    if (!prompt.trim()) {
+      alert('Please enter a description for your avatar');
+      return;
     }
 
-    return (
-        <div className="custom-avatar-builder">
-            <style jsx>{`
+    setGenerating(true);
+
+    try {
+      const result = await createCustomAvatar(prompt, isVip);
+
+      if (result.success) {
+        setGeneratedImage(result.imageUrl);
+        alert('✅ Custom avatar generated and set as active!');
+        setPrompt('');
+      } else {
+        alert(`❌ ${result.error}`);
+      }
+    } catch (error) {
+      alert('Error generating avatar. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  return (
+    <div className="custom-avatar-builder">
+      <style jsx>{`
         .custom-avatar-builder {
           width: 100%;
           max-width: 800px;
@@ -241,74 +239,74 @@ export default function CustomAvatarBuilder({ isVip = false }) {
         }
       `}</style>
 
-            <h2 className="builder-title">
-                🤖 AI Avatar Generator
-                {isVip && <span className="vip-badge">VIP</span>}
-            </h2>
-            <p className="builder-subtitle">
-                Create a unique custom avatar using AI
-            </p>
+      <h2 className="builder-title">
+        🤖 AI Avatar Generator
+        {isVip && <span className="vip-badge">VIP</span>}
+      </h2>
+      <p className="builder-subtitle">
+        Create a unique custom avatar using AI
+      </p>
 
-            {!isVip && (
-                <div className="limit-warning">
-                    ⚠️ FREE users can create 1 custom avatar. Upgrade to VIP for unlimited custom avatars!
-                </div>
-            )}
-
-            <div className="prompt-section">
-                <div className="prompt-label">✨ Describe Your Avatar</div>
-                <textarea
-                    className="prompt-input"
-                    placeholder="Describe your avatar in detail... (e.g., 'A fierce dragon warrior with glowing red eyes and golden armor')"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    disabled={generating}
-                />
-            </div>
-
-            <div className="examples-section">
-                <div className="examples-label">💡 Example Prompts</div>
-                <div className="examples-grid">
-                    {examplePrompts.map((ex, idx) => (
-                        <div
-                            key={idx}
-                            className="example-chip"
-                            onClick={() => setPrompt(ex)}
-                        >
-                            {ex}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <button
-                className="generate-btn"
-                onClick={handleGenerate}
-                disabled={generating || !prompt.trim()}
-            >
-                {generating ? (
-                    <>
-                        <span>Generating...</span>
-                        <div className="generating-animation" />
-                    </>
-                ) : (
-                    '⚡ Generate Avatar'
-                )}
-            </button>
-
-            {generatedImage && (
-                <div className="preview-section">
-                    <img
-                        src={generatedImage}
-                        alt="Generated Avatar"
-                        className="preview-image"
-                    />
-                </div>
-            )}
-
-            <div className="powered-by">
-                Powered by AI Image Generation
-            </div>
+      {!isVip && (
+        <div className="limit-warning">
+          ⚠️ FREE users can create 1 custom avatar. Upgrade to VIP for unlimited custom avatars!
         </div>
-    );
+      )}
+
+      <div className="prompt-section">
+        <div className="prompt-label">✨ Describe Your Avatar</div>
+        <textarea
+          className="prompt-input"
+          placeholder="Describe your avatar in detail... (e.g., 'A fierce dragon warrior with glowing red eyes and golden armor')"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          disabled={generating}
+        />
+      </div>
+
+      <div className="examples-section">
+        <div className="examples-label">💡 Example Prompts</div>
+        <div className="examples-grid">
+          {examplePrompts.map((ex, idx) => (
+            <div
+              key={idx}
+              className="example-chip"
+              onClick={() => setPrompt(ex)}
+            >
+              {ex}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <button
+        className="generate-btn"
+        onClick={handleGenerate}
+        disabled={generating || !prompt.trim()}
+      >
+        {generating ? (
+          <>
+            <span>Generating...</span>
+            <div className="generating-animation" />
+          </>
+        ) : (
+          '⚡ Generate Avatar'
+        )}
+      </button>
+
+      {generatedImage && (
+        <div className="preview-section">
+          <img
+            src={generatedImage}
+            alt="Generated Avatar"
+            className="preview-image"
+          />
+        </div>
+      )}
+
+      <div className="powered-by">
+        Powered by AI Image Generation
+      </div>
+    </div>
+  );
 }
