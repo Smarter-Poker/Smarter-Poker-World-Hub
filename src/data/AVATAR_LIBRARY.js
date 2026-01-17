@@ -518,7 +518,7 @@ export const AVATAR_LIBRARY = [
         category: 'fantasy',
         tier: 'VIP',
         personality: 'mystery',
-        image: '/avatars/vip/wizard.png',
+        image: '/avatars/vip/vigilante.png',
         tags: ['magical', 'wise', 'powerful']
     },
     {
