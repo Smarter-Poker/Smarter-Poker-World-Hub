@@ -124,8 +124,8 @@ body {
    The entire layout scales proportionally like a photograph.
    
    DESIGN PRINCIPLE:
-   - 5 cards always visible at any screen size
-   - Card size = 17vw (5 × 17vw + gaps + padding = 100vw)
+   - MOBILE: 2.5 cards visible (larger, readable cards)
+   - DESKTOP: 5 cards visible (smaller, more content)
    - Everything scales with viewport width (vw)
    
    USAGE:
@@ -137,15 +137,18 @@ body {
 
 :root {
   /* ═══════════════════════════════════════════════════════════════════════════
-     CARD & LAYOUT SIZING (5 cards always fit)
+     CARD & LAYOUT SIZING
+     Mobile: 2.5 cards visible (~38vw each)
+     Desktop: 5 cards visible (~17vw each)
+     We use clamp() to smoothly transition between sizes
      ═══════════════════════════════════════════════════════════════════════════ */
-  --vp-card-size: 17vw;
-  /* Card width/height - 5 fit in 100vw */
-  --vp-card-gap: 1.5vw;
+  --vp-card-size: clamp(100px, 38vw, 200px);
+  /* 2.5 cards on mobile, 5 on desktop */
+  --vp-card-gap: clamp(8px, 2vw, 16px);
   /* Gap between cards */
-  --vp-lane-padding: 2vw;
+  --vp-lane-padding: clamp(12px, 3vw, 24px);
   /* Padding on lane sides */
-  --vp-section-gap: 3vw;
+  --vp-section-gap: clamp(16px, 4vw, 32px);
   /* Gap between sections */
 
   /* ═══════════════════════════════════════════════════════════════════════════
