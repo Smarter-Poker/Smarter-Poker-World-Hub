@@ -18,7 +18,6 @@ export default function CustomAvatarBuilder({ isVip = false }) {
   const [uploadedPhoto, setUploadedPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [showResult, setShowResult] = useState(false);
-  const [matrixChars, setMatrixChars] = useState([]);
 
   const examplePrompts = [
     "Fierce warrior with flaming sword",
