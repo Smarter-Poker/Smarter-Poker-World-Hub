@@ -11,6 +11,8 @@ import { createClient } from '@supabase/supabase-js';
 import { MediaLibrary } from '../../src/components/social/MediaLibrary';
 import { ProfilePictureHistory } from '../../src/components/social/ProfilePictureHistory';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+import { useAvatar } from '../../src/contexts/AvatarContext';
+import AvatarSelectorModal from '../../src/components/avatars/AvatarSelectorModal';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
