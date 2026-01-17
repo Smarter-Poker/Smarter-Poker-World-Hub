@@ -531,6 +531,15 @@ export default function TrainingPage() {
         handleGameClick(featuredGame);
     };
 
+    // Calculate best streak across all games
+    const getBestStreak = () => {
+        const allProgress = Object.values(progress || {});
+        if (allProgress.length === 0) return 0;
+        return Math.max(...allProgress.map(p => p.streakBest || 0));
+    };
+
+    const bestStreak = getBestStreak();
+
     if (!isLoaded) {
         return (
             <div style={styles.loading}>
