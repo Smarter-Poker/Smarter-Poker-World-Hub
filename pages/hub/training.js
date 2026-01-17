@@ -599,16 +599,15 @@ const styles = {
         fontWeight: 600,
     },
 
-    // Filters - VIEWPORT-SCALED
+    // Filters - RESPONSIVE
     filterBar: {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 'var(--vp-space-sm, 1vw)',
-        padding: 'var(--vp-space-sm, 1vw) var(--vp-lane-padding, 2vw)',
-        height: '7vw', // Viewport-scaled height
-        minHeight: '7vw',
-        maxHeight: '7vw',
+        gap: 'clamp(6px, 1.5vw, 12px)',
+        padding: 'clamp(8px, 2vw, 16px) clamp(12px, 3vw, 24px)',
+        height: 'clamp(44px, 8vw, 64px)', // Proper height on mobile
+        minHeight: 'clamp(44px, 8vw, 64px)',
         background: 'rgba(10,10,21,0.98)',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
         position: 'sticky',
