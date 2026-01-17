@@ -666,29 +666,27 @@ const styles = {
 
     filterPills: {
         display: 'flex',
-        justifyContent: 'center',
-        gap: 5, // Tiny gap
-        flexWrap: 'nowrap',
+        justifyContent: 'space-between', // Spread to fill width
+        gap: 8,
+        width: '100%',
+        padding: '0 20px',
     },
 
     filterPill: {
-        padding: '6px 10px', // Very compact to fit all 6
-        borderRadius: 14,
-        fontSize: 10, // Smaller font
+        padding: '10px 18px', // Bigger, fills more space
+        borderRadius: 18,
+        fontSize: 12, // Bigger font
         fontWeight: 700,
-        letterSpacing: 0.2,
+        letterSpacing: 0.4,
         cursor: 'pointer',
         transition: 'all 0.2s ease',
         whiteSpace: 'nowrap',
-        flexShrink: 0,
+        flex: 1, // Each pill expands equally
+        textAlign: 'center',
         WebkitTapHighlightColor: 'transparent',
     },
 
-    gameCount: {
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.4)',
-        marginLeft: 6,
-    },
+    // gameCount style removed - not used
 
     // Lanes - FIXED design (CSS zoom handles scaling)
     lanesContainer: {
