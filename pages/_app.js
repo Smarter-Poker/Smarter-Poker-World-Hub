@@ -14,6 +14,7 @@ import { AntiGravityProvider } from '../src/providers/AntiGravityProvider';
 import { ThemeProvider } from '../src/providers/ThemeProvider';
 import { UnreadProvider } from '../src/hooks/useUnreadCount';
 import { SoundEngine } from '../src/audio/SoundEngine';
+import { AvatarProvider } from '../src/contexts/AvatarContext';
 
 // Dynamic import to avoid SSR issues with celebration animations
 const CelebrationManager = dynamic(
