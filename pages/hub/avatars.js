@@ -1,20 +1,18 @@
 /**
  * 🎨 AVATAR SELECTION PAGE
  * Dedicated page for browsing and selecting avatars
- * Accessible from profile, settings, and onboarding
+ * Custom avatars integrated at top for VIP users
  */
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import AvatarGallery from '../../src/components/avatars/AvatarGallery';
-import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
 
 export default function AvatarsPage() {
-    const { avatar, user, isVip, refreshUser } = useAvatar();
-    const [activeTab, setActiveTab] = useState('library');
+    const { avatar, user, refreshUser } = useAvatar();
 
     // Refresh user session on page load to get latest VIP status
     useEffect(() => {
@@ -27,7 +25,7 @@ export default function AvatarsPage() {
         <>
             <Head>
                 <title>Avatar Selection | Smarter Poker</title>
-                <meta name="description" content="Choose your poker avatar from 75 preset options or create a custom AI-generated avatar" />
+                <meta name="description" content="Choose your poker avatar from preset options or create a custom AI-generated avatar" />
             </Head>
 
             <div className="avatars-page">
@@ -44,6 +42,8 @@ export default function AvatarsPage() {
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
+                        flex-wrap: wrap;
+                        gap: 15px;
                     }
 
                     .back-btn {
@@ -103,59 +103,6 @@ export default function AvatarsPage() {
                         color: #fff;
                         font-weight: 600;
                     }
-
-                    .main-container {
-                        max-width: 1400px;
-                        margin: 0 auto;
-                        background: rgba(10, 14, 39, 0.8);
-                        border: 2px solid rgba(0, 245, 255, 0.3);
-                        border-radius: 24px;
-                        backdrop-filter: blur(10px);
-                        overflow: hidden;
-                    }
-
-                    .tabs-header {
-                        background: rgba(10, 14, 39, 0.95);
-                        backdrop-filter: blur(10px);
-                        padding: 20px 30px;
-                        border-bottom: 1px solid rgba(0, 245, 255, 0.2);
-                    }
-
-                    .tabs {
-                        display: flex;
-                        gap: 10px;
-                        justify-content: center;
-                    }
-
-                    .tab-btn {
-                        padding: 12px 30px;
-                        background: transparent;
-                        border: 2px solid rgba(0, 245, 255, 0.3);
-                        border-radius: 12px;
-                        color: #888;
-                        font-family: 'Rajdhani', sans-serif;
-                        font-size: 16px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                        text-transform: uppercase;
-                    }
-
-                    .tab-btn:hover {
-                        border-color: rgba(0, 245, 255, 0.6);
-                        color: #00f5ff;
-                    }
-
-                    .tab-btn.active {
-                        background: linear-gradient(135deg, #00f5ff, #0099ff);
-                        border-color: #00f5ff;
-                        color: #0a0e27;
-                        font-weight: 700;
-                    }
-
-                    .content {
-                        padding: 40px 30px;
-                    }
                 `}</style>
 
                 {/* Header */}
@@ -181,35 +128,8 @@ export default function AvatarsPage() {
                     <BrainHomeButton />
                 </div>
 
-                {/* Main Container */}
-                <div className="main-container">
-                    {/* Tabs */}
-                    <div className="tabs-header">
-                        <div className="tabs">
-                            <button
-                                className={`tab-btn ${activeTab === 'library' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('library')}
-                            >
-                                📚 Avatar Library
-                            </button>
-                            <button
-                                className={`tab-btn ${activeTab === 'custom' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('custom')}
-                            >
-                                🤖 Custom AI Generator
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="content">
-                        {activeTab === 'library' ? (
-                            <AvatarGallery />
-                        ) : (
-                            <CustomAvatarBuilder isVip={isVip} />
-                        )}
-                    </div>
-                </div>
+                {/* Avatar Gallery - Custom avatars at top for VIP, then preset avatars */}
+                <AvatarGallery />
             </div>
         </>
     );

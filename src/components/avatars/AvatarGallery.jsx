@@ -1,69 +1,117 @@
 /**
  * 🎨 AVATAR GALLERY
- * Interactive grid for selecting preset avatars from the library
- * Supports FREE/VIP filtering and unlock status
+ * Interactive grid for selecting preset and custom avatars
+ * VIP users see: 5 custom slots (at top) + VIP preset avatars
+ * FREE users see: FREE preset avatars only
  */
 
 import React, { useState, useEffect } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
-import { getAvailableAvatars } from '../../services/avatar-service';
-import { getCategories } from '../../data/AVATAR_LIBRARY';
+import { getAvailableAvatars, getCustomAvatarGallery } from '../../services/avatar-service';
+import CustomAvatarBuilder from './CustomAvatarBuilder';
 
-export default function AvatarGallery({ onSelect, showCustomTab = true }) {
-  const { user, avatar: currentAvatar, selectPresetAvatar, isVip } = useAvatar();
+export default function AvatarGallery({ onSelect }) {
+  const { user, avatar: currentAvatar, selectPresetAvatar, setActiveAvatar, isVip, createCustomAvatar } = useAvatar();
 
+  // Custom avatars state
+  const [customAvatars, setCustomAvatars] = useState([]);
+  const [showCustomBuilder, setShowCustomBuilder] = useState(false);
+
+  // Preset avatars state
   const [avatars, setAvatars] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTier, setSelectedTier] = useState('all');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [previewAvatar, setPreviewAvatar] = useState(null);
 
   useEffect(() => {
-    loadAvatars();
-  }, [user, selectedTier, isVip]);
+    async function loadAllAvatars() {
+      try {
+        setLoading(true);
+
+        // Load custom avatars first if VIP
+        if (user?.id && isVip) {
+          try {
+            const customs = await getCustomAvatarGallery(user.id);
+            setCustomAvatars(customs || []);
+          } catch (err) {
+            console.error('Error loading custom avatars:', err);
+            setCustomAvatars([]);
+          }
+        }
+
+        // Then load preset avatars
+        await loadAvatars();
+      } catch (error) {
+        console.error('Error in loadAllAvatars:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (user) {
+      loadAllAvatars();
+    }
+  }, [user?.id, isVip]);
+
+
 
   async function loadAvatars() {
-    setLoading(true);
     try {
-      // If user is logged in, get personalized unlock data
-      // Otherwise, show all avatars in preview mode (VIP marked as locked)
-      const data = await getAvailableAvatars(user?.id || null, selectedTier);
+      // VIP users: show ONLY VIP avatars
+      // FREE users: show ONLY FREE avatars
+      const tierFilter = isVip ? 'vip' : 'free';
+      const data = await getAvailableAvatars(user?.id || null, tierFilter);
 
-      // VIP users: unlock all avatars
-      if (isVip) {
-        setAvatars(data.map(a => ({ ...a, isLocked: false })));
-      } else {
-        setAvatars(data);
-      }
+      // All avatars are unlocked for their respective tiers
+      setAvatars(data.map(a => ({ ...a, isLocked: false })));
     } catch (error) {
       console.error('Error loading avatars:', error);
       setAvatars([]);
-    } finally {
-      setLoading(false);
     }
   }
 
-  async function handleSelectAvatar(avatarId) {
+  async function handleSelectPresetAvatar(avatarId) {
     const result = await selectPresetAvatar(avatarId);
-
     if (result.success) {
-      setPreviewAvatar(null);
       if (onSelect) onSelect(avatarId);
+      await loadAvatars(); // Refresh to show selection
     } else {
       alert(result.error);
     }
   }
 
-  const filteredAvatars = avatars.filter(av => {
-    if (selectedCategory === 'all') return true;
-    return av.category === selectedCategory;
-  });
+  async function handleSelectCustomAvatar(customAvatar) {
+    // Set the custom avatar as active
+    const result = await setActiveAvatar(customAvatar.image_url, 'custom', null, customAvatar.prompt);
+    if (result.success) {
+      if (onSelect) onSelect(null);
+      // Refresh custom avatars
+      if (user?.id && isVip) {
+        const customs = await getCustomAvatarGallery(user.id);
+        setCustomAvatars(customs || []);
+      }
+    } else {
+      alert(result.error || 'Failed to set custom avatar');
+    }
+  }
 
-  const categories = getCategories();
+  function handleCreateNewCustom() {
+    setShowCustomBuilder(true);
+  }
 
-  // Stats calculation - VIP users have all unlocked
-  const unlockedCount = isVip ? avatars.length : avatars.filter(a => !a.isLocked).length;
-  const lockedCount = isVip ? 0 : avatars.filter(a => a.isLocked).length;
+  async function handleCloseBuilder() {
+    setShowCustomBuilder(false);
+    // Refresh custom avatars after creating
+    if (user?.id && isVip) {
+      const customs = await getCustomAvatarGallery(user.id);
+      setCustomAvatars(customs || []);
+    }
+  }
+
+  // Create placeholder boxes for custom avatars (5 total for VIP)
+  const maxCustomSlots = 5;
+  const customSlots = [];
+  for (let i = 0; i < maxCustomSlots; i++) {
+    customSlots.push(customAvatars[i] || null); // null = empty slot
+  }
 
   return (
     <div className="avatar-gallery">
@@ -75,64 +123,27 @@ export default function AvatarGallery({ onSelect, showCustomTab = true }) {
           padding: 20px;
         }
 
-        .gallery-header {
-          margin-bottom: 30px;
+        .gallery-section {
+          margin-bottom: 50px;
         }
 
-        .gallery-title {
+        .section-title {
           font-family: 'Orbitron', sans-serif;
-          font-size: 32px;
+          font-size: 24px;
           font-weight: 700;
           background: linear-gradient(135deg, #00f5ff, #0099ff);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
+          margin-bottom: 20px;
           text-align: center;
-          margin-bottom: 20px;
         }
 
-        .filters {
-          display: flex;
-          gap: 15px;
-          flex-wrap: wrap;
-          justify-content: center;
-          margin-bottom: 20px;
-        }
-
-        .filter-group {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-        }
-
-        .filter-label {
+        .section-subtitle {
           font-family: 'Rajdhani', sans-serif;
           font-size: 14px;
-          color: #00f5ff;
-          text-transform: uppercase;
-          font-weight: 600;
-        }
-
-        .filter-btn {
-          padding: 8px 16px;
-          background: rgba(0, 245, 255, 0.1);
-          border: 1px solid rgba(0, 245, 255, 0.3);
-          color: #fff;
-          border-radius: 8px;
-          cursor: pointer;
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 14px;
-          transition: all 0.3s ease;
-        }
-
-        .filter-btn:hover {
-          background: rgba(0, 245, 255, 0.2);
-          border-color: #00f5ff;
-        }
-
-        .filter-btn.active {
-          background: #00f5ff;
-          color: #0a0e27;
-          border-color: #00f5ff;
+          color: #888;
+          text-align: center;
+          margin-bottom: 30px;
         }
 
         .avatar-grid {
@@ -151,6 +162,9 @@ export default function AvatarGallery({ onSelect, showCustomTab = true }) {
           overflow: hidden;
           cursor: pointer;
           transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .avatar-card:hover {
@@ -164,19 +178,27 @@ export default function AvatarGallery({ onSelect, showCustomTab = true }) {
           box-shadow: 0 10px 30px rgba(0, 255, 0, 0.5);
         }
 
-        .avatar-card.locked {
-          opacity: 0.5;
-          cursor: not-allowed;
+        .avatar-card.placeholder {
+          border-style: dashed;
+          border-color: rgba(0, 245, 255, 0.3);
+          background: rgba(10, 14, 39, 0.4);
+          cursor: pointer;
         }
 
-        .avatar-card.locked::before {
-          content: '🔒';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
+        .placeholder-content {
+          text-align: center;
+          color: #00f5ff;
+          font-family: 'Rajdhani', sans-serif;
+        }
+
+        .placeholder-icon {
           font-size: 48px;
-          z-index: 2;
+          margin-bottom: 10px;
+        }
+
+        .placeholder-text {
+          font-size: 14px;
+          font-weight: 600;
         }
 
         .avatar-image {
@@ -232,6 +254,10 @@ export default function AvatarGallery({ onSelect, showCustomTab = true }) {
           background: rgba(0, 245, 255, 0.9);
         }
 
+        .tier-badge.custom {
+          background: linear-gradient(135deg, #ff00f5, #00f5ff);
+        }
+
         .loading-state {
           text-align: center;
           padding: 60px 20px;
@@ -240,134 +266,129 @@ export default function AvatarGallery({ onSelect, showCustomTab = true }) {
           font-size: 18px;
         }
 
-        .stats-bar {
-          display: flex;
-          justify-content: center;
-          gap: 30px;
-          padding: 15px;
-          background: rgba(0, 245, 255, 0.05);
-          border-radius: 12px;
-          margin-bottom: 20px;
+        .builder-modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.95);
+          z-index: 10000;
+          overflow-y: auto;
+          padding: 20px;
         }
 
-        .stat-item {
-          text-align: center;
-        }
-
-        .stat-value {
-          font-family: 'Orbitron', sans-serif;
-          font-size: 24px;
-          font-weight: 700;
-          color: #00f5ff;
-        }
-
-        .stat-label {
+        .builder-close {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          padding: 10px 20px;
+          background: rgba(255, 68, 68, 0.2);
+          border: 2px solid #ff4444;
+          border-radius: 8px;
+          color: #ff4444;
           font-family: 'Rajdhani', sans-serif;
-          font-size: 12px;
-          color: #888;
-          text-transform: uppercase;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          z-index: 10001;
+        }
+
+        .builder-close:hover {
+          background: rgba(255, 68, 68, 0.4);
         }
       `}</style>
 
-      <div className="gallery-header">
-        <h2 className="gallery-title">⚡ AVATAR LIBRARY ⚡</h2>
-
-        <div className="stats-bar">
-          <div className="stat-item">
-            <div className="stat-value">{avatars.length}</div>
-            <div className="stat-label">{isVip ? 'Total Available' : 'Total Avatars'}</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-value">{unlockedCount}</div>
-            <div className="stat-label">Unlocked</div>
-          </div>
-          {!isVip && lockedCount > 0 && (
-            <div className="stat-item">
-              <div className="stat-value">{lockedCount}</div>
-              <div className="stat-label">Locked</div>
-            </div>
-          )}
-          {isVip && (
-            <div className="stat-item">
-              <div className="stat-value" style={{ color: '#ffd700' }}>💎</div>
-              <div className="stat-label" style={{ color: '#ffd700' }}>VIP ACCESS</div>
-            </div>
-          )}
+      {/* Custom Avatar Builder Modal */}
+      {showCustomBuilder && (
+        <div className="builder-modal">
+          <button className="builder-close" onClick={handleCloseBuilder}>
+            ✕ Close
+          </button>
+          <CustomAvatarBuilder isVip={isVip} />
         </div>
+      )}
 
-        <div className="filters">
-          <div className="filter-group">
-            <span className="filter-label">Tier:</span>
-            <button
-              className={`filter-btn ${selectedTier === 'all' ? 'active' : ''}`}
-              onClick={() => setSelectedTier('all')}
-            >
-              All
-            </button>
-            <button
-              className={`filter-btn ${selectedTier === 'free' ? 'active' : ''}`}
-              onClick={() => setSelectedTier('free')}
-            >
-              FREE
-            </button>
-            <button
-              className={`filter-btn ${selectedTier === 'vip' ? 'active' : ''}`}
-              onClick={() => setSelectedTier('vip')}
-            >
-              VIP
-            </button>
-          </div>
+      {/* CUSTOM AVATARS SECTION (VIP ONLY) */}
+      {isVip && (
+        <div className="gallery-section">
+          <h2 className="section-title">🎨 MY CUSTOM AVATARS</h2>
+          <p className="section-subtitle">Create up to 5 unique AI-generated avatars</p>
 
-          <div className="filter-group">
-            <span className="filter-label">Category:</span>
-            <button
-              className={`filter-btn ${selectedCategory === 'all' ? 'active' : ''}`}
-              onClick={() => setSelectedCategory('all')}
-            >
-              All
-            </button>
-            {categories.map(cat => (
-              <button
-                key={cat}
-                className={`filter-btn ${selectedCategory === cat ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(cat)}
-              >
-                {cat}
-              </button>
+          <div className="avatar-grid">
+            {customSlots.map((customAvatar, index) => (
+              customAvatar ? (
+                <div
+                  key={customAvatar.id}
+                  className={`avatar-card ${currentAvatar?.type === 'custom' && currentAvatar?.imageUrl === customAvatar.image_url ? 'selected' : ''}`}
+                  onClick={() => handleSelectCustomAvatar(customAvatar)}
+                >
+                  <img
+                    src={customAvatar.image_url}
+                    alt={`Custom Avatar ${index + 1}`}
+                    className="avatar-image"
+                  />
+                  <span className="tier-badge custom">CUSTOM</span>
+                  <div className="avatar-info">
+                    <p className="avatar-name">{customAvatar.prompt?.substring(0, 30) || 'Custom Avatar'}</p>
+                    <p className="avatar-tier">AI Generated</p>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  key={`placeholder-${index}`}
+                  className="avatar-card placeholder"
+                  onClick={handleCreateNewCustom}
+                >
+                  <div className="placeholder-content">
+                    <div className="placeholder-icon">+</div>
+                    <div className="placeholder-text">Create Custom</div>
+                  </div>
+                </div>
+              )
             ))}
           </div>
         </div>
-      </div>
-
-      {loading ? (
-        <div className="loading-state">
-          <div>⏳ Loading Avatars...</div>
-        </div>
-      ) : (
-        <div className="avatar-grid">
-          {filteredAvatars.map(av => (
-            <div
-              key={av.id}
-              className={`avatar-card ${av.isLocked ? 'locked' : ''} ${currentAvatar?.id === av.id ? 'selected' : ''
-                }`}
-              onClick={() => !av.isLocked && handleSelectAvatar(av.id)}
-            >
-              <img
-                src={av.image}
-                alt={av.name}
-                className="avatar-image"
-              />
-              <span className={`tier-badge ${av.tier.toLowerCase()}`}>
-                {av.tier}
-              </span>
-              <div className="avatar-info">
-                <p className="avatar-name">{av.name}</p>
-                <p className="avatar-tier">{av.category}</p>
-              </div>
-            </div>
-          ))}
-        </div>
       )}
+
+      {/* PRESET AVATARS SECTION */}
+      <div className="gallery-section">
+        <h2 className="section-title">
+          {isVip ? '💎 VIP AVATAR LIBRARY' : '⚡ FREE AVATAR LIBRARY'}
+        </h2>
+        <p className="section-subtitle">
+          {avatars.length} {isVip ? 'VIP' : 'FREE'} avatars available
+        </p>
+
+        {loading ? (
+          <div className="loading-state">
+            <div>⏳ Loading Avatars...</div>
+          </div>
+        ) : (
+          <div className="avatar-grid">
+            {avatars.map(av => (
+              <div
+                key={av.id}
+                className={`avatar-card ${currentAvatar?.id === av.id ? 'selected' : ''}`}
+                onClick={() => handleSelectPresetAvatar(av.id)}
+              >
+                <img
+                  src={av.image}
+                  alt={av.name}
+                  className="avatar-image"
+                />
+                <span className={`tier-badge ${av.tier.toLowerCase()}`}>
+                  {av.tier}
+                </span>
+                <div className="avatar-info">
+                  <p className="avatar-name">{av.name}</p>
+                  <p className="avatar-tier">{av.category}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

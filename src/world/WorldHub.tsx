@@ -545,8 +545,8 @@ export default function WorldHub() {
 
     return (
         <>
-            {/* EPIC CINEMATIC INTRO - Shows ONLY on login */}
-            {shouldShowCinematic && CinematicIntroComponent}
+            {/* EPIC CINEMATIC INTRO - Shows ONLY on login (Authentication Handshake Exception) */}
+            {CinematicIntroComponent}
 
             <div style={{
                 position: 'fixed',
@@ -558,6 +558,7 @@ export default function WorldHub() {
                 overflow: 'hidden',
                 opacity: showIntro ? 0 : 1,
                 transition: 'opacity 0.5s ease-out',
+                pointerEvents: showIntro ? 'none' : 'auto',
             }}>
                 {/* ═══════════════════════════════════════════════════════════════
                 HEXAGON GRID FLOOR — Premium video game aesthetic
