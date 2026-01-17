@@ -70,8 +70,8 @@ export default function CustomAvatarBuilder({ isVip = false }) {
       return;
     }
 
-    // Create initial columns - LIGHTNING FAST speed
-    const numColumns = 50;
+    // Create initial columns - Fast but smooth
+    const numColumns = 30;
     const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン♠♥♦♣';
 
     // Initialize columns with random starting positions
@@ -80,22 +80,22 @@ export default function CustomAvatarBuilder({ isVip = false }) {
       initialColumns.push({
         id: i,
         x: (i / numColumns) * 100,
-        chars: Array.from({ length: 20 + Math.floor(Math.random() * 15) }, () =>
+        chars: Array.from({ length: 15 + Math.floor(Math.random() * 10) }, () =>
           chars[Math.floor(Math.random() * chars.length)]
         ),
-        speed: 0.5 + Math.random() * 1,  // FAST! 0.5-1.5 seconds
-        startDelay: Math.random() * 0.5  // Quick stagger
+        speed: 1 + Math.random() * 1,  // 1-2 seconds (fast but not spammy)
+        startDelay: Math.random() * 0.3
       });
     }
     setMatrixColumns(initialColumns);
 
-    // Update characters periodically
+    // Update characters periodically (slower = smoother)
     const charInterval = setInterval(() => {
       setMatrixColumns(cols => cols.map(col => ({
         ...col,
         chars: col.chars.map(() => chars[Math.floor(Math.random() * chars.length)])
       })));
-    }, 150);
+    }, 100);
 
     return () => clearInterval(charInterval);
   }, [generating]);
