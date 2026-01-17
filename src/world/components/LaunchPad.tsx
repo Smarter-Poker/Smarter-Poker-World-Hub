@@ -526,7 +526,8 @@ export function AnimatedCardWrapper({
 // LAUNCH ANIMATION HOOK - Controls the 2.5s cinematic sequence
 // ─────────────────────────────────────────────────────────────────────────────
 export function useLaunchAnimation() {
-    const [introState, setIntroState] = useState<'launching' | 'complete'>('launching');
+    // Start completed - no launch animation
+    const [introState, setIntroState] = useState<'launching' | 'complete'>('complete');
 
     const onBurst = () => {
         // Transition to complete immediately when burst happens

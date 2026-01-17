@@ -33,19 +33,18 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
     const velocityX = useRef(0);
     const lastTime = useRef(0);
 
-    // Intro animation state
-    const [introProgress, setIntroProgress] = useState(0);
+    // Intro animation disabled - cards appear immediately
+    const [introProgress, setIntroProgress] = useState(1);
 
     useEffect(() => {
-        if (isIntroComplete) {
-            // Animate cards flying in - FAST 800ms
+        if (isIntroComplete && introProgress !== 1) {
+            // Only animate if we explicitly need to (shouldn't happen now)
             const startTime = Date.now();
-            const duration = 800; // Reduced from 1500ms
+            const duration = 800;
 
             const animate = () => {
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(1, elapsed / duration);
-                // Easing function for smooth deceleration
                 const eased = 1 - Math.pow(1 - progress, 3);
                 setIntroProgress(eased);
 
@@ -56,7 +55,7 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
 
             requestAnimationFrame(animate);
         }
-    }, [isIntroComplete]);
+    }, [isIntroComplete, introProgress]);
 
     const { size, gl, viewport } = useThree();
 

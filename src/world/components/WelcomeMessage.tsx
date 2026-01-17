@@ -17,14 +17,34 @@ const MOCK_USER = {
 
 // Check if we should show welcome (8+ hours since last visit)
 function shouldShowWelcome(): boolean {
+    // CRITICAL: Don't show "Welcome Back" if user just logged in
+    // This fixes mobile private mode where localStorage may fail but sessionStorage works
+    const justLoggedIn = sessionStorage.getItem('just_authenticated');
+    if (justLoggedIn === 'true') {
+        return false; // Fresh login - don't show "Welcome Back"
+    }
+
     const shownThisSession = sessionStorage.getItem(WELCOME_SHOWN_KEY);
     if (shownThisSession === 'true') {
         return false; // Already shown this session
     }
 
-    const lastVisit = localStorage.getItem(LAST_VISIT_KEY);
+    // Try to get last visit from localStorage (may fail in private mode)
+    let lastVisit: string | null = null;
+    try {
+        lastVisit = localStorage.getItem(LAST_VISIT_KEY);
+    } catch (e) {
+        // localStorage blocked in private mode - treat as first visit
+        return false;
+    }
+
     if (!lastVisit) {
-        return true; // First visit ever
+        // No last visit recorded - this could be:
+        // 1. True first visit
+        // 2. Private mode where localStorage is blocked
+        // 3. User cleared their data
+        // Be conservative: only show if we can confirm they're returning
+        return false;
     }
 
     const timeSinceLastVisit = Date.now() - parseInt(lastVisit, 10);
@@ -34,7 +54,11 @@ function shouldShowWelcome(): boolean {
 // Mark welcome as shown and update last visit time
 function markWelcomeShown(): void {
     sessionStorage.setItem(WELCOME_SHOWN_KEY, 'true');
-    localStorage.setItem(LAST_VISIT_KEY, Date.now().toString());
+    try {
+        localStorage.setItem(LAST_VISIT_KEY, Date.now().toString());
+    } catch (e) {
+        // localStorage blocked in private mode - that's okay, sessionStorage tracks this session
+    }
 }
 
 interface WelcomeBackProps {

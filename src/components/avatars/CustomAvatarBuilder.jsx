@@ -353,13 +353,13 @@ export default function CustomAvatarBuilder({ isVip = false }) {
 
         /* Matrix Loading Overlay */
         .matrix-overlay {
-          position: absolute;
+          position: fixed;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
           background: #000;
-          z-index: 100;
+          z-index: 9999;
           display: flex;
           flex-direction: column;
           align-items: center;

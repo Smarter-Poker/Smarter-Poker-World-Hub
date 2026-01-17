@@ -410,35 +410,29 @@ export default function WorldHub() {
     const profileOrbRef = useRef<HTMLDivElement>(null);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // RETURN VISIT DETECTION — Skip cinematic if user has visited hub this session
+    // LOGIN DETECTION — Cinematic intro ONLY on login, not navigation
     // ═══════════════════════════════════════════════════════════════════════
-    const [isReturnVisit, setIsReturnVisit] = useState(false);
+    const [shouldShowCinematic, setShouldShowCinematic] = useState(false);
 
     useEffect(() => {
-        // Check if user has already visited hub this session
-        const hasVisitedHub = sessionStorage.getItem('hub_visited');
-        if (hasVisitedHub) {
-            setIsReturnVisit(true);
-        } else {
-            // Mark hub as visited for this session
-            sessionStorage.setItem('hub_visited', 'true');
+        // Check if user just logged in (flag set by login/signup pages)
+        const justAuthenticated = sessionStorage.getItem('just_authenticated');
+        if (justAuthenticated === 'true') {
+            setShouldShowCinematic(true);
+            // Clear the flag so it doesn't trigger again
+            sessionStorage.removeItem('just_authenticated');
         }
     }, []);
 
-    // Cinematic intro state (for first visit only)
-    const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro();
+    // Cinematic intro state (ONLY for login)
+    const { showIntro, introComplete, CinematicIntroComponent } = useCinematicIntro(shouldShowCinematic);
 
-    // Return burst state (for return visits)
+    // Return burst is NOT used - no animations on navigation
     const { showBurst, burstComplete, ReturnBurstComponent, triggerBurst } = useReturnBurst();
 
-    // Trigger return burst on return visits
-    useEffect(() => {
-        if (isReturnVisit && !showBurst && !burstComplete) {
-            triggerBurst();
-        }
-    }, [isReturnVisit, showBurst, burstComplete, triggerBurst]);
+    // DO NOT trigger return burst - we want no animations on navigation
 
-    // Launch animation state (triggers after any intro completes)
+    // Launch animation disabled - cards appear immediately
     const { isLaunching, isComplete: isIntroComplete, onBurst } = useLaunchAnimation();
 
     // Notification counts - users start with 0 (no seed data)
@@ -551,11 +545,8 @@ export default function WorldHub() {
 
     return (
         <>
-            {/* EPIC CINEMATIC INTRO - Shows on FIRST visit only */}
-            {!isReturnVisit && CinematicIntroComponent}
-
-            {/* RETURN BURST - Shows when returning to hub */}
-            {isReturnVisit && ReturnBurstComponent}
+            {/* EPIC CINEMATIC INTRO - Shows ONLY on login */}
+            {shouldShowCinematic && CinematicIntroComponent}
 
             <div style={{
                 position: 'fixed',
@@ -656,7 +647,8 @@ export default function WorldHub() {
                         />
 
                         {/* Launch Pad Animation */}
-                        <LaunchPad isActive={isLaunching} onBurst={onBurst} />
+                        {/* LaunchPad disabled - no cinematic intro except on login */}
+                        {/* <LaunchPad isActive={isLaunching} onBurst={onBurst} /> */}
 
                         {/* Card Carousel with Snap */}
                         <CarouselEngine
