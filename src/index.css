@@ -117,36 +117,138 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   VIEWPORT-BASED SCALING SYSTEM
-   The ENTIRE layout scales proportionally like a photograph.
-   Design base: 800px width with 5 cards visible.
-   On smaller/larger screens, everything scales proportionally.
+   GLOBAL VIEWPORT-BASED SCALING SYSTEM (AUTHORITATIVE)
+   ═══════════════════════════════════════════════════════════════════════════
+   
+   This is the SIZING TEMPLATE for ALL pages in hub-vanguard.
+   The entire layout scales proportionally like a photograph.
+   
+   DESIGN PRINCIPLE:
+   - 5 cards always visible at any screen size
+   - Card size = 17vw (5 × 17vw + gaps + padding = 100vw)
+   - Everything scales with viewport width (vw)
+   
+   USAGE:
+   - Use these variables in your components
+   - Add .vp-card, .vp-card-image, .vp-lane-cards classes for automatic sizing
+   - All fonts, spacing, and elements scale automatically
+   
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Base design width - this is our "reference" size */
-  --design-width: 800;
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CARD & LAYOUT SIZING (5 cards always fit)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  --vp-card-size: 17vw;
+  /* Card width/height - 5 fit in 100vw */
+  --vp-card-gap: 1.5vw;
+  /* Gap between cards */
+  --vp-lane-padding: 2vw;
+  /* Padding on lane sides */
+  --vp-section-gap: 3vw;
+  /* Gap between sections */
 
-  /* Scale factor = current viewport / design width */
-  /* Uses clamp() to set min/max bounds for readability */
-  --scale: clamp(0.4, calc(100vw / var(--design-width) * 1px / 1px), 2.5);
+  /* ═══════════════════════════════════════════════════════════════════════════
+     TYPOGRAPHY SCALING
+     clamp(min, preferred, max) ensures readability at all sizes
+     ═══════════════════════════════════════════════════════════════════════════ */
+  --vp-font-xs: clamp(6px, 1.2vw, 11px);
+  /* Labels, captions */
+  --vp-font-sm: clamp(8px, 1.4vw, 13px);
+  /* Small text, pills */
+  --vp-font-md: clamp(10px, 1.6vw, 15px);
+  /* Body text */
+  --vp-font-lg: clamp(12px, 2vw, 18px);
+  /* Headings */
+  --vp-font-xl: clamp(16px, 3vw, 28px);
+  /* Large numbers */
+  --vp-font-xxl: clamp(18px, 4vw, 36px);
+  /* Hero titles */
+  --vp-font-hero: clamp(24px, 5vw, 48px);
+  /* Main hero text */
 
-  /* All sizes are calculated relative to the design width */
-  /* Card: 140px at 800px design → scales proportionally */
-  --card-size: calc(140px * clamp(0.5, 100vw / 800px, 1.5));
-  --card-gap: calc(12px * clamp(0.5, 100vw / 800px, 1.5));
-  --lane-padding: calc(16px * clamp(0.5, 100vw / 800px, 1.5));
+  /* ═══════════════════════════════════════════════════════════════════════════
+     SPACING SCALING
+     ═══════════════════════════════════════════════════════════════════════════ */
+  --vp-space-xs: 0.5vw;
+  --vp-space-sm: 1vw;
+  --vp-space-md: 2vw;
+  --vp-space-lg: 3vw;
+  --vp-space-xl: 4vw;
 
-  /* Font sizes scale too */
-  --font-xs: calc(10px * clamp(0.7, 100vw / 800px, 1.3));
-  --font-sm: calc(12px * clamp(0.7, 100vw / 800px, 1.3));
-  --font-md: calc(14px * clamp(0.7, 100vw / 800px, 1.3));
-  --font-lg: calc(18px * clamp(0.7, 100vw / 800px, 1.3));
-  --font-xl: calc(24px * clamp(0.7, 100vw / 800px, 1.3));
-  --font-xxl: calc(32px * clamp(0.7, 100vw / 800px, 1.3));
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BORDER RADIUS SCALING
+     ═══════════════════════════════════════════════════════════════════════════ */
+  --vp-radius-sm: 0.5vw;
+  --vp-radius-md: 0.8vw;
+  --vp-radius-lg: 1.2vw;
+  --vp-radius-xl: 2vw;
 
-  /* Container always fills available width */
+  /* Container - always fills width */
   --container-max-width: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOBAL VIEWPORT-SCALED CLASSES
+   Add these classes to elements for automatic viewport scaling
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Card container - for horizontal scrolling lanes */
+.vp-lane-cards {
+  display: flex !important;
+  gap: var(--vp-card-gap) !important;
+  padding: 0 var(--vp-lane-padding) !important;
+}
+
+/* Individual card wrapper */
+.vp-card {
+  width: var(--vp-card-size) !important;
+  height: var(--vp-card-size) !important;
+  flex-shrink: 0 !important;
+}
+
+/* Card image container */
+.vp-card-image {
+  width: var(--vp-card-size) !important;
+  height: var(--vp-card-size) !important;
+}
+
+/* Card title */
+.vp-card-title {
+  font-size: var(--vp-font-md) !important;
+  max-width: var(--vp-card-size) !important;
+}
+
+/* Lane/section title */
+.vp-lane-title {
+  font-size: var(--vp-font-lg) !important;
+}
+
+/* Hero title */
+.vp-hero-title {
+  font-size: var(--vp-font-xxl) !important;
+}
+
+/* Hero subtitle */
+.vp-hero-subtitle {
+  font-size: var(--vp-font-md) !important;
+}
+
+/* Filter pills */
+.vp-pill {
+  padding: var(--vp-space-sm) var(--vp-space-md) !important;
+  font-size: var(--vp-font-sm) !important;
+  border-radius: var(--vp-radius-lg) !important;
+}
+
+/* Stat values (large numbers) */
+.vp-stat-value {
+  font-size: var(--vp-font-xl) !important;
+}
+
+/* Stat labels */
+.vp-stat-label {
+  font-size: var(--vp-font-xs) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
