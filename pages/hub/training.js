@@ -483,7 +483,7 @@ export default function TrainingPage() {
     const filteredGames = getFilteredGames();
     const stats = getOverallStats();
 
-    // Daily Challenge: 1 game from each category, changes daily, difficulty 5-10 (excluding Boss games)
+    // Daily Challenge: 1 game from each category, changes daily, difficulty 5-10 (excluding Level 10 final games)
     const getDailyChallenge = () => {
         const today = new Date().toDateString();
         const seed = today.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -491,7 +491,7 @@ export default function TrainingPage() {
         const challenges = [];
         CATEGORIES.forEach((cat, index) => {
             const catGames = getGamesByCategory(cat.id).filter(g =>
-                g.difficulty >= 5 && g.difficulty <= 10 && !g.name.startsWith('Boss:')
+                g.difficulty >= 5 && g.difficulty <= 10 && !g.name.startsWith('Level 10:')
             );
             if (catGames.length > 0) {
                 // Pseudo-random selection based on date + category
