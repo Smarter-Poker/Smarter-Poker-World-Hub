@@ -37,8 +37,8 @@ export default function CustomAvatarBuilder({ isVip = false }) {
       return;
     }
 
-    // Create initial columns
-    const numColumns = 40;
+    // Create initial columns - LIGHTNING FAST speed
+    const numColumns = 50;
     const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン♠♥♦♣';
 
     // Initialize columns with random starting positions
@@ -47,11 +47,11 @@ export default function CustomAvatarBuilder({ isVip = false }) {
       initialColumns.push({
         id: i,
         x: (i / numColumns) * 100,
-        chars: Array.from({ length: 15 + Math.floor(Math.random() * 10) }, () =>
+        chars: Array.from({ length: 20 + Math.floor(Math.random() * 15) }, () =>
           chars[Math.floor(Math.random() * chars.length)]
         ),
-        speed: 15 + Math.random() * 20,
-        startDelay: Math.random() * 3
+        speed: 0.5 + Math.random() * 1,  // FAST! 0.5-1.5 seconds
+        startDelay: Math.random() * 0.5  // Quick stagger
       });
     }
     setMatrixColumns(initialColumns);
@@ -239,8 +239,8 @@ export default function CustomAvatarBuilder({ isVip = false }) {
         }
 
         @keyframes matrixFall {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(200%); }
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(150vh); }
         }
 
         .loading-content {
