@@ -213,8 +213,8 @@ function PromoSection({ onPlayFeatured }) {
 const promoStyles = {
     container: {
         padding: '16px 20px',
-        background: 'linear-gradient(135deg, rgba(255, 107, 53, 0.15), rgba(255, 215, 0, 0.1))',
-        borderBottom: '1px solid rgba(255, 215, 0, 0.2)',
+        background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.08), rgba(0, 100, 200, 0.1))',
+        borderBottom: '1px solid rgba(0, 212, 255, 0.2)',
     },
     content: {
         textAlign: 'center',
@@ -222,12 +222,12 @@ const promoStyles = {
     badge: {
         display: 'inline-block',
         padding: '4px 10px',
-        background: 'rgba(255, 215, 0, 0.2)',
-        border: '1px solid rgba(255, 215, 0, 0.4)',
+        background: 'rgba(0, 212, 255, 0.15)',
+        border: '1px solid rgba(0, 212, 255, 0.4)',
         borderRadius: 12,
         fontSize: 10,
         fontWeight: 700,
-        color: '#FFD700',
+        color: '#00d4ff',
         letterSpacing: 0.5,
         marginBottom: 6,
     },
