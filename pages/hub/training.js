@@ -673,71 +673,70 @@ const styles = {
         marginLeft: 12,
     },
 
-    // Lanes - responsive via global CSS variables
+    // Lanes - FIXED design (CSS zoom handles scaling)
     lanesContainer: {
-        padding: 'var(--lane-padding, 20px) 0',
-        // maxWidth handled by .lanes-container-responsive class in index.css
+        padding: '20px 0',
     },
 
     lane: {
-        marginBottom: 'var(--vp-section-gap, 3vw)',
+        marginBottom: 32,
     },
 
     laneHeader: {
         display: 'flex',
         alignItems: 'center',
-        gap: '1vw',
-        padding: '0 var(--vp-lane-padding, 2vw)',
-        marginBottom: 'var(--vp-space-sm, 1vw)',
-        height: '4vw',
-        minHeight: '4vw',
+        gap: 10,
+        padding: '0 24px',
+        marginBottom: 16,
+        height: 36,
+        minHeight: 36,
     },
 
     laneChevron: {
-        fontSize: 'var(--vp-font-lg, clamp(12px, 2vw, 18px))',
+        fontSize: 20,
         fontWeight: 800,
     },
 
     laneIcon: {
-        fontSize: 'var(--vp-font-lg, clamp(12px, 2vw, 18px))',
+        fontSize: 22,
     },
 
     laneTitle: {
-        fontSize: 'var(--vp-font-lg, clamp(12px, 2vw, 18px))',
+        fontSize: 18,
         fontWeight: 700,
-        letterSpacing: '0.2vw',
+        letterSpacing: 2,
         margin: 0,
         textTransform: 'uppercase',
     },
 
     laneBadge: {
-        padding: '0.4vw 1vw',
+        padding: '5px 12px',
         background: 'linear-gradient(90deg, #FF5722, #FF9800)',
-        borderRadius: 'var(--vp-radius-sm, 0.5vw)',
-        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
+        borderRadius: 6,
+        fontSize: 11,
         fontWeight: 800,
         color: '#fff',
     },
 
     laneCount: {
         marginLeft: 'auto',
-        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
+        fontSize: 13,
         color: 'rgba(255,255,255,0.4)',
     },
 
     laneScroller: {
         overflowX: 'auto',
         overflowY: 'hidden',
-        padding: '0 var(--vp-lane-padding, 2vw)',
-        maxWidth: '100vw',
+        padding: '0 24px',
+        maxWidth: '100%',
         WebkitOverflowScrolling: 'touch',
     },
 
     laneCards: {
         display: 'flex',
-        gap: 'var(--vp-card-gap, 1.5vw)',
-        paddingBottom: '1vw',
-        paddingRight: 'var(--vp-lane-padding, 2vw)',
+        gap: 16,
+        paddingBottom: 12,
+        paddingRight: 24,
         width: 'fit-content',
     },
 
