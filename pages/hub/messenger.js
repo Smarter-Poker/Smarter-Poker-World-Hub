@@ -1244,7 +1244,15 @@ export default function MessengerPage() {
         <>
             <Head>
                 <title>Messenger | Smarter.Poker</title>
+                <meta name="viewport" content="width=800, user-scalable=no" />
                 <style>{`
+                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
+                    .messenger-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
+                    @media (max-width: 500px) { .messenger-page { zoom: 0.5; } }
+                    @media (min-width: 501px) and (max-width: 700px) { .messenger-page { zoom: 0.75; } }
+                    @media (min-width: 701px) and (max-width: 900px) { .messenger-page { zoom: 0.95; } }
+                    @media (min-width: 901px) { .messenger-page { zoom: 1.2; } }
+                    @media (min-width: 1400px) { .messenger-page { zoom: 1.5; } }
                     @keyframes bounce {
                         0%, 60%, 100% { transform: translateY(0); }
                         30% { transform: translateY(-4px); }
@@ -1255,7 +1263,7 @@ export default function MessengerPage() {
             {/* Toast Notifications */}
             <Toast toast={toast} onDismiss={() => setToast(null)} />
 
-            <div style={{
+            <div className="messenger-page" style={{
                 display: 'flex',
                 height: '100vh',
                 background: C.bg,
