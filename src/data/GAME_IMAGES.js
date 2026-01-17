@@ -17,7 +17,7 @@ export const GAME_IMAGES = {
     'mtt-007': '/images/training/mtt_deep_stack.png',          // Deep Stack MTT (Reuse cash deep stack logic or similar?) -> mapped to generic if needed, but we likely have one. Using mtt_bubble_tech fallback if specific missing, but we generated chip_chair. 
     // Wait, generated images need to be copied with specific names.
     // Let's use the filenames we will copy to.
-    
+
     'mtt-007': '/images/training/cash_deep_stack.png',         // Deep Stack MTT (Reuse Cash Deep Stack - safe reuse)
     'mtt-008': '/images/training/mtt_short_stack.png',         // Short Stack Ninja
     'mtt-009': '/images/training/mtt_resteal.png',             // Resteal Wars
@@ -69,7 +69,7 @@ export const GAME_IMAGES = {
     'cash-022': '/images/training/advanced_blocker_tech.png',  // Texture Reading (Reuse Blocker)
     'cash-023': '/images/training/cash_equity_denial.png',     // Equity Denial
     'cash-024': '/images/training/cash_cbet_wide.png',         // Pot Control (Reuse Cbet Wide)
-    'cash-025': '/images/training/cash_game_card_art.png',     // Boss: Cash King (General category art)
+    'cash-025': '/images/training/cash_value_bet.png',         // Boss: Cash King (Using value bet art)
 
     // ═══════════════════════════════════════════════════════════════════════
     // SPINS (10)
@@ -83,7 +83,7 @@ export const GAME_IMAGES = {
     'spins-007': '/images/training/mtt_icm_modern.png',        // 50/50 Survival (Reuse ICM)
     'spins-008': '/images/training/spins_aggression.png',      // Aggression Mode (Check list... spins_aggression_... exists)
     'spins-009': '/images/training/spins_jackpot_wide.png',    // Chip Lead Lock (Reuse Jackpot Wide)
-    'spins-010': '/images/training/spins_game_card_art.png',   // Boss: Spin Master
+    'spins-010': '/images/training/spins_jackpot.png',         // Boss: Spin Master (Using jackpot art)
 
     // ═══════════════════════════════════════════════════════════════════════
     // PSYCHOLOGY (20)
@@ -107,7 +107,7 @@ export const GAME_IMAGES = {
     'psy-017': '/images/training/psychology_session.png',      // Study Habits
     'psy-018': '/images/training/psychology_brain.png',        // Table Image
     'psy-019': '/images/training/psychology_focus.png',        // Autopilot Escape
-    'psy-020': '/images/training/psychology_game_card_art.png',// Boss: Mind Master
+    'psy-020': '/images/training/psychology_brain.png',        // Boss: Mind Master (Using brain art)
 
     // ═══════════════════════════════════════════════════════════════════════
     // ADVANCED (20)
@@ -131,7 +131,7 @@ export const GAME_IMAGES = {
     'adv-017': '/images/training/advanced_range_chart.png',    // Capped Ranges
     'adv-018': '/images/training/advanced_polarity.png',       // Polarity Index
     'adv-019': '/images/training/advanced_solver_hi.png',      // Solver Scripts
-    'adv-020': '/images/training/advanced_game_card_art.png',  // Boss: GTO Apex
+    'adv-020': '/images/training/advanced_gto.png',            // Boss: GTO Apex (Using GTO art)
 };
 
 export const getGameImage = (gameId) => {
