@@ -90,7 +90,7 @@ export const TRAINING_LIBRARY = [
     { id: 'mtt-022', name: 'Clock Management', focus: 'Time bank strategy', category: 'MTT', difficulty: 2, icon: '⏰', tags: ['exploitative'] },
     { id: 'mtt-023', name: 'Registration Edge', focus: 'Late reg advantages', category: 'MTT', difficulty: 2, icon: '📝', tags: ['math'] },
     { id: 'mtt-024', name: 'Triple Barrel', focus: 'MTT bluff sequences', category: 'MTT', difficulty: 4, icon: '🎰', tags: ['exploitative'] },
-    { id: 'mtt-025', name: 'Boss: MTT Champion', focus: 'Full tourney simulation', category: 'MTT', difficulty: 5, icon: '🏅', tags: ['gto', 'math', 'exploitative'] },
+    { id: 'mtt-025', name: 'Level 10: MTT Champion', focus: 'Full tourney simulation', category: 'MTT', difficulty: 5, icon: '🏅', tags: ['gto', 'math', 'exploitative'] },
 
     // ═══════════════════════════════════════════════════════════════════════
     // CASH GAMES (25)
@@ -185,19 +185,19 @@ export const TRAINING_LIBRARY = [
 ];
 
 // Helper functions
-export const getGamesByCategory = (category) => 
+export const getGamesByCategory = (category) =>
     TRAINING_LIBRARY.filter(g => g.category === category);
 
-export const getGameById = (id) => 
+export const getGameById = (id) =>
     TRAINING_LIBRARY.find(g => g.id === id);
 
-export const getGamesByTag = (tag) => 
+export const getGamesByTag = (tag) =>
     TRAINING_LIBRARY.filter(g => g.tags?.includes(tag));
 
-export const getBossGames = () => 
+export const getBossGames = () =>
     TRAINING_LIBRARY.filter(g => g.name.toLowerCase().includes('boss'));
 
-export const getGamesByDifficulty = (min, max) => 
+export const getGamesByDifficulty = (min, max) =>
     TRAINING_LIBRARY.filter(g => g.difficulty >= min && g.difficulty <= max);
 
 // Lane definitions for the training hub
