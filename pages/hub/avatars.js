@@ -16,8 +16,8 @@ export default function AvatarsPage() {
     const { avatar, user } = useAvatar();
     const [activeTab, setActiveTab] = useState('library');
 
-    // Check if user is VIP (placeholder - replace with actual VIP check)
-    const isVip = user?.user_metadata?.is_vip || false;
+    // Check if user is VIP from Supabase auth user metadata
+    const isVip = user?.user_metadata?.is_vip || user?.raw_user_meta_data?.is_vip || false;
 
     return (
         <>
