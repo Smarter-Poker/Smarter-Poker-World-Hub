@@ -660,9 +660,35 @@ export default function CustomAvatarBuilder({ isVip = false }) {
         Create a unique custom avatar using AI
       </p>
 
-      {!effectiveVip && (
+      {/* VIP Slot Counter */}
+      {effectiveVip && (
+        <div className="vip-slots">
+          💎 Custom Avatars: {currentCount}/5 slots used
+          {!canCreate && (
+            <button
+              className="manage-gallery-btn"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              Manage Gallery
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Limit Warnings */}
+      {!effectiveVip && currentCount >= 1 && (
+        <div className="limit-warning limit-reached">
+          🔒 You've used your 1 free custom avatar. Upgrade to VIP for up to 5 avatars!
+        </div>
+      )}
+      {!effectiveVip && currentCount === 0 && (
         <div className="limit-warning">
-          ⚠️ FREE users can create 1 custom avatar. Upgrade to VIP for unlimited custom avatars!
+          ⚠️ FREE users get 1 custom avatar (one time only). Upgrade to VIP for up to 5!
+        </div>
+      )}
+      {effectiveVip && !canCreate && (
+        <div className="limit-warning limit-reached">
+          ⚠️ VIP limit reached! Delete an avatar below to create a new one.
         </div>
       )}
 
