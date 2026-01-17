@@ -104,10 +104,14 @@ function TrainingHeader({ gamesPlayed = 0 }) {
                     <span style={headerStyles.gamesLabel}>of 100</span>
                 </div>
 
-                {/* Diamond Wallet */}
-                <div style={headerStyles.statChip}>
+                {/* Diamond Wallet with + for top-up */}
+                <div
+                    onClick={() => router.push('/hub/diamond-store')}
+                    style={{ ...headerStyles.statChip, cursor: 'pointer' }}
+                >
                     <span style={{ fontSize: 14 }}>💎</span>
                     <span style={headerStyles.statValue}>{diamonds.toLocaleString()}</span>
+                    <span style={headerStyles.plusIcon}>+</span>
                 </div>
 
                 {/* XP */}
@@ -116,9 +120,9 @@ function TrainingHeader({ gamesPlayed = 0 }) {
                     <span style={headerStyles.statValue}>{xp.toLocaleString()}</span>
                 </div>
 
-                {/* Profile Orb */}
+                {/* Profile Orb → Profile Page */}
                 <div
-                    onClick={() => router.push('/hub/social-media')}
+                    onClick={() => router.push('/hub/profile')}
                     style={{
                         ...headerStyles.profileOrb,
                         backgroundImage: avatarUrl ? `url('${avatarUrl}')` : 'linear-gradient(135deg, #00d4ff, #0066ff)',
@@ -345,9 +349,6 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
                         {badge}
                     </motion.span>
                 )}
-                <span style={styles.laneCount}>
-                    {games.length} games • Scroll for more →
-                </span>
             </div>
 
             {/* Horizontal scrolling cards - Shows ALL games with horizontal scroll */}
