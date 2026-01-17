@@ -208,7 +208,7 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0, 10, 0, 0.95);
+          background: #000;
           z-index: 100;
           display: flex;
           flex-direction: column;
@@ -217,18 +217,31 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           overflow: hidden;
         }
 
-        .matrix-char {
+        .matrix-column {
           position: absolute;
-          color: #00ff00;
+          top: -100%;
+          display: flex;
+          flex-direction: column;
           font-family: 'Courier New', monospace;
-          font-size: 16px;
-          text-shadow: 0 0 10px #00ff00;
-          animation: fall 2s linear infinite;
+          font-size: 14px;
+          color: #00ff00;
+          text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00;
+          animation: matrixFall linear infinite;
+          white-space: nowrap;
         }
 
-        @keyframes fall {
-          0% { transform: translateY(-20px); opacity: 1; }
-          100% { transform: translateY(100vh); opacity: 0; }
+        .matrix-column span {
+          opacity: 0.9;
+        }
+
+        .matrix-column span:first-child {
+          color: #fff;
+          text-shadow: 0 0 15px #fff;
+        }
+
+        @keyframes matrixFall {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(200%); }
         }
 
         .loading-content {
