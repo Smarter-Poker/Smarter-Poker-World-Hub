@@ -1,6 +1,6 @@
 /**
- * GAME CARD — Fixed Design for 650px Layout (3 cards visible)
- * CSS zoom scales everything uniformly
+ * GAME CARD — Fixed Design for 800px Layout (3 cards visible)
+ * 3 cards × 230px + gaps + padding = ~750px (fits in 800px with margins)
  */
 
 import { motion } from 'framer-motion';
@@ -30,8 +30,8 @@ export default function GameCard({ game, onClick, index = 0, image }) {
                 position: 'relative',
                 cursor: 'pointer',
                 flexShrink: 0,
-                width: 190, // 3 cards × 190px + gaps = ~650px
-                padding: 4,
+                width: 230, // 3 cards × 230px + gaps = ~750px (fits 800px)
+                padding: 6,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -41,12 +41,12 @@ export default function GameCard({ game, onClick, index = 0, image }) {
             <div
                 style={{
                     position: 'relative',
-                    width: 170,
-                    height: 170,
+                    width: 210,
+                    height: 210,
                     background: '#1a2744',
                     border: `3px solid ${categoryColor}`,
-                    borderRadius: 12,
-                    boxShadow: `0 0 20px ${categoryColor}, 0 0 40px ${categoryColor}80, 0 8px 20px rgba(0,0,0,0.6)`,
+                    borderRadius: 14,
+                    boxShadow: `0 0 24px ${categoryColor}, 0 0 48px ${categoryColor}80, 0 10px 24px rgba(0,0,0,0.6)`,
                     overflow: 'hidden',
                 }}
             >
@@ -65,8 +65,8 @@ export default function GameCard({ game, onClick, index = 0, image }) {
 
             <h3
                 style={{
-                    margin: '8px 0 0 0',
-                    fontSize: 13,
+                    margin: '10px 0 0 0',
+                    fontSize: 15,
                     fontWeight: 800,
                     color: '#fff',
                     textShadow: '0 2px 4px rgba(0,0,0,0.5)',
