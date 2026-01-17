@@ -319,8 +319,9 @@ export default function TrainingPage() {
         <>
             <Head>
                 <title>Training — PokerIQ | 100 Games to Master</title>
-                {/* Viewport scaling is now GLOBAL in src/index.css */}
-                {/* This page just needs scrollbar styling */}
+                {/* LOCK viewport scale - prevent pinch zoom */}
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                {/* Scrollbar styling */}
                 <style>{`
                     ::-webkit-scrollbar { height: 6px; }
                     ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
