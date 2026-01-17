@@ -1,16 +1,26 @@
 # Viewport Scaling Implementation Tracker
 
 ## ✅ COMPLETED (Production Live)
-1. **Cinematic Intro** (`/src/world/components/CinematicIntro.tsx`)
+1. **Cinematic Intro** (`/src/world/components/CinematicIntro.tsx`) - Pattern B (Full-Viewport)
    - Hero text: clamp(80px, 13vh, 140px)
    - Title: clamp(32px, 5.9vh, 64px)
    - All glows/shadows: viewport-scaled
 
-2. **World Hub** (`/src/world/WorldHub.tsx`)
+2. **World Hub** (`/src/world/WorldHub.tsx`) - Pattern B (Full-Viewport)
    - Header logo: clamp(32-40px mobile, 48-60px desktop)
    - Profile orb: Dynamic vh-based sizing
    - Footer cards: clamp(140px, 17vw, 186px)
    - Mobile cards: clamp(100px, 18vw, 115px)
+
+3. **Training Library** (`/pages/hub/training.js`) - Pattern A (800px + Zoom) ⭐
+   - Uses the authoritative 800px design canvas
+   - CSS zoom scales at breakpoints
+   - **This is the template for all content pages**
+
+4. **Social Media** (`/pages/hub/social-media.js`) - Pattern A (800px + Zoom) ✨ NEW
+   - Applied Training page template
+   - 800px design canvas with zoom breakpoints
+   - Perfect scaling on all devices
 
 ## 🚀 IN PROGRESS
 

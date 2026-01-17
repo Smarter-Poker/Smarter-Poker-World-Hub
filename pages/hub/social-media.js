@@ -1136,9 +1136,42 @@ export default function SocialMediaPage() {
         <>
             <Head>
                 <title>Social Hub | Smarter.Poker</title>
-                {/* Override global dark theme for social page */}
+                <meta name="viewport" content="width=800, user-scalable=no" />
                 <style>{`
+                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
                     html, body { background: ${C.bg} !important; }
+                    
+                    .social-page-container {
+                        width: 800px;
+                        max-width: 800px;
+                        margin: 0 auto;
+                        overflow-x: hidden;
+                    }
+                    
+                    /* Mobile phones (390-450px) - zoom to ~50% */
+                    @media (max-width: 500px) {
+                        .social-page-container { zoom: 0.5; }
+                    }
+                    
+                    /* Large phones / small tablets (501-700px) */
+                    @media (min-width: 501px) and (max-width: 700px) {
+                        .social-page-container { zoom: 0.75; }
+                    }
+                    
+                    /* Tablets (701-900px) */
+                    @media (min-width: 701px) and (max-width: 900px) {
+                        .social-page-container { zoom: 0.95; }
+                    }
+                    
+                    /* Desktop (901px+) - slight scale up */
+                    @media (min-width: 901px) {
+                        .social-page-container { zoom: 1.2; }
+                    }
+                    
+                    /* Large desktop (1400px+) - cap at 1.5x */
+                    @media (min-width: 1400px) {
+                        .social-page-container { zoom: 1.5; }
+                    }
                 `}</style>
             </Head>
 
@@ -1509,8 +1542,8 @@ export default function SocialMediaPage() {
                     </div>
                 )}
 
-                {/* Main Feed - Full Width */}
-                <main style={{ maxWidth: 680, margin: '0 auto', padding: '8px' }}>
+                {/* Main Feed - 800px Design Canvas */}
+                <main className="social-page-container" style={{ padding: '8px' }}>
                     {/* Stories Bar */}
                     {user && <StoriesBar userId={user.id} />}
 

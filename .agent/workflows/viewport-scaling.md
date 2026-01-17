@@ -12,49 +12,112 @@ description: Viewport-based scaling template for building responsive pages
 
 ---
 
-## 📐 Design Canvas Models
+## 📐 Design Canvas Models — HYBRID APPROACH
 
-Choose ONE model per page type:
+Choose the appropriate model based on page type:
 
-### Model A: Viewport-Based Scaling (Flexible Layouts)
-**Use for**: Hubs, libraries, grids, lists, dashboards
+### Pattern A: 800px + CSS Zoom (Training Page Template) ⭐ PRIMARY
+**Use for**: Content pages, feeds, lists, libraries, forms, profiles, stores
 
-**Pattern**:
-```css
-/* Cards/Elements scale with viewport */
-width: clamp(140px, 17vw, 186px);
-font-size: clamp(12px, 1.7vh, 18px);
-padding: clamp(10px, 1.5vh, 16px);
-```
+**The Standard** - Design everything at 800px width, CSS zoom scales automatically:
 
-**Examples**: World Hub, Training Library, Social Feed
+```html
+<Head>
+  <meta name="viewport" content="width=800, user-scalable=no" />
+  <style>{`
+    .page-container {
+      width: 800px;
+      max-width: 800px;
+      margin: 0 auto;
+      overflow-x: hidden;
+    }
+    
+    /* Mobile phones (390-450px) - zoom to ~50% */
+    @media (max-width: 500px) {
+      .page-container { zoom: 0.5; }
+    }
+    
+    /* Large phones / small tablets (501-700px) */
+    @media (min-width: 501px) and (max-width: 700px) {
+      .page-container { zoom: 0.75; }
+    }
+    
+    /* Tablets (701-900px) */
+    @media (min-width: 701px) and (max-width: 900px) {
+      .page-container { zoom: 0.95; }
+    }
+    
+    /* Desktop (901px+) - slight scale up */
+    @media (min-width: 901px) {
+      .page-container { zoom: 1.2; }
+    }
+    
+    /* Large desktop (1400px+) - cap at 1.5x */
+    @media (min-width: 1400px) {
+      .page-container { zoom: 1.5; }
+    }
+  `}</style>
+</Head>
 
----
-
-### Model B: Fixed Aspect Ratio Canvas (Game Tables, Cinematics)
-**Use for**: Poker tables, full-screen experiences, games
-
-**Pattern**:
-```tsx
-// Container with fixed aspect ratio that scales to fit viewport
-<div style={{
-    position: 'relative',
-    width: '100vw',
-    height: `${(100 * DESIGN_HEIGHT) / DESIGN_WIDTH}vw`,
-    maxHeight: '100vh',
-    maxWidth: `${(100 * DESIGN_WIDTH) / DESIGN_HEIGHT}vh`,
-    margin: 'auto',
-}}>
-    {/* All internal elements use percentages relative to canvas */}
+<div className="page-container">
+  {/* Design everything at 800px width */}
+  {/* Use fixed pixel values - CSS zoom handles scaling */}
 </div>
 ```
 
-**Common Canvases**:
-- **Cinematic (16:9)**: 1920×1080
-- **Portrait Game (3:4)**: 600×800
-- **Square**: 1000×1000
+**✅ Examples**: Training Library, Social Media, Video Library, Profile, Settings, Diamond Store
 
-**Examples**: Training game tables, Cinematic intro, Avatar selection
+**Benefits**:
+- Simple: Design once at 800px, works everywhere
+- Consistent: Every element scales proportionally
+- Easy: No complex calculations or clamp()
+- Proven: Already works perfectly on Training page
+
+---
+
+### Pattern B: Full-Viewport Spatial (3D/Canvas Experiences)
+**Use for**: 3D scenes, spatial UIs, full-screen overlays, game tables
+
+**Pattern**:
+```tsx
+// Full viewport with viewport-relative sizing
+<div style={{
+    width: '100vw',
+    height: '100vh',
+    // Elements use clamp() or vh/vw units
+}}>
+  <div style={{
+    fontSize: 'clamp(80px, 13vh, 140px)',
+    width: 'clamp(140px, 17vw, 186px)',
+  }}>
+</div>
+```
+
+**❌ Do NOT use 800px container** - These need full viewport control
+
+**✅ Examples**: World Hub (3D carousel), Cinematic Intro, Training Game Tables (600×800 canvas)
+
+---
+
+### Pattern C: Fixed Aspect Ratio Canvas (Game Tables)
+**Use for**: Poker tables with specific aspect ratios
+
+**Pattern**:
+```tsx
+// 600×800 portrait canvas (3:4 ratio)
+<div style={{
+    position: 'relative',
+    width: '100vw',
+    height: '133.33vw', // (800/600)*100
+    maxHeight: '100vh',
+    maxWidth: '75vh', // (600/800)*100
+    margin: 'auto',
+}}>
+  {/* All elements use % positioning relative to canvas */}
+</div>
+```
+
+**✅ Examples**: Training game tables (`/hub/training/play/*`)
 
 ---
 
