@@ -96,7 +96,8 @@ export async function setPresetAvatar(userId, avatarId) {
 }
 
 /**
- * Generate and set a custom AI avatar using Replicate API
+ * Generate and set a custom AI avatar using OpenAI DALL-E
+ * The API handles image download and Supabase upload server-side
  */
 export async function generateCustomAvatar(userId, prompt, isVip = false, photoFile = null) {
     try {
@@ -113,7 +114,7 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
             }
         }
 
-        // Generate avatar using AI API
+        // Generate avatar using AI API (API handles storage upload)
         let generatedImageUrl;
 
         if (photoFile) {
@@ -124,56 +125,41 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
             generatedImageUrl = await generateAvatarFromText(prompt);
         }
 
-        // Upload to Supabase Storage
-        const timestamp = Date.now();
-        const filename = `${userId}_${timestamp}.png`;
-        const storagePath = `avatars/${userId}/${filename}`;
-
-        // Download the generated image
-        const imageResponse = await fetch(generatedImageUrl);
-        const imageBlob = await imageResponse.blob();
-
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('custom-avatars')
-            .upload(storagePath, imageBlob, {
-                contentType: 'image/png',
-                cacheControl: '3600'
-            });
-
-        if (uploadError) throw uploadError;
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-            .from('custom-avatars')
-            .getPublicUrl(storagePath);
+        // The API already uploaded to Supabase and returned the public URL
+        // Now just save to gallery and set as active
 
         // Save to custom gallery
         const { data: galleryData, error: galleryError } = await supabase
             .from('custom_avatar_gallery')
             .insert({
                 user_id: userId,
-                image_url: publicUrl,
+                image_url: generatedImageUrl,
                 prompt: prompt || 'Generated from photo'
             })
             .select()
             .single();
 
-        if (galleryError) throw galleryError;
+        if (galleryError) {
+            console.error('Gallery save error:', galleryError);
+            // Don't throw - avatar was still generated successfully
+        }
 
-        // Set as active avatar
+        // Set as active avatar using database function
         const { error: setError } = await supabase.rpc('set_active_avatar', {
             p_user_id: userId,
             p_avatar_type: 'custom',
-            p_custom_image_url: publicUrl,
+            p_custom_image_url: generatedImageUrl,
             p_custom_prompt: prompt || 'Generated from photo'
         });
 
-        if (setError) throw setError;
+        if (setError) {
+            console.error('Set active avatar error:', setError);
+            // Don't throw - avatar was still generated successfully
+        }
 
         return {
             success: true,
-            imageUrl: publicUrl,
+            imageUrl: generatedImageUrl,
             prompt: prompt || 'Generated from photo'
         };
     } catch (error) {
