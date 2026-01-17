@@ -1033,20 +1033,21 @@ const styles = {
         overflow: 'hidden',
     },
 
-    // Premium table container - FULL PAGE
+    // Premium table container - FIXED ASPECT RATIO (3:4 portrait to match table image)
+    // This ensures player positions are ALWAYS relative to the table boundary
     premiumTableContainer: {
         position: 'relative',
-        width: '100%',
-        height: '100%',
-        maxHeight: '70vh', // Leave room for question and buttons
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        width: 'min(100%, 75vh)', // Max width based on available height
+        aspectRatio: '3 / 4', // Fixed aspect ratio matching the table image
+        margin: '0 auto',
     },
     tableImage: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
         width: '100%',
         height: '100%',
-        objectFit: 'contain',
+        objectFit: 'cover', // Fill the container completely
         filter: 'brightness(1.1) contrast(1.05) saturate(1.05)',
     },
 
