@@ -229,12 +229,14 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
 
 export default function ProfilePage() {
     const router = useRouter();
+    const { avatar } = useAvatar();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [libraryOpen, setLibraryOpen] = useState(false);
+    const [showAvatarSelector, setShowAvatarSelector] = useState(false);
 
     // Profile fields
     const [profile, setProfile] = useState({
