@@ -270,18 +270,22 @@ export async function isAvatarUnlocked(userId, avatarId) {
  */
 export async function getAvailableAvatars(userId, tierFilter = 'all') {
     try {
-        // Get all unlocked avatar IDs
-        const { data: unlocks } = await supabase
-            .from('avatar_unlocks')
-            .select('avatar_id')
-            .eq('user_id', userId);
+        let unlockedIds = new Set();
 
-        const unlockedIds = new Set(unlocks?.map(u => u.avatar_id) || []);
+        // Only query unlocks if user is logged in
+        if (userId) {
+            const { data: unlocks } = await supabase
+                .from('avatar_unlocks')
+                .select('avatar_id')
+                .eq('user_id', userId);
+            unlockedIds = new Set(unlocks?.map(u => u.avatar_id) || []);
+        }
 
         // Get all avatars from library
         let avatars = tierFilter === 'all' ? getAll() : getByTier(tierFilter);
 
-        // Mark locked status
+        // Mark locked status (VIP avatars locked if not in unlocked set)
+        // FREE avatars are always unlocked
         return avatars.map(avatar => ({
             ...avatar,
             isLocked: avatar.tier === 'VIP' && !unlockedIds.has(avatar.id)
