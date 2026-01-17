@@ -214,11 +214,56 @@ export default function AvatarsComplete() {
                     <p style={{
                         textAlign: 'center',
                         color: '#888',
-                        marginBottom: '40px'
+                        marginBottom: '20px'
                     }}>
                         {user ? `Welcome, ${user.email}` : 'Sign in to save avatars'}
                         {isVip && <span style={{ color: '#FFD700', marginLeft: '10px' }}>💎 VIP</span>}
                     </p>
+
+                    {/* Login/Logout Button */}
+                    <div style={{
+                        textAlign: 'center',
+                        marginBottom: '40px'
+                    }}>
+                        {!user ? (
+                            <button
+                                onClick={() => window.location.href = '/intro'}
+                                style={{
+                                    padding: '12px 32px',
+                                    background: 'linear-gradient(135deg, #00f5ff, #0080ff)',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    color: '#fff',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 15px rgba(0, 245, 255, 0.4)',
+                                    transition: 'all 0.3s ease'
+                                }}>
+                                🔐 Sign In / Sign Up
+                            </button>
+                        ) : (
+                            <button
+                                onClick={async () => {
+                                    await supabase.auth.signOut();
+                                    setUser(null);
+                                    setIsVip(false);
+                                    setCustomAvatars([]);
+                                }}
+                                style={{
+                                    padding: '10px 24px',
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                    borderRadius: '8px',
+                                    color: '#fff',
+                                    fontSize: '14px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease'
+                                }}>
+                                🚪 Logout
+                            </button>
+                        )}
+                    </div>
 
                     {/* Custom Avatars Section */}
                     {user && (
