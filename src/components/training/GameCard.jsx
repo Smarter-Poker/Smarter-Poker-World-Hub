@@ -5,7 +5,7 @@
 
 import { motion } from 'framer-motion';
 
-export default function GameCard({ game, onClick, index = 0, image }) {
+export default function GameCard({ game, onClick, index = 0, image, progress }) {
     if (!game) return null;
 
     const CATEGORY_COLORS = {
@@ -17,6 +17,14 @@ export default function GameCard({ game, onClick, index = 0, image }) {
     };
 
     const categoryColor = CATEGORY_COLORS[game.category] || '#FF6B35';
+
+    // Check if mastered (all 10 levels complete)
+    const isMastered = progress?.levelsCompleted >= 10;
+
+    // Get current level and last score
+    const currentLevel = progress?.levelsCompleted || 0;
+    const lastScore = progress?.bestScore || 0;
+    const hasPlayed = currentLevel > 0 || lastScore > 0;
 
     return (
         <motion.div
@@ -60,6 +68,63 @@ export default function GameCard({ game, onClick, index = 0, image }) {
                             objectFit: 'cover',
                         }}
                     />
+                )}
+
+                {/* MASTERED BADGE - Shows when all 10 levels complete */}
+                {isMastered && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 8,
+                            left: 8,
+                            right: 8,
+                            padding: '6px 12px',
+                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                            borderRadius: 8,
+                            fontSize: 11,
+                            fontWeight: 900,
+                            color: '#000',
+                            letterSpacing: 1,
+                            textAlign: 'center',
+                            boxShadow: '0 4px 12px rgba(255, 215, 0, 0.6)',
+                        }}
+                    >
+                        ✓ MASTERED
+                    </div>
+                )}
+
+                {/* LEVEL + SCORE TAG - Upper right corner */}
+                {hasPlayed && !isMastered && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            padding: '4px 8px',
+                            background: 'rgba(0, 0, 0, 0.85)',
+                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                            borderRadius: 6,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-end',
+                            gap: 2,
+                        }}
+                    >
+                        <div style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: '#00d4ff',
+                        }}>
+                            LVL {currentLevel}
+                        </div>
+                        <div style={{
+                            fontSize: 9,
+                            fontWeight: 600,
+                            color: lastScore >= 85 ? '#4CAF50' : '#FFD700',
+                        }}>
+                            {lastScore}%
+                        </div>
+                    </div>
                 )}
             </div>
 
