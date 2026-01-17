@@ -473,17 +473,17 @@ const styles = {
         borderRadius: '50%',
     },
 
-    // Hero - FIXED SIZE, mobile-first
+    // Hero - VIEWPORT-SCALED
     hero: {
         position: 'relative',
-        height: 240, // Fixed height, optimized for mobile
-        minHeight: 240,
-        maxHeight: 240,
+        height: '30vw', // Viewport-scaled height
+        minHeight: '30vw',
+        maxHeight: '30vw',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        paddingTop: 44, // Account for fixed header
+        paddingTop: '5vw', // Viewport-scaled padding
     },
 
     heroBackground: {
@@ -504,8 +504,8 @@ const styles = {
 
     particle: {
         position: 'absolute',
-        width: 4,
-        height: 4,
+        width: '0.5vw',
+        height: '0.5vw',
         borderRadius: '50%',
         background: '#FFD700',
     },
@@ -518,23 +518,23 @@ const styles = {
 
     heroLabel: {
         display: 'block',
-        fontSize: 14,
+        fontSize: 'var(--vp-font-md, clamp(10px, 1.6vw, 15px))',
         color: '#FFD700',
         fontStyle: 'italic',
-        marginBottom: 8,
+        marginBottom: '1vw',
     },
 
     heroTitle: {
-        fontSize: 28, // Fixed size for mobile
+        fontSize: 'var(--vp-font-xxl, clamp(18px, 4vw, 36px))',
         fontWeight: 800,
-        margin: '0 0 6px 0',
-        letterSpacing: 1,
-        textShadow: '0 0 30px rgba(255,107,53,0.5)',
+        margin: '0 0 0.5vw 0',
+        letterSpacing: '0.1vw',
+        textShadow: '0 0 3vw rgba(255,107,53,0.5)',
         lineHeight: 1.1,
     },
 
     heroSubtitle: {
-        fontSize: 14,
+        fontSize: 'var(--vp-font-md, clamp(10px, 1.6vw, 15px))',
         color: 'rgba(255,255,255,0.6)',
         margin: 0,
     },
@@ -542,8 +542,8 @@ const styles = {
     statsRow: {
         display: 'flex',
         justifyContent: 'center',
-        gap: 24,
-        margin: '24px 0',
+        gap: 'var(--vp-space-lg, 3vw)',
+        margin: 'var(--vp-space-lg, 3vw) 0',
     },
 
     statItem: {
@@ -553,63 +553,63 @@ const styles = {
     },
 
     statValue: {
-        fontSize: 24,
+        fontSize: 'var(--vp-font-xl, clamp(16px, 3vw, 28px))',
         fontWeight: 700,
         color: '#fff',
     },
 
     statLabel: {
-        fontSize: 10,
+        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
         color: 'rgba(255,255,255,0.5)',
         textTransform: 'uppercase',
-        letterSpacing: 1,
+        letterSpacing: '0.1vw',
     },
 
     statDivider: {
-        width: 1,
-        height: 28,
+        width: '0.1vw',
+        height: '3.5vw',
         background: 'rgba(255,255,255,0.2)',
     },
 
     playButton: {
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 8,
-        padding: '12px 24px', // Smaller for mobile
+        gap: '1vw',
+        padding: 'var(--vp-space-sm, 1vw) var(--vp-space-lg, 3vw)',
         background: 'linear-gradient(135deg, #FF6B35, #E64A19)',
         border: 'none',
-        borderRadius: 24,
+        borderRadius: 'var(--vp-radius-xl, 2vw)',
         color: '#fff',
-        fontSize: 14,
+        fontSize: 'var(--vp-font-md, clamp(10px, 1.6vw, 15px))',
         fontWeight: 700,
         cursor: 'pointer',
-        boxShadow: '0 4px 20px rgba(255,107,53,0.4)',
-        letterSpacing: 0.5,
+        boxShadow: '0 0.5vw 2vw rgba(255,107,53,0.4)',
+        letterSpacing: '0.05vw',
         WebkitTapHighlightColor: 'transparent',
     },
 
     playIcon: {
-        fontSize: 12,
+        fontSize: 'var(--vp-font-sm, clamp(8px, 1.4vw, 13px))',
     },
 
     xpBadge: {
-        padding: '3px 8px',
+        padding: '0.3vw 1vw',
         background: 'rgba(255,255,255,0.2)',
-        borderRadius: 12,
-        fontSize: 11,
+        borderRadius: 'var(--vp-radius-lg, 1.2vw)',
+        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
         fontWeight: 600,
     },
 
-    // Filters - FIXED SIZE header, mobile-first
+    // Filters - VIEWPORT-SCALED
     filterBar: {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 12,
-        padding: '12px 16px',
-        height: 56, // FIXED height
-        minHeight: 56,
-        maxHeight: 56,
+        gap: 'var(--vp-space-sm, 1vw)',
+        padding: 'var(--vp-space-sm, 1vw) var(--vp-lane-padding, 2vw)',
+        height: '7vw', // Viewport-scaled height
+        minHeight: '7vw',
+        maxHeight: '7vw',
         background: 'rgba(10,10,21,0.98)',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
         position: 'sticky',
@@ -654,65 +654,65 @@ const styles = {
     },
 
     lane: {
-        marginBottom: 32,
+        marginBottom: 'var(--vp-section-gap, 3vw)',
     },
 
     laneHeader: {
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        padding: '0 16px', // Tighter padding for mobile
-        marginBottom: 12,
-        height: 32, // Fixed height
-        minHeight: 32,
+        gap: '1vw',
+        padding: '0 var(--vp-lane-padding, 2vw)',
+        marginBottom: 'var(--vp-space-sm, 1vw)',
+        height: '4vw',
+        minHeight: '4vw',
     },
 
     laneChevron: {
-        fontSize: 20,
+        fontSize: 'var(--vp-font-lg, clamp(12px, 2vw, 18px))',
         fontWeight: 800,
     },
 
     laneIcon: {
-        fontSize: 20,
+        fontSize: 'var(--vp-font-lg, clamp(12px, 2vw, 18px))',
     },
 
     laneTitle: {
-        fontSize: 16,
+        fontSize: 'var(--vp-font-lg, clamp(12px, 2vw, 18px))',
         fontWeight: 700,
-        letterSpacing: 2,
+        letterSpacing: '0.2vw',
         margin: 0,
         textTransform: 'uppercase',
     },
 
     laneBadge: {
-        padding: '4px 10px',
+        padding: '0.4vw 1vw',
         background: 'linear-gradient(90deg, #FF5722, #FF9800)',
-        borderRadius: 4,
-        fontSize: 10,
+        borderRadius: 'var(--vp-radius-sm, 0.5vw)',
+        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
         fontWeight: 800,
         color: '#fff',
     },
 
     laneCount: {
         marginLeft: 'auto',
-        fontSize: 12,
+        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
         color: 'rgba(255,255,255,0.4)',
     },
 
     laneScroller: {
         overflowX: 'auto',
         overflowY: 'hidden',
-        padding: '0 16px',
-        maxWidth: '100vw', // Never exceed viewport width
-        WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
+        padding: '0 var(--vp-lane-padding, 2vw)',
+        maxWidth: '100vw',
+        WebkitOverflowScrolling: 'touch',
     },
 
     laneCards: {
         display: 'flex',
-        gap: 'var(--card-gap, 12px)', // Responsive gap from global CSS
-        paddingBottom: 8,
-        paddingRight: 'var(--lane-padding, 16px)',
-        width: 'fit-content', // Cards determine the width, not container
+        gap: 'var(--vp-card-gap, 1.5vw)',
+        paddingBottom: '1vw',
+        paddingRight: 'var(--vp-lane-padding, 2vw)',
+        width: 'fit-content',
     },
 
     // View All Card
