@@ -117,6 +117,69 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE DESIGN SYSTEM — Mobile-First
+   CSS Variables that adapt to viewport width for consistent UX across devices
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Default (Mobile - 320px to 599px) */
+  --card-size: 140px;
+  --card-gap: 12px;
+  --lane-padding: 12px;
+  --container-max-width: 100%;
+  --cards-per-view: 2;
+}
+
+/* Small Mobile (Very narrow devices) */
+@media (max-width: 374px) {
+  :root {
+    --card-size: 120px;
+    --card-gap: 8px;
+    --lane-padding: 8px;
+  }
+}
+
+/* Medium Mobile/Phablets (375px - 599px) */
+@media (min-width: 375px) and (max-width: 599px) {
+  :root {
+    --card-size: 160px;
+    --card-gap: 12px;
+    --lane-padding: 12px;
+  }
+}
+
+/* Tablets (600px - 899px) */
+@media (min-width: 600px) and (max-width: 899px) {
+  :root {
+    --card-size: 180px;
+    --card-gap: 16px;
+    --lane-padding: 16px;
+    --cards-per-view: 3;
+  }
+}
+
+/* Small Desktop (900px - 1199px) */
+@media (min-width: 900px) and (max-width: 1199px) {
+  :root {
+    --card-size: 160px;
+    --card-gap: 16px;
+    --lane-padding: 20px;
+    --cards-per-view: 4;
+  }
+}
+
+/* Large Desktop (1200px+) - Locked to mobile-first curated experience */
+@media (min-width: 1200px) {
+  :root {
+    --card-size: 160px;
+    --card-gap: 12px;
+    --lane-padding: 20px;
+    --container-max-width: 900px;
+    --cards-per-view: 5;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MOBILE OPTIMIZATIONS
    ═══════════════════════════════════════════════════════════════════════════ */
 
