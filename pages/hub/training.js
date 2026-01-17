@@ -402,7 +402,6 @@ export default function TrainingPage() {
                     {dailyChallenges.length > 0 && activeFilter === 'ALL' && (
                         <GameLane
                             title="TODAY'S DAILY CHALLENGE"
-                            icon="🔥"
                             color="#FFD700"
                             games={dailyChallenges}
                             onGameClick={handleGameClick}
@@ -415,7 +414,6 @@ export default function TrainingPage() {
                     {leakGames.length > 0 && activeFilter === 'ALL' && (
                         <GameLane
                             title="FIX YOUR LEAKS"
-                            icon="🔧"
                             color="#FF4444"
                             games={leakGames}
                             onGameClick={handleGameClick}
@@ -431,7 +429,6 @@ export default function TrainingPage() {
                             <GameLane
                                 key={cat.id}
                                 title={cat.title}
-                                icon={cat.icon}
                                 color={cat.color}
                                 games={getGamesByCategory(cat.id)}
                                 onGameClick={handleGameClick}
@@ -448,7 +445,6 @@ export default function TrainingPage() {
                             return (
                                 <GameLane
                                     title={activeCategory?.title || activeFilterConfig?.laneTitle || `${activeFilter} TRAINING`}
-                                    icon={activeCategory?.icon || '🎮'}
                                     color={activeCategory?.color || activeFilterConfig?.color || '#fff'}
                                     games={filteredGames}
                                     onGameClick={handleGameClick}
