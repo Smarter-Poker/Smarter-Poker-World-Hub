@@ -287,6 +287,35 @@ export default function CustomAvatarBuilder({ isVip = false }) {
         </div>
       )}
 
+      <div className="photo-upload-section">
+        <div className="section-header">
+          <span className="prompt-label">📸 Upload Photo (Optional)</span>
+          <span className="helper-text">For AI to create a likeness</span>
+        </div>
+
+        {!photoPreview ? (
+          <label className="upload-zone">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              style={{ display: 'none' }}
+              disabled={generating}
+            />
+            <div className="upload-icon">📷</div>
+            <div className="upload-text">Click or drag photo here</div>
+            <div className="upload-hint">Supports JPG, PNG (Max 10MB)</div>
+          </label>
+        ) : (
+          <div className="photo-preview-container">
+            <img src={photoPreview} alt="Uploaded" className="photo-preview" />
+            <button className="remove-photo-btn" onClick={removePhoto} disabled={generating}>
+              ✕ Remove
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="prompt-section">
         <div className="prompt-label">✨ Describe Your Avatar</div>
         <textarea
