@@ -319,38 +319,41 @@ export default function TrainingPage() {
         <>
             <Head>
                 <title>Training — PokerIQ | 100 Games to Master</title>
-                {/* LOCK viewport - prevent pinch zoom */}
-                <meta name="viewport" content="width=1200, initial-scale=0.33, maximum-scale=1.0, user-scalable=no" />
-                {/* TRUE SCALE-DOWN MODEL: Design for 1200px, zoom down on mobile */}
+                {/* TRUE SCALE-DOWN MODEL: Design for 650px (3 cards visible) */}
+                <meta name="viewport" content="width=650, initial-scale=0.6, maximum-scale=1.0, user-scalable=no" />
                 <style>{`
                     /* Scrollbar styling */
                     ::-webkit-scrollbar { height: 6px; }
                     ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
                     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
                     
-                    /* The page is designed for 1200px width */
-                    /* CSS zoom scales EVERYTHING uniformly */
+                    /* The page is designed for 650px width = 3 cards visible */
+                    /* CSS zoom scales EVERYTHING uniformly on all devices */
                     .training-page {
-                        width: 1200px;
+                        width: 650px;
                         margin: 0 auto;
                         transform-origin: top center;
                     }
                     
-                    /* Scale down on mobile - TRUE uniform scaling */
-                    @media (max-width: 1200px) {
+                    /* Scale down on smaller screens - TRUE uniform scaling */
+                    @media (max-width: 650px) {
                         .training-page {
-                            zoom: calc(100vw / 1200);
+                            zoom: calc(100vw / 650);
+                        }
+                    }
+                    
+                    /* Scale UP on larger screens */
+                    @media (min-width: 651px) {
+                        .training-page {
+                            zoom: calc(100vw / 650);
                         }
                     }
                     
                     /* Fallback for browsers that don't support zoom */
                     @supports not (zoom: 1) {
-                        @media (max-width: 1200px) {
-                            .training-page {
-                                transform: scale(calc(100vw / 1200px));
-                                transform-origin: top left;
-                                width: 1200px;
-                            }
+                        .training-page {
+                            transform: scale(calc(100vw / 650px));
+                            transform-origin: top left;
                         }
                     }
                 `}</style>
