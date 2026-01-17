@@ -44,93 +44,230 @@ const CATEGORIES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// HERO SECTION
+// TRAINING HEADER — Fixed header with Hub button, stats, and profile
 // ═══════════════════════════════════════════════════════════════════════════
 
-function HeroSection({ stats, onPlayFeatured }) {
-    return (
-        <div style={styles.hero}>
-            {/* Background gradient */}
-            <div style={styles.heroBackground} />
+function TrainingHeader() {
+    const router = useRouter();
+    const [diamonds, setDiamonds] = useState(300);
+    const [xp, setXp] = useState(50);
+    const [avatarUrl, setAvatarUrl] = useState(null);
 
-            {/* Floating particles effect */}
-            <div style={styles.particleOverlay}>
-                {[...Array(12)].map((_, i) => (
-                    <motion.div
-                        key={i}
-                        style={{
-                            ...styles.particle,
-                            left: `${Math.random() * 100}%`,
-                            top: `${Math.random() * 100}%`,
-                        }}
-                        animate={{
-                            y: [0, -20, 0],
-                            opacity: [0.3, 0.8, 0.3],
-                        }}
-                        transition={{
-                            duration: 2 + Math.random() * 2,
-                            repeat: Infinity,
-                            delay: Math.random() * 2,
-                        }}
-                    />
-                ))}
+    // Fetch user profile data
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const { createClient } = await import('@supabase/supabase-js');
+                const supabase = createClient(
+                    process.env.NEXT_PUBLIC_SUPABASE_URL,
+                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+                );
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('avatar_url, diamonds, xp')
+                        .eq('id', user.id)
+                        .maybeSingle();
+                    if (profile) {
+                        setAvatarUrl(profile.avatar_url);
+                        if (profile.diamonds) setDiamonds(profile.diamonds);
+                        if (profile.xp) setXp(profile.xp);
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to fetch profile:', e);
+            }
+        };
+        fetchProfile();
+    }, []);
+
+    return (
+        <div style={headerStyles.container}>
+            {/* LEFT: Smarter.Poker Logo → Hub */}
+            <div
+                onClick={() => router.push('/hub')}
+                style={headerStyles.logoContainer}
+            >
+                <img
+                    src="/smarter-poker-logo.png"
+                    alt="Smarter Poker"
+                    style={headerStyles.logo}
+                />
             </div>
 
-            {/* Content */}
-            <div style={styles.heroContent}>
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                >
-                    <span style={styles.heroLabel}>Daily Challenge</span>
-                    <h1 style={styles.heroTitle}>HIGH STAKES BLUFFS</h1>
-                    <p style={styles.heroSubtitle}>Master river bluffing spots • 20 Hands • 85% to Pass</p>
-                </motion.div>
+            {/* RIGHT: Stats + Profile */}
+            <div style={headerStyles.rightSection}>
+                {/* Diamond Wallet */}
+                <div style={headerStyles.statChip}>
+                    <span style={{ fontSize: 16 }}>💎</span>
+                    <span style={headerStyles.statValue}>{diamonds.toLocaleString()}</span>
+                </div>
 
-                {/* Stats row */}
-                <motion.div
-                    style={styles.statsRow}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                >
-                    <div style={styles.statItem}>
-                        <span style={styles.statValue}>{stats.gamesPlayed}</span>
-                        <span style={styles.statLabel}>Games Played</span>
-                    </div>
-                    <div style={styles.statDivider} />
-                    <div style={styles.statItem}>
-                        <span style={styles.statValue}>{stats.gamesMastered}</span>
-                        <span style={styles.statLabel}>Mastered</span>
-                    </div>
-                    <div style={styles.statDivider} />
-                    <div style={styles.statItem}>
-                        <span style={{ ...styles.statValue, color: '#FFD700' }}>
-                            {stats.totalXP.toLocaleString()}
-                        </span>
-                        <span style={styles.statLabel}>Total XP</span>
-                    </div>
-                </motion.div>
+                {/* XP */}
+                <div style={headerStyles.statChip}>
+                    <span style={{ fontSize: 14, color: '#FFD700' }}>XP</span>
+                    <span style={headerStyles.statValue}>{xp.toLocaleString()}</span>
+                </div>
 
-                {/* CTA */}
-                <motion.button
-                    style={styles.playButton}
-                    onClick={onPlayFeatured}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                >
-                    <span style={styles.playIcon}>▶</span>
-                    PLAY NOW
-                    <span style={styles.xpBadge}>×2.5 XP</span>
-                </motion.button>
+                {/* Profile Orb */}
+                <div
+                    onClick={() => router.push('/hub/social-media')}
+                    style={{
+                        ...headerStyles.profileOrb,
+                        backgroundImage: avatarUrl ? `url('${avatarUrl}')` : 'linear-gradient(135deg, #00d4ff, #0066ff)',
+                    }}
+                />
             </div>
         </div>
     );
 }
+
+const headerStyles = {
+    container: {
+        position: 'sticky',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 56,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '0 16px',
+        background: 'linear-gradient(180deg, rgba(10, 22, 40, 0.98), rgba(5, 15, 30, 0.95))',
+        backdropFilter: 'blur(15px)',
+        WebkitBackdropFilter: 'blur(15px)',
+        borderBottom: '2px solid rgba(0, 212, 255, 0.3)',
+        zIndex: 100,
+    },
+    logoContainer: {
+        cursor: 'pointer',
+        transition: 'transform 0.2s ease',
+    },
+    logo: {
+        height: 36,
+        width: 'auto',
+        objectFit: 'contain',
+    },
+    rightSection: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+    },
+    statChip: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '6px 10px',
+        background: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: 16,
+        border: '1px solid rgba(255, 255, 255, 0.15)',
+    },
+    statValue: {
+        fontSize: 13,
+        fontWeight: 700,
+        color: '#fff',
+    },
+    profileOrb: {
+        width: 36,
+        height: 36,
+        borderRadius: '50%',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        border: '2px solid rgba(0, 212, 255, 0.6)',
+        boxShadow: '0 0 12px rgba(0, 212, 255, 0.3)',
+        cursor: 'pointer',
+    },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROMO SECTION — Living advertisement / featured content area
+// ═══════════════════════════════════════════════════════════════════════════
+
+function PromoSection({ onPlayFeatured }) {
+    return (
+        <motion.div
+            style={promoStyles.container}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+        >
+            <div style={promoStyles.content}>
+                <span style={promoStyles.badge}>DAILY CHALLENGE</span>
+                <h2 style={promoStyles.title}>HIGH STAKES BLUFFS</h2>
+                <p style={promoStyles.subtitle}>Master river bluffing • 20 Hands • 85% to Pass</p>
+                <motion.button
+                    style={promoStyles.playButton}
+                    onClick={onPlayFeatured}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                >
+                    ▶ PLAY NOW
+                    <span style={promoStyles.xpBadge}>×2.5 XP</span>
+                </motion.button>
+            </div>
+        </motion.div>
+    );
+}
+
+const promoStyles = {
+    container: {
+        padding: '16px 20px',
+        background: 'linear-gradient(135deg, rgba(255, 107, 53, 0.15), rgba(255, 215, 0, 0.1))',
+        borderBottom: '1px solid rgba(255, 215, 0, 0.2)',
+    },
+    content: {
+        textAlign: 'center',
+    },
+    badge: {
+        display: 'inline-block',
+        padding: '4px 10px',
+        background: 'rgba(255, 215, 0, 0.2)',
+        border: '1px solid rgba(255, 215, 0, 0.4)',
+        borderRadius: 12,
+        fontSize: 10,
+        fontWeight: 700,
+        color: '#FFD700',
+        letterSpacing: 0.5,
+        marginBottom: 6,
+    },
+    title: {
+        margin: '0 0 4px 0',
+        fontSize: 22,
+        fontWeight: 900,
+        fontFamily: 'Orbitron, sans-serif',
+        color: '#fff',
+        letterSpacing: 2,
+        textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+    },
+    subtitle: {
+        margin: '0 0 10px 0',
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.6)',
+    },
+    playButton: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '10px 24px',
+        background: 'linear-gradient(135deg, #FF6B35, #FF8F35)',
+        border: 'none',
+        borderRadius: 24,
+        fontSize: 13,
+        fontWeight: 800,
+        color: '#fff',
+        cursor: 'pointer',
+        boxShadow: '0 4px 16px rgba(255, 107, 53, 0.4)',
+    },
+    xpBadge: {
+        padding: '3px 8px',
+        background: 'rgba(255,255,255,0.2)',
+        borderRadius: 10,
+        fontSize: 10,
+        fontWeight: 700,
+    },
+};
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FILTER BAR
