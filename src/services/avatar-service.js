@@ -101,21 +101,29 @@ export async function setPresetAvatar(userId, avatarId) {
  */
 export async function generateCustomAvatar(userId, prompt, isVip = false, photoFile = null) {
     try {
-        // Check limits: FREE = 1 custom avatar, VIP = 5 max
-        const existingCustom = await supabase
-            .from('custom_avatar_gallery')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('is_deleted', false);
+        // Check limits based on user tier
+        if (isVip) {
+            // VIP: Check ACTIVE avatars only (can delete to make room)
+            const activeCustom = await supabase
+                .from('custom_avatar_gallery')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('is_deleted', false);
 
-        const currentCount = existingCustom.data?.length || 0;
-        const maxAllowed = isVip ? 5 : 1;
+            const activeCount = activeCustom.data?.length || 0;
+            if (activeCount >= 5) {
+                throw new Error(`VIP limit reached! You have ${activeCount}/5 custom avatars. Please delete one to create a new avatar.`);
+            }
+        } else {
+            // FREE: Check ALL avatars ever created (including deleted - one time only!)
+            const allCustom = await supabase
+                .from('custom_avatar_gallery')
+                .select('id')
+                .eq('user_id', userId);
 
-        if (currentCount >= maxAllowed) {
-            if (isVip) {
-                throw new Error(`VIP limit reached! You have ${currentCount}/5 custom avatars. Please delete one to create a new avatar.`);
-            } else {
-                throw new Error('FREE users can only create 1 custom avatar. Upgrade to VIP for up to 5!');
+            const totalEver = allCustom.data?.length || 0;
+            if (totalEver >= 1) {
+                throw new Error('FREE users get 1 custom avatar (one time only). Upgrade to VIP for up to 5!');
             }
         }
 
