@@ -138,20 +138,23 @@ export function AvatarProvider({ children }) {
         return result;
     }
 
-    async function setActiveAvatar(imageUrl, type = 'custom', avatarId = null, prompt = null) {
+    async function setActiveAvatar(imageUrl, type = 'custom', presetAvatarId = null, prompt = null) {
         if (!user) return { success: false, error: 'Not authenticated' };
 
         try {
-            // Update user avatar in database
+            // Update user avatar in database using correct column names
             const { error } = await supabase
                 .from('user_avatars')
                 .upsert({
                     user_id: user.id,
-                    avatar_id: avatarId,
+                    preset_avatar_id: presetAvatarId,  // Correct column name
                     avatar_type: type,
                     custom_image_url: imageUrl,
                     custom_prompt: prompt,
+                    is_active: true,
                     updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'user_id'  // Use the unique constraint
                 });
 
             if (error) throw error;
