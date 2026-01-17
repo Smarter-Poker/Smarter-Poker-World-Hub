@@ -750,14 +750,40 @@ export default function CustomAvatarBuilder({ isVip = false }) {
       <button
         className="generate-btn"
         onClick={handleGenerate}
-        disabled={generating || (!prompt.trim() && !uploadedPhoto)}
+        disabled={generating || (!prompt.trim() && !uploadedPhoto) || !canCreate}
       >
-        ⚡ Generate Avatar
+        {canCreate ? '⚡ Generate Avatar' : '🔒 Slot Limit Reached'}
       </button>
 
       <div className="powered-by">
         Powered by AI Image Generation
       </div>
+
+      {/* VIP Gallery Management Modal */}
+      {showDeleteModal && effectiveVip && (
+        <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
+          <div className="delete-modal" onClick={e => e.stopPropagation()}>
+            <h3>Manage Your Avatars</h3>
+            <p>Delete an avatar to free up a slot for a new creation.</p>
+            <div className="avatar-gallery-grid">
+              {customAvatars.map(avatar => (
+                <div key={avatar.id} className="gallery-avatar-item">
+                  <img src={avatar.image_url} alt="Custom Avatar" />
+                  <button
+                    className="delete-avatar-btn"
+                    onClick={() => handleDeleteAvatar(avatar.id)}
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button className="close-modal-btn" onClick={() => setShowDeleteModal(false)}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
