@@ -702,14 +702,17 @@ const styles = {
     laneScroller: {
         overflowX: 'auto',
         overflowY: 'hidden',
-        padding: '0 24px',
+        padding: '0 16px',
+        maxWidth: '100vw', // Never exceed viewport width
+        WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
     },
 
     laneCards: {
         display: 'flex',
-        gap: 12, // Tighter gap for mobile
+        gap: 12,
         paddingBottom: 8,
-        paddingRight: 16, // Extra space at end
+        paddingRight: 16,
+        width: 'fit-content', // Cards determine the width, not container
     },
 
     // View All Card
