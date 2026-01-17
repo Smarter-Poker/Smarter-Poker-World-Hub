@@ -615,13 +615,6 @@ export default function ProfilePage() {
                 supabase={supabase}
                 mode="browse"
             />
-
-            {/* Avatar Selector Modal */}
-            <AvatarSelectorModal
-                isOpen={showAvatarSelector}
-                onClose={() => setShowAvatarSelector(false)}
-                isVip={profile?.is_vip || false}
-            />
         </>
     );
 }
