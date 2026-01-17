@@ -13,8 +13,8 @@ export default function AvatarsStandalone() {
     const [selectedAvatar, setSelectedAvatar] = useState(null);
 
     useEffect(() => {
-        // Load all FREE avatars (no database queries, pure static data)
-        const allAvatars = getByTier('free');
+        // Load ALL avatars (75 total: FREE + VIP)
+        const allAvatars = getAll();
         setAvatars(allAvatars);
     }, []);
 
