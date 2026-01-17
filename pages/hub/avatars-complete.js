@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import Head from 'head';
+import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
 import { getAll } from '../../src/data/AVATAR_LIBRARY';
 import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
