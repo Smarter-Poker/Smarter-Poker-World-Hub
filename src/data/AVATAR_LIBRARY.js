@@ -828,6 +828,11 @@ export const getRandomAvatar = (tier = null) => {
     return pool[Math.floor(Math.random() * pool.length)];
 };
 
+export const getCategories = () => {
+    const categories = [...new Set(AVATAR_LIBRARY.map(a => a.category))];
+    return categories;
+};
+
 // Stats
 export const AVATAR_STATS = {
     total: AVATAR_LIBRARY.length,
