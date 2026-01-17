@@ -433,7 +433,7 @@ export default function TrainingPlayPage() {
         }
     }, []);
 
-    // Load game and questions (God Mode with fallback)
+    // Load game and questions
     useEffect(() => {
         async function loadGameAndQuiz() {
             if (!gameId) return;
@@ -445,29 +445,14 @@ export default function TrainingPlayPage() {
             const count = getPlayerCount(gameId);
             setPlayerCount(count);
 
-            // Try to load from God Mode if user is logged in
-            if (user) {
-                console.log('🎯 Attempting God Mode quiz generation...');
-                const levelId = getLevelIdFromGameId(gameId);
-                const godModeQuiz = await generateLevelQuiz(user.id, levelId);
-
-                if (godModeQuiz && godModeQuiz.questions.length > 0) {
-                    console.log('✅ God Mode quiz loaded:', godModeQuiz.questions.length, 'questions');
-                    setQuestions(godModeQuiz.questions);
-                    return;
-                }
-
-                console.log('⚠️ God Mode returned no questions, using fallback');
-            }
-
-            // Fallback to dummy questions
-            console.log('📚 Loading dummy questions for development');
+            // Load fallback questions
+            console.log('📚 Loading questions for game:', gameId);
             const gameQuestions = getQuestionsForGame(gameId);
             setQuestions(gameQuestions);
         }
 
         loadGameAndQuiz();
-    }, [gameId, user]);
+    }, [gameId]);
 
     // Helper: Map gameId to levelId
     function getLevelIdFromGameId(gameId) {
