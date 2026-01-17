@@ -63,43 +63,44 @@ function getVillainAvatar(index) {
 function getPlayerPositions(playerCount) {
     // All layouts use % positioning relative to table container
     // Hero is always at bottom center
+    // Positions are ON the table felt (not outside the border)
 
     if (playerCount === 2) {
         // Heads Up: Villain top, Hero bottom
         return [
-            { top: '5%', left: '50%', transform: 'translateX(-50%)', playerIndex: 1 }, // Villain
+            { top: '10%', left: '50%', transform: 'translateX(-50%)', playerIndex: 1 }, // Villain
         ];
     }
 
     if (playerCount === 3) {
         // 3-Max: Triangle formation
         return [
-            { top: '5%', left: '50%', transform: 'translateX(-50%)', playerIndex: 1 }, // Top center
-            { top: '35%', left: '85%', transform: 'translateX(-50%)', playerIndex: 2 }, // Right
+            { top: '10%', left: '50%', transform: 'translateX(-50%)', playerIndex: 1 }, // Top center
+            { top: '35%', left: '75%', transform: 'translateX(-50%)', playerIndex: 2 }, // Right
         ];
     }
 
     if (playerCount === 6) {
-        // 6-Max: Approved mockup design
+        // 6-Max: Positioned ON the table felt
         return [
-            { top: '5%', left: '50%', transform: 'translateX(-50%)', playerIndex: 1 }, // Top center
-            { top: '20%', left: '85%', transform: 'translateX(-50%)', playerIndex: 2 }, // Right upper
-            { top: '55%', left: '15%', transform: 'translateX(-50%)', playerIndex: 3 }, // Left lower
-            { top: '20%', left: '15%', transform: 'translateX(-50%)', playerIndex: 4 }, // Left upper
+            { top: '10%', left: '50%', transform: 'translateX(-50%)', playerIndex: 1 }, // Top center
+            { top: '20%', left: '75%', transform: 'translateX(-50%)', playerIndex: 2 }, // Right upper
+            { top: '55%', left: '25%', transform: 'translateX(-50%)', playerIndex: 3 }, // Left lower
+            { top: '20%', left: '25%', transform: 'translateX(-50%)', playerIndex: 4 }, // Left upper
         ];
     }
 
     if (playerCount === 9) {
-        // 9-Max: Full ring
+        // 9-Max: Full ring ON the table
         return [
-            { top: '5%', left: '50%', transform: 'translateX(-50%)', playerIndex: 1 }, // Top center
-            { top: '10%', left: '75%', transform: 'translateX(-50%)', playerIndex: 2 }, // Top right
-            { top: '30%', left: '85%', transform: 'translateX(-50%)', playerIndex: 3 }, // Right upper
-            { top: '50%', left: '85%', transform: 'translateX(-50%)', playerIndex: 4 }, // Right lower
-            { top: '70%', left: '75%', transform: 'translateX(-50%)', playerIndex: 5 }, // Bottom right
-            { top: '70%', left: '25%', transform: 'translateX(-50%)', playerIndex: 6 }, // Bottom left
-            { top: '50%', left: '15%', transform: 'translateX(-50%)', playerIndex: 7 }, // Left lower
-            { top: '30%', left: '15%', transform: 'translateX(-50%)', playerIndex: 8 }, // Left upper
+            { top: '10%', left: '50%', transform: 'translateX(-50%)', playerIndex: 1 }, // Top center
+            { top: '12%', left: '68%', transform: 'translateX(-50%)', playerIndex: 2 }, // Top right
+            { top: '30%', left: '75%', transform: 'translateX(-50%)', playerIndex: 3 }, // Right upper
+            { top: '50%', left: '75%', transform: 'translateX(-50%)', playerIndex: 4 }, // Right lower
+            { top: '65%', left: '68%', transform: 'translateX(-50%)', playerIndex: 5 }, // Bottom right
+            { top: '65%', left: '32%', transform: 'translateX(-50%)', playerIndex: 6 }, // Bottom left
+            { top: '50%', left: '25%', transform: 'translateX(-50%)', playerIndex: 7 }, // Left lower
+            { top: '30%', left: '25%', transform: 'translateX(-50%)', playerIndex: 8 }, // Left upper
         ];
     }
 
