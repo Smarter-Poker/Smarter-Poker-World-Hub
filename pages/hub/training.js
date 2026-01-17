@@ -319,8 +319,77 @@ export default function TrainingPage() {
         <>
             <Head>
                 <title>Training — PokerIQ | 100 Games to Master</title>
-                {/* Responsive styles are now global in index.css */}
                 <style>{`
+                    /* ═══════════════════════════════════════════════════════════════
+                       VIEWPORT SCALING — Same layout on EVERY device
+                       5 cards always visible, everything scales proportionally
+                       ═══════════════════════════════════════════════════════════════ */
+                    
+                    :root {
+                        /* Card size: 17vw = 5 cards + gaps fit perfectly in 100vw */
+                        --vp-card-size: 17vw;
+                        --vp-card-gap: 1.5vw;
+                        --vp-lane-padding: 2vw;
+                        --vp-font-scale: 1.8vw;
+                    }
+                    
+                    /* Training page specific overrides */
+                    .training-page {
+                        font-size: clamp(10px, var(--vp-font-scale), 18px);
+                    }
+                    
+                    .training-lane-cards {
+                        display: flex !important;
+                        gap: var(--vp-card-gap) !important;
+                        padding: 0 var(--vp-lane-padding) !important;
+                    }
+                    
+                    .training-card {
+                        width: var(--vp-card-size) !important;
+                        height: var(--vp-card-size) !important;
+                        flex-shrink: 0 !important;
+                    }
+                    
+                    .training-card-image {
+                        width: var(--vp-card-size) !important;
+                        height: var(--vp-card-size) !important;
+                    }
+                    
+                    .training-card-title {
+                        font-size: clamp(8px, 1.6vw, 14px) !important;
+                        max-width: var(--vp-card-size) !important;
+                    }
+                    
+                    /* Hero section scales */
+                    .training-hero-title {
+                        font-size: clamp(18px, 4vw, 36px) !important;
+                    }
+                    
+                    .training-hero-subtitle {
+                        font-size: clamp(10px, 1.8vw, 16px) !important;
+                    }
+                    
+                    /* Filter pills scale */
+                    .training-filter-pill {
+                        padding: clamp(4px, 1vw, 12px) clamp(8px, 2vw, 20px) !important;
+                        font-size: clamp(8px, 1.4vw, 13px) !important;
+                    }
+                    
+                    /* Lane titles scale */
+                    .training-lane-title {
+                        font-size: clamp(10px, 2vw, 18px) !important;
+                    }
+                    
+                    /* Stats scale */
+                    .training-stat-value {
+                        font-size: clamp(16px, 3vw, 28px) !important;
+                    }
+                    
+                    .training-stat-label {
+                        font-size: clamp(6px, 1.2vw, 11px) !important;
+                    }
+                    
+                    /* Scrollbar */
                     ::-webkit-scrollbar { height: 6px; }
                     ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
                     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
