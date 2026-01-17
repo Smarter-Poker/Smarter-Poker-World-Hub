@@ -13,6 +13,8 @@ export default function CustomAvatarBuilder({ isVip = false }) {
   const [prompt, setPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState(null);
+  const [uploadedPhoto, setUploadedPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
 
   const examplePrompts = [
     "Fierce warrior with flaming sword",
@@ -23,21 +25,53 @@ export default function CustomAvatarBuilder({ isVip = false }) {
     "Pirate captain with treasure map"
   ];
 
+  function handlePhotoUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image must be smaller than 10MB');
+      return;
+    }
+
+    setUploadedPhoto(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPhotoPreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removePhoto() {
+    setUploadedPhoto(null);
+    setPhotoPreview(null);
+  }
+
   async function handleGenerate() {
-    if (!prompt.trim()) {
-      alert('Please enter a description for your avatar');
+    if (!prompt.trim() && !uploadedPhoto) {
+      alert('Please enter a description or upload a photo for your avatar');
       return;
     }
 
     setGenerating(true);
 
     try {
-      const result = await createCustomAvatar(prompt, isVip);
+      const result = await createCustomAvatar(prompt, isVip, uploadedPhoto);
 
       if (result.success) {
         setGeneratedImage(result.imageUrl);
         alert('✅ Custom avatar generated and set as active!');
         setPrompt('');
+        removePhoto();
       } else {
         alert(`❌ ${result.error}`);
       }
