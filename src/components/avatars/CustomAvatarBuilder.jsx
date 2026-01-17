@@ -157,6 +157,8 @@ export default function CustomAvatarBuilder({ isVip = false }) {
     setGeneratedImage(null);
     setPrompt('');
     removePhoto();
+    // Reload gallery to update slot count
+    loadCustomAvatars();
     // Use setTimeout to ensure overlay closes before alert
     setTimeout(() => {
       alert('✅ Avatar accepted and set as your active avatar!');
