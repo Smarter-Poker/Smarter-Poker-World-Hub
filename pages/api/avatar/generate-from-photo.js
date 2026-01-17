@@ -57,15 +57,28 @@ export default async function handler(req, res) {
         console.log('📝 Face analysis:', faceDescription);
 
         // Step 2: Generate avatar with DALL-E 3 using the analysis
-        const additionalStyle = prompt ? `, ${prompt}` : '';
-        const dallePrompt = `Create a 3D Pixar-style character portrait with these features: ${faceDescription}. Style: professional poker avatar, white background, vibrant colors, high quality, detailed${additionalStyle}`;
+        const additionalStyle = prompt ? `Additional style: ${prompt}. ` : '';
+        const dallePrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT ONLY.
+FACIAL FEATURES TO MATCH: ${faceDescription}
+${additionalStyle}
+STRICT RULES:
+- ONLY the character's head and upper shoulders (bust portrait)
+- PURE SOLID WHITE BACKGROUND - nothing else
+- NO poker tables, NO cards, NO chips, NO props around character
+- NO scene, NO environment, NO accessories
+- Face must be the MAIN FOCUS and MATCH the described features
+- High quality 3D render like Pixar/Disney animation
+- Vibrant colors, detailed facial features that look like the person described
+- Professional avatar suitable for profile picture
+- Must look like a stylized 3D version of the person described
+IMPORTANT: Character portrait ONLY on white background. Nothing else.`;
 
         const imageResponse = await openai.images.generate({
             model: "dall-e-3",
             prompt: dallePrompt,
             n: 1,
             size: "1024x1024",
-            quality: "standard",
+            quality: "hd",
             style: "vivid"
         });
 
