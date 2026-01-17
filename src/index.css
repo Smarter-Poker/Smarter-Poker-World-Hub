@@ -223,3 +223,68 @@ body {
     padding-right: env(safe-area-inset-right);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOBAL RESPONSIVE LAYOUT CLASSES
+   These apply automatically to components using these class names
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Responsive container - locks width on desktop, full-width on mobile */
+.lanes-container-responsive,
+.content-container-responsive {
+  width: 100%;
+  max-width: var(--container-max-width, 100%);
+  margin: 0 auto;
+  padding: var(--lane-padding, 20px) 0;
+}
+
+/* Responsive horizontal scrolling lane */
+.lane-scroller-responsive {
+  display: flex;
+  gap: var(--card-gap, 12px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 var(--lane-padding, 16px);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.lane-scroller-responsive::-webkit-scrollbar {
+  display: none;
+}
+
+/* Responsive game cards - read size from CSS variable */
+.game-card-responsive,
+.game-card-image-responsive {
+  width: var(--card-size, 160px);
+  height: var(--card-size, 160px);
+  flex-shrink: 0;
+}
+
+/* Responsive grid layouts */
+.grid-responsive {
+  display: grid;
+  gap: var(--card-gap, 16px);
+  padding: var(--lane-padding, 16px);
+}
+
+@media (max-width: 599px) {
+  .grid-responsive {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 600px) and (max-width: 899px) {
+  .grid-responsive {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .grid-responsive {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: var(--container-max-width, 100%);
+    margin: 0 auto;
+  }
+}
