@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getAvailableAvatars } from '../../services/avatar-service';
-import { AVATAR_LIBRARY } from '../../data/AVATAR_LIBRARY';
+import { getCategories } from '../../data/AVATAR_LIBRARY';
 
 export default function AvatarGallery({ onSelect, showCustomTab = true }) {
   const { user, avatar: currentAvatar, selectPresetAvatar } = useAvatar();
