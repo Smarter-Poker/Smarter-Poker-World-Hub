@@ -303,6 +303,66 @@ const promoStyles = {
     },
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// STREAKS BADGE — Shows highest streak achievement
+// ═══════════════════════════════════════════════════════════════════════════
+
+function StreaksBadge({ bestStreak }) {
+    if (!bestStreak || bestStreak === 0) return null;
+
+    return (
+        <motion.div
+            style={streakStyles.container}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+        >
+            <div style={streakStyles.content}>
+                <span style={streakStyles.icon}>🔥</span>
+                <div style={streakStyles.textContainer}>
+                    <span style={streakStyles.label}>BEST STREAK</span>
+                    <span style={streakStyles.value}>{bestStreak} in a row</span>
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+const streakStyles = {
+    container: {
+        padding: '12px 20px',
+        background: 'linear-gradient(135deg, rgba(255, 107, 53, 0.12), rgba(255, 152, 0, 0.08))',
+        borderBottom: '1px solid rgba(255, 152, 0, 0.2)',
+    },
+    content: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+    },
+    icon: {
+        fontSize: 24,
+    },
+    textContainer: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+    },
+    label: {
+        fontSize: 9,
+        fontWeight: 700,
+        color: 'rgba(255, 255, 255, 0.5)',
+        letterSpacing: 0.5,
+    },
+    value: {
+        fontSize: 16,
+        fontWeight: 900,
+        color: '#FF9800',
+        fontFamily: 'Orbitron, sans-serif',
+    },
+};
+
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FILTER BAR
