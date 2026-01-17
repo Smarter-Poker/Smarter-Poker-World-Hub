@@ -192,7 +192,7 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
             >
                 <span style={{ ...styles.laneChevron, color }}>»</span>
                 <span style={styles.laneIcon}>{icon}</span>
-                <h2 className="training-lane-title" style={{ ...styles.laneTitle, color }}>{title}</h2>
+                <h2 className="vp-lane-title" style={{ ...styles.laneTitle, color }}>{title}</h2>
                 {badge && (
                     <motion.span
                         style={styles.laneBadge}
@@ -209,7 +209,7 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
 
             {/* Horizontal scrolling cards - Shows ALL games with horizontal scroll */}
             <div style={styles.laneScroller}>
-                <div className="training-lane-cards" style={styles.laneCards}>
+                <div className="vp-lane-cards" style={styles.laneCards}>
                     {games.map((game, i) => (
                         <GameCard
                             key={game.id}
