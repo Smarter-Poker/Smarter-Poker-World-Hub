@@ -1,7 +1,6 @@
 /**
- * GAME CARD — Fixed Design Component
- * Uses FIXED pixel sizes - CSS zoom scales everything uniformly
- * Designed for 1200px layout = 5 cards visible
+ * GAME CARD — Fixed Design for 650px Layout (3 cards visible)
+ * CSS zoom scales everything uniformly
  */
 
 import { motion } from 'framer-motion';
@@ -31,7 +30,7 @@ export default function GameCard({ game, onClick, index = 0, image }) {
                 position: 'relative',
                 cursor: 'pointer',
                 flexShrink: 0,
-                width: 200, // Fixed width for 1200px design
+                width: 190, // 3 cards × 190px + gaps = ~650px
                 padding: 4,
                 display: 'flex',
                 flexDirection: 'column',
@@ -42,8 +41,8 @@ export default function GameCard({ game, onClick, index = 0, image }) {
             <div
                 style={{
                     position: 'relative',
-                    width: 180,
-                    height: 180,
+                    width: 170,
+                    height: 170,
                     background: '#1a2744',
                     border: `3px solid ${categoryColor}`,
                     borderRadius: 12,
@@ -67,7 +66,7 @@ export default function GameCard({ game, onClick, index = 0, image }) {
             <h3
                 style={{
                     margin: '8px 0 0 0',
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: 800,
                     color: '#fff',
                     textShadow: '0 2px 4px rgba(0,0,0,0.5)',
