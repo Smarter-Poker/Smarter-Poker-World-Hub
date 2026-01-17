@@ -47,7 +47,7 @@ const CATEGORIES = [
 // TRAINING HEADER — Fixed header with Hub button, stats, and profile
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TrainingHeader() {
+function TrainingHeader({ gamesPlayed = 0 }) {
     const router = useRouter();
     const [diamonds, setDiamonds] = useState(300);
     const [xp, setXp] = useState(50);
@@ -98,15 +98,21 @@ function TrainingHeader() {
 
             {/* RIGHT: Stats + Profile */}
             <div style={headerStyles.rightSection}>
+                {/* Games Played Counter */}
+                <div style={headerStyles.gamesChip}>
+                    <span style={headerStyles.gamesValue}>{gamesPlayed}</span>
+                    <span style={headerStyles.gamesLabel}>of 100</span>
+                </div>
+
                 {/* Diamond Wallet */}
                 <div style={headerStyles.statChip}>
-                    <span style={{ fontSize: 16 }}>💎</span>
+                    <span style={{ fontSize: 14 }}>💎</span>
                     <span style={headerStyles.statValue}>{diamonds.toLocaleString()}</span>
                 </div>
 
                 {/* XP */}
                 <div style={headerStyles.statChip}>
-                    <span style={{ fontSize: 14, color: '#FFD700' }}>XP</span>
+                    <span style={{ fontSize: 12, color: '#FFD700' }}>XP</span>
                     <span style={headerStyles.statValue}>{xp.toLocaleString()}</span>
                 </div>
 
