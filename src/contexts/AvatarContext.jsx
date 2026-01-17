@@ -80,10 +80,10 @@ export function AvatarProvider({ children }) {
         return result;
     }
 
-    async function createCustomAvatar(prompt, isVip = false) {
+    async function createCustomAvatar(prompt, isVip = false, photoFile = null) {
         if (!user) return { success: false, error: 'Not authenticated' };
 
-        const result = await generateCustomAvatar(user.id, prompt, isVip);
+        const result = await generateCustomAvatar(user.id, prompt, isVip, photoFile);
 
         if (result.success) {
             await loadAvatar(); // Refresh avatar
