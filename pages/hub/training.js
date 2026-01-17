@@ -520,11 +520,11 @@ export default function TrainingPage() {
             />
 
             <div className="training-page" style={styles.page}>
-                {/* Brain Home Button */}
-                <BrainHomeButton />
+                {/* Fixed Header */}
+                <TrainingHeader />
 
-                {/* Hero */}
-                <HeroSection stats={stats} onPlayFeatured={handlePlayFeatured} />
+                {/* Promo/Ad Section */}
+                <PromoSection onPlayFeatured={handlePlayFeatured} />
 
                 {/* Filters */}
                 <FilterBar
