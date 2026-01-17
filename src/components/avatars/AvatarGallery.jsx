@@ -5,55 +5,53 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getAvailableAvatars } from '../../services/avatar-service';
 import { AVATAR_LIBRARY } from '../../data/AVATAR_LIBRARY';
 
 export default function AvatarGallery({ onSelect, showCustomTab = true }) {
-    const { user } = useAuth();
-    const { avatar: currentAvatar, selectPresetAvatar } = useAvatar();
+  const { user, avatar: currentAvatar, selectPresetAvatar } = useAvatar();
 
-    const [avatars, setAvatars] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedTier, setSelectedTier] = useState('all');
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [previewAvatar, setPreviewAvatar] = useState(null);
+  const [avatars, setAvatars] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTier, setSelectedTier] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [previewAvatar, setPreviewAvatar] = useState(null);
 
-    useEffect(() => {
-        if (user) {
-            loadAvatars();
-        }
-    }, [user, selectedTier]);
-
-    async function loadAvatars() {
-        setLoading(true);
-        const data = await getAvailableAvatars(user.id, selectedTier);
-        setAvatars(data);
-        setLoading(false);
+  useEffect(() => {
+    if (user) {
+      loadAvatars();
     }
+  }, [user, selectedTier]);
 
-    async function handleSelectAvatar(avatarId) {
-        const result = await selectPresetAvatar(avatarId);
+  async function loadAvatars() {
+    setLoading(true);
+    const data = await getAvailableAvatars(user.id, selectedTier);
+    setAvatars(data);
+    setLoading(false);
+  }
 
-        if (result.success) {
-            setPreviewAvatar(null);
-            if (onSelect) onSelect(avatarId);
-        } else {
-            alert(result.error);
-        }
+  async function handleSelectAvatar(avatarId) {
+    const result = await selectPresetAvatar(avatarId);
+
+    if (result.success) {
+      setPreviewAvatar(null);
+      if (onSelect) onSelect(avatarId);
+    } else {
+      alert(result.error);
     }
+  }
 
-    const filteredAvatars = avatars.filter(av => {
-        if (selectedCategory === 'all') return true;
-        return av.category === selectedCategory;
-    });
+  const filteredAvatars = avatars.filter(av => {
+    if (selectedCategory === 'all') return true;
+    return av.category === selectedCategory;
+  });
 
-    const categories = AVATAR_LIBRARY.getCategories();
+  const categories = AVATAR_LIBRARY.getCategories();
 
-    return (
-        <div className="avatar-gallery">
-            <style jsx>{`
+  return (
+    <div className="avatar-gallery">
+      <style jsx>{`
         .avatar-gallery {
           width: 100%;
           max-width: 1200px;
@@ -255,101 +253,101 @@ export default function AvatarGallery({ onSelect, showCustomTab = true }) {
         }
       `}</style>
 
-            <div className="gallery-header">
-                <h2 className="gallery-title">⚡ AVATAR LIBRARY ⚡</h2>
+      <div className="gallery-header">
+        <h2 className="gallery-title">⚡ AVATAR LIBRARY ⚡</h2>
 
-                <div className="stats-bar">
-                    <div className="stat-item">
-                        <div className="stat-value">{avatars.length}</div>
-                        <div className="stat-label">Total Avatars</div>
-                    </div>
-                    <div className="stat-item">
-                        <div className="stat-value">
-                            {avatars.filter(a => !a.isLocked).length}
-                        </div>
-                        <div className="stat-label">Unlocked</div>
-                    </div>
-                    <div className="stat-item">
-                        <div className="stat-value">
-                            {avatars.filter(a => a.isLocked).length}
-                        </div>
-                        <div className="stat-label">Locked</div>
-                    </div>
-                </div>
-
-                <div className="filters">
-                    <div className="filter-group">
-                        <span className="filter-label">Tier:</span>
-                        <button
-                            className={`filter-btn ${selectedTier === 'all' ? 'active' : ''}`}
-                            onClick={() => setSelectedTier('all')}
-                        >
-                            All
-                        </button>
-                        <button
-                            className={`filter-btn ${selectedTier === 'free' ? 'active' : ''}`}
-                            onClick={() => setSelectedTier('free')}
-                        >
-                            FREE
-                        </button>
-                        <button
-                            className={`filter-btn ${selectedTier === 'vip' ? 'active' : ''}`}
-                            onClick={() => setSelectedTier('vip')}
-                        >
-                            VIP
-                        </button>
-                    </div>
-
-                    <div className="filter-group">
-                        <span className="filter-label">Category:</span>
-                        <button
-                            className={`filter-btn ${selectedCategory === 'all' ? 'active' : ''}`}
-                            onClick={() => setSelectedCategory('all')}
-                        >
-                            All
-                        </button>
-                        {categories.map(cat => (
-                            <button
-                                key={cat}
-                                className={`filter-btn ${selectedCategory === cat ? 'active' : ''}`}
-                                onClick={() => setSelectedCategory(cat)}
-                            >
-                                {cat}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+        <div className="stats-bar">
+          <div className="stat-item">
+            <div className="stat-value">{avatars.length}</div>
+            <div className="stat-label">Total Avatars</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-value">
+              {avatars.filter(a => !a.isLocked).length}
             </div>
-
-            {loading ? (
-                <div className="loading-state">
-                    <div>⏳ Loading Avatars...</div>
-                </div>
-            ) : (
-                <div className="avatar-grid">
-                    {filteredAvatars.map(av => (
-                        <div
-                            key={av.id}
-                            className={`avatar-card ${av.isLocked ? 'locked' : ''} ${currentAvatar?.id === av.id ? 'selected' : ''
-                                }`}
-                            onClick={() => !av.isLocked && handleSelectAvatar(av.id)}
-                        >
-                            <img
-                                src={av.image}
-                                alt={av.name}
-                                className="avatar-image"
-                            />
-                            <span className={`tier-badge ${av.tier.toLowerCase()}`}>
-                                {av.tier}
-                            </span>
-                            <div className="avatar-info">
-                                <p className="avatar-name">{av.name}</p>
-                                <p className="avatar-tier">{av.category}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            <div className="stat-label">Unlocked</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-value">
+              {avatars.filter(a => a.isLocked).length}
+            </div>
+            <div className="stat-label">Locked</div>
+          </div>
         </div>
-    );
+
+        <div className="filters">
+          <div className="filter-group">
+            <span className="filter-label">Tier:</span>
+            <button
+              className={`filter-btn ${selectedTier === 'all' ? 'active' : ''}`}
+              onClick={() => setSelectedTier('all')}
+            >
+              All
+            </button>
+            <button
+              className={`filter-btn ${selectedTier === 'free' ? 'active' : ''}`}
+              onClick={() => setSelectedTier('free')}
+            >
+              FREE
+            </button>
+            <button
+              className={`filter-btn ${selectedTier === 'vip' ? 'active' : ''}`}
+              onClick={() => setSelectedTier('vip')}
+            >
+              VIP
+            </button>
+          </div>
+
+          <div className="filter-group">
+            <span className="filter-label">Category:</span>
+            <button
+              className={`filter-btn ${selectedCategory === 'all' ? 'active' : ''}`}
+              onClick={() => setSelectedCategory('all')}
+            >
+              All
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                className={`filter-btn ${selectedCategory === cat ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="loading-state">
+          <div>⏳ Loading Avatars...</div>
+        </div>
+      ) : (
+        <div className="avatar-grid">
+          {filteredAvatars.map(av => (
+            <div
+              key={av.id}
+              className={`avatar-card ${av.isLocked ? 'locked' : ''} ${currentAvatar?.id === av.id ? 'selected' : ''
+                }`}
+              onClick={() => !av.isLocked && handleSelectAvatar(av.id)}
+            >
+              <img
+                src={av.image}
+                alt={av.name}
+                className="avatar-image"
+              />
+              <span className={`tier-badge ${av.tier.toLowerCase()}`}>
+                {av.tier}
+              </span>
+              <div className="avatar-info">
+                <p className="avatar-name">{av.name}</p>
+                <p className="avatar-tier">{av.category}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
