@@ -29,14 +29,34 @@ export function AvatarProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const [isVip, setIsVip] = useState(false);
 
+    // Fetch VIP status directly from database (not cached session)
+    async function fetchVipStatus(userId) {
+        if (!userId) {
+            setIsVip(false);
+            return;
+        }
+        try {
+            // Query the user's metadata directly from auth.users via admin API
+            const { data, error } = await supabase.rpc('get_user_vip_status', { p_user_id: userId });
+            if (!error && data !== null) {
+                setIsVip(data === true);
+            } else {
+                // Fallback: check session metadata
+                const { data: { user: freshUser } } = await supabase.auth.getUser();
+                setIsVip(freshUser?.user_metadata?.is_vip || false);
+            }
+        } catch (err) {
+            console.error('Error fetching VIP status:', err);
+            setIsVip(false);
+        }
+    }
+
     // Refresh user session to get latest metadata
     async function refreshUser() {
         const { data: { user: freshUser }, error } = await supabase.auth.refreshSession();
         if (freshUser && !error) {
             setUser(freshUser);
-            // Also update VIP status
-            const vipStatus = freshUser?.user_metadata?.is_vip || false;
-            setIsVip(vipStatus);
+            await fetchVipStatus(freshUser.id);
         }
     }
 
@@ -45,18 +65,17 @@ export function AvatarProvider({ children }) {
         const fetchUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             setUser(user);
-            // Set VIP from user metadata
             if (user) {
-                setIsVip(user?.user_metadata?.is_vip || false);
+                await fetchVipStatus(user.id);
             }
         };
         fetchUser();
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setUser(session?.user ?? null);
             if (session?.user) {
-                setIsVip(session.user?.user_metadata?.is_vip || false);
+                await fetchVipStatus(session.user.id);
             }
         });
 
