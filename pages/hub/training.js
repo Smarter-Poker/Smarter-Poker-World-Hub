@@ -441,17 +441,17 @@ const styles = {
 
     logo: {
         position: 'fixed',
-        top: 12,
-        left: 16,
-        fontSize: 18,
+        top: 'var(--vp-space-sm, 1vw)',
+        left: 'var(--vp-lane-padding, 2vw)',
+        fontSize: 'var(--vp-font-lg, clamp(12px, 2vw, 18px))',
         zIndex: 100,
-        padding: '8px 12px',
+        padding: 'var(--vp-space-xs, 0.5vw) var(--vp-space-sm, 1vw)',
         background: 'rgba(10, 10, 21, 0.95)',
         backdropFilter: 'blur(10px)',
         WebkitBackdropFilter: 'blur(10px)',
-        borderRadius: 8,
+        borderRadius: 'var(--vp-radius-md, 0.8vw)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+        boxShadow: '0 0.5vw 1.5vw rgba(0, 0, 0, 0.3)',
     },
 
     loading: {
