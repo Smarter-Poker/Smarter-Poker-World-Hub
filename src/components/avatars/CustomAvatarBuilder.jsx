@@ -1,12 +1,13 @@
 /**
  * 🎨 CUSTOM AVATAR BUILDER
  * AI-powered custom avatar generation tool
- * FREE users: 1 custom avatar | VIP users: Unlimited
- * Features: Matrix-style loading, Accept/Regenerate flow for VIP
+ * FREE users: 1 custom avatar | VIP users: Up to 5
+ * Features: Matrix-style loading, Accept/Regenerate flow, Gallery management
  */
 
 import React, { useState, useEffect } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
+import { getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
 
 export default function CustomAvatarBuilder({ isVip = false }) {
   const { user, createCustomAvatar, isVip: contextIsVip } = useAvatar();
@@ -18,6 +19,38 @@ export default function CustomAvatarBuilder({ isVip = false }) {
   const [uploadedPhoto, setUploadedPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [showResult, setShowResult] = useState(false);
+
+  // Gallery management
+  const [customAvatars, setCustomAvatars] = useState([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [avatarToDelete, setAvatarToDelete] = useState(null);
+
+  // Limits
+  const maxAvatars = effectiveVip ? 5 : 1;
+  const currentCount = customAvatars.length;
+  const slotsRemaining = maxAvatars - currentCount;
+  const canCreate = slotsRemaining > 0;
+
+  // Load custom avatars gallery
+  useEffect(() => {
+    if (user?.id) {
+      loadCustomAvatars();
+    }
+  }, [user?.id]);
+
+  async function loadCustomAvatars() {
+    const avatars = await getCustomAvatarGallery(user.id);
+    setCustomAvatars(avatars || []);
+  }
+
+  async function handleDeleteAvatar(avatarId) {
+    const result = await deleteCustomAvatar(user.id, avatarId);
+    if (result.success) {
+      await loadCustomAvatars();
+      setShowDeleteModal(false);
+      setAvatarToDelete(null);
+    }
+  }
 
   const examplePrompts = [
     "Fierce warrior with flaming sword",
