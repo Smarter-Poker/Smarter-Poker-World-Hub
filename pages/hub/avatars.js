@@ -6,18 +6,22 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import AvatarGallery from '../../src/components/avatars/AvatarGallery';
 import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
 
 export default function AvatarsPage() {
-    const { avatar, user } = useAvatar();
+    const { avatar, user, isVip, refreshUser } = useAvatar();
     const [activeTab, setActiveTab] = useState('library');
 
-    // Check if user is VIP from Supabase auth user metadata
-    const isVip = user?.user_metadata?.is_vip || user?.raw_user_meta_data?.is_vip || false;
+    // Refresh user session on page load to get latest VIP status
+    useEffect(() => {
+        if (user && refreshUser) {
+            refreshUser();
+        }
+    }, []);
 
     return (
         <>
