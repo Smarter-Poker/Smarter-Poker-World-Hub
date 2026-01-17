@@ -10,7 +10,7 @@ import { getAvailableAvatars } from '../../services/avatar-service';
 import { getCategories } from '../../data/AVATAR_LIBRARY';
 
 export default function AvatarGallery({ onSelect, showCustomTab = true }) {
-  const { user, avatar: currentAvatar, selectPresetAvatar } = useAvatar();
+  const { user, avatar: currentAvatar, selectPresetAvatar, isVip } = useAvatar();
 
   const [avatars, setAvatars] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +20,7 @@ export default function AvatarGallery({ onSelect, showCustomTab = true }) {
 
   useEffect(() => {
     loadAvatars();
-  }, [user, selectedTier]);
+  }, [user, selectedTier, isVip]);
 
   async function loadAvatars() {
     setLoading(true);
@@ -28,7 +28,13 @@ export default function AvatarGallery({ onSelect, showCustomTab = true }) {
       // If user is logged in, get personalized unlock data
       // Otherwise, show all avatars in preview mode (VIP marked as locked)
       const data = await getAvailableAvatars(user?.id || null, selectedTier);
-      setAvatars(data);
+
+      // VIP users: unlock all avatars
+      if (isVip) {
+        setAvatars(data.map(a => ({ ...a, isLocked: false })));
+      } else {
+        setAvatars(data);
+      }
     } catch (error) {
       console.error('Error loading avatars:', error);
       setAvatars([]);
@@ -54,6 +60,10 @@ export default function AvatarGallery({ onSelect, showCustomTab = true }) {
   });
 
   const categories = getCategories();
+
+  // Stats calculation - VIP users have all unlocked
+  const unlockedCount = isVip ? avatars.length : avatars.filter(a => !a.isLocked).length;
+  const lockedCount = isVip ? 0 : avatars.filter(a => a.isLocked).length;
 
   return (
     <div className="avatar-gallery">
