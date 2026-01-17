@@ -101,16 +101,21 @@ export async function setPresetAvatar(userId, avatarId) {
  */
 export async function generateCustomAvatar(userId, prompt, isVip = false, photoFile = null) {
     try {
-        // Check limits: FREE users get 1 custom avatar, VIP unlimited
-        if (!isVip) {
-            const existingCustom = await supabase
-                .from('custom_avatar_gallery')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('is_deleted', false);
+        // Check limits: FREE = 1 custom avatar, VIP = 5 max
+        const existingCustom = await supabase
+            .from('custom_avatar_gallery')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('is_deleted', false);
 
-            if (existingCustom.data && existingCustom.data.length >= 1) {
-                throw new Error('FREE users can only create 1 custom avatar. Upgrade to VIP for unlimited!');
+        const currentCount = existingCustom.data?.length || 0;
+        const maxAllowed = isVip ? 5 : 1;
+
+        if (currentCount >= maxAllowed) {
+            if (isVip) {
+                throw new Error(`VIP limit reached! You have ${currentCount}/5 custom avatars. Please delete one to create a new avatar.`);
+            } else {
+                throw new Error('FREE users can only create 1 custom avatar. Upgrade to VIP for up to 5!');
             }
         }
 
