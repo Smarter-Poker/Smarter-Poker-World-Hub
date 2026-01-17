@@ -174,10 +174,6 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
     const router = useRouter();
     if (!games || games.length === 0) return null;
 
-    // Limit to 4 games for mobile view (users can scroll for more)
-    const displayGames = games.slice(0, 4);
-    const hasMore = games.length > 4;
-
     const handleHeaderClick = () => {
         if (categoryId && onCategoryClick) {
             onCategoryClick(categoryId);
@@ -207,15 +203,14 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
                     </motion.span>
                 )}
                 <span style={styles.laneCount}>
-                    {games.length} games
-                    {hasMore && <span style={{ marginLeft: 4 }}>→</span>}
+                    {games.length} games • Scroll for more →
                 </span>
             </div>
 
-            {/* Horizontal scrolling cards - Shows 4, scroll for more */}
+            {/* Horizontal scrolling cards - Shows ALL games with horizontal scroll */}
             <div style={styles.laneScroller}>
                 <div style={styles.laneCards}>
-                    {displayGames.map((game, i) => (
+                    {games.map((game, i) => (
                         <GameCard
                             key={game.id}
                             game={game}
@@ -225,21 +220,6 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
                             image={getGameImage(game.id)}
                         />
                     ))}
-                    {/* Show "View All" card if more games exist */}
-                    {hasMore && (
-                        <motion.div
-                            style={styles.viewAllCard}
-                            onClick={handleHeaderClick}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                        >
-                            <div style={styles.viewAllContent}>
-                                <span style={styles.viewAllIcon}>→</span>
-                                <span style={styles.viewAllText}>View All</span>
-                                <span style={styles.viewAllCount}>+{games.length - 4}</span>
-                            </div>
-                        </motion.div>
-                    )}
                 </div>
             </div>
         </div>
