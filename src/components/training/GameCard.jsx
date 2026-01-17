@@ -1,7 +1,7 @@
 /**
  * GAME CARD — Viewport-Scaled Component
- * Uses CSS classes for viewport-based sizing so 5 cards ALWAYS fit at any screen size
- * The entire layout scales proportionally like a photograph
+ * Uses GLOBAL CSS classes (.vp-*) defined in src/index.css
+ * 5 cards ALWAYS fit at any screen size
  */
 
 import { motion } from 'framer-motion';
@@ -27,12 +27,12 @@ export default function GameCard({ game, onClick, index = 0, image }) {
             transition={{ delay: index * 0.05 }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="training-card"
+            className="vp-card"
             style={{
                 position: 'relative',
                 cursor: 'pointer',
                 flexShrink: 0,
-                padding: '0.5vw',
+                padding: 'var(--vp-space-xs)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -40,12 +40,12 @@ export default function GameCard({ game, onClick, index = 0, image }) {
             }}
         >
             <div
-                className="training-card-image"
+                className="vp-card-image"
                 style={{
                     position: 'relative',
                     background: '#1a2744',
                     border: `3px solid ${categoryColor}`,
-                    borderRadius: '0.8vw',
+                    borderRadius: 'var(--vp-radius-md)',
                     boxShadow: `0 0 2vw ${categoryColor}, 0 0 4vw ${categoryColor}80, 0 0.8vw 2vw rgba(0,0,0,0.6)`,
                     overflow: 'hidden',
                 }}
@@ -64,9 +64,9 @@ export default function GameCard({ game, onClick, index = 0, image }) {
             </div>
 
             <h3
-                className="training-card-title"
+                className="vp-card-title"
                 style={{
-                    margin: '0.5vw 0 0 0',
+                    margin: 'var(--vp-space-xs) 0 0 0',
                     fontWeight: 800,
                     color: '#fff',
                     textShadow: '0 2px 4px rgba(0,0,0,0.5)',
