@@ -47,7 +47,7 @@ export default function AvatarGallery({ onSelect, showCustomTab = true }) {
     return av.category === selectedCategory;
   });
 
-  const categories = AVATAR_LIBRARY.getCategories();
+  const categories = getCategories();
 
   return (
     <div className="avatar-gallery">
