@@ -119,10 +119,10 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
 
         if (photoFile) {
             // Photo-based generation (likeness)
-            generatedImageUrl = await generateAvatarFromPhoto(photoFile, prompt);
+            generatedImageUrl = await generateAvatarFromPhoto(photoFile, prompt, userId);
         } else {
             // Text-based generation
-            generatedImageUrl = await generateAvatarFromText(prompt);
+            generatedImageUrl = await generateAvatarFromText(prompt, userId);
         }
 
         // The API already uploaded to Supabase and returned the public URL
