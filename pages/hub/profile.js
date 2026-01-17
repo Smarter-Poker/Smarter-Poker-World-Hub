@@ -235,7 +235,6 @@ export default function ProfilePage() {
     const [message, setMessage] = useState('');
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [libraryOpen, setLibraryOpen] = useState(false);
-    const [showAvatarSelector, setShowAvatarSelector] = useState(false);
 
     // Profile fields
     const [profile, setProfile] = useState({
