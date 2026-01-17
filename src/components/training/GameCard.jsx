@@ -1,7 +1,7 @@
 /**
- * GAME CARD — Viewport-Scaled Component
- * Uses GLOBAL CSS classes (.vp-*) defined in src/index.css
- * 5 cards ALWAYS fit at any screen size
+ * GAME CARD — Fixed Design Component
+ * Uses FIXED pixel sizes - CSS zoom scales everything uniformly
+ * Designed for 1200px layout = 5 cards visible
  */
 
 import { motion } from 'framer-motion';
@@ -27,12 +27,12 @@ export default function GameCard({ game, onClick, index = 0, image }) {
             transition={{ delay: index * 0.05 }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="vp-card"
             style={{
                 position: 'relative',
                 cursor: 'pointer',
                 flexShrink: 0,
-                padding: 'var(--vp-space-xs)',
+                width: 200, // Fixed width for 1200px design
+                padding: 4,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -40,13 +40,14 @@ export default function GameCard({ game, onClick, index = 0, image }) {
             }}
         >
             <div
-                className="vp-card-image"
                 style={{
                     position: 'relative',
+                    width: 180,
+                    height: 180,
                     background: '#1a2744',
                     border: `3px solid ${categoryColor}`,
-                    borderRadius: 'var(--vp-radius-md)',
-                    boxShadow: `0 0 2vw ${categoryColor}, 0 0 4vw ${categoryColor}80, 0 0.8vw 2vw rgba(0,0,0,0.6)`,
+                    borderRadius: 12,
+                    boxShadow: `0 0 20px ${categoryColor}, 0 0 40px ${categoryColor}80, 0 8px 20px rgba(0,0,0,0.6)`,
                     overflow: 'hidden',
                 }}
             >
@@ -64,9 +65,9 @@ export default function GameCard({ game, onClick, index = 0, image }) {
             </div>
 
             <h3
-                className="vp-card-title"
                 style={{
-                    margin: 'var(--vp-space-xs) 0 0 0',
+                    margin: '8px 0 0 0',
+                    fontSize: 14,
                     fontWeight: 800,
                     color: '#fff',
                     textShadow: '0 2px 4px rgba(0,0,0,0.5)',
