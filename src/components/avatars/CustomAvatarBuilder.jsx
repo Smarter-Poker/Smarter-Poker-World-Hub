@@ -223,6 +223,36 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           text-transform: uppercase;
         }
 
+        .vip-slots {
+          background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.1));
+          border: 1px solid rgba(255, 215, 0, 0.3);
+          border-radius: 8px;
+          padding: 12px 20px;
+          margin-bottom: 20px;
+          text-align: center;
+          font-family: 'Rajdhani', sans-serif;
+          color: #ffd700;
+          font-size: 16px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 15px;
+        }
+
+        .manage-gallery-btn {
+          padding: 6px 12px;
+          background: linear-gradient(135deg, #ff4444, #cc0000);
+          border: none;
+          border-radius: 6px;
+          color: white;
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 12px;
+          cursor: pointer;
+          text-transform: uppercase;
+          font-weight: 600;
+        }
+
         .limit-warning {
           background: rgba(255, 140, 0, 0.1);
           border: 1px solid rgba(255, 140, 0, 0.3);
@@ -233,6 +263,92 @@ export default function CustomAvatarBuilder({ isVip = false }) {
           font-family: 'Rajdhani', sans-serif;
           color: #ff8c00;
           font-size: 14px;
+        }
+
+        .limit-warning.limit-reached {
+          background: rgba(255, 68, 68, 0.1);
+          border-color: rgba(255, 68, 68, 0.3);
+          color: #ff4444;
+        }
+
+        /* Delete Modal */
+        .delete-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.9);
+          z-index: 200;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .delete-modal {
+          background: linear-gradient(135deg, #1a1a2e, #16213e);
+          border: 2px solid rgba(0, 245, 255, 0.3);
+          border-radius: 16px;
+          padding: 30px;
+          max-width: 500px;
+          width: 90%;
+          text-align: center;
+        }
+
+        .delete-modal h3 {
+          font-family: 'Orbitron', sans-serif;
+          color: #00f5ff;
+          margin-bottom: 10px;
+        }
+
+        .delete-modal p {
+          font-family: 'Rajdhani', sans-serif;
+          color: #888;
+          margin-bottom: 20px;
+        }
+
+        .avatar-gallery-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+          gap: 15px;
+          margin-bottom: 20px;
+        }
+
+        .gallery-avatar-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .gallery-avatar-item img {
+          width: 80px;
+          height: 80px;
+          border-radius: 12px;
+          object-fit: cover;
+          border: 2px solid rgba(0, 245, 255, 0.3);
+        }
+
+        .delete-avatar-btn {
+          padding: 4px 8px;
+          background: linear-gradient(135deg, #ff4444, #cc0000);
+          border: none;
+          border-radius: 4px;
+          color: white;
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 10px;
+          cursor: pointer;
+        }
+
+        .close-modal-btn {
+          padding: 10px 30px;
+          background: rgba(0, 245, 255, 0.2);
+          border: 1px solid rgba(0, 245, 255, 0.5);
+          border-radius: 8px;
+          color: #00f5ff;
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 14px;
+          cursor: pointer;
         }
 
         /* Matrix Loading Overlay */
