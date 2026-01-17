@@ -666,19 +666,17 @@ const styles = {
 
     filterPills: {
         display: 'flex',
-        gap: 8,
-        overflowX: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
+        justifyContent: 'center',
+        gap: 6, // Smaller gap
+        flexWrap: 'nowrap', // Keep on one line
     },
 
     filterPill: {
-        padding: '10px 20px',
-        borderRadius: 20,
-        fontSize: 13,
+        padding: '8px 14px', // Smaller padding to fit all 6
+        borderRadius: 16,
+        fontSize: 11, // Smaller font
         fontWeight: 700,
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
         cursor: 'pointer',
         transition: 'all 0.2s ease',
         whiteSpace: 'nowrap',
@@ -687,9 +685,9 @@ const styles = {
     },
 
     gameCount: {
-        fontSize: 13,
+        fontSize: 11,
         color: 'rgba(255,255,255,0.4)',
-        marginLeft: 12,
+        marginLeft: 8,
     },
 
     // Lanes - FIXED design (CSS zoom handles scaling)
