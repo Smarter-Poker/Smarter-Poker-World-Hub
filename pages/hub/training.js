@@ -717,11 +717,11 @@ const styles = {
 
     // View All Card
     viewAllCard: {
-        minWidth: 160,
-        height: 220,
+        minWidth: 'var(--vp-card-size, 17vw)',
+        height: 'calc(var(--vp-card-size, 17vw) + 6vw)',
         background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
-        border: '2px dashed rgba(255,255,255,0.3)',
-        borderRadius: 12,
+        border: '0.2vw dashed rgba(255,255,255,0.3)',
+        borderRadius: 'var(--vp-radius-lg, 1.2vw)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -733,24 +733,24 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 8,
+        gap: '1vw',
     },
 
     viewAllIcon: {
-        fontSize: 32,
+        fontSize: 'var(--vp-font-xl, clamp(16px, 3vw, 28px))',
         color: '#00D4FF',
     },
 
     viewAllText: {
-        fontSize: 14,
+        fontSize: 'var(--vp-font-md, clamp(10px, 1.6vw, 15px))',
         fontWeight: 600,
         color: '#fff',
         textTransform: 'uppercase',
-        letterSpacing: 1,
+        letterSpacing: '0.1vw',
     },
 
     viewAllCount: {
-        fontSize: 12,
+        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
         color: 'rgba(255,255,255,0.6)',
     },
 
@@ -758,11 +758,11 @@ const styles = {
     footer: {
         display: 'flex',
         justifyContent: 'center',
-        gap: 16,
-        padding: '40px 0',
-        fontSize: 12,
+        gap: 'var(--vp-space-md, 2vw)',
+        padding: 'var(--vp-space-xl, 4vw) 0',
+        fontSize: 'var(--vp-font-xs, clamp(6px, 1.2vw, 11px))',
         color: 'rgba(255,255,255,0.3)',
         borderTop: '1px solid rgba(255,255,255,0.05)',
-        marginTop: 40,
+        marginTop: 'var(--vp-space-xl, 4vw)',
     },
 };
