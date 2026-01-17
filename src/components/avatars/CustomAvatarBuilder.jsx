@@ -29,32 +29,43 @@ export default function CustomAvatarBuilder({ isVip = false }) {
     "Pirate captain with treasure map"
   ];
 
-  // Matrix rain effect during generation
+  // Matrix rain effect - vertical falling columns like the movie
+  const [matrixColumns, setMatrixColumns] = useState([]);
+
   useEffect(() => {
     if (!generating) {
-      setMatrixChars([]);
+      setMatrixColumns([]);
       return;
     }
 
-    const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン♠♥♦♣★';
-    const columns = 30;
-    const interval = setInterval(() => {
-      setMatrixChars(prev => {
-        const newChars = [];
-        for (let i = 0; i < columns; i++) {
-          newChars.push({
-            char: chars[Math.floor(Math.random() * chars.length)],
-            x: (i / columns) * 100,
-            y: Math.random() * 100,
-            speed: 2 + Math.random() * 3,
-            opacity: 0.3 + Math.random() * 0.7
-          });
-        }
-        return [...prev.slice(-100), ...newChars];
-      });
-    }, 100);
+    // Create initial columns
+    const numColumns = 40;
+    const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン♠♥♦♣';
 
-    return () => clearInterval(interval);
+    // Initialize columns with random starting positions
+    const initialColumns = [];
+    for (let i = 0; i < numColumns; i++) {
+      initialColumns.push({
+        id: i,
+        x: (i / numColumns) * 100,
+        chars: Array.from({ length: 15 + Math.floor(Math.random() * 10) }, () =>
+          chars[Math.floor(Math.random() * chars.length)]
+        ),
+        speed: 15 + Math.random() * 20,
+        startDelay: Math.random() * 3
+      });
+    }
+    setMatrixColumns(initialColumns);
+
+    // Update characters periodically
+    const charInterval = setInterval(() => {
+      setMatrixColumns(cols => cols.map(col => ({
+        ...col,
+        chars: col.chars.map(() => chars[Math.floor(Math.random() * chars.length)])
+      })));
+    }, 150);
+
+    return () => clearInterval(charInterval);
   }, [generating]);
 
   function handlePhotoUpload(e) {
@@ -109,10 +120,15 @@ export default function CustomAvatarBuilder({ isVip = false }) {
   }
 
   function handleAccept() {
-    alert('✅ Avatar accepted and set as your active avatar!');
+    // Close the overlay FIRST, then show confirmation
     setShowResult(false);
+    setGeneratedImage(null);
     setPrompt('');
     removePhoto();
+    // Use setTimeout to ensure overlay closes before alert
+    setTimeout(() => {
+      alert('✅ Avatar accepted and set as your active avatar!');
+    }, 100);
   }
 
   function handleRegenerate() {
