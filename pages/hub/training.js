@@ -477,37 +477,38 @@ export default function TrainingPage() {
                     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
                     
                     /* ═══════════════════════════════════════════════════════════════════
-                       SMARTER.POKER TRUE SCALE MODEL
-                       Design at 800px, zoom scales uniformly for all devices
+                       SMARTER.POKER 800px DESIGN - Fixed breakpoints for stability
                        ═══════════════════════════════════════════════════════════════════ */
                     .training-page {
-                        width: 800px !important;
-                        max-width: 800px !important;
+                        width: 800px;
+                        max-width: 800px;
                         margin: 0 auto;
                         overflow-x: hidden;
                     }
                     
-                    /* TRUE UNIFORM SCALING via CSS zoom */
-                    /* This scales EVERYTHING - text, images, spacing - uniformly */
-                    @media screen {
-                        .training-page {
-                            zoom: calc(100vw / 800);
-                        }
+                    /* Mobile phones (390-450px) - zoom to ~50% */
+                    @media (max-width: 500px) {
+                        .training-page { zoom: 0.5; }
                     }
                     
-                    /* Cap max zoom at 1.5x for very large screens */
-                    @media (min-width: 1200px) {
-                        .training-page {
-                            zoom: 1.5;
-                        }
+                    /* Large phones / small tablets (501-700px) */
+                    @media (min-width: 501px) and (max-width: 700px) {
+                        .training-page { zoom: 0.75; }
                     }
                     
-                    /* Safari fallback using transform */
-                    @supports not (zoom: 1) {
-                        .training-page {
-                            transform: scale(calc(100vw / 800));
-                            transform-origin: top center;
-                        }
+                    /* Tablets (701-900px) */
+                    @media (min-width: 701px) and (max-width: 900px) {
+                        .training-page { zoom: 0.95; }
+                    }
+                    
+                    /* Desktop (901px+) - native size or slight scale up */
+                    @media (min-width: 901px) {
+                        .training-page { zoom: 1.2; }
+                    }
+                    
+                    /* Large desktop (1400px+) - cap at 1.5x */
+                    @media (min-width: 1400px) {
+                        .training-page { zoom: 1.5; }
                     }
                 `}</style>
             </Head>
