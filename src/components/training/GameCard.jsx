@@ -1,3 +1,9 @@
+/**
+ * GAME CARD — Responsive Component
+ * Uses global CSS variables from index.css for automatic sizing across all devices
+ * No hardcoded pixel values - adapts to viewport automatically
+ */
+
 import { motion } from 'framer-motion';
 
 export default function GameCard({ game, onClick, index = 0, image }) {
@@ -21,6 +27,7 @@ export default function GameCard({ game, onClick, index = 0, image }) {
             transition={{ delay: index * 0.05 }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            className="game-card-responsive"
             style={{
                 position: 'relative',
                 cursor: 'pointer',
@@ -30,13 +37,17 @@ export default function GameCard({ game, onClick, index = 0, image }) {
                 flexDirection: 'column',
                 alignItems: 'center',
                 textAlign: 'center',
+                // Width adapts via CSS variable
+                width: 'var(--card-size, 160px)',
             }}
         >
             <div
+                className="game-card-image-responsive"
                 style={{
                     position: 'relative',
-                    width: 160,
-                    height: 160,
+                    // Size adapts via CSS variables
+                    width: 'var(--card-size, 160px)',
+                    height: 'var(--card-size, 160px)',
                     background: '#1a2744',
                     border: `3px solid ${categoryColor}`,
                     borderRadius: 10,
@@ -59,13 +70,13 @@ export default function GameCard({ game, onClick, index = 0, image }) {
 
             <h3 style={{
                 margin: '8px 0 0 0',
-                fontSize: 14,
+                fontSize: 'clamp(12px, 3.5vw, 14px)', // Responsive font size
                 fontWeight: 800,
                 color: '#fff',
                 textShadow: '0 2px 4px rgba(0,0,0,0.5)',
                 textAlign: 'center',
                 width: '100%',
-                maxWidth: 160,
+                maxWidth: 'var(--card-size, 160px)',
             }}>
                 {game.name}
             </h3>
