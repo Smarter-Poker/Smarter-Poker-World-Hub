@@ -1,12 +1,12 @@
 /**
  * 🤖 AI AVATAR GENERATION - TEXT TO IMAGE
- * Uses Replicate's FLUX model to generate avatars from text descriptions
+ * Uses OpenAI's DALL-E 3 to generate avatars from text descriptions
  */
 
-import Replicate from 'replicate';
+import OpenAI from 'openai';
 
-const replicate = new Replicate({
-    auth: process.env.REPLICATE_API_TOKEN,
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
 });
 
 export default async function handler(req, res) {
@@ -21,24 +21,19 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Prompt is required' });
         }
 
-        console.log('🎨 Generating avatar from text:', prompt);
+        console.log('🎨 Generating avatar from text with DALL-E 3:', prompt);
 
-        // Use FLUX model for high-quality generation
-        const output = await replicate.run(
-            "black-forest-labs/flux-schnell",
-            {
-                input: {
-                    prompt: prompt,
-                    num_outputs: 1,
-                    aspect_ratio: "1:1",
-                    output_format: "png",
-                    output_quality: 90
-                }
-            }
-        );
+        // Use DALL-E 3 for high-quality generation
+        const response = await openai.images.generate({
+            model: "dall-e-3",
+            prompt: prompt,
+            n: 1,
+            size: "1024x1024",
+            quality: "standard",
+            style: "vivid"
+        });
 
-        // Output is an array of image URLs
-        const imageUrl = Array.isArray(output) ? output[0] : output;
+        const imageUrl = response.data[0].url;
 
         console.log('✅ Avatar generated successfully');
 
