@@ -93,34 +93,82 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                     </div>
                 )}
 
-                {/* LEVEL + SCORE TAG - Upper right corner */}
+                {/* STREAK BADGE - Only shows AFTER mastering */}
+                {isMastered && progress?.streakBest > 0 && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            bottom: 8,
+                            left: 8,
+                            right: 8,
+                            padding: '4px 8px',
+                            background: 'rgba(255, 107, 53, 0.95)',
+                            borderRadius: 6,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 4,
+                            boxShadow: '0 2px 8px rgba(255, 107, 53, 0.5)',
+                        }}
+                    >
+                        <span style={{ fontSize: 12 }}>🔥</span>
+                        <span style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            color: '#fff',
+                            letterSpacing: 0.5,
+                        }}>
+                            {progress.streakBest} STREAK
+                        </span>
+                    </div>
+                )}
+
+                {/* S-RANK STYLE LEVEL + SCORE TAG - Hanging off upper right corner */}
                 {hasPlayed && !isMastered && (
                     <div
                         style={{
                             position: 'absolute',
-                            top: 8,
-                            right: 8,
-                            padding: '4px 8px',
-                            background: 'rgba(0, 0, 0, 0.85)',
-                            border: '1px solid rgba(255, 255, 255, 0.3)',
-                            borderRadius: 6,
+                            top: -6,
+                            right: -6,
+                            padding: '8px 12px',
+                            background: 'linear-gradient(135deg, rgba(30, 30, 35, 0.98), rgba(15, 15, 20, 0.95))',
+                            border: '2px solid rgba(255, 255, 255, 0.9)',
+                            borderRadius: 8,
                             display: 'flex',
                             flexDirection: 'column',
-                            alignItems: 'flex-end',
+                            alignItems: 'center',
                             gap: 2,
+                            boxShadow: `
+                                0 0 20px rgba(255, 255, 255, 0.6),
+                                0 0 40px rgba(255, 255, 255, 0.4),
+                                0 4px 12px rgba(0, 0, 0, 0.7)
+                            `,
+                            minWidth: 50,
                         }}
                     >
                         <div style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: '#00d4ff',
+                            fontSize: 11,
+                            fontWeight: 900,
+                            color: '#fff',
+                            letterSpacing: 1,
+                            textShadow: `
+                                0 0 10px rgba(255, 255, 255, 0.8),
+                                0 0 20px rgba(255, 255, 255, 0.5),
+                                0 2px 4px rgba(0, 0, 0, 0.5)
+                            `,
                         }}>
                             LVL {currentLevel}
                         </div>
                         <div style={{
-                            fontSize: 9,
-                            fontWeight: 600,
+                            fontSize: 13,
+                            fontWeight: 900,
                             color: lastScore >= 85 ? '#4CAF50' : '#FFD700',
+                            letterSpacing: 0.5,
+                            textShadow: `
+                                0 0 10px ${lastScore >= 85 ? 'rgba(76, 175, 80, 0.8)' : 'rgba(255, 215, 0, 0.8)'},
+                                0 0 20px ${lastScore >= 85 ? 'rgba(76, 175, 80, 0.5)' : 'rgba(255, 215, 0, 0.5)'},
+                                0 2px 4px rgba(0, 0, 0, 0.5)
+                            `,
                         }}>
                             {lastScore}%
                         </div>
