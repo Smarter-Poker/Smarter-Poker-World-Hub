@@ -96,9 +96,9 @@ export async function setPresetAvatar(userId, avatarId) {
 }
 
 /**
- * Generate and set a custom AI avatar
+ * Generate and set a custom AI avatar using Replicate API
  */
-export async function generateCustomAvatar(userId, prompt, isVip = false) {
+export async function generateCustomAvatar(userId, prompt, isVip = false, photoFile = null) {
     try {
         // Check limits: FREE users get 1 custom avatar, VIP unlimited
         if (!isVip) {
@@ -113,17 +113,48 @@ export async function generateCustomAvatar(userId, prompt, isVip = false) {
             }
         }
 
-        // TODO: Replace with actual AI generation API call
-        // For now, return a placeholder
-        const imageUrl = `/avatars/custom/${userId}_${Date.now()}.png`;
+        // Generate avatar using AI API
+        let generatedImageUrl;
+
+        if (photoFile) {
+            // Photo-based generation (likeness)
+            generatedImageUrl = await generateAvatarFromPhoto(photoFile, prompt);
+        } else {
+            // Text-based generation
+            generatedImageUrl = await generateAvatarFromText(prompt);
+        }
+
+        // Upload to Supabase Storage
+        const timestamp = Date.now();
+        const filename = `${userId}_${timestamp}.png`;
+        const storagePath = `avatars/${userId}/${filename}`;
+
+        // Download the generated image
+        const imageResponse = await fetch(generatedImageUrl);
+        const imageBlob = await imageResponse.blob();
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('custom-avatars')
+            .upload(storagePath, imageBlob, {
+                contentType: 'image/png',
+                cacheControl: '3600'
+            });
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('custom-avatars')
+            .getPublicUrl(storagePath);
 
         // Save to custom gallery
         const { data: galleryData, error: galleryError } = await supabase
             .from('custom_avatar_gallery')
             .insert({
                 user_id: userId,
-                image_url: imageUrl,
-                prompt: prompt
+                image_url: publicUrl,
+                prompt: prompt || 'Generated from photo'
             })
             .select()
             .single();
@@ -134,20 +165,76 @@ export async function generateCustomAvatar(userId, prompt, isVip = false) {
         const { error: setError } = await supabase.rpc('set_active_avatar', {
             p_user_id: userId,
             p_avatar_type: 'custom',
-            p_custom_image_url: imageUrl,
-            p_custom_prompt: prompt
+            p_custom_image_url: publicUrl,
+            p_custom_prompt: prompt || 'Generated from photo'
         });
 
         if (setError) throw setError;
 
         return {
             success: true,
-            imageUrl,
-            prompt
+            imageUrl: publicUrl,
+            prompt: prompt || 'Generated from photo'
         };
     } catch (error) {
         console.error('Error generating custom avatar:', error);
         return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Generate avatar from photo using FLUX or Stable Diffusion
+ */
+async function generateAvatarFromPhoto(photoFile, additionalPrompt = '') {
+    try {
+        // Convert photo to base64
+        const reader = new FileReader();
+        const photoBase64 = await new Promise((resolve) => {
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(photoFile);
+        });
+
+        // Call Replicate API for image-to-image generation
+        const response = await fetch('/api/avatar/generate-from-photo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                photoBase64,
+                prompt: additionalPrompt || 'Transform into a 3D Pixar-style poker avatar with white background, professional quality, detailed facial features'
+            })
+        });
+
+        if (!response.ok) throw new Error('AI generation failed');
+
+        const data = await response.json();
+        return data.imageUrl;
+    } catch (error) {
+        console.error('Photo generation error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Generate avatar from text description using FLUX
+ */
+async function generateAvatarFromText(prompt) {
+    try {
+        const enhancedPrompt = `${prompt}, 3D Pixar style character portrait, white background, professional quality, detailed, vibrant colors, poker avatar`;
+
+        // Call Replicate API for text-to-image generation
+        const response = await fetch('/api/avatar/generate-from-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: enhancedPrompt })
+        });
+
+        if (!response.ok) throw new Error('AI generation failed');
+
+        const data = await response.json();
+        return data.imageUrl;
+    } catch (error) {
+        console.error('Text generation error:', error);
+        throw error;
     }
 }
 
