@@ -138,12 +138,11 @@ body {
 :root {
   /* ═══════════════════════════════════════════════════════════════════════════
      CARD & LAYOUT SIZING
-     Mobile: 2.5 cards visible (~38vw each)
-     Desktop: 5 cards visible (~17vw each)
-     We use clamp() to smoothly transition between sizes
+     Mobile: 3 cards visible (~30vw each), scroll for more
+     Desktop: 5+ cards visible, more content density
      ═══════════════════════════════════════════════════════════════════════════ */
-  --vp-card-size: clamp(100px, 38vw, 200px);
-  /* 2.5 cards on mobile, 5 on desktop */
+  --vp-card-size: clamp(100px, 30vw, 180px);
+  /* 3 cards on mobile */
   --vp-card-gap: clamp(8px, 2vw, 16px);
   /* Gap between cards */
   --vp-lane-padding: clamp(12px, 3vw, 24px);
