@@ -667,16 +667,16 @@ const styles = {
     filterPills: {
         display: 'flex',
         justifyContent: 'center',
-        gap: 6, // Smaller gap
-        flexWrap: 'nowrap', // Keep on one line
+        gap: 5, // Tiny gap
+        flexWrap: 'nowrap',
     },
 
     filterPill: {
-        padding: '8px 14px', // Smaller padding to fit all 6
-        borderRadius: 16,
-        fontSize: 11, // Smaller font
+        padding: '6px 10px', // Very compact to fit all 6
+        borderRadius: 14,
+        fontSize: 10, // Smaller font
         fontWeight: 700,
-        letterSpacing: 0.3,
+        letterSpacing: 0.2,
         cursor: 'pointer',
         transition: 'all 0.2s ease',
         whiteSpace: 'nowrap',
@@ -685,9 +685,9 @@ const styles = {
     },
 
     gameCount: {
-        fontSize: 11,
+        fontSize: 10,
         color: 'rgba(255,255,255,0.4)',
-        marginLeft: 8,
+        marginLeft: 6,
     },
 
     // Lanes - FIXED design (CSS zoom handles scaling)
