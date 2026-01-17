@@ -466,6 +466,7 @@ export default function TrainingPage() {
     const [pendingGame, setPendingGame] = useState(null);
     const {
         isLoaded,
+        progress,
         getGameProgress,
         getOverallStats,
         getUnplayedGames,
