@@ -600,15 +600,15 @@ const styles = {
         fontWeight: 600,
     },
 
-    // Filters - RESPONSIVE
+    // Filters - RESPONSIVE (auto-height for wrapping)
     filterBar: {
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 'clamp(6px, 1.5vw, 12px)',
-        padding: 'clamp(8px, 2vw, 16px) clamp(12px, 3vw, 24px)',
-        height: 'clamp(44px, 8vw, 64px)', // Proper height on mobile
-        minHeight: 'clamp(44px, 8vw, 64px)',
+        gap: 'clamp(4px, 1vw, 8px)',
+        padding: 'clamp(8px, 2vw, 12px) clamp(12px, 3vw, 24px)',
+        // height: auto - let it grow to fit wrapped pills
         background: 'rgba(10,10,21,0.98)',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
         position: 'sticky',
