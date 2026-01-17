@@ -27,7 +27,6 @@ import { WorldNavHeader } from '../../../../src/components/navigation/WorldNavHe
 import { getPlayerCount } from '../../../../src/data/PLAYER_COUNT_MAP';
 import { generateLevelQuiz } from '../../../../lib/god-mode-service';
 import { submitAnswer } from '../../../../lib/game-engine-service';
-import { useUser } from '@supabase/auth-helpers-react';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
