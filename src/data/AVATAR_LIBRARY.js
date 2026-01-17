@@ -833,6 +833,10 @@ export const getCategories = () => {
     return categories;
 };
 
+export const getAll = () => AVATAR_LIBRARY;
+
+export const getByTier = (tier) => AVATAR_LIBRARY.filter(a => a.tier === tier.toUpperCase());
+
 // Stats
 export const AVATAR_STATS = {
     total: AVATAR_LIBRARY.length,
