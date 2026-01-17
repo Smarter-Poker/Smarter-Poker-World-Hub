@@ -4,7 +4,7 @@
  * Supports preset library avatars and custom AI-generated avatars
  */
 
-import supabase from '../lib/supabase';
+import supabase from '../lib/supabase.ts';
 import { getAll, getByTier, getAvatarById } from '../data/AVATAR_LIBRARY';
 
 /**

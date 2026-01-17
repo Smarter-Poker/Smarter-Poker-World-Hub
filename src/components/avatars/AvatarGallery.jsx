@@ -97,6 +97,30 @@ export default function AvatarGallery({ onSelect }) {
     setShowCustomBuilder(true);
   }
 
+  async function handleDeleteCustomAvatar(e, avatarId) {
+    e.stopPropagation(); // Prevent selecting the avatar when clicking delete
+
+    if (!confirm('Delete this custom avatar? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { deleteCustomAvatar } = await import('../../services/avatar-service');
+      const result = await deleteCustomAvatar(user.id, avatarId);
+
+      if (result.success) {
+        // Refresh the gallery
+        const customs = await getCustomAvatarGallery(user.id);
+        setCustomAvatars(customs || []);
+      } else {
+        alert(result.error || 'Failed to delete avatar');
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete avatar');
+    }
+  }
+
   async function handleCloseBuilder() {
     setShowCustomBuilder(false);
     // Refresh custom avatars after creating
@@ -313,7 +337,9 @@ export default function AvatarGallery({ onSelect }) {
       {isVip && (
         <div className="gallery-section">
           <h2 className="section-title">🎨 MY CUSTOM AVATARS</h2>
-          <p className="section-subtitle">Create up to 5 unique AI-generated avatars</p>
+          <p className="section-subtitle">
+            {customAvatars.length}/5 slots used • Create up to 5 unique AI-generated avatars
+          </p>
 
           <div className="avatar-grid">
             {customSlots.map((customAvatar, index) => (
@@ -329,6 +355,37 @@ export default function AvatarGallery({ onSelect }) {
                     className="avatar-image"
                   />
                   <span className="tier-badge custom">CUSTOM</span>
+
+                  {/* DELETE BUTTON */}
+                  <button
+                    onClick={(e) => handleDeleteCustomAvatar(e, customAvatar.id)}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      left: '8px',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: 'rgba(255, 68, 68, 0.9)',
+                      border: '2px solid #fff',
+                      color: '#fff',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                      zIndex: 10,
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => e.target.style.background = '#ff0000'}
+                    onMouseOut={(e) => e.target.style.background = 'rgba(255, 68, 68, 0.9)'}
+                    title="Delete this avatar"
+                  >
+                    ✕
+                  </button>
+
                   <div className="avatar-info">
                     <p className="avatar-name">{customAvatar.prompt?.substring(0, 30) || 'Custom Avatar'}</p>
                     <p className="avatar-tier">AI Generated</p>
@@ -347,6 +404,47 @@ export default function AvatarGallery({ onSelect }) {
                 </div>
               )
             ))}
+          </div>
+
+          {/* CREATE CUSTOM AVATAR BUTTON - Always visible for VIP */}
+          <div style={{
+            marginTop: '20px',
+            textAlign: 'center'
+          }}>
+            {customAvatars.length < 5 ? (
+              <button
+                onClick={handleCreateNewCustom}
+                style={{
+                  padding: '15px 40px',
+                  background: 'linear-gradient(135deg, #ff00f5, #00f5ff)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  color: '#fff',
+                  fontFamily: "'Orbitron', sans-serif",
+                  fontSize: '16px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  boxShadow: '0 4px 20px rgba(255, 0, 245, 0.5)',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                🤖 Create Custom Avatar
+              </button>
+            ) : (
+              <div style={{
+                padding: '15px 30px',
+                background: 'rgba(255, 140, 0, 0.15)',
+                border: '1px solid rgba(255, 140, 0, 0.4)',
+                borderRadius: '12px',
+                color: '#ff8c00',
+                fontFamily: "'Rajdhani', sans-serif",
+                fontSize: '14px',
+                display: 'inline-block'
+              }}>
+                ⚠️ All 5 slots filled! Delete an existing avatar to create a new one.
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -377,9 +475,6 @@ export default function AvatarGallery({ onSelect }) {
                   alt={av.name}
                   className="avatar-image"
                 />
-                <span className={`tier-badge ${av.tier.toLowerCase()}`}>
-                  {av.tier}
-                </span>
                 <div className="avatar-info">
                   <p className="avatar-name">{av.name}</p>
                   <p className="avatar-tier">{av.category}</p>
