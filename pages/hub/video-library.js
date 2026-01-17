@@ -266,9 +266,24 @@ export default function VideoLibraryPage() {
             <Head>
                 <title>Video Library | Smarter Poker</title>
                 <meta name="description" content="Watch full poker videos from HCL, The Lodge, Triton, and more" />
+                <meta name="viewport" content="width=800, user-scalable=no" />
+                <style>{`
+                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
+                    .video-library-page {
+                        width: 800px;
+                        max-width: 800px;
+                        margin: 0 auto;
+                        overflow-x: hidden;
+                    }
+                    @media (max-width: 500px) { .video-library-page { zoom: 0.5; } }
+                    @media (min-width: 501px) and (max-width: 700px) { .video-library-page { zoom: 0.75; } }
+                    @media (min-width: 701px) and (max-width: 900px) { .video-library-page { zoom: 0.95; } }
+                    @media (min-width: 901px) { .video-library-page { zoom: 1.2; } }
+                    @media (min-width: 1400px) { .video-library-page { zoom: 1.5; } }
+                `}</style>
             </Head>
 
-            <div style={{
+            <div className="video-library-page" style={{
                 minHeight: '100vh',
                 background: C.bg,
                 padding: '20px',

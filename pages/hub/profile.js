@@ -424,8 +424,20 @@ export default function ProfilePage() {
 
     return (
         <>
-            <Head><title>My Profile | Smarter.Poker</title></Head>
-            <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
+            <Head>
+                <title>My Profile | Smarter.Poker</title>
+                <meta name="viewport" content="width=800, user-scalable=no" />
+                <style>{`
+                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
+                    .profile-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
+                    @media (max-width: 500px) { .profile-page { zoom: 0.5; } }
+                    @media (min-width: 501px) and (max-width: 700px) { .profile-page { zoom: 0.75; } }
+                    @media (min-width: 701px) and (max-width: 900px) { .profile-page { zoom: 0.95; } }
+                    @media (min-width: 901px) { .profile-page { zoom: 1.2; } }
+                    @media (min-width: 1400px) { .profile-page { zoom: 1.5; } }
+                `}</style>
+            </Head>
+            <div className="profile-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 {/* Header */}
                 <header style={{ background: C.card, padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
