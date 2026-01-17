@@ -319,6 +319,7 @@ export default function TrainingPage() {
         <>
             <Head>
                 <title>Training — PokerIQ | 100 Games to Master</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
                 <style>{`
                     * { box-sizing: border-box; margin: 0; padding: 0; }
                     body { 
@@ -328,6 +329,31 @@ export default function TrainingPage() {
                     ::-webkit-scrollbar { height: 6px; }
                     ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
                     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+                    
+                    /* Responsive container sizing based on viewport width */
+                    /* Mobile: Full width, no max-width constraint */
+                    @media (max-width: 600px) {
+                        .lanes-container-responsive {
+                            max-width: 100% !important;
+                            padding: 20px 0 !important;
+                        }
+                    }
+                    
+                    /* Tablet: Moderate constraint */
+                    @media (min-width: 601px) and (max-width: 1199px) {
+                        .lanes-container-responsive {
+                            max-width: 100% !important;
+                            padding: 20px 0 !important;
+                        }
+                    }
+                    
+                    /* Desktop: Lock to mobile-first design (900px = ~4-5 cards) */
+                    @media (min-width: 1200px) {
+                        .lanes-container-responsive {
+                            max-width: 900px !important;
+                            margin: 0 auto !important;
+                        }
+                    }
                 `}</style>
             </Head>
 
