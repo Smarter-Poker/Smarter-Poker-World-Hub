@@ -5,8 +5,13 @@
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useAuth } from './AuthContext';
+import { createClient } from '@supabase/supabase-js';
 import { getUserAvatar, setPresetAvatar, generateCustomAvatar } from '../services/avatar-service';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 const AvatarContext = createContext();
 
@@ -19,11 +24,27 @@ export function useAvatar() {
 }
 
 export function AvatarProvider({ children }) {
-    const { user } = useAuth();
+    const [user, setUser] = useState(null);
     const [avatar, setAvatar] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Load user's avatar on mount and user change
+    // Load user on mount
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+        };
+        fetchUser();
+
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // Load user's avatar when user changes
     useEffect(() => {
         if (user) {
             loadAvatar();
@@ -34,6 +55,8 @@ export function AvatarProvider({ children }) {
     }, [user]);
 
     async function loadAvatar() {
+        if (!user) return;
+
         setLoading(true);
         try {
             const avatarData = await getUserAvatar(user.id);
@@ -72,6 +95,7 @@ export function AvatarProvider({ children }) {
     const value = {
         avatar,
         loading,
+        user,
         selectPresetAvatar,
         createCustomAvatar,
         refreshAvatar: loadAvatar
