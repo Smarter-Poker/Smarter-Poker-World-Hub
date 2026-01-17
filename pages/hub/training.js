@@ -319,13 +319,40 @@ export default function TrainingPage() {
         <>
             <Head>
                 <title>Training — PokerIQ | 100 Games to Master</title>
-                {/* LOCK viewport scale - prevent pinch zoom */}
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-                {/* Scrollbar styling */}
+                {/* LOCK viewport - prevent pinch zoom */}
+                <meta name="viewport" content="width=1200, initial-scale=0.33, maximum-scale=1.0, user-scalable=no" />
+                {/* TRUE SCALE-DOWN MODEL: Design for 1200px, zoom down on mobile */}
                 <style>{`
+                    /* Scrollbar styling */
                     ::-webkit-scrollbar { height: 6px; }
                     ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
                     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+                    
+                    /* The page is designed for 1200px width */
+                    /* CSS zoom scales EVERYTHING uniformly */
+                    .training-page {
+                        width: 1200px;
+                        margin: 0 auto;
+                        transform-origin: top center;
+                    }
+                    
+                    /* Scale down on mobile - TRUE uniform scaling */
+                    @media (max-width: 1200px) {
+                        .training-page {
+                            zoom: calc(100vw / 1200);
+                        }
+                    }
+                    
+                    /* Fallback for browsers that don't support zoom */
+                    @supports not (zoom: 1) {
+                        @media (max-width: 1200px) {
+                            .training-page {
+                                transform: scale(calc(100vw / 1200px));
+                                transform-origin: top left;
+                                width: 1200px;
+                            }
+                        }
+                    }
                 `}</style>
             </Head>
 
