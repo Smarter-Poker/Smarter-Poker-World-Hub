@@ -147,7 +147,7 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                     : `translateY(150px) perspective(800px) rotateX(-20deg) scale(0.5)`,
                 opacity: hasAnimatedIn ? 1 : 0,
                 flex: 1,
-                maxWidth: 'calc(17% - 6px)',
+                maxWidth: `clamp(140px, 17vw, 186px)`,  // Viewport-scaled card width
                 transition: 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease-out',
                 transformStyle: 'preserve-3d',
             }}
@@ -736,7 +736,7 @@ export default function WorldHub() {
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            padding: isMobile ? '12px 16px' : '16px 40px',
+                            padding: isMobile ? `clamp(10px, 1.5vh, 12px) clamp(12px, 2.0vh, 16px)` : `clamp(14px, 1.5vh, 16px) clamp(32px, 3.7vh, 40px)`,  // Viewport-scaled padding
                             background: 'linear-gradient(180deg, rgba(10, 22, 40, 0.92), rgba(5, 15, 30, 0.95))',
                             backdropFilter: 'blur(15px)',
                             WebkitBackdropFilter: 'blur(15px)',
@@ -754,7 +754,7 @@ export default function WorldHub() {
                                 alt="Smarter Poker — Return to Home"
                                 onClick={handleLogoClick}
                                 style={{
-                                    height: isMobile ? 40 : 60,
+                                    height: isMobile ? `clamp(32px, 6vh, 40px)` : `clamp(48px, 5.6vh, 60px)`,  // Viewport-scaled logo
                                     width: 'auto',
                                     objectFit: 'contain',
                                     filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6))',
@@ -785,7 +785,11 @@ export default function WorldHub() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 12, position: 'relative' }}>
                             {/* PROFILE ORB */}
                             <div ref={profileOrbRef}>
-                                <ProfileOrbInline onClick={handleProfileClick} size={isMobile ? 36 : 56} avatarUrl={userAvatarUrl} />
+                                <ProfileOrbInline
+                                    onClick={handleProfileClick}
+                                    size={isMobile ? 36 : Math.min(56, Math.max(48, window.innerHeight * 0.052))}
+                                    avatarUrl={userAvatarUrl}
+                                />
                             </div>
                             <ProfileDropdown
                                 isOpen={isProfileDropdownOpen}
@@ -888,7 +892,7 @@ export default function WorldHub() {
                                     onClick={() => handleCardSelect(orb.id)}
                                     style={{
                                         flex: '0 0 auto',
-                                        width: 115,
+                                        width: `clamp(100px, 18vw, 115px)`,  // Viewport-scaled mobile card
                                         cursor: 'pointer',
                                     }}
                                 >
@@ -914,7 +918,7 @@ export default function WorldHub() {
                                     <div
                                         style={{
                                             marginTop: 6,
-                                            fontSize: 10,
+                                            fontSize: `clamp(9px, 1.2vh, 10px)`,  // Viewport-scaled label
                                             fontWeight: 600,
                                             color: 'rgba(255, 255, 255, 0.9)',
                                             textAlign: 'center',
