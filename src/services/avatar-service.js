@@ -192,12 +192,7 @@ export async function getAvailableAvatars(userId, tierFilter = 'all') {
         const unlockedIds = new Set(unlocks?.map(u => u.avatar_id) || []);
 
         // Get all avatars from library
-        let avatars = AVATAR_LIBRARY.getAll();
-
-        // Filter by tier
-        if (tierFilter !== 'all') {
-            avatars = AVATAR_LIBRARY.getByTier(tierFilter.toUpperCase());
-        }
+        let avatars = tierFilter === 'all' ? getAll() : getByTier(tierFilter);
 
         // Mark locked status
         return avatars.map(avatar => ({
