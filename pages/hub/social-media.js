@@ -7,7 +7,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../src/lib/supabase';
 import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
 import { StoriesBar, ShareToStoryPrompt } from '../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../src/components/social/ReelsFeedCarousel';
@@ -16,11 +16,6 @@ import { LiveStreamCard } from '../../src/components/social/LiveStreamCard';
 import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../src/services/LiveStreamService';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
 
 // Light Theme Colors (Facebook-style)
 const C = {

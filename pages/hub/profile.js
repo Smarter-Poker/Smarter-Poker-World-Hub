@@ -7,16 +7,11 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { MediaLibrary } from '../../src/components/social/MediaLibrary';
 import { ProfilePictureHistory } from '../../src/components/social/ProfilePictureHistory';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { supabase } from '../../src/lib/supabase';
 
 // Light Theme Colors
 const C = {

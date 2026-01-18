@@ -26,12 +26,7 @@ import {
     getHandName,
     MIXED_SCENARIOS,
 } from '../../src/games/ScenarioDatabase';
-
-// Supabase client
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+import { supabase } from '../../src/lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💎 DIAMOND ENGINE — Local storage with VIP check

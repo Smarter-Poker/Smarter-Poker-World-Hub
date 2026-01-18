@@ -6,15 +6,9 @@
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { useTheme } from '../../src/providers/ThemeProvider';
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
-
-// Initialize Supabase
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+import { supabase } from '../../src/lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT
