@@ -854,7 +854,7 @@ export default function TrainingPlayPage() {
                     }
                 `}</style>
                 <iframe
-                    src={`/templates/training_game_template.html?gameId=${gameId}&gameName=${encodeURIComponent(game.name)}`}
+                    src={`/templates/training_game_template.html?gameId=${gameId}&gameName=${encodeURIComponent(game.name)}&v=2`}
                     title={game.name}
                 />
             </>

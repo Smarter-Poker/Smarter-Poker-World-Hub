@@ -407,6 +407,41 @@ export default function MemoryGameClient({
         onExit?.();
     };
 
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (gameState.state === 'PLAYING') {
+                switch (e.key) {
+                    case '1':
+                        handleAnswer('Fold');
+                        break;
+                    case '2':
+                        handleAnswer('Call');
+                        break;
+                    case '3':
+                        handleAnswer('Raise');
+                        break;
+                    case 'Escape':
+                        handleExit();
+                        break;
+                }
+            } else if (gameState.state === 'FEEDBACK') {
+                if (e.key === ' ' || e.key === 'Enter') {
+                    handleNextHand();
+                }
+            } else if (gameState.state === 'SUMMARY') {
+                if (e.key === 'r' || e.key === 'R') {
+                    handleRetry();
+                } else if (e.key === 'Escape') {
+                    handleExit();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [gameState.state]);
+
     // Calculate pass/fail (moved to SUMMARY state to use dynamic threshold)
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -549,14 +584,22 @@ export default function MemoryGameClient({
 
                     {/* Action Buttons */}
                     <div className="grid grid-cols-3 gap-4 mt-8">
-                        {['Fold', 'Call', 'Raise'].map((action) => {
+                        {[
+                            { action: 'Fold', key: '1' },
+                            { action: 'Call', key: '2' },
+                            { action: 'Raise', key: '3' }
+                        ].map(({ action, key }) => {
                             const colors = ACTION_COLORS[action as keyof typeof ACTION_COLORS];
                             return (
                                 <button
                                     key={action}
                                     onClick={() => handleAnswer(action)}
-                                    className={`${colors.bg} ${colors.border} ${colors.text} border-4 rounded-xl py-8 text-2xl font-bold hover:scale-105 active:scale-95 transition-transform shadow-lg`}
+                                    className={`relative ${colors.bg} ${colors.border} ${colors.text} border-4 rounded-xl py-8 text-2xl font-bold hover:scale-105 active:scale-95 transition-transform shadow-lg`}
                                 >
+                                    {/* Keyboard hint */}
+                                    <span className="absolute -top-2 -right-2 w-8 h-8 bg-slate-900 border-2 border-slate-600 rounded-lg flex items-center justify-center text-sm text-slate-300 font-mono">
+                                        {key}
+                                    </span>
                                     {action.toUpperCase()}
                                 </button>
                             );

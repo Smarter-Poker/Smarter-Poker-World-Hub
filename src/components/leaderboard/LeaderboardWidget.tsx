@@ -102,7 +102,7 @@ export function generateMockLeaderboard(currentUserId: string, friendIds: string
                 value: Math.max(0, Math.floor(baseValue * 10) / 10),
                 isFriend: friendIds.includes(playerId),
                 isCurrentUser: playerId === currentUserId,
-                trend: Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable'
+                trend: (Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable') as 'up' | 'down' | 'stable'
             };
         }).sort((a, b) => b.value - a.value)
             .map((entry, i) => ({ ...entry, rank: i + 1 }));

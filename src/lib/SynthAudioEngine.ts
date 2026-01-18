@@ -143,8 +143,7 @@ class SynthAudioEngine {
         // Envelope
         const gain = ctx.createGain();
         gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialDecayTo?.(0.01, ctx.currentTime + duration) ||
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
 
         noise.connect(filter);
         filter.connect(gain);

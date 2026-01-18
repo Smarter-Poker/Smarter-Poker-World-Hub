@@ -242,7 +242,7 @@ export function useOpeningChoreography({
                 const cardTimeout = setTimeout(() => {
                     setState(prev => ({
                         ...prev,
-                        cardsDealt: new Set([...prev.cardsDealt, seat])
+                        cardsDealt: new Set([...Array.from(prev.cardsDealt), seat])
                     }));
                 }, index * 50); // 50ms stagger
                 timeoutsRef.current.push(cardTimeout);
