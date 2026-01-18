@@ -276,6 +276,9 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
         setGtoCardExpanded(false);
         setShowNextHandButton(false);
         setReplayIndex(0);
+        setLastReward(null);
+        setShowLeakBadge(false);
+        setCurrentLeak(null);
 
         // Pop next scenario from queue (zero latency!)
         if (scenarioQueue.length > 0) {
@@ -508,13 +511,64 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                 borderBottom: '1px solid rgba(255,255,255,0.1)',
                 zIndex: 100
             }}>
-                <div style={{ color: '#00d4ff', fontWeight: 700 }}>
-                    {currentScenario.config.bigBlind}BB Game
+                {/* Left: Game Info + Streak */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ color: '#00d4ff', fontWeight: 700 }}>
+                        {currentScenario.config.bigBlind}BB Game
+                    </div>
+                    {/* 🔥 STREAK FIRE ICON */}
+                    {progression.isStreakOnFire() && (
+                        <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 0.5, repeat: Infinity }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '4px 8px',
+                                background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                                borderRadius: '12px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                color: '#fff'
+                            }}
+                        >
+                            🔥 {progression.state.streak.currentStreak} Day Streak!
+                        </motion.div>
+                    )}
                 </div>
+
+                {/* Right: Stats + Mute */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    {/* XP Display */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        color: '#a855f7',
+                        fontWeight: 700,
+                        fontSize: '14px'
+                    }}>
+                        ⚡ {progression.state.totalXP.toLocaleString()} XP
+                    </div>
+
+                    {/* Diamonds Display */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        color: '#00d4ff',
+                        fontWeight: 700,
+                        fontSize: '14px'
+                    }}>
+                        💎 {progression.state.totalDiamonds.toLocaleString()}
+                    </div>
+
+                    {/* Score */}
                     <div style={{ color: '#FFD700', fontWeight: 700 }}>
                         {totalCorrect}/{totalQuestions} Correct
                     </div>
+
                     {/* 🔇 MUTE BUTTON */}
                     <button
                         onClick={() => audio.toggleMute()}
@@ -597,10 +651,72 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                             boxShadow: isCorrect
                                 ? '0 0 30px rgba(34, 197, 94, 0.5)'
                                 : '0 0 30px rgba(239, 68, 68, 0.5)',
-                            zIndex: 100
+                            zIndex: 100,
+                            textAlign: 'center'
                         }}
                     >
-                        {isCorrect ? '✓ CORRECT!' : '✗ MISTAKE'}
+                        <div>{isCorrect ? '✓ CORRECT!' : '✗ MISTAKE'}</div>
+                        {/* 💰 REWARD BREAKDOWN */}
+                        {isCorrect && lastReward && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                style={{
+                                    fontSize: '14px',
+                                    fontWeight: 600,
+                                    marginTop: '8px',
+                                    color: '#FFD700'
+                                }}
+                            >
+                                {lastReward.displayText}
+                            </motion.div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* 🕳️ LEAK DETECTION BADGE */}
+            <AnimatePresence>
+                {showLeakBadge && currentLeak && (
+                    <motion.div
+                        initial={{ x: 100, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: 100, opacity: 0 }}
+                        style={{
+                            position: 'absolute',
+                            top: '200px',
+                            right: '20px',
+                            maxWidth: '280px',
+                            padding: '12px 16px',
+                            background: currentLeak.severity === 'critical'
+                                ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(185, 28, 28, 0.9))'
+                                : 'linear-gradient(135deg, rgba(245, 158, 11, 0.9), rgba(217, 119, 6, 0.9))',
+                            borderRadius: '12px',
+                            color: '#fff',
+                            zIndex: 150
+                        }}
+                    >
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            marginBottom: '8px',
+                            fontWeight: 700,
+                            fontSize: '14px'
+                        }}>
+                            {currentLeak.severity === 'critical' ? '🚨' : '⚠️'} LEAK DETECTED
+                        </div>
+                        <div style={{ fontSize: '12px', lineHeight: 1.4 }}>
+                            {currentLeak.message}
+                        </div>
+                        <div style={{
+                            fontSize: '11px',
+                            marginTop: '8px',
+                            opacity: 0.8
+                        }}>
+                            {Math.round(currentLeak.failureRate * 100)}% error rate in last {currentLeak.attemptCount} attempts
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
