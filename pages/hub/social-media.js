@@ -60,27 +60,39 @@ function isYouTubeUrl(url) {
     return url.includes('youtube.com') || url.includes('youtu.be');
 }
 
-function getYouTubeEmbedUrl(url) {
-    if (!url) return '';
+function getYouTubeVideoId(url) {
+    if (!url) return null;
 
     // Handle youtube.com/watch?v=VIDEO_ID
     const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
-    if (watchMatch) {
-        return `https://www.youtube.com/embed/${watchMatch[1]}?autoplay=1`;
-    }
+    if (watchMatch) return watchMatch[1];
 
     // Handle youtu.be/VIDEO_ID
     const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-    if (shortMatch) {
-        return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1`;
-    }
+    if (shortMatch) return shortMatch[1];
 
-    // Handle youtube.com/embed/VIDEO_ID (already embed format)
-    if (url.includes('youtube.com/embed/')) {
-        return url.includes('?') ? url : `${url}?autoplay=1`;
-    }
+    // Handle youtube.com/embed/VIDEO_ID
+    const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
+    if (embedMatch) return embedMatch[1];
 
+    return null;
+}
+
+function getYouTubeEmbedUrl(url) {
+    const videoId = getYouTubeVideoId(url);
+    if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    }
     return url;
+}
+
+function getYouTubeThumbnail(url) {
+    const videoId = getYouTubeVideoId(url);
+    if (videoId) {
+        // Use hqdefault for reliable availability (maxresdefault not always available)
+        return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    }
+    return null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -557,13 +569,22 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                                     overflow: 'hidden'
                                 }}
                             >
-                                <video
-                                    src={post.mediaUrls[0]}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    muted
-                                    playsInline
-                                    preload="metadata"
-                                />
+                                {/* Use YouTube thumbnail for YouTube URLs, video element for direct files */}
+                                {isYouTubeUrl(post.mediaUrls[0]) ? (
+                                    <img
+                                        src={getYouTubeThumbnail(post.mediaUrls[0])}
+                                        alt="Video thumbnail"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                ) : (
+                                    <video
+                                        src={post.mediaUrls[0]}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        muted
+                                        playsInline
+                                        preload="metadata"
+                                    />
+                                )}
                                 {/* Play Button Overlay */}
                                 <div style={{
                                     position: 'absolute', top: '50%', left: '50%',
