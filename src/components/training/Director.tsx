@@ -16,6 +16,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScenarioGenerator } from '../../lib/ScenarioGenerator';
 import { useGameAudio } from '../../hooks/useGameAudio';
+import { useProgression, type RewardBreakdown, type Leak } from '../../hooks/useProgression';
 import { useAssetPreloader } from '../../lib/AssetPreloader';
 import { useNetworkGuard, OfflineBadge } from '../../lib/GameGuard';
 import type { Scenario, ActionLogEntry, GameConfig, Player } from '../../types/poker';
@@ -62,6 +63,12 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
 
     // 🌐 NETWORK GUARD
     const network = useNetworkGuard();
+
+    // 🔥 PROGRESSION SYSTEM
+    const progression = useProgression();
+    const [lastReward, setLastReward] = useState<RewardBreakdown | null>(null);
+    const [showLeakBadge, setShowLeakBadge] = useState(false);
+    const [currentLeak, setCurrentLeak] = useState<Leak | null>(null);
 
     /**
      * 🎬 Initialize: Show intro and generate first scenario
@@ -167,22 +174,31 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
         setIsCorrect(correct);
         setTotalQuestions(prev => prev + 1);
 
-        // 3. TRIGGER SEQUENCE
+        // 3. RECORD IN PROGRESSION SYSTEM (optimistic update)
+        const reward = progression.recordHandResult({
+            type: 'PREFLOP_OPEN', // TODO: Determine from scenario
+            userAction: action,
+            correctAction: currentScenario.correctAction,
+            difficulty: 'medium' // TODO: Determine from scenario
+        });
+
+        // 4. TRIGGER SEQUENCE
         if (correct) {
             setTotalCorrect(prev => prev + 1);
             audio.playSuccess(); // 🔊 Success chime + haptic
-            startWinSequence();
+            startWinSequence(reward);
         } else {
             audio.playError(); // 🔊 Error thud + haptic
             startLossSequence();
         }
-    }, [currentScenario, buttonsDisabled, audio]);
+    }, [currentScenario, buttonsDisabled, audio, progression, startWinSequence, startLossSequence]);
 
     /**
      * 🏆 WIN SEQUENCE - Player got it right!
      */
-    const startWinSequence = useCallback(() => {
+    const startWinSequence = useCallback((reward: RewardBreakdown) => {
         setPhase('SHOWING_RESULT');
+        setLastReward(reward);
 
         // Step 1: Chip sweep to hero
         setChipSweepTarget('hero');
@@ -202,10 +218,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
             setShowNextHandButton(true);
             setPhase('SHOWING_GTO');
 
-            // Award rewards
-            const xpEarned = 50;
-            const diamondsEarned = 5;
-            onScenarioComplete(true, xpEarned, diamondsEarned);
+            onScenarioComplete(true, reward.totalXP, reward.totalDiamonds);
         }, 2000);
     }, [onScenarioComplete]);
 
@@ -214,6 +227,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
      */
     const startLossSequence = useCallback(() => {
         setPhase('SHOWING_RESULT');
+        setLastReward(null);
 
         // Step 1: Camera shake
         setCameraShake(true);
@@ -227,7 +241,14 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
             setCameraShake(false);
         }, 500);
 
-        // Step 4: Show expanded GTO card + Next Hand button (2s total)
+        // Step 4: Check for leaks
+        const leaks = progression.getLeaks();
+        if (leaks.length > 0) {
+            setCurrentLeak(leaks[0]);
+            setShowLeakBadge(true);
+        }
+
+        // Step 5: Show expanded GTO card + Next Hand button (2s total)
         setTimeout(() => {
             setShowChipSweep(false);
             setShowGTOCard(true);
@@ -237,7 +258,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
 
             onScenarioComplete(false, 0, 0);
         }, 2000);
-    }, [onScenarioComplete]);
+    }, [onScenarioComplete, progression]);
 
     /**
      * ⏭️ NEXT HAND - Zero latency transition
