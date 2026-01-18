@@ -6,7 +6,12 @@
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+
+// God-Mode Stack
+import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
 
 // Full video catalog with YouTube embeds - 138 VIDEOS (96 cash + 42 tournaments)
 const FULL_VIDEOS = [
@@ -220,10 +225,18 @@ const C = {
 };
 
 export default function VideoLibraryPage() {
+    // Zustand Global State (replaces UI-related useState)
+    const selectedCategory = useVideoLibraryStore((s) => s.selectedCategory);
+    const setSelectedCategory = useVideoLibraryStore((s) => s.setSelectedCategory);
+    const selectedVideo = useVideoLibraryStore((s) => s.selectedVideo);
+    const setSelectedVideo = useVideoLibraryStore((s) => s.setSelectedVideo);
+    const showPlayer = useVideoLibraryStore((s) => s.showPlayer);
+    const setShowPlayer = useVideoLibraryStore((s) => s.setShowPlayer);
+
+    // Local state (keep for data/filtering)
     const [videos, setVideos] = useState(FULL_VIDEOS);
     const [selectedSource, setSelectedSource] = useState('ALL');
     const [selectedType, setSelectedType] = useState('ALL'); // 'ALL', 'cash', 'tournament'
-    const [selectedVideo, setSelectedVideo] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const modalRef = useRef(null);
 
