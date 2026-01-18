@@ -1,77 +1,8 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
-  "name": "smarter-poker-hub",
-  "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "outputDirectory": ".next",
-  "regions": [
-    "sfo1"
-  ],
   "crons": [
     {
-      "path": "/api/cron/hendon-scraper",
-      "schedule": "0 3 * * 0"
-    },
-    {
-      "path": "/api/cron/horses-clips",
-      "schedule": "0 */3 * * *"
-    },
-    {
-      "path": "/api/cron/horses-news",
-      "schedule": "30 */4 * * *"
-    },
-    {
-      "path": "/api/cron/horses-memes",
-      "schedule": "15 */5 * * *"
-    }
-  ],
-  "github": {
-    "enabled": true,
-    "autoAlias": true,
-    "silent": true
-  },
-  "git": {
-    "deploymentEnabled": {
-      "main": true
-    }
-  },
-  "headers": [
-    {
-      "source": "/hub(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        },
-        {
-          "key": "Pragma",
-          "value": "no-cache"
-        },
-        {
-          "key": "Expires",
-          "value": "0"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
+      "path": "/api/cron/scrape-news",
+      "schedule": "0 * * * *"
     }
   ]
 }

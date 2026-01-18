@@ -1638,6 +1638,17 @@ export default function MemoryGamesPage() {
                                 >
                                     🎛️ Mixed
                                 </button>
+                                <button
+                                    onClick={() => router.push('/hub/memory-campaign')}
+                                    style={{
+                                        ...styles.gameModeTab,
+                                        background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.2))',
+                                        border: '2px solid rgba(255, 215, 0, 0.5)',
+                                        color: '#FFD700',
+                                    }}
+                                >
+                                    🏆 Campaign
+                                </button>
                             </div>
 
                             {/* Speed Drill Mode */}

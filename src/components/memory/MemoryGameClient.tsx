@@ -219,6 +219,76 @@ export default function MemoryGameClient({
     const [isSimpleMode, setIsSimpleMode] = useState(true);
     const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Reward processing state (moved to top level to fix hooks violation)
+    const [rewardsProcessed, setRewardsProcessed] = useState(false);
+    const [backendRewards, setBackendRewards] = useState<{ xp: number; diamonds: number } | null>(null);
+
+    // Calculate accuracy at component level
+    const accuracy = gameState.sessionResults.length > 0
+        ? gameState.correctCount / gameState.sessionResults.length
+        : 0;
+    const passed = accuracy >= requiredAccuracy;
+
+    // Process rewards when entering SUMMARY state
+    useEffect(() => {
+        if (gameState.state === 'SUMMARY' && !rewardsProcessed && passed) {
+            processRewards();
+        }
+    }, [gameState.state, rewardsProcessed, passed]);
+
+    // Reset rewards state when retrying
+    useEffect(() => {
+        if (gameState.state === 'IDLE' || gameState.state === 'PLAYING') {
+            setRewardsProcessed(false);
+            setBackendRewards(null);
+        }
+    }, [gameState.state]);
+
+    const processRewards = async () => {
+        setRewardsProcessed(true);
+
+        // Award local XP
+        addXP(gameState.sessionXP);
+
+        // Call backend reward service
+        try {
+            const sessionTimeSeconds = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const results = await rewardService.onLevelComplete(
+                levelIndex + 1, // Convert 0-based to 1-based
+                accuracy,
+                sessionTimeSeconds
+            );
+
+            // Sum up diamonds from all rewards
+            let totalDiamonds = 0;
+            results.forEach(result => {
+                if (result.success && result.diamonds_awarded) {
+                    totalDiamonds += result.diamonds_awarded;
+                }
+            });
+
+            // Update local state
+            if (totalDiamonds > 0) {
+                addDiamonds(totalDiamonds);
+            }
+
+            setBackendRewards({
+                xp: gameState.sessionXP,
+                diamonds: totalDiamonds
+            });
+
+            // Notify parent component
+            onLevelComplete?.(passed, accuracy);
+        } catch (error) {
+            console.error('Failed to process rewards:', error);
+            // Fallback: still show local rewards
+            setBackendRewards({
+                xp: gameState.sessionXP,
+                diamonds: Math.floor(gameState.sessionXP / 10)
+            });
+        }
+    };
+
     // Helper: Translate scenario to natural language
     const getScenarioText = (chartData: any) => {
         if (!chartData) return '';
@@ -589,66 +659,8 @@ export default function MemoryGameClient({
     // ═══════════════════════════════════════════════════════════════════════
 
     if (gameState.state === 'SUMMARY') {
-        const accuracy = gameState.sessionResults.length > 0
-            ? gameState.correctCount / gameState.sessionResults.length
-            : 0;
-        const passed = accuracy >= PASS_THRESHOLD;
-        const [rewardsProcessed, setRewardsProcessed] = useState(false);
-        const [backendRewards, setBackendRewards] = useState<{ xp: number; diamonds: number } | null>(null);
-
-        // Process rewards on mount (only once)
-        useEffect(() => {
-            if (!rewardsProcessed && passed) {
-                processRewards();
-            }
-        }, []);
-
-        const processRewards = async () => {
-            setRewardsProcessed(true);
-
-            // Award local XP
-            addXP(gameState.sessionXP);
-
-            // Call backend reward service
-            try {
-                const sessionTimeSeconds = Math.floor((Date.now() - gameState.startTime) / 1000);
-                const results = await rewardService.onLevelComplete(
-                    levelIndex + 1, // Convert 0-based to 1-based
-                    accuracy,
-                    sessionTimeSeconds
-                );
-
-                // Sum up diamonds from all rewards
-                let totalDiamonds = 0;
-                results.forEach(result => {
-                    if (result.success && result.diamonds_awarded) {
-                        totalDiamonds += result.diamonds_awarded;
-                    }
-                });
-
-                // Update local state
-                if (totalDiamonds > 0) {
-                    addDiamonds(totalDiamonds);
-                }
-
-                setBackendRewards({
-                    xp: gameState.sessionXP,
-                    diamonds: totalDiamonds
-                });
-
-                // Notify parent component
-                onLevelComplete?.(passed, accuracy);
-            } catch (error) {
-                console.error('Failed to process rewards:', error);
-                // Fallback: still show local rewards
-                setBackendRewards({
-                    xp: gameState.sessionXP,
-                    diamonds: Math.floor(gameState.sessionXP / 10)
-                });
-            }
-        };
-
         const displayDiamonds = backendRewards?.diamonds ?? (passed ? Math.floor(gameState.sessionXP / 10) : 0);
+
 
         return (
             <div className={`min-h-screen ${passed ? 'bg-gradient-to-br from-yellow-900 via-slate-900 to-yellow-900' : 'bg-gradient-to-br from-slate-900 via-red-900 to-slate-900'} text-white p-8`}>

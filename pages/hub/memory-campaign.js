@@ -1,0 +1,20 @@
+/**
+ * Memory Campaign Page - Chart-Based Level Selector
+ * Routes to /hub/memory-campaign
+ */
+
+import Head from 'next/head';
+import { MemoryCampaignView } from '../../src/components/memory';
+import PageTransition from '../../src/components/transitions/PageTransition';
+
+export default function MemoryCampaignPage() {
+    return (
+        <PageTransition>
+            <Head>
+                <title>Memory Matrix Campaign | Smarter Poker</title>
+                <meta name="description" content="Master GTO preflop ranges through progressive level-based training" />
+            </Head>
+            <MemoryCampaignView />
+        </PageTransition>
+    );
+}
