@@ -10,16 +10,16 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     Search, Clock, Eye, TrendingUp, Trophy, Calendar,
-    Zap, ArrowRight, ChevronRight
+    Zap, ArrowRight
 } from 'lucide-react';
 import { supabase } from '../../src/lib/supabase';
 
-// Clean demo data
+// Clean demo data with working images
 const MOCK_NEWS = [
     {
         id: 1,
         title: "Pro Says 'This is What Makes Me a Great Poker Player'",
-        content: "Earlier this week, the 2025 Championship Freeroll took place. The event field included the top 40 players on the leaderboard.",
+        content: "Earlier this week, the 2025 Championship Freeroll took place. The event field included the top 40 players.",
         image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=800&q=80",
         category: "tournament",
         published_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
@@ -28,8 +28,8 @@ const MOCK_NEWS = [
     {
         id: 2,
         title: "Hollywood Actor Could Testify at High-Profile Trial",
-        content: "A famous Hollywood actor may be called to testify in an upcoming trial involving a well-known poker player.",
-        image_url: "https://images.unsplash.com/photo-1596462502278-27bf2d373f1d?w=600&q=80",
+        content: "A famous actor may testify in an upcoming trial involving a well-known poker player.",
+        image_url: "https://images.unsplash.com/photo-1596462502278-27bf2d373f1d?w=800&q=80",
         category: "industry",
         published_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
         views: 8720
@@ -37,8 +37,8 @@ const MOCK_NEWS = [
     {
         id: 3,
         title: "Winner Takes All Heads-Up Match Shocks Community",
-        content: "The latest high-stakes heads-up match ends in a controversial winner-take-all deal.",
-        image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=600&q=80",
+        content: "The latest high-stakes heads-up match ends in a controversial deal.",
+        image_url: "https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=800&q=80",
         category: "news",
         published_at: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
         views: 6340
@@ -46,8 +46,8 @@ const MOCK_NEWS = [
     {
         id: 4,
         title: "Could You Chase This Astonishing World Record?",
-        content: "A new poker world record attempt is underway that has the community buzzing.",
-        image_url: "https://images.unsplash.com/photo-1596462502278-27bf2d373f1d?w=600&q=80",
+        content: "A new poker world record attempt has the community buzzing.",
+        image_url: "https://images.unsplash.com/photo-1541278107931-e006523892df?w=800&q=80",
         category: "news",
         published_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
         views: 5210
@@ -55,8 +55,8 @@ const MOCK_NEWS = [
     {
         id: 5,
         title: "Card Markers Caught and Instantly Banned",
-        content: "Security footage revealed a sophisticated card marking scheme at a major cardroom.",
-        image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=600&q=80",
+        content: "Security footage revealed a sophisticated card marking scheme.",
+        image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=800&q=80",
         category: "industry",
         published_at: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
         views: 15680
@@ -64,8 +64,8 @@ const MOCK_NEWS = [
     {
         id: 6,
         title: "GTO Deep Dive: Optimal River Betting Frequencies",
-        content: "Understanding when to bet the river is crucial for maximizing EV in modern poker.",
-        image_url: "https://images.unsplash.com/photo-1596462502278-27bf2d373f1d?w=600&q=80",
+        content: "Understanding when to bet the river is crucial for maximizing EV.",
+        image_url: "https://images.unsplash.com/photo-1596462502278-27bf2d373f1d?w=800&q=80",
         category: "strategy",
         published_at: new Date(Date.now() - 1000 * 60 * 60 * 10).toISOString(),
         views: 4890
@@ -73,8 +73,8 @@ const MOCK_NEWS = [
     {
         id: 7,
         title: "WSOP 2025: 99 Bracelet Events Announced",
-        content: "The World Series of Poker has unveiled its biggest schedule ever.",
-        image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=600&q=80",
+        content: "The World Series has unveiled its biggest schedule ever.",
+        image_url: "https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=800&q=80",
         category: "tournament",
         published_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
         views: 22100
@@ -83,7 +83,7 @@ const MOCK_NEWS = [
         id: 8,
         title: "Online Traffic Hits All-Time High This Month",
         content: "Global online poker traffic has reached unprecedented levels.",
-        image_url: "https://images.unsplash.com/photo-1596462502278-27bf2d373f1d?w=600&q=80",
+        image_url: "https://images.unsplash.com/photo-1541278107931-e006523892df?w=800&q=80",
         category: "industry",
         published_at: new Date(Date.now() - 1000 * 60 * 60 * 14).toISOString(),
         views: 7650
@@ -140,7 +140,7 @@ export default function NewsHub() {
             </Head>
 
             <div className="news-hub">
-                {/* Header */}
+                {/* Sticky Header */}
                 <header className="news-header">
                     <Link href="/hub">
                         <div className="logo">
@@ -173,20 +173,20 @@ export default function NewsHub() {
                 </header>
 
                 {/* Main Content */}
-                <main className="news-content">
-                    {/* Hero Section */}
-                    <section className="hero-section">
+                <main className="news-main">
+                    {/* Hero Row */}
+                    <section className="hero-row">
+                        {/* Hero Card - Left 2/3 */}
                         {hero && (
-                            <Link href={`/hub/article?url=#`}>
-                                <motion.article
-                                    className="hero-card"
-                                    whileHover={{ scale: 1.01 }}
+                            <Link href={`/hub/article?url=#`} className="hero-card">
+                                <motion.div
+                                    className="hero-inner"
+                                    whileHover={{ scale: 1.02 }}
+                                    transition={{ duration: 0.3 }}
                                 >
-                                    <div className="hero-image">
-                                        <img src={hero.image_url} alt="" />
-                                        <div className="hero-overlay" />
-                                    </div>
-                                    <div className="hero-content">
+                                    <img src={hero.image_url} alt="" className="hero-img" />
+                                    <div className="hero-gradient" />
+                                    <div className="hero-text">
                                         <h2>{hero.title}</h2>
                                         <p>{hero.content}</p>
                                         <div className="hero-meta">
@@ -194,14 +194,15 @@ export default function NewsHub() {
                                             <span><Eye size={12} /> {hero.views?.toLocaleString()}</span>
                                         </div>
                                     </div>
-                                </motion.article>
+                                </motion.div>
                             </Link>
                         )}
 
+                        {/* Secondary Stack - Right 1/3 */}
                         <div className="secondary-stack">
                             {secondary.map((article, i) => (
                                 <Link key={article.id} href={`/hub/article?url=#`}>
-                                    <motion.article
+                                    <motion.div
                                         className="secondary-card"
                                         initial={{ opacity: 0, x: 20 }}
                                         animate={{ opacity: 1, x: 0 }}
@@ -211,44 +212,46 @@ export default function NewsHub() {
                                         <img src={article.image_url} alt="" />
                                         <div className="secondary-info">
                                             <h3>{article.title}</h3>
-                                            <span className="meta">{timeAgo(article.published_at)}</span>
+                                            <span>{timeAgo(article.published_at)}</span>
                                         </div>
-                                    </motion.article>
+                                    </motion.div>
                                 </Link>
                             ))}
                         </div>
                     </section>
 
-                    {/* Grid + Sidebar */}
-                    <section className="grid-section">
+                    {/* Grid + Sidebar Row */}
+                    <section className="content-row">
+                        {/* News Grid */}
                         <div className="news-grid">
                             <h4 className="section-title">Latest <ArrowRight size={14} /></h4>
                             <div className="cards-lane">
                                 {grid.map((article, i) => (
                                     <Link key={article.id} href={`/hub/article?url=#`}>
-                                        <motion.article
+                                        <motion.div
                                             className="news-card"
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: i * 0.05 }}
                                             whileHover={{ y: -6 }}
                                         >
-                                            <div className="card-image">
+                                            <div className="card-img">
                                                 <img src={article.image_url} alt="" />
                                             </div>
-                                            <div className="card-content">
+                                            <div className="card-body">
                                                 <h3>{article.title}</h3>
                                                 <div className="card-meta">
                                                     <span>{timeAgo(article.published_at)}</span>
                                                     <span>{article.views?.toLocaleString()}</span>
                                                 </div>
                                             </div>
-                                        </motion.article>
+                                        </motion.div>
                                     </Link>
                                 ))}
                             </div>
                         </div>
 
+                        {/* Sidebar */}
                         <aside className="sidebar">
                             {/* Trending */}
                             <div className="widget">
@@ -292,22 +295,17 @@ export default function NewsHub() {
 
                 <style jsx>{`
                     .news-hub {
-                        --card-size: clamp(140px, 30vw, 220px);
+                        --card-size: clamp(160px, 28vw, 240px);
                         --gap: clamp(12px, 2vw, 20px);
                         --pad: clamp(16px, 4vw, 32px);
-                        --font-xs: clamp(10px, 1.5vw, 12px);
-                        --font-sm: clamp(12px, 2vw, 14px);
-                        --font-md: clamp(14px, 2.5vw, 16px);
-                        --font-lg: clamp(18px, 3vw, 24px);
-                        --font-xl: clamp(24px, 4vw, 36px);
                         
                         min-height: 100vh;
-                        background: linear-gradient(180deg, #0a0a12 0%, #0d0d18 100%);
+                        background: #0a0a12;
                         color: #fff;
                         font-family: 'Inter', -apple-system, sans-serif;
                     }
 
-                    /* Header */
+                    /* HEADER */
                     .news-header {
                         position: sticky;
                         top: 0;
@@ -315,10 +313,10 @@ export default function NewsHub() {
                         display: flex;
                         align-items: center;
                         gap: var(--gap);
-                        padding: var(--gap) var(--pad);
-                        background: rgba(10, 10, 18, 0.9);
-                        backdrop-filter: blur(20px);
-                        border-bottom: 1px solid rgba(255,255,255,0.05);
+                        padding: 12px var(--pad);
+                        background: rgba(10, 10, 18, 0.95);
+                        backdrop-filter: blur(12px);
+                        border-bottom: 1px solid rgba(255,255,255,0.06);
                     }
 
                     .logo {
@@ -328,44 +326,42 @@ export default function NewsHub() {
                         cursor: pointer;
                     }
 
-                    .logo-icon {
-                        width: 28px;
-                        height: 28px;
+                    .logo :global(.logo-icon) {
+                        width: 24px;
+                        height: 24px;
                         color: #00d4ff;
                     }
 
                     .logo-text {
-                        font-size: var(--font-lg);
+                        font-size: clamp(18px, 3vw, 22px);
                         font-weight: 700;
-                        background: linear-gradient(135deg, #00d4ff, #7c3aed);
+                        background: linear-gradient(90deg, #00d4ff, #7c3aed);
                         -webkit-background-clip: text;
                         -webkit-text-fill-color: transparent;
                     }
 
                     .search-box {
                         flex: 1;
-                        max-width: 300px;
+                        max-width: 280px;
                         position: relative;
                     }
 
                     .search-box input {
                         width: 100%;
                         padding: 10px 12px 10px 36px;
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.1);
+                        background: rgba(255,255,255,0.06);
+                        border: 1px solid rgba(255,255,255,0.08);
                         border-radius: 10px;
                         color: #fff;
-                        font-size: var(--font-sm);
+                        font-size: 13px;
                         outline: none;
-                        transition: all 0.2s;
                     }
 
                     .search-box input:focus {
                         border-color: #00d4ff;
-                        background: rgba(0,212,255,0.05);
                     }
 
-                    .search-icon {
+                    .search-box :global(.search-icon) {
                         position: absolute;
                         left: 12px;
                         top: 50%;
@@ -381,11 +377,11 @@ export default function NewsHub() {
                     }
 
                     .tab {
-                        padding: 8px 16px;
+                        padding: 8px 14px;
                         background: transparent;
                         border: none;
                         color: rgba(255,255,255,0.5);
-                        font-size: var(--font-xs);
+                        font-size: 12px;
                         font-weight: 600;
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
@@ -404,87 +400,89 @@ export default function NewsHub() {
                         background: linear-gradient(135deg, #00d4ff, #7c3aed);
                     }
 
-                    /* Main Content */
-                    .news-content {
+                    /* MAIN */
+                    .news-main {
                         padding: var(--pad);
                         max-width: 1400px;
                         margin: 0 auto;
                     }
 
-                    /* Hero Section */
-                    .hero-section {
+                    /* HERO ROW */
+                    .hero-row {
                         display: grid;
                         grid-template-columns: 2fr 1fr;
                         gap: var(--gap);
-                        margin-bottom: calc(var(--pad) * 1.5);
+                        margin-bottom: var(--pad);
                     }
 
-                    @media (max-width: 768px) {
-                        .hero-section {
+                    @media (max-width: 800px) {
+                        .hero-row {
                             grid-template-columns: 1fr;
                         }
                     }
 
                     .hero-card {
+                        display: block;
+                        text-decoration: none;
+                    }
+
+                    .hero-inner {
                         position: relative;
+                        height: clamp(280px, 40vw, 380px);
                         border-radius: 16px;
                         overflow: hidden;
-                        cursor: pointer;
-                        height: clamp(280px, 45vw, 400px);
                     }
 
-                    .hero-image {
+                    .hero-img {
                         position: absolute;
                         inset: 0;
-                    }
-
-                    .hero-image img {
                         width: 100%;
                         height: 100%;
                         object-fit: cover;
                         transition: transform 0.5s;
                     }
 
-                    .hero-card:hover .hero-image img {
+                    .hero-inner:hover .hero-img {
                         transform: scale(1.05);
                     }
 
-                    .hero-overlay {
+                    .hero-gradient {
                         position: absolute;
                         inset: 0;
-                        background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 50%, transparent 100%);
+                        background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
                     }
 
-                    .hero-content {
+                    .hero-text {
                         position: absolute;
                         bottom: 0;
                         left: 0;
                         right: 0;
-                        padding: var(--pad);
+                        padding: 24px;
                     }
 
-                    .hero-content h2 {
-                        font-size: var(--font-xl);
+                    .hero-text h2 {
+                        font-size: clamp(20px, 3.5vw, 28px);
                         font-weight: 700;
                         line-height: 1.2;
                         margin-bottom: 8px;
+                        color: #fff;
                     }
 
-                    .hero-content p {
-                        font-size: var(--font-sm);
+                    .hero-text p {
+                        font-size: clamp(12px, 2vw, 14px);
                         color: rgba(255,255,255,0.7);
                         line-height: 1.5;
                         display: -webkit-box;
                         -webkit-line-clamp: 2;
                         -webkit-box-orient: vertical;
                         overflow: hidden;
-                        margin-bottom: 12px;
+                        margin-bottom: 10px;
                     }
 
                     .hero-meta {
                         display: flex;
                         gap: 16px;
-                        font-size: var(--font-xs);
+                        font-size: 11px;
                         color: rgba(255,255,255,0.5);
                     }
 
@@ -494,11 +492,11 @@ export default function NewsHub() {
                         gap: 4px;
                     }
 
-                    /* Secondary Stack */
+                    /* SECONDARY STACK */
                     .secondary-stack {
                         display: flex;
                         flex-direction: column;
-                        gap: var(--gap);
+                        gap: 10px;
                     }
 
                     .secondary-card {
@@ -506,7 +504,7 @@ export default function NewsHub() {
                         gap: 12px;
                         padding: 12px;
                         background: rgba(255,255,255,0.03);
-                        border: 1px solid rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.06);
                         border-radius: 12px;
                         cursor: pointer;
                         transition: all 0.2s;
@@ -531,7 +529,7 @@ export default function NewsHub() {
                     }
 
                     .secondary-info h3 {
-                        font-size: var(--font-sm);
+                        font-size: 13px;
                         font-weight: 600;
                         line-height: 1.3;
                         display: -webkit-box;
@@ -539,22 +537,23 @@ export default function NewsHub() {
                         -webkit-box-orient: vertical;
                         overflow: hidden;
                         margin-bottom: 4px;
+                        color: #fff;
                     }
 
-                    .secondary-info .meta {
-                        font-size: var(--font-xs);
+                    .secondary-info span {
+                        font-size: 11px;
                         color: rgba(255,255,255,0.4);
                     }
 
-                    /* Grid Section */
-                    .grid-section {
+                    /* CONTENT ROW */
+                    .content-row {
                         display: grid;
                         grid-template-columns: 1fr 280px;
-                        gap: var(--pad);
+                        gap: var(--gap);
                     }
 
                     @media (max-width: 900px) {
-                        .grid-section {
+                        .content-row {
                             grid-template-columns: 1fr;
                         }
                     }
@@ -563,19 +562,19 @@ export default function NewsHub() {
                         display: flex;
                         align-items: center;
                         gap: 8px;
-                        font-size: var(--font-md);
+                        font-size: 14px;
                         font-weight: 600;
-                        margin-bottom: var(--gap);
+                        margin-bottom: 16px;
                         color: rgba(255,255,255,0.9);
                     }
 
+                    /* CARDS LANE */
                     .cards-lane {
                         display: flex;
                         gap: var(--gap);
                         overflow-x: auto;
                         padding-bottom: 12px;
                         scrollbar-width: none;
-                        -ms-overflow-style: none;
                     }
 
                     .cards-lane::-webkit-scrollbar {
@@ -585,8 +584,8 @@ export default function NewsHub() {
                     .news-card {
                         width: var(--card-size);
                         flex-shrink: 0;
-                        background: rgba(255,255,255,0.02);
-                        border: 1px solid rgba(255,255,255,0.05);
+                        background: rgba(255,255,255,0.03);
+                        border: 1px solid rgba(255,255,255,0.06);
                         border-radius: 14px;
                         overflow: hidden;
                         cursor: pointer;
@@ -595,58 +594,59 @@ export default function NewsHub() {
 
                     .news-card:hover {
                         border-color: rgba(0,212,255,0.3);
-                        box-shadow: 0 8px 32px rgba(0,212,255,0.1);
+                        box-shadow: 0 8px 24px rgba(0,212,255,0.08);
                     }
 
-                    .card-image {
+                    .card-img {
                         width: 100%;
                         height: var(--card-size);
                         overflow: hidden;
                     }
 
-                    .card-image img {
+                    .card-img img {
                         width: 100%;
                         height: 100%;
                         object-fit: cover;
                         transition: transform 0.4s;
                     }
 
-                    .news-card:hover .card-image img {
+                    .news-card:hover .card-img img {
                         transform: scale(1.08);
                     }
 
-                    .card-content {
+                    .card-body {
                         padding: 14px;
                     }
 
-                    .card-content h3 {
-                        font-size: var(--font-sm);
+                    .card-body h3 {
+                        font-size: 13px;
                         font-weight: 600;
-                        line-height: 1.3;
+                        line-height: 1.35;
                         display: -webkit-box;
                         -webkit-line-clamp: 2;
                         -webkit-box-orient: vertical;
                         overflow: hidden;
                         margin-bottom: 8px;
+                        color: #fff;
                     }
 
                     .card-meta {
                         display: flex;
                         justify-content: space-between;
-                        font-size: var(--font-xs);
+                        font-size: 11px;
                         color: rgba(255,255,255,0.4);
                     }
 
-                    /* Sidebar */
+                    /* SIDEBAR */
                     .sidebar {
                         display: flex;
                         flex-direction: column;
-                        gap: var(--gap);
+                        gap: 16px;
                     }
 
                     .widget {
-                        background: rgba(255,255,255,0.02);
-                        border: 1px solid rgba(255,255,255,0.05);
+                        background: rgba(255,255,255,0.03);
+                        border: 1px solid rgba(255,255,255,0.06);
                         border-radius: 14px;
                         padding: 16px;
                     }
@@ -655,13 +655,13 @@ export default function NewsHub() {
                         display: flex;
                         align-items: center;
                         gap: 8px;
-                        font-size: var(--font-sm);
+                        font-size: 13px;
                         font-weight: 600;
                         margin-bottom: 14px;
                         color: rgba(255,255,255,0.9);
                     }
 
-                    .widget h4 svg {
+                    .widget h4 :global(svg) {
                         color: #00d4ff;
                     }
 
@@ -684,14 +684,14 @@ export default function NewsHub() {
 
                     .trending-list .rank {
                         width: 20px;
-                        font-size: var(--font-sm);
+                        font-size: 13px;
                         font-weight: 700;
                         color: #00d4ff;
                     }
 
                     .trending-list .title {
                         flex: 1;
-                        font-size: var(--font-xs);
+                        font-size: 12px;
                         color: rgba(255,255,255,0.7);
                         display: -webkit-box;
                         -webkit-line-clamp: 2;
@@ -699,7 +699,7 @@ export default function NewsHub() {
                         overflow: hidden;
                     }
 
-                    /* Leaderboard */
+                    /* LEADERBOARD */
                     .leaderboard h4 {
                         background: linear-gradient(135deg, #f59e0b, #d97706);
                         margin: -16px -16px 14px -16px;
@@ -707,7 +707,7 @@ export default function NewsHub() {
                         border-radius: 14px 14px 0 0;
                     }
 
-                    .leaderboard h4 svg {
+                    .leaderboard h4 :global(svg) {
                         color: #fff;
                     }
 
@@ -747,17 +747,18 @@ export default function NewsHub() {
 
                     .leaderboard .name {
                         flex: 1;
-                        font-size: var(--font-xs);
+                        font-size: 12px;
+                        color: #fff;
                     }
 
                     .leaderboard .points {
-                        font-size: var(--font-xs);
+                        font-size: 12px;
                         font-weight: 600;
                         color: #00d4ff;
                         font-family: 'SF Mono', monospace;
                     }
 
-                    /* Events */
+                    /* EVENTS */
                     .events-list {
                         list-style: none;
                         padding: 0;
@@ -770,7 +771,8 @@ export default function NewsHub() {
                         align-items: center;
                         padding: 10px 0;
                         border-bottom: 1px solid rgba(255,255,255,0.05);
-                        font-size: var(--font-xs);
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.8);
                     }
 
                     .events-list li:last-child {
@@ -783,11 +785,16 @@ export default function NewsHub() {
                         padding: 4px 8px;
                         border-radius: 6px;
                         font-weight: 600;
+                        font-size: 11px;
                     }
 
                     @media (max-width: 600px) {
                         .tabs {
                             display: none;
+                        }
+                        
+                        .search-box {
+                            max-width: 100%;
                         }
                     }
                 `}</style>

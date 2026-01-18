@@ -81,7 +81,11 @@ function getYouTubeVideoId(url) {
 function getYouTubeEmbedUrl(url) {
     const videoId = getYouTubeVideoId(url);
     if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+        // autoplay=1: Start playing immediately
+        // rel=0: Don't show related videos at end
+        // modestbranding=1: Minimal YouTube branding
+        // playsinline=1: Play inline on mobile
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
     }
     return url;
 }
@@ -151,15 +155,15 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
 
             {/* Video Container - Detect YouTube URLs vs direct video files */}
             {isYouTubeUrl(videoUrl) ? (
-                // YouTube embed
+                // YouTube embed - takes full screen
                 <iframe
                     src={getYouTubeEmbedUrl(videoUrl)}
                     style={{
-                        width: '100%', height: '100%',
-                        maxWidth: '100vw', maxHeight: '80vh',
+                        width: '100vw',
+                        height: '95vh',
                         border: 'none'
                     }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                     allowFullScreen
                 />
             ) : (
