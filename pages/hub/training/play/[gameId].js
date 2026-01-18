@@ -38,10 +38,10 @@ const TIME_PER_QUESTION = 24; // 24 seconds for level 1 and 2
 
 // Card suits
 const SUITS = {
-    s: { symbol: '♠', color: '#1a1a2e' },
-    h: { symbol: '♥', color: '#e53935' },
-    d: { symbol: '♦', color: '#42a5f5' },
-    c: { symbol: '♣', color: '#43a047' },
+    s: { symbol: '♠', color: '#000000' }, // Spades - Black
+    h: { symbol: '♥', color: '#D32F2F' }, // Hearts - Red
+    d: { symbol: '♦', color: '#1976D2' }, // Diamonds - Blue
+    c: { symbol: '♣', color: '#388E3C' }, // Clubs - Green
 };
 
 // Avatar mapping - Cycle through characters
@@ -194,39 +194,150 @@ function PlayingCard({ card, size = 'medium', delay = 0, faceDown = false }) {
     const suitConfig = SUITS[suit] || SUITS.s;
 
     const sizes = {
-        tiny: { w: 50, h: 70, font: 14, suit: 16 }, // Board - 5 cards span felt
-        small: { w: 50, h: 70, font: 14, suit: 16 }, // Hero cards - same size
-        medium: { w: 56, h: 78, font: 18, suit: 20 },
-        large: { w: 68, h: 95, font: 22, suit: 26 },
+        tiny: { w: 52, h: 72 },
+        small: { w: 52, h: 72 },
+        medium: { w: 52, h: 72 },
+        large: { w: 62, h: 86 },
     };
     const s = sizes[size] || sizes.medium;
 
+    const displayRank = rank === 'T' ? '10' : rank;
+    const isFaceCard = ['J', 'Q', 'K'].includes(rank);
+
+    if (faceDown) {
+        return (
+            <motion.div
+                style={{
+                    width: s.w,
+                    height: s.h,
+                    borderRadius: 4,
+                    background: 'linear-gradient(135deg, #1a2744, #2d3a5a)',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                }}
+                initial={{ y: -100, rotateY: 180, opacity: 0 }}
+                animate={{ y: 0, rotateY: 0, opacity: 1 }}
+                transition={{ delay, type: 'spring', stiffness: 300, damping: 20 }}
+            />
+        );
+    }
+
+    // Face cards (J, Q, K) - use image
+    if (isFaceCard) {
+        const faceMap = { J: 'jack', Q: 'queen', K: 'king' };
+        const faceName = faceMap[rank];
+
+        return (
+            <motion.div
+                style={{
+                    width: s.w,
+                    height: s.h,
+                    borderRadius: 4,
+                    background: '#fff',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                    border: '1px solid #ccc',
+                    position: 'relative',
+                    overflow: 'hidden',
+                }}
+                initial={{ y: -100, rotateY: 180, opacity: 0 }}
+                animate={{ y: 0, rotateY: 0, opacity: 1 }}
+                transition={{ delay, type: 'spring', stiffness: 300, damping: 20 }}
+                onAnimationComplete={() => feedback.deal()}
+            >
+                <img
+                    src={`/images/cards/faces/${faceName}.png`}
+                    alt={`${rank}${suit}`}
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                    }}
+                />
+                {/* Overlay colored index for ALL suits (consistent look) */}
+                <div style={{
+                    position: 'absolute',
+                    top: 2,
+                    left: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 0,
+                    background: 'rgba(255,255,255,0.85)',
+                    borderRadius: 3,
+                    padding: '1px 3px',
+                    zIndex: 2,
+                }}>
+                    <span style={{
+                        fontSize: 13,
+                        fontWeight: 900,
+                        fontFamily: 'Arial, sans-serif',
+                        lineHeight: 0.9,
+                        color: suitConfig.color,
+                    }}>{rank}</span>
+                    <span style={{
+                        fontSize: 11,
+                        lineHeight: 1,
+                        color: suitConfig.color,
+                    }}>{suitConfig.symbol}</span>
+                </div>
+            </motion.div>
+        );
+    }
+
+    // Number cards & Aces (A, 2-10) - CSS styled
     return (
         <motion.div
             style={{
                 width: s.w,
                 height: s.h,
-                borderRadius: 6,
-                background: faceDown
-                    ? 'linear-gradient(135deg, #1a2744, #2d3a5a)'
-                    : 'linear-gradient(135deg, #fff, #f0f0f0)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
+                borderRadius: 4,
+                background: '#fff',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                border: '1px solid #ccc',
+                position: 'relative',
             }}
             initial={{ y: -100, rotateY: 180, opacity: 0 }}
             animate={{ y: 0, rotateY: 0, opacity: 1 }}
             transition={{ delay, type: 'spring', stiffness: 300, damping: 20 }}
             onAnimationComplete={() => feedback.deal()}
         >
-            {!faceDown && (
-                <>
-                    <span style={{ fontSize: s.font, fontWeight: 800, color: suitConfig.color }}>{rank}</span>
-                    <span style={{ fontSize: s.suit, color: suitConfig.color }}>{suitConfig.symbol}</span>
-                </>
-            )}
+            {/* Top-left index - 1.5x larger */}
+            <div style={{
+                position: 'absolute',
+                top: 3,
+                left: 3,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 1,
+            }}>
+                <span style={{
+                    fontSize: 14,
+                    fontWeight: 900,
+                    fontFamily: 'Arial, sans-serif',
+                    lineHeight: 1,
+                    color: suitConfig.color,
+                }}>{displayRank}</span>
+                <span style={{
+                    fontSize: 12,
+                    lineHeight: 1,
+                    color: suitConfig.color,
+                }}>{suitConfig.symbol}</span>
+            </div>
+
+            {/* Center-right huge numeral */}
+            <div style={{
+                position: 'absolute',
+                right: rank === 'T' ? 6 : 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: rank === 'T' ? 36 : 42,
+                fontWeight: 900,
+                fontFamily: 'Arial, sans-serif',
+                lineHeight: 1,
+                color: suitConfig.color,
+            }}>
+                {displayRank}
+            </div>
         </motion.div>
     );
 }
