@@ -358,18 +358,29 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         setError('');
         let urls = media.map(m => m.url);
         let type = media.some(m => m.type === 'video') ? 'video' : media.length ? 'photo' : 'text';
+        let cleanContent = content;
 
         // 🎬 AUTO-DETECT YOUTUBE URLs in content and convert to video post
         const youtubeRegex = /(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/g;
         const youtubeMatch = content.match(youtubeRegex);
-        let cleanContent = content;
+
+        // 🔗 AUTO-DETECT ANY URL for link preview (Facebook-style)
+        const generalUrlRegex = /(https?:\/\/[^\s]+)/g;
+        const urlMatch = content.match(generalUrlRegex);
+
         if (youtubeMatch && type === 'text') {
-            // Found a YouTube URL in text-only post - convert to video post
+            // Found a YouTube URL - convert to video post
             const fullUrl = youtubeMatch[0].startsWith('http') ? youtubeMatch[0] : `https://${youtubeMatch[0]}`;
             urls = [fullUrl];
             type = 'video';
-            // 🎯 FACEBOOK-STYLE: Remove the URL from content text (only show video preview)
+            // 🎯 FACEBOOK-STYLE: Remove the URL from content text
             cleanContent = content.replace(youtubeRegex, '').trim();
+        } else if (urlMatch && type === 'text') {
+            // Found a general URL - convert to link post
+            urls = [urlMatch[0]];
+            type = 'link';
+            // 🎯 FACEBOOK-STYLE: Remove the URL from content text
+            cleanContent = content.replace(generalUrlRegex, '').trim();
         }
 
         // Extract mentions from content
@@ -397,7 +408,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                         value={content}
                         onChange={handleContentChange}
                         placeholder={`What's on your mind, ${user?.name || 'Player'}?`}
-                        style={{ width: '100%', background: C.bg, border: 'none', borderRadius: 20, padding: '10px 16px', fontSize: 16, outline: 'none', boxSizing: 'border-box' }}
+                        style={{ width: '100%', background: C.bg, border: 'none', borderRadius: 20, padding: '10px 16px', fontSize: 16, outline: 'none', boxSizing: 'border-box', color: C.text }}
                     />
                     {/* @Mention Dropdown */}
                     {showMentions && mentionResults.length > 0 && (
@@ -618,6 +629,45 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                                     borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
                                 }}>🎬 Tap to view full screen</div>
                             </div>
+                        ) : post.contentType === 'link' ? (
+                            // LINK: Clickable card preview (Facebook-style)
+                            <a
+                                href={post.mediaUrls[0]}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ textDecoration: 'none', display: 'block' }}
+                            >
+                                <div style={{
+                                    border: `1px solid ${C.border}`,
+                                    borderRadius: 8,
+                                    overflow: 'hidden',
+                                    background: C.bg,
+                                    margin: '0 12px 12px'
+                                }}>
+                                    {/* Link Preview Image placeholder with gradient */}
+                                    <div style={{
+                                        height: 200,
+                                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'white',
+                                        fontSize: 48
+                                    }}>🔗</div>
+                                    {/* Link Info */}
+                                    <div style={{ padding: '12px 16px', background: C.card }}>
+                                        <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase', marginBottom: 4 }}>
+                                            {new URL(post.mediaUrls[0]).hostname.replace('www.', '')}
+                                        </div>
+                                        <div style={{ fontSize: 16, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>
+                                            {post.mediaUrls[0].split('/').pop()?.replace(/-/g, ' ').replace(/\.htm.*/i, '') || 'View Article'}
+                                        </div>
+                                        <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>
+                                            Click to read full article →
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
                         ) : (
                             <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
                         )
