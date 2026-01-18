@@ -7,9 +7,14 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import AvatarGallery from '../../src/components/avatars/AvatarGallery';
+
+// God-Mode Stack
+import { useAvatarsStore } from '../../src/stores/avatarsStore';
 
 export default function AvatarsPage() {
     const { avatar, user, refreshUser } = useAvatar();
