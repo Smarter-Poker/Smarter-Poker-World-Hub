@@ -118,6 +118,13 @@ export function formatPokerIQTitleCase(input: string, opts: FormatOptions = {}):
         // Empty token
         if (!token) return token;
 
+        // CRITICAL: Check if this token was already normalized to canonical form
+        // (contains hyphen with capital after it, indicating it's a compound like "3-Bet", "All-In", etc.)
+        if (/-[A-Z]/.test(token)) {
+            // Already canonical - don't apply Title Case
+            return token;
+        }
+
         // Check positions (case-insensitive match, output ALL CAPS)
         const upperToken = token.toUpperCase();
         if (POSITIONS.includes(upperToken)) {

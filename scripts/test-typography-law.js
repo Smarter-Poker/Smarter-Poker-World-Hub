@@ -36,6 +36,11 @@ function formatPokerIQTitleCase(input, opts = {}) {
     const formatted = tokens.map(token => {
         if (/^\s+$/.test(token) || /^[.,;:!?()[\]{}]+$/.test(token) || !token) return token;
 
+        // CRITICAL: Preserve canonical capitalization (hyphenated compounds with capitals)
+        if (/-[A-Z]/.test(token)) {
+            return token; // Already canonical (3-Bet, All-In, C-Bet, etc.)
+        }
+
         const upper = token.toUpperCase();
         if (POSITIONS.includes(upper)) return upper === 'BU' ? 'BTN' : upper;
         if (METRICS.includes(upper)) return upper;
