@@ -15,6 +15,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScenarioGenerator } from '../../lib/ScenarioGenerator';
+import { useGameAudio } from '../../hooks/useGameAudio';
 import type { Scenario, ActionLogEntry, GameConfig, Player } from '../../types/poker';
 
 interface DirectorProps {
@@ -50,6 +51,9 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
     const [totalQuestions, setTotalQuestions] = useState(0);
 
     const queueGenerationRef = useRef<number | null>(null);
+
+    // 🔊 AUDIO & HAPTICS
+    const audio = useGameAudio();
 
     /**
      * 🎬 Initialize: Show intro and generate first scenario
@@ -122,7 +126,15 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                 if (nextIndex >= currentScenario.actionLog.length) {
                     clearInterval(replayInterval);
                     setPhase('AWAITING_DECISION');
+                    // 🔔 Play turn alert when it's hero's turn
+                    audio.playTurnAlert();
                     return prev;
+                }
+
+                // 🃏 Play appropriate sound for each action
+                const action = currentScenario.actionLog[nextIndex];
+                if (action) {
+                    audio.playAction(action.type);
                 }
 
                 return nextIndex;
@@ -150,11 +162,13 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
         // 3. TRIGGER SEQUENCE
         if (correct) {
             setTotalCorrect(prev => prev + 1);
+            audio.playSuccess(); // 🔊 Success chime + haptic
             startWinSequence();
         } else {
+            audio.playError(); // 🔊 Error thud + haptic
             startLossSequence();
         }
-    }, [currentScenario, buttonsDisabled]);
+    }, [currentScenario, buttonsDisabled, audio]);
 
     /**
      * 🏆 WIN SEQUENCE - Player got it right!
@@ -256,8 +270,9 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
 
         // Start replay
         setPhase('REPLAYING');
+        audio.playCardDeal(); // 🃏 Deal sound for new hand
         setTimeout(() => startReplay(), 100);
-    }, [scenarioQueue, config, startReplay]);
+    }, [scenarioQueue, config, startReplay, audio]);
 
     /**
      * 🎨 Get current visual state
@@ -344,6 +359,30 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                     <div style={{ fontSize: '16px', color: '#00d4ff', marginTop: '12px' }}>
                         Generating Scenario...
                     </div>
+                    {/* 🔓 START GAME BUTTON - Unlocks audio */}
+                    <motion.button
+                        onClick={() => {
+                            audio.unlock();
+                            setPhase('REPLAYING');
+                            startReplay();
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{
+                            marginTop: '24px',
+                            padding: '16px 48px',
+                            fontSize: '18px',
+                            fontWeight: 700,
+                            background: 'linear-gradient(135deg, #00d4ff, #0099cc)',
+                            border: 'none',
+                            borderRadius: '12px',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            boxShadow: '0 0 30px rgba(0, 212, 255, 0.5)'
+                        }}
+                    >
+                        🎮 START GAME
+                    </motion.button>
                 </motion.div>
             </motion.div>
         );
@@ -386,8 +425,24 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                 <div style={{ color: '#00d4ff', fontWeight: 700 }}>
                     {currentScenario.config.bigBlind}BB Game
                 </div>
-                <div style={{ color: '#FFD700', fontWeight: 700 }}>
-                    {totalCorrect}/{totalQuestions} Correct
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ color: '#FFD700', fontWeight: 700 }}>
+                        {totalCorrect}/{totalQuestions} Correct
+                    </div>
+                    {/* 🔇 MUTE BUTTON */}
+                    <button
+                        onClick={() => audio.toggleMute()}
+                        style={{
+                            background: 'transparent',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: '8px',
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            fontSize: '16px'
+                        }}
+                    >
+                        {audio.isMuted ? '🔇' : '🔊'}
+                    </button>
                 </div>
             </div>
 
