@@ -6,6 +6,7 @@
 
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
+import sharp from 'sharp';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
 Subject: ${prompt}
 STRICT RULES:
 - ONLY the character's head and upper shoulders (bust portrait)
-- SIMPLE, CLEAN, SOLID BACKGROUND that can be easily removed (plain color, no gradients or textures)
+- PURE WHITE BACKGROUND (#FFFFFF) - absolutely no gradients, textures, or shadows
 - NO poker tables, NO cards, NO chips, NO props in the background
 - NO scene, NO environment, NO accessories around character  
 - Face must be the MAIN FOCUS with clear edges
@@ -43,7 +44,7 @@ STRICT RULES:
 - Vibrant colors, detailed facial features
 - Professional avatar suitable for profile picture
 - The character should embody the description given: ${prompt}
-IMPORTANT: This is for a poker player avatar - just the character portrait with a simple background that can be removed.`;
+IMPORTANT: This is for a poker player avatar - just the character portrait with a PURE WHITE background for easy removal.`;
 
         // Use DALL-E 3 for high-quality generation
         const response = await openai.images.generate({
@@ -63,6 +64,43 @@ IMPORTANT: This is for a poker player avatar - just the character portrait with 
         const arrayBuffer = await imageResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
+        console.log('🔧 Removing white background with sharp...');
+
+        // Process image to remove white background and create transparency
+        const transparentBuffer = await sharp(buffer)
+            .ensureAlpha() // Ensure image has alpha channel
+            .raw()
+            .toBuffer({ resolveWithObject: true })
+            .then(({ data, info }) => {
+                // Process each pixel to make white pixels transparent
+                const pixels = new Uint8ClampedArray(data);
+                const threshold = 240; // Pixels brighter than this become transparent
+
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const r = pixels[i];
+                    const g = pixels[i + 1];
+                    const b = pixels[i + 2];
+
+                    // If pixel is near-white, make it transparent
+                    if (r > threshold && g > threshold && b > threshold) {
+                        pixels[i + 3] = 0; // Set alpha to 0 (transparent)
+                    }
+                }
+
+                // Convert back to PNG with transparency
+                return sharp(pixels, {
+                    raw: {
+                        width: info.width,
+                        height: info.height,
+                        channels: 4
+                    }
+                })
+                    .png({ compressionLevel: 9 })
+                    .toBuffer();
+            });
+
+        console.log('✅ Background removed, uploading to Supabase...');
+
         // Generate unique filename
         const timestamp = Date.now();
         const safeUserId = userId || 'anonymous';
@@ -72,7 +110,7 @@ IMPORTANT: This is for a poker player avatar - just the character portrait with 
         // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
             .from('custom-avatars')
-            .upload(storagePath, buffer, {
+            .upload(storagePath, transparentBuffer, {
                 contentType: 'image/png',
                 cacheControl: '3600',
                 upsert: true
