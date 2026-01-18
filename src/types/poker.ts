@@ -13,6 +13,7 @@ export interface Player {
     seat: number;
     name: string;
     stack: number;
+    startingStack: number;
     currentBet: number;
     isHero: boolean;
     hasFolded: boolean;
@@ -25,12 +26,15 @@ export type ActionType =
     | 'FOLD'
     | 'CALL'
     | 'RAISE'
+    | 'BET'
+    | 'ALL_IN'
     | 'CHECK'
     | 'POT_SWEEP';
 
 export interface ActionLogEntry {
     type: ActionType;
-    player: number; // seat number
+    player: number; // seat number (deprecated, use playerSeat)
+    playerSeat: number; // seat number
     amount: number;
     newStack: number;
     newBet: number;

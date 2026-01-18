@@ -91,6 +91,7 @@ export class ScenarioGenerator {
                 seat,
                 name: seat === this.heroSeat ? 'Hero' : villainNames[seat],
                 stack: this.config.startStack,
+                startingStack: this.config.startStack,
                 currentBet: 0,
                 isHero: seat === this.heroSeat,
                 hasFolded: false
@@ -258,6 +259,7 @@ export class ScenarioGenerator {
         this.actionLog.push({
             type,
             player: seat,
+            playerSeat: seat,
             amount,
             newStack,
             newBet,
