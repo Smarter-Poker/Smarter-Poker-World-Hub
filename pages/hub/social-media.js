@@ -356,8 +356,18 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
     const handlePost = async () => {
         if (!content.trim() && !media.length) return;
         setError('');
-        const urls = media.map(m => m.url);
-        const type = media.some(m => m.type === 'video') ? 'video' : media.length ? 'photo' : 'text';
+        let urls = media.map(m => m.url);
+        let type = media.some(m => m.type === 'video') ? 'video' : media.length ? 'photo' : 'text';
+
+        // 🎬 AUTO-DETECT YOUTUBE URLs in content and convert to video post
+        const youtubeRegex = /(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/;
+        const youtubeMatch = content.match(youtubeRegex);
+        if (youtubeMatch && type === 'text') {
+            // Found a YouTube URL in text-only post - convert to video post
+            const fullUrl = youtubeMatch[0].startsWith('http') ? youtubeMatch[0] : `https://${youtubeMatch[0]}`;
+            urls = [fullUrl];
+            type = 'video';
+        }
 
         // Extract mentions from content
         const mentionPattern = /@(\w+)/g;
