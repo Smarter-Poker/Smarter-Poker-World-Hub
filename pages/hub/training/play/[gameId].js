@@ -214,8 +214,20 @@ function PlayingCard({ card, size = 'medium', delay = 0, faceDown = false }) {
                     background: 'linear-gradient(135deg, #1a2744, #2d3a5a)',
                     boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
                 }}
-                initial={{ y: -100, rotateY: 180, opacity: 0 }}
-                animate={{ y: 0, rotateY: 0, opacity: 1 }}
+                initial={{
+                    x: '0%',
+                    y: '-200%',
+                    scale: 0.3,
+                    rotateY: 180,
+                    opacity: 0
+                }}
+                animate={{
+                    x: 0,
+                    y: 0,
+                    scale: 1,
+                    rotateY: 0,
+                    opacity: 1
+                }}
                 transition={{ delay, type: 'spring', stiffness: 300, damping: 20 }}
             />
         );
@@ -238,8 +250,20 @@ function PlayingCard({ card, size = 'medium', delay = 0, faceDown = false }) {
                     position: 'relative',
                     overflow: 'hidden',
                 }}
-                initial={{ y: -100, rotateY: 180, opacity: 0 }}
-                animate={{ y: 0, rotateY: 0, opacity: 1 }}
+                initial={{
+                    x: '0%',
+                    y: '-200%',
+                    scale: 0.3,
+                    rotateY: 180,
+                    opacity: 0
+                }}
+                animate={{
+                    x: 0,
+                    y: 0,
+                    scale: 1,
+                    rotateY: 0,
+                    opacity: 1
+                }}
                 transition={{ delay, type: 'spring', stiffness: 300, damping: 20 }}
                 onAnimationComplete={() => feedback.deal()}
             >
@@ -295,8 +319,20 @@ function PlayingCard({ card, size = 'medium', delay = 0, faceDown = false }) {
                 border: '1px solid #ccc',
                 position: 'relative',
             }}
-            initial={{ y: -100, rotateY: 180, opacity: 0 }}
-            animate={{ y: 0, rotateY: 0, opacity: 1 }}
+            initial={{
+                x: '0%',
+                y: '-200%',
+                scale: 0.3,
+                rotateY: 180,
+                opacity: 0
+            }}
+            animate={{
+                x: 0,
+                y: 0,
+                scale: 1,
+                rotateY: 0,
+                opacity: 1
+            }}
             transition={{ delay, type: 'spring', stiffness: 300, damping: 20 }}
             onAnimationComplete={() => feedback.deal()}
         >
@@ -772,12 +808,13 @@ export default function TrainingPlayPage() {
                                         setShowResult(false);
                                         setTimeLeft(TIME_PER_QUESTION);
                                     }}
+                                    whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                 >
                                     RETRY
                                 </motion.button>
                             )}
-                            <motion.button style={styles.exitButton} onClick={handleExit} whileTap={{ scale: 0.95 }}>
+                            <motion.button style={styles.exitButton} onClick={handleExit} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                                 {passed ? 'CONTINUE' : 'BACK'}
                             </motion.button>
                         </div>
@@ -985,6 +1022,7 @@ export default function TrainingPlayPage() {
                                         key={option.id}
                                         style={styles.actionButton}
                                         onClick={() => handleAnswer(option.id)}
+                                        whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -1057,6 +1095,7 @@ export default function TrainingPlayPage() {
                                     <motion.button
                                         style={styles.cardNextButton}
                                         onClick={handleNext}
+                                        whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                     >
                                         {questionIndex + 1 >= QUESTIONS_PER_RUN ? 'VIEW RESULTS' : 'NEXT HAND →'}

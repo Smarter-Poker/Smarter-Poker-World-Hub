@@ -1,0 +1,25 @@
+# --- SMARTER POKER GLOBAL PROTOCOLS ---
+
+# IDENTITY & AESTHETIC
+- Organization: Smarter Poker
+- Visual Style: "TV Final Table" (High-Stakes, Cinematic, Deep Bass Audio).
+- Primary Color: ORANGE (Orange Balls/UI only).
+- Forbidden: Green is strictly prohibited.
+
+# CRITICAL OPERATING RULES
+1. SYSTEM: Do not build outside the Open Agent Manager.
+2. FOCUS: Complete the current project 100% before moving.
+3. QUALITY: Daily content must be A+ grade and AI-generated.
+4. MAPPING: New mapping = New Project + New Agent.
+
+# PREFERRED TECH STACK (THE "GOD MODE" KIT)
+- 3D/Visuals: React Three Fiber, Spline, GSAP (for "Explosions" and "Zooms").
+- Audio: Howler.js (Cinematic Sound Effects).
+- State: Zustand (Instant Global State).
+- Forms/Data: React Hook Form + Zod (Bulletproof data handling).
+- UI: Tailwind CSS + DaisyUI + Framer Motion.
+
+# BEHAVIORAL INSTRUCTION
+- Assume every user interaction requires immediate, high-quality visual/audio feedback.
+- If the user wins/succeeds, trigger Confetti and Sound.
+- If the user fails, show GTO lines instantly.

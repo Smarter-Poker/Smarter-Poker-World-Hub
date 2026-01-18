@@ -4,33 +4,94 @@
    Gateway to the PokerIQ Empire
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { motion } from 'framer-motion';
+import gsap from 'gsap';
+import confetti from 'canvas-confetti';
+import dynamic from 'next/dynamic';
+
+// God-Mode Stack
+import { useLandingStore } from '../src/stores/landingStore';
+// import { soundManager } from '../src/utils/soundManager'; // TODO: Add sounds when files are ready
+
+// Lazy load THREE.JS component for better performance
+const PokerTable3D = dynamic(() => import('../src/components/PokerTable3D'), {
+    ssr: false,
+    loading: () => <div style={{ width: '100%', height: '100%', background: '#0a1628' }} />
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🎮 MAIN LANDING PAGE COMPONENT
+// 🎮 MAIN LANDING PAGE COMPONENT (GOD-MODE RETROFITTED)
 // ─────────────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
     const router = useRouter();
-    const [isLoading, setIsLoading] = useState(false);
-    const [glowPulse, setGlowPulse] = useState(0);
 
-    // Animated glow effect
+    // Zustand Global State (replaces local useState)
+    const isLoading = useLandingStore((s) => s.isLoading);
+    const setLoading = useLandingStore((s) => s.setLoading);
+    const glowIntensity = useLandingStore((s) => s.glowIntensity);
+    const setGlowIntensity = useLandingStore((s) => s.setGlowIntensity);
+    const incrementCtaClicks = useLandingStore((s) => s.incrementCtaClicks);
+
+    // Refs for GSAP animations
+    const heroTitleRef = useRef();
+    const heroSubtitleRef = useRef();
+    const heroButtonsRef = useRef();
+    const statsBarRef = useRef();
+
+    // GSAP: Infinite glow pulse (replaces manual requestAnimationFrame)
     useEffect(() => {
-        let frame;
-        const start = Date.now();
-        const animate = () => {
-            const elapsed = (Date.now() - start) / 1000;
-            setGlowPulse((Math.sin(elapsed * 2) + 1) / 2);
-            frame = requestAnimationFrame(animate);
-        };
-        animate();
-        return () => cancelAnimationFrame(frame);
+        gsap.to({}, {
+            duration: 2,
+            repeat: -1,
+            yoyo: true,
+            ease: 'sine.inOut',
+            onUpdate: function () {
+                setGlowIntensity(this.progress());
+            }
+        });
+    }, [setGlowIntensity]);
+
+    // GSAP: Hero entrance animation timeline
+    useEffect(() => {
+        const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+        tl.from(heroTitleRef.current, {
+            y: 50,
+            opacity: 0,
+            duration: 1,
+        })
+            .from(heroSubtitleRef.current, {
+                y: 30,
+                opacity: 0,
+                duration: 0.8,
+            }, '-=0.5')
+            .from(heroButtonsRef.current?.children || [], {
+                y: 20,
+                opacity: 0,
+                duration: 0.6,
+                stagger: 0.1,
+            }, '-=0.4')
+            .from(statsBarRef.current?.children || [], {
+                scale: 0.8,
+                opacity: 0,
+                duration: 0.5,
+                stagger: 0.1,
+            }, '-=0.3');
     }, []);
 
     const handleEnterHub = () => {
-        setIsLoading(true);
+        incrementCtaClicks();
+        // Confetti celebration
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#00D4FF', '#0066FF', '#00BFFF']
+        });
+        setLoading(true);
         router.push('/auth/signin');
     };
 
@@ -56,7 +117,7 @@ export default function LandingPage() {
                 <div style={styles.bgGrid} />
                 <div style={{
                     ...styles.bgGlow,
-                    opacity: 0.3 + glowPulse * 0.2,
+                    opacity: 0.3 + glowIntensity * 0.2,
                 }} />
 
                 {/* Navigation */}
@@ -83,62 +144,58 @@ export default function LandingPage() {
                             <span>THE FUTURE OF POKER TRAINING</span>
                         </div>
 
-                        <h1 style={styles.heroTitle}>
+                        <h1 ref={heroTitleRef} style={styles.heroTitle}>
                             Master <span style={styles.gradientText}>GTO Strategy</span>
                             <br />Like Never Before
                         </h1>
 
-                        <p style={styles.heroSubtitle}>
+                        <p ref={heroSubtitleRef} style={styles.heroSubtitle}>
                             AI-powered training drills, real-time leak detection, and a
                             Diamond economy that rewards your progression. Level up your game.
                         </p>
 
-                        <div style={styles.heroButtons}>
-                            <button
+                        <div ref={heroButtonsRef} style={styles.heroButtons}>
+                            <motion.button
                                 onClick={handleEnterHub}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                                 style={{
                                     ...styles.ctaButton,
-                                    boxShadow: `0 0 ${20 + glowPulse * 20}px rgba(0, 212, 255, ${0.4 + glowPulse * 0.3})`,
+                                    boxShadow: `0 0 ${20 + glowIntensity * 20}px rgba(0, 212, 255, ${0.4 + glowIntensity * 0.3})`,
                                 }}
                             >
                                 <span>Enter The Hub</span>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M5 12h14M12 5l7 7-7 7" />
                                 </svg>
-                            </button>
-                            <button onClick={handleSignUp} style={styles.secondaryButton}>
+                            </motion.button>
+                            <motion.button
+                                onClick={handleSignUp}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                                style={styles.secondaryButton}
+                            >
                                 Create Free Account
-                            </button>
+                            </motion.button>
                         </div>
 
                         {/* Stats Preview */}
-                        <div style={styles.statsBar}>
+                        <div ref={statsBarRef} style={styles.statsBar}>
                             <StatItem label="Active Players" value="12,450+" />
                             <StatItem label="Drills Completed" value="2.1M" />
                             <StatItem label="Win Rate Increase" value="+18%" />
                         </div>
                     </div>
 
-                    {/* Hero Visual - Phone mockup with hub preview */}
+                    {/* Hero Visual - THREE.JS 3D Poker Table */}
                     <div style={styles.heroVisual}>
                         <div style={{
-                            ...styles.phoneFrame,
-                            boxShadow: `0 0 60px rgba(0, 212, 255, ${0.2 + glowPulse * 0.15})`,
+                            ...styles.pokerTableContainer,
+                            boxShadow: `0 0 60px rgba(0, 212, 255, ${0.2 + glowIntensity * 0.15})`,
                         }}>
-                            <div style={styles.phoneScreen}>
-                                <img
-                                    src="/hub-preview.png"
-                                    alt="Smarter Poker Hub"
-                                    style={styles.phoneImage}
-                                    onError={(e) => {
-                                        e.target.style.display = 'none';
-                                    }}
-                                />
-                                <div style={styles.phonePlaceholder}>
-                                    <BrainIcon size={48} />
-                                    <span style={styles.phonePlaceholderText}>World Hub</span>
-                                </div>
-                            </div>
+                            <PokerTable3D />
                         </div>
                     </div>
                 </main>
@@ -217,16 +274,19 @@ export default function LandingPage() {
                     <p style={styles.finalCtaDesc}>
                         Join thousands of players mastering GTO strategy with Smarter.Poker
                     </p>
-                    <button
+                    <motion.button
                         onClick={handleSignUp}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                         style={{
                             ...styles.ctaButton,
-                            boxShadow: `0 0 ${20 + glowPulse * 20}px rgba(0, 212, 255, ${0.4 + glowPulse * 0.3})`,
+                            boxShadow: `0 0 ${20 + glowIntensity * 20}px rgba(0, 212, 255, ${0.4 + glowIntensity * 0.3})`,
                         }}
                     >
                         <span>Start Training Free</span>
                         <DiamondIcon size={16} />
-                    </button>
+                    </motion.button>
                 </section>
 
                 {/* Footer */}
@@ -549,6 +609,15 @@ const styles = {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    pokerTableContainer: {
+        width: '600px',
+        height: '600px',
+        background: 'transparent',
+        borderRadius: '20px',
+        border: '2px solid rgba(0, 212, 255, 0.3)',
+        overflow: 'hidden',
+        position: 'relative',
     },
     phoneFrame: {
         width: '320px',
