@@ -589,7 +589,10 @@ export default function MemoryGameClient({
     // ═══════════════════════════════════════════════════════════════════════
 
     if (gameState.state === 'SUMMARY') {
-        const passed = accuracy >= requiredAccuracy;
+        const accuracy = gameState.sessionResults.length > 0
+            ? gameState.correctCount / gameState.sessionResults.length
+            : 0;
+        const passed = accuracy >= PASS_THRESHOLD;
         const [rewardsProcessed, setRewardsProcessed] = useState(false);
         const [backendRewards, setBackendRewards] = useState<{ xp: number; diamonds: number } | null>(null);
 
