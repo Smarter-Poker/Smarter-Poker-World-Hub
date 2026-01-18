@@ -182,7 +182,7 @@ export default function MemoryGameClient({ chartId, onExit }: MemoryGameClientPr
         chartData: null,
         currentHand: null,
         handIndex: 0,
-        seenHands: new Set(),
+        seenHands: new Set<string>(),
         score: 0,
         correctCount: 0,
         streak: 0,
