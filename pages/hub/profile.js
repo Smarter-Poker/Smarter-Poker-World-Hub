@@ -3,16 +3,17 @@
  * Facebook-style profile with HendonMob integration
  */
 
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { MediaLibrary } from '../../src/components/social/MediaLibrary';
+import { ProfilePictureHistory } from '../../src/components/social/ProfilePictureHistory';
+import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import { supabase } from '../../src/lib/supabaseClient';
-import { uploadAvatar } from '../../src/lib/storage';
-import { getAll } from '../../src/data/AVATAR_LIBRARY';
+import { supabase } from '../../src/lib/supabase';
 
 // God-Mode Stack
 import { useProfileStore } from '../../src/stores/profileStore';
