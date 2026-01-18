@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Image from 'next/image';
 import { createClient } from '@supabase/supabase-js';
 import { getAll } from '../../src/data/AVATAR_LIBRARY';
 import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
@@ -331,16 +332,20 @@ export default function AvatarsComplete() {
                                             }}>
                                             ✕
                                         </button>
-                                        <img
+                                        <Image
                                             src={custom.image_url}
                                             alt="Custom Avatar"
+                                            width={200}
+                                            height={200}
                                             style={{
                                                 width: '100%',
+                                                height: 'auto',
                                                 aspectRatio: '1',
                                                 borderRadius: '8px',
                                                 marginBottom: '10px',
                                                 objectFit: 'cover'
                                             }}
+                                            loading="lazy"
                                         />
                                         <div style={{
                                             fontSize: '13px',
@@ -436,16 +441,20 @@ export default function AvatarsComplete() {
                                         transition: 'all 0.3s ease',
                                         textAlign: 'center'
                                     }}>
-                                    <img
+                                    <Image
                                         src={avatar.image}
                                         alt={avatar.name}
+                                        width={200}
+                                        height={200}
                                         style={{
                                             width: '100%',
+                                            height: 'auto',
                                             aspectRatio: '1',
                                             borderRadius: '8px',
                                             marginBottom: '10px',
                                             objectFit: 'cover'
                                         }}
+                                        loading="lazy"
                                     />
                                     <div style={{
                                         fontSize: '14px',

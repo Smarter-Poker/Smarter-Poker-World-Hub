@@ -67,26 +67,7 @@ export const AVATAR_LIBRARY = [
         image: '/avatars/free/wizard.png',
         tags: ['science', 'smart', 'methodical']
     },
-    {
-        id: 'free-people-004',
-        name: 'Mad Inventor',
-        description: 'Chaotic genius',
-        category: 'people',
-        tier: 'FREE',
-        personality: 'wild',
-        image: '/avatars/free/cyborg.png',
-        tags: ['science', 'wild', 'eccentric']
-    },
-    {
-        id: 'free-people-005',
-        name: 'Cyborg Warrior',
-        description: 'Half human, all poker',
-        category: 'fantasy',
-        tier: 'FREE',
-        personality: 'intimidating',
-        image: '/avatars/free/cyborg.png',
-        tags: ['tech', 'futuristic', 'strong']
-    },
+
     {
         id: 'free-people-006',
         name: 'Stand-Up Comic',
@@ -511,26 +492,7 @@ export const AVATAR_LIBRARY = [
         image: '/avatars/vip/secret_agent.png',
         tags: ['spy', 'suave', 'tactical']
     },
-    {
-        id: 'vip-fantasy-002',
-        name: 'Gray Wizard',
-        description: 'You shall not pass',
-        category: 'fantasy',
-        tier: 'VIP',
-        personality: 'mystery',
-        image: '/avatars/vip/vigilante.png',
-        tags: ['magical', 'wise', 'powerful']
-    },
-    {
-        id: 'vip-fantasy-003',
-        name: 'Dark Vigilante',
-        description: 'Justice prevails',
-        category: 'fantasy',
-        tier: 'VIP',
-        personality: 'intimidating',
-        image: '/avatars/vip/vigilante.png',
-        tags: ['hero', 'mysterious', 'tactical']
-    },
+
     {
         id: 'vip-fantasy-004',
         name: 'Dragon Emperor',
