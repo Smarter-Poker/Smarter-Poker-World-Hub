@@ -141,25 +141,82 @@ function categorizeArticle(title) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SAVE TO NEWS ARCHIVE
+// ═══════════════════════════════════════════════════════════════════════════
+async function saveToNewsArchive(article) {
+    console.log(`💾 Archiving: ${article.title}`);
+
+    // Check if article already exists in archive
+    const { data: existing } = await supabase
+        .from('poker_news')
+        .select('id')
+        .eq('source_url', article.link)
+        .maybeSingle();
+
+    if (existing) {
+        console.log(`   Already archived (ID: ${existing.id})`);
+        return existing.id;
+    }
+
+    // Insert new article into archive
+    const { data: newsRecord, error } = await supabase
+        .from('poker_news')
+        .insert({
+            title: article.title,
+            summary: article.summary,
+            excerpt: article.summary.slice(0, 150),
+            source_name: article.source,
+            source_url: article.link,
+            source_icon: article.icon,
+            image_url: article.imageUrl,
+            category: article.category,
+            tags: [article.category, article.source.toLowerCase()],
+            published_at: article.pubDate
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error(`   Archive error: ${error.message}`);
+        return null;
+    }
+
+    console.log(`✅ Archived to database (ID: ${newsRecord.id})`);
+    return newsRecord.id;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // CHECK IF ARTICLE ALREADY SHARED
 // ═══════════════════════════════════════════════════════════════════════════
 async function isArticleRecentlyShared(link) {
+    // Check both social_posts AND poker_news archive
     const cutoff = new Date(Date.now() - CONFIG.NEWS_COOLDOWN_HOURS * 60 * 60 * 1000);
 
-    const { data } = await supabase
+    // Check social posts
+    const { data: socialData } = await supabase
         .from('social_posts')
         .select('id')
         .ilike('content', `%${link}%`)
         .gte('created_at', cutoff.toISOString())
         .limit(1);
 
-    return data && data.length > 0;
+    if (socialData && socialData.length > 0) return true;
+
+    // Check news archive
+    const { data: newsData } = await supabase
+        .from('poker_news')
+        .select('id')
+        .eq('source_url', link)
+        .gte('scraped_at', cutoff.toISOString())
+        .limit(1);
+
+    return newsData && newsData.length > 0;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// POST NEWS ARTICLE
+// POST NEWS ARTICLE (with dual posting to archive)
 // ═══════════════════════════════════════════════════════════════════════════
-async function postNewsArticle(article) {
+async function postNewsArticle(article, newsId = null) {
     console.log(`\n📰 Posting: ${article.title}`);
 
     // Format post content with in-app viewer link
@@ -226,7 +283,17 @@ ${article.summary}
         console.log(`✅ Posted (RPC): ${post?.id || 'success'}`);
         console.log(`   Image: ${article.imageUrl ? 'Yes' : 'No'}`);
         console.log(`   Viewer: ${viewerUrl}`);
-        return { post_id: post?.id || 'created', method: 'rpc', has_image: !!article.imageUrl };
+
+        // Link social post back to news archive
+        if (newsId && post?.id) {
+            await supabase
+                .from('poker_news')
+                .update({ social_post_id: post.id })
+                .eq('id', newsId);
+            console.log(`🔗 Linked to archive record ${newsId}`);
+        }
+
+        return { post_id: post?.id || 'created', method: 'rpc', has_image: !!article.imageUrl, news_id: newsId };
 
     } catch (error) {
         console.error(`   Post error: ${error.message}`);
@@ -268,15 +335,23 @@ export default async function handler(req, res) {
             });
         }
 
-        // Find a fresh article to post
+        // Find a fresh article to post (with dual posting)
         let posted = null;
+        let newsId = null;
+
         for (const article of articles) {
             const recentlyShared = await isArticleRecentlyShared(article.link);
 
             if (!recentlyShared) {
-                posted = await postNewsArticle(article);
-                if (posted) {
-                    break; // Post one article per hour
+                // STEP 1: Save to news archive
+                newsId = await saveToNewsArchive(article);
+
+                // STEP 2: Post to social feed (linked to archive)
+                if (newsId) {
+                    posted = await postNewsArticle(article, newsId);
+                    if (posted) {
+                        break; // Post one article per hour
+                    }
                 }
             }
         }
@@ -297,7 +372,9 @@ export default async function handler(req, res) {
             success: true,
             posted: 1,
             post_id: posted.post_id,
+            news_id: posted.news_id,
             method: posted.method,
+            has_image: posted.has_image,
             timestamp: new Date().toISOString()
         });
 
