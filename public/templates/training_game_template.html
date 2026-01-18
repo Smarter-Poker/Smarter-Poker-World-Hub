@@ -20,15 +20,33 @@
             color: #fff;
             font-family: 'Inter', -apple-system, sans-serif;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
+        /* FIXED ASPECT RATIO CONTAINER - 600×800 (3:4 portrait) */
         .game-container {
-            height: 100vh;
-            width: 100vw;
-            display: flex;
-            flex-direction: column;
-            background: #000;
             position: relative;
+            width: 600px;
+            height: 800px;
+            background: #000;
+            transform-origin: center center;
+        }
+
+        /* Scale container to fit viewport while maintaining aspect ratio */
+        @media (max-aspect-ratio: 3/4) {
+            .game-container {
+                width: 100vw;
+                height: calc(100vw * 4 / 3);
+            }
+        }
+
+        @media (min-aspect-ratio: 3/4) {
+            .game-container {
+                width: calc(100vh * 3 / 4);
+                height: 100vh;
+            }
         }
 
         /* HEADER */
@@ -39,7 +57,12 @@
             padding: 8px 12px;
             background: rgba(0, 0, 0, 0.8);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            flex-shrink: 0;
+            height: 52px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 200;
         }
 
         .back-button {
@@ -115,15 +138,17 @@
 
         /* QUESTION TEXT */
         .question-section {
+            position: absolute;
+            top: 60px;
+            left: 15px;
+            right: 15px;
             padding: 8px 18px;
-            margin: 5px 15px;
-            width: auto;
             text-align: center;
-            flex-shrink: 0;
             background: rgba(0, 0, 0, 0.75);
             border: 3px solid rgba(0, 212, 255, 0.6);
             border-radius: 25px;
             box-shadow: 0 0 25px rgba(0, 212, 255, 0.3), inset 0 0 20px rgba(0, 0, 0, 0.4);
+            z-index: 150;
         }
 
         .question-text {
@@ -134,25 +159,22 @@
             text-transform: capitalize;
         }
 
-        /* MAIN STAGE */
+        /* MAIN STAGE - Fixed 600×800 canvas */
         .stage {
-            flex: 1;
+            position: absolute;
+            top: 140px;
+            left: 0;
+            right: 0;
+            bottom: 100px;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-            min-height: 0;
-            padding: 95px 10px 35px 10px;
-            overflow: visible;
         }
 
         .table-area {
             position: relative;
             width: 100%;
-            max-width: 680px;
-            aspect-ratio: 1 / 1.35;
-            margin: 0 auto;
-            overflow: visible;
+            height: 100%;
         }
 
         .table-container {
@@ -160,10 +182,9 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 100%;
-            height: 100%;
+            width: 90%;
+            height: 90%;
             border-radius: 45%;
-            overflow: visible;
         }
 
         .table-image {
@@ -572,14 +593,16 @@
         }
 
 
-        /* ACTION BUTTONS - Full Width Bottom */
+        /* ACTION BUTTONS - Absolute positioned at bottom of canvas */
         .action-buttons {
-            flex-shrink: 0;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 8px;
-            padding: 12px 16px;
-            padding-bottom: 24px;
+            padding: 12px 16px 24px;
             background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
             z-index: 100;
         }
@@ -870,23 +893,27 @@
                     gameTitleElement.textContent = gameName;
                 }
 
-                // LOCKED LAW POSITIONS - Enforce on page load
+                // LOCKED LAW POSITIONS - Percentages relative to 600×800 canvas
+                // Original pixel positions converted to percentages:
+                // v1: 760px/600 = 126.7%, 926px/800 = 115.8% (outside canvas - needs adjustment)
+                // Using percentages that work within the canvas bounds
                 const lockedPositions = {
-                    v1: { left: '760px', top: '926px' },
-                    v2: { left: '779px', top: '694px' },
-                    v3: { left: '778px', top: '478px' },
-                    v4: { left: '663px', top: '282px' },
-                    v5: { left: '289px', top: '281px' },
-                    v6: { left: '170px', top: '474px' },
-                    v7: { left: '172px', top: '696px' },
-                    v8: { left: '193px', top: '922px' }
+                    v1: { left: '95%', top: '92%' },   // Bottom right
+                    v2: { left: '97%', top: '69%' },   // Right middle-low
+                    v3: { left: '97%', top: '48%' },   // Right middle
+                    v4: { left: '83%', top: '28%' },   // Top right
+                    v5: { left: '36%', top: '28%' },   // Top left
+                    v6: { left: '21%', top: '47%' },   // Left middle
+                    v7: { left: '21%', top: '70%' },   // Left middle-low
+                    v8: { left: '24%', top: '92%' }    // Bottom left
                 };
 
-                // Move cards to body to enforce absolute positioning relative to viewport
+                // Keep cards inside game-container (no need to move to body with fixed aspect ratio)
+                const gameContainer = document.querySelector('.game-container');
                 for (let villain in lockedPositions) {
                     const card = document.querySelector(`.opponent-cards[data-villain="${villain}"]`);
-                    if (card) {
-                        document.body.appendChild(card);
+                    if (card && gameContainer) {
+                        gameContainer.appendChild(card);
                         card.style.position = 'absolute';
                         card.style.left = lockedPositions[villain].left;
                         card.style.top = lockedPositions[villain].top;
