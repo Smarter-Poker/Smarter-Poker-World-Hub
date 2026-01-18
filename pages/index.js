@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
+import PageTransition from '../src/components/transitions/PageTransition';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
 import gsap from 'gsap';
@@ -104,7 +105,7 @@ export default function LandingPage() {
     }
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Smarter.Poker — Master Your GTO Game</title>
                 <meta name="description" content="The ultimate poker training platform. AI-powered GTO drills, strategic analysis, and Diamond rewards." />
@@ -302,7 +303,7 @@ export default function LandingPage() {
                     </div>
                 </footer>
             </div>
-        </>
+        </PageTransition>
     );
 }
 
