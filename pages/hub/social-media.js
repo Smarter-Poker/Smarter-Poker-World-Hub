@@ -7,6 +7,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import gsap from 'gsap';
+import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
 import { StoriesBar, ShareToStoryPrompt } from '../../src/components/social/Stories';
@@ -16,6 +19,9 @@ import { LiveStreamCard } from '../../src/components/social/LiveStreamCard';
 import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../src/services/LiveStreamService';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+
+// God-Mode Stack
+import { useSocialStore } from '../../src/stores/socialStore';
 
 // Light Theme Colors (Facebook-style)
 const C = {
@@ -857,6 +863,17 @@ function ContactsSidebar({ contacts, onOpenChat, onSearch, searchResults }) {
 }
 
 export default function SocialMediaPage() {
+    // Zustand Global State (replaces UI-related useState)
+    const sidebarOpen = useSocialStore((s) => s.sidebarOpen);
+    const setSidebarOpen = useSocialStore((s) => s.setSidebarOpen);
+    const showNotifications = useSocialStore((s) => s.showNotifications);
+    const setShowNotifications = useSocialStore((s) => s.setShowNotifications);
+    const showGlobalSearch = useSocialStore((s) => s.showGlobalSearch);
+    const setShowGlobalSearch = useSocialStore((s) => s.setShowGlobalSearch);
+    const showGoLiveModal = useSocialStore((s) => s.showGoLiveModal);
+    const setShowGoLiveModal = useSocialStore((s) => s.setShowGoLiveModal);
+
+    // Local state (keep for data/session)
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [posts, setPosts] = useState([]);
@@ -865,12 +882,9 @@ export default function SocialMediaPage() {
     const [openChats, setOpenChats] = useState([]);
     const [chatMsgs, setChatMsgs] = useState({});
     const [isPosting, setIsPosting] = useState(false);
-    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [bottomNavVisible, setBottomNavVisible] = useState(true);
     const [notifications, setNotifications] = useState([]);
-    const [showNotifications, setShowNotifications] = useState(false);
     // Global Search State
-    const [showGlobalSearch, setShowGlobalSearch] = useState(false);
     const [globalSearchQuery, setGlobalSearchQuery] = useState('');
     const [globalSearchResults, setGlobalSearchResults] = useState({ users: [], posts: [] });
     const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
@@ -892,7 +906,6 @@ export default function SocialMediaPage() {
     const { unreadCount } = useUnreadCount();
 
     // 📺 LIVE STREAMING STATE
-    const [showGoLiveModal, setShowGoLiveModal] = useState(false);
     const [liveStreams, setLiveStreams] = useState([]);
     const [watchingStream, setWatchingStream] = useState(null);
 
