@@ -13,11 +13,13 @@ const supabase = createClient(
 const NEWS_SOURCES = [
     {
         name: 'PokerNews',
+        source_name: 'PokerNews',
         url: 'https://www.pokernews.com/rss.xml',
         category: 'tournament'
     },
     {
         name: 'PokerOrg',
+        source_name: 'Poker.org',
         url: 'https://www.poker.org/feed/',
         category: 'industry'
     }
@@ -40,7 +42,7 @@ function estimateReadTime(content) {
 }
 
 // Parse RSS XML to articles
-async function parseRSS(url, category) {
+async function parseRSS(url, category, sourceName) {
     try {
         const response = await fetch(url, {
             headers: { 'User-Agent': 'Smarter.Poker News Bot/1.0' }
@@ -82,6 +84,7 @@ async function parseRSS(url, category) {
                     image_url: imageMatch ? (imageMatch[1] || imageMatch[2]) :
                         `https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=800&q=80`,
                     category,
+                    source_name: sourceName || 'Smarter.Poker',
                     read_time: estimateReadTime(content),
                     author_name: 'Smarter.Poker',
                     is_featured: false,
@@ -134,6 +137,8 @@ function generateSyntheticNews() {
         slug: generateSlug(t.title + '-' + now.getTime()),
         excerpt: t.content.substring(0, 150),
         image_url: `https://images.unsplash.com/photo-${1511193311914 + i}-0346f16efe90?w=800&q=80`,
+        source_url: `https://smarter.poker/hub/news/${now.getTime()}-${i}`,
+        source_name: 'Smarter.Poker',
         read_time: 3,
         views: Math.floor(Math.random() * 1000) + 100,
         author_name: 'Smarter.Poker',
@@ -186,7 +191,7 @@ export default async function handler(req, res) {
 
         // Try to fetch from RSS sources
         for (const source of NEWS_SOURCES) {
-            const articles = await parseRSS(source.url, source.category);
+            const articles = await parseRSS(source.url, source.category, source.source_name);
             allArticles = [...allArticles, ...articles];
         }
 
