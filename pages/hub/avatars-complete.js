@@ -185,15 +185,6 @@ export default function AvatarsComplete() {
         <>
             <Head>
                 <title>Avatar Selection | Smarter Poker</title>
-                <style>{`
-                    /* Remove white backgrounds from avatar images (same as poker tables) */
-                    img[src*="/avatars/"],
-                    img[alt*="avatar" i],
-                    img[alt*="Avatar"] {
-                        mix-blend-mode: multiply;
-                        background: transparent;
-                    }
-                `}</style>
             </Head>
 
             <div style={{
@@ -478,38 +469,40 @@ export default function AvatarsComplete() {
             </div>
 
             {/* Custom Avatar Builder Modal */}
-            {showBuilder && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.95)',
-                    zIndex: 1000,
-                    overflow: 'auto',
-                    padding: '40px 20px'
-                }}>
-                    <button
-                        onClick={handleCloseBuilder}
-                        style={{
-                            position: 'fixed',
-                            top: '20px',
-                            right: '20px',
-                            background: 'rgba(255, 255, 255, 0.2)',
-                            border: 'none',
-                            borderRadius: '8px',
-                            padding: '12px 24px',
-                            color: '#fff',
-                            fontSize: '16px',
-                            cursor: 'pointer',
-                            zIndex: 1001
-                        }}>
-                        ✕ Close
-                    </button>
-                    <CustomAvatarBuilder isVip={isVip} onClose={handleCloseBuilder} />
-                </div>
-            )}
+            {
+                showBuilder && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0, 0, 0, 0.95)',
+                        zIndex: 1000,
+                        overflow: 'auto',
+                        padding: '40px 20px'
+                    }}>
+                        <button
+                            onClick={handleCloseBuilder}
+                            style={{
+                                position: 'fixed',
+                                top: '20px',
+                                right: '20px',
+                                background: 'rgba(255, 255, 255, 0.2)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '12px 24px',
+                                color: '#fff',
+                                fontSize: '16px',
+                                cursor: 'pointer',
+                                zIndex: 1001
+                            }}>
+                            ✕ Close
+                        </button>
+                        <CustomAvatarBuilder isVip={isVip} onClose={handleCloseBuilder} />
+                    </div>
+                )
+            }
         </>
     );
 }
