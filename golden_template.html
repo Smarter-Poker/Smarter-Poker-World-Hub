@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICM Fundamentals - Game UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            height: 100%;
+            width: 100%;
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', -apple-system, sans-serif;
+            overflow: hidden;
+        }
+
+        .game-container {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+            position: relative;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+
+        .back-button {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            color: #00d4ff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .back-button:hover {
+            background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%);
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .game-title {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .wallet-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .xp-wallet {
+            color: #FFD700;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .diamond-wallet {
+            color: #00d4ff;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .profile-pic {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid #00d4ff;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .profile-pic img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* QUESTION TEXT */
+        .question-section {
+            padding: 8px 18px;
+            margin: 5px 15px;
+            width: auto;
+            text-align: center;
+            flex-shrink: 0;
+            background: rgba(0, 0, 0, 0.75);
+            border: 3px solid rgba(0, 212, 255, 0.6);
+            border-radius: 25px;
+            box-shadow: 0 0 25px rgba(0, 212, 255, 0.3), inset 0 0 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .question-text {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fff;
+            line-height: 1.6;
+            text-transform: capitalize;
+        }
+
+        /* MAIN STAGE */
+        .stage {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-height: 0;
+            padding: 95px 10px 35px 10px;
+            overflow: visible;
+        }
+
+        .table-area {
+            position: relative;
+            width: 100%;
+            max-width: 680px;
+            aspect-ratio: 1 / 1.35;
+            margin: 0 auto;
+            overflow: visible;
+        }
+
+        .table-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 45%;
+            overflow: visible;
+        }
+
+        .table-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            border-radius: 45%;
+        }
+
+        /* POT */
+        .pot-display {
+            position: absolute;
+            top: 32%;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            z-index: 15;
+        }
+
+        .pot-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .pot-amount {
+            font-size: 16px;
+            font-weight: 800;
+            color: #FFD700;
+        }
+
+        /* BOARD */
+        .board {
+            position: absolute;
+            top: 42%;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 3px;
+            z-index: 15;
+        }
+
+        /* GAME INFO */
+        .game-info {
+            position: absolute;
+            top: 55%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 15;
+        }
+
+        .game-type {
+            font-size: 18px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 2px;
+        }
+
+        .branding {
+            font-size: 14px;
+            font-weight: 700;
+            color: #FFD700;
+            margin-top: 4px;
+        }
+
+        /* PLAYERS */
+        .player {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            z-index: 10;
+            overflow: visible;
+            transition: filter 0.3s ease, opacity 0.3s ease;
+        }
+
+        /* ACTIVE PLAYER - Living Golden Glow (Organic & Smooth) */
+        .player.active .player-info {
+            box-shadow:
+                0 0 20px rgba(255, 215, 0, 0.9),
+                0 0 40px rgba(255, 215, 0, 0.7),
+                0 0 60px rgba(255, 215, 0, 0.5),
+                0 0 80px rgba(255, 215, 0, 0.3),
+                inset 0 0 20px rgba(255, 215, 0, 0.2);
+            border-color: rgba(255, 215, 0, 1);
+            animation: livingGoldenGlow 2.5s ease-in-out infinite;
+        }
+
+        @keyframes livingGoldenGlow {
+
+            0%,
+            100% {
+                box-shadow:
+                    0 0 20px rgba(255, 215, 0, 0.9),
+                    0 0 40px rgba(255, 215, 0, 0.7),
+                    0 0 60px rgba(255, 215, 0, 0.5),
+                    0 0 80px rgba(255, 215, 0, 0.3),
+                    inset 0 0 20px rgba(255, 215, 0, 0.2);
+            }
+
+            50% {
+                box-shadow:
+                    0 0 30px rgba(255, 215, 0, 1),
+                    0 0 60px rgba(255, 215, 0, 0.9),
+                    0 0 90px rgba(255, 215, 0, 0.7),
+                    0 0 120px rgba(255, 215, 0, 0.5),
+                    inset 0 0 30px rgba(255, 215, 0, 0.3);
+            }
+        }
+
+        /* FOLDED PLAYER - Greyscale */
+        .player.folded {
+            filter: grayscale(1);
+            opacity: 0.5;
+        }
+
+        .player.folded .avatar {
+            filter: grayscale(1);
+            animation: none;
+        }
+
+        .avatar {
+            width: 138px;
+            height: 138px;
+            overflow: visible;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            mix-blend-mode: multiply;
+        }
+
+        .player-info {
+            background: rgba(0, 0, 0, 0.85);
+            width: auto;
+            min-width: 70px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 215, 0, 0.8);
+            margin-top: -10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+        }
+
+        .player-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+        }
+
+        .player-stack {
+            font-size: 17px;
+            font-weight: 700;
+            color: #FFD700;
+            white-space: nowrap;
+        }
+
+        /* HERO */
+        #hero {
+            position: absolute;
+            z-index: 50;
+        }
+
+        #hero .avatar {
+            width: 138px;
+            height: 138px;
+        }
+
+        #hero .player-info {
+            margin-top: -25px;
+        }
+
+        .hero-cards {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(calc(-50% + 20px));
+            display: flex;
+            margin-left: 5px;
+            z-index: 10;
+        }
+
+        .hero-cards .card:nth-child(1) {
+            transform: rotate(-6deg);
+            z-index: 1;
+        }
+
+        .hero-cards .card:nth-child(2) {
+            margin-left: -20px;
+            transform: rotate(12deg);
+            z-index: 2;
+        }
+
+        /* CARDS - Sized to fit 5 across the felt */
+        .card {
+            width: 56px;
+            height: 78px;
+            border-radius: 5px;
+            background: #fff;
+            box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.5);
+            display: grid;
+            grid-template-areas:
+                "tl . ."
+                ". center ."
+                ". . .";
+            grid-template-columns: 14px 1fr 14px;
+            grid-template-rows: 14px 1fr 14px;
+            padding: 3px;
+            border: 1px solid #ccc;
+        }
+
+        .card-corner-tl {
+            grid-area: tl;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 0.75;
+            padding-top: 1px;
+        }
+
+        .card-center {
+            grid-area: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+        }
+
+        .corner-rank {
+            font-size: 12px;
+            font-weight: 700;
+            font-family: Arial, sans-serif;
+            line-height: 1;
+        }
+
+        .corner-suit {
+            font-size: 10px;
+            line-height: 1;
+            margin-top: -1px;
+        }
+
+        .card-rank {
+            font-size: 32px;
+            font-weight: 700;
+            font-family: Arial, sans-serif;
+            line-height: 0.9;
+        }
+
+        .card-suit {
+            font-size: 26px;
+            line-height: 1;
+            margin-top: -2px;
+        }
+
+        .card.spades .corner-rank,
+        .card.spades .corner-suit,
+        .card.spades .card-rank,
+        .card.spades .card-suit {
+            color: #000;
+        }
+
+        .card.hearts .corner-rank,
+        .card.hearts .corner-suit,
+        .card.hearts .card-rank,
+        .card.hearts .card-suit {
+            color: #D32F2F;
+        }
+
+        .card.diamonds .corner-rank,
+        .card.diamonds .corner-suit,
+        .card.diamonds .card-rank,
+        .card.diamonds .card-suit {
+            color: #D32F2F;
+        }
+
+        .card.clubs .corner-rank,
+        .card.clubs .corner-suit,
+        .card.clubs .card-rank,
+        .card.clubs .card-suit {
+            color: #000;
+        }
+
+        /* DEALER BUTTON */
+        .dealer-button {
+            position: absolute;
+            top: 75%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #fff, #ddd);
+            border: 3px solid #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 900;
+            color: #1a1a1a;
+            z-index: 15;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        /* TIMER */
+        .timer {
+            position: absolute;
+            left: 70px;
+            bottom: 45px;
+            width: 86px;
+            height: 86px;
+            border-radius: 6px;
+            background: #111;
+            border: 3px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3), inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .timer-value {
+            font-size: 43px;
+            font-weight: 900;
+            color: #ff2222;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8), 0 0 20px rgba(255, 0, 0, 0.4);
+            letter-spacing: 2px;
+        }
+
+        .timer-label {
+            display: none;
+        }
+
+        /* QUESTION COUNTER */
+        .question-counter {
+            position: absolute;
+            right: 50px;
+            bottom: 45px;
+            padding: 12px 16px;
+            border-radius: 6px;
+            background: #111;
+            border: 3px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            box-shadow: 0 0 15px rgba(0, 150, 255, 0.3), inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .question-counter-text {
+            font-size: 14px;
+            font-weight: 700;
+            color: #00aaff;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px rgba(0, 150, 255, 0.8), 0 0 20px rgba(0, 150, 255, 0.4);
+            white-space: nowrap;
+        }
+
+        /* ACTION BUTTONS - Full Width Bottom */
+        .action-buttons {
+            flex-shrink: 0;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            padding: 12px 16px;
+            padding-bottom: 24px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            z-index: 100;
+        }
+
+        .action-button {
+            padding: 16px;
+            font-size: 15px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #2563EB, #1D4ED8);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        .action-button:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .action-button:hover {
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        /* ANIMATION KEYFRAMES */
+        @keyframes dealCard {
+            from {
+                transform: translate(-50%, -50%) scale(0.3);
+                opacity: 0;
+            }
+
+            to {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideChips {
+            from {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateY(-100px);
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes foldPlayer {
+            to {
+                opacity: 0.5;
+                filter: grayscale(0.7);
+            }
+        }
+
+        @keyframes slideToMuck {
+            to {
+                transform: translateY(50px) scale(0.8);
+                opacity: 0;
+            }
+        }
+
+        /* Animation Classes */
+        .card-dealing {
+            animation: dealCard 0.5s ease-out forwards;
+        }
+
+        .chips-sliding {
+            animation: slideChips 0.4s ease-in-out forwards;
+        }
+
+        .player-folded {
+            animation: foldPlayer 0.3s ease forwards;
+        }
+
+        .cards-mucked {
+            animation: slideToMuck 0.3s ease forwards;
+        }
+
+        /* CHIP STACKS */
+        .chip-stack {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .chip {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #FFD700, #FFA500);
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            margin-top: -8px;
+        }
+
+        .chip:first-child {
+            margin-top: 0;
+        }
+
+        .chip-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #FFD700;
+            text-shadow: 0 0 4px rgba(255, 215, 0, 0.5);
+            margin-top: 2px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           GAME FEEL ENHANCEMENTS
+           ═══════════════════════════════════════════════════════════ */
+
+        /* Animated Timer Border (15 seconds) */
+        .player-info {
+            position: relative;
+        }
+
+        .player-info::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border-radius: 10px;
+            background: conic-gradient(#00ff00 0deg, transparent 0deg);
+            opacity: 0;
+            z-index: -1;
+        }
+
+        .player.active .player-info::before {
+            opacity: 1;
+            animation: timerBorder 15s linear forwards;
+        }
+
+        @keyframes timerBorder {
+            0% {
+                background: conic-gradient(#00ff00 0deg, transparent 0deg);
+            }
+
+            100% {
+                background: conic-gradient(#00ff00 360deg, transparent 360deg);
+            }
+        }
+
+        /* Tournament Chips on Table */
+        .table-chip {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            z-index: 20;
+            transition: all 0.5s ease-in-out;
+        }
+
+        .chip-single {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Tournament Chip Colors */
+        .chip-green {
+            background: linear-gradient(145deg, #44ff44, #00cc00);
+        }
+
+        .chip-black {
+            background: linear-gradient(145deg, #333, #111);
+        }
+
+        .chip-pink {
+            background: linear-gradient(145deg, #ff69b4, #ff1493);
+        }
+
+        .chip-orange {
+            background: linear-gradient(145deg, #ff8c00, #ff6600);
+        }
+
+        .chip-grey {
+            background: linear-gradient(145deg, #808080, #606060);
+        }
+
+        .chip-blue {
+            background: linear-gradient(145deg, #4444ff, #0000cc);
+        }
+
+        .chip-teal {
+            background: linear-gradient(145deg, #20b2aa, #008b8b);
+        }
+
+        .chip-label-table {
+            font-size: 9px;
+            font-weight: 700;
+            color: #FFD700;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2px 5px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+
+        /* Chip Sweep Animation */
+        @keyframes sweepToPot {
+            to {
+                left: 50%;
+                top: 32%;
+                transform: translate(-50%, -50%);
+                opacity: 0;
+            }
+        }
+
+        .sweep-to-pot {
+            animation: sweepToPot 0.6s ease-in-out forwards;
+        }
+
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        /* GOLDEN HALO - Active hand indicator */
+        .player.active-hand .avatar {
+            box-shadow:
+                0 0 20px rgba(255, 215, 0, 0.6),
+                0 0 40px rgba(255, 215, 0, 0.4),
+                0 0 60px rgba(255, 215, 0, 0.2),
+                0 4px 15px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 215, 0, 0.8);
+        }
+
+        /* Dealer Button */
+        .dealer-button {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #fff, #ddd);
+            border: 3px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 900;
+            color: #000;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+            z-index: 25;
+        }
+
+        /* OPPONENT HOLE CARDS - Side-by-side with overlap */
+        .opponent-cards {
+            position: absolute;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            z-index: 100;
+            pointer-events: auto;
+        }
+
+        .opponent-card {
+            width: 32px;
+            height: 46px;
+            border-radius: 3px;
+            background: #1a1a1a;
+            border: 1.5px solid #333;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        /* FOLDED STATE - Cards hidden */
+        .player.folded .opponent-cards {
+            display: none;
+        }
+
+        /* HERO FOLDED - Cards greyed out */
+        .hero.folded .hole-cards .card {
+            filter: grayscale(100%) opacity(0.5);
+        }
+
+        /* First card - slight left angle */
+        .opponent-card:nth-child(1) {
+            transform: rotate(-8deg);
+        }
+
+        /* Second card overlaps and angles right */
+        .opponent-card:nth-child(2) {
+            margin-left: -18px;
+            transform: rotate(8deg);
+        }
+
+        /* Black/Gold Card Back Pattern */
+        .opponent-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 50% 50%, transparent 30%, rgba(212, 175, 55, 0.1) 31%, transparent 32%),
+                linear-gradient(45deg, rgba(212, 175, 55, 0.05) 25%, transparent 25%, transparent 75%, rgba(212, 175, 55, 0.05) 75%),
+                linear-gradient(-45deg, rgba(212, 175, 55, 0.05) 25%, transparent 25%, transparent 75%, rgba(212, 175, 55, 0.05) 75%);
+            background-size: 100% 100%, 8px 8px, 8px 8px;
+            background-position: center, 0 0, 4px 4px;
+        }
+
+        /* Ornate border on card back */
+        .opponent-card::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            border-radius: 2px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-container">
+        <!-- HEADER -->
+        <div class="header">
+            <button class="back-button">← Back to Training</button>
+            <div class="game-title">ICM FUNDAMENTALS</div>
+            <div class="header-right">
+                <div class="wallet-item xp-wallet">⚡ 1,250 XP</div>
+                <div class="wallet-item diamond-wallet">💎 500</div>
+                <div class="profile-pic">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=poker" alt="Profile">
+                </div>
+            </div>
+        </div>
+
+        <!-- QUESTION -->
+        <div class="question-section">
+            <div class="question-text">You are on the Button (last to act). The player to your right bets 2.5 big
+                blinds. What is your best move?</div>
+        </div>
+
+        <!-- STAGE (Table Area) -->
+        <div class="stage">
+            <!-- Timer -->
+            <div class="timer">
+                <div class="timer-value">15</div>
+                <div class="timer-label">SEC</div>
+            </div>
+
+            <!-- Question Counter -->
+            <div class="question-counter">
+                <div class="question-counter-text">Question 1 of 20</div>
+            </div>
+
+            <!-- Table Area -->
+            <div class="table-area">
+                <div class="table-container">
+                    <img class="table-image" src="http://localhost:3000/images/training/poker-table-clean.png"
+                        alt="Table">
+
+                    <!-- Pot -->
+                    <div class="pot-display">
+                        <span>🪙</span>
+                        <span class="pot-label">POT</span>
+                        <span class="pot-amount">0</span>
+                    </div>
+
+                    <!-- Board Cards -->
+                    <div class="board" style="display: none;">
+                        <div class="card spades">
+                            <div class="card-corner-tl">
+                                <span class="corner-rank">A</span>
+                                <span class="corner-suit">♠</span>
+                            </div>
+                            <div class="card-center">
+                                <span class="card-rank">A</span>
+                                <span class="card-suit">♠</span>
+                            </div>
+                        </div>
+                        <div class="card diamonds">
+                            <div class="card-corner-tl">
+                                <span class="corner-rank">K</span>
+                                <span class="corner-suit">♦</span>
+                            </div>
+                            <div class="card-center">
+                                <span class="card-rank">K</span>
+                                <span class="card-suit">♦</span>
+                            </div>
+                        </div>
+                        <div class="card hearts">
+                            <div class="card-corner-tl">
+                                <span class="corner-rank">7</span>
+                                <span class="corner-suit">♥</span>
+                            </div>
+                            <div class="card-center">
+                                <span class="card-rank">7</span>
+                                <span class="card-suit">♥</span>
+                            </div>
+                        </div>
+                        <!-- TURN (LAW 4: River-Ready) -->
+                        <div class="card clubs">
+                            <div class="card-corner-tl">
+                                <span class="corner-rank">J</span>
+                                <span class="corner-suit">♣</span>
+                            </div>
+                            <div class="card-center">
+                                <span class="card-rank">J</span>
+                                <span class="card-suit">♣</span>
+                            </div>
+                        </div>
+                        <!-- RIVER (LAW 4: River-Ready) -->
+                        <div class="card diamonds">
+                            <div class="card-corner-tl">
+                                <span class="corner-rank">2</span>
+                                <span class="corner-suit">♦</span>
+                            </div>
+                            <div class="card-center">
+                                <span class="card-rank">2</span>
+                                <span class="card-suit">♦</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Game Info -->
+                    <div class="game-info">
+                        <div class="game-type">ICM Fundamentals</div>
+                        <div class="branding">Smarter.Poker</div>
+                    </div>
+
+                    <!-- Dealer Button -->
+                    <div class="dealer-button">D</div>
+
+                    <!-- Villain 1 -->
+                    <div class="player" id="v1">
+                        <div class="avatar"><img src="" alt=""></div>
+                        <div class="player-info">
+                            <div class="player-name">Villain 1</div>
+                            <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards" data-villain="v1" style="left: 47px; top: 710px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
+                    </div>
+
+                    <!-- Villain 2 -->
+                    <div class="player" id="v2">
+                        <div class="avatar"><img src="" alt=""></div>
+                        <div class="player-info">
+                            <div class="player-name">Villain 2</div>
+                            <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards" data-villain="v2" style="left: 21px; top: 473px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
+                    </div>
+
+                    <!-- Villain 3 -->
+                    <div class="player" id="v3">
+                        <div class="avatar"><img src="" alt=""></div>
+                        <div class="player-info">
+                            <div class="player-name">Villain 3</div>
+                            <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards" data-villain="v3" style="left: 20px; top: 273px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
+                    </div>
+
+                    <!-- Villain 4 -->
+                    <div class="player" id="v4">
+                        <div class="avatar"><img src="" alt=""></div>
+                        <div class="player-info">
+                            <div class="player-name">Villain 4</div>
+                            <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards" data-villain="v4" style="left: 132px; top: 80px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
+                    </div>
+
+                    <!-- Villain 5 -->
+                    <div class="player" id="v5">
+                        <div class="avatar"><img src="" alt=""></div>
+                        <div class="player-info">
+                            <div class="player-name">Villain 5</div>
+                            <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards" data-villain="v5" style="left: 502px; top: 85px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
+                    </div>
+
+                    <!-- Villain 6 -->
+                    <div class="player" id="v6">
+                        <div class="avatar"><img src="" alt=""></div>
+                        <div class="player-info">
+                            <div class="player-name">Villain 6</div>
+                            <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards" data-villain="v6" style="left: 616px; top: 282px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
+                    </div>
+
+                    <!-- Villain 7 -->
+                    <div class="player" id="v7">
+                        <div class="avatar"><img src="" alt=""></div>
+                        <div class="player-info">
+                            <div class="player-name">Villain 7</div>
+                            <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards" data-villain="v7" style="left: 616px; top: 500px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
+                    </div>
+
+                    <!-- Villain 8 -->
+                    <div class="player" id="v8">
+                        <div class="avatar"><img src="" alt=""></div>
+                        <div class="player-info">
+                            <div class="player-name">Villain 8</div>
+                            <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards" data-villain="v8" style="left: 598px; top: 732px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
+                    </div>
+
+                    <!-- Hero -->
+                    <div class="player" id="hero">
+                        <div class="avatar"><img src="" alt=""></div>
+                        <div class="player-info">
+                            <div class="player-name">Hero</div>
+                            <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="hero-cards">
+                            <div class="card hearts">
+                                <div class="card-corner-tl">
+                                    <span class="corner-rank">A</span>
+                                    <span class="corner-suit">♥</span>
+                                </div>
+                                <div class="card-center">
+                                    <span class="card-rank">A</span>
+                                    <span class="card-suit">♥</span>
+                                </div>
+                            </div>
+                            <div class="card hearts">
+                                <div class="card-corner-tl">
+                                    <span class="corner-rank">K</span>
+                                    <span class="corner-suit">♥</span>
+                                </div>
+                                <div class="card-center">
+                                    <span class="card-rank">K</span>
+                                    <span class="card-suit">♥</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div><!-- End stage -->
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="action-button">Fold</button>
+            <button class="action-button">Call</button>
+            <button class="action-button">Raise to 8bb</button>
+            <button class="action-button">All-In</button>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                // ═══════════════════════════════════════════════════════════
+                // GAME STATE - Dynamic Stack Sizes and Positions
+                // ═══════════════════════════════════════════════════════════
+
+                const GAME_STATE = {
+                    hero: { stack: 45, position: 'BTN', folded: false },
+                    v1: { stack: 32, position: 'SB', folded: false },
+                    v2: { stack: 28, position: 'BB', folded: false },
+                    v3: { stack: 55, position: 'UTG', folded: true },
+                    v4: { stack: 41, position: 'UTG+1', folded: true },
+                    v5: { stack: 38, position: 'MP', folded: true },
+                    v6: { stack: 62, position: 'CO', folded: false },
+                    v7: { stack: 29, position: 'HJ', folded: true },
+                    v8: { stack: 51, position: 'LJ', folded: true }
+                };
+
+                // 9 Unique Transparent Avatars - No Repeats
+                const AVATARS = [
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fviking_warrior.png&w=640&q=75",
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fwizard.png&w=640&q=75",
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fninja.png&w=640&q=75",
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fwolf.png&w=640&q=75",
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fspartan.png&w=640&q=75",
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fpharaoh.png&w=640&q=75",
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fpirate.png&w=640&q=75",
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fcowboy.png&w=640&q=75",
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Ffox.png&w=640&q=75"
+                ];
+
+                // Assign each avatar to a player (no shuffling to prevent repeats)
+                document.querySelectorAll('.avatar img').forEach((img, i) => {
+                    img.src = AVATARS[i];
+                });
+
+                // ═══════════════════════════════════════════════════════════
+                // SMARTER.POKER TABLE CONSTITUTION - FIXED 9-SEAT LAYOUT
+                // Zero-Deviation Policy: These coordinates are IMMUTABLE
+                // ═══════════════════════════════════════════════════════════
+
+                // LAW 1: Law of the Fixed 9 - Static coordinates, never float
+                // LAW 2: Hero Anchor - Seat 1 is ALWAYS bottom center
+                // LAW 3: Law of the Rail - All avatars 100% on rail, NOT felt
+                const SEAT_POSITIONS = {
+                    'hero': { left: '50%', top: '88%' }, // Seat 1: Hero (Center Bottom - ANCHOR)
+                    'v1': { left: '18%', top: '75%' }, // Seat 2: Bottom-Left (SB)
+                    'v2': { left: '15%', top: '50%' }, // Seat 3: Middle-Left (BB)
+                    'v3': { left: '15%', top: '26%' }, // Seat 4: Upper-Left
+                    'v4': { left: '32%', top: '5%' }, // Seat 5: Top-Left
+                    'v5': { left: '68%', top: '5%' }, // Seat 6: Top-Right
+                    'v6': { left: '85%', top: '26%' }, // Seat 7: Upper-Right
+                    'v7': { left: '85%', top: '50%' }, // Seat 8: Middle-Right
+                    'v8': { left: '82%', top: '75%' } // Seat 9: Bottom-Right
+                };
+
+                // Apply FIXED positions and dynamic stacks
+                Object.keys(SEAT_POSITIONS).forEach(id => {
+                    const player = document.getElementById(id);
+                    if (player) {
+                        player.style.left = SEAT_POSITIONS[id].left;
+                        player.style.top = SEAT_POSITIONS[id].top;
+
+                        // Update stack size
+                        const stackEl = player.querySelector('.player-stack');
+                        if (stackEl && GAME_STATE[id]) {
+                            stackEl.textContent = `${GAME_STATE[id].stack} BB`;
+                        }
+                    }
+                });
+
+                // ═══════════════════════════════════════════════════════════
+                // NO CHIPS - Clean state for positioning work
+                // ═══════════════════════════════════════════════════════════
+
+                // ═══════════════════════════════════════════════════════════
+                // ALL AVATARS ACTIVE - NO FOLDING, NO CHIPS
+                // Clean state for positioning work
+                // ═══════════════════════════════════════════════════════════
+
+                // Remove all chip stacks
+                document.querySelectorAll('.chip-stack').forEach(el => el.remove());
+
+                // Ensure all avatars are in full color (no grayscale)
+                document.querySelectorAll('.player').forEach(player => {
+                    player.classList.remove('player-folded');
+                    player.style.filter = 'none';
+                    player.style.opacity = '1';
+                });
+
+                // ═══════════════════════════════════════════════════════════
+                // ACTIVATE HERO - Golden Glow Effect + Countdown Timer
+                // ═══════════════════════════════════════════════════════════
+
+                const TIMER_DURATION = 15; // 15 seconds
+                const WARNING_THRESHOLD = 0.3; // 30%
+                const CRITICAL_SECONDS = 3; // Last 3 seconds
+                let timeRemaining = TIMER_DURATION;
+                let timerInterval = null;
+                let hasVibratedWarning = false; // Track if we've vibrated for red warning
+
+                // Create SVG countdown timer border
+                const hero = document.getElementById('hero');
+                if (hero) {
+                    hero.classList.add('active');
+
+                    // Find the player-info box
+                    const playerInfo = hero.querySelector('.player-info');
+                    if (playerInfo) {
+                        // Make player-info position relative for absolute SVG positioning
+                        playerInfo.style.position = 'relative';
+
+                        // DYNAMICALLY measure the actual player-info box size
+                        const boxRect = playerInfo.getBoundingClientRect();
+                        const boxWidth = boxRect.width;
+                        const boxHeight = boxRect.height;
+
+                        // Add padding for the SVG container
+                        const padding = 12;
+                        const svgWidth = boxWidth + padding;
+                        const svgHeight = boxHeight + padding;
+
+                        // Create SVG element for countdown timer
+                        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                        svg.setAttribute('class', 'countdown-timer-svg');
+                        svg.style.cssText = `
+                            position: absolute;
+                            top: -${padding / 2}px;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            width: ${svgWidth}px;
+                            height: ${svgHeight}px;
+                            pointer-events: none;
+                            z-index: 100;
+                        `;
+
+                        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                        const width = boxWidth;
+                        const height = boxHeight;
+                        const rx = 8; // border radius to match player-info
+                        const perimeter = 2 * (width + height);
+
+                        rect.setAttribute('x', '5');
+                        rect.setAttribute('y', '5');
+                        rect.setAttribute('width', width);
+                        rect.setAttribute('height', height);
+                        rect.setAttribute('rx', rx);
+                        rect.setAttribute('fill', 'none');
+                        rect.setAttribute('stroke', 'rgba(255, 215, 0, 1)'); // GOLDEN
+                        rect.setAttribute('stroke-width', '4');
+                        rect.setAttribute('stroke-linecap', 'round');
+                        rect.style.cssText = `
+                            stroke-dasharray: ${perimeter};
+                            stroke-dashoffset: 0;
+                            filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
+                            transition: stroke 0.3s ease, stroke-dashoffset 0.1s linear;
+                        `;
+
+                        svg.appendChild(rect);
+                        playerInfo.appendChild(svg);
+
+                        // Start countdown timer
+                        function updateCountdown() {
+                            const timePercent = timeRemaining / TIMER_DURATION;
+                            // COUNTER-CLOCKWISE: negative offset to drain in reverse
+                            const offset = -perimeter * (1 - timePercent);
+
+                            // Update rect - drain the golden border counter-clockwise
+                            rect.style.strokeDashoffset = offset;
+
+                            // Change to red when time is running out
+                            if (timePercent <= WARNING_THRESHOLD) {
+                                rect.setAttribute('stroke', 'rgba(255, 0, 0, 1)');
+                                rect.style.filter = 'drop-shadow(0 0 8px rgba(255, 0, 0, 0.8))';
+
+                                // VIBRATE when first turning red (mobile haptic feedback)
+                                if (!hasVibratedWarning && navigator.vibrate) {
+                                    navigator.vibrate(200); // Single 200ms vibration
+                                    hasVibratedWarning = true;
+                                }
+                            } else {
+                                rect.setAttribute('stroke', 'rgba(255, 215, 0, 1)');
+                                rect.style.filter = 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))';
+                            }
+
+                            // VIBRATE during last 3 seconds (continuous buzz)
+                            if (timeRemaining <= CRITICAL_SECONDS && timeRemaining > 0) {
+                                if (navigator.vibrate) {
+                                    navigator.vibrate(100); // Short pulse every 100ms
+                                }
+                            }
+
+                            // Countdown
+                            if (timeRemaining > 0) {
+                                timeRemaining -= 0.1;
+                            } else {
+                                clearInterval(timerInterval);
+                                // Final strong vibration on timeout
+                                if (navigator.vibrate) {
+                                    navigator.vibrate([200, 100, 200]); // Pattern: buzz-pause-buzz
+                                }
+                                alert('⏰ TIME EXPIRED! Auto-folding...');
+                                // Reset and restart
+                                timeRemaining = TIMER_DURATION;
+                                hasVibratedWarning = false;
+                                rect.style.strokeDashoffset = 0;
+                                setTimeout(() => {
+                                    timerInterval = setInterval(updateCountdown, 100);
+                                }, 1000);
+                            }
+                        }
+
+                        // MANUAL START: Timer will be started when action is on this player
+                        // DISABLED FOR POSITIONING - Timer auto-start commented out
+                        // setTimeout(() => {
+                        //     timerInterval = setInterval(updateCountdown, 100);
+                        // }, 1000);
+
+                        console.log('✨ Hero activated with golden glow (timer disabled for positioning)');
+                    }
+                }
+
+                // ═══════════════════════════════════════════════════════════
+                // ========================================
+                // GAME STATE MANAGEMENT
+                // ========================================
+
+                // Demo: Show all villains with active hands (golden halo)
+                const allPlayers = document.querySelectorAll('.player');
+                allPlayers.forEach(player => {
+                    if (player.id !== 'hero') {
+                        player.classList.add('active-hand');
+                    }
+                });
+
+                // DEMO FUNCTIONS - Remove these and integrate with your game engine
+
+                // Function to mark a player as folded
+                window.playerFold = function (playerId) {
+                    const player = document.getElementById(playerId);
+                    if (player) {
+                        player.classList.remove('active-hand');
+                        player.classList.add('folded');
+                        console.log(`${playerId} folded - cards hidden, halo removed`);
+                    }
+                };
+
+                // Function to mark hero as folded
+                window.heroFold = function () {
+                    const hero = document.getElementById('hero');
+                    if (hero) {
+                        hero.classList.add('folded');
+                        console.log('Hero folded - cards greyed out');
+                    }
+                };
+
+                // Function to start new hand (reset all states)
+                window.newHand = function () {
+                    allPlayers.forEach(player => {
+                        player.classList.remove('folded');
+                        if (player.id !== 'hero') {
+                            player.classList.add('active-hand');
+                        }
+                    });
+                    console.log('New hand started - all players active');
+                };
+
+                console.log('🎯 Opponent card system ready!');
+                console.log('Demo functions available:');
+                console.log('  playerFold("v1") - Fold villain 1');
+                console.log('  heroFold() - Fold hero');
+                console.log('  newHand() - Start new hand');
+            });
+        </script>
+</body>
+
+</html>
