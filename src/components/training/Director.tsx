@@ -191,7 +191,8 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
             audio.playError(); // 🔊 Error thud + haptic
             startLossSequence();
         }
-    }, [currentScenario, buttonsDisabled, audio, progression, startWinSequence, startLossSequence]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentScenario, buttonsDisabled, audio, progression]);
 
     /**
      * 🏆 WIN SEQUENCE - Player got it right!
