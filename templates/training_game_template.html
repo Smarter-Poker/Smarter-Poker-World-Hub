@@ -338,21 +338,47 @@
         }
 
         .opponent-card {
-            width: 28px;
-            height: 38px;
+            width: 34px;
+            height: 47px;
             border-radius: 3px;
-            background: linear-gradient(145deg, #1a1a2e, #0d0d1a);
+            background: #1a1a1a;
+            border: 1.5px solid #333;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        /* Black/Gold Card Back Pattern */
+        .opponent-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 50% 50%, transparent 30%, rgba(212, 175, 55, 0.1) 31%, transparent 32%),
+                linear-gradient(45deg, rgba(212, 175, 55, 0.05) 25%, transparent 25%, transparent 75%, rgba(212, 175, 55, 0.05) 75%),
+                linear-gradient(-45deg, rgba(212, 175, 55, 0.05) 25%, transparent 25%, transparent 75%, rgba(212, 175, 55, 0.05) 75%);
+            background-size: 100% 100%, 8px 8px, 8px 8px;
+            background-position: center, 0 0, 4px 4px;
+        }
+
+        /* Ornate border on card back */
+        .opponent-card::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
             border: 1px solid rgba(212, 175, 55, 0.4);
-            box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.5);
+            border-radius: 2px;
+            pointer-events: none;
         }
 
         .opponent-card:nth-child(1) {
-            transform: rotate(-6deg);
+            transform: rotate(-8deg);
         }
 
         .opponent-card:nth-child(2) {
-            margin-left: -14px;
-            transform: rotate(6deg);
+            margin-left: -18px;
+            transform: rotate(8deg);
         }
 
         /* DEALER BUTTON */
