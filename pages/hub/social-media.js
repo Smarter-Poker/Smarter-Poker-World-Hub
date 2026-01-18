@@ -781,16 +781,28 @@ export default function SocialMediaPage() {
     useEffect(() => {
         (async () => {
             try {
-                const { data: { user: au } } = await supabase.auth.getUser();
-                if (au) {
-                    const { data: p } = await supabase.from('profiles').select('username, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', au.id).maybeSingle();
+                // Try getSession first (more reliable for browser sessions)
+                let authUser = null;
+                const { data: sessionData } = await supabase.auth.getSession();
+                if (sessionData?.session?.user) {
+                    authUser = sessionData.session.user;
+                    console.log('[Social] Auth via getSession:', authUser.email);
+                } else {
+                    // Fallback to getUser
+                    const { data: { user: au } } = await supabase.auth.getUser();
+                    authUser = au;
+                    console.log('[Social] Auth via getUser:', authUser?.email || 'null');
+                }
+
+                if (authUser) {
+                    const { data: p } = await supabase.from('profiles').select('username, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
                     // 👑 Check for God Mode
                     if (p?.role === 'god') {
                         setIsGodMode(true);
                     }
                     setUser({
-                        id: au.id,
-                        name: p?.username || au.email?.split('@')[0] || 'Player',
+                        id: authUser.id,
+                        name: p?.username || authUser.email?.split('@')[0] || 'Player',
                         avatar: p?.avatar_url || null,
                         tier: p?.skill_tier,
                         role: p?.role || 'user',
@@ -801,14 +813,16 @@ export default function SocialMediaPage() {
                             bestFinish: p.hendon_best_finish
                         } : null
                     });
-                    await loadContacts(au.id);
+                    await loadContacts(authUser.id);
                     // Load notifications
                     const { data: notifs } = await supabase.from('notifications')
                         .select('*')
-                        .eq('user_id', au.id)
+                        .eq('user_id', authUser.id)
                         .order('created_at', { ascending: false })
                         .limit(20);
                     if (notifs) setNotifications(notifs);
+                } else {
+                    console.log('[Social] No authenticated user found');
                 }
                 await loadFeed();
                 // Load live streams
@@ -816,7 +830,7 @@ export default function SocialMediaPage() {
                     const streams = await LiveStreamService.getLiveStreams();
                     setLiveStreams(streams || []);
                 } catch (e) { console.log('No live streams:', e); }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error('[Social] Auth error:', e); }
             setLoading(false);
         })();
     }, []);
@@ -825,7 +839,12 @@ export default function SocialMediaPage() {
         try {
             if (append) setLoadingMore(true);
 
-            const { data: { user: authUser } } = await supabase.auth.getUser();
+            // Use getSession for consistent auth (same as initial load)
+            let authUser = null;
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData?.session?.user) {
+                authUser = sessionData.session.user;
+            }
 
             // Get friend IDs for prioritization
             let friendIds = [];
