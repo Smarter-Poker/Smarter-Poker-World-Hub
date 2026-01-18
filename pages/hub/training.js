@@ -30,6 +30,7 @@ import GameIntroSplash from '../../src/components/training/GameIntroSplash';
 import { useTrainingStore } from '../../src/stores/trainingStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import { masteryCelebration, achievementCelebration } from '../../src/utils/confetti';
+import toast from '../../src/stores/toastStore';
 // import { trainingSounds } from '../../src/utils/trainingSounds'; // TODO: Add sounds when files are ready
 
 // Register GSAP plugins
