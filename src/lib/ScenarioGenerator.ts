@@ -20,10 +20,12 @@ import type {
     TableSize
 } from '../types/poker';
 import { getBlindPositions, getPreflopActionOrder, getVillainNames } from './SeatLayouts';
+import { type GameMode, type StrategyProfile, type EngineType } from './GameManifest';
 
 export class ScenarioGenerator {
     private config: GameConfig;
     private tableSize: TableSize;
+    private mode: GameMode | null;
     private players: Player[];
     private pot: number;
     private actionLog: ActionLogEntry[];
@@ -32,9 +34,10 @@ export class ScenarioGenerator {
     private currentBet: number;
     private timestamp: number;
 
-    constructor(config: GameConfig) {
+    constructor(config: GameConfig, mode?: GameMode) {
         this.config = config;
-        this.tableSize = config.tableSize || 9;
+        this.mode = mode || null;
+        this.tableSize = mode?.tableSize || config.tableSize || 9;
         this.players = [];
         this.pot = 0;
         this.actionLog = [];
@@ -47,8 +50,8 @@ export class ScenarioGenerator {
     /**
      * 🎲 PUBLIC API: Create a new scenario
      */
-    static create(config: GameConfig): Scenario {
-        const generator = new ScenarioGenerator(config);
+    static create(config: GameConfig, mode?: GameMode): Scenario {
+        const generator = new ScenarioGenerator(config, mode);
         return generator.generate();
     }
 
@@ -80,12 +83,19 @@ export class ScenarioGenerator {
     }
 
     /**
-     * 👥 Initialize players based on table size
+     * 👥 Initialize players based on table size and mode
      */
     private initializePlayers(): void {
         const playerCount = this.tableSize;
-        this.heroSeat = 0; // Hero always at seat 0 (bottom)
-        this.buttonSeat = Math.floor(Math.random() * playerCount);
+
+        // Determine hero seat based on forced position
+        this.heroSeat = this.calculateHeroSeat(playerCount);
+        this.buttonSeat = this.calculateButtonSeat(playerCount);
+
+        // Get stack size from mode or config
+        const stackSize = this.mode?.startingStack
+            ? this.mode.startingStack * this.config.bigBlind
+            : this.config.startStack;
 
         const villainNames = getVillainNames(this.tableSize);
 
@@ -93,12 +103,62 @@ export class ScenarioGenerator {
             this.players.push({
                 seat,
                 name: seat === this.heroSeat ? 'Hero' : villainNames[seat - 1] || `Villain ${seat}`,
-                stack: this.config.startStack,
-                startingStack: this.config.startStack,
+                stack: stackSize,
+                startingStack: stackSize,
                 currentBet: 0,
                 isHero: seat === this.heroSeat,
                 hasFolded: false
             });
+        }
+    }
+
+    /**
+     * 📍 Calculate hero seat based on forced position
+     */
+    private calculateHeroSeat(playerCount: number): number {
+        if (!this.mode?.forcedPosition) {
+            return 0; // Default: hero at seat 0
+        }
+
+        // For forced positions, we need to set button first, then calculate hero
+        const tempButton = Math.floor(Math.random() * playerCount);
+
+        switch (this.mode.forcedPosition) {
+            case 'button':
+                return tempButton;
+            case 'sb':
+                return this.tableSize === 2 ? tempButton : (tempButton + 1) % playerCount;
+            case 'bb':
+                return this.tableSize === 2 ? (tempButton + 1) % playerCount : (tempButton + 2) % playerCount;
+            case 'cutoff':
+                return (tempButton + playerCount - 1) % playerCount;
+            case 'any':
+            default:
+                return 0;
+        }
+    }
+
+    /**
+     * 🎯 Calculate button seat based on hero position and mode
+     */
+    private calculateButtonSeat(playerCount: number): number {
+        if (!this.mode?.forcedPosition) {
+            return Math.floor(Math.random() * playerCount);
+        }
+
+        // Button position is derived from hero position for forced positions
+        switch (this.mode.forcedPosition) {
+            case 'button':
+                return this.heroSeat;
+            case 'sb':
+                return this.tableSize === 2 ? this.heroSeat : (this.heroSeat + playerCount - 1) % playerCount;
+            case 'bb':
+                return this.tableSize === 2 ? (this.heroSeat + playerCount - 1) % playerCount : (this.heroSeat + playerCount - 2) % playerCount;
+            case 'cutoff':
+                return (this.heroSeat + 1) % playerCount;
+            case 'any':
+            default:
+                return Math.floor(Math.random() * playerCount);
         }
     }
 
