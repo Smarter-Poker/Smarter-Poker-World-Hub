@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICM Fundamentals - Game UI</title>
+    <title>Training Game - Smarter.Poker</title>
     <style>
         * {
             margin: 0;
@@ -16,37 +16,19 @@
         html {
             height: 100%;
             width: 100%;
-            background: #000;
+            background: #0a0a15;
             color: #fff;
             font-family: 'Inter', -apple-system, sans-serif;
             overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
-        /* FIXED ASPECT RATIO CONTAINER - 600×800 (3:4 portrait) */
         .game-container {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #0a1020 0%, #0d1a2d 100%);
             position: relative;
-            width: 600px;
-            height: 800px;
-            background: #000;
-            transform-origin: center center;
-        }
-
-        /* Scale container to fit viewport while maintaining aspect ratio */
-        @media (max-aspect-ratio: 3/4) {
-            .game-container {
-                width: 100vw;
-                height: calc(100vw * 4 / 3);
-            }
-        }
-
-        @media (min-aspect-ratio: 3/4) {
-            .game-container {
-                width: calc(100vh * 3 / 4);
-                height: 100vh;
-            }
         }
 
         /* HEADER */
@@ -56,13 +38,8 @@
             align-items: center;
             padding: 8px 12px;
             background: rgba(0, 0, 0, 0.8);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            height: 52px;
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 200;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            flex-shrink: 0;
         }
 
         .back-button {
@@ -74,20 +51,16 @@
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
             transition: all 0.2s ease;
         }
 
         .back-button:hover {
-            background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%);
             border-color: #00d4ff;
             box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
         }
 
         .game-title {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 700;
             letter-spacing: 2px;
             color: #00d4ff;
@@ -97,17 +70,17 @@
         .header-right {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .wallet-item {
             display: flex;
             align-items: center;
             gap: 4px;
-            padding: 6px 10px;
+            padding: 5px 10px;
             background: rgba(0, 0, 0, 0.5);
             border-radius: 20px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
         }
 
@@ -122,12 +95,11 @@
         }
 
         .profile-pic {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             border: 2px solid #00d4ff;
             overflow: hidden;
-            cursor: pointer;
         }
 
         .profile-pic img {
@@ -138,43 +110,40 @@
 
         /* QUESTION TEXT */
         .question-section {
-            position: absolute;
-            top: 60px;
-            left: 15px;
-            right: 15px;
-            padding: 8px 18px;
+            padding: 10px 16px;
+            margin: 8px 12px;
             text-align: center;
             background: rgba(0, 0, 0, 0.75);
-            border: 3px solid rgba(0, 212, 255, 0.6);
-            border-radius: 25px;
-            box-shadow: 0 0 25px rgba(0, 212, 255, 0.3), inset 0 0 20px rgba(0, 0, 0, 0.4);
-            z-index: 150;
+            border: 2px solid rgba(0, 212, 255, 0.5);
+            border-radius: 16px;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
         }
 
         .question-text {
-            font-size: 22px;
+            font-size: 16px;
             font-weight: 600;
             color: #fff;
-            line-height: 1.6;
-            text-transform: capitalize;
+            line-height: 1.4;
         }
 
-        /* MAIN STAGE - Fixed 600×800 canvas */
+        /* MAIN STAGE */
         .stage {
-            position: absolute;
-            top: 140px;
-            left: 0;
-            right: 0;
-            bottom: 100px;
+            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
+            min-height: 0;
+            padding: 10px;
+            overflow: hidden;
         }
 
         .table-area {
             position: relative;
             width: 100%;
-            height: 100%;
+            max-width: 500px;
+            aspect-ratio: 1 / 1.2;
+            margin: 0 auto;
         }
 
         .table-container {
@@ -182,17 +151,17 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 90%;
-            height: 90%;
-            border-radius: 45%;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
         }
 
         .table-image {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 5%;
+            left: 5%;
+            width: 90%;
+            height: 90%;
             object-fit: fill;
             border-radius: 45%;
         }
@@ -205,78 +174,67 @@
             transform: translateX(-50%);
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 215, 0, 0.3);
+            gap: 5px;
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.75);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 215, 0, 0.4);
             z-index: 15;
         }
 
         .pot-label {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 600;
             color: rgba(255, 255, 255, 0.6);
         }
 
         .pot-amount {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 800;
             color: #FFD700;
         }
 
-        /* BOARD */
-        .board {
-            position: absolute;
-            top: 42%;
-            left: 50%;
-            transform: translateX(-50%);
-            display: none;
-            /* HIDDEN for positioning */
-            gap: 3px;
-            z-index: 15;
-        }
-
-        /* GAME INFO */
+        /* GAME INFO - Center of table */
         .game-info {
             position: absolute;
-            top: 55%;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translate(-50%, -50%);
             text-align: center;
-            z-index: 15;
+            z-index: 10;
         }
 
         .game-type {
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 800;
             color: #fff;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
         }
 
         .branding {
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 700;
             color: #FFD700;
-            margin-top: 4px;
+            margin-top: 2px;
         }
 
-        /* PLAYERS */
+        /* PLAYERS - Percentage based positions */
         .player {
             position: absolute;
-            transform: translate(-50%, -50%);
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 0;
             z-index: 20;
-            overflow: visible;
+            transform: translate(-50%, -50%);
         }
 
         .avatar {
-            width: 138px;
-            height: 138px;
-            overflow: visible;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.3);
         }
 
         .avatar img {
@@ -287,335 +245,421 @@
 
         .player-info {
             background: rgba(0, 0, 0, 0.85);
-            width: auto;
-            min-width: 70px;
-            padding: 4px 10px;
-            border-radius: 8px;
-            border: 2px solid rgba(255, 215, 0, 0.8);
-            margin-top: -10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 215, 0, 0.6);
+            margin-top: -8px;
+            text-align: center;
         }
 
         .player-name {
-            font-size: 15px;
+            font-size: 10px;
             font-weight: 600;
             color: #fff;
             white-space: nowrap;
         }
 
         .player-stack {
-            font-size: 17px;
+            font-size: 11px;
             font-weight: 700;
             color: #FFD700;
-            white-space: nowrap;
         }
 
         /* HERO */
-        #hero {
-            position: absolute;
-            z-index: 50;
-        }
-
         #hero .avatar {
-            width: 138px;
-            height: 138px;
+            width: 70px;
+            height: 70px;
+            border: 2px solid #FFD700;
         }
 
-        #hero .player-info {
-            margin-top: -25px;
-        }
-
+        /* HERO CARDS - Adjacent to avatar */
         .hero-cards {
             position: absolute;
-            left: 100%;
-            top: 50%;
-            transform: translateY(calc(-50% + 20px));
+            left: calc(50% + 45px);
+            bottom: 8%;
             display: flex;
-            margin-left: 5px;
-            z-index: 10;
+            z-index: 25;
         }
 
         .hero-cards .card:nth-child(1) {
             transform: rotate(-6deg);
-            z-index: 1;
         }
 
         .hero-cards .card:nth-child(2) {
-            margin-left: -20px;
-            transform: rotate(12deg);
-            z-index: 2;
+            margin-left: -15px;
+            transform: rotate(10deg);
         }
 
-        /* CARDS - Sized to fit 5 across the felt */
+        /* CARDS */
         .card {
-            width: 56px;
-            height: 78px;
-            border-radius: 5px;
+            width: 44px;
+            height: 62px;
+            border-radius: 4px;
             background: #fff;
-            box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.5);
-            display: grid;
-            grid-template-areas:
-                "tl . ."
-                ". center ."
-                ". . .";
-            grid-template-columns: 14px 1fr 14px;
-            grid-template-rows: 14px 1fr 14px;
-            padding: 3px;
-            border: 1px solid #ccc;
-        }
-
-        .card-corner-tl {
-            grid-area: tl;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            line-height: 0.75;
-            padding-top: 1px;
-        }
-
-        .card-center {
-            grid-area: center;
+            box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0;
-        }
-
-        .corner-rank {
-            font-size: 12px;
-            font-weight: 700;
-            font-family: Arial, sans-serif;
-            line-height: 1;
-        }
-
-        .corner-suit {
-            font-size: 10px;
-            line-height: 1;
-            margin-top: -1px;
+            border: 1px solid #ccc;
         }
 
         .card-rank {
-            font-size: 32px;
-            font-weight: 700;
-            font-family: Arial, sans-serif;
-            line-height: 0.9;
+            font-size: 22px;
+            font-weight: 800;
+            font-family: 'Arial Black', sans-serif;
+            line-height: 1;
         }
 
         .card-suit {
-            font-size: 26px;
+            font-size: 18px;
             line-height: 1;
             margin-top: -2px;
         }
 
-        .card.spades .corner-rank,
-        .card.spades .corner-suit,
-        .card.spades .card-rank,
-        .card.spades .card-suit {
-            color: #000;
-        }
-
-        .card.hearts .corner-rank,
-        .card.hearts .corner-suit,
         .card.hearts .card-rank,
-        .card.hearts .card-suit {
-            color: #D32F2F;
-        }
-
-        .card.diamonds .corner-rank,
-        .card.diamonds .corner-suit,
+        .card.hearts .card-suit,
         .card.diamonds .card-rank,
         .card.diamonds .card-suit {
             color: #D32F2F;
         }
 
-        .card.clubs .corner-rank,
-        .card.clubs .corner-suit,
+        .card.spades .card-rank,
+        .card.spades .card-suit,
         .card.clubs .card-rank,
         .card.clubs .card-suit {
             color: #000;
         }
 
-        /* DEALER BUTTON */
-        .dealer-button {
-            position: absolute;
-            top: 75%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #fff, #ddd);
-            border: 3px solid #1a1a1a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: 900;
-            color: #1a1a1a;
-            z-index: 15;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-        }
-
-        /* TIMER */
-        .timer {
-            position: absolute;
-            left: 70px;
-            bottom: 45px;
-            width: 86px;
-            height: 86px;
-            border-radius: 6px;
-            background: #111;
-            border: 3px solid #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 30;
-            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3), inset 0 0 10px rgba(0, 0, 0, 0.5);
-        }
-
-        .timer-value {
-            font-size: 43px;
-            font-weight: 900;
-            color: #ff2222;
-            font-family: 'Courier New', monospace;
-            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8), 0 0 20px rgba(255, 0, 0, 0.4);
-            letter-spacing: 2px;
-        }
-
-        .timer-label {
-            display: none;
-        }
-
-        /* QUESTION COUNTER */
-        .question-counter {
-            position: absolute;
-            right: 50px;
-            bottom: 45px;
-            padding: 12px 16px;
-            border-radius: 6px;
-            background: #111;
-            border: 3px solid #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 30;
-            box-shadow: 0 0 15px rgba(0, 150, 255, 0.3), inset 0 0 10px rgba(0, 0, 0, 0.5);
-        }
-
-        .question-counter-text {
-            font-size: 14px;
-            font-weight: 700;
-            color: #00aaff;
-            font-family: 'Courier New', monospace;
-            text-shadow: 0 0 10px rgba(0, 150, 255, 0.8), 0 0 20px rgba(0, 150, 255, 0.4);
-            white-space: nowrap;
-        }
-
-        /* OPPONENT HOLE CARDS - Fanned/Overlapping Style */
-        /* LOCKED LAW POSITIONS - Must be relative to viewport */
+        /* OPPONENT CARDS - Relative to player */
         .opponent-cards {
-            position: absolute;
             display: flex;
-            flex-direction: row;
-            align-items: center;
-            z-index: 100;
-            pointer-events: auto;
+            margin-top: -5px;
         }
 
         .opponent-card {
-            width: 34px;
-            height: 47px;
+            width: 28px;
+            height: 38px;
             border-radius: 3px;
-            background: #1a1a1a;
-            border: 1.5px solid #333;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-            position: relative;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        /* FOLDED STATE - Cards hidden */
-        .player.folded .opponent-cards {
-            display: none;
-        }
-
-        /* First card - slight left angle */
-        .opponent-card:nth-child(1) {
-            transform: rotate(-8deg);
-        }
-
-        /* Second card overlaps and angles right */
-        .opponent-card:nth-child(2) {
-            margin-left: -18px;
-            transform: rotate(8deg);
-        }
-
-        /* Black/Gold Card Back Pattern */
-        .opponent-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at 50% 50%, transparent 30%, rgba(212, 175, 55, 0.1) 31%, transparent 32%),
-                linear-gradient(45deg, rgba(212, 175, 55, 0.05) 25%, transparent 25%, transparent 75%, rgba(212, 175, 55, 0.05) 75%),
-                linear-gradient(-45deg, rgba(212, 175, 55, 0.05) 25%, transparent 25%, transparent 75%, rgba(212, 175, 55, 0.05) 75%);
-            background-size: 100% 100%, 8px 8px, 8px 8px;
-            background-position: center, 0 0, 4px 4px;
-        }
-
-        /* Ornate border on card back */
-        .opponent-card::after {
-            content: '';
-            position: absolute;
-            inset: 3px;
+            background: linear-gradient(145deg, #1a1a2e, #0d0d1a);
             border: 1px solid rgba(212, 175, 55, 0.4);
-            border-radius: 2px;
-            pointer-events: none;
+            box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.5);
         }
 
-
-        /* FOLD STATE LAW - IMMUTABLE */
-        /* Folded opponent cards turn grey */
-        .opponent-cards.folded .opponent-card {
-            filter: grayscale(100%) brightness(0.5);
-            opacity: 0.6;
+        .opponent-card:nth-child(1) {
+            transform: rotate(-6deg);
         }
 
-        /* Folded hero cards turn grey */
-        .hero-cards.folded .card {
-            filter: grayscale(100%) brightness(0.5);
-            opacity: 0.6;
+        .opponent-card:nth-child(2) {
+            margin-left: -14px;
+            transform: rotate(6deg);
         }
 
-
-        /* ACTION BUTTONS - Absolute positioned at bottom of canvas */
-        .action-buttons {
+        /* DEALER BUTTON */
+        .dealer-button {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #fff, #ddd);
+            border: 2px solid #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 900;
+            color: #1a1a1a;
+            z-index: 25;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        /* TIMER - Bottom left */
+        .timer {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            background: #111;
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            transition: all 0.3s ease;
+        }
+
+        .timer.urgent {
+            border-color: #ff2222;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .timer-value {
+            font-size: 32px;
+            font-weight: 900;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            transition: color 0.3s ease;
+        }
+
+        .timer.urgent .timer-value {
+            color: #ff2222;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+        }
+
+        /* QUESTION COUNTER - Bottom right */
+        .question-counter {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: #111;
+            border: 2px solid #333;
+            z-index: 30;
+        }
+
+        .question-counter-text {
+            font-size: 12px;
+            font-weight: 700;
+            color: #00d4ff;
+            white-space: nowrap;
+        }
+
+        /* ACTION BUTTONS */
+        .action-buttons {
+            flex-shrink: 0;
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 8px;
-            padding: 12px 16px 24px;
+            padding: 10px 12px 20px 12px;
             background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
             z-index: 100;
         }
 
         .action-button {
-            padding: 16px;
-            font-size: 15px;
+            padding: 14px;
+            font-size: 14px;
             font-weight: 700;
             background: linear-gradient(135deg, #2563EB, #1D4ED8);
             border: none;
             border-radius: 10px;
             color: #fff;
             cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+        }
+
+        .action-button:active {
+            transform: scale(0.98);
+        }
+
+        .action-button.correct {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            animation: correctFlash 0.5s ease;
+        }
+
+        .action-button.incorrect {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            animation: shake 0.4s ease;
+        }
+
+        .action-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @keyframes correctFlash {
+            0% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            }
+
+            100% {
+                box-shadow: 0 0 30px 10px rgba(34, 197, 94, 0);
+            }
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        /* FEEDBACK OVERLAY */
+        .feedback-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .feedback-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .feedback-card {
+            width: 90%;
+            max-width: 400px;
+            background: linear-gradient(135deg, #1a1a2e, #0d0d1a);
+            border-radius: 16px;
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            padding: 20px;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .feedback-overlay.visible .feedback-card {
+            transform: scale(1);
+        }
+
+        .feedback-result {
+            font-size: 20px;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .feedback-result.correct {
+            color: #22c55e;
+        }
+
+        .feedback-result.incorrect {
+            color: #ef4444;
+        }
+
+        .feedback-explanation {
+            font-size: 14px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 16px;
+        }
+
+        .feedback-next {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        /* COMPLETE SCREEN */
+        .complete-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(180deg, #0a0a15, #1a1a2e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.5s ease;
+        }
+
+        .complete-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .complete-content {
+            text-align: center;
+            padding: 24px;
+        }
+
+        .complete-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .complete-title {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .complete-title.passed {
+            color: #22c55e;
+        }
+
+        .complete-title.failed {
+            color: #f59e0b;
+        }
+
+        .complete-score {
+            font-size: 48px;
+            font-weight: 900;
+            margin: 16px 0;
+        }
+
+        .complete-stats {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 24px;
+        }
+
+        .complete-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .complete-button {
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+        }
+
+        .complete-button.primary {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #fff;
+        }
+
+        .complete-button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
     </style>
 </head>
@@ -624,11 +668,11 @@
     <div class="game-container">
         <!-- HEADER -->
         <div class="header">
-            <button class="back-button">← Back to Training</button>
-            <div class="game-title">ICM FUNDAMENTALS</div>
+            <button class="back-button" id="backBtn">← Back to Training</button>
+            <div class="game-title" id="headerTitle">TRAINING GAME</div>
             <div class="header-right">
-                <div class="wallet-item xp-wallet">⚡ 1,250 XP</div>
-                <div class="wallet-item diamond-wallet">💎 500</div>
+                <div class="wallet-item xp-wallet">⚡ <span id="xpDisplay">0</span> XP</div>
+                <div class="wallet-item diamond-wallet">💎 <span id="diamondDisplay">500</span></div>
                 <div class="profile-pic">
                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=poker" alt="Profile">
                 </div>
@@ -637,353 +681,569 @@
 
         <!-- QUESTION -->
         <div class="question-section">
-            <div class="question-text">You are on the Button (last to act). The player to your right bets 2.5 big
-                blinds. What is your best move?</div>
+            <div class="question-text" id="questionText">Loading question...</div>
         </div>
 
         <!-- STAGE (Table Area) -->
         <div class="stage">
             <!-- Timer -->
-            <div class="timer">
-                <div class="timer-value">21</div>
-                <div class="timer-label">SEC</div>
+            <div class="timer" id="timer">
+                <div class="timer-value" id="timerValue">24</div>
             </div>
 
             <!-- Question Counter -->
             <div class="question-counter">
-                <div class="question-counter-text">Question 1 of 20</div>
+                <div class="question-counter-text" id="questionCounter">Question 1 of 20</div>
             </div>
 
             <!-- Table Area -->
             <div class="table-area">
                 <div class="table-container">
-                    <img class="table-image" src="http://localhost:3000/images/training/poker-table-clean.png"
-                        alt="Table">
+                    <img class="table-image" src="/images/training/poker-table-clean.png" alt="Table">
 
                     <!-- Pot -->
                     <div class="pot-display">
                         <span>🪙</span>
                         <span class="pot-label">POT</span>
-                        <span class="pot-amount">12</span>
-                    </div>
-
-                    <!-- Board Cards -->
-                    <div class="board">
-                        <div class="card spades">
-                            <div class="card-corner-tl">
-                                <span class="corner-rank">A</span>
-                                <span class="corner-suit">♠</span>
-                            </div>
-                            <div class="card-center">
-                                <span class="card-rank">A</span>
-                                <span class="card-suit">♠</span>
-                            </div>
-                        </div>
-                        <div class="card diamonds">
-                            <div class="card-corner-tl">
-                                <span class="corner-rank">K</span>
-                                <span class="corner-suit">♦</span>
-                            </div>
-                            <div class="card-center">
-                                <span class="card-rank">K</span>
-                                <span class="card-suit">♦</span>
-                            </div>
-                        </div>
-                        <div class="card hearts">
-                            <div class="card-corner-tl">
-                                <span class="corner-rank">7</span>
-                                <span class="corner-suit">♥</span>
-                            </div>
-                            <div class="card-center">
-                                <span class="card-rank">7</span>
-                                <span class="card-suit">♥</span>
-                            </div>
-                        </div>
-                        <!-- TURN (LAW 4: River-Ready) -->
-                        <div class="card clubs">
-                            <div class="card-corner-tl">
-                                <span class="corner-rank">J</span>
-                                <span class="corner-suit">♣</span>
-                            </div>
-                            <div class="card-center">
-                                <span class="card-rank">J</span>
-                                <span class="card-suit">♣</span>
-                            </div>
-                        </div>
-                        <!-- RIVER (LAW 4: River-Ready) -->
-                        <div class="card diamonds">
-                            <div class="card-corner-tl">
-                                <span class="corner-rank">2</span>
-                                <span class="corner-suit">♦</span>
-                            </div>
-                            <div class="card-center">
-                                <span class="card-rank">2</span>
-                                <span class="card-suit">♦</span>
-                            </div>
-                        </div>
+                        <span class="pot-amount" id="potAmount">12</span>
                     </div>
 
                     <!-- Game Info -->
                     <div class="game-info">
-                        <div class="game-type">ICM Fundamentals</div>
+                        <div class="game-type" id="gameType">NL Hold'em</div>
                         <div class="branding">Smarter.Poker</div>
                     </div>
 
                     <!-- Dealer Button -->
-                    <div class="dealer-button">D</div>
+                    <div class="dealer-button" id="dealerBtn"
+                        style="bottom: 25%; left: 50%; transform: translateX(-50%);">D</div>
 
-                    <!-- Villain 1 -->
-                    <div class="player" id="v1">
-                        <div class="avatar"><img src="" alt=""></div>
-                        <div class="player-info">
-                            <div class="player-name">Villain 1</div>
-                            <div class="player-stack">20 BB</div>
-                        </div>
-                        <div class="opponent-cards" data-villain="v1" style="left: 760px; top: 926px;">
-                            <div class="opponent-card"></div>
-                            <div class="opponent-card"></div>
-                        </div>
-                    </div>
-
-                    <!-- Villain 2 -->
-                    <div class="player" id="v2">
-                        <div class="avatar"><img src="" alt=""></div>
-                        <div class="player-info">
-                            <div class="player-name">Villain 2</div>
-                            <div class="player-stack">20 BB</div>
-                        </div>
-                        <div class="opponent-cards" data-villain="v2" style="left: 779px; top: 694px;">
-                            <div class="opponent-card"></div>
-                            <div class="opponent-card"></div>
-                        </div>
-                    </div>
-
-                    <!-- Villain 3 -->
-                    <div class="player" id="v3">
-                        <div class="avatar"><img src="" alt=""></div>
-                        <div class="player-info">
-                            <div class="player-name">Villain 3</div>
-                            <div class="player-stack">20 BB</div>
-                        </div>
-                        <div class="opponent-cards" data-villain="v3" style="left: 778px; top: 478px;">
-                            <div class="opponent-card"></div>
-                            <div class="opponent-card"></div>
-                        </div>
-                    </div>
-
-                    <!-- Villain 4 -->
-                    <div class="player" id="v4">
-                        <div class="avatar"><img src="" alt=""></div>
-                        <div class="player-info">
-                            <div class="player-name">Villain 4</div>
-                            <div class="player-stack">20 BB</div>
-                        </div>
-                        <div class="opponent-cards" data-villain="v4" style="left: 663px; top: 282px;">
-                            <div class="opponent-card"></div>
-                            <div class="opponent-card"></div>
-                        </div>
-                    </div>
-
-                    <!-- Villain 5 -->
-                    <div class="player" id="v5">
-                        <div class="avatar"><img src="" alt=""></div>
-                        <div class="player-info">
-                            <div class="player-name">Villain 5</div>
-                            <div class="player-stack">20 BB</div>
-                        </div>
-                        <div class="opponent-cards" data-villain="v5" style="left: 289px; top: 281px;">
-                            <div class="opponent-card"></div>
-                            <div class="opponent-card"></div>
-                        </div>
-                    </div>
-
-                    <!-- Villain 6 -->
-                    <div class="player" id="v6">
-                        <div class="avatar"><img src="" alt=""></div>
-                        <div class="player-info">
-                            <div class="player-name">Villain 6</div>
-                            <div class="player-stack">20 BB</div>
-                        </div>
-                        <div class="opponent-cards" data-villain="v6" style="left: 170px; top: 474px;">
-                            <div class="opponent-card"></div>
-                            <div class="opponent-card"></div>
-                        </div>
-                    </div>
-
-                    <!-- Villain 7 -->
-                    <div class="player" id="v7">
-                        <div class="avatar"><img src="" alt=""></div>
-                        <div class="player-info">
-                            <div class="player-name">Villain 7</div>
-                            <div class="player-stack">20 BB</div>
-                        </div>
-                        <div class="opponent-cards" data-villain="v7" style="left: 172px; top: 696px;">
-                            <div class="opponent-card"></div>
-                            <div class="opponent-card"></div>
-                        </div>
-                    </div>
-
-                    <!-- Villain 8 -->
-                    <div class="player" id="v8">
-                        <div class="avatar"><img src="" alt=""></div>
-                        <div class="player-info">
-                            <div class="player-name">Villain 8</div>
-                            <div class="player-stack">20 BB</div>
-                        </div>
-                        <div class="opponent-cards" data-villain="v8" style="left: 193px; top: 922px;">
-                            <div class="opponent-card"></div>
-                            <div class="opponent-card"></div>
-                        </div>
-                    </div>
-
-                    <!-- Hero -->
-                    <div class="player" id="hero">
-                        <div class="avatar"><img src="" alt=""></div>
-                        <div class="player-info">
-                            <div class="player-name">Hero</div>
-                            <div class="player-stack">20 BB</div>
-                        </div>
-                        <div class="hero-cards">
-                            <div class="card hearts">
-                                <div class="card-corner-tl">
-                                    <span class="corner-rank">A</span>
-                                    <span class="corner-suit">♥</span>
-                                </div>
-                                <div class="card-center">
-                                    <span class="card-rank">A</span>
-                                    <span class="card-suit">♥</span>
-                                </div>
-                            </div>
-                            <div class="card hearts">
-                                <div class="card-corner-tl">
-                                    <span class="corner-rank">K</span>
-                                    <span class="corner-suit">♥</span>
-                                </div>
-                                <div class="card-center">
-                                    <span class="card-rank">K</span>
-                                    <span class="card-suit">♥</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Players will be generated by JavaScript -->
                 </div>
             </div>
-        </div><!-- End stage -->
 
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-            <button class="action-button">Fold</button>
-            <button class="action-button">Call</button>
-            <button class="action-button">Raise to 8bb</button>
-            <button class="action-button">All-In</button>
+            <!-- Hero Cards -->
+            <div class="hero-cards" id="heroCards">
+                <div class="card hearts">
+                    <span class="card-rank">A</span>
+                    <span class="card-suit">♥</span>
+                </div>
+                <div class="card hearts">
+                    <span class="card-rank">K</span>
+                    <span class="card-suit">♥</span>
+                </div>
+            </div>
         </div>
 
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                // ═══════════════════════════════════════════════════════════
-                // READ GAME DATA FROM URL PARAMETERS
-                // ═══════════════════════════════════════════════════════════
-                const urlParams = new URLSearchParams(window.location.search);
-                const gameId = urlParams.get('gameId') || 'mtt-002';
-                const gameName = urlParams.get('gameName') || 'ICM Fundamentals';
+        <!-- Action Buttons -->
+        <div class="action-buttons" id="actionButtons">
+            <button class="action-button" data-action="fold">Fold</button>
+            <button class="action-button" data-action="call">Call</button>
+            <button class="action-button" data-action="raise">Raise to 6BB</button>
+            <button class="action-button" data-action="allin">All-In</button>
+        </div>
+    </div>
 
-                // Update game title in UI
-                const gameTitleElement = document.querySelector('.game-type');
-                if (gameTitleElement) {
-                    gameTitleElement.textContent = gameName;
+    <!-- Feedback Overlay -->
+    <div class="feedback-overlay" id="feedbackOverlay">
+        <div class="feedback-card">
+            <div class="feedback-result" id="feedbackResult">✓ CORRECT!</div>
+            <div class="feedback-explanation" id="feedbackExplanation">
+                Great decision! Raising here puts maximum pressure on villain's range.
+            </div>
+            <button class="feedback-next" id="feedbackNext">Next Hand →</button>
+        </div>
+    </div>
+
+    <!-- Complete Overlay -->
+    <div class="complete-overlay" id="completeOverlay">
+        <div class="complete-content">
+            <div class="complete-icon" id="completeIcon">🏆</div>
+            <div class="complete-title" id="completeTitle">LEVEL PASSED!</div>
+            <div class="complete-score" id="completeScore">85%</div>
+            <div class="complete-stats" id="completeStats">17/20 correct • Best streak: 8 • 1,250 XP</div>
+            <div class="complete-buttons">
+                <button class="complete-button secondary" id="retryBtn">Retry</button>
+                <button class="complete-button primary" id="continueBtn">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // GAME ENGINE - Training Game Template v2.0
+        // ═══════════════════════════════════════════════════════════════════════════════
+
+        (function () {
+            'use strict';
+
+            // CONFIGURATION
+            const CONFIG = {
+                QUESTIONS_PER_ROUND: 20,
+                TIME_PER_QUESTION: 24,
+                PASS_THRESHOLD: 85,
+                XP_PER_CORRECT: 100,
+                XP_STREAK_BONUS: 50
+            };
+
+            // GAME STATE
+            const state = {
+                gameId: null,
+                gameName: 'Training Game',
+                currentQuestion: 0,
+                correctCount: 0,
+                streak: 0,
+                bestStreak: 0,
+                xpEarned: 0,
+                timeLeft: CONFIG.TIME_PER_QUESTION,
+                timerInterval: null,
+                isComplete: false,
+                questions: []
+            };
+
+            // SAMPLE QUESTIONS (Will be replaced with API data)
+            const SAMPLE_QUESTIONS = [
+                {
+                    text: "You are on the Button with A♥K♥. UTG raises to 2.5BB. What is your best move?",
+                    heroCards: ['Ah', 'Kh'],
+                    pot: 4,
+                    correctAction: 'raise',
+                    explanation: "AKs is a premium hand. 3-betting from the button isolates the raiser and builds a pot where we have position."
+                },
+                {
+                    text: "You have Q♠Q♦ in the Big Blind. Button raises, SB folds. What's your play?",
+                    heroCards: ['Qs', 'Qd'],
+                    pot: 3.5,
+                    correctAction: 'raise',
+                    explanation: "Queens are strong enough to 3-bet for value. Calling is also acceptable but less aggressive."
+                },
+                {
+                    text: "Holding 7♠7♣ in the Cutoff. UTG and MP limp. What do you do?",
+                    heroCards: ['7s', '7c'],
+                    pot: 2.5,
+                    correctAction: 'raise',
+                    explanation: "Pocket pairs play well when we can isolate limpers. Raise to 4-5BB to thin the field."
+                },
+                {
+                    text: "You have A♦5♦ on the Button. Everyone folds to you. Your action?",
+                    heroCards: ['Ad', '5d'],
+                    pot: 1.5,
+                    correctAction: 'raise',
+                    explanation: "A5s is a strong button open. Suited aces have great playability postflop."
+                },
+                {
+                    text: "Holding K♣J♣ in MP. UTG raises to 3BB. What's your best move?",
+                    heroCards: ['Kc', 'Jc'],
+                    pot: 4.5,
+                    correctAction: 'call',
+                    explanation: "KJs is a decent calling hand but not strong enough to 3-bet against an UTG range."
                 }
+            ];
 
-                // LOCKED LAW POSITIONS - Percentages relative to 600×800 canvas
-                // Original pixel positions converted to percentages:
-                // v1: 760px/600 = 126.7%, 926px/800 = 115.8% (outside canvas - needs adjustment)
-                // Using percentages that work within the canvas bounds
-                const lockedPositions = {
-                    v1: { left: '95%', top: '92%' },   // Bottom right
-                    v2: { left: '97%', top: '69%' },   // Right middle-low
-                    v3: { left: '97%', top: '48%' },   // Right middle
-                    v4: { left: '83%', top: '28%' },   // Top right
-                    v5: { left: '36%', top: '28%' },   // Top left
-                    v6: { left: '21%', top: '47%' },   // Left middle
-                    v7: { left: '21%', top: '70%' },   // Left middle-low
-                    v8: { left: '24%', top: '92%' }    // Bottom left
+            // ═══════════════════════════════════════════════════════════════════════════
+            // INITIALIZATION
+            // ═══════════════════════════════════════════════════════════════════════════
+
+            function init() {
+                // Parse URL parameters
+                const params = new URLSearchParams(window.location.search);
+                state.gameId = params.get('gameId') || 'default';
+                state.gameName = decodeURIComponent(params.get('gameName') || 'Training Game');
+
+                // Update UI with game name
+                document.getElementById('headerTitle').textContent = state.gameName.toUpperCase();
+                document.getElementById('gameType').textContent = state.gameName;
+
+                // Generate questions (use sample for now)
+                state.questions = generateQuestions();
+
+                // Set up players
+                generatePlayers();
+
+                // Set up event listeners
+                setupEventListeners();
+
+                // Load first question
+                loadQuestion(0);
+
+                // Start timer
+                startTimer();
+            }
+
+            function generateQuestions() {
+                // Shuffle and expand sample questions to fill 20
+                const questions = [];
+                for (let i = 0; i < CONFIG.QUESTIONS_PER_ROUND; i++) {
+                    questions.push({
+                        ...SAMPLE_QUESTIONS[i % SAMPLE_QUESTIONS.length],
+                        id: i + 1
+                    });
+                }
+                return questions;
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // PLAYER GENERATION
+            // ═══════════════════════════════════════════════════════════════════════════
+
+            function generatePlayers() {
+                const container = document.querySelector('.table-container');
+                const SEAT_POSITIONS = {
+                    'hero': { left: '50%', top: '90%' },
+                    'v1': { left: '20%', top: '78%' },
+                    'v2': { left: '12%', top: '50%' },
+                    'v3': { left: '20%', top: '22%' },
+                    'v4': { left: '35%', top: '8%' },
+                    'v5': { left: '65%', top: '8%' },
+                    'v6': { left: '80%', top: '22%' },
+                    'v7': { left: '88%', top: '50%' },
+                    'v8': { left: '80%', top: '78%' }
                 };
 
-                // Keep cards inside game-container (no need to move to body with fixed aspect ratio)
-                const gameContainer = document.querySelector('.game-container');
-                for (let villain in lockedPositions) {
-                    const card = document.querySelector(`.opponent-cards[data-villain="${villain}"]`);
-                    if (card && gameContainer) {
-                        gameContainer.appendChild(card);
-                        card.style.position = 'absolute';
-                        card.style.left = lockedPositions[villain].left;
-                        card.style.top = lockedPositions[villain].top;
-                    }
-                }
-
-                // ═══════════════════════════════════════════════════════════
-                // RANDOM AVATAR GENERATION - Different for each game load
-                // ═══════════════════════════════════════════════════════════
-                const ALL_AVATARS = [
-                    "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fviking_warrior.png&w=640&q=75",
-                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fwizard.png&w=640&q=75",
-                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fninja.png&w=640&q=75",
-                    "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fwolf.png&w=640&q=75",
-                    "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fspartan.png&w=640&q=75",
-                    "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fpharaoh.png&w=640&q=75",
-                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fpirate.png&w=640&q=75",
-                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fcowboy.png&w=640&q=75",
-                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Ffox.png&w=640&q=75",
-                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Frobot.png&w=640&q=75"
+                const AVATARS = [
+                    '/avatars/vip/viking_warrior.png',
+                    '/avatars/free/wizard.png',
+                    '/avatars/free/ninja.png',
+                    '/avatars/vip/wolf.png',
+                    '/avatars/vip/spartan.png',
+                    '/avatars/vip/pharaoh.png',
+                    '/avatars/free/pirate.png',
+                    '/avatars/free/cowboy.png',
+                    '/avatars/free/fox.png'
                 ];
 
-                // Shuffle array using Fisher-Yates algorithm
-                function shuffleArray(array) {
-                    const shuffled = [...array];
-                    for (let i = shuffled.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-                    }
-                    return shuffled;
+                // Shuffle avatars
+                const shuffled = [...AVATARS].sort(() => Math.random() - 0.5);
+
+                // Generate villains (v1-v8)
+                for (let i = 1; i <= 8; i++) {
+                    const id = `v${i}`;
+                    const pos = SEAT_POSITIONS[id];
+
+                    const player = document.createElement('div');
+                    player.className = 'player';
+                    player.id = id;
+                    player.style.left = pos.left;
+                    player.style.top = pos.top;
+
+                    player.innerHTML = `
+                        <div class="avatar">
+                            <img src="${shuffled[i % shuffled.length]}" alt="V${i}" 
+                                 onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=v${i}'">
+                        </div>
+                        <div class="player-info">
+                            <div class="player-name">Villain ${i}</div>
+                            <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
+                    `;
+
+                    container.appendChild(player);
                 }
 
-                // Get 9 random unique avatars (8 villains + 1 hero)
-                const selectedAvatars = shuffleArray(ALL_AVATARS).slice(0, 9);
+                // Generate Hero
+                const heroPos = SEAT_POSITIONS.hero;
+                const hero = document.createElement('div');
+                hero.className = 'player';
+                hero.id = 'hero';
+                hero.style.left = heroPos.left;
+                hero.style.top = heroPos.top;
 
-                // Assign each avatar to a player
-                document.querySelectorAll('.avatar img').forEach((img, i) => {
-                    img.src = selectedAvatars[i];
-                });
+                hero.innerHTML = `
+                    <div class="avatar">
+                        <img src="${shuffled[0]}" alt="Hero" 
+                             onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=hero'">
+                    </div>
+                    <div class="player-info">
+                        <div class="player-name">Hero</div>
+                        <div class="player-stack">100 BB</div>
+                    </div>
+                `;
 
-                // ═══════════════════════════════════════════════════════════
-                // SMARTER.POKER TABLE CONSTITUTION - FIXED 9-SEAT LAYOUT
-                // Zero-Deviation Policy: These coordinates are IMMUTABLE
-                // ═══════════════════════════════════════════════════════════
+                container.appendChild(hero);
+            }
 
-                // LAW 1: Law of the Fixed 9 - Static coordinates, never float
-                // LAW 2: Hero Anchor - Seat 1 is ALWAYS bottom center
-                // LAW 3: Law of the Rail - All avatars 100% on rail, NOT felt
-                const SEAT_POSITIONS = {
-                    'hero': { left: '50%', top: '88%' },   // Seat 1: Hero (Center Bottom - ANCHOR)
-                    'v1': { left: '18%', top: '75%' },     // Seat 2: Bottom-Left
-                    'v2': { left: '15%', top: '50%' },     // Seat 3: Middle-Left
-                    'v3': { left: '15%', top: '26%' },     // Seat 4: Upper-Left
-                    'v4': { left: '32%', top: '5%' },      // Seat 5: Top-Left
-                    'v5': { left: '68%', top: '5%' },      // Seat 6: Top-Right
-                    'v6': { left: '85%', top: '26%' },     // Seat 7: Upper-Right
-                    'v7': { left: '85%', top: '50%' },     // Seat 8: Middle-Right
-                    'v8': { left: '82%', top: '75%' }      // Seat 9: Bottom-Right
-                };
+            // ═══════════════════════════════════════════════════════════════════════════
+            // TIMER
+            // ═══════════════════════════════════════════════════════════════════════════
 
-                // Apply FIXED positions to each player (Zero-Float policy)
-                Object.keys(SEAT_POSITIONS).forEach(id => {
-                    const player = document.getElementById(id);
-                    if (player) {
-                        player.style.left = SEAT_POSITIONS[id].left;
-                        player.style.top = SEAT_POSITIONS[id].top;
+            function startTimer() {
+                clearInterval(state.timerInterval);
+                state.timeLeft = CONFIG.TIME_PER_QUESTION;
+                updateTimerDisplay();
+
+                state.timerInterval = setInterval(() => {
+                    state.timeLeft--;
+                    updateTimerDisplay();
+
+                    if (state.timeLeft <= 0) {
+                        clearInterval(state.timerInterval);
+                        handleTimeout();
+                    }
+                }, 1000);
+            }
+
+            function updateTimerDisplay() {
+                const timerEl = document.getElementById('timer');
+                const valueEl = document.getElementById('timerValue');
+
+                valueEl.textContent = state.timeLeft;
+
+                if (state.timeLeft <= 5) {
+                    timerEl.classList.add('urgent');
+                } else {
+                    timerEl.classList.remove('urgent');
+                }
+            }
+
+            function handleTimeout() {
+                // Treat timeout as incorrect
+                handleAnswer('timeout');
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // QUESTIONS
+            // ═══════════════════════════════════════════════════════════════════════════
+
+            function loadQuestion(index) {
+                if (index >= state.questions.length) {
+                    endGame();
+                    return;
+                }
+
+                state.currentQuestion = index;
+                const q = state.questions[index];
+
+                // Update UI
+                document.getElementById('questionText').textContent = q.text;
+                document.getElementById('questionCounter').textContent =
+                    `Question ${index + 1} of ${CONFIG.QUESTIONS_PER_ROUND}`;
+                document.getElementById('potAmount').textContent = q.pot;
+
+                // Update hero cards
+                updateHeroCards(q.heroCards);
+
+                // Enable buttons
+                enableButtons();
+
+                // Restart timer
+                startTimer();
+            }
+
+            function updateHeroCards(cards) {
+                const heroCardsEl = document.getElementById('heroCards');
+                if (!cards || cards.length < 2) return;
+
+                const suitMap = { h: '♥', d: '♦', c: '♣', s: '♠' };
+                const suitColorMap = { h: 'hearts', d: 'diamonds', c: 'clubs', s: 'spades' };
+
+                heroCardsEl.innerHTML = cards.map(card => {
+                    const rank = card.slice(0, -1).replace('T', '10');
+                    const suit = card.slice(-1).toLowerCase();
+                    const suitClass = suitColorMap[suit] || 'spades';
+
+                    return `
+                        <div class="card ${suitClass}">
+                            <span class="card-rank">${rank}</span>
+                            <span class="card-suit">${suitMap[suit] || '♠'}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // ANSWER HANDLING
+            // ═══════════════════════════════════════════════════════════════════════════
+
+            function handleAnswer(action) {
+                clearInterval(state.timerInterval);
+                disableButtons();
+
+                const q = state.questions[state.currentQuestion];
+                const isCorrect = action === q.correctAction;
+
+                // Highlight button
+                const buttons = document.querySelectorAll('.action-button');
+                buttons.forEach(btn => {
+                    if (btn.dataset.action === action) {
+                        btn.classList.add(isCorrect ? 'correct' : 'incorrect');
+                    }
+                    if (btn.dataset.action === q.correctAction) {
+                        btn.classList.add('correct');
                     }
                 });
-            });
-        </script>
+
+                // Update stats
+                if (isCorrect) {
+                    state.correctCount++;
+                    state.streak++;
+                    state.bestStreak = Math.max(state.bestStreak, state.streak);
+
+                    const xp = CONFIG.XP_PER_CORRECT + (state.streak * CONFIG.XP_STREAK_BONUS);
+                    state.xpEarned += xp;
+                    document.getElementById('xpDisplay').textContent = state.xpEarned.toLocaleString();
+                } else {
+                    state.streak = 0;
+                }
+
+                // Show feedback
+                showFeedback(isCorrect, q.explanation);
+            }
+
+            function showFeedback(isCorrect, explanation) {
+                const overlay = document.getElementById('feedbackOverlay');
+                const result = document.getElementById('feedbackResult');
+                const exp = document.getElementById('feedbackExplanation');
+                const nextBtn = document.getElementById('feedbackNext');
+
+                result.textContent = isCorrect ? '✓ CORRECT!' : '✗ INCORRECT';
+                result.className = 'feedback-result ' + (isCorrect ? 'correct' : 'incorrect');
+                exp.textContent = explanation;
+
+                const isLastQuestion = state.currentQuestion + 1 >= CONFIG.QUESTIONS_PER_ROUND;
+                nextBtn.textContent = isLastQuestion ? 'View Results' : 'Next Hand →';
+
+                overlay.classList.add('visible');
+            }
+
+            function hideFeedback() {
+                document.getElementById('feedbackOverlay').classList.remove('visible');
+
+                // Reset button states
+                document.querySelectorAll('.action-button').forEach(btn => {
+                    btn.classList.remove('correct', 'incorrect');
+                });
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // GAME END
+            // ═══════════════════════════════════════════════════════════════════════════
+
+            function endGame() {
+                state.isComplete = true;
+                clearInterval(state.timerInterval);
+
+                const accuracy = Math.round((state.correctCount / CONFIG.QUESTIONS_PER_ROUND) * 100);
+                const passed = accuracy >= CONFIG.PASS_THRESHOLD;
+
+                const overlay = document.getElementById('completeOverlay');
+                const icon = document.getElementById('completeIcon');
+                const title = document.getElementById('completeTitle');
+                const score = document.getElementById('completeScore');
+                const stats = document.getElementById('completeStats');
+
+                icon.textContent = passed ? '🏆' : '📊';
+                title.textContent = passed ? 'LEVEL PASSED!' : 'KEEP PRACTICING';
+                title.className = 'complete-title ' + (passed ? 'passed' : 'failed');
+                score.textContent = accuracy + '%';
+                score.style.color = passed ? '#22c55e' : '#f59e0b';
+                stats.textContent = `${state.correctCount}/${CONFIG.QUESTIONS_PER_ROUND} correct • Best streak: ${state.bestStreak} • ${state.xpEarned.toLocaleString()} XP`;
+
+                overlay.classList.add('visible');
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // UTILITIES
+            // ═══════════════════════════════════════════════════════════════════════════
+
+            function enableButtons() {
+                document.querySelectorAll('.action-button').forEach(btn => {
+                    btn.disabled = false;
+                });
+            }
+
+            function disableButtons() {
+                document.querySelectorAll('.action-button').forEach(btn => {
+                    btn.disabled = true;
+                });
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // EVENT LISTENERS
+            // ═══════════════════════════════════════════════════════════════════════════
+
+            function setupEventListeners() {
+                // Back button
+                document.getElementById('backBtn').addEventListener('click', () => {
+                    if (window.parent !== window) {
+                        window.parent.postMessage({ type: 'NAVIGATE_BACK' }, '*');
+                    } else {
+                        window.location.href = '/hub/training';
+                    }
+                });
+
+                // Action buttons
+                document.querySelectorAll('.action-button').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        if (!btn.disabled) {
+                            handleAnswer(btn.dataset.action);
+                        }
+                    });
+                });
+
+                // Feedback next button
+                document.getElementById('feedbackNext').addEventListener('click', () => {
+                    hideFeedback();
+
+                    if (state.currentQuestion + 1 >= CONFIG.QUESTIONS_PER_ROUND) {
+                        endGame();
+                    } else {
+                        loadQuestion(state.currentQuestion + 1);
+                    }
+                });
+
+                // Retry button
+                document.getElementById('retryBtn').addEventListener('click', () => {
+                    document.getElementById('completeOverlay').classList.remove('visible');
+                    resetGame();
+                });
+
+                // Continue button
+                document.getElementById('continueBtn').addEventListener('click', () => {
+                    if (window.parent !== window) {
+                        window.parent.postMessage({
+                            type: 'GAME_COMPLETE', data: {
+                                accuracy: Math.round((state.correctCount / CONFIG.QUESTIONS_PER_ROUND) * 100),
+                                xp: state.xpEarned,
+                                bestStreak: state.bestStreak
+                            }
+                        }, '*');
+                    } else {
+                        window.location.href = '/hub/training';
+                    }
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (document.getElementById('feedbackOverlay').classList.contains('visible')) {
+                        if (e.code === 'Space' || e.code === 'Enter') {
+                            e.preventDefault();
+                            document.getElementById('feedbackNext').click();
+                        }
+                    }
+                });
+            }
+
+            function resetGame() {
+                state.currentQuestion = 0;
+                state.correctCount = 0;
+                state.streak = 0;
+                state.bestStreak = 0;
+                state.xpEarned = 0;
+                state.isComplete = false;
+
+                document.getElementById('xpDisplay').textContent = '0';
+                state.questions = generateQuestions();
+                loadQuestion(0);
+            }
+
+            // Start the game
+            document.addEventListener('DOMContentLoaded', init);
+        })();
+    </script>
 </body>
 
 </html>
