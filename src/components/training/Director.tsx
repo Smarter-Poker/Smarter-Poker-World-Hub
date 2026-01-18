@@ -16,6 +16,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScenarioGenerator } from '../../lib/ScenarioGenerator';
 import { useGameAudio } from '../../hooks/useGameAudio';
+import { useAssetPreloader } from '../../lib/AssetPreloader';
+import { useNetworkGuard, OfflineBadge } from '../../lib/GameGuard';
 import type { Scenario, ActionLogEntry, GameConfig, Player } from '../../types/poker';
 
 interface DirectorProps {
@@ -54,6 +56,12 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
 
     // 🔊 AUDIO & HAPTICS
     const audio = useGameAudio();
+
+    // 📦 ASSET PRELOADER
+    const assets = useAssetPreloader();
+
+    // 🌐 NETWORK GUARD
+    const network = useNetworkGuard();
 
     /**
      * 🎬 Initialize: Show intro and generate first scenario
@@ -253,8 +261,8 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
             setCurrentScenario(nextScenario);
             setScenarioQueue(remainingQueue);
 
-            // Generate replacement in background
-            if ('requestIdleCallback' in window) {
+            // Generate replacement in background (only if online)
+            if ('requestIdleCallback' in window && network.isOnline) {
                 requestIdleCallback(() => {
                     const newScenario = ScenarioGenerator.create(config);
                     if (ScenarioGenerator.validate(newScenario)) {
@@ -322,6 +330,8 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
     // RENDER: INTRO PHASE
     // ═══════════════════════════════════════════════════════════════════════════
     if (phase === 'INTRO') {
+        const canStart = assets.isReady && currentScenario !== null;
+
         return (
             <motion.div
                 initial={{ opacity: 0 }}
@@ -339,50 +349,101 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
             >
                 <motion.div
                     animate={{
-                        scale: [1, 1.1, 1],
+                        scale: [1, 1.05, 1],
                     }}
                     transition={{
-                        duration: 1.5,
+                        duration: 2,
                         repeat: Infinity,
                         ease: 'easeInOut'
                     }}
                     style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        textAlign: 'center'
+                    }}
+                >
+                    {/* Logo */}
+                    <div style={{
                         fontSize: '48px',
                         fontWeight: 900,
                         background: 'linear-gradient(135deg, #00d4ff, #FFD700)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
-                        textAlign: 'center'
-                    }}
-                >
-                    SMARTER.POKER
-                    <div style={{ fontSize: '16px', color: '#00d4ff', marginTop: '12px' }}>
-                        Generating Scenario...
+                    }}>
+                        SMARTER.POKER
                     </div>
-                    {/* 🔓 START GAME BUTTON - Unlocks audio */}
+
+                    {/* Status Text */}
+                    <div style={{ fontSize: '14px', color: '#888', marginTop: '12px' }}>
+                        {assets.isReady
+                            ? 'Ready to play!'
+                            : `Loading assets... ${assets.loadedCount}/${assets.totalCount}`}
+                    </div>
+
+                    {/* 📊 PROGRESS BAR */}
+                    <div style={{
+                        width: '200px',
+                        height: '4px',
+                        background: 'rgba(255,255,255,0.1)',
+                        borderRadius: '2px',
+                        marginTop: '16px',
+                        overflow: 'hidden'
+                    }}>
+                        <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${assets.progress}%` }}
+                            transition={{ duration: 0.3 }}
+                            style={{
+                                height: '100%',
+                                background: assets.isReady
+                                    ? 'linear-gradient(90deg, #22c55e, #16a34a)'
+                                    : 'linear-gradient(90deg, #00d4ff, #0099cc)',
+                                borderRadius: '2px'
+                            }}
+                        />
+                    </div>
+
+                    {/* 🔓 START GAME BUTTON - Only enabled when ready */}
                     <motion.button
                         onClick={() => {
+                            if (!canStart) return;
                             audio.unlock();
                             setPhase('REPLAYING');
                             startReplay();
                         }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        whileHover={canStart ? { scale: 1.05 } : {}}
+                        whileTap={canStart ? { scale: 0.95 } : {}}
                         style={{
                             marginTop: '24px',
                             padding: '16px 48px',
                             fontSize: '18px',
                             fontWeight: 700,
-                            background: 'linear-gradient(135deg, #00d4ff, #0099cc)',
+                            background: canStart
+                                ? 'linear-gradient(135deg, #00d4ff, #0099cc)'
+                                : 'linear-gradient(135deg, #444, #333)',
                             border: 'none',
                             borderRadius: '12px',
-                            color: '#fff',
-                            cursor: 'pointer',
-                            boxShadow: '0 0 30px rgba(0, 212, 255, 0.5)'
+                            color: canStart ? '#fff' : '#666',
+                            cursor: canStart ? 'pointer' : 'not-allowed',
+                            boxShadow: canStart ? '0 0 30px rgba(0, 212, 255, 0.5)' : 'none',
+                            opacity: canStart ? 1 : 0.6
                         }}
                     >
-                        🎮 START GAME
+                        {canStart ? '🎮 START GAME' : '⏳ Loading...'}
                     </motion.button>
+
+                    {/* Failed Assets Warning (subtle) */}
+                    {assets.failedAssets.length > 0 && assets.isReady && (
+                        <div style={{
+                            fontSize: '11px',
+                            color: '#f59e0b',
+                            marginTop: '12px',
+                            opacity: 0.7
+                        }}>
+                            ⚠️ {assets.failedAssets.length} assets using fallbacks
+                        </div>
+                    )}
                 </motion.div>
             </motion.div>
         );
@@ -407,6 +468,9 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                 overflow: 'hidden'
             }}
         >
+            {/* 📴 OFFLINE BADGE */}
+            <OfflineBadge isVisible={network.isOfflineMode} />
+
             {/* ═══ HEADER ═══ */}
             <div style={{
                 position: 'absolute',
