@@ -7,6 +7,9 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import gsap from 'gsap';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import {
     SoundEngine,
     EffectsEngine,
@@ -27,6 +30,9 @@ import {
     MIXED_SCENARIOS,
 } from '../../src/games/ScenarioDatabase';
 import { supabase } from '../../src/lib/supabase';
+
+// God-Mode Stack
+import { useMemoryStore } from '../../src/stores/memoryStore';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💎 DIAMOND ENGINE — Local storage with VIP check
@@ -1229,10 +1235,17 @@ export default function MemoryGamesPage() {
     const router = useRouter();
     const containerRef = useRef(null);
 
-    // Game state
+    // Zustand Global State (replaces some local useState)
+    const currentLevel = useMemoryStore((s) => s.currentLevel);
+    const setCurrentLevel = useMemoryStore((s) => s.setCurrentLevel);
+    const currentView = useMemoryStore((s) => s.currentView);
+    const setCurrentView = useMemoryStore((s) => s.setCurrentView);
+    const currentMiniGame = useMemoryStore((s) => s.currentMiniGame);
+    const setCurrentMiniGame = useMemoryStore((s) => s.setCurrentMiniGame);
+
+    // Game state (keep local for game session)
     const [mode, setMode] = useState('menu'); // 'menu' | 'game' | 'result' | 'speed-drill'
     const [gameType, setGameType] = useState('range'); // 'range' | 'speed'
-    const [currentLevel, setCurrentLevel] = useState(1);
     const [currentScenario, setCurrentScenario] = useState(null);
     const [userGrid, setUserGrid] = useState({});
     const [selectedAction, setSelectedAction] = useState('raise');
@@ -1375,6 +1388,14 @@ export default function MemoryGamesPage() {
             // Success!
             SoundEngine.play('combo');
             triggerParticles();
+
+            // God-Mode: Confetti celebration on mastery
+            confetti({
+                particleCount: 200,
+                spread: 120,
+                origin: { y: 0.6 },
+                colors: ['#FFD700', '#00D4FF', '#00ff88'],
+            });
 
             // Update combo
             const newCombo = combo + 1;
