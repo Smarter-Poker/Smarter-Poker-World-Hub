@@ -827,6 +827,40 @@ export default function TrainingPlayPage() {
         );
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GOLDEN TEMPLATE FOR 9-HANDED GAMES
+    // ═══════════════════════════════════════════════════════════════════════════
+    // For all 9-max games, use the golden template instead of React UI
+    if (playerCount === 9) {
+        return (
+            <>
+                <Head>
+                    <title>{game.name} — PokerIQ</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+                </Head>
+                <style>{`
+                    html, body { 
+                        margin: 0; 
+                        padding: 0; 
+                        width: 100%; 
+                        height: 100vh; 
+                        overflow: hidden; 
+                    }
+                    iframe {
+                        border: none;
+                        width: 100%;
+                        height: 100vh;
+                        display: block;
+                    }
+                `}</style>
+                <iframe
+                    src="/templates/training_game_template.html"
+                    title={game.name}
+                />
+            </>
+        );
+    }
+
     return (
         <>
             <Head>
