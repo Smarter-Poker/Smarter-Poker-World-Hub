@@ -210,7 +210,8 @@
             top: 42%;
             left: 50%;
             transform: translateX(-50%);
-            display: flex;
+            display: none;
+            /* HIDDEN for positioning */
             gap: 3px;
             z-index: 15;
         }
@@ -494,6 +495,83 @@
             white-space: nowrap;
         }
 
+        /* OPPONENT HOLE CARDS - Fanned/Overlapping Style */
+        /* LOCKED LAW POSITIONS - Must be relative to viewport */
+        .opponent-cards {
+            position: absolute;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            z-index: 100;
+            pointer-events: auto;
+        }
+
+        .opponent-card {
+            width: 34px;
+            height: 47px;
+            border-radius: 3px;
+            background: #1a1a1a;
+            border: 1.5px solid #333;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        /* FOLDED STATE - Cards hidden */
+        .player.folded .opponent-cards {
+            display: none;
+        }
+
+        /* First card - slight left angle */
+        .opponent-card:nth-child(1) {
+            transform: rotate(-8deg);
+        }
+
+        /* Second card overlaps and angles right */
+        .opponent-card:nth-child(2) {
+            margin-left: -18px;
+            transform: rotate(8deg);
+        }
+
+        /* Black/Gold Card Back Pattern */
+        .opponent-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 50% 50%, transparent 30%, rgba(212, 175, 55, 0.1) 31%, transparent 32%),
+                linear-gradient(45deg, rgba(212, 175, 55, 0.05) 25%, transparent 25%, transparent 75%, rgba(212, 175, 55, 0.05) 75%),
+                linear-gradient(-45deg, rgba(212, 175, 55, 0.05) 25%, transparent 25%, transparent 75%, rgba(212, 175, 55, 0.05) 75%);
+            background-size: 100% 100%, 8px 8px, 8px 8px;
+            background-position: center, 0 0, 4px 4px;
+        }
+
+        /* Ornate border on card back */
+        .opponent-card::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            border-radius: 2px;
+            pointer-events: none;
+        }
+
+
+        /* FOLD STATE LAW - IMMUTABLE */
+        /* Folded opponent cards turn grey */
+        .opponent-cards.folded .opponent-card {
+            filter: grayscale(100%) brightness(0.5);
+            opacity: 0.6;
+        }
+
+        /* Folded hero cards turn grey */
+        .hero-cards.folded .card {
+            filter: grayscale(100%) brightness(0.5);
+            opacity: 0.6;
+        }
+
+
         /* ACTION BUTTONS - Full Width Bottom */
         .action-buttons {
             flex-shrink: 0;
@@ -638,6 +716,10 @@
                             <div class="player-name">Villain 1</div>
                             <div class="player-stack">20 BB</div>
                         </div>
+                        <div class="opponent-cards" data-villain="v1" style="left: 760px; top: 926px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
                     </div>
 
                     <!-- Villain 2 -->
@@ -646,6 +728,10 @@
                         <div class="player-info">
                             <div class="player-name">Villain 2</div>
                             <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards" data-villain="v2" style="left: 779px; top: 694px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
                         </div>
                     </div>
 
@@ -656,6 +742,10 @@
                             <div class="player-name">Villain 3</div>
                             <div class="player-stack">20 BB</div>
                         </div>
+                        <div class="opponent-cards" data-villain="v3" style="left: 778px; top: 478px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
                     </div>
 
                     <!-- Villain 4 -->
@@ -664,6 +754,10 @@
                         <div class="player-info">
                             <div class="player-name">Villain 4</div>
                             <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards" data-villain="v4" style="left: 663px; top: 282px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
                         </div>
                     </div>
 
@@ -674,6 +768,10 @@
                             <div class="player-name">Villain 5</div>
                             <div class="player-stack">20 BB</div>
                         </div>
+                        <div class="opponent-cards" data-villain="v5" style="left: 289px; top: 281px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
                     </div>
 
                     <!-- Villain 6 -->
@@ -682,6 +780,10 @@
                         <div class="player-info">
                             <div class="player-name">Villain 6</div>
                             <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards" data-villain="v6" style="left: 170px; top: 474px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
                         </div>
                     </div>
 
@@ -692,6 +794,10 @@
                             <div class="player-name">Villain 7</div>
                             <div class="player-stack">20 BB</div>
                         </div>
+                        <div class="opponent-cards" data-villain="v7" style="left: 172px; top: 696px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
+                        </div>
                     </div>
 
                     <!-- Villain 8 -->
@@ -700,6 +806,10 @@
                         <div class="player-info">
                             <div class="player-name">Villain 8</div>
                             <div class="player-stack">20 BB</div>
+                        </div>
+                        <div class="opponent-cards" data-villain="v8" style="left: 193px; top: 922px;">
+                            <div class="opponent-card"></div>
+                            <div class="opponent-card"></div>
                         </div>
                     </div>
 
@@ -747,6 +857,29 @@
 
         <script>
             document.addEventListener('DOMContentLoaded', () => {
+                // LOCKED LAW POSITIONS - Enforce on page load
+                const lockedPositions = {
+                    v1: { left: '760px', top: '926px' },
+                    v2: { left: '779px', top: '694px' },
+                    v3: { left: '778px', top: '478px' },
+                    v4: { left: '663px', top: '282px' },
+                    v5: { left: '289px', top: '281px' },
+                    v6: { left: '170px', top: '474px' },
+                    v7: { left: '172px', top: '696px' },
+                    v8: { left: '193px', top: '922px' }
+                };
+
+                // Move cards to body to enforce absolute positioning relative to viewport
+                for (let villain in lockedPositions) {
+                    const card = document.querySelector(`.opponent-cards[data-villain="${villain}"]`);
+                    if (card) {
+                        document.body.appendChild(card);
+                        card.style.position = 'absolute';
+                        card.style.left = lockedPositions[villain].left;
+                        card.style.top = lockedPositions[villain].top;
+                    }
+                }
+
                 // 9 Unique Transparent Avatars - No Repeats
                 const AVATARS = [
                     "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fviking_warrior.png&w=640&q=75",
