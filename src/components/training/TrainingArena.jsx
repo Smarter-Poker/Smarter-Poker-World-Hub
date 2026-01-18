@@ -15,6 +15,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { trainingRunEngine, RUN_RULES, RunState } from '../../engine/TrainingRunEngine';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 
@@ -331,33 +332,106 @@ export default function TrainingArena({
                         )}
 
                         {/* Seats around table */}
-                        {SEAT_POSITIONS.map(seat => (
-                            <div
-                                key={seat.id}
-                                style={{
-                                    ...styles.seat,
-                                    transform: `rotate(${seat.angle}deg) translateY(-140px) rotate(-${seat.angle}deg)`,
-                                    border: seat.isHero ? '3px solid #FFD700' : '2px solid rgba(255,255,255,0.2)',
-                                    background: seat.isHero
-                                        ? 'linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,215,0,0.1))'
-                                        : 'rgba(0,0,0,0.5)',
-                                }}
-                            >
-                                <span style={styles.seatLabel}>{seat.label}</span>
-                                {seat.isHero && question?.heroCards && (
-                                    <div style={styles.holeCards}>
-                                        {question.heroCards.map((card, i) => (
-                                            <div key={i} style={{
-                                                ...styles.holeCard,
-                                                animation: dealingCards ? `dealHole 0.4s ease-out ${0.3 + i * 0.15}s forwards` : 'none',
-                                            }}>
-                                                <PlayingCard card={card} size="small" />
+                        {SEAT_POSITIONS.map(seat => {
+                            // Wrap Hero seat with INTENSE living glow + countdown timer border
+                            if (seat.isHero) {
+                                const timePercent = timerActive ? (timeRemaining / RUN_RULES.TIME_PER_QUESTION) * 100 : 100;
+
+                                return (
+                                    <motion.div
+                                        key={seat.id}
+                                        style={{
+                                            position: 'absolute',
+                                            transform: `rotate(${seat.angle}deg) translateY(-140px) rotate(-${seat.angle}deg)`,
+                                        }}
+                                        animate={{
+                                            filter: timerActive ? [
+                                                'drop-shadow(0 0 30px rgba(255,215,0,1)) drop-shadow(0 0 60px rgba(255,215,0,0.9)) drop-shadow(0 0 90px rgba(255,215,0,0.7))',
+                                                'drop-shadow(0 0 50px rgba(255,215,0,1)) drop-shadow(0 0 100px rgba(255,215,0,1)) drop-shadow(0 0 150px rgba(255,215,0,0.9)) drop-shadow(0 0 200px rgba(255,215,0,0.6))',
+                                                'drop-shadow(0 0 30px rgba(255,215,0,1)) drop-shadow(0 0 60px rgba(255,215,0,0.9)) drop-shadow(0 0 90px rgba(255,215,0,0.7))',
+                                            ] : 'none',
+                                        }}
+                                        transition={{
+                                            duration: 1.5,
+                                            repeat: Infinity,
+                                            ease: "easeInOut",
+                                        }}
+                                    >
+                                        <div style={{ position: 'relative' }}>
+                                            {/* Countdown Timer Border (SVG) */}
+                                            {timerActive && (
+                                                <svg
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: -8,
+                                                        left: -8,
+                                                        width: 76,
+                                                        height: 76,
+                                                        pointerEvents: 'none',
+                                                        transform: 'rotate(-90deg)',
+                                                    }}
+                                                >
+                                                    <circle
+                                                        cx="38"
+                                                        cy="38"
+                                                        r="34"
+                                                        fill="none"
+                                                        stroke="rgba(0, 255, 0, 0.8)"
+                                                        strokeWidth="6"
+                                                        strokeDasharray={`${2 * Math.PI * 34}`}
+                                                        strokeDashoffset={`${2 * Math.PI * 34 * (1 - timePercent / 100)}`}
+                                                        strokeLinecap="round"
+                                                        style={{
+                                                            filter: 'drop-shadow(0 0 8px rgba(0, 255, 0, 0.8))',
+                                                            transition: 'stroke-dashoffset 0.1s linear, stroke 0.3s ease',
+                                                            stroke: timePercent > 30 ? 'rgba(0, 255, 0, 0.9)' : 'rgba(255, 0, 0, 0.9)',
+                                                        }}
+                                                    />
+                                                </svg>
+                                            )}
+
+                                            {/* Hero Seat */}
+                                            <div
+                                                style={{
+                                                    ...styles.seat,
+                                                    border: '3px solid #FFD700',
+                                                    background: 'linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,215,0,0.1))',
+                                                }}
+                                            >
+                                                <span style={styles.seatLabel}>{seat.label}</span>
+                                                {question?.heroCards && (
+                                                    <div style={styles.holeCards}>
+                                                        {question.heroCards.map((card, i) => (
+                                                            <div key={i} style={{
+                                                                ...styles.holeCard,
+                                                                animation: dealingCards ? `dealHole 0.4s ease-out ${0.3 + i * 0.15}s forwards` : 'none',
+                                                            }}>
+                                                                <PlayingCard card={card} size="small" />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                                        </div>
+                                    </motion.div>
+                                );
+                            }
+
+                            // Regular villain seats
+                            return (
+                                <div
+                                    key={seat.id}
+                                    style={{
+                                        ...styles.seat,
+                                        transform: `rotate(${seat.angle}deg) translateY(-140px) rotate(-${seat.angle}deg)`,
+                                        border: '2px solid rgba(255,255,255,0.2)',
+                                        background: 'rgba(0,0,0,0.5)',
+                                    }}
+                                >
+                                    <span style={styles.seatLabel}>{seat.label}</span>
+                                </div>
+                            );
+                        })}
 
                         {/* Chip animation */}
                         {chipAnimation && (
