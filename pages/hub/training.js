@@ -15,13 +15,25 @@
 
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
+import confetti from 'canvas-confetti';
 import GameCard from '../../src/components/training/GameCard';
 import { TRAINING_LIBRARY, TRAINING_LANES, getGamesByCategory, getGamesByTag } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
 import GameIntroSplash from '../../src/components/training/GameIntroSplash';
+
+// God-Mode Stack
+import { useTrainingStore } from '../../src/stores/trainingStore';
+// import { trainingSounds } from '../../src/utils/trainingSounds'; // TODO: Add sounds when files are ready
+
+// Register GSAP plugins
+if (typeof window !== 'undefined') {
+    gsap.registerPlugin(ScrollTrigger);
+}
 
 
 // Filter options - Category based filters that link to game lanes
@@ -413,7 +425,7 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
     };
 
     return (
-        <div style={styles.lane}>
+        <div className="game-lane" style={styles.lane}>
             {/* Clickable Lane header */}
             <div
                 style={{
@@ -461,9 +473,17 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
 
 export default function TrainingPage() {
     const router = useRouter();
-    const [activeFilter, setActiveFilter] = useState('ALL');
-    const [showIntro, setShowIntro] = useState(false);
-    const [pendingGame, setPendingGame] = useState(null);
+
+    // Zustand Global State (replaces local useState)
+    const activeFilter = useTrainingStore((s) => s.activeFilter);
+    const setActiveFilter = useTrainingStore((s) => s.setActiveFilter);
+    const showIntro = useTrainingStore((s) => s.showIntro);
+    const setShowIntro = useTrainingStore((s) => s.setShowIntro);
+    const pendingGame = useTrainingStore((s) => s.pendingGame);
+    const setPendingGame = useTrainingStore((s) => s.setPendingGame);
+    const markGameCelebrated = useTrainingStore((s) => s.markGameCelebrated);
+    const celebratedGames = useTrainingStore((s) => s.celebratedGames);
+
     const {
         isLoaded,
         progress,
@@ -482,6 +502,21 @@ export default function TrainingPage() {
 
     const filteredGames = getFilteredGames();
     const stats = getOverallStats();
+
+    // GSAP: Entrance animations for lanes
+    useEffect(() => {
+        if (isLoaded) {
+            // Stagger reveal lanes on mount
+            gsap.from('.game-lane', {
+                y: 50,
+                opacity: 0,
+                duration: 0.6,
+                stagger: 0.15,
+                ease: 'power3.out',
+                delay: 0.2,
+            });
+        }
+    }, [isLoaded]);
 
     // Daily Challenge: Select from harder games (difficulty 3-5), excluding Level 10 final exams
     const getDailyChallenge = () => {
@@ -508,6 +543,24 @@ export default function TrainingPage() {
     // Handle game click - Show intro video first, then navigate
     const handleGameClick = (game) => {
         console.log('🎮 Launching game:', game.name);
+
+        // Check if game was just mastered (trigger celebration)
+        const gameProgress = getGameProgress(game.id);
+        const isMastered = gameProgress?.isMastered;
+        const alreadyCelebrated = celebratedGames[game.id];
+
+        if (isMastered && !alreadyCelebrated) {
+            // Trigger mastery celebration
+            confetti({
+                particleCount: 150,
+                spread: 100,
+                origin: { y: 0.6 },
+                colors: ['#FFD700', '#FF6B35', '#00D4FF'],
+            });
+            // trainingSounds.play('mastery'); // TODO: Uncomment when sounds ready
+            markGameCelebrated(game.id);
+        }
+
         setPendingGame(game);
         setShowIntro(true);
     };
