@@ -22,6 +22,7 @@ import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader'
 
 // God-Mode Stack
 import { useSocialStore } from '../../src/stores/socialStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 // Light Theme Colors (Facebook-style)
 const C = {
@@ -1295,7 +1296,7 @@ export default function SocialMediaPage() {
     if (loading) return <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div>Loading...</div></div>;
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Social Hub | Smarter.Poker</title>
                 <meta name="viewport" content="width=800, user-scalable=no" />
@@ -1888,6 +1889,6 @@ export default function SocialMediaPage() {
                     />
                 )}
             </div>
-        </>
+        </PageTransition>
     );
 }
