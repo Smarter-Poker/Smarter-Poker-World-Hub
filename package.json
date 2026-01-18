@@ -36,7 +36,9 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
     "@types/react": "19.2.8",
+    "autoprefixer": "^10.4.23",
     "daisyui": "^5.5.14",
+    "postcss": "^8.5.6",
     "tailwindcss-3d": "^1.1.0",
     "typescript": "5.9.3"
   }
