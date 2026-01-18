@@ -8,7 +8,13 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
+import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+
+// God-Mode Stack
+import { useMessengerStore } from '../../src/stores/messengerStore';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 COLOR PALETTE - Premium Poker Theme
@@ -743,6 +749,15 @@ function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser,
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function MessengerPage() {
+    // Zustand Global State (replaces UI-related useState)
+    const selectedConversation = useMessengerStore((s) => s.selectedConversation);
+    const setSelectedConversation = useMessengerStore((s) => s.setSelectedConversation);
+    const showNewChat = useMessengerStore((s) => s.showNewChat);
+    const setShowNewChat = useMessengerStore((s) => s.setShowNewChat);
+    const showSearch = useMessengerStore((s) => s.showSearch);
+    const setShowSearch = useMessengerStore((s) => s.setShowSearch);
+
+    // Local state (keep for data/session)
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [conversations, setConversations] = useState([]);
