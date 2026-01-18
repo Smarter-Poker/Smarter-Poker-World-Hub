@@ -52,6 +52,38 @@ function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 🎬 YOUTUBE URL HELPERS - Detect and convert YouTube URLs for embedding
+// ═══════════════════════════════════════════════════════════════════════════
+
+function isYouTubeUrl(url) {
+    if (!url) return false;
+    return url.includes('youtube.com') || url.includes('youtu.be');
+}
+
+function getYouTubeEmbedUrl(url) {
+    if (!url) return '';
+
+    // Handle youtube.com/watch?v=VIDEO_ID
+    const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+    if (watchMatch) {
+        return `https://www.youtube.com/embed/${watchMatch[1]}?autoplay=1`;
+    }
+
+    // Handle youtu.be/VIDEO_ID
+    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+    if (shortMatch) {
+        return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1`;
+    }
+
+    // Handle youtube.com/embed/VIDEO_ID (already embed format)
+    if (url.includes('youtube.com/embed/')) {
+        return url.includes('?') ? url : `${url}?autoplay=1`;
+    }
+
+    return url;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 🎬 FULL SCREEN VIDEO VIEWER - TikTok/Reels style immersive viewer
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -105,20 +137,35 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                 }}
             >✕</button>
 
-            {/* Video Container */}
-            <video
-                ref={videoRef}
-                src={videoUrl}
-                autoPlay
-                loop
-                playsInline
-                onClick={togglePlay}
-                style={{
-                    maxWidth: '100%', maxHeight: '100%',
-                    width: 'auto', height: '100%',
-                    objectFit: 'contain', cursor: 'pointer'
-                }}
-            />
+            {/* Video Container - Detect YouTube URLs vs direct video files */}
+            {isYouTubeUrl(videoUrl) ? (
+                // YouTube embed
+                <iframe
+                    src={getYouTubeEmbedUrl(videoUrl)}
+                    style={{
+                        width: '100%', height: '100%',
+                        maxWidth: '100vw', maxHeight: '80vh',
+                        border: 'none'
+                    }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                />
+            ) : (
+                // Direct video file
+                <video
+                    ref={videoRef}
+                    src={videoUrl}
+                    autoPlay
+                    loop
+                    playsInline
+                    onClick={togglePlay}
+                    style={{
+                        maxWidth: '100%', maxHeight: '100%',
+                        width: 'auto', height: '100%',
+                        objectFit: 'contain', cursor: 'pointer'
+                    }}
+                />
+            )}
 
             {/* Play/Pause Overlay */}
             {!isPlaying && (

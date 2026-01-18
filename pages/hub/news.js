@@ -1,6 +1,7 @@
 /**
  * SMARTER.POKER NEWS HUB
- * Clean Premium Design — The Poker Intelligence Center
+ * Viewport-Based Scaling — Sleek Minimal Design
+ * Uses 30vw cards with clamp() for responsive scaling
  */
 
 import Head from 'next/head';
@@ -9,33 +10,16 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     Search, Clock, Eye, TrendingUp, Trophy, Calendar,
-    Newspaper, Target, Lightbulb, BarChart3, Zap, Star,
-    Flame, ArrowRight, Sparkles
+    Zap, ArrowRight, ChevronRight
 } from 'lucide-react';
 import { supabase } from '../../src/lib/supabase';
 
-// Category styling - Clean Smarter.Poker branding
-const CATEGORY_STYLES = {
-    'tournament': { bg: 'from-amber-500 to-orange-500', label: 'Tournament', icon: '🏆' },
-    'strategy': { bg: 'from-cyan-500 to-blue-500', label: 'Strategy', icon: '🧠' },
-    'industry': { bg: 'from-purple-500 to-pink-500', label: 'Industry', icon: '📊' },
-    'news': { bg: 'from-emerald-500 to-green-500', label: 'Breaking', icon: '⚡' },
-    'default': { bg: 'from-slate-500 to-slate-600', label: 'News', icon: '📰' }
-};
-
-const CATEGORIES = [
-    { id: 'all', label: 'All News', icon: Newspaper },
-    { id: 'tournament', label: 'Tournaments', icon: Trophy },
-    { id: 'strategy', label: 'Strategy', icon: Lightbulb },
-    { id: 'industry', label: 'Industry', icon: BarChart3 }
-];
-
-// Clean demo data - No competitor names
+// Clean demo data
 const MOCK_NEWS = [
     {
         id: 1,
-        title: "Hands of the Week: Pro Says 'This is What Makes Me a Great Poker Player!'",
-        content: "Earlier this week, the 2025 Championship Freeroll took place at the studio. The freeroll event field included the top 40 players on the leaderboard and 14 Dream Seat qualifiers.",
+        title: "Pro Says 'This is What Makes Me a Great Poker Player'",
+        content: "Earlier this week, the 2025 Championship Freeroll took place. The event field included the top 40 players on the leaderboard.",
         image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=800&q=80",
         category: "tournament",
         published_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
@@ -43,7 +27,7 @@ const MOCK_NEWS = [
     },
     {
         id: 2,
-        title: "Hollywood Actor Could Testify at High-Profile Poker Trial",
+        title: "Hollywood Actor Could Testify at High-Profile Trial",
         content: "A famous Hollywood actor may be called to testify in an upcoming trial involving a well-known poker player.",
         image_url: "https://images.unsplash.com/photo-1596462502278-27bf2d373f1d?w=600&q=80",
         category: "industry",
@@ -52,7 +36,7 @@ const MOCK_NEWS = [
     },
     {
         id: 3,
-        title: "Players Agree to 'Winner Takes All' Heads-Up Match",
+        title: "Winner Takes All Heads-Up Match Shocks Community",
         content: "The latest high-stakes heads-up match ends in a controversial winner-take-all deal.",
         image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=600&q=80",
         category: "news",
@@ -61,8 +45,8 @@ const MOCK_NEWS = [
     },
     {
         id: 4,
-        title: "Could You Chase This Astonishing Poker World Record?",
-        content: "A new poker world record attempt is underway that has the community buzzing with excitement.",
+        title: "Could You Chase This Astonishing World Record?",
+        content: "A new poker world record attempt is underway that has the community buzzing.",
         image_url: "https://images.unsplash.com/photo-1596462502278-27bf2d373f1d?w=600&q=80",
         category: "news",
         published_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
@@ -70,7 +54,7 @@ const MOCK_NEWS = [
     },
     {
         id: 5,
-        title: "Cheaters Caught Marking Cards at Major Card Room — Instantly Banned",
+        title: "Card Markers Caught and Instantly Banned",
         content: "Security footage revealed a sophisticated card marking scheme at a major cardroom.",
         image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=600&q=80",
         category: "industry",
@@ -79,7 +63,7 @@ const MOCK_NEWS = [
     },
     {
         id: 6,
-        title: "GTO Strategy Deep Dive: Optimal River Betting Frequencies",
+        title: "GTO Deep Dive: Optimal River Betting Frequencies",
         content: "Understanding when to bet the river is crucial for maximizing EV in modern poker.",
         image_url: "https://images.unsplash.com/photo-1596462502278-27bf2d373f1d?w=600&q=80",
         category: "strategy",
@@ -88,8 +72,8 @@ const MOCK_NEWS = [
     },
     {
         id: 7,
-        title: "WSOP 2025 Schedule Released: 99 Bracelet Events Announced",
-        content: "The World Series of Poker has unveiled its biggest schedule ever with 99 gold bracelet events.",
+        title: "WSOP 2025: 99 Bracelet Events Announced",
+        content: "The World Series of Poker has unveiled its biggest schedule ever.",
         image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=600&q=80",
         category: "tournament",
         published_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
@@ -97,21 +81,12 @@ const MOCK_NEWS = [
     },
     {
         id: 8,
-        title: "Online Poker Traffic Hits All-Time High in January 2025",
-        content: "Global online poker traffic has reached unprecedented levels according to new data.",
+        title: "Online Traffic Hits All-Time High This Month",
+        content: "Global online poker traffic has reached unprecedented levels.",
         image_url: "https://images.unsplash.com/photo-1596462502278-27bf2d373f1d?w=600&q=80",
         category: "industry",
         published_at: new Date(Date.now() - 1000 * 60 * 60 * 14).toISOString(),
         views: 7650
-    },
-    {
-        id: 9,
-        title: "ICM Fundamentals: When to Fold Pocket Aces on the Bubble",
-        content: "Advanced ICM analysis shows there are spots where folding aces is the correct play.",
-        image_url: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=600&q=80",
-        category: "strategy",
-        published_at: new Date(Date.now() - 1000 * 60 * 60 * 16).toISOString(),
-        views: 9340
     }
 ];
 
@@ -123,464 +98,699 @@ const POY_LEADERBOARD = [
     { rank: 5, name: "Daniel N.", points: 2290 }
 ];
 
-const UPCOMING_EVENTS = [
-    { name: "WSOP Main Event", date: "Jun 28", location: "Las Vegas" },
-    { name: "EPT Barcelona", date: "Aug 15", location: "Spain" },
-    { name: "WPT World Championship", date: "Dec 1", location: "Las Vegas" }
-];
-
 function timeAgo(date) {
     const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return `${Math.floor(seconds / 86400)}d ago`;
-}
-
-function readTime(content) {
-    const words = content?.split(' ').length || 100;
-    return `${Math.ceil(words / 200)} min read`;
-}
-
-function getCategoryStyle(category) {
-    return CATEGORY_STYLES[category] || CATEGORY_STYLES.default;
-}
-
-// Clean Category Badge
-function CategoryBadge({ category, className = "" }) {
-    const style = getCategoryStyle(category);
-    return (
-        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${style.bg} text-white shadow-lg ${className}`}>
-            {style.icon} {style.label}
-        </span>
-    );
-}
-
-// Premium News Card with hover effects
-function NewsCard({ article, index }) {
-    const style = getCategoryStyle(article.category);
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.08, duration: 0.5 }}
-            whileHover={{ y: -8 }}
-            className="group cursor-pointer"
-        >
-            <Link href={`/hub/article?url=${encodeURIComponent(article.source_url || '#')}`}>
-                <div className="relative bg-gradient-to-br from-zinc-900 to-zinc-950 rounded-2xl overflow-hidden border border-zinc-800/50 
-                    hover:border-cyan-500/40 transition-all duration-500 shadow-xl hover:shadow-cyan-500/10">
-
-                    {/* Image with overlay */}
-                    <div className="relative h-48 overflow-hidden">
-                        <img
-                            src={article.image_url}
-                            alt={article.title}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-transparent to-transparent" />
-
-                        {/* Category Badge */}
-                        <div className="absolute top-3 left-3">
-                            <CategoryBadge category={article.category} />
-                        </div>
-
-                        {/* Glow on hover */}
-                        <div className="absolute inset-0 bg-cyan-500/0 group-hover:bg-cyan-500/5 transition-all duration-500" />
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-5">
-                        <h3 className="text-white font-bold text-base leading-snug mb-3 line-clamp-2 
-                            group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-cyan-400 group-hover:to-purple-400 
-                            group-hover:bg-clip-text transition-all duration-300">
-                            {article.title}
-                        </h3>
-                        <p className="text-zinc-400 text-sm line-clamp-2 mb-4">
-                            {article.content}
-                        </p>
-                        <div className="flex items-center justify-between text-xs text-zinc-500">
-                            <span className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5" />
-                                {timeAgo(article.published_at)}
-                            </span>
-                            <span className="flex items-center gap-1.5 text-cyan-500/70">
-                                <Eye className="w-3.5 h-3.5" />
-                                {article.views?.toLocaleString()}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Bottom accent line */}
-                    <div className={`h-1 bg-gradient-to-r ${style.bg} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-                </div>
-            </Link>
-        </motion.div>
-    );
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    return `${Math.floor(seconds / 86400)}d`;
 }
 
 export default function NewsHub() {
     const [news, setNews] = useState(MOCK_NEWS);
-    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [activeTab, setActiveTab] = useState('all');
 
     useEffect(() => {
         loadNews();
-    }, [selectedCategory]);
+    }, []);
 
     const loadNews = async () => {
-        setLoading(true);
         try {
-            let query = supabase.from('poker_news').select('*');
-            if (selectedCategory !== 'all') {
-                query = query.eq('category', selectedCategory);
-            }
-            query = query.order('published_at', { ascending: false }).limit(30);
-
-            const { data, error } = await query;
-            if (!error && data && data.length > 0) {
-                setNews(data);
-            }
-        } catch (e) {
-            console.log('Using mock data');
-        }
-        setLoading(false);
+            const { data, error } = await supabase
+                .from('poker_news')
+                .select('*')
+                .order('published_at', { ascending: false })
+                .limit(20);
+            if (!error && data?.length) setNews(data);
+        } catch (e) { }
     };
 
-    const filteredNews = news.filter(article => {
-        if (searchQuery && !article.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-        return true;
-    });
+    const filtered = news.filter(a =>
+        !searchQuery || a.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
-    const heroArticle = filteredNews[0];
-    const breakingHeadlines = filteredNews.slice(1, 5);
-    const gridNews = filteredNews.slice(5);
+    const hero = filtered[0];
+    const secondary = filtered.slice(1, 4);
+    const grid = filtered.slice(4);
 
     return (
         <>
             <Head>
-                <title>News Hub | Smarter.Poker</title>
-                <meta name="description" content="Your one-stop shop for poker intelligence" />
+                <title>News | Smarter.Poker</title>
             </Head>
 
-            <div className="min-h-screen bg-zinc-950">
-                {/* Animated Background */}
-                <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                    <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-cyan-500/5 rounded-full blur-3xl animate-pulse" />
-                    <div className="absolute bottom-0 right-1/4 w-[800px] h-[800px] bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-                    <div className="absolute top-1/2 left-1/2 w-[600px] h-[600px] bg-blue-500/3 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-                </div>
-
+            <div className="news-hub">
                 {/* Header */}
-                <header className="sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/50">
-                    <div className="max-w-7xl mx-auto px-4 py-4">
-                        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                            {/* Logo + Title */}
-                            <Link href="/hub">
-                                <motion.div
-                                    className="flex items-center gap-3 cursor-pointer group"
-                                    whileHover={{ scale: 1.02 }}
-                                >
-                                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 
-                                        flex items-center justify-center shadow-lg shadow-cyan-500/25 group-hover:shadow-cyan-500/40 transition-shadow">
-                                        <Zap className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                                            News Hub
-                                        </h1>
-                                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Poker Intelligence</p>
-                                    </div>
-                                </motion.div>
-                            </Link>
-
-                            {/* Search */}
-                            <div className="flex-1 max-w-lg">
-                                <div className="relative">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search stories..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full pl-11 pr-4 py-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-white text-sm
-                                            placeholder-zinc-500 focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Category Tabs */}
-                            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                                {CATEGORIES.map(cat => {
-                                    const Icon = cat.icon;
-                                    const isActive = selectedCategory === cat.id;
-                                    return (
-                                        <motion.button
-                                            key={cat.id}
-                                            onClick={() => setSelectedCategory(cat.id)}
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all
-                                                ${isActive
-                                                    ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-lg shadow-cyan-500/25'
-                                                    : 'bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
-                                                }`}
-                                        >
-                                            <Icon className="w-4 h-4" />
-                                            {cat.label}
-                                        </motion.button>
-                                    );
-                                })}
-                            </div>
+                <header className="news-header">
+                    <Link href="/hub">
+                        <div className="logo">
+                            <Zap className="logo-icon" />
+                            <span className="logo-text">News</span>
                         </div>
+                    </Link>
+
+                    <div className="search-box">
+                        <Search className="search-icon" />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                     </div>
+
+                    <nav className="tabs">
+                        {['all', 'tournaments', 'strategy', 'industry'].map(tab => (
+                            <button
+                                key={tab}
+                                className={`tab ${activeTab === tab ? 'active' : ''}`}
+                                onClick={() => setActiveTab(tab)}
+                            >
+                                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                            </button>
+                        ))}
+                    </nav>
                 </header>
 
                 {/* Main Content */}
-                <main className="relative max-w-7xl mx-auto px-4 py-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-                        {/* Main Content Area */}
-                        <div className="lg:col-span-8 space-y-10">
-
-                            {/* Hero Section */}
-                            <motion.section
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="grid grid-cols-1 md:grid-cols-5 gap-5"
-                            >
-                                {/* Main Feature (3/5) */}
-                                {heroArticle && (
-                                    <div className="md:col-span-3">
-                                        <Link href={`/hub/article?url=${encodeURIComponent(heroArticle.source_url || '#')}`}>
-                                            <motion.div
-                                                className="relative h-[420px] rounded-2xl overflow-hidden group cursor-pointer"
-                                                whileHover={{ scale: 1.01 }}
-                                            >
-                                                <img
-                                                    src={heroArticle.image_url}
-                                                    alt={heroArticle.title}
-                                                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                                />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
-
-                                                {/* Content overlay */}
-                                                <div className="absolute bottom-0 left-0 right-0 p-6">
-                                                    <div className="flex items-center gap-3 mb-4">
-                                                        <CategoryBadge category={heroArticle.category} />
-                                                        <span className="px-3 py-1 rounded-full bg-black/50 backdrop-blur text-xs text-zinc-300 flex items-center gap-1.5">
-                                                            <Clock className="w-3 h-3" />
-                                                            {readTime(heroArticle.content)}
-                                                        </span>
-                                                    </div>
-                                                    <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 leading-tight 
-                                                        group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-cyan-400 group-hover:to-purple-400 
-                                                        group-hover:bg-clip-text transition-all duration-300">
-                                                        {heroArticle.title}
-                                                    </h2>
-                                                    <p className="text-zinc-300 text-sm line-clamp-2 mb-4">
-                                                        {heroArticle.content}
-                                                    </p>
-                                                    <div className="flex items-center gap-4 text-sm text-zinc-400">
-                                                        <span>{timeAgo(heroArticle.published_at)}</span>
-                                                        <span className="flex items-center gap-1.5">
-                                                            <Eye className="w-4 h-4 text-cyan-500" />
-                                                            {heroArticle.views?.toLocaleString()} views
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Glow border on hover */}
-                                                <div className="absolute inset-0 border-2 border-transparent group-hover:border-cyan-500/30 rounded-2xl transition-all duration-300" />
-                                            </motion.div>
-                                        </Link>
+                <main className="news-content">
+                    {/* Hero Section */}
+                    <section className="hero-section">
+                        {hero && (
+                            <Link href={`/hub/article?url=#`}>
+                                <motion.article
+                                    className="hero-card"
+                                    whileHover={{ scale: 1.01 }}
+                                >
+                                    <div className="hero-image">
+                                        <img src={hero.image_url} alt="" />
+                                        <div className="hero-overlay" />
                                     </div>
-                                )}
+                                    <div className="hero-content">
+                                        <h2>{hero.title}</h2>
+                                        <p>{hero.content}</p>
+                                        <div className="hero-meta">
+                                            <span><Clock size={12} /> {timeAgo(hero.published_at)}</span>
+                                            <span><Eye size={12} /> {hero.views?.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                </motion.article>
+                            </Link>
+                        )}
 
-                                {/* Breaking Headlines Stack (2/5) */}
-                                <div className="md:col-span-2 space-y-4">
-                                    <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
-                                        <Flame className="w-4 h-4 text-orange-500" />
-                                        Breaking
-                                    </h3>
-                                    {breakingHeadlines.map((article, i) => (
-                                        <motion.div
-                                            key={article.id}
-                                            initial={{ opacity: 0, x: 20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: i * 0.1 }}
-                                            whileHover={{ x: 4 }}
+                        <div className="secondary-stack">
+                            {secondary.map((article, i) => (
+                                <Link key={article.id} href={`/hub/article?url=#`}>
+                                    <motion.article
+                                        className="secondary-card"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: i * 0.1 }}
+                                        whileHover={{ x: 4 }}
+                                    >
+                                        <img src={article.image_url} alt="" />
+                                        <div className="secondary-info">
+                                            <h3>{article.title}</h3>
+                                            <span className="meta">{timeAgo(article.published_at)}</span>
+                                        </div>
+                                    </motion.article>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Grid + Sidebar */}
+                    <section className="grid-section">
+                        <div className="news-grid">
+                            <h4 className="section-title">Latest <ArrowRight size={14} /></h4>
+                            <div className="cards-lane">
+                                {grid.map((article, i) => (
+                                    <Link key={article.id} href={`/hub/article?url=#`}>
+                                        <motion.article
+                                            className="news-card"
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: i * 0.05 }}
+                                            whileHover={{ y: -6 }}
                                         >
-                                            <Link href={`/hub/article?url=${encodeURIComponent(article.source_url || '#')}`}>
-                                                <div className="flex gap-3 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/50 
-                                                    hover:border-cyan-500/30 hover:bg-zinc-900/80 cursor-pointer transition-all group">
-                                                    <img
-                                                        src={article.image_url}
-                                                        alt={article.title}
-                                                        className="w-20 h-16 object-cover rounded-lg flex-shrink-0"
-                                                    />
-                                                    <div className="flex-1 min-w-0">
-                                                        <CategoryBadge category={article.category} className="mb-2 text-[10px] py-0.5 px-2" />
-                                                        <h4 className="text-white text-sm font-semibold line-clamp-2 group-hover:text-cyan-400 transition-colors">
-                                                            {article.title}
-                                                        </h4>
-                                                        <p className="text-zinc-500 text-xs mt-1">{timeAgo(article.published_at)}</p>
-                                                    </div>
+                                            <div className="card-image">
+                                                <img src={article.image_url} alt="" />
+                                            </div>
+                                            <div className="card-content">
+                                                <h3>{article.title}</h3>
+                                                <div className="card-meta">
+                                                    <span>{timeAgo(article.published_at)}</span>
+                                                    <span>{article.views?.toLocaleString()}</span>
                                                 </div>
-                                            </Link>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </motion.section>
-
-                            {/* Latest Stories Grid */}
-                            <section>
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                        <Sparkles className="w-5 h-5 text-cyan-400" />
-                                        Latest Stories
-                                    </h2>
-                                    <button className="text-sm text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors">
-                                        View All <ArrowRight className="w-4 h-4" />
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    {gridNews.map((article, i) => (
-                                        <NewsCard key={article.id} article={article} index={i} />
-                                    ))}
-                                </div>
-                            </section>
+                                            </div>
+                                        </motion.article>
+                                    </Link>
+                                ))}
+                            </div>
                         </div>
 
-                        {/* Sidebar */}
-                        <aside className="lg:col-span-4 space-y-6">
-
-                            {/* Trending Stories */}
-                            <motion.div
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="bg-gradient-to-br from-zinc-900 to-zinc-950 rounded-2xl border border-zinc-800/50 p-5"
-                            >
-                                <h3 className="text-sm font-bold text-white mb-5 flex items-center gap-2">
-                                    <TrendingUp className="w-4 h-4 text-orange-400" />
-                                    Trending Now
-                                </h3>
-                                <div className="space-y-4">
-                                    {[...news].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5).map((article, i) => (
-                                        <motion.div
-                                            key={article.id}
-                                            className="flex gap-3 group cursor-pointer"
-                                            whileHover={{ x: 4 }}
-                                        >
-                                            <span className={`text-xl font-black w-6 ${i < 3 ? 'text-transparent bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text' : 'text-zinc-600'}`}>
-                                                {i + 1}
-                                            </span>
-                                            <div className="flex-1">
-                                                <p className="text-sm text-zinc-300 font-medium line-clamp-2 group-hover:text-cyan-400 transition-colors">
-                                                    {article.title}
-                                                </p>
-                                                <span className="text-xs text-zinc-500 flex items-center gap-1 mt-1">
-                                                    <Eye className="w-3 h-3 text-cyan-500/50" />
-                                                    {article.views?.toLocaleString()}
-                                                </span>
-                                            </div>
-                                        </motion.div>
+                        <aside className="sidebar">
+                            {/* Trending */}
+                            <div className="widget">
+                                <h4><TrendingUp size={14} /> Trending</h4>
+                                <ul className="trending-list">
+                                    {[...news].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5).map((a, i) => (
+                                        <li key={a.id}>
+                                            <span className="rank">{i + 1}</span>
+                                            <span className="title">{a.title}</span>
+                                        </li>
                                     ))}
-                                </div>
-                            </motion.div>
+                                </ul>
+                            </div>
 
-                            {/* Player of the Year */}
-                            <motion.div
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.1 }}
-                                className="bg-gradient-to-br from-zinc-900 to-zinc-950 rounded-2xl border border-zinc-800/50 overflow-hidden"
-                            >
-                                <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-3">
-                                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                                        <Trophy className="w-4 h-4" />
-                                        Player of the Year
-                                    </h3>
-                                </div>
-                                <div className="p-4 space-y-1">
-                                    {POY_LEADERBOARD.map((player, i) => (
-                                        <motion.div
-                                            key={i}
-                                            className="flex items-center justify-between py-2.5 border-b border-zinc-800/50 last:border-0"
-                                            whileHover={{ x: 4 }}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-lg
-                                                    ${i === 0 ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black'
-                                                        : i === 1 ? 'bg-gradient-to-r from-zinc-300 to-zinc-400 text-black'
-                                                            : i === 2 ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white'
-                                                                : 'bg-zinc-800 text-zinc-400'}`}>
-                                                    {player.rank}
-                                                </span>
-                                                <span className="text-sm text-white font-medium">{player.name}</span>
-                                            </div>
-                                            <span className="text-sm text-cyan-400 font-mono font-bold">{player.points.toLocaleString()}</span>
-                                        </motion.div>
+                            {/* Leaderboard */}
+                            <div className="widget leaderboard">
+                                <h4><Trophy size={14} /> Player of the Year</h4>
+                                <ul>
+                                    {POY_LEADERBOARD.map(p => (
+                                        <li key={p.rank}>
+                                            <span className={`medal medal-${p.rank}`}>{p.rank}</span>
+                                            <span className="name">{p.name}</span>
+                                            <span className="points">{p.points.toLocaleString()}</span>
+                                        </li>
                                     ))}
-                                </div>
-                            </motion.div>
+                                </ul>
+                            </div>
 
-                            {/* Daily Challenge */}
-                            <motion.div
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.2 }}
-                                className="bg-gradient-to-br from-purple-500/10 via-cyan-500/10 to-blue-500/10 rounded-2xl border border-purple-500/20 p-5"
-                            >
-                                <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                                    <Star className="w-4 h-4 text-purple-400" />
-                                    Daily XP Challenge
-                                </h3>
-                                <p className="text-sm text-zinc-300 mb-4">
-                                    Read 3 articles today to earn bonus XP!
-                                </p>
-                                <div className="flex gap-2 mb-3">
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className={`flex-1 h-2.5 rounded-full transition-all duration-500
-                                            ${i === 1 ? 'bg-gradient-to-r from-cyan-500 to-purple-500' : 'bg-zinc-800'}`} />
-                                    ))}
-                                </div>
-                                <p className="text-xs text-zinc-500">1 of 3 completed • <span className="text-cyan-400">+50 XP reward</span></p>
-                            </motion.div>
-
-                            {/* Upcoming Events */}
-                            <motion.div
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.3 }}
-                                className="bg-gradient-to-br from-zinc-900 to-zinc-950 rounded-2xl border border-zinc-800/50 p-5"
-                            >
-                                <h3 className="text-sm font-bold text-white mb-5 flex items-center gap-2">
-                                    <Calendar className="w-4 h-4 text-green-400" />
-                                    Upcoming Events
-                                </h3>
-                                <div className="space-y-3">
-                                    {UPCOMING_EVENTS.map((event, i) => (
-                                        <motion.div
-                                            key={i}
-                                            className="flex items-center justify-between py-2.5 border-b border-zinc-800/50 last:border-0"
-                                            whileHover={{ x: 4 }}
-                                        >
-                                            <div>
-                                                <p className="text-sm text-white font-medium">{event.name}</p>
-                                                <p className="text-xs text-zinc-500">{event.location}</p>
-                                            </div>
-                                            <span className="text-xs text-cyan-400 font-mono bg-cyan-500/10 px-2.5 py-1 rounded-lg border border-cyan-500/20">
-                                                {event.date}
-                                            </span>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </motion.div>
+                            {/* Events */}
+                            <div className="widget">
+                                <h4><Calendar size={14} /> Events</h4>
+                                <ul className="events-list">
+                                    <li><span>WSOP Main Event</span><span className="date">Jun 28</span></li>
+                                    <li><span>EPT Barcelona</span><span className="date">Aug 15</span></li>
+                                    <li><span>WPT Championship</span><span className="date">Dec 1</span></li>
+                                </ul>
+                            </div>
                         </aside>
-                    </div>
+                    </section>
                 </main>
+
+                <style jsx>{`
+                    .news-hub {
+                        --card-size: clamp(140px, 30vw, 220px);
+                        --gap: clamp(12px, 2vw, 20px);
+                        --pad: clamp(16px, 4vw, 32px);
+                        --font-xs: clamp(10px, 1.5vw, 12px);
+                        --font-sm: clamp(12px, 2vw, 14px);
+                        --font-md: clamp(14px, 2.5vw, 16px);
+                        --font-lg: clamp(18px, 3vw, 24px);
+                        --font-xl: clamp(24px, 4vw, 36px);
+                        
+                        min-height: 100vh;
+                        background: linear-gradient(180deg, #0a0a12 0%, #0d0d18 100%);
+                        color: #fff;
+                        font-family: 'Inter', -apple-system, sans-serif;
+                    }
+
+                    /* Header */
+                    .news-header {
+                        position: sticky;
+                        top: 0;
+                        z-index: 100;
+                        display: flex;
+                        align-items: center;
+                        gap: var(--gap);
+                        padding: var(--gap) var(--pad);
+                        background: rgba(10, 10, 18, 0.9);
+                        backdrop-filter: blur(20px);
+                        border-bottom: 1px solid rgba(255,255,255,0.05);
+                    }
+
+                    .logo {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        cursor: pointer;
+                    }
+
+                    .logo-icon {
+                        width: 28px;
+                        height: 28px;
+                        color: #00d4ff;
+                    }
+
+                    .logo-text {
+                        font-size: var(--font-lg);
+                        font-weight: 700;
+                        background: linear-gradient(135deg, #00d4ff, #7c3aed);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                    }
+
+                    .search-box {
+                        flex: 1;
+                        max-width: 300px;
+                        position: relative;
+                    }
+
+                    .search-box input {
+                        width: 100%;
+                        padding: 10px 12px 10px 36px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 10px;
+                        color: #fff;
+                        font-size: var(--font-sm);
+                        outline: none;
+                        transition: all 0.2s;
+                    }
+
+                    .search-box input:focus {
+                        border-color: #00d4ff;
+                        background: rgba(0,212,255,0.05);
+                    }
+
+                    .search-icon {
+                        position: absolute;
+                        left: 12px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        width: 16px;
+                        height: 16px;
+                        color: rgba(255,255,255,0.4);
+                    }
+
+                    .tabs {
+                        display: flex;
+                        gap: 4px;
+                    }
+
+                    .tab {
+                        padding: 8px 16px;
+                        background: transparent;
+                        border: none;
+                        color: rgba(255,255,255,0.5);
+                        font-size: var(--font-xs);
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        cursor: pointer;
+                        border-radius: 8px;
+                        transition: all 0.2s;
+                    }
+
+                    .tab:hover {
+                        color: #fff;
+                        background: rgba(255,255,255,0.05);
+                    }
+
+                    .tab.active {
+                        color: #fff;
+                        background: linear-gradient(135deg, #00d4ff, #7c3aed);
+                    }
+
+                    /* Main Content */
+                    .news-content {
+                        padding: var(--pad);
+                        max-width: 1400px;
+                        margin: 0 auto;
+                    }
+
+                    /* Hero Section */
+                    .hero-section {
+                        display: grid;
+                        grid-template-columns: 2fr 1fr;
+                        gap: var(--gap);
+                        margin-bottom: calc(var(--pad) * 1.5);
+                    }
+
+                    @media (max-width: 768px) {
+                        .hero-section {
+                            grid-template-columns: 1fr;
+                        }
+                    }
+
+                    .hero-card {
+                        position: relative;
+                        border-radius: 16px;
+                        overflow: hidden;
+                        cursor: pointer;
+                        height: clamp(280px, 45vw, 400px);
+                    }
+
+                    .hero-image {
+                        position: absolute;
+                        inset: 0;
+                    }
+
+                    .hero-image img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        transition: transform 0.5s;
+                    }
+
+                    .hero-card:hover .hero-image img {
+                        transform: scale(1.05);
+                    }
+
+                    .hero-overlay {
+                        position: absolute;
+                        inset: 0;
+                        background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 50%, transparent 100%);
+                    }
+
+                    .hero-content {
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        padding: var(--pad);
+                    }
+
+                    .hero-content h2 {
+                        font-size: var(--font-xl);
+                        font-weight: 700;
+                        line-height: 1.2;
+                        margin-bottom: 8px;
+                    }
+
+                    .hero-content p {
+                        font-size: var(--font-sm);
+                        color: rgba(255,255,255,0.7);
+                        line-height: 1.5;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                        margin-bottom: 12px;
+                    }
+
+                    .hero-meta {
+                        display: flex;
+                        gap: 16px;
+                        font-size: var(--font-xs);
+                        color: rgba(255,255,255,0.5);
+                    }
+
+                    .hero-meta span {
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                    }
+
+                    /* Secondary Stack */
+                    .secondary-stack {
+                        display: flex;
+                        flex-direction: column;
+                        gap: var(--gap);
+                    }
+
+                    .secondary-card {
+                        display: flex;
+                        gap: 12px;
+                        padding: 12px;
+                        background: rgba(255,255,255,0.03);
+                        border: 1px solid rgba(255,255,255,0.05);
+                        border-radius: 12px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+
+                    .secondary-card:hover {
+                        background: rgba(255,255,255,0.06);
+                        border-color: rgba(0,212,255,0.2);
+                    }
+
+                    .secondary-card img {
+                        width: 80px;
+                        height: 60px;
+                        object-fit: cover;
+                        border-radius: 8px;
+                        flex-shrink: 0;
+                    }
+
+                    .secondary-info {
+                        flex: 1;
+                        min-width: 0;
+                    }
+
+                    .secondary-info h3 {
+                        font-size: var(--font-sm);
+                        font-weight: 600;
+                        line-height: 1.3;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                        margin-bottom: 4px;
+                    }
+
+                    .secondary-info .meta {
+                        font-size: var(--font-xs);
+                        color: rgba(255,255,255,0.4);
+                    }
+
+                    /* Grid Section */
+                    .grid-section {
+                        display: grid;
+                        grid-template-columns: 1fr 280px;
+                        gap: var(--pad);
+                    }
+
+                    @media (max-width: 900px) {
+                        .grid-section {
+                            grid-template-columns: 1fr;
+                        }
+                    }
+
+                    .section-title {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: var(--font-md);
+                        font-weight: 600;
+                        margin-bottom: var(--gap);
+                        color: rgba(255,255,255,0.9);
+                    }
+
+                    .cards-lane {
+                        display: flex;
+                        gap: var(--gap);
+                        overflow-x: auto;
+                        padding-bottom: 12px;
+                        scrollbar-width: none;
+                        -ms-overflow-style: none;
+                    }
+
+                    .cards-lane::-webkit-scrollbar {
+                        display: none;
+                    }
+
+                    .news-card {
+                        width: var(--card-size);
+                        flex-shrink: 0;
+                        background: rgba(255,255,255,0.02);
+                        border: 1px solid rgba(255,255,255,0.05);
+                        border-radius: 14px;
+                        overflow: hidden;
+                        cursor: pointer;
+                        transition: all 0.3s;
+                    }
+
+                    .news-card:hover {
+                        border-color: rgba(0,212,255,0.3);
+                        box-shadow: 0 8px 32px rgba(0,212,255,0.1);
+                    }
+
+                    .card-image {
+                        width: 100%;
+                        height: var(--card-size);
+                        overflow: hidden;
+                    }
+
+                    .card-image img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        transition: transform 0.4s;
+                    }
+
+                    .news-card:hover .card-image img {
+                        transform: scale(1.08);
+                    }
+
+                    .card-content {
+                        padding: 14px;
+                    }
+
+                    .card-content h3 {
+                        font-size: var(--font-sm);
+                        font-weight: 600;
+                        line-height: 1.3;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                        margin-bottom: 8px;
+                    }
+
+                    .card-meta {
+                        display: flex;
+                        justify-content: space-between;
+                        font-size: var(--font-xs);
+                        color: rgba(255,255,255,0.4);
+                    }
+
+                    /* Sidebar */
+                    .sidebar {
+                        display: flex;
+                        flex-direction: column;
+                        gap: var(--gap);
+                    }
+
+                    .widget {
+                        background: rgba(255,255,255,0.02);
+                        border: 1px solid rgba(255,255,255,0.05);
+                        border-radius: 14px;
+                        padding: 16px;
+                    }
+
+                    .widget h4 {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: var(--font-sm);
+                        font-weight: 600;
+                        margin-bottom: 14px;
+                        color: rgba(255,255,255,0.9);
+                    }
+
+                    .widget h4 svg {
+                        color: #00d4ff;
+                    }
+
+                    .trending-list {
+                        list-style: none;
+                        padding: 0;
+                        margin: 0;
+                    }
+
+                    .trending-list li {
+                        display: flex;
+                        gap: 10px;
+                        padding: 10px 0;
+                        border-bottom: 1px solid rgba(255,255,255,0.05);
+                    }
+
+                    .trending-list li:last-child {
+                        border-bottom: none;
+                    }
+
+                    .trending-list .rank {
+                        width: 20px;
+                        font-size: var(--font-sm);
+                        font-weight: 700;
+                        color: #00d4ff;
+                    }
+
+                    .trending-list .title {
+                        flex: 1;
+                        font-size: var(--font-xs);
+                        color: rgba(255,255,255,0.7);
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                    }
+
+                    /* Leaderboard */
+                    .leaderboard h4 {
+                        background: linear-gradient(135deg, #f59e0b, #d97706);
+                        margin: -16px -16px 14px -16px;
+                        padding: 12px 16px;
+                        border-radius: 14px 14px 0 0;
+                    }
+
+                    .leaderboard h4 svg {
+                        color: #fff;
+                    }
+
+                    .leaderboard ul {
+                        list-style: none;
+                        padding: 0;
+                        margin: 0;
+                    }
+
+                    .leaderboard li {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 8px 0;
+                        border-bottom: 1px solid rgba(255,255,255,0.05);
+                    }
+
+                    .leaderboard li:last-child {
+                        border-bottom: none;
+                    }
+
+                    .medal {
+                        width: 22px;
+                        height: 22px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 50%;
+                        font-size: 10px;
+                        font-weight: 700;
+                    }
+
+                    .medal-1 { background: linear-gradient(135deg, #fbbf24, #d97706); color: #000; }
+                    .medal-2 { background: linear-gradient(135deg, #9ca3af, #6b7280); color: #000; }
+                    .medal-3 { background: linear-gradient(135deg, #b45309, #92400e); color: #fff; }
+                    .medal-4, .medal-5 { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
+
+                    .leaderboard .name {
+                        flex: 1;
+                        font-size: var(--font-xs);
+                    }
+
+                    .leaderboard .points {
+                        font-size: var(--font-xs);
+                        font-weight: 600;
+                        color: #00d4ff;
+                        font-family: 'SF Mono', monospace;
+                    }
+
+                    /* Events */
+                    .events-list {
+                        list-style: none;
+                        padding: 0;
+                        margin: 0;
+                    }
+
+                    .events-list li {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 10px 0;
+                        border-bottom: 1px solid rgba(255,255,255,0.05);
+                        font-size: var(--font-xs);
+                    }
+
+                    .events-list li:last-child {
+                        border-bottom: none;
+                    }
+
+                    .events-list .date {
+                        background: rgba(0,212,255,0.1);
+                        color: #00d4ff;
+                        padding: 4px 8px;
+                        border-radius: 6px;
+                        font-weight: 600;
+                    }
+
+                    @media (max-width: 600px) {
+                        .tabs {
+                            display: none;
+                        }
+                    }
+                `}</style>
             </div>
         </>
     );
