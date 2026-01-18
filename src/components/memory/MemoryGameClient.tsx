@@ -5,6 +5,8 @@
 
 import { useReducer, useEffect, useCallback, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useWorldStore } from '../../state/worldStore';
+import { DiamondRewardService } from '../../services/DiamondRewardService';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES & CONSTANTS
@@ -172,10 +174,29 @@ function gameReducer(state: GameStateType, action: GameAction): GameStateType {
 
 interface MemoryGameClientProps {
     chartId: string;
+    levelIndex?: number; // 0-based index for difficulty scaling (0 = Level 1)
     onExit?: () => void;
+    onLevelComplete?: (passed: boolean, accuracy: number) => void;
 }
 
-export default function MemoryGameClient({ chartId, onExit }: MemoryGameClientProps) {
+export default function MemoryGameClient({
+    chartId,
+    levelIndex = 0,
+    onExit,
+    onLevelComplete
+}: MemoryGameClientProps) {
+    // Economy integration
+    const addXP = useWorldStore(state => state.addXP);
+    const addDiamonds = useWorldStore(state => state.addDiamonds);
+    const [rewardService] = useState(() => new DiamondRewardService(supabase));
+
+    // Dynamic difficulty
+    const getPassThreshold = useCallback((level: number): number => {
+        // Formula: 85% + (2% per level), capped at 100%
+        return Math.min(100, 85 + (level * 2)) / 100;
+    }, []);
+
+    const requiredAccuracy = getPassThreshold(levelIndex);
     const [gameState, dispatch] = useReducer(gameReducer, {
         state: 'IDLE',
         chartId: null,

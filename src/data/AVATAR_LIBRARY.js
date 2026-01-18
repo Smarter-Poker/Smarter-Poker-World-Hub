@@ -68,16 +68,7 @@ export const AVATAR_LIBRARY = [
         tags: ['science', 'smart', 'methodical']
     },
 
-    {
-        id: 'free-people-006',
-        name: 'Stand-Up Comic',
-        description: 'Always joking around',
-        category: 'people',
-        tier: 'FREE',
-        personality: 'friendly',
-        image: '/avatars/free/rockstar.png',
-        tags: ['comedy', 'fun', 'energetic']
-    },
+
     {
         id: 'free-people-007',
         name: 'Pop Star',

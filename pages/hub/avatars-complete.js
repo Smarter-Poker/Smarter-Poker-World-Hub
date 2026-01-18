@@ -185,7 +185,7 @@ export default function AvatarsComplete() {
     return (
         <>
             <Head>
-                <title>Avatar Selection | Smarter Poker</title>
+                <title>Avatar Selection | Smarter.Poker</title>
             </Head>
 
             <div style={{
