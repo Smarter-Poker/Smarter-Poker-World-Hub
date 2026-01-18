@@ -14,6 +14,7 @@ import { supabase } from '../../../src/lib/supabase';
 
 // God-Mode Stack
 import { useUserProfileStore } from '../../../src/stores/userProfileStore';
+import PageTransition from '../../../src/components/transitions/PageTransition';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -197,7 +198,7 @@ export default function UserProfilePage() {
     const isOwnProfile = currentUser?.id === profile.id;
 
     return (
-        <>
+        <PageTransition>
             <Head><title>{profile.username || 'Profile'} | Smarter.Poker</title></Head>
             <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 {/* Header */}
@@ -323,6 +324,6 @@ export default function UserProfilePage() {
                     )}
                 </div>
             </div>
-        </>
+        </PageTransition>
     );
 }

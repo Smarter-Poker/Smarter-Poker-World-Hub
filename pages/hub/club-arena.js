@@ -14,6 +14,7 @@ import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader'
 
 // God-Mode Stack
 import { useClubArenaStore } from '../../src/stores/clubArenaStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 export default function ClubArenaPage() {
     const router = useRouter();
@@ -56,7 +57,7 @@ export default function ClubArenaPage() {
     }
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Club Arena | Smarter.Poker</title>
                 <meta name="description" content="Private poker clubs, better than PokerBros" />
@@ -102,7 +103,7 @@ export default function ClubArenaPage() {
                     to { transform: rotate(360deg); }
                 }
             `}</style>
-        </>
+        </PageTransition>
     );
 }
 

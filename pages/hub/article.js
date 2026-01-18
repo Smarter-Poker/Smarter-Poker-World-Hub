@@ -12,6 +12,7 @@ import { supabase } from '../../src/lib/supabase';
 
 // God-Mode Stack
 import { useArticleStore } from '../../src/stores/articleStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 export default function ArticlePage() {
     const router = useRouter();
@@ -111,7 +112,7 @@ export default function ArticlePage() {
     }
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>{article.title} | Smarter.Poker</title>
                 <meta name="description" content={article.excerpt || article.content?.substring(0, 160)} />
@@ -329,6 +330,6 @@ export default function ArticlePage() {
                     }
                 `}</style>
             </div>
-        </>
+        </PageTransition>
     );
 }

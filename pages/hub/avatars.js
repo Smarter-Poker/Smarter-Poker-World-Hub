@@ -15,6 +15,7 @@ import AvatarGallery from '../../src/components/avatars/AvatarGallery';
 
 // God-Mode Stack
 import { useAvatarsStore } from '../../src/stores/avatarsStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 export default function AvatarsPage() {
     const { avatar, user, refreshUser } = useAvatar();
@@ -27,7 +28,7 @@ export default function AvatarsPage() {
     }, []);
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Avatar Selection | Smarter Poker</title>
                 <meta name="description" content="Choose your poker avatar from preset options or create a custom AI-generated avatar" />
@@ -147,6 +148,6 @@ export default function AvatarsPage() {
                     <AvatarGallery />
                 </div>
             </div>
-        </>
+        </PageTransition>
     );
 }

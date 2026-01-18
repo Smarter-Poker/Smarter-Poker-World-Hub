@@ -33,6 +33,7 @@ import { supabase } from '../../src/lib/supabase';
 
 // God-Mode Stack
 import { useMemoryStore } from '../../src/stores/memoryStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💎 DIAMOND ENGINE — Local storage with VIP check
@@ -1485,7 +1486,7 @@ export default function MemoryGamesPage() {
     const getLevelScenarios = (level) => getScenariosByLevel(level).length;
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Memory Matrix — Smarter.Poker</title>
                 <meta name="description" content="Master GTO ranges through video game training" />
@@ -2060,7 +2061,7 @@ export default function MemoryGamesPage() {
                     50% { transform: scale(1.1); }
                 }
             `}</style >
-        </>
+        </PageTransition>
     );
 }
 

@@ -12,6 +12,7 @@ import { supabase } from '../../src/lib/supabase';
 
 // God-Mode Stack
 import { useNotificationsStore } from '../../src/stores/notificationsStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -72,7 +73,7 @@ export default function NotificationsPage() {
     }
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Notifications | Smarter.Poker</title>
                 <meta name="viewport" content="width=800, user-scalable=no" />
@@ -152,6 +153,6 @@ export default function NotificationsPage() {
                 {/* Bottom padding for mobile nav */}
                 <div style={{ height: 80 }} />
             </div>
-        </>
+        </PageTransition>
     );
 }

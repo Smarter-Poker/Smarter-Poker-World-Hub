@@ -12,6 +12,7 @@ import { getAll, getByTier } from '../../src/data/AVATAR_LIBRARY';
 
 // God-Mode Stack
 import { useAvatarsStandaloneStore } from '../../src/stores/avatarsStandaloneStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 export default function AvatarsStandalone() {
     const [avatars, setAvatars] = useState([]);
@@ -29,7 +30,7 @@ export default function AvatarsStandalone() {
     }
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Avatar Selection | Smarter Poker</title>
             </Head>
@@ -151,6 +152,6 @@ export default function AvatarsStandalone() {
                     </div>
                 </div>
             </div>
-        </>
+        </PageTransition>
     );
 }

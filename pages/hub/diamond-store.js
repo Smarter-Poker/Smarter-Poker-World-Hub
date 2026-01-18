@@ -11,6 +11,7 @@ import confetti from 'canvas-confetti';
 
 // God-Mode Stack
 import { useDiamondStoreStore } from '../../src/stores/diamondStoreStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DIAMOND PACKAGES — Available for purchase
@@ -197,7 +198,7 @@ export default function DiamondStorePage() {
     const selectedPkg = DIAMOND_PACKAGES.find(p => p.id === selectedPackage);
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Diamond Store — Smarter.Poker</title>
                 <meta name="description" content="Purchase diamonds to unlock premium features" />
@@ -484,7 +485,7 @@ export default function DiamondStorePage() {
                     </p>
                 </div>
             </div>
-        </>
+        </PageTransition>
     );
 }
 

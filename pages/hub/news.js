@@ -16,6 +16,7 @@ import {
 
 // God-Mode Stack
 import { useNewsStore } from '../../src/stores/newsStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 // Fallback data in case DB is empty
 const FALLBACK_NEWS = [
@@ -212,7 +213,7 @@ export default function NewsHub() {
     const trendingNews = [...news].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>News | Smarter.Poker</title>
                 <meta name="description" content="Latest poker news, tournament updates, strategy tips, and industry insights from Smarter.Poker" />
@@ -965,6 +966,6 @@ export default function NewsHub() {
                     }
                 `}</style>
             </div>
-        </>
+        </PageTransition>
     );
 }

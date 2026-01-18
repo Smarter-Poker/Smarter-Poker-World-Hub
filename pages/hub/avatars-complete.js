@@ -15,6 +15,7 @@ import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilde
 
 // God-Mode Stack
 import { useAvatarsCompleteStore } from '../../src/stores/avatarsCompleteStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 // Initialize Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
@@ -188,7 +189,7 @@ export default function AvatarsComplete() {
     }
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Avatar Selection | Smarter.Poker</title>
             </Head>
@@ -513,6 +514,6 @@ export default function AvatarsComplete() {
                     </div>
                 )
             }
-        </>
+        </PageTransition>
     );
 }

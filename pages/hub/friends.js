@@ -13,6 +13,7 @@ import { supabase } from '../../src/lib/supabase';
 
 // God-Mode Stack
 import { useFriendsStore } from '../../src/stores/friendsStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 const C = {
     bg: '#0a0a0a', card: '#1a1a1a', cardHover: '#252525', text: '#FFFFFF', textSec: '#9ca3af',
@@ -717,7 +718,7 @@ export default function FriendsPage() {
     };
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Friends & Followers | Smarter.Poker</title>
                 <meta name="viewport" content="width=800, user-scalable=no" />
@@ -826,7 +827,7 @@ export default function FriendsPage() {
                     {renderContent()}
                 </div>
             </div>
-        </>
+        </PageTransition>
     );
 }
 

@@ -13,6 +13,7 @@ import { POKER_IQ_ORBS, getOrbById } from '../../src/orbs/manifest/registry';
 
 // God-Mode Stack
 import { useOrbPageStore } from '../../src/stores/orbPageStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 // ORB METADATA — Descriptions and icons for each orb world
 const ORB_METADATA = {
@@ -126,7 +127,7 @@ export default function OrbPage() {
     const orbConfig = getOrbById(orbKey);
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>{orbMeta.title} — Smarter.Poker</title>
                 <meta name="description" content={orbMeta.description} />
@@ -194,7 +195,7 @@ export default function OrbPage() {
                     </div>
                 </div>
             </div>
-        </>
+        </PageTransition>
     );
 }
 

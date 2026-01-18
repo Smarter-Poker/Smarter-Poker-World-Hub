@@ -15,6 +15,7 @@ import { ThemeProvider } from '../src/providers/ThemeProvider';
 import { UnreadProvider } from '../src/hooks/useUnreadCount';
 import { SoundEngine } from '../src/audio/SoundEngine';
 import { AvatarProvider } from '../src/contexts/AvatarContext';
+import ToastContainer from '../src/components/ui/ToastContainer';
 
 // Dynamic import to avoid SSR issues with celebration animations
 const CelebrationManager = dynamic(
@@ -140,6 +141,7 @@ export default function App({ Component, pageProps }) {
             <NavigationGuard>
               <Component {...pageProps} />
               <CelebrationManager />
+              <ToastContainer />
             </NavigationGuard>
           </AvatarProvider>
         </UnreadProvider>

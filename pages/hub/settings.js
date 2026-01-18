@@ -14,6 +14,7 @@ import { supabase } from '../../src/lib/supabase';
 
 // God-Mode Stack
 import { useSettingsStore } from '../../src/stores/settingsStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT
@@ -134,7 +135,7 @@ export default function SettingsPage() {
     ];
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Settings — Smarter.Poker</title>
                 <meta name="description" content="Configure your Smarter.Poker experience" />
@@ -431,7 +432,7 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
-        </>
+        </PageTransition>
     );
 }
 

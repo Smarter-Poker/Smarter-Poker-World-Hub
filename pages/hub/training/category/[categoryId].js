@@ -21,6 +21,7 @@ import GameIntroSplash from '../../../../src/components/training/GameIntroSplash
 
 // God-Mode Stack
 import { useTrainingCategoryStore } from '../../../../src/stores/trainingCategoryStore';
+import PageTransition from '../../../../src/components/transitions/PageTransition';
 
 // Category metadata
 const CATEGORY_META = {
@@ -95,7 +96,7 @@ export default function CategoryPage() {
     }
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>{categoryMeta.title} — PokerIQ Training</title>
                 <style>{`
@@ -163,7 +164,7 @@ export default function CategoryPage() {
                     </div>
                 </div>
             </div>
-        </>
+        </PageTransition>
     );
 }
 

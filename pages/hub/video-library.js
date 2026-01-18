@@ -12,6 +12,7 @@ import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader'
 
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 // Full video catalog with YouTube embeds - 138 VIDEOS (96 cash + 42 tournaments)
 const FULL_VIDEOS = [
@@ -275,7 +276,7 @@ export default function VideoLibraryPage() {
     const getThumbnail = (videoId) => `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Video Library | Smarter Poker</title>
                 <meta name="description" content="Watch full poker videos from HCL, The Lodge, Triton, and more" />
@@ -788,6 +789,6 @@ export default function VideoLibraryPage() {
                     opacity: 1 !important;
                 }
             `}</style>
-        </>
+        </PageTransition>
     );
 }

@@ -15,6 +15,7 @@ import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader'
 
 // God-Mode Stack
 import { useDiamondArenaStore } from '../../src/stores/diamondArenaStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
 
 export default function DiamondArenaPage() {
     const router = useRouter();
@@ -71,7 +72,7 @@ export default function DiamondArenaPage() {
     }
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Diamond Arena — Smarter.Poker</title>
                 <meta name="description" content="High-stakes competitive poker with diamond entry fees and massive prize pools" />
@@ -129,7 +130,7 @@ export default function DiamondArenaPage() {
                     100% { transform: translateX(100%); }
                 }
             `}</style>
-        </>
+        </PageTransition>
     );
 }
 
