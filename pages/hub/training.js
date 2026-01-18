@@ -28,6 +28,8 @@ import GameIntroSplash from '../../src/components/training/GameIntroSplash';
 
 // God-Mode Stack
 import { useTrainingStore } from '../../src/stores/trainingStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
+import { masteryCelebration, achievementCelebration } from '../../src/utils/confetti';
 // import { trainingSounds } from '../../src/utils/trainingSounds'; // TODO: Add sounds when files are ready
 
 // Register GSAP plugins
@@ -608,7 +610,7 @@ export default function TrainingPage() {
     }
 
     return (
-        <>
+        <PageTransition>
             <Head>
                 <title>Training — PokerIQ | 100 Games to Master</title>
                 {/* 
@@ -759,7 +761,7 @@ export default function TrainingPage() {
                     <span>85% to Master</span>
                 </div>
             </div>
-        </>
+        </PageTransition>
     );
 }
 
