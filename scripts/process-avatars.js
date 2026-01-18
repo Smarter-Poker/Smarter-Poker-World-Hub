@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const AVATARS_DIR = path.join(__dirname, '../public/avatars');
-const THRESHOLD = 220; // RGB threshold for white removal (lowered to catch off-white backgrounds)
+const THRESHOLD = 235; // RGB threshold - balanced to remove backgrounds while preserving light features
 
 async function processAvatar(filePath) {
     try {

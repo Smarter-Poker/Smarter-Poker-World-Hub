@@ -74,7 +74,7 @@ IMPORTANT: This is for a poker player avatar - just the character portrait with 
             .then(({ data, info }) => {
                 // Process each pixel to make white pixels transparent
                 const pixels = new Uint8ClampedArray(data);
-                const threshold = 240; // Pixels brighter than this become transparent
+                const threshold = 235; // Balanced threshold for background removal
 
                 for (let i = 0; i < pixels.length; i += 4) {
                     const r = pixels[i];
