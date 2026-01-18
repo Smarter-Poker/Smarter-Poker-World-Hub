@@ -7,11 +7,16 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { MediaLibrary } from '../../src/components/social/MediaLibrary';
 import { ProfilePictureHistory } from '../../src/components/social/ProfilePictureHistory';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { supabase } from '../../src/lib/supabase';
+
+// God-Mode Stack
+import { useProfileStore } from '../../src/stores/profileStore';
 
 // Light Theme Colors
 const C = {
@@ -224,12 +229,19 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
 export default function ProfilePage() {
     const router = useRouter();
     const { avatar } = useAvatar();
+
+    // Zustand Global State (replaces UI-related useState)
+    const libraryOpen = useProfileStore((s) => s.libraryOpen);
+    const setLibraryOpen = useProfileStore((s) => s.setLibraryOpen);
+    const saving = useProfileStore((s) => s.saving);
+    const setSaving = useProfileStore((s) => s.setSaving);
+    const isRefreshing = useProfileStore((s) => s.isRefreshing);
+    const setIsRefreshing = useProfileStore((s) => s.setIsRefreshing);
+
+    // Local state (keep for data/session)
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [libraryOpen, setLibraryOpen] = useState(false);
 
     // Profile fields
     const [profile, setProfile] = useState({
