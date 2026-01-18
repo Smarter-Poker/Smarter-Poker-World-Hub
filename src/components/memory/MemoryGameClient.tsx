@@ -337,11 +337,7 @@ export default function MemoryGameClient({
         onExit?.();
     };
 
-    // Calculate pass/fail
-    const accuracy = gameState.sessionResults.length > 0
-        ? gameState.correctCount / gameState.sessionResults.length
-        : 0;
-    const passed = accuracy >= PASS_THRESHOLD;
+    // Calculate pass/fail (moved to SUMMARY state to use dynamic threshold)
 
     // ═══════════════════════════════════════════════════════════════════════
     // RENDER: IDLE STATE
@@ -593,7 +589,63 @@ export default function MemoryGameClient({
     // ═══════════════════════════════════════════════════════════════════════
 
     if (gameState.state === 'SUMMARY') {
-        const diamondsEarned = passed ? Math.floor(gameState.sessionXP / 10) : 0;
+        const passed = accuracy >= requiredAccuracy;
+        const [rewardsProcessed, setRewardsProcessed] = useState(false);
+        const [backendRewards, setBackendRewards] = useState<{ xp: number; diamonds: number } | null>(null);
+
+        // Process rewards on mount (only once)
+        useEffect(() => {
+            if (!rewardsProcessed && passed) {
+                processRewards();
+            }
+        }, []);
+
+        const processRewards = async () => {
+            setRewardsProcessed(true);
+
+            // Award local XP
+            addXP(gameState.sessionXP);
+
+            // Call backend reward service
+            try {
+                const sessionTimeSeconds = Math.floor((Date.now() - gameState.startTime) / 1000);
+                const results = await rewardService.onLevelComplete(
+                    levelIndex + 1, // Convert 0-based to 1-based
+                    accuracy,
+                    sessionTimeSeconds
+                );
+
+                // Sum up diamonds from all rewards
+                let totalDiamonds = 0;
+                results.forEach(result => {
+                    if (result.success && result.diamonds_awarded) {
+                        totalDiamonds += result.diamonds_awarded;
+                    }
+                });
+
+                // Update local state
+                if (totalDiamonds > 0) {
+                    addDiamonds(totalDiamonds);
+                }
+
+                setBackendRewards({
+                    xp: gameState.sessionXP,
+                    diamonds: totalDiamonds
+                });
+
+                // Notify parent component
+                onLevelComplete?.(passed, accuracy);
+            } catch (error) {
+                console.error('Failed to process rewards:', error);
+                // Fallback: still show local rewards
+                setBackendRewards({
+                    xp: gameState.sessionXP,
+                    diamonds: Math.floor(gameState.sessionXP / 10)
+                });
+            }
+        };
+
+        const displayDiamonds = backendRewards?.diamonds ?? (passed ? Math.floor(gameState.sessionXP / 10) : 0);
 
         return (
             <div className={`min-h-screen ${passed ? 'bg-gradient-to-br from-yellow-900 via-slate-900 to-yellow-900' : 'bg-gradient-to-br from-slate-900 via-red-900 to-slate-900'} text-white p-8`}>
@@ -608,7 +660,7 @@ export default function MemoryGameClient({
                             {Math.round(accuracy * 100)}% Accuracy
                         </div>
                         <div className="text-sm text-slate-400 mt-2">
-                            (Need {Math.round(PASS_THRESHOLD * 100)}% to pass)
+                            (Need {Math.round(requiredAccuracy * 100)}% to pass • Level {levelIndex + 1})
                         </div>
                     </div>
 
@@ -629,7 +681,10 @@ export default function MemoryGameClient({
                         {passed && (
                             <div className="flex justify-between pt-2">
                                 <span className="text-slate-400">Diamonds Earned</span>
-                                <span className="font-bold text-yellow-400">💎 +{diamondsEarned}</span>
+                                <span className="font-bold text-yellow-400">
+                                    💎 +{displayDiamonds}
+                                    {backendRewards === null && <span className="text-xs ml-2 text-slate-500">(processing...)</span>}
+                                </span>
                             </div>
                         )}
                     </div>

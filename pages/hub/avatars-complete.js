@@ -332,20 +332,16 @@ export default function AvatarsComplete() {
                                             }}>
                                             ✕
                                         </button>
-                                        <Image
+                                        <img
                                             src={custom.image_url}
                                             alt="Custom Avatar"
-                                            width={200}
-                                            height={200}
                                             style={{
                                                 width: '100%',
-                                                height: 'auto',
                                                 aspectRatio: '1',
                                                 borderRadius: '8px',
                                                 marginBottom: '10px',
                                                 objectFit: 'cover'
                                             }}
-                                            loading="lazy"
                                         />
                                         <div style={{
                                             fontSize: '13px',
