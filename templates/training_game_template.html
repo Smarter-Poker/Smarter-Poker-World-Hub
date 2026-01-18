@@ -857,6 +857,19 @@
 
         <script>
             document.addEventListener('DOMContentLoaded', () => {
+                // ═══════════════════════════════════════════════════════════
+                // READ GAME DATA FROM URL PARAMETERS
+                // ═══════════════════════════════════════════════════════════
+                const urlParams = new URLSearchParams(window.location.search);
+                const gameId = urlParams.get('gameId') || 'mtt-002';
+                const gameName = urlParams.get('gameName') || 'ICM Fundamentals';
+
+                // Update game title in UI
+                const gameTitleElement = document.querySelector('.game-type');
+                if (gameTitleElement) {
+                    gameTitleElement.textContent = gameName;
+                }
+
                 // LOCKED LAW POSITIONS - Enforce on page load
                 const lockedPositions = {
                     v1: { left: '760px', top: '926px' },
@@ -880,8 +893,10 @@
                     }
                 }
 
-                // 9 Unique Transparent Avatars - No Repeats
-                const AVATARS = [
+                // ═══════════════════════════════════════════════════════════
+                // RANDOM AVATAR GENERATION - Different for each game load
+                // ═══════════════════════════════════════════════════════════
+                const ALL_AVATARS = [
                     "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fviking_warrior.png&w=640&q=75",
                     "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fwizard.png&w=640&q=75",
                     "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fninja.png&w=640&q=75",
@@ -890,12 +905,28 @@
                     "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fpharaoh.png&w=640&q=75",
                     "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fpirate.png&w=640&q=75",
                     "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fcowboy.png&w=640&q=75",
-                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Ffox.png&w=640&q=75"
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Ffox.png&w=640&q=75",
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fsamurai.png&w=640&q=75",
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Frobot.png&w=640&q=75",
+                    "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fknight.png&w=640&q=75"
                 ];
 
-                // Assign each avatar to a player (no shuffling to prevent repeats)
+                // Shuffle array using Fisher-Yates algorithm
+                function shuffleArray(array) {
+                    const shuffled = [...array];
+                    for (let i = shuffled.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                    }
+                    return shuffled;
+                }
+
+                // Get 9 random unique avatars (8 villains + 1 hero)
+                const selectedAvatars = shuffleArray(ALL_AVATARS).slice(0, 9);
+
+                // Assign each avatar to a player
                 document.querySelectorAll('.avatar img').forEach((img, i) => {
-                    img.src = AVATARS[i];
+                    img.src = selectedAvatars[i];
                 });
 
                 // ═══════════════════════════════════════════════════════════
