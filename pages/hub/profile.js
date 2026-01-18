@@ -9,14 +9,16 @@ import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { MediaLibrary } from '../../src/components/social/MediaLibrary';
-import { ProfilePictureHistory } from '../../src/components/social/ProfilePictureHistory';
-import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import { supabase } from '../../src/lib/supabase';
+import { supabase } from '../../src/lib/supabaseClient';
+import { uploadAvatar } from '../../src/lib/storage';
+import { getAll } from '../../src/data/AVATAR_LIBRARY';
 
 // God-Mode Stack
 import { useProfileStore } from '../../src/stores/profileStore';
+import PageTransition from '../../src/components/transitions/PageTransition';
+import { staggerContainer, staggerItem } from '../../src/utils/animations';
+import toast from '../../src/stores/toastStore';
 
 // Light Theme Colors
 const C = {
