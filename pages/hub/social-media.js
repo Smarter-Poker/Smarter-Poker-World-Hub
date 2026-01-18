@@ -360,13 +360,16 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         let type = media.some(m => m.type === 'video') ? 'video' : media.length ? 'photo' : 'text';
 
         // 🎬 AUTO-DETECT YOUTUBE URLs in content and convert to video post
-        const youtubeRegex = /(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/;
+        const youtubeRegex = /(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/g;
         const youtubeMatch = content.match(youtubeRegex);
+        let cleanContent = content;
         if (youtubeMatch && type === 'text') {
             // Found a YouTube URL in text-only post - convert to video post
             const fullUrl = youtubeMatch[0].startsWith('http') ? youtubeMatch[0] : `https://${youtubeMatch[0]}`;
             urls = [fullUrl];
             type = 'video';
+            // 🎯 FACEBOOK-STYLE: Remove the URL from content text (only show video preview)
+            cleanContent = content.replace(youtubeRegex, '').trim();
         }
 
         // Extract mentions from content
@@ -377,7 +380,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
             mentions.push(match[1]);
         }
 
-        const ok = await onPost(content, urls, type, mentions);
+        const ok = await onPost(cleanContent, urls, type, mentions);
         if (ok) { setContent(''); setMedia([]); }
         else setError('Unable to post at this time. Please try again later.');
     };
