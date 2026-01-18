@@ -16,11 +16,14 @@ import type {
     Player,
     ActionLogEntry,
     Scenario,
-    ActionType
+    ActionType,
+    TableSize
 } from '../types/poker';
+import { getBlindPositions, getPreflopActionOrder, getVillainNames } from './SeatLayouts';
 
 export class ScenarioGenerator {
     private config: GameConfig;
+    private tableSize: TableSize;
     private players: Player[];
     private pot: number;
     private actionLog: ActionLogEntry[];
@@ -31,6 +34,7 @@ export class ScenarioGenerator {
 
     constructor(config: GameConfig) {
         this.config = config;
+        this.tableSize = config.tableSize || 9;
         this.players = [];
         this.pot = 0;
         this.actionLog = [];
@@ -63,6 +67,7 @@ export class ScenarioGenerator {
 
         return {
             config: this.config,
+            tableSize: this.tableSize,
             players: this.clonePlayers(),
             buttonSeat: this.buttonSeat,
             heroSeat: this.heroSeat,
@@ -75,21 +80,19 @@ export class ScenarioGenerator {
     }
 
     /**
-     * 👥 Initialize 9 players with random hero seat
+     * 👥 Initialize players based on table size
      */
     private initializePlayers(): void {
-        this.heroSeat = Math.floor(Math.random() * 9);
-        this.buttonSeat = Math.floor(Math.random() * 9);
+        const playerCount = this.tableSize;
+        this.heroSeat = 0; // Hero always at seat 0 (bottom)
+        this.buttonSeat = Math.floor(Math.random() * playerCount);
 
-        const villainNames = [
-            'Viking', 'Wizard', 'Ninja', 'Wolf', 'Spartan',
-            'Pharaoh', 'Pirate', 'Cowboy', 'Fox'
-        ];
+        const villainNames = getVillainNames(this.tableSize);
 
-        for (let seat = 0; seat < 9; seat++) {
+        for (let seat = 0; seat < playerCount; seat++) {
             this.players.push({
                 seat,
-                name: seat === this.heroSeat ? 'Hero' : villainNames[seat],
+                name: seat === this.heroSeat ? 'Hero' : villainNames[seat - 1] || `Villain ${seat}`,
                 stack: this.config.startStack,
                 startingStack: this.config.startStack,
                 currentBet: 0,
@@ -118,8 +121,7 @@ export class ScenarioGenerator {
      * 🎯 PHASE B: Post small blind and big blind
      */
     private phaseB_Blinds(): void {
-        const sbSeat = (this.buttonSeat + 1) % 9;
-        const bbSeat = (this.buttonSeat + 2) % 9;
+        const { sbSeat, bbSeat } = getBlindPositions(this.tableSize, this.buttonSeat);
         const sbPlayer = this.players[sbSeat];
         const bbPlayer = this.players[bbSeat];
 
@@ -194,29 +196,40 @@ export class ScenarioGenerator {
     }
 
     /**
-     * 🔄 Get preflop action order (UTG to Button)
+     * 🔄 Get preflop action order based on table size
      */
     private getPreflopActionOrder(): number[] {
-        const order: number[] = [];
-        const utgSeat = (this.buttonSeat + 3) % 9; // UTG is 3 seats after button
-
-        for (let i = 0; i < 9; i++) {
-            order.push((utgSeat + i) % 9);
-        }
-
-        return order;
+        return getPreflopActionOrder(this.tableSize, this.buttonSeat);
     }
 
     /**
-     * 🎲 Get random action for a player
+     * 🎲 Get random action for a player (adjusted by table size)
      */
     private getRandomAction(player: Player, needsToAct: boolean): 'FOLD' | 'CALL' | 'RAISE' | 'CHECK' {
         if (!needsToAct) return 'CHECK';
 
+        // Adjust action frequencies by table size
+        // Heads-Up: More aggressive (wider ranges)
+        // 6-Max: Aggressive
+        // Full Ring: Tighter play
         const rand = Math.random();
-        if (rand < 0.3) return 'FOLD';
-        if (rand < 0.8) return 'CALL';
-        return 'RAISE';
+
+        if (this.tableSize === 2) {
+            // Heads-Up: Very aggressive
+            if (rand < 0.15) return 'FOLD';
+            if (rand < 0.5) return 'CALL';
+            return 'RAISE';
+        } else if (this.tableSize === 6) {
+            // 6-Max: Aggressive
+            if (rand < 0.2) return 'FOLD';
+            if (rand < 0.6) return 'CALL';
+            return 'RAISE';
+        } else {
+            // Full Ring: Standard/tight
+            if (rand < 0.3) return 'FOLD';
+            if (rand < 0.8) return 'CALL';
+            return 'RAISE';
+        }
     }
 
     /**

@@ -19,6 +19,7 @@ import { useGameAudio } from '../../hooks/useGameAudio';
 import { useProgression, type RewardBreakdown, type Leak } from '../../hooks/useProgression';
 import { useAssetPreloader } from '../../lib/AssetPreloader';
 import { useNetworkGuard, OfflineBadge } from '../../lib/GameGuard';
+import { SEAT_LAYOUTS, getTableFormatName, type TableSize } from '../../lib/SeatLayouts';
 import type { Scenario, ActionLogEntry, GameConfig, Player } from '../../types/poker';
 
 interface DirectorProps {
@@ -514,7 +515,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                 {/* Left: Game Info + Streak */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ color: '#00d4ff', fontWeight: 700 }}>
-                        {currentScenario.config.bigBlind}BB Game
+                        {getTableFormatName((currentScenario?.tableSize || 9) as TableSize)} • {currentScenario.config.bigBlind}BB
                     </div>
                     {/* 🔥 STREAK FIRE ICON */}
                     {progression.isStreakOnFire() && (
@@ -725,10 +726,13 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
             <div style={{ position: 'absolute', inset: '80px 20px 250px 20px' }}>
                 {state.players.map((player, index) => {
                     const isHero = player.isHero;
-                    const angle = (index / 9) * 360 - 90;
-                    const radius = isHero ? 0 : 35;
-                    const x = isHero ? 50 : 50 + radius * Math.cos(angle * Math.PI / 180);
-                    const y = isHero ? 85 : 50 + radius * Math.sin(angle * Math.PI / 180);
+                    const tableSize = (currentScenario?.tableSize || 9) as TableSize;
+                    const seatLayout = SEAT_LAYOUTS[tableSize];
+
+                    // Get position from seat layout, fallback to calculated position
+                    const seatPosition = seatLayout[index];
+                    const x = seatPosition?.x ?? 50;
+                    const y = seatPosition?.y ?? 50;
 
                     return (
                         <motion.div

@@ -3,10 +3,13 @@
  * Shared types for The Architect and The Director
  */
 
+export type TableSize = 9 | 6 | 4 | 2;
+
 export interface GameConfig {
     bigBlind: number;
     ante: number;
     startStack: number;
+    tableSize?: TableSize; // 9-max, 6-max, 4-max, or heads-up
 }
 
 export interface Player {
@@ -44,6 +47,7 @@ export interface ActionLogEntry {
 
 export interface Scenario {
     config: GameConfig;
+    tableSize: TableSize;
     players: Player[];
     buttonSeat: number;
     heroSeat: number;
