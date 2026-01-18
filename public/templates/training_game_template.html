@@ -926,6 +926,21 @@
                     'v8': { left: '80%', top: '78%' }
                 };
 
+                // ═══════════════════════════════════════════════════════════
+                // VILLAIN CARD POSITION LAW - LOCKED PIXEL POSITIONS
+                // These positions are IMMUTABLE per VILLAIN_CARD_POSITION_LAW.md
+                // ═══════════════════════════════════════════════════════════
+                const LOCKED_CARD_POSITIONS = {
+                    v1: { left: '760px', top: '926px' },
+                    v2: { left: '779px', top: '694px' },
+                    v3: { left: '778px', top: '478px' },
+                    v4: { left: '663px', top: '282px' },
+                    v5: { left: '289px', top: '281px' },
+                    v6: { left: '170px', top: '474px' },
+                    v7: { left: '172px', top: '696px' },
+                    v8: { left: '193px', top: '922px' }
+                };
+
                 const AVATARS = [
                     '/avatars/vip/viking_warrior.png',
                     '/avatars/free/wizard.png',
@@ -941,7 +956,7 @@
                 // Shuffle avatars
                 const shuffled = [...AVATARS].sort(() => Math.random() - 0.5);
 
-                // Generate villains (v1-v8)
+                // Generate villains (v1-v8) - WITHOUT cards (cards will be added separately)
                 for (let i = 1; i <= 8; i++) {
                     const id = `v${i}`;
                     const pos = SEAT_POSITIONS[id];
@@ -960,10 +975,6 @@
                         <div class="player-info">
                             <div class="player-name">Villain ${i}</div>
                             <div class="player-stack">20 BB</div>
-                        </div>
-                        <div class="opponent-cards">
-                            <div class="opponent-card"></div>
-                            <div class="opponent-card"></div>
                         </div>
                     `;
 
@@ -990,6 +1001,27 @@
                 `;
 
                 container.appendChild(hero);
+
+                // ═══════════════════════════════════════════════════════════
+                // ENFORCE LOCKED CARD POSITIONS - Append to body with fixed coords
+                // ═══════════════════════════════════════════════════════════
+                for (let villain in LOCKED_CARD_POSITIONS) {
+                    const cardPos = LOCKED_CARD_POSITIONS[villain];
+                    const cards = document.createElement('div');
+                    cards.className = 'opponent-cards';
+                    cards.setAttribute('data-villain', villain);
+                    cards.style.position = 'absolute';
+                    cards.style.left = cardPos.left;
+                    cards.style.top = cardPos.top;
+                    cards.style.zIndex = '100';
+
+                    cards.innerHTML = `
+                        <div class="opponent-card"></div>
+                        <div class="opponent-card"></div>
+                    `;
+
+                    document.body.appendChild(cards);
+                }
             }
 
             // ═══════════════════════════════════════════════════════════════════════════
