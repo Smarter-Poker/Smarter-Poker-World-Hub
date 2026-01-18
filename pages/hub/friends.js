@@ -7,7 +7,12 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
+
+// God-Mode Stack
+import { useFriendsStore } from '../../src/stores/friendsStore';
 
 const C = {
     bg: '#0a0a0a', card: '#1a1a1a', cardHover: '#252525', text: '#FFFFFF', textSec: '#9ca3af',

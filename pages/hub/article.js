@@ -5,8 +5,13 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { ArrowLeft, Clock, Eye, Calendar, Share2, Bookmark, User } from 'lucide-react';
 import { supabase } from '../../src/lib/supabase';
+
+// God-Mode Stack
+import { useArticleStore } from '../../src/stores/articleStore';
 
 export default function ArticlePage() {
     const router = useRouter();

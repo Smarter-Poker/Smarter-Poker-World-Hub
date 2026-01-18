@@ -12,11 +12,15 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import GameCard from '../../../../src/components/training/GameCard';
 import { getGamesByCategory } from '../../../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import { getGameImage } from '../../../../src/data/GAME_IMAGES';
 import GameIntroSplash from '../../../../src/components/training/GameIntroSplash';
+
+// God-Mode Stack
+import { useTrainingCategoryStore } from '../../../../src/stores/trainingCategoryStore';
 
 // Category metadata
 const CATEGORY_META = {

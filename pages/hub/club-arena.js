@@ -8,7 +8,12 @@
 import Head from 'next/head';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+
+// God-Mode Stack
+import { useClubArenaStore } from '../../src/stores/clubArenaStore';
 
 export default function ClubArenaPage() {
     const router = useRouter();

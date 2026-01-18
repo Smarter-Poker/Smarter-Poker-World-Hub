@@ -6,7 +6,12 @@
 
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { getAll, getByTier } from '../../src/data/AVATAR_LIBRARY';
+
+// God-Mode Stack
+import { useAvatarsStandaloneStore } from '../../src/stores/avatarsStandaloneStore';
 
 export default function AvatarsStandalone() {
     const [avatars, setAvatars] = useState([]);

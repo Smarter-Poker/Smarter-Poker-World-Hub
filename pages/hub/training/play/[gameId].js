@@ -28,6 +28,9 @@ import { getPlayerCount } from '../../../../src/data/PLAYER_COUNT_MAP';
 import { generateLevelQuiz } from '../../../../lib/god-mode-service';
 import { submitAnswer } from '../../../../lib/game-engine-service';
 
+// God-Mode Stack
+import { useTrainingPlayStore } from '../../../../src/stores/trainingPlayStore';
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════

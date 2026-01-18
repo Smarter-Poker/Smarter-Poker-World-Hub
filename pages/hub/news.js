@@ -8,10 +8,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import {
     Search, Clock, Eye, TrendingUp, Trophy, Calendar,
     Zap, Play, Mail, Check, Flame, MapPin, ExternalLink, Loader
 } from 'lucide-react';
+
+// God-Mode Stack
+import { useNewsStore } from '../../src/stores/newsStore';
 
 // Fallback data in case DB is empty
 const FALLBACK_NEWS = [

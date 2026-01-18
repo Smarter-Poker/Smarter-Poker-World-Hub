@@ -261,6 +261,7 @@ export default function ProfilePage() {
         home_casino: '',
         birth_year: '',
         avatar_url: '',
+        card_back_preference: 'white', // Default to white deck
         // HendonMob scraped data
         hendon_total_cashes: null,
         hendon_total_earnings: null,
@@ -387,6 +388,7 @@ export default function ProfilePage() {
                 home_casino: profile.home_casino,
                 birth_year: profile.birth_year,
                 avatar_url: profile.avatar_url,
+                card_back_preference: profile.card_back_preference,
                 updated_at: new Date().toISOString(),
             })
             .eq('id', user.id);
@@ -533,6 +535,55 @@ export default function ProfilePage() {
                             <ProfileField label="Website" value={profile.website} onChange={updateField('website')} placeholder="https://yoursite.com" icon="🌐" />
                             <ProfileField label="Twitter/X" value={profile.twitter} onChange={updateField('twitter')} placeholder="@username" icon="𝕏" />
                             <ProfileField label="Instagram" value={profile.instagram} onChange={updateField('instagram')} placeholder="@username" icon="📸" />
+                        </div>
+                    </div>
+
+                    {/* Card Deck Preference */}
+                    <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                        <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600, color: C.text }}>🎴 Card Deck Preference</h3>
+                        <p style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>
+                            Choose your preferred card back design. This will be used across all games (Training, Club Arena, Diamond Arena).
+                        </p>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                            {['white', 'black', 'red', 'blue'].map(deck => (
+                                <div
+                                    key={deck}
+                                    onClick={() => updateField('card_back_preference')(deck)}
+                                    style={{
+                                        cursor: 'pointer',
+                                        borderRadius: 8,
+                                        border: profile.card_back_preference === deck ? '3px solid #FFD700' : '2px solid #DADDE1',
+                                        padding: 8,
+                                        textAlign: 'center',
+                                        transition: 'all 0.2s ease',
+                                        background: profile.card_back_preference === deck ? 'rgba(255, 215, 0, 0.1)' : 'transparent',
+                                        boxShadow: profile.card_back_preference === deck ? '0 0 15px rgba(255, 215, 0, 0.3)' : 'none'
+                                    }}
+                                >
+                                    <img
+                                        src={`/images/card-backs/${deck}.jpg`}
+                                        alt={`${deck} deck`}
+                                        style={{
+                                            width: '100%',
+                                            height: 100,
+                                            objectFit: 'contain',
+                                            borderRadius: 8,
+                                            marginBottom: 8,
+                                            background: 'transparent'
+                                        }}
+                                    />
+                                    <div style={{
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        color: profile.card_back_preference === deck ? C.gold : C.textSec,
+                                        textTransform: 'uppercase'
+                                    }}>
+                                        {profile.card_back_preference === deck && '✓ '}
+                                        {deck}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
 

@@ -7,9 +7,14 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { createClient } from '@supabase/supabase-js';
 import { getAll } from '../../src/data/AVATAR_LIBRARY';
 import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
+
+// God-Mode Stack
+import { useAvatarsCompleteStore } from '../../src/stores/avatarsCompleteStore';
 
 // Initialize Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
@@ -440,8 +445,8 @@ export default function AvatarsComplete() {
                                     <Image
                                         src={avatar.image}
                                         alt={avatar.name}
-                                        width={200}
-                                        height={200}
+                                        width={138}
+                                        height={138}
                                         style={{
                                             width: '100%',
                                             height: 'auto',

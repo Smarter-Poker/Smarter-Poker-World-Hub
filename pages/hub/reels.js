@@ -6,8 +6,13 @@
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import Link from 'next/link';
+
+// God-Mode Stack
+import { useReelsStore } from '../../src/stores/reelsStore';
 
 const C = {
     bg: '#000000',

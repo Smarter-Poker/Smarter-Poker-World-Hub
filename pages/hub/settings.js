@@ -6,9 +6,14 @@
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { useTheme } from '../../src/providers/ThemeProvider';
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 import { supabase } from '../../src/lib/supabase';
+
+// God-Mode Stack
+import { useSettingsStore } from '../../src/stores/settingsStore';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT

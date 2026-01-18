@@ -6,6 +6,11 @@
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
+
+// God-Mode Stack
+import { useDiamondStoreStore } from '../../src/stores/diamondStoreStore';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DIAMOND PACKAGES — Available for purchase

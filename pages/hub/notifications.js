@@ -6,7 +6,12 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
+
+// God-Mode Stack
+import { useNotificationsStore } from '../../src/stores/notificationsStore';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',

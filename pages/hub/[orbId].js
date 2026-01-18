@@ -7,7 +7,12 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { POKER_IQ_ORBS, getOrbById } from '../../src/orbs/manifest/registry';
+
+// God-Mode Stack
+import { useOrbPageStore } from '../../src/stores/orbPageStore';
 
 // ORB METADATA — Descriptions and icons for each orb world
 const ORB_METADATA = {
