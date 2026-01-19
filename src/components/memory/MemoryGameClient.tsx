@@ -331,7 +331,7 @@ export default function MemoryGameClient({
         const { data, error } = await supabase
             .from('memory_charts_gold')
             .select('*')
-            .eq('id', chartId)
+            .eq('chart_id', chartId)
             .single();
 
         if (error || !data) {
@@ -350,7 +350,7 @@ export default function MemoryGameClient({
     }, [gameState.state, gameState.handIndex]);
 
     const dealNextHand = () => {
-        const chartGrid = gameState.chartData.chart_grid || {};
+        const chartGrid = gameState.chartData.hand_matrix || {};
         const allHands = Object.keys(chartGrid);
 
         // Filter out seen hands

@@ -61,71 +61,33 @@ export default function TrainingPlayPage() {
         });
     }, []);
 
-    // Load game and questions - always proceeds, tries Supabase if possible
+    // Load game and questions immediately - don't wait for Supabase
     useEffect(() => {
-        async function loadGameAndQuiz() {
+        async function loadGame() {
             if (!gameId) return;
 
             const foundGame = getGameById(gameId);
             if (!foundGame) {
+                console.warn('❌ Game not found:', gameId);
                 setLoading(false);
                 return;
             }
 
             setGame(foundGame);
-            const count = getPlayerCount(gameId);
-            setPlayerCount(count);
+            setPlayerCount(getPlayerCount(gameId));
 
+            // Always load fallback questions first (no waiting for Supabase)
             console.log('📚 Loading questions for game:', gameId);
-
-            // Always try to load questions - Supabase attempt if we have userId
-            const levelId = getLevelIdFromGameId(gameId);
-
-            // Try Supabase first if userId is available
-            if (userId) {
-                try {
-                    console.log('🎯 Attempting to load quiz from Supabase...');
-                    const quiz = await generateLevelQuiz(userId, levelId);
-
-                    if (quiz?.questions && quiz.questions.length > 0) {
-                        console.log(`✅ Loaded ${quiz.questions.length} questions from Supabase`);
-                        const transformedQuestions = quiz.questions.map((q, idx) => ({
-                            id: q.scenario_hash || `q-${idx}`,
-                            title: q.level_name || 'GTO Decision',
-                            scenario: `${q.street || 'Flop'} - ${q.board_cards?.join(' ') || 'Preflop'}`,
-                            situation: `Stack: ${q.stack_depth}BB | ${q.game_type || 'Cash'} Game`,
-                            heroCards: q.hero_cards || ['Ah', 'Kh'],
-                            board: q.board_cards || [],
-                            potSize: q.pot_size || 12,
-                            heroPosition: q.position || 'BTN',
-                            heroStack: q.stack_depth || 40,
-                            options: [
-                                { id: 'fold', text: 'FOLD', isCorrect: q.best_action === 'Fold', ev: q.fold_ev || 0 },
-                                { id: 'call', text: 'CALL', isCorrect: q.best_action === 'Call', ev: q.call_ev || 0 },
-                                { id: 'raise', text: 'RAISE', isCorrect: q.best_action === 'Raise', ev: q.raise_ev || 0 },
-                                { id: 'all-in', text: 'ALL-IN', isCorrect: q.best_action === 'AllIn', ev: q.allin_ev || 0 },
-                            ],
-                            explanation: `Best action: ${q.best_action || 'Check'} based on GTO analysis.`,
-                            is_review: q.is_review || false,
-                        }));
-                        setQuestions(transformedQuestions);
-                        setLoading(false);
-                        return;
-                    }
-                } catch (error) {
-                    console.warn('⚠️ Could not load from Supabase:', error);
-                }
-            }
-
-            // Fallback to static questions (always reaches here if Supabase fails or no userId)
-            console.log('📖 Using static fallback questions');
             const gameQuestions = getQuestionsForGame(gameId);
+
             if (gameQuestions && gameQuestions.length > 0) {
+                console.log(`✅ Loaded ${gameQuestions.length} static questions`);
                 setQuestions(gameQuestions);
             } else {
                 // Ultimate fallback - create sample questions
+                console.log('📖 Using sample fallback questions');
                 setQuestions([{
-                    id: 'fallback-1', title: 'Sample Question', scenario: 'What is your best move?',
+                    id: 'fallback-1', title: 'GTO Decision', scenario: 'What is your best move?',
                     situation: 'You are on the button with 20BB', heroCards: ['Ah', 'Kh'], board: [],
                     potSize: 12, heroPosition: 'BTN', heroStack: 20,
                     options: [
@@ -140,8 +102,50 @@ export default function TrainingPlayPage() {
             setLoading(false);
         }
 
-        loadGameAndQuiz();
-    }, [gameId, userId]);
+        loadGame();
+    }, [gameId]); // Only depends on gameId - loads immediately
+
+    // Optional: Upgrade to Supabase questions when userId becomes available
+    useEffect(() => {
+        async function upgradeToSupabase() {
+            if (!userId || !gameId || questions.length === 0) return;
+
+            try {
+                console.log('🎯 Attempting to upgrade to Supabase questions...');
+                const levelId = getLevelIdFromGameId(gameId);
+                const quiz = await generateLevelQuiz(userId, levelId);
+
+                if (quiz?.questions && quiz.questions.length > 0) {
+                    console.log(`✅ Upgraded to ${quiz.questions.length} Supabase questions`);
+                    const transformed = quiz.questions.map((q, idx) => ({
+                        id: q.scenario_hash || `q-${idx}`,
+                        title: q.level_name || 'GTO Decision',
+                        scenario: `${q.street || 'Flop'} - ${q.board_cards?.join(' ') || 'Preflop'}`,
+                        situation: `Stack: ${q.stack_depth}BB | ${q.game_type || 'Cash'} Game`,
+                        heroCards: q.hero_cards || ['Ah', 'Kh'],
+                        board: q.board_cards || [],
+                        potSize: q.pot_size || 12,
+                        heroPosition: q.position || 'BTN',
+                        heroStack: q.stack_depth || 40,
+                        options: [
+                            { id: 'fold', text: 'FOLD', isCorrect: q.best_action === 'Fold', ev: q.fold_ev || 0 },
+                            { id: 'call', text: 'CALL', isCorrect: q.best_action === 'Call', ev: q.call_ev || 0 },
+                            { id: 'raise', text: 'RAISE', isCorrect: q.best_action === 'Raise', ev: q.raise_ev || 0 },
+                            { id: 'all-in', text: 'ALL-IN', isCorrect: q.best_action === 'AllIn', ev: q.allin_ev || 0 },
+                        ],
+                        explanation: `Best action: ${q.best_action || 'Check'} based on GTO analysis.`,
+                        is_review: q.is_review || false,
+                    }));
+                    setQuestions(transformed);
+                }
+            } catch (error) {
+                console.warn('⚠️ Could not upgrade to Supabase questions:', error);
+                // Keep using fallback - no action needed
+            }
+        }
+
+        upgradeToSupabase();
+    }, [userId]); // Only runs when userId changes (becomes available)
 
     // Map gameId to levelId
     function getLevelIdFromGameId(gameId) {

@@ -12,13 +12,13 @@ import MemoryGameClient from './MemoryGameClient';
 // ═══════════════════════════════════════════════════════════════════════════
 
 interface Chart {
-    id: string;
-    chart_name: string;
-    category: string;
-    position?: string;
-    stack_depth?: number;
-    topology?: string;
-    created_at: string;
+    chart_id: string;
+    game_type: string;
+    hero_position: string;
+    villain_action?: string;
+    stack_depth: number;
+    hand_matrix: Record<string, any>;
+    created_at?: string;
 }
 
 interface LevelProgress {
@@ -31,6 +31,7 @@ interface LevelProgress {
 
 interface LevelCard {
     chart: Chart;
+    chartName: string; // Generated display name
     levelIndex: number;
     isUnlocked: boolean;
     isMastered: boolean;
@@ -112,8 +113,8 @@ export default function MemoryCampaignView() {
         // Build level cards with unlock logic
         const levelCards: LevelCard[] = [];
         sortedCharts.forEach((chart, index) => {
-            const progress = progressMap.get(chart.id);
-            const prevProgress = index > 0 ? progressMap.get(sortedCharts[index - 1].id) : null;
+            const progress = progressMap.get(chart.chart_id);
+            const prevProgress = index > 0 ? progressMap.get(sortedCharts[index - 1].chart_id) : null;
 
             // Level 1 is always unlocked
             // Level N is unlocked if Level N-1 has is_unlocked=true OR best_accuracy >= 85%
@@ -125,8 +126,12 @@ export default function MemoryCampaignView() {
             const passThreshold = Math.min(100, 85 + (index * 2)) / 100;
             const isMastered = (progress?.best_accuracy || 0) >= passThreshold;
 
+            // Generate display name from hero_position and stack_depth
+            const chartName = `${chart.hero_position} ${chart.game_type} ${chart.stack_depth}bb`;
+
             levelCards.push({
                 chart,
+                chartName,
                 levelIndex: index,
                 isUnlocked,
                 isMastered,
@@ -156,7 +161,7 @@ export default function MemoryCampaignView() {
             .from('user_level_progress')
             .upsert({
                 user_id: userId,
-                chart_id: activeLevel.chart.id,
+                chart_id: activeLevel.chart.chart_id,
                 best_accuracy: Math.max(activeLevel.bestAccuracy, accuracy),
                 is_unlocked: shouldUnlock,
                 times_played: activeLevel.timesPlayed + 1,
@@ -181,7 +186,7 @@ export default function MemoryCampaignView() {
     if (activeLevel) {
         return (
             <MemoryGameClient
-                chartId={activeLevel.chart.id}
+                chartId={activeLevel.chart.chart_id}
                 levelIndex={activeLevel.levelIndex}
                 onExit={handleExitGame}
                 onLevelComplete={handleLevelComplete}
@@ -243,7 +248,7 @@ export default function MemoryCampaignView() {
 
                         return (
                             <div
-                                key={level.chart.id}
+                                key={level.chart.chart_id}
                                 onClick={() => handleLevelClick(level)}
                                 className={`
                                     relative rounded-xl p-6 border-2 transition-all duration-300
@@ -276,15 +281,15 @@ export default function MemoryCampaignView() {
                                 {/* Chart Info */}
                                 <div className="mt-4 mb-4">
                                     <h3 className="text-xl font-bold mb-2 truncate">
-                                        {level.chart.chart_name}
+                                        {level.chartName}
                                     </h3>
                                     <div className="flex flex-wrap gap-2 mb-3">
                                         <span className="px-2 py-1 bg-slate-700 rounded text-xs">
-                                            {level.chart.category}
+                                            {level.chart.game_type}
                                         </span>
-                                        {level.chart.position && (
+                                        {level.chart.hero_position && (
                                             <span className="px-2 py-1 bg-slate-700 rounded text-xs">
-                                                {level.chart.position}
+                                                {level.chart.hero_position}
                                             </span>
                                         )}
                                         {level.chart.stack_depth && (
