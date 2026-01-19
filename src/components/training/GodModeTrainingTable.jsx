@@ -45,26 +45,169 @@ const Verdict = {
 const SUIT_SYMBOLS = { h: '♥', d: '♦', c: '♣', s: '♠' };
 const SUIT_COLORS = { h: '#ef4444', d: '#3b82f6', c: '#22c55e', s: '#1e293b' };
 
+// Position mappings
+const POSITION_MAP = {
+    'BTN': 0, 'SB': 1, 'BB': 2, 'UTG': 3, 'UTG1': 4, 'UTG2': 5,
+    'MP': 6, 'MP1': 7, 'HJ': 8, 'CO': 9
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
-// ENGINE 2: VISUAL ENGINE — Seat Position Calculator
+// SECTOR 1: SCENARIO PARSER — The Source of Truth
 // ═══════════════════════════════════════════════════════════════════════════
 
-const getSeatStyle = (index, totalPlayers) => {
-    // Hero (index 0) ALWAYS at bottom center = 90 degrees
-    const angleStep = (2 * Math.PI) / totalPlayers;
-    const offset = Math.PI / 2; // Start Hero at bottom
-    const angle = offset + (index * angleStep);
+/**
+ * Parse scenario_hash with regex precision
+ * Example: "BTN_vs_BB_SRP_25bb" → { stackDepth: 25, heroPos: 'BTN', villainPos: 'BB', pot: 4.0 }
+ */
+const parseScenario = (scenarioHash, rawQuestion = {}) => {
+    if (!scenarioHash && !rawQuestion.stack_depth) {
+        console.warn('⚠️ No scenario_hash provided, using question data fallback');
+    }
 
-    // Ellipse radii (percentage of table)
-    const rx = 40; // Horizontal radius
-    const ry = 34; // Vertical radius
+    const hash = scenarioHash || '';
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 1. STACK DEPTH EXTRACTION (MANDATORY)
+    // ─────────────────────────────────────────────────────────────────────────
+    const stackMatch = hash.match(/(\d+(?:\.\d+)?)\s*bb/i);
+    let stackDepth = stackMatch ? parseFloat(stackMatch[1]) : null;
+
+    // Fallback to question data if hash doesn't have stack
+    if (!stackDepth) {
+        stackDepth = rawQuestion.stack_depth || rawQuestion.stackDepth || null;
+    }
+
+    // STRICT: Throw if no stack depth found
+    if (!stackDepth) {
+        console.error('❌ CRITICAL: No stack depth found in scenario. Using 25bb default.');
+        stackDepth = 25; // Minimum viable default
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 2. GAME TYPE & SEATING
+    // ─────────────────────────────────────────────────────────────────────────
+    let gameType = 'HeadsUp';
+    let totalSeats = 2;
+
+    if (hash.includes('6max') || hash.includes('6-max')) {
+        gameType = '6max';
+        totalSeats = 6;
+    } else if (hash.includes('FR') || hash.includes('FullRing') || hash.includes('9max')) {
+        gameType = 'FullRing';
+        totalSeats = 9;
+    } else if (hash.includes('3max') || hash.includes('3-max')) {
+        gameType = '3max';
+        totalSeats = 3;
+    }
+
+    // Parse positions from hash (e.g., BTN_vs_BB)
+    const posMatch = hash.match(/([A-Z]{2,3})_vs_([A-Z]{2,3})/i);
+    let heroPos = posMatch ? posMatch[1].toUpperCase() : (rawQuestion.position || 'BTN');
+    let villainPos = posMatch ? posMatch[2].toUpperCase() : 'BB';
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 3. POT MATH (The Accountant)
+    // Formula: Pot = VillainBet + HeroPosted + DeadMoney
+    // ─────────────────────────────────────────────────────────────────────────
+    let villainBet = 0;
+    let heroPosted = 0;
+    let deadMoney = 0;
+
+    // Detect villain action from question
+    const villainAction = rawQuestion.villain_action || rawQuestion.villainAction || '';
+    const villainActionLower = villainAction.toLowerCase();
+
+    // Parse villain bet size
+    const betMatch = villainActionLower.match(/(\d+(?:\.\d+)?)\s*(?:bb|x)/i);
+    if (betMatch) {
+        villainBet = parseFloat(betMatch[1]);
+    } else if (villainActionLower.includes('shoves') || villainActionLower.includes('all-in')) {
+        villainBet = stackDepth; // All-in = full stack
+    } else if (villainActionLower.includes('raise')) {
+        villainBet = 2.5; // Standard raise
+    } else if (villainActionLower.includes('minraise')) {
+        villainBet = 2.0;
+    }
+
+    // Calculate blind contributions
+    if (heroPos === 'BB') heroPosted = 1.0;
+    else if (heroPos === 'SB') heroPosted = 0.5;
+
+    // Dead money (SB if we're BB, etc.)
+    if (heroPos === 'BB') deadMoney = 0.5; // SB is dead money
+    else if (heroPos !== 'SB') deadMoney = 1.5; // Both blinds are in
+
+    const potSize = villainBet + heroPosted + deadMoney;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 4. VILLAIN IS ALL-IN CHECK
+    // ─────────────────────────────────────────────────────────────────────────
+    const villainIsAllIn = villainActionLower.includes('all-in') ||
+        villainActionLower.includes('shoves') ||
+        villainBet >= stackDepth;
 
     return {
-        left: `${50 + rx * Math.cos(angle)}%`,
-        top: `${50 + ry * Math.sin(angle)}%`,
+        scenarioHash: hash,
+        stackDepth,
+        gameType,
+        totalSeats,
+        heroPos,
+        villainPos,
+        villainBet,
+        potSize: Math.round(potSize * 10) / 10, // Round to 1 decimal
+        villainIsAllIn,
+        heroCards: rawQuestion.hero_cards || rawQuestion.heroCards || ['As', 'Kh'],
+        villainAction,
+        boardCards: rawQuestion.board_cards || [],
+        street: rawQuestion.street || 'Preflop'
+    };
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SECTOR 2: VERTICAL GEOMETRY ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calculate seat position on VERTICAL ellipse (Portrait Mode)
+ * Hero ALWAYS at 90° (Bottom Center)
+ */
+const getSeatPosition = (index, totalSeats) => {
+    const angleStep = (2 * Math.PI) / totalSeats;
+    const startOffset = Math.PI / 2; // 90 degrees = Bottom
+    const angle = startOffset + (index * angleStep);
+
+    // VERTICAL ELLIPSE: Narrower width, taller height
+    const radiusX = 35; // Width (narrower)
+    const radiusY = 42; // Height (taller)
+
+    return {
+        left: `${50 + radiusX * Math.cos(angle)}%`,
+        top: `${50 + radiusY * Math.sin(angle)}%`,
         transform: 'translate(-50%, -50%)'
     };
 };
+
+/**
+ * Calculate dealer button position (inner track)
+ */
+const getDealerButtonPosition = (dealerSeatIndex, totalSeats) => {
+    const angleStep = (2 * Math.PI) / totalSeats;
+    const startOffset = Math.PI / 2;
+    const angle = startOffset + (dealerSeatIndex * angleStep);
+
+    // Inner track (smaller radius)
+    const radiusX = 28;
+    const radiusY = 35;
+
+    return {
+        left: `${50 + radiusX * Math.cos(angle)}%`,
+        top: `${50 + radiusY * Math.sin(angle)}%`,
+        transform: 'translate(-50%, -50%)'
+    };
+};
+
+// Legacy alias for compatibility
+const getSeatStyle = getSeatPosition;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ENGINE 7: AUDIO ENGINE
@@ -218,9 +361,12 @@ const VILLAIN_AVATARS = [
     '🦈'  // Shark
 ];
 
-const PlayerSeat = ({ player, isHero, isActive, position, dealerSeat, showCards, cardDelay, heroPosition }) => {
+const PlayerSeat = ({ player, isHero, isActive, position, dealerSeat, showCards, cardDelay, heroPosition, isGhost }) => {
     const hasDealer = dealerSeat === position;
     const villainAvatar = VILLAIN_AVATARS[(position || 1) % VILLAIN_AVATARS.length];
+
+    // SECTOR 3: GHOST PLAYERS — Reduce opacity for folded/inactive seats
+    const ghostOpacity = isGhost ? 0.4 : 1.0;
 
     return (
         <div style={{
@@ -230,7 +376,9 @@ const PlayerSeat = ({ player, isHero, isActive, position, dealerSeat, showCards,
             flexDirection: 'column',
             alignItems: 'center',
             gap: 8,
-            zIndex: isHero ? 100 : 10
+            zIndex: isHero ? 100 : 10,
+            opacity: ghostOpacity,
+            transition: 'opacity 0.3s ease'
         }}>
             {/* HERO GOLD GLOW — Only for Hero */}
             {isHero && (
@@ -724,51 +872,31 @@ export default function GodModeTrainingTable({
     const isLastQuestion = currentQuestionIndex >= totalQuestions - 1;
 
     // ─────────────────────────────────────────────────────────────────────────
-    // ENGINE 1: SCENARIO ORCHESTRATOR — Parse scenario data
+    // SECTOR 1: SCENARIO PARSER INTEGRATION
     // ─────────────────────────────────────────────────────────────────────────
 
-    // Get hero cards from question (supports both formats)
-    const getHeroCards = (q) => {
-        if (q?.hero_cards) return q.hero_cards;
-        if (q?.heroCards) {
-            // Convert array like ['Ah', 'Ks'] to standard format
-            return q.heroCards;
-        }
-        return ['As', 'Kh']; // Fallback
-    };
+    // Use the new military-grade parseScenario engine
+    const scenario = currentQuestion
+        ? parseScenario(currentQuestion.scenario_hash || '', currentQuestion)
+        : null;
 
-    const scenario = currentQuestion ? {
-        boardCards: currentQuestion.board_cards || [],
-        street: currentQuestion.street || 'Preflop',
-        stackDepth: currentQuestion.stack_depth || currentQuestion.stackDepth || 100,
-        topology: currentQuestion.topology || 'HU',
-        pot: currentQuestion.macro_metrics?.pot_size || 4.5,
-        heroCards: getHeroCards(currentQuestion),
-        villainCards: ['??', '??'],
-        villainAction: currentQuestion.villain_action || currentQuestion.villainAction || '',
-        heroPosition: currentQuestion.position || 'BTN'
-    } : null;
+    // SECTOR 3: GHOST PLAYERS — Build players array with active/ghost state
+    const players = Array.from({ length: scenario?.totalSeats || 2 }, (_, i) => {
+        const isHero = i === 0;
+        const isVillain = i === 1; // For now, villain is always seat 1
+        const isActive = isHero || isVillain;
 
-    // Player count based on topology
-    const getPlayerCount = (topology) => {
-        const counts = { 'HU': 2, '3-Max': 3, '6-Max': 6, '9-Max': 9 };
-        return counts[topology] || 2;
-    };
-
-    const playerCount = scenario ? getPlayerCount(scenario.topology) : 2;
-
-    // Detect if villain is all-in based on action text
-    const villainIsAllIn = scenario?.villainAction?.toLowerCase().includes('all-in') ||
-        scenario?.villainAction?.toLowerCase().includes('shoves');
-
-    // Build players array
-    const players = Array.from({ length: playerCount }, (_, i) => ({
-        cards: i === 0 ? (scenario?.heroCards || ['??', '??']) : scenario?.villainCards || ['??', '??'],
-        stack: scenario?.stackDepth || 100,
-        totalPlayers: playerCount,
-        lastAction: null,
-        isAllIn: i !== 0 && villainIsAllIn // Villain is all-in if detected
-    }));
+        return {
+            seatIndex: i,
+            cards: isHero ? (scenario?.heroCards || ['??', '??']) : ['??', '??'],
+            stack: scenario?.stackDepth || 25,
+            totalPlayers: scenario?.totalSeats || 2,
+            lastAction: null,
+            isAllIn: isVillain && scenario?.villainIsAllIn,
+            isGhost: !isActive, // Ghost = folded/inactive
+            position: isHero ? scenario?.heroPos : (isVillain ? scenario?.villainPos : null)
+        };
+    });
 
     // ─────────────────────────────────────────────────────────────────────────
     // GAME LOOP EFFECTS
@@ -1267,7 +1395,7 @@ export default function GodModeTrainingTable({
                             fontWeight: 'bold',
                             color: '#fbbf24'
                         }}>
-                            {scenario?.pot || 6}bb
+                            {scenario?.potSize || 3.5}bb
                         </div>
 
                         {/* Question Prompt */}
@@ -1322,10 +1450,11 @@ export default function GodModeTrainingTable({
                         isHero={i === 0}
                         isActive={i === 0 && gameState === GameState.ACTION_REQUIRED}
                         position={i}
-                        dealerSeat={playerCount - 1} // Button on last villain
+                        dealerSeat={0} // Button on hero in HU
                         showCards={showCards}
                         cardDelay={i * 200}
-                        heroPosition={i === 0 ? scenario?.heroPosition : null}
+                        heroPosition={i === 0 ? scenario?.heroPos : null}
+                        isGhost={player.isGhost}
                     />
                 ))}
             </div>
