@@ -15,6 +15,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TRAINING_CLINICS, getClinicById, getRemediationXPMultiplier } from '../../data/TRAINING_CLINICS';
+import LeakFixerIntercept from './LeakFixerIntercept';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
 
 // Card suit configuration
 const SUITS = {
@@ -157,15 +166,21 @@ function ChipStack({ amount, label }: { amount: number; label: string }) {
 
 // Main component
 export default function UniversalTrainingTable({
+    gameId,
+    clinicId,
     question,
     onAnswer,
     showResult = false,
     isCorrect = false,
+    isRemediationMode = false,
 }: {
+    gameId?: string;
+    clinicId?: string;
     question?: any;
     onAnswer?: (answerId: string) => void;
     showResult?: boolean;
     isCorrect?: boolean;
+    isRemediationMode?: boolean;
 }) {
     // Game state
     const [heroCards, setHeroCards] = useState<string[]>(['??', '??']);
@@ -177,6 +192,16 @@ export default function UniversalTrainingTable({
     const [dealerButton, setDealerButton] = useState<'hero' | 'villain'>('villain');
     const [isDealing, setIsDealing] = useState(false);
     const [villainAction, setVillainAction] = useState<string | null>(null);
+
+    // Leak detection state
+    const [showLeakIntercept, setShowLeakIntercept] = useState(false);
+    const [detectedLeak, setDetectedLeak] = useState<any>(null);
+    const [mistakeCount, setMistakeCount] = useState(0);
+    const [totalAttempts, setTotalAttempts] = useState(0);
+
+    // Load clinic data
+    const activeClinic = clinicId ? getClinicById(clinicId) : null;
+    const correctAction = question?.correctAction || question?.options?.find((o: any) => o.isCorrect)?.id;
 
     // Initialize from question
     useEffect(() => {
@@ -194,26 +219,115 @@ export default function UniversalTrainingTable({
         }
     }, [question]);
 
+
+    // Universal action handler with leak detection and XP logging
+    const handleAction = useCallback(async (action: string) => {
+        setTotalAttempts(prev => prev + 1);
+
+        const isCorrectMove = action === correctAction;
+
+        // LAW 1: Leak Detection
+        if (!isCorrectMove) {
+            setMistakeCount(prev => prev + 1);
+
+            // Calculate error rate
+            const errorRate = (mistakeCount + 1) / (totalAttempts + 1);
+
+            // Detect leak at 75% threshold (3 out of 4 mistakes)
+            if (errorRate >= 0.75 && totalAttempts >= 3) {
+                const leakCategory = activeClinic?.target_leak || 'GENERAL_MISTAKE';
+
+                // Show leak intercept instead of normal feedback
+                setDetectedLeak({
+                    category: leakCategory,
+                    name: activeClinic?.name || 'Strategic Error',
+                    confidence: errorRate,
+                    clinic_id: clinicId
+                });
+                setShowLeakIntercept(true);
+
+                // Log leak to Supabase
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                        await supabase.from('user_leaks').insert({
+                            user_id: user.id,
+                            leak_category: leakCategory,
+                            leak_name: activeClinic?.name || 'Strategic Error',
+                            error_rate: errorRate,
+                            confidence: errorRate,
+                            total_samples: totalAttempts + 1,
+                            mistake_count: mistakeCount + 1,
+                            clinic_id: clinicId,
+                            is_active: true
+                        });
+                    }
+                } catch (err) {
+                    console.error('[LEAK] Failed to log:', err);
+                }
+
+                return; // Don't proceed to normal answer flow
+            }
+        }
+
+        // Log XP to Supabase
+        if (isCorrectMove) {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const baseXP = 100;
+                    const remediationMultiplier = isRemediationMode
+                        ? getRemediationXPMultiplier(clinicId || '')
+                        : 1.0;
+                    const xpAwarded = Math.round(baseXP * remediationMultiplier);
+
+                    await supabase.from('xp_logs').insert({
+                        user_id: user.id,
+                        game_id: gameId || clinicId || 'unknown',
+                        session_type: isRemediationMode ? 'remediation' : 'game',
+                        xp_awarded: xpAwarded,
+                        base_xp: baseXP,
+                        streak_multiplier: 1.0,
+                        speed_multiplier: 1.0,
+                        remediation_multiplier: remediationMultiplier,
+                        is_correct: true,
+                        metadata: {
+                            clinic_id: clinicId,
+                            action: action
+                        }
+                    });
+
+                    console.log(`[XP] Awarded ${xpAwarded} XP (${remediationMultiplier}x multiplier)`);
+                }
+            } catch (err) {
+                console.error('[XP] Failed to log:', err);
+            }
+        }
+
+        // Proceed with normal answer flow
+        onAnswer?.(action);
+    }, [correctAction, mistakeCount, totalAttempts, activeClinic, clinicId, gameId, isRemediationMode, onAnswer]);
+
     // Handle fold - CRITICAL FIX: Immediately clear villain cards
     const handleFold = useCallback(() => {
         setVillainCards([]); // Force unmount
         setVillainAction('FOLD');
         setTimeout(() => {
-            onAnswer?.('fold');
+            handleAction('fold');
         }, 500);
-    }, [onAnswer]);
+    }, [handleAction]);
 
     const handleCall = useCallback(() => {
-        onAnswer?.('call');
-    }, [onAnswer]);
+        handleAction('call');
+    }, [handleAction]);
 
     const handleRaise = useCallback(() => {
-        onAnswer?.('raise');
-    }, [onAnswer]);
+        handleAction('raise');
+    }, [handleAction]);
 
     const handleAllIn = useCallback(() => {
-        onAnswer?.('all-in');
-    }, [onAnswer]);
+        handleAction('all-in');
+    }, [handleAction]);
 
     return (
         <div style={{
@@ -597,6 +711,22 @@ export default function UniversalTrainingTable({
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* LAW 1: Leak Fixer Intercept - Shows when leak detected */}
+            {showLeakIntercept && detectedLeak && (
+                <LeakFixerIntercept
+                    onDismiss={() => {
+                        setShowLeakIntercept(false);
+                        setDetectedLeak(null);
+                    }}
+                    onAccept={(clinic) => {
+                        console.log('[LAW 1] Routing to clinic:', clinic.name);
+                        setShowLeakIntercept(false);
+                        // Route to clinic page
+                        window.location.href = `/hub/training/clinic/${clinic.id}`;
+                    }}
+                />
+            )}
         </div>
     );
 }
