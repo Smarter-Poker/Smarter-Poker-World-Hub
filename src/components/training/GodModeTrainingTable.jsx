@@ -448,7 +448,7 @@ const ActionButtons = ({ actions, onAction, disabled }) => {
 // FEEDBACK OVERLAY COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-const FeedbackOverlay = ({ verdict, explanation, evLoss, onContinue }) => {
+const FeedbackOverlay = ({ verdict, explanation, evLoss, alternativeActions, onContinue }) => {
     const colors = {
         [Verdict.PERFECT]: { bg: '#22c55e', glow: 'rgba(34, 197, 94, 0.4)', icon: '✓', text: 'PERFECT!' },
         [Verdict.ACCEPTABLE]: { bg: '#f59e0b', glow: 'rgba(245, 158, 11, 0.4)', icon: '~', text: 'ACCEPTABLE' },
@@ -523,10 +523,45 @@ const FeedbackOverlay = ({ verdict, explanation, evLoss, onContinue }) => {
                     fontSize: 16,
                     color: '#e2e8f0',
                     lineHeight: 1.6,
-                    marginBottom: 24
+                    marginBottom: alternativeActions?.length > 0 ? 16 : 24
                 }}>
                     {explanation}
                 </p>
+
+                {/* Alternative Lines (for mixed strategies) */}
+                {alternativeActions && alternativeActions.length > 0 && (
+                    <div style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        borderRadius: 12,
+                        padding: 12,
+                        marginBottom: 24
+                    }}>
+                        <div style={{
+                            fontSize: 12,
+                            color: '#94a3b8',
+                            marginBottom: 8,
+                            textTransform: 'uppercase',
+                            letterSpacing: 1
+                        }}>
+                            Alternative GTO Lines
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+                            {alternativeActions.map((alt, i) => (
+                                <div key={i} style={{
+                                    background: 'rgba(255,255,255,0.1)',
+                                    padding: '6px 12px',
+                                    borderRadius: 8,
+                                    fontSize: 13
+                                }}>
+                                    <span style={{ color: '#fff', fontWeight: 'bold' }}>{alt.action}</span>
+                                    <span style={{ color: '#94a3b8', marginLeft: 6 }}>
+                                        {(alt.freq * 100).toFixed(0)}%
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Continue */}
                 <div style={{
@@ -783,8 +818,26 @@ export default function GodModeTrainingTable({
             setStreak(0);
         }
 
+        // Compute alternative actions from strategy_matrix for mixed strategies
+        let alternativeActions = [];
+        if (handStrategy && handStrategy.actions) {
+            alternativeActions = Object.entries(handStrategy.actions)
+                .filter(([action, data]) => {
+                    const freq = data.freq || data.frequency || 0;
+                    const actionKey = action.toLowerCase();
+                    // Include if freq > 5% and not the user's action
+                    return freq > 0.05 && actionKey !== userAction;
+                })
+                .map(([action, data]) => ({
+                    action: action,
+                    freq: data.freq || data.frequency || 0
+                }))
+                .sort((a, b) => b.freq - a.freq)
+                .slice(0, 2); // Max 2 alternatives
+        }
+
         // Show feedback
-        setFeedback({ verdict, explanation, evLoss });
+        setFeedback({ verdict, explanation, evLoss, alternativeActions });
         setGameState(GameState.FEEDBACK_OVERLAY);
 
     }, [gameState, currentQuestion, playChips, playSuccess, playError]);
@@ -914,6 +967,7 @@ export default function GodModeTrainingTable({
                     verdict={feedback.verdict}
                     explanation={feedback.explanation}
                     evLoss={feedback.evLoss}
+                    alternativeActions={feedback.alternativeActions}
                     onContinue={handleContinue}
                 />
             )}
