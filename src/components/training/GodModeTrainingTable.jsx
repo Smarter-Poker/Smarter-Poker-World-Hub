@@ -283,6 +283,38 @@ const PlayerSeat = ({ player, isHero, isActive, position, dealerSeat, showCards,
                 </div>
             </div>
 
+            {/* Chip Stack Visual */}
+            <div style={{
+                position: 'absolute',
+                bottom: isHero ? -45 : 'auto',
+                top: isHero ? 'auto' : -45,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2
+            }}>
+                {/* Chip stack (visual only) */}
+                <div style={{
+                    display: 'flex',
+                    gap: -6,
+                    marginLeft: -6
+                }}>
+                    {[...Array(Math.min(5, Math.ceil(player.stack / 20)))].map((_, i) => (
+                        <div key={i} style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)',
+                            border: '2px solid #fff',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                            marginLeft: i > 0 ? -8 : 0
+                        }} />
+                    ))}
+                </div>
+            </div>
+
             {/* Action Badge */}
             {player.lastAction && (
                 <div style={{
