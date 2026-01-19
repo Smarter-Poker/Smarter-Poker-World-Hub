@@ -69,17 +69,48 @@ export default function PokerNearMe() {
     const [activeTab, setActiveTab] = useState('venues'); // 'venues' or 'series'
     const [userLocation, setUserLocation] = useState(null);
     const [showStateDropdown, setShowStateDropdown] = useState(false);
+    const [useGpsSearch, setUseGpsSearch] = useState(false);
+    const [searchRadius, setSearchRadius] = useState(100); // km
+    const [gpsLoading, setGpsLoading] = useState(false);
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [locationInput, setLocationInput] = useState('');
 
     useEffect(() => {
         fetchData();
-        // Get user location
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                () => { }
-            );
+    }, [selectedState, selectedType, userLocation, useGpsSearch, searchRadius, startDate, endDate]);
+
+    // Get GPS location on demand
+    const requestGpsLocation = () => {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser');
+            return;
         }
-    }, [selectedState, selectedType]);
+
+        setGpsLoading(true);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                setUseGpsSearch(true);
+                setGpsLoading(false);
+            },
+            (err) => {
+                alert('Unable to get your location. Please enable location services.');
+                setGpsLoading(false);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    };
+
+    // Search by manual location
+    const searchByLocation = async () => {
+        if (!locationInput.trim()) return;
+
+        // Use a simple geocoding approach - search by city/state
+        setSelectedState('');
+        setSearchQuery(locationInput);
+        await fetchData();
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -89,9 +120,17 @@ export default function PokerNearMe() {
 
     const fetchVenues = async () => {
         try {
-            const params = new URLSearchParams({ limit: '50' });
+            const params = new URLSearchParams({ limit: '200' });
             if (selectedState) params.set('state', selectedState);
             if (selectedType !== 'all') params.set('type', selectedType);
+            if (searchQuery) params.set('search', searchQuery);
+
+            // GPS-based search
+            if (useGpsSearch && userLocation) {
+                params.set('lat', userLocation.lat.toString());
+                params.set('lng', userLocation.lng.toString());
+                params.set('radius', searchRadius.toString());
+            }
 
             const res = await fetch(`/api/poker/venues?${params}`);
             const { data } = await res.json();
@@ -103,7 +142,12 @@ export default function PokerNearMe() {
 
     const fetchSeries = async () => {
         try {
-            const res = await fetch('/api/poker/series?upcoming=true&limit=15');
+            const params = new URLSearchParams({ upcoming: 'true', limit: '50' });
+            if (startDate) params.set('start_date', startDate);
+            if (endDate) params.set('end_date', endDate);
+            if (searchQuery) params.set('search', searchQuery);
+
+            const res = await fetch(`/api/poker/series?${params}`);
             const { data } = await res.json();
             setSeries(data || []);
         } catch (e) {
@@ -111,7 +155,7 @@ export default function PokerNearMe() {
         }
     };
 
-    // Filter venues by search
+    // Filter venues by search (client-side backup)
     const filteredVenues = venues.filter(v =>
         !searchQuery ||
         v.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -180,6 +224,43 @@ export default function PokerNearMe() {
 
                     {activeTab === 'venues' && (
                         <>
+                            {/* GPS Location Search */}
+                            <button
+                                className={`gps-btn ${useGpsSearch ? 'active' : ''}`}
+                                onClick={requestGpsLocation}
+                                disabled={gpsLoading}
+                            >
+                                <MapPin size={16} />
+                                {gpsLoading ? 'Getting Location...' : useGpsSearch ? 'Near Me ✓' : 'Use GPS'}
+                            </button>
+
+                            {/* Radius Slider - only show when GPS is active */}
+                            {useGpsSearch && userLocation && (
+                                <div className="radius-control">
+                                    <label>Within {searchRadius} km ({Math.round(searchRadius * 0.621371)} mi)</label>
+                                    <input
+                                        type="range"
+                                        min="10"
+                                        max="500"
+                                        step="10"
+                                        value={searchRadius}
+                                        onChange={(e) => setSearchRadius(parseInt(e.target.value))}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Manual Location Input */}
+                            <div className="location-input-wrap">
+                                <input
+                                    type="text"
+                                    placeholder="Enter city or zip..."
+                                    value={locationInput}
+                                    onChange={(e) => setLocationInput(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && searchByLocation()}
+                                />
+                                <button onClick={searchByLocation}>Go</button>
+                            </div>
+
                             {/* State Dropdown */}
                             <div className="dropdown-wrap">
                                 <button className="dropdown-btn" onClick={() => setShowStateDropdown(!showStateDropdown)}>
@@ -213,6 +294,32 @@ export default function PokerNearMe() {
                                 ))}
                             </div>
                         </>
+                    )}
+
+                    {activeTab === 'series' && (
+                        <div className="date-filters">
+                            <div className="date-input">
+                                <label>From</label>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                />
+                            </div>
+                            <div className="date-input">
+                                <label>To</label>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                />
+                            </div>
+                            {(startDate || endDate) && (
+                                <button className="clear-dates" onClick={() => { setStartDate(''); setEndDate(''); }}>
+                                    Clear Dates
+                                </button>
+                            )}
+                        </div>
                     )}
                 </div>
 
@@ -258,10 +365,13 @@ export default function PokerNearMe() {
                                             </div>
                                         </div>
 
-                                        {/* Location */}
+                                        {/* Location + Distance */}
                                         <div className="venue-location">
                                             <MapPin size={12} />
                                             <span>{venue.city}, {venue.state}</span>
+                                            {venue.distance_mi && (
+                                                <span className="distance-badge">{venue.distance_mi} mi</span>
+                                            )}
                                         </div>
 
                                         {/* Games */}
@@ -521,6 +631,122 @@ export default function PokerNearMe() {
                     }
                     .filter-chip:hover { color: #fff; }
                     .filter-chip.active { background: rgba(0,212,255,0.2); color: #00d4ff; border-color: rgba(0,212,255,0.3); }
+
+                    /* GPS Search Button */
+                    .gps-btn {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 10px 16px;
+                        background: linear-gradient(135deg, #22c55e, #16a34a);
+                        border: none;
+                        border-radius: 10px;
+                        color: #fff;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .gps-btn:hover { transform: scale(1.02); box-shadow: 0 4px 16px rgba(34,197,94,0.3); }
+                    .gps-btn.active { background: linear-gradient(135deg, #16a34a, #15803d); }
+                    .gps-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+                    /* Radius Control */
+                    .radius-control {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                        padding: 8px 12px;
+                        background: rgba(34,197,94,0.1);
+                        border: 1px solid rgba(34,197,94,0.2);
+                        border-radius: 10px;
+                    }
+                    .radius-control label { font-size: 11px; color: #22c55e; }
+                    .radius-control input[type="range"] {
+                        width: 120px;
+                        height: 4px;
+                        -webkit-appearance: none;
+                        background: rgba(34,197,94,0.3);
+                        border-radius: 2px;
+                        outline: none;
+                    }
+                    .radius-control input[type="range"]::-webkit-slider-thumb {
+                        -webkit-appearance: none;
+                        width: 14px;
+                        height: 14px;
+                        background: #22c55e;
+                        border-radius: 50%;
+                        cursor: pointer;
+                    }
+
+                    /* Location Input */
+                    .location-input-wrap {
+                        display: flex;
+                        gap: 4px;
+                    }
+                    .location-input-wrap input {
+                        width: 140px;
+                        padding: 10px 12px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 8px;
+                        color: #fff;
+                        font-size: 13px;
+                        outline: none;
+                    }
+                    .location-input-wrap button {
+                        padding: 10px 14px;
+                        background: rgba(0,212,255,0.2);
+                        border: 1px solid rgba(0,212,255,0.3);
+                        border-radius: 8px;
+                        color: #00d4ff;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                    }
+                    .location-input-wrap button:hover { background: rgba(0,212,255,0.3); }
+
+                    /* Date Filters */
+                    .date-filters {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                    }
+                    .date-input {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                    }
+                    .date-input label { font-size: 11px; color: rgba(255,255,255,0.5); }
+                    .date-input input[type="date"] {
+                        padding: 8px 12px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 8px;
+                        color: #fff;
+                        font-size: 13px;
+                        outline: none;
+                    }
+                    .clear-dates {
+                        padding: 8px 12px;
+                        background: rgba(239,68,68,0.2);
+                        border: 1px solid rgba(239,68,68,0.3);
+                        border-radius: 8px;
+                        color: #ef4444;
+                        font-size: 12px;
+                        cursor: pointer;
+                    }
+
+                    /* Distance Badge */
+                    .distance-badge {
+                        padding: 2px 8px;
+                        background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(16,163,74,0.15));
+                        border-radius: 12px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: #22c55e;
+                        margin-left: auto;
+                    }
 
                     .loading, .no-results {
                         display: flex;
