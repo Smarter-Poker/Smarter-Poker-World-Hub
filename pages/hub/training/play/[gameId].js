@@ -53,77 +53,12 @@ export default function TrainingPlayPage() {
             setError(null);
 
             try {
-                // First try: Load from god-mode-service (solved_spots_gold)
-                console.log('🔍 Attempting to load from solved_spots_gold...');
+                // TEMPORARILY DISABLED: solved_spots_gold format needs investigation
+                // The strategy_matrix format in production doesn't match expected structure
+                // Go straight to TRAINING_CLINICS which has working hero cards
+                console.log('📚 Loading from TRAINING_CLINICS...');
 
-                const { data: gtoData, error: gtoError } = await supabase
-                    .from('solved_spots_gold')
-                    .select('*')
-                    .limit(20);
-
-                if (!gtoError && gtoData && gtoData.length > 0) {
-                    // Transform GTO scenarios to question format
-                    const gtoQuestions = gtoData.map((scenario, i) => ({
-                        id: scenario.id || `gto-${i}`,
-                        question_number: i + 1,
-                        board_cards: scenario.board_cards || [],
-                        street: scenario.street || 'Flop',
-                        stack_depth: scenario.stack_depth || 100,
-                        topology: scenario.topology || 'HU',
-                        strategy_matrix: scenario.strategy_matrix || {},
-                        macro_metrics: scenario.macro_metrics || {},
-                        scenario_hash: scenario.scenario_hash,
-                        // Pick a random hand from strategy_matrix as hero cards
-                        hero_cards: (() => {
-                            const matrix = scenario.strategy_matrix;
-                            if (!matrix) return ['As', 'Kh'];
-
-                            // Handle array format: [{hand: "AhKd", actions: {...}}, ...]
-                            if (Array.isArray(matrix) && matrix.length > 0) {
-                                const item = matrix[Math.floor(Math.random() * matrix.length)];
-                                const hand = item?.hand || '';
-                                if (hand.length >= 4) {
-                                    return [hand.slice(0, 2), hand.slice(2, 4)];
-                                }
-                            }
-
-                            // Handle object format: {"AhKd": {...}, "QsQh": {...}, ...}
-                            const hands = Object.keys(matrix);
-                            if (hands.length > 0 && hands[0].length >= 4) {
-                                const hand = hands[Math.floor(Math.random() * hands.length)];
-                                return [hand.slice(0, 2), hand.slice(2, 4)];
-                            }
-
-                            return ['As', 'Kh'];
-                        })(),
-                        villain_action: 'Raises to 2.5BB',
-                        correct_action: (() => {
-                            const matrix = scenario.strategy_matrix;
-                            if (!matrix) return 'call';
-
-                            // Handle array format
-                            if (Array.isArray(matrix) && matrix.length > 0) {
-                                return matrix[0]?.best_action?.toLowerCase() || 'call';
-                            }
-
-                            // Handle object format
-                            const hands = Object.keys(matrix);
-                            if (hands.length > 0) {
-                                const handData = matrix[hands[0]];
-                                return handData?.best_action?.toLowerCase() || 'call';
-                            }
-                            return 'call';
-                        })(),
-                        explanation: 'GTO solver recommendation.'
-                    }));
-
-                    setQuestions(gtoQuestions);
-                    console.log(`✅ Loaded ${gtoQuestions.length} GTO questions from solved_spots_gold`);
-                    return;
-                }
-
-                // Fallback: Load from TRAINING_CLINICS
-                console.log('📚 Falling back to TRAINING_CLINICS...');
+                // Skip GTO query for now - go straight to fallback
 
                 if (levelData?.questions) {
                     // Transform clinic questions to god-mode format
