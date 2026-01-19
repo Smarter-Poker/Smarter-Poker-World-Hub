@@ -173,11 +173,14 @@ const parseScenario = (scenarioHash, rawQuestion = {}) => {
     const potSize = villainBet + heroPosted + deadMoney;
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 4. VILLAIN IS ALL-IN CHECK
+    // 4. VILLAIN IS ALL-IN CHECK & REMAINING STACK
     // ─────────────────────────────────────────────────────────────────────────
     const villainIsAllIn = villainActionLower.includes('all-in') ||
         villainActionLower.includes('shoves') ||
         villainBet >= stackDepth;
+
+    // Calculate villain's remaining stack after their bet
+    const villainRemainingStack = villainIsAllIn ? 0 : Math.max(0, stackDepth - villainBet);
 
     return {
         scenarioHash: hash,
