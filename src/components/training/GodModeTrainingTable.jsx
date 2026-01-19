@@ -1344,7 +1344,7 @@ export default function GodModeTrainingTable({
                         </span>
                         {scenario?.villainAction && (
                             <>
-                                {'. Villain '}
+                                {'. '}
                                 <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
                                     {scenario.villainAction}
                                 </span>
@@ -1397,7 +1397,7 @@ export default function GodModeTrainingTable({
                             boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
                             whiteSpace: 'nowrap'
                         }}>
-                            ⚠️ VILLAIN {scenario.villainAction}
+                            ⚠️ {scenario.villainAction.toUpperCase()}
                         </div>
                     )}
 
