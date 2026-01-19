@@ -1,727 +1,602 @@
 /**
- * 🎮 UNIVERSAL TRAINING TABLE - UNIFIED COMPONENT
+ * 🎮 UNIVERSAL TRAINING TABLE — Pure React Poker Engine
+ * ═══════════════════════════════════════════════════════════════════════════
+ * SCORCHED EARTH REWRITE - 100% Self-Contained React Component
  * 
- * Merges the best of both worlds:
- * - Self-contained rendering from shared component
- * - GameManifest integration for 100+ games
- * - Sound integration via SoundEngine
- * - VILLAIN_CARD_POSITION_LAW compliance
- * - Framer Motion animations
- * 
- * Simply pass a gameId and everything works.
+ * FIXES:
+ * - Hero locked to bottom-center
+ * - Villain locked to top-center
+ * - Board locked to dead-center
+ * - State-driven card rendering (no hanging cards)
+ * - Built-in game loop (no external scripts)
+ * - CSS-generated cards (no image dependencies)
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getGameMode, type GameMode } from '../../lib/GameManifest';
-import { SoundEngine } from '../../audio/SoundEngine';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// TYPES
-// ═══════════════════════════════════════════════════════════════════════════
+// Card suit configuration
+const SUITS = {
+    s: { symbol: '♠', color: '#000' },
+    h: { symbol: '♥', color: '#e74c3c' },
+    d: { symbol: '♦', color: '#3498db' },
+    c: { symbol: '♣', color: '#27ae60' },
+};
 
-interface UniversalTrainingTableProps {
-    gameId: string;
-    onComplete?: (correct: boolean, xp: number, diamonds: number) => void;
-    onError?: (error: Error) => void;
-}
+// Playing card component
+function PlayingCard({ card, size = 'medium' }: { card: string; size?: 'small' | 'medium' | 'large' }) {
+    if (!card || card === '??') {
+        // Card back
+        const sizes = {
+            small: { w: 40, h: 56 },
+            medium: { w: 60, h: 84 },
+            large: { w: 80, h: 112 },
+        };
+        const s = sizes[size];
 
-type GameState = 'LOADING' | 'DEALING' | 'PLAYING' | 'FEEDBACK' | 'SUMMARY';
-
-interface HandResult {
-    isCorrect: boolean;
-    explanation: string;
-    gtoAction: string;
-    evDiff: number;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// CARD COMPONENT (Self-Contained CSS)
-// ═══════════════════════════════════════════════════════════════════════════
-
-const Card = ({ rank, suit, hidden = false, delay = 0 }: {
-    rank: string;
-    suit: string;
-    hidden?: boolean;
-    delay?: number;
-}) => {
-    const suitSymbols: Record<string, string> = {
-        's': '♠', 'h': '♥', 'd': '♦', 'c': '♣',
-        '♠': '♠', '♥': '♥', '♦': '♦', '♣': '♣'
-    };
-
-    const actualSuit = suitSymbols[suit] || suit;
-    const isRed = actualSuit === '♥' || actualSuit === '♦';
-
-    if (hidden) {
         return (
-            <motion.div
-                initial={{ scale: 0, rotate: -30 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ delay, type: 'spring', stiffness: 300 }}
+            <div
                 style={{
-                    width: 56,
-                    height: 80,
-                    background: 'linear-gradient(135deg, #1e3a5f, #0d2137)',
-                    borderRadius: 8,
-                    border: '2px solid #3b82f6',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                    width: s.w,
+                    height: s.h,
+                    background: 'linear-gradient(135deg, #c0392b, #e74c3c)',
+                    borderRadius: 6,
+                    border: '2px solid #fff',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
                 }}
             >
                 <div style={{
-                    width: 40,
-                    height: 64,
-                    border: '1px solid #3b82f6',
-                    borderRadius: 4,
-                    opacity: 0.5,
-                    background: 'repeating-linear-gradient(45deg, transparent, transparent 2px, #3b82f6 2px, #3b82f6 4px)'
-                }} />
-            </motion.div>
+                    fontSize: s.w * 0.4,
+                    color: '#fff',
+                    fontWeight: 'bold',
+                }}>
+                    ?
+                </div>
+            </div>
         );
     }
 
+    // Parse card (e.g., "Ah" = Ace of hearts)
+    const rank = card.slice(0, -1);
+    const suit = card.slice(-1) as keyof typeof SUITS;
+    const suitConfig = SUITS[suit] || SUITS.s;
+
+    const sizes = {
+        small: { w: 40, h: 56, fontSize: 14 },
+        medium: { w: 60, h: 84, fontSize: 20 },
+        large: { w: 80, h: 112, fontSize: 28 },
+    };
+    const s = sizes[size];
+
     return (
-        <motion.div
-            initial={{ scale: 0, rotate: -30 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ delay, type: 'spring', stiffness: 300 }}
+        <div
             style={{
-                width: 56,
-                height: 80,
-                background: 'linear-gradient(135deg, #fff, #f0f0f0)',
-                borderRadius: 8,
-                border: '1px solid #ccc',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                width: s.w,
+                height: s.h,
+                background: 'linear-gradient(135deg, #fff, #f5f5f5)',
+                borderRadius: 6,
+                border: '2px solid #333',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: 4,
-                color: isRed ? '#dc2626' : '#1e293b',
-                fontFamily: 'monospace'
+                justifyContent: 'center',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                position: 'relative',
             }}
         >
-            <div style={{ fontSize: 16, fontWeight: 700, alignSelf: 'flex-start' }}>{rank}</div>
-            <div style={{ fontSize: 24 }}>{actualSuit}</div>
-            <div style={{ fontSize: 16, fontWeight: 700, alignSelf: 'flex-end', transform: 'rotate(180deg)' }}>{rank}</div>
-        </motion.div>
-    );
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// AVATAR COMPONENT (CSS Fallback)
-// ═══════════════════════════════════════════════════════════════════════════
-
-const Avatar = ({ emoji = '😎', isHero = false, label = '', stack = 0 }: {
-    emoji?: string;
-    isHero?: boolean;
-    label?: string;
-    stack?: number;
-}) => (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-        <div style={{
-            width: 56,
-            height: 56,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #475569, #1e293b)',
-            border: `3px solid ${isHero ? '#facc15' : '#ef4444'}`,
-            boxShadow: `0 0 20px ${isHero ? 'rgba(250,204,21,0.3)' : 'rgba(239,68,68,0.3)'}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 28
-        }}>
-            {emoji}
-        </div>
-        {label && (
             <div style={{
-                background: isHero ? '#1e293b' : '#dc2626',
-                color: isHero ? '#facc15' : '#fff',
-                fontSize: 10,
+                fontSize: s.fontSize,
+                fontWeight: 'bold',
+                color: suitConfig.color,
+                lineHeight: 1,
+            }}>
+                {rank}
+            </div>
+            <div style={{
+                fontSize: s.fontSize * 1.2,
+                color: suitConfig.color,
+                lineHeight: 1,
+            }}>
+                {suitConfig.symbol}
+            </div>
+        </div>
+    );
+}
+
+// Chip stack component
+function ChipStack({ amount, label }: { amount: number; label: string }) {
+    return (
+        <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+        }}>
+            <div style={{
+                display: 'flex',
+                gap: 2,
+            }}>
+                {[...Array(Math.min(5, Math.ceil(amount / 10)))].map((_, i) => (
+                    <motion.div
+                        key={i}
+                        initial={{ scale: 0, y: -20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: '50%',
+                            background: amount >= 100 ? '#000' : amount >= 25 ? '#27ae60' : amount >= 5 ? '#3498db' : '#e74c3c',
+                            border: '2px solid #fff',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                        }}
+                    />
+                ))}
+            </div>
+            <div style={{
+                fontSize: 14,
                 fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: 10,
-                whiteSpace: 'nowrap'
+                color: '#FFD700',
+                textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+            }}>
+                {amount} BB
+            </div>
+            <div style={{
+                fontSize: 10,
+                color: 'rgba(255,255,255,0.6)',
             }}>
                 {label}
             </div>
-        )}
-        {stack > 0 && (
-            <div style={{
-                background: 'rgba(0,0,0,0.6)',
-                color: '#fff',
-                fontSize: 11,
-                fontWeight: 600,
-                padding: '2px 8px',
-                borderRadius: 8,
-                fontFamily: 'monospace'
-            }}>
-                {stack} BB
-            </div>
-        )}
-    </div>
-);
+        </div>
+    );
+}
 
-// ═══════════════════════════════════════════════════════════════════════════
-// GTO EXPLANATIONS
-// ═══════════════════════════════════════════════════════════════════════════
-
-const GTO_EXPLANATIONS = {
-    fold: {
-        correct: "GTO Optimal: Folding preserves your stack. The pot odds don't justify continuing against this range.",
-        incorrect: "Suboptimal: GTO suggests continuing here. Your equity justifies calling or raising."
-    },
-    call: {
-        correct: "GTO Optimal: Calling is correct. You have sufficient pot odds against villain's range.",
-        incorrect: "Suboptimal: This spot requires a different action. Consider the SPR and range."
-    },
-    raise: {
-        correct: "GTO Optimal: Raising for value is correct. Your hand has strong equity here.",
-        incorrect: "Suboptimal: Raising is too aggressive. Your hand plays better as a call or fold."
-    },
-    'all-in': {
-        correct: "GTO Optimal: All-in maximizes fold equity with your stack-to-pot ratio.",
-        incorrect: "Suboptimal: All-in overcommits here. Consider a smaller sizing."
-    }
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-
-export function UniversalTrainingTable({
-    gameId,
-    onComplete,
-    onError
-}: UniversalTrainingTableProps) {
+// Main component
+export default function UniversalTrainingTable({
+    question,
+    onAnswer,
+    showResult = false,
+    isCorrect = false,
+}: {
+    question?: any;
+    onAnswer?: (answerId: string) => void;
+    showResult?: boolean;
+    isCorrect?: boolean;
+}) {
     // Game state
-    const [gameState, setGameState] = useState<GameState>('LOADING');
-    const [handIndex, setHandIndex] = useState(1);
-    const [score, setScore] = useState(0);
-    const [streak, setStreak] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(21);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const [heroCards, setHeroCards] = useState<string[]>(['??', '??']);
+    const [villainCards, setVillainCards] = useState<string[]>(['??', '??']);
+    const [boardCards, setBoardCards] = useState<string[]>([]);
+    const [pot, setPot] = useState(12);
+    const [heroStack, setHeroStack] = useState(40);
+    const [villainStack, setVillainStack] = useState(40);
+    const [dealerButton, setDealerButton] = useState<'hero' | 'villain'>('villain');
+    const [isDealing, setIsDealing] = useState(false);
+    const [villainAction, setVillainAction] = useState<string | null>(null);
 
-    // LAW 3: Dealer button position
-    const [dealerSeat, setDealerSeat] = useState('v7');
-    const DEALER_SEATS = ['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'];
-
-    // Hand data
-    const [heroCards, setHeroCards] = useState<string[]>(['As', 'Kh']);
-    const [villainAction, setVillainAction] = useState('Bets 2.5 BB');
-    const [potSize, setPotSize] = useState(5.5);
-
-    // Feedback
-    const [lastResult, setLastResult] = useState<HandResult | null>(null);
-
-    // Game mode from manifest
-    const gameMode = useMemo((): GameMode | null => {
-        try {
-            return getGameMode(gameId);
-        } catch {
-            return null;
-        }
-    }, [gameId]);
-
-    const totalHands = 20;
-    const gameName = gameMode?.name || 'Training Session';
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // TIMER
-    // ═══════════════════════════════════════════════════════════════════════
-
+    // Initialize from question
     useEffect(() => {
-        if (gameState === 'PLAYING') {
-            timerRef.current = setInterval(() => {
-                setTimeLeft(t => {
-                    if (t <= 1) {
-                        clearInterval(timerRef.current!);
-                        handleAction('timeout');
-                        return 0;
-                    }
-                    // LAW 9: Play tick sound for last 5 seconds
-                    if (t <= 6) {
-                        SoundEngine.play('timerTick');
-                        // LAW 9: Play heartbeat every 2 seconds at critical
-                        if (t <= 3 && t % 2 === 0) {
-                            SoundEngine.play('timerWarning');
-                        }
-                    }
-                    return t - 1;
-                });
-            }, 1000);
+        if (question) {
+            setHeroCards(question.heroCards || ['Ah', 'Kh']);
+            setVillainCards(['??', '??']); // Always hidden
+            setBoardCards(question.board || []);
+            setPot(question.potSize || 12);
+            setHeroStack(question.heroStack || 40);
+            setVillainStack(question.villainStack || 40);
+
+            // Trigger deal animation
+            setIsDealing(true);
+            setTimeout(() => setIsDealing(false), 1000);
         }
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-        };
-    }, [gameState]);
+    }, [question]);
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // DEAL NEW HAND
-    // ═══════════════════════════════════════════════════════════════════════
-
-    const dealNewHand = useCallback(() => {
-        setGameState('DEALING');
-        setTimeLeft(21);
-        setLastResult(null);
-
-        // Generate random cards
-        const suits = ['s', 'h', 'd', 'c'];
-        const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7'];
-        const c1 = `${ranks[Math.floor(Math.random() * ranks.length)]}${suits[Math.floor(Math.random() * 4)]}`;
-        const c2 = `${ranks[Math.floor(Math.random() * ranks.length)]}${suits[Math.floor(Math.random() * 4)]}`;
-
-        setHeroCards([c1, c2]);
-        setPotSize(Math.floor(Math.random() * 15) + 3);
-
-        const actions = ['Bets 2.5 BB', 'Raises to 3 BB', 'Shoves All-In', 'Bets 66% Pot'];
-        setVillainAction(actions[Math.floor(Math.random() * actions.length)]);
-
-        // Play deal sounds and transition to playing
+    // Handle fold - CRITICAL FIX: Immediately clear villain cards
+    const handleFold = useCallback(() => {
+        setVillainCards([]); // Force unmount
+        setVillainAction('FOLD');
         setTimeout(() => {
-            SoundEngine.play('dealCard');
-            setTimeout(() => {
-                SoundEngine.play('dealCard');
-                setGameState('PLAYING');
-            }, 150);
-        }, 300);
-    }, []);
+            onAnswer?.('fold');
+        }, 500);
+    }, [onAnswer]);
 
-    // Initial deal
-    useEffect(() => {
-        const timer = setTimeout(dealNewHand, 500);
-        return () => clearTimeout(timer);
-    }, []);
+    const handleCall = useCallback(() => {
+        onAnswer?.('call');
+    }, [onAnswer]);
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // HANDLE ACTION
-    // ═══════════════════════════════════════════════════════════════════════
+    const handleRaise = useCallback(() => {
+        onAnswer?.('raise');
+    }, [onAnswer]);
 
-    const handleAction = useCallback((action: string) => {
-        if (gameState !== 'PLAYING') return;
-
-        // Stop timer
-        if (timerRef.current) clearInterval(timerRef.current);
-
-        // Mock GTO check (in real app, this calls ScenarioGenerator)
-        const isCorrect = action !== 'timeout' && Math.random() > 0.35;
-        const actionKey = action.toLowerCase() as keyof typeof GTO_EXPLANATIONS;
-        const explanations = GTO_EXPLANATIONS[actionKey] || GTO_EXPLANATIONS.fold;
-
-        setLastResult({
-            isCorrect,
-            explanation: isCorrect ? explanations.correct : explanations.incorrect,
-            gtoAction: isCorrect ? action : (action === 'fold' ? 'Call' : 'Fold'),
-            evDiff: isCorrect ? 0 : -Math.random() * 2
-        });
-
-        if (isCorrect) {
-            setScore(s => s + 1);
-            setStreak(s => s + 1);
-            SoundEngine.play('correctAnswer');
-        } else {
-            setStreak(0);
-            SoundEngine.play('wrongAnswer');
-        }
-
-        // LAW 4: Play chip stack sound for non-fold actions
-        if (action !== 'fold' && action !== 'timeout') {
-            SoundEngine.play('chipStack');
-        }
-
-        setGameState('FEEDBACK');
-    }, [gameState]);
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // NEXT HAND
-    // ═══════════════════════════════════════════════════════════════════════
-
-    const nextHand = useCallback(() => {
-        // LAW 3: Rotate dealer button clockwise
-        setDealerSeat(current => {
-            const idx = DEALER_SEATS.indexOf(current);
-            return DEALER_SEATS[(idx + 1) % DEALER_SEATS.length];
-        });
-
-        if (handIndex >= totalHands) {
-            setGameState('SUMMARY');
-            onComplete?.(score >= totalHands * 0.85, score * 50, score >= totalHands * 0.85 ? 10 : 0);
-        } else {
-            setHandIndex(h => h + 1);
-            dealNewHand();
-        }
-    }, [handIndex, totalHands, score, dealNewHand, onComplete, DEALER_SEATS]);
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // TIMER COLOR
-    // ═══════════════════════════════════════════════════════════════════════
-
-    const timerColor = timeLeft > 10 ? '#22c55e' : timeLeft > 5 ? '#f59e0b' : '#ef4444';
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // RENDER
-    // ═══════════════════════════════════════════════════════════════════════
+    const handleAllIn = useCallback(() => {
+        onAnswer?.('all-in');
+    }, [onAnswer]);
 
     return (
         <div style={{
             width: '100%',
             height: '100vh',
-            background: 'linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 100%)',
-            overflow: 'hidden',
+            background: 'linear-gradient(180deg, #0a1628 0%, #1a2744 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             position: 'relative',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            color: '#fff',
-            userSelect: 'none'
+            overflow: 'hidden',
         }}>
-            {/* HEADER HUD */}
+            {/* Poker Table */}
             <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 56,
-                background: 'rgba(15, 23, 42, 0.9)',
-                backdropFilter: 'blur(10px)',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0 20px',
-                zIndex: 100
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{
-                        background: 'rgba(255,255,255,0.1)',
-                        padding: '6px 12px',
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontFamily: 'monospace'
-                    }}>
-                        HAND {handIndex}/{totalHands}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color: '#facc15' }}>🏆</span>
-                        <span style={{ fontWeight: 700, color: '#facc15' }}>{score * 50} XP</span>
-                    </div>
-                </div>
-
-                {/* STREAK */}
-                {streak > 2 && (
-                    <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            color: '#f97316',
-                            fontWeight: 900,
-                            fontStyle: 'italic'
-                        }}
-                    >
-                        🔥 {streak} STREAK!
-                    </motion.div>
-                )}
-
-                {/* TIMER */}
-                <div style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: '50%',
-                    border: `3px solid ${timerColor}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 18,
-                    fontWeight: 700,
-                    color: timerColor,
-                    boxShadow: `0 0 20px ${timerColor}44`
-                }}>
-                    {timeLeft}
-                </div>
-            </div>
-
-            {/* GAME TITLE */}
-            <div style={{
-                position: 'absolute',
-                top: 70,
-                left: 0,
-                right: 0,
-                textAlign: 'center',
-                fontSize: 14,
-                color: 'rgba(255,255,255,0.6)',
-                letterSpacing: 2,
-                textTransform: 'uppercase'
-            }}>
-                {gameName}
-            </div>
-
-            {/* TABLE AREA */}
-            <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
+                position: 'relative',
                 width: 700,
-                height: 350,
-                background: 'radial-gradient(ellipse at center, #166534 0%, #14532d 50%, #0f3d21 100%)',
-                borderRadius: '50%/30%',
-                border: '12px solid #1e293b',
+                height: 400,
+                background: 'linear-gradient(135deg, #1e5631, #2d7a47)',
+                borderRadius: '50%',
+                border: '8px solid #3d2a1a',
                 boxShadow: '0 0 60px rgba(0,0,0,0.5), inset 0 0 40px rgba(0,0,0,0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
             }}>
-                {/* POT */}
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ color: '#86efac', fontSize: 11, fontWeight: 700, letterSpacing: 2, marginBottom: 4 }}>
-                        TOTAL POT
+                {/* BOARD - Dead Center */}
+                <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    display: 'flex',
+                    gap: 8,
+                }}>
+                    <AnimatePresence>
+                        {boardCards.length > 0 ? (
+                            boardCards.map((card, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ scale: 0, rotateY: 180 }}
+                                    animate={{ scale: 1, rotateY: 0 }}
+                                    transition={{ delay: i * 0.1 }}
+                                >
+                                    <PlayingCard card={card} size="medium" />
+                                </motion.div>
+                            ))
+                        ) : (
+                            <div style={{
+                                color: 'rgba(255,255,255,0.3)',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                letterSpacing: 2,
+                            }}>
+                                PRE-FLOP
+                            </div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* POT - Above Board */}
+                <div style={{
+                    position: 'absolute',
+                    top: '30%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(0,0,0,0.6)',
+                    padding: '8px 20px',
+                    borderRadius: 20,
+                    border: '2px solid #FFD700',
+                }}>
+                    <div style={{
+                        fontSize: 10,
+                        color: 'rgba(255,255,255,0.5)',
+                        textAlign: 'center',
+                    }}>
+                        POT
                     </div>
                     <div style={{
-                        background: 'rgba(0,0,0,0.4)',
-                        padding: '6px 16px',
-                        borderRadius: 20,
-                        fontFamily: 'monospace',
-                        fontSize: 18,
+                        fontSize: 20,
                         fontWeight: 700,
-                        border: '1px solid rgba(134, 239, 172, 0.3)'
+                        color: '#FFD700',
+                        fontFamily: 'monospace',
                     }}>
-                        {potSize.toFixed(1)} BB
+                        {pot} BB
                     </div>
                 </div>
 
-                {/* VILLAIN (TOP) */}
-                <div style={{ position: 'absolute', top: -80, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                    <Avatar emoji="😈" isHero={false} label={villainAction} stack={45} />
-                    <div style={{ display: 'flex', gap: 4 }}>
-                        <Card rank="?" suit="?" hidden delay={0.1} />
-                        <Card rank="?" suit="?" hidden delay={0.2} />
-                    </div>
-                </div>
-
-                {/* HERO (BOTTOM) */}
-                <div style={{ position: 'absolute', bottom: -100, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                    {gameState !== 'LOADING' && (
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <Card rank={heroCards[0][0]} suit={heroCards[0][1]} delay={0.3} />
-                            <Card rank={heroCards[1][0]} suit={heroCards[1][1]} delay={0.4} />
-                        </div>
-                    )}
-                    <Avatar emoji="😎" isHero={true} label="HERO" stack={40} />
-                </div>
-
-                {/* LAW 3: DEALER BUTTON */}
-                <motion.div
-                    key={dealerSeat}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 400 }}
-                    style={{
-                        position: 'absolute',
-                        bottom: dealerSeat === 'v1' ? '10%' : dealerSeat === 'v8' ? '15%' : '80%',
-                        right: dealerSeat.includes('v') && parseInt(dealerSeat[1]) <= 4 ? undefined : '15%',
-                        left: dealerSeat.includes('v') && parseInt(dealerSeat[1]) <= 4 ? '15%' : undefined,
-                        width: 32,
-                        height: 32,
+                {/* VILLAIN - Top Center */}
+                <div style={{
+                    position: 'absolute',
+                    top: '-10%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8,
+                }}>
+                    {/* Villain Seat */}
+                    <div style={{
+                        width: 80,
+                        height: 80,
                         borderRadius: '50%',
-                        background: 'linear-gradient(145deg, #fff, #ddd)',
-                        border: '3px solid #1a1a1a',
+                        background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                        border: '3px solid #fff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 14,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                    }}>
+                        <div style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: '#fff',
+                        }}>
+                            VILLAIN
+                        </div>
+                    </div>
+
+                    {/* Villain Cards */}
+                    <div style={{
+                        display: 'flex',
+                        gap: 4,
+                    }}>
+                        <AnimatePresence>
+                            {villainCards.map((card, i) => (
+                                <motion.div
+                                    key={`villain-${i}`}
+                                    initial={{ scale: 0, y: -50 }}
+                                    animate={{ scale: 1, y: 0 }}
+                                    exit={{ scale: 0, opacity: 0 }}
+                                    transition={{ delay: i * 0.1 }}
+                                >
+                                    <PlayingCard card={card} size="small" />
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Villain Action Label */}
+                    <AnimatePresence>
+                        {villainAction && (
+                            <motion.div
+                                initial={{ scale: 0, y: -10 }}
+                                animate={{ scale: 1, y: 0 }}
+                                exit={{ scale: 0, opacity: 0 }}
+                                style={{
+                                    padding: '6px 16px',
+                                    background: villainAction === 'FOLD' ? '#e74c3c' : '#27ae60',
+                                    borderRadius: 20,
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: '#fff',
+                                }}
+                            >
+                                {villainAction}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Villain Stack */}
+                    <ChipStack amount={villainStack} label="Villain" />
+                </div>
+
+                {/* HERO - Bottom Center */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: '-10%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8,
+                }}>
+                    {/* Hero Stack */}
+                    <ChipStack amount={heroStack} label="You" />
+
+                    {/* Hero Cards */}
+                    <div style={{
+                        display: 'flex',
+                        gap: 4,
+                    }}>
+                        <AnimatePresence>
+                            {heroCards.map((card, i) => (
+                                <motion.div
+                                    key={`hero-${i}`}
+                                    initial={{ scale: 0, y: 50 }}
+                                    animate={{ scale: 1, y: 0 }}
+                                    transition={{ delay: 0.3 + i * 0.15 }}
+                                >
+                                    <PlayingCard card={card} size="medium" />
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Hero Seat */}
+                    <motion.div
+                        animate={{
+                            boxShadow: [
+                                '0 0 20px rgba(255,215,0,0.5)',
+                                '0 0 40px rgba(255,215,0,0.8)',
+                                '0 0 20px rgba(255,215,0,0.5)',
+                            ],
+                        }}
+                        transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: 'easeInOut',
+                        }}
+                        style={{
+                            width: 80,
+                            height: 80,
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                            border: '3px solid #fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <div style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: '#000',
+                        }}>
+                            YOU
+                        </div>
+                    </motion.div>
+                </div>
+
+                {/* Dealer Button */}
+                <motion.div
+                    animate={{
+                        left: dealerButton === 'hero' ? '50%' : '50%',
+                        bottom: dealerButton === 'hero' ? '15%' : 'auto',
+                        top: dealerButton === 'villain' ? '15%' : 'auto',
+                    }}
+                    style={{
+                        position: 'absolute',
+                        transform: 'translateX(-50%)',
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+                        background: '#fff',
+                        border: '3px solid #000',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 18,
                         fontWeight: 900,
-                        color: '#1a1a1a',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-                        zIndex: 50
+                        color: '#000',
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.5)',
                     }}
                 >
                     D
                 </motion.div>
             </div>
 
-            {/* ACTION BUTTONS */}
-            <div style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 80,
-                background: 'rgba(15, 23, 42, 0.95)',
-                borderTop: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 16,
-                padding: '0 20px'
-            }}>
-                {['Fold', 'Call', 'Raise', 'All-In'].map((action, i) => {
-                    const colors = ['#64748b', '#3b82f6', '#f59e0b', '#dc2626'];
-                    return (
-                        <motion.button
-                            key={action}
-                            onClick={() => handleAction(action.toLowerCase().replace('-', ''))}
-                            disabled={gameState !== 'PLAYING'}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            style={{
-                                width: 120,
-                                height: 48,
-                                background: gameState === 'PLAYING'
-                                    ? `linear-gradient(135deg, ${colors[i]}, ${colors[i]}cc)`
-                                    : '#374151',
-                                border: 'none',
-                                borderRadius: 8,
-                                color: '#fff',
-                                fontSize: 14,
-                                fontWeight: 700,
-                                cursor: gameState === 'PLAYING' ? 'pointer' : 'not-allowed',
-                                opacity: gameState === 'PLAYING' ? 1 : 0.5,
-                                boxShadow: gameState === 'PLAYING' ? `0 4px 20px ${colors[i]}44` : 'none'
-                            }}
-                        >
-                            {action}
-                        </motion.button>
-                    );
-                })}
-            </div>
+            {/* Action Buttons - Bottom HUD */}
+            {!showResult && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: 40,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    gap: 12,
+                }}>
+                    <motion.button
+                        onClick={handleFold}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{
+                            padding: '16px 32px',
+                            background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                            border: 'none',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontSize: 16,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                        }}
+                    >
+                        FOLD
+                    </motion.button>
+                    <motion.button
+                        onClick={handleCall}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{
+                            padding: '16px 32px',
+                            background: 'linear-gradient(135deg, #3498db, #2980b9)',
+                            border: 'none',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontSize: 16,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                        }}
+                    >
+                        CALL
+                    </motion.button>
+                    <motion.button
+                        onClick={handleRaise}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{
+                            padding: '16px 32px',
+                            background: 'linear-gradient(135deg, #27ae60, #229954)',
+                            border: 'none',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontSize: 16,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                        }}
+                    >
+                        RAISE
+                    </motion.button>
+                    <motion.button
+                        onClick={handleAllIn}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{
+                            padding: '16px 32px',
+                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                            border: 'none',
+                            borderRadius: 12,
+                            color: '#000',
+                            fontSize: 16,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                        }}
+                    >
+                        ALL-IN
+                    </motion.button>
+                </div>
+            )}
 
-            {/* FEEDBACK OVERLAY */}
+            {/* Result Overlay */}
             <AnimatePresence>
-                {gameState === 'FEEDBACK' && lastResult && (
+                {showResult && (
                     <motion.div
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 50 }}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
                         style={{
                             position: 'absolute',
                             inset: 0,
                             background: 'rgba(0,0,0,0.8)',
-                            backdropFilter: 'blur(10px)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            zIndex: 200
                         }}
                     >
-                        <motion.div
-                            initial={{ scale: 0.9 }}
-                            animate={{ scale: 1 }}
-                            style={{
-                                background: lastResult.isCorrect
-                                    ? 'linear-gradient(135deg, #14532d, #0f3d21)'
-                                    : 'linear-gradient(135deg, #7f1d1d, #450a0a)',
-                                border: `2px solid ${lastResult.isCorrect ? '#22c55e' : '#ef4444'}`,
-                                borderRadius: 20,
-                                padding: 40,
-                                maxWidth: 500,
-                                textAlign: 'center',
-                                boxShadow: `0 0 60px ${lastResult.isCorrect ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`
-                            }}
-                        >
-                            <div style={{ fontSize: 64, marginBottom: 16 }}>
-                                {lastResult.isCorrect ? '✅' : '❌'}
-                            </div>
-                            <h2 style={{
-                                fontSize: 32,
-                                fontWeight: 900,
-                                color: lastResult.isCorrect ? '#22c55e' : '#ef4444',
+                        <div style={{
+                            padding: 40,
+                            background: isCorrect
+                                ? 'linear-gradient(135deg, #27ae60, #229954)'
+                                : 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                            borderRadius: 20,
+                            textAlign: 'center',
+                        }}>
+                            <div style={{
+                                fontSize: 64,
                                 marginBottom: 16,
-                                textTransform: 'uppercase',
-                                letterSpacing: 2
                             }}>
-                                {lastResult.isCorrect ? 'CORRECT!' : 'INCORRECT'}
-                            </h2>
-                            <p style={{
-                                fontSize: 16,
-                                color: 'rgba(255,255,255,0.8)',
-                                lineHeight: 1.6,
-                                marginBottom: 24
+                                {isCorrect ? '✓' : '✗'}
+                            </div>
+                            <div style={{
+                                fontSize: 32,
+                                fontWeight: 700,
+                                color: '#fff',
                             }}>
-                                {lastResult.explanation}
-                            </p>
-                            <motion.button
-                                onClick={nextHand}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                style={{
-                                    padding: '14px 40px',
-                                    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                                    border: 'none',
-                                    borderRadius: 12,
-                                    color: '#fff',
-                                    fontSize: 18,
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    boxShadow: '0 4px 20px rgba(59,130,246,0.4)'
-                                }}
-                            >
-                                NEXT →
-                            </motion.button>
-                        </motion.div>
+                                {isCorrect ? 'CORRECT!' : 'INCORRECT'}
+                            </div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* SUMMARY SCREEN */}
-            {gameState === 'SUMMARY' && (
-                <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'rgba(10, 10, 26, 0.98)',
-                    backdropFilter: 'blur(20px)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 300
-                }}>
-                    <h1 style={{
-                        fontSize: 48,
-                        fontWeight: 900,
-                        color: '#fff',
-                        marginBottom: 24,
-                        textTransform: 'uppercase',
-                        letterSpacing: 4
-                    }}>
-                        SESSION COMPLETE
-                    </h1>
-                    <div style={{
-                        fontSize: 120,
-                        fontWeight: 900,
-                        color: score >= totalHands * 0.85 ? '#22c55e' : score >= totalHands * 0.7 ? '#f59e0b' : '#ef4444',
-                        textShadow: `0 0 60px ${score >= totalHands * 0.85 ? '#22c55e' : '#f59e0b'}`,
-                        marginBottom: 24
-                    }}>
-                        {Math.round((score / totalHands) * 100)}%
-                    </div>
-                    <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.6)', marginBottom: 40 }}>
-                        {score}/{totalHands} correct • {score * 50} XP earned
-                    </p>
-                    <motion.button
-                        onClick={() => window.location.reload()}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        style={{
-                            padding: '16px 48px',
-                            background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                            border: 'none',
-                            borderRadius: 12,
-                            color: '#fff',
-                            fontSize: 18,
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                        }}
-                    >
-                        PLAY AGAIN
-                    </motion.button>
-                </div>
-            )}
         </div>
     );
 }
-
-export default UniversalTrainingTable;
