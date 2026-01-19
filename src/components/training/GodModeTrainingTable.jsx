@@ -560,6 +560,7 @@ export default function GodModeTrainingTable({
     const [score, setScore] = useState(0);
     const [streak, setStreak] = useState(0);
     const [maxStreak, setMaxStreak] = useState(0);
+    const [actionTimer, setActionTimer] = useState(15); // 15 second timer
 
     // ─────────────────────────────────────────────────────────────────────────
     // ENGINE 3: GTO BRAIN — FEEDBACK STATE
@@ -641,6 +642,7 @@ export default function GodModeTrainingTable({
         setGameState(GameState.DEALING);
         setShowCards(false);
         setFeedback(null);
+        setActionTimer(15); // Reset timer
 
         // Animate deal
         setTimeout(() => {
@@ -653,6 +655,24 @@ export default function GodModeTrainingTable({
             setGameState(GameState.ACTION_REQUIRED);
         }, 1200);
     }, [playCardFlip]);
+
+    // Action countdown timer effect
+    useEffect(() => {
+        if (gameState !== GameState.ACTION_REQUIRED) return;
+        if (actionTimer <= 0) return;
+
+        const interval = setInterval(() => {
+            setActionTimer(prev => {
+                if (prev <= 1) {
+                    clearInterval(interval);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [gameState, actionTimer]);
 
     // ─────────────────────────────────────────────────────────────────────────
     // ENGINE 3: GTO BRAIN — Handle action + grading
@@ -989,6 +1009,36 @@ export default function GodModeTrainingTable({
                 background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
                 zIndex: 50
             }}>
+                {/* Timer Display */}
+                {gameState === GameState.ACTION_REQUIRED && (
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        marginBottom: 12
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            background: 'rgba(0,0,0,0.5)',
+                            padding: '6px 16px',
+                            borderRadius: 20,
+                            border: actionTimer <= 5
+                                ? '1px solid rgba(239, 68, 68, 0.6)'
+                                : '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                            <span style={{
+                                fontSize: 16,
+                                color: actionTimer <= 5 ? '#ef4444' : actionTimer <= 10 ? '#fbbf24' : '#4ade80',
+                                fontWeight: 'bold',
+                                fontFamily: 'monospace'
+                            }}>
+                                ⏱️ {actionTimer}s
+                            </span>
+                        </div>
+                    </div>
+                )}
+
                 <ActionButtons
                     actions={availableActions}
                     onAction={handleAction}
