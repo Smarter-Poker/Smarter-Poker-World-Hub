@@ -367,6 +367,11 @@ const styles = {
         borderRadius: '50%',
         animation: 'spin 1s linear infinite',
     },
+    loaderHint: {
+        fontSize: 12,
+        opacity: 0.6,
+        marginTop: -8,
+    },
     errorState: {
         position: 'absolute',
         top: '50%',
