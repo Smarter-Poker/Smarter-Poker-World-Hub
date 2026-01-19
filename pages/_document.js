@@ -9,9 +9,6 @@ export default function Document() {
     return (
         <Html lang="en">
             <Head>
-                {/* Global viewport for ALL pages - enables responsive design */}
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-
                 {/* PWA / Mobile App settings */}
                 <meta name="mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-capable" content="yes" />

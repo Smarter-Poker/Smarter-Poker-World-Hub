@@ -825,6 +825,7 @@
         }
 
         /* OPPONENT HOLE CARDS - Side-by-side with overlap */
+        /* Cards positioned relative to player element */
         .opponent-cards {
             position: absolute;
             display: flex;
@@ -832,6 +833,31 @@
             align-items: center;
             z-index: 100;
             pointer-events: auto;
+            /* Default: cards on right side of avatar */
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-left: 5px;
+        }
+
+        /* Left side players - cards on left */
+        #v1 .opponent-cards,
+        #v2 .opponent-cards,
+        #v3 .opponent-cards {
+            left: auto;
+            right: 100%;
+            margin-left: 0;
+            margin-right: 5px;
+        }
+
+        /* Top players - cards below */
+        #v4 .opponent-cards,
+        #v5 .opponent-cards {
+            left: 50%;
+            top: 100%;
+            transform: translateX(-50%);
+            margin-left: 0;
+            margin-top: 5px;
         }
 
         .opponent-card {
