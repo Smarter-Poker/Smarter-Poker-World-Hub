@@ -1386,14 +1386,19 @@ export default function SocialMediaPage() {
                 }
 
                 if (authUser) {
-                    const { data: p } = await supabase.from('profiles').select('username, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
+                    const { data: p } = await supabase.from('profiles').select('username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
                     // 👑 Check for God Mode
                     if (p?.role === 'god') {
                         setIsGodMode(true);
                     }
+                    // Respect display_name_preference: 'full_name' shows real name, 'username' shows alias
+                    const displayNamePref = p?.display_name_preference || 'full_name';
+                    const displayName = displayNamePref === 'full_name' && p?.full_name
+                        ? p.full_name
+                        : (p?.username || authUser.email?.split('@')[0] || 'Player');
                     setUser({
                         id: authUser.id,
-                        name: p?.username || authUser.email?.split('@')[0] || 'Player',
+                        name: displayName,
                         avatar: p?.avatar_url || null,
                         tier: p?.skill_tier,
                         role: p?.role || 'user',
