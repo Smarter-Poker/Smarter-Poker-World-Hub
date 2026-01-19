@@ -856,21 +856,317 @@
         </div>
 
         <script>
+            // ═══════════════════════════════════════════════════════════════════════════
+            // TRAINING GAME ENGINE — Full PostMessage Integration
+            // ═══════════════════════════════════════════════════════════════════════════
+
+            // Game State
+            let gameState = {
+                question: null,
+                questionIndex: 0,
+                totalQuestions: 20,
+                timeLimit: 21,
+                timeLeft: 21,
+                gameName: 'Training',
+                streak: 0,
+                xpEarned: 0,
+                showResult: false,
+                selectedAnswer: null,
+                isComplete: false,
+                timerInterval: null
+            };
+
+            // DOM Elements
+            const elements = {
+                timer: null,
+                questionCounter: null,
+                questionText: null,
+                actionButtons: null,
+                feedbackOverlay: null
+            };
+
             document.addEventListener('DOMContentLoaded', () => {
-                // LOCKED LAW POSITIONS - Converted to percentages for viewport scaling
-                // Cards positioned at SCREEN EDGES in the black margin area
-                const lockedPositions = {
-                    v1: { left: '92%', top: '82%' },   // Bottom-right cards (right edge)
-                    v2: { left: '94%', top: '60%' },   // Middle-right cards (right edge)
-                    v3: { left: '94%', top: '40%' },   // Upper-right cards (right edge)
-                    v4: { left: '72%', top: '18%' },   // Top-right cards
-                    v5: { left: '26%', top: '18%' },   // Top-left cards
-                    v6: { left: '2%', top: '40%' },    // Upper-left cards (left edge)
-                    v7: { left: '2%', top: '60%' },    // Middle-left cards (left edge)
-                    v8: { left: '4%', top: '82%' }     // Bottom-left cards (left edge)
+                console.log('🎮 Training Game Template Loaded');
+
+                // Initialize DOM elements
+                elements.timer = document.querySelector('.timer-value');
+                elements.questionCounter = document.querySelector('.question-counter');
+                elements.questionText = document.querySelector('.question-text');
+                elements.actionButtons = document.querySelectorAll('.action-button');
+
+                // Setup card positions (existing logic)
+                setupCardPositions();
+                setupAvatars();
+                setupPlayerPositions();
+
+                // Setup action button handlers
+                setupActionButtons();
+
+                // Create feedback overlay
+                createFeedbackOverlay();
+
+                // Start timer
+                startTimer();
+
+                // Notify parent we're ready
+                window.parent.postMessage({ type: 'TEMPLATE_READY' }, '*');
+
+                // Listen for messages from parent
+                window.addEventListener('message', handleParentMessage);
+            });
+
+            // Handle messages from parent [gameId].js
+            function handleParentMessage(event) {
+                if (!event.data || typeof event.data !== 'object') return;
+
+                const { type, data } = event.data;
+
+                if (type === 'GAME_DATA') {
+                    console.log('📥 Received game data:', data);
+                    updateGameState(data);
+                }
+            }
+
+            // Update game state from parent
+            function updateGameState(data) {
+                gameState.question = data.question;
+                gameState.questionIndex = data.questionIndex || 0;
+                gameState.totalQuestions = data.totalQuestions || 20;
+                gameState.timeLimit = data.timeLimit || 21;
+                gameState.gameName = data.gameName || 'Training';
+                gameState.streak = data.streak || 0;
+                gameState.xpEarned = data.xpEarned || 0;
+                gameState.showResult = data.showResult || false;
+                gameState.selectedAnswer = data.selectedAnswer;
+                gameState.isComplete = data.isComplete || false;
+
+                // Update UI
+                updateUI();
+
+                // Reset timer on new question
+                if (!gameState.showResult && !gameState.isComplete) {
+                    gameState.timeLeft = gameState.timeLimit;
+                    startTimer();
+                }
+            }
+
+            // Update UI elements
+            function updateUI() {
+                // Update question counter
+                if (elements.questionCounter) {
+                    elements.questionCounter.textContent = `Question ${gameState.questionIndex + 1} of ${gameState.totalQuestions}`;
+                }
+
+                // Update question text
+                if (elements.questionText && gameState.question) {
+                    const q = gameState.question;
+                    elements.questionText.textContent = q.title || q.scenario || 'What is your best move?';
+                }
+
+                // Update game title
+                const titleEl = document.querySelector('.game-title');
+                if (titleEl) {
+                    titleEl.textContent = gameState.gameName.toUpperCase();
+                }
+
+                // Show/hide result overlay
+                if (gameState.showResult && gameState.selectedAnswer) {
+                    showFeedback(gameState.selectedAnswer);
+                }
+
+                // Handle completion
+                if (gameState.isComplete) {
+                    showCompletionScreen();
+                }
+            }
+
+            // Setup action button handlers
+            function setupActionButtons() {
+                const buttons = document.querySelectorAll('.action-button');
+                const actions = ['fold', 'call', 'raise', 'all-in'];
+
+                buttons.forEach((btn, index) => {
+                    btn.addEventListener('click', () => {
+                        if (gameState.showResult) return; // Ignore clicks during result
+
+                        const answerId = actions[index];
+                        console.log('🎯 Answer selected:', answerId);
+
+                        // Stop timer
+                        clearInterval(gameState.timerInterval);
+
+                        // Send to parent
+                        window.parent.postMessage({
+                            type: 'ANSWER_SELECTED',
+                            data: { answerId }
+                        }, '*');
+                    });
+                });
+            }
+
+            // Timer logic
+            function startTimer() {
+                clearInterval(gameState.timerInterval);
+
+                gameState.timerInterval = setInterval(() => {
+                    if (gameState.showResult || gameState.isComplete) {
+                        clearInterval(gameState.timerInterval);
+                        return;
+                    }
+
+                    gameState.timeLeft -= 0.1;
+
+                    // Update timer display
+                    if (elements.timer) {
+                        elements.timer.textContent = Math.ceil(gameState.timeLeft);
+
+                        // Color coding
+                        const percent = (gameState.timeLeft / gameState.timeLimit) * 100;
+                        if (percent < 15) {
+                            elements.timer.style.color = '#FF1744';
+                        } else if (percent < 30) {
+                            elements.timer.style.color = '#FF6B35';
+                        } else if (percent < 50) {
+                            elements.timer.style.color = '#FFD700';
+                        } else {
+                            elements.timer.style.color = '#ff4444';
+                        }
+                    }
+
+                    // Time's up
+                    if (gameState.timeLeft <= 0) {
+                        clearInterval(gameState.timerInterval);
+                        window.parent.postMessage({
+                            type: 'ANSWER_SELECTED',
+                            data: { answerId: null } // Timeout
+                        }, '*');
+                    }
+                }, 100);
+            }
+
+            // Create feedback overlay
+            function createFeedbackOverlay() {
+                const overlay = document.createElement('div');
+                overlay.id = 'feedback-overlay';
+                overlay.style.cssText = `
+                    position: fixed;
+                    inset: 0;
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(0,0,0,0.8);
+                    z-index: 1000;
+                `;
+
+                overlay.innerHTML = `
+                    <div id="feedback-content" style="
+                        text-align: center;
+                        padding: 40px;
+                        border-radius: 20px;
+                        max-width: 400px;
+                    ">
+                        <div id="feedback-icon" style="font-size: 80px; margin-bottom: 20px;"></div>
+                        <div id="feedback-title" style="font-size: 32px; font-weight: 800; margin-bottom: 10px;"></div>
+                        <div id="feedback-explanation" style="font-size: 16px; color: rgba(255,255,255,0.7); margin-bottom: 30px;"></div>
+                        <button id="next-button" style="
+                            padding: 16px 48px;
+                            font-size: 18px;
+                            font-weight: 700;
+                            background: linear-gradient(135deg, #2563EB, #1D4ED8);
+                            border: none;
+                            border-radius: 12px;
+                            color: #fff;
+                            cursor: pointer;
+                        ">NEXT</button>
+                    </div>
+                `;
+
+                document.body.appendChild(overlay);
+
+                // Next button handler
+                overlay.querySelector('#next-button').addEventListener('click', () => {
+                    overlay.style.display = 'none';
+                    window.parent.postMessage({ type: 'NEXT_QUESTION' }, '*');
+                });
+
+                elements.feedbackOverlay = overlay;
+            }
+
+            // Show feedback overlay
+            function showFeedback(answerId) {
+                const overlay = elements.feedbackOverlay;
+                if (!overlay) return;
+
+                const q = gameState.question;
+                const option = q?.options?.find(o => o.id === answerId);
+                const isCorrect = option?.isCorrect || false;
+
+                const icon = overlay.querySelector('#feedback-icon');
+                const title = overlay.querySelector('#feedback-title');
+                const explanation = overlay.querySelector('#feedback-explanation');
+                const content = overlay.querySelector('#feedback-content');
+
+                if (isCorrect) {
+                    icon.textContent = '✅';
+                    title.textContent = 'CORRECT!';
+                    title.style.color = '#4CAF50';
+                    content.style.background = 'linear-gradient(135deg, #1a3d1a, #0d2d0d)';
+                    content.style.border = '2px solid #4CAF50';
+                } else {
+                    icon.textContent = '❌';
+                    title.textContent = 'INCORRECT';
+                    title.style.color = '#FF6B35';
+                    content.style.background = 'linear-gradient(135deg, #3d1a1a, #2d0d0d)';
+                    content.style.border = '2px solid #FF6B35';
+                }
+
+                explanation.textContent = q?.explanation || '';
+
+                overlay.style.display = 'flex';
+            }
+
+            // Show completion screen
+            function showCompletionScreen() {
+                const overlay = elements.feedbackOverlay;
+                if (!overlay) return;
+
+                const content = overlay.querySelector('#feedback-content');
+                const icon = overlay.querySelector('#feedback-icon');
+                const title = overlay.querySelector('#feedback-title');
+                const explanation = overlay.querySelector('#feedback-explanation');
+                const nextBtn = overlay.querySelector('#next-button');
+
+                icon.textContent = '🏆';
+                title.textContent = 'LEVEL COMPLETE!';
+                title.style.color = '#FFD700';
+                content.style.background = 'linear-gradient(135deg, #1a2d3d, #0d1d2d)';
+                content.style.border = '2px solid #FFD700';
+                explanation.textContent = `XP Earned: ${gameState.xpEarned}`;
+                nextBtn.textContent = 'CONTINUE';
+
+                nextBtn.onclick = () => {
+                    window.parent.postMessage({ type: 'EXIT_GAME' }, '*');
                 };
 
-                // Move cards to body to enforce absolute positioning relative to viewport
+                overlay.style.display = 'flex';
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // EXISTING LAYOUT SETUP (preserved from golden template)
+            // ═══════════════════════════════════════════════════════════════════════════
+
+            function setupCardPositions() {
+                const lockedPositions = {
+                    v1: { left: '92%', top: '82%' },
+                    v2: { left: '94%', top: '60%' },
+                    v3: { left: '94%', top: '40%' },
+                    v4: { left: '72%', top: '18%' },
+                    v5: { left: '26%', top: '18%' },
+                    v6: { left: '2%', top: '40%' },
+                    v7: { left: '2%', top: '60%' },
+                    v8: { left: '4%', top: '82%' }
+                };
+
                 for (let villain in lockedPositions) {
                     const card = document.querySelector(`.opponent-cards[data-villain="${villain}"]`);
                     if (card) {
@@ -880,8 +1176,9 @@
                         card.style.top = lockedPositions[villain].top;
                     }
                 }
+            }
 
-                // 9 Unique Transparent Avatars - No Repeats
+            function setupAvatars() {
                 const AVATARS = [
                     "https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fviking_warrior.png&w=640&q=75",
                     "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fwizard.png&w=640&q=75",
@@ -894,32 +1191,24 @@
                     "https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Ffox.png&w=640&q=75"
                 ];
 
-                // Assign each avatar to a player (no shuffling to prevent repeats)
                 document.querySelectorAll('.avatar img').forEach((img, i) => {
                     img.src = AVATARS[i];
                 });
+            }
 
-                // ═══════════════════════════════════════════════════════════
-                // SMARTER.POKER TABLE CONSTITUTION - FIXED 9-SEAT LAYOUT
-                // Zero-Deviation Policy: These coordinates are IMMUTABLE
-                // ═══════════════════════════════════════════════════════════
-
-                // LAW 1: Law of the Fixed 9 - Static coordinates, never float
-                // LAW 2: Hero Anchor - Seat 1 is ALWAYS bottom center
-                // LAW 3: Law of the Rail - All avatars 100% on rail, NOT felt
+            function setupPlayerPositions() {
                 const SEAT_POSITIONS = {
-                    'hero': { left: '50%', top: '88%' },   // Seat 1: Hero (Center Bottom - ANCHOR)
-                    'v1': { left: '18%', top: '75%' },     // Seat 2: Bottom-Left
-                    'v2': { left: '15%', top: '50%' },     // Seat 3: Middle-Left
-                    'v3': { left: '15%', top: '26%' },     // Seat 4: Upper-Left
-                    'v4': { left: '32%', top: '5%' },      // Seat 5: Top-Left
-                    'v5': { left: '68%', top: '5%' },      // Seat 6: Top-Right
-                    'v6': { left: '85%', top: '26%' },     // Seat 7: Upper-Right
-                    'v7': { left: '85%', top: '50%' },     // Seat 8: Middle-Right
-                    'v8': { left: '82%', top: '75%' }      // Seat 9: Bottom-Right
+                    'hero': { left: '50%', top: '88%' },
+                    'v1': { left: '18%', top: '75%' },
+                    'v2': { left: '15%', top: '50%' },
+                    'v3': { left: '15%', top: '26%' },
+                    'v4': { left: '32%', top: '5%' },
+                    'v5': { left: '68%', top: '5%' },
+                    'v6': { left: '85%', top: '26%' },
+                    'v7': { left: '85%', top: '50%' },
+                    'v8': { left: '82%', top: '75%' }
                 };
 
-                // Apply FIXED positions to each player (Zero-Float policy)
                 Object.keys(SEAT_POSITIONS).forEach(id => {
                     const player = document.getElementById(id);
                     if (player) {
@@ -927,7 +1216,7 @@
                         player.style.top = SEAT_POSITIONS[id].top;
                     }
                 });
-            });
+            }
         </script>
 </body>
 

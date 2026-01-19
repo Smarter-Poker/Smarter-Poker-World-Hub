@@ -113,14 +113,15 @@ function getYouTubeThumbnail(url) {
 // The default "Video Unavailable" placeholder is 120x90 pixels.
 // ═══════════════════════════════════════════════════════════════════════════
 
-function VideoThumbnail({ url, style = {} }) {
+function VideoThumbnail({ url, style = {}, onValidated }) {
     const [thumbnailError, setThumbnailError] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [isValid, setIsValid] = useState(null); // null = unknown, true = valid, false = invalid
     const imgRef = useRef(null);
     const thumbnailUrl = getYouTubeThumbnail(url);
 
     // Fallback UI for invalid/unavailable videos
-    const FallbackUI = () => (
+    const FallbackUI = ({ showUnavailable = false }) => (
         <div style={{
             width: '100%',
             height: '100%',
@@ -133,13 +134,15 @@ function VideoThumbnail({ url, style = {} }) {
             ...style
         }}>
             <span style={{ fontSize: 48, marginBottom: 8 }}>🎬</span>
-            <span style={{ fontSize: 14, opacity: 0.8 }}>Video</span>
+            <span style={{ fontSize: 14, opacity: 0.8 }}>
+                {showUnavailable ? 'Video Unavailable' : 'Video'}
+            </span>
         </div>
     );
 
     // If thumbnail failed to load, no URL, or detected as placeholder, show fallback
     if (thumbnailError || !thumbnailUrl) {
-        return <FallbackUI />;
+        return <FallbackUI showUnavailable={thumbnailError} />;
     }
 
     const handleLoad = (e) => {
@@ -147,9 +150,22 @@ function VideoThumbnail({ url, style = {} }) {
         // YouTube's "Video Unavailable" placeholder is 120x90
         // Real thumbnails are 480x360 (hqdefault) or higher
         const img = e.target;
-        if (img.naturalWidth <= 120 && img.naturalHeight <= 90) {
+        const isInvalid = img.naturalWidth <= 120 && img.naturalHeight <= 90;
+
+        if (isInvalid) {
             setThumbnailError(true);
+            setIsValid(false);
+            if (onValidated) onValidated(false);
+        } else {
+            setIsValid(true);
+            if (onValidated) onValidated(true);
         }
+    };
+
+    const handleError = () => {
+        setThumbnailError(true);
+        setIsValid(false);
+        if (onValidated) onValidated(false);
     };
 
     return (
@@ -167,9 +183,69 @@ function VideoThumbnail({ url, style = {} }) {
                     ...style
                 }}
                 onLoad={handleLoad}
-                onError={() => setThumbnailError(true)}
+                onError={handleError}
             />
         </>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🎥 VIDEO POST WRAPPER - Handles click behavior based on video validity
+// ═══════════════════════════════════════════════════════════════════════════
+
+function VideoPostWrapper({ url, onValidVideoClick, children }) {
+    const [isVideoValid, setIsVideoValid] = useState(null); // null = unknown, true/false = validated
+
+    const handleClick = () => {
+        if (isVideoValid === false) {
+            // Video is broken - show alert instead of opening player
+            alert('This video is no longer available on YouTube.');
+            return;
+        }
+        // Video is valid or still loading - proceed with click
+        if (onValidVideoClick) onValidVideoClick(url);
+    };
+
+    return (
+        <div
+            onClick={handleClick}
+            style={{
+                position: 'relative',
+                cursor: isVideoValid === false ? 'not-allowed' : 'pointer',
+                aspectRatio: '16/9',
+                background: '#000',
+                overflow: 'hidden'
+            }}
+        >
+            {isYouTubeUrl(url) ? (
+                <VideoThumbnail
+                    url={url}
+                    onValidated={(valid) => setIsVideoValid(valid)}
+                />
+            ) : children}
+
+            {/* Play Button Overlay - dim for invalid videos */}
+            <div style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 64, height: 64, borderRadius: '50%',
+                background: isVideoValid === false ? 'rgba(100,100,100,0.6)' : 'rgba(0,0,0,0.6)',
+                backdropFilter: 'blur(4px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: isVideoValid === false ? '#888' : 'white',
+                fontSize: 28, pointerEvents: 'none'
+            }}>{isVideoValid === false ? '⚠️' : '▶'}</div>
+
+            {/* Status hint */}
+            <div style={{
+                position: 'absolute', bottom: 8, left: 8,
+                background: isVideoValid === false ? 'rgba(200,50,50,0.8)' : 'rgba(0,0,0,0.6)',
+                padding: '4px 10px',
+                borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
+            }}>
+                {isVideoValid === false ? '⚠️ Video unavailable' : '🎬 Tap to view full screen'}
+            </div>
+        </div>
     );
 }
 
@@ -660,45 +736,19 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                     {post.mediaUrls.length === 1 ? (
                         // Single media - full width
                         post.contentType === 'video' ? (
-                            // VIDEO: Clickable thumbnail that opens full-screen viewer
-                            <div
-                                onClick={() => setFullScreenVideo(post.mediaUrls[0])}
-                                style={{
-                                    position: 'relative',
-                                    cursor: 'pointer',
-                                    aspectRatio: '16/9',
-                                    background: '#000',
-                                    overflow: 'hidden'
-                                }}
+                            // VIDEO: Use VideoPostWrapper to handle broken video detection
+                            <VideoPostWrapper
+                                url={post.mediaUrls[0]}
+                                onValidVideoClick={(url) => setFullScreenVideo(url)}
                             >
-                                {/* Use YouTube thumbnail for YouTube URLs, video element for direct files */}
-                                {isYouTubeUrl(post.mediaUrls[0]) ? (
-                                    <VideoThumbnail url={post.mediaUrls[0]} />
-                                ) : (
-                                    <video
-                                        src={post.mediaUrls[0]}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        muted
-                                        playsInline
-                                        preload="metadata"
-                                    />
-                                )}
-                                {/* Play Button Overlay */}
-                                <div style={{
-                                    position: 'absolute', top: '50%', left: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                    width: 64, height: 64, borderRadius: '50%',
-                                    background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    color: 'white', fontSize: 28, pointerEvents: 'none'
-                                }}>▶</div>
-                                {/* "Tap to view" hint */}
-                                <div style={{
-                                    position: 'absolute', bottom: 8, left: 8,
-                                    background: 'rgba(0,0,0,0.6)', padding: '4px 10px',
-                                    borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
-                                }}>🎬 Tap to view full screen</div>
-                            </div>
+                                <video
+                                    src={post.mediaUrls[0]}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    muted
+                                    playsInline
+                                    preload="metadata"
+                                />
+                            </VideoPostWrapper>
                         ) : post.contentType === 'link' ? (
                             // LINK: Clickable card preview (Facebook-style)
                             <a
