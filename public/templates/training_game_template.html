@@ -1516,6 +1516,30 @@
                 const explanation = overlay.querySelector('#feedback-explanation');
                 const content = overlay.querySelector('#feedback-content');
 
+                // GTO EXPLANATIONS for standalone mode (when no parent data)
+                const GTO_EXPLANATIONS = {
+                    fold: {
+                        correct: "GTO Optimal: Folding here preserves your stack. With this board texture and villain's bet sizing, your pot odds don't justify continuing.",
+                        incorrect: "Suboptimal: GTO suggests you should have continued here. The pot odds and equity justify calling or raising against villain's range."
+                    },
+                    call: {
+                        correct: "GTO Optimal: Calling is the correct frequency here. You have sufficient pot odds and equity against villain's betting range.",
+                        incorrect: "Suboptimal: This spot calls for a different action. Consider the stack-to-pot ratio and villain's range on this texture."
+                    },
+                    raise: {
+                        correct: "GTO Optimal: Raising for value/protection is correct. Your hand has sufficient equity and fold equity to justify aggression.",
+                        incorrect: "Suboptimal: Raising here is too aggressive. Your hand is better played as a call or fold given the board texture."
+                    },
+                    'all-in': {
+                        correct: "GTO Optimal: All-in is the correct play. With your stack-to-pot ratio and hand strength, maximum pressure is optimal.",
+                        incorrect: "Suboptimal: All-in is too committed for this spot. Consider the risk-reward and your actual equity vs villain's range."
+                    }
+                };
+
+                // Get action-specific explanation
+                const actionExplanations = GTO_EXPLANATIONS[answerId] || GTO_EXPLANATIONS.fold;
+                const fallbackExplanation = isCorrect ? actionExplanations.correct : actionExplanations.incorrect;
+
                 if (isCorrect) {
                     icon.textContent = '✅';
                     title.textContent = 'CORRECT!';
@@ -1544,7 +1568,8 @@
                     }
                 }
 
-                explanation.textContent = q?.explanation || '';
+                // Use question explanation if available, otherwise use GTO fallback
+                explanation.textContent = q?.explanation || fallbackExplanation;
 
                 overlay.style.display = 'flex';
             }
