@@ -609,19 +609,20 @@
            ANIMATION KEYFRAMES — Dealing, Pulse, Shake, Fold
            ═══════════════════════════════════════════════════════════════════════════ */
 
-        /* Card dealing animation - fly from center */
+        /* Card dealing animation - pop in with scale */
         @keyframes dealCard {
             0% {
-                transform: translate(50vw, 50vh) scale(0.3) rotate(0deg);
+                transform: scale(0) rotate(-30deg);
                 opacity: 0;
             }
 
-            60% {
+            70% {
+                transform: scale(1.1) rotate(5deg);
                 opacity: 1;
             }
 
             100% {
-                transform: translate(0, 0) scale(1) rotate(var(--card-rotation, 0deg));
+                transform: scale(1) rotate(0deg);
                 opacity: 1;
             }
         }
@@ -692,11 +693,11 @@
             }
         }
 
-        .timer-container.critical {
+        .timer.critical {
             animation: timerPulse 0.5s ease-in-out infinite, timerGlow 0.5s ease-in-out infinite;
         }
 
-        .timer-container.warning {
+        .timer.warning {
             animation: timerPulse 1s ease-in-out infinite;
         }
 
@@ -1197,7 +1198,7 @@
 
                 // Initialize DOM elements
                 elements.timer = document.querySelector('.timer-value');
-                elements.timerContainer = document.querySelector('.timer-container');
+                elements.timerContainer = document.querySelector('.timer');
                 elements.questionCounter = document.querySelector('.question-counter');
                 elements.questionText = document.querySelector('.question-text');
                 elements.actionButtons = document.querySelectorAll('.action-button');

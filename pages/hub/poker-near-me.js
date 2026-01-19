@@ -1,35 +1,48 @@
 /**
- * POKER NEAR ME - Event Discovery & Geo-Location
- * Find tournaments, cash games, and events in your area
+ * POKER NEAR ME - Live Discovery & Trust Engine
+ * Find casinos, poker clubs, and tournament series
+ * Part of Orb #9: Geo-Spatial Intelligence
  */
 
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     MapPin, Calendar, Clock, DollarSign, Users, Trophy,
     Search, Filter, ChevronRight, Star, Navigation, Loader,
-    Zap, ExternalLink
+    Zap, ExternalLink, Phone, Globe, Building2, Shield,
+    Gamepad2, CreditCard, ChevronDown
 } from 'lucide-react';
 
-// Fallback events data
-const FALLBACK_EVENTS = [
-    { id: 1, name: "WSOP Main Event", location: "Las Vegas, NV", venue: "Rio All-Suite Hotel", event_date: "2026-06-27", buy_in: 10000, guaranteed: 50000000, game_type: "NLH", format: "Tournament", is_featured: true },
-    { id: 2, name: "EPT Barcelona", location: "Barcelona, Spain", venue: "Casino Barcelona", event_date: "2026-08-14", buy_in: 5300, guaranteed: 10000000, game_type: "NLH", format: "Tournament", is_featured: true },
-    { id: 3, name: "WPT Championship", location: "Las Vegas, NV", venue: "Wynn Las Vegas", event_date: "2026-12-01", buy_in: 10400, guaranteed: 15000000, game_type: "NLH", format: "Tournament", is_featured: true },
-    { id: 4, name: "Bellagio $5/$10 NLH", location: "Las Vegas, NV", venue: "Bellagio", event_date: "2026-01-20", buy_in: 500, guaranteed: null, game_type: "NLH", format: "Cash Game", is_featured: false },
-    { id: 5, name: "Aria Daily $240", location: "Las Vegas, NV", venue: "Aria Casino", event_date: "2026-01-21", buy_in: 240, guaranteed: 10000, game_type: "NLH", format: "Tournament", is_featured: false },
-    { id: 6, name: "Venetian $600 Deepstack", location: "Las Vegas, NV", venue: "The Venetian", event_date: "2026-01-22", buy_in: 600, guaranteed: 50000, game_type: "NLH", format: "Tournament", is_featured: false },
-    { id: 7, name: "Commerce $100 Rebuy", location: "Los Angeles, CA", venue: "Commerce Casino", event_date: "2026-01-23", buy_in: 100, guaranteed: 25000, game_type: "NLH", format: "Tournament", is_featured: false },
-    { id: 8, name: "Hustler PLO $2/$5", location: "Los Angeles, CA", venue: "Hustler Casino", event_date: "2026-01-24", buy_in: 200, guaranteed: null, game_type: "PLO", format: "Cash Game", is_featured: false },
+// US States for filter
+const US_STATES = [
+    { code: 'NV', name: 'Nevada' },
+    { code: 'CA', name: 'California' },
+    { code: 'FL', name: 'Florida' },
+    { code: 'TX', name: 'Texas' },
+    { code: 'NJ', name: 'New Jersey' },
+    { code: 'CT', name: 'Connecticut' },
+    { code: 'PA', name: 'Pennsylvania' },
+    { code: 'AZ', name: 'Arizona' },
+    { code: 'CO', name: 'Colorado' },
+    { code: 'IL', name: 'Illinois' },
+    { code: 'IN', name: 'Indiana' },
+    { code: 'MI', name: 'Michigan' },
+    { code: 'MN', name: 'Minnesota' },
+    { code: 'OK', name: 'Oklahoma' },
+    { code: 'LA', name: 'Louisiana' },
+    { code: 'MS', name: 'Mississippi' },
 ];
 
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-}
+// Venue type icons
+const VENUE_ICONS = {
+    casino: '🎰',
+    card_room: '🃏',
+    poker_club: '♠️',
+    home_game: '🏠'
+};
 
 function formatMoney(amount) {
     if (!amount) return '-';
@@ -38,49 +51,78 @@ function formatMoney(amount) {
     return `$${amount.toLocaleString()}`;
 }
 
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export default function PokerNearMe() {
     const router = useRouter();
-    const [events, setEvents] = useState([]);
+
+    // State
+    const [venues, setVenues] = useState([]);
+    const [series, setSeries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeFilter, setActiveFilter] = useState('all');
+    const [selectedState, setSelectedState] = useState('');
+    const [selectedType, setSelectedType] = useState('all');
+    const [activeTab, setActiveTab] = useState('venues'); // 'venues' or 'series'
     const [userLocation, setUserLocation] = useState(null);
+    const [showStateDropdown, setShowStateDropdown] = useState(false);
 
     useEffect(() => {
-        fetchEvents();
-        // Try to get user location
+        fetchData();
+        // Get user location
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                () => setUserLocation(null)
+                () => { }
             );
         }
-    }, []);
+    }, [selectedState, selectedType]);
 
-    const fetchEvents = async () => {
+    const fetchData = async () => {
         setLoading(true);
-        try {
-            const res = await fetch('/api/news/events?limit=20');
-            const { success, data } = await res.json();
-            setEvents(success && data?.length ? data : FALLBACK_EVENTS);
-        } catch (e) {
-            setEvents(FALLBACK_EVENTS);
-        }
+        await Promise.all([fetchVenues(), fetchSeries()]);
         setLoading(false);
     };
 
-    const filteredEvents = events.filter(event => {
-        const matchesSearch = !searchQuery ||
-            event.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            event.location?.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesFilter = activeFilter === 'all' ||
-            (activeFilter === 'tournament' && event.format === 'Tournament') ||
-            (activeFilter === 'cash' && event.format === 'Cash Game') ||
-            (activeFilter === 'featured' && event.is_featured);
-        return matchesSearch && matchesFilter;
-    });
+    const fetchVenues = async () => {
+        try {
+            const params = new URLSearchParams({ limit: '50' });
+            if (selectedState) params.set('state', selectedState);
+            if (selectedType !== 'all') params.set('type', selectedType);
 
-    const featuredEvents = events.filter(e => e.is_featured).slice(0, 3);
+            const res = await fetch(`/api/poker/venues?${params}`);
+            const { data } = await res.json();
+            setVenues(data || []);
+        } catch (e) {
+            setVenues([]);
+        }
+    };
+
+    const fetchSeries = async () => {
+        try {
+            const res = await fetch('/api/poker/series?upcoming=true&limit=15');
+            const { data } = await res.json();
+            setSeries(data || []);
+        } catch (e) {
+            setSeries([]);
+        }
+    };
+
+    // Filter venues by search
+    const filteredVenues = venues.filter(v =>
+        !searchQuery ||
+        v.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        v.city?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const filteredSeries = series.filter(s =>
+        !searchQuery ||
+        s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.location?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <>
