@@ -1163,6 +1163,58 @@
                     osc.start();
                     osc.stop(this.audioContext.currentTime + 0.05);
                 }
+
+                // LAW 9: Heartbeat audio for critical pressure
+                playHeartbeat() {
+                    if (!this.audioContext || !this.enabled) return;
+                    // First beat (lub)
+                    const osc1 = this.audioContext.createOscillator();
+                    const gain1 = this.audioContext.createGain();
+                    osc1.connect(gain1);
+                    gain1.connect(this.audioContext.destination);
+                    osc1.frequency.value = 60;
+                    osc1.type = 'sine';
+                    gain1.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                    gain1.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.15);
+                    osc1.start();
+                    osc1.stop(this.audioContext.currentTime + 0.15);
+
+                    // Second beat (dub) - slightly delayed
+                    setTimeout(() => {
+                        if (!this.audioContext) return;
+                        const osc2 = this.audioContext.createOscillator();
+                        const gain2 = this.audioContext.createGain();
+                        osc2.connect(gain2);
+                        gain2.connect(this.audioContext.destination);
+                        osc2.frequency.value = 50;
+                        osc2.type = 'sine';
+                        gain2.gain.setValueAtTime(0.25, this.audioContext.currentTime);
+                        gain2.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.12);
+                        osc2.start();
+                        osc2.stop(this.audioContext.currentTime + 0.12);
+                    }, 120);
+                }
+
+                // Chip stack sound (Law 4)
+                playChipStack() {
+                    if (!this.audioContext || !this.enabled) return;
+                    // Multiple quick clicks for chip stacking
+                    for (let i = 0; i < 4; i++) {
+                        setTimeout(() => {
+                            if (!this.audioContext) return;
+                            const osc = this.audioContext.createOscillator();
+                            const gain = this.audioContext.createGain();
+                            osc.connect(gain);
+                            gain.connect(this.audioContext.destination);
+                            osc.frequency.value = 2000 + Math.random() * 500;
+                            osc.type = 'triangle';
+                            gain.gain.setValueAtTime(0.08, this.audioContext.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.03);
+                            osc.start();
+                            osc.stop(this.audioContext.currentTime + 0.03);
+                        }, i * 30);
+                    }
+                }
             }
 
             const audio = new SynthAudioEngine();
@@ -1414,6 +1466,10 @@
                             // Play tick sound every second when critical
                             if (currentTime !== lastTickTime && currentTime > 0) {
                                 audio.playTick();
+                                // LAW 9: Play heartbeat every 2 seconds at critical
+                                if (currentTime % 2 === 0) {
+                                    audio.playHeartbeat();
+                                }
                                 lastTickTime = currentTime;
                             }
                         } else if (percent < 30) {
