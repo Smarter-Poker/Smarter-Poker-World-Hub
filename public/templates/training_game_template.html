@@ -210,7 +210,8 @@
             top: 42%;
             left: 50%;
             transform: translateX(-50%);
-            display: flex;
+            display: none;
+            /* HIDDEN for positioning */
             gap: 3px;
             z-index: 15;
         }
@@ -247,54 +248,8 @@
             flex-direction: column;
             align-items: center;
             gap: 0;
-            z-index: 10;
+            z-index: 20;
             overflow: visible;
-            transition: filter 0.3s ease, opacity 0.3s ease;
-        }
-
-        /* ACTIVE PLAYER - Living Golden Glow (Organic & Smooth) */
-        .player.active .player-info {
-            box-shadow:
-                0 0 20px rgba(255, 215, 0, 0.9),
-                0 0 40px rgba(255, 215, 0, 0.7),
-                0 0 60px rgba(255, 215, 0, 0.5),
-                0 0 80px rgba(255, 215, 0, 0.3),
-                inset 0 0 20px rgba(255, 215, 0, 0.2);
-            border-color: rgba(255, 215, 0, 1);
-            animation: livingGoldenGlow 2.5s ease-in-out infinite;
-        }
-
-        @keyframes livingGoldenGlow {
-
-            0%,
-            100% {
-                box-shadow:
-                    0 0 20px rgba(255, 215, 0, 0.9),
-                    0 0 40px rgba(255, 215, 0, 0.7),
-                    0 0 60px rgba(255, 215, 0, 0.5),
-                    0 0 80px rgba(255, 215, 0, 0.3),
-                    inset 0 0 20px rgba(255, 215, 0, 0.2);
-            }
-
-            50% {
-                box-shadow:
-                    0 0 30px rgba(255, 215, 0, 1),
-                    0 0 60px rgba(255, 215, 0, 0.9),
-                    0 0 90px rgba(255, 215, 0, 0.7),
-                    0 0 120px rgba(255, 215, 0, 0.5),
-                    inset 0 0 30px rgba(255, 215, 0, 0.3);
-            }
-        }
-
-        /* FOLDED PLAYER - Greyscale */
-        .player.folded {
-            filter: grayscale(1);
-            opacity: 0.5;
-        }
-
-        .player.folded .avatar {
-            filter: grayscale(1);
-            animation: none;
         }
 
         .avatar {
@@ -307,7 +262,6 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            mix-blend-mode: multiply;
         }
 
         .player-info {
@@ -358,8 +312,7 @@
             left: 100%;
             top: 50%;
             transform: translateY(calc(-50% + 20px));
-            display: none;
-            /* HIDDEN - will be shown when cards are dealt */
+            display: flex;
             margin-left: 5px;
             z-index: 10;
         }
@@ -542,290 +495,8 @@
             white-space: nowrap;
         }
 
-        /* ACTION BUTTONS - Full Width Bottom */
-        .action-buttons {
-            flex-shrink: 0;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            padding: 12px 16px;
-            padding-bottom: 24px;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
-            z-index: 100;
-        }
-
-        .action-button {
-            padding: 16px;
-            font-size: 15px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #2563EB, #1D4ED8);
-            border: none;
-            border-radius: 10px;
-            color: #fff;
-            cursor: pointer;
-            transition: transform 0.1s ease, box-shadow 0.1s ease;
-        }
-
-        .action-button:active {
-            transform: scale(0.95);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .action-button:hover {
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-        }
-
-        /* ANIMATION KEYFRAMES */
-        @keyframes dealCard {
-            from {
-                transform: translate(-50%, -50%) scale(0.3);
-                opacity: 0;
-            }
-
-            to {
-                transform: translate(0, 0) scale(1);
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideChips {
-            from {
-                transform: translateY(0);
-                opacity: 1;
-            }
-
-            to {
-                transform: translateY(-100px);
-                opacity: 0.5;
-            }
-        }
-
-        @keyframes foldPlayer {
-            to {
-                opacity: 0.5;
-                filter: grayscale(0.7);
-            }
-        }
-
-        @keyframes slideToMuck {
-            to {
-                transform: translateY(50px) scale(0.8);
-                opacity: 0;
-            }
-        }
-
-        /* Animation Classes */
-        .card-dealing {
-            animation: dealCard 0.5s ease-out forwards;
-        }
-
-        .chips-sliding {
-            animation: slideChips 0.4s ease-in-out forwards;
-        }
-
-        .player-folded {
-            animation: foldPlayer 0.3s ease forwards;
-        }
-
-        .cards-mucked {
-            animation: slideToMuck 0.3s ease forwards;
-        }
-
-        /* CHIP STACKS */
-        .chip-stack {
-            position: absolute;
-            bottom: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-        }
-
-        .chip {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #FFD700, #FFA500);
-            border: 2px solid #fff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            margin-top: -8px;
-        }
-
-        .chip:first-child {
-            margin-top: 0;
-        }
-
-        .chip-label {
-            font-size: 10px;
-            font-weight: 700;
-            color: #FFD700;
-            text-shadow: 0 0 4px rgba(255, 215, 0, 0.5);
-            margin-top: 2px;
-        }
-
-        /* ═══════════════════════════════════════════════════════════
-           GAME FEEL ENHANCEMENTS
-           ═══════════════════════════════════════════════════════════ */
-
-        /* Animated Timer Border (15 seconds) */
-        .player-info {
-            position: relative;
-        }
-
-        .player-info::before {
-            content: '';
-            position: absolute;
-            top: -3px;
-            left: -3px;
-            right: -3px;
-            bottom: -3px;
-            border-radius: 10px;
-            background: conic-gradient(#00ff00 0deg, transparent 0deg);
-            opacity: 0;
-            z-index: -1;
-        }
-
-        .player.active .player-info::before {
-            opacity: 1;
-            animation: timerBorder 15s linear forwards;
-        }
-
-        @keyframes timerBorder {
-            0% {
-                background: conic-gradient(#00ff00 0deg, transparent 0deg);
-            }
-
-            100% {
-                background: conic-gradient(#00ff00 360deg, transparent 360deg);
-            }
-        }
-
-        /* Tournament Chips on Table */
-        .table-chip {
-            position: absolute;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 3px;
-            z-index: 20;
-            transition: all 0.5s ease-in-out;
-        }
-
-        .chip-single {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            border: 2px solid #fff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-        }
-
-        /* Tournament Chip Colors */
-        .chip-green {
-            background: linear-gradient(145deg, #44ff44, #00cc00);
-        }
-
-        .chip-black {
-            background: linear-gradient(145deg, #333, #111);
-        }
-
-        .chip-pink {
-            background: linear-gradient(145deg, #ff69b4, #ff1493);
-        }
-
-        .chip-orange {
-            background: linear-gradient(145deg, #ff8c00, #ff6600);
-        }
-
-        .chip-grey {
-            background: linear-gradient(145deg, #808080, #606060);
-        }
-
-        .chip-blue {
-            background: linear-gradient(145deg, #4444ff, #0000cc);
-        }
-
-        .chip-teal {
-            background: linear-gradient(145deg, #20b2aa, #008b8b);
-        }
-
-        .chip-label-table {
-            font-size: 9px;
-            font-weight: 700;
-            color: #FFD700;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 2px 5px;
-            border-radius: 3px;
-            white-space: nowrap;
-        }
-
-        /* Chip Sweep Animation */
-        @keyframes sweepToPot {
-            to {
-                left: 50%;
-                top: 32%;
-                transform: translate(-50%, -50%);
-                opacity: 0;
-            }
-        }
-
-        .sweep-to-pot {
-            animation: sweepToPot 0.6s ease-in-out forwards;
-        }
-
-        .avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: transparent;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            position: relative;
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-
-        .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 50%;
-        }
-
-        /* GOLDEN HALO - Active hand indicator */
-        .player.active-hand .avatar {
-            box-shadow:
-                0 0 20px rgba(255, 215, 0, 0.6),
-                0 0 40px rgba(255, 215, 0, 0.4),
-                0 0 60px rgba(255, 215, 0, 0.2),
-                0 4px 15px rgba(0, 0, 0, 0.3);
-            border-color: rgba(255, 215, 0, 0.8);
-        }
-
-        /* Dealer Button */
-        .dealer-button {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #fff, #ddd);
-            border: 3px solid #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 900;
-            color: #000;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-            z-index: 25;
-        }
-
-        /* OPPONENT HOLE CARDS - Side-by-side with overlap */
-        /* Cards positioned relative to player element */
+        /* OPPONENT HOLE CARDS - Fanned/Overlapping Style */
+        /* LOCKED LAW POSITIONS - Must be relative to viewport */
         .opponent-cards {
             position: absolute;
             display: flex;
@@ -833,36 +504,11 @@
             align-items: center;
             z-index: 100;
             pointer-events: auto;
-            /* Default: cards on right side of avatar */
-            left: 100%;
-            top: 50%;
-            transform: translateY(-50%);
-            margin-left: 5px;
-        }
-
-        /* Left side players - cards on left */
-        #v1 .opponent-cards,
-        #v2 .opponent-cards,
-        #v3 .opponent-cards {
-            left: auto;
-            right: 100%;
-            margin-left: 0;
-            margin-right: 5px;
-        }
-
-        /* Top players - cards below */
-        #v4 .opponent-cards,
-        #v5 .opponent-cards {
-            left: 50%;
-            top: 100%;
-            transform: translateX(-50%);
-            margin-left: 0;
-            margin-top: 5px;
         }
 
         .opponent-card {
-            width: 32px;
-            height: 46px;
+            width: 34px;
+            height: 47px;
             border-radius: 3px;
             background: #1a1a1a;
             border: 1.5px solid #333;
@@ -875,11 +521,6 @@
         /* FOLDED STATE - Cards hidden */
         .player.folded .opponent-cards {
             display: none;
-        }
-
-        /* HERO FOLDED - Cards greyed out */
-        .hero.folded .hole-cards .card {
-            filter: grayscale(100%) opacity(0.5);
         }
 
         /* First card - slight left angle */
@@ -915,6 +556,44 @@
             border-radius: 2px;
             pointer-events: none;
         }
+
+
+        /* FOLD STATE LAW - IMMUTABLE */
+        /* Folded opponent cards turn grey */
+        .opponent-cards.folded .opponent-card {
+            filter: grayscale(100%) brightness(0.5);
+            opacity: 0.6;
+        }
+
+        /* Folded hero cards turn grey */
+        .hero-cards.folded .card {
+            filter: grayscale(100%) brightness(0.5);
+            opacity: 0.6;
+        }
+
+
+        /* ACTION BUTTONS - Full Width Bottom */
+        .action-buttons {
+            flex-shrink: 0;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            padding: 12px 16px;
+            padding-bottom: 24px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            z-index: 100;
+        }
+
+        .action-button {
+            padding: 16px;
+            font-size: 15px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #2563EB, #1D4ED8);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -943,7 +622,7 @@
         <div class="stage">
             <!-- Timer -->
             <div class="timer">
-                <div class="timer-value">15</div>
+                <div class="timer-value">21</div>
                 <div class="timer-label">SEC</div>
             </div>
 
@@ -962,11 +641,11 @@
                     <div class="pot-display">
                         <span>🪙</span>
                         <span class="pot-label">POT</span>
-                        <span class="pot-amount">0</span>
+                        <span class="pot-amount">12</span>
                     </div>
 
                     <!-- Board Cards -->
-                    <div class="board" style="display: none;">
+                    <div class="board">
                         <div class="card spades">
                             <div class="card-corner-tl">
                                 <span class="corner-rank">A</span>
@@ -1037,7 +716,7 @@
                             <div class="player-name">Villain 1</div>
                             <div class="player-stack">20 BB</div>
                         </div>
-                        <div class="opponent-cards" data-villain="v1" style="left: 47px; top: 710px;">
+                        <div class="opponent-cards" data-villain="v1" style="left: 760px; top: 926px;">
                             <div class="opponent-card"></div>
                             <div class="opponent-card"></div>
                         </div>
@@ -1050,7 +729,7 @@
                             <div class="player-name">Villain 2</div>
                             <div class="player-stack">20 BB</div>
                         </div>
-                        <div class="opponent-cards" data-villain="v2" style="left: 21px; top: 473px;">
+                        <div class="opponent-cards" data-villain="v2" style="left: 779px; top: 694px;">
                             <div class="opponent-card"></div>
                             <div class="opponent-card"></div>
                         </div>
@@ -1063,7 +742,7 @@
                             <div class="player-name">Villain 3</div>
                             <div class="player-stack">20 BB</div>
                         </div>
-                        <div class="opponent-cards" data-villain="v3" style="left: 20px; top: 273px;">
+                        <div class="opponent-cards" data-villain="v3" style="left: 778px; top: 478px;">
                             <div class="opponent-card"></div>
                             <div class="opponent-card"></div>
                         </div>
@@ -1076,7 +755,7 @@
                             <div class="player-name">Villain 4</div>
                             <div class="player-stack">20 BB</div>
                         </div>
-                        <div class="opponent-cards" data-villain="v4" style="left: 132px; top: 80px;">
+                        <div class="opponent-cards" data-villain="v4" style="left: 663px; top: 282px;">
                             <div class="opponent-card"></div>
                             <div class="opponent-card"></div>
                         </div>
@@ -1089,7 +768,7 @@
                             <div class="player-name">Villain 5</div>
                             <div class="player-stack">20 BB</div>
                         </div>
-                        <div class="opponent-cards" data-villain="v5" style="left: 502px; top: 85px;">
+                        <div class="opponent-cards" data-villain="v5" style="left: 289px; top: 281px;">
                             <div class="opponent-card"></div>
                             <div class="opponent-card"></div>
                         </div>
@@ -1102,7 +781,7 @@
                             <div class="player-name">Villain 6</div>
                             <div class="player-stack">20 BB</div>
                         </div>
-                        <div class="opponent-cards" data-villain="v6" style="left: 616px; top: 282px;">
+                        <div class="opponent-cards" data-villain="v6" style="left: 170px; top: 474px;">
                             <div class="opponent-card"></div>
                             <div class="opponent-card"></div>
                         </div>
@@ -1115,7 +794,7 @@
                             <div class="player-name">Villain 7</div>
                             <div class="player-stack">20 BB</div>
                         </div>
-                        <div class="opponent-cards" data-villain="v7" style="left: 616px; top: 500px;">
+                        <div class="opponent-cards" data-villain="v7" style="left: 172px; top: 696px;">
                             <div class="opponent-card"></div>
                             <div class="opponent-card"></div>
                         </div>
@@ -1128,7 +807,7 @@
                             <div class="player-name">Villain 8</div>
                             <div class="player-stack">20 BB</div>
                         </div>
-                        <div class="opponent-cards" data-villain="v8" style="left: 598px; top: 732px;">
+                        <div class="opponent-cards" data-villain="v8" style="left: 193px; top: 922px;">
                             <div class="opponent-card"></div>
                             <div class="opponent-card"></div>
                         </div>
@@ -1164,7 +843,6 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div><!-- End stage -->
@@ -1179,21 +857,28 @@
 
         <script>
             document.addEventListener('DOMContentLoaded', () => {
-                // ═══════════════════════════════════════════════════════════
-                // GAME STATE - Dynamic Stack Sizes and Positions
-                // ═══════════════════════════════════════════════════════════
-
-                const GAME_STATE = {
-                    hero: { stack: 45, position: 'BTN', folded: false },
-                    v1: { stack: 32, position: 'SB', folded: false },
-                    v2: { stack: 28, position: 'BB', folded: false },
-                    v3: { stack: 55, position: 'UTG', folded: true },
-                    v4: { stack: 41, position: 'UTG+1', folded: true },
-                    v5: { stack: 38, position: 'MP', folded: true },
-                    v6: { stack: 62, position: 'CO', folded: false },
-                    v7: { stack: 29, position: 'HJ', folded: true },
-                    v8: { stack: 51, position: 'LJ', folded: true }
+                // LOCKED LAW POSITIONS - Enforce on page load
+                const lockedPositions = {
+                    v1: { left: '760px', top: '926px' },
+                    v2: { left: '779px', top: '694px' },
+                    v3: { left: '778px', top: '478px' },
+                    v4: { left: '663px', top: '282px' },
+                    v5: { left: '289px', top: '281px' },
+                    v6: { left: '170px', top: '474px' },
+                    v7: { left: '172px', top: '696px' },
+                    v8: { left: '193px', top: '922px' }
                 };
+
+                // Move cards to body to enforce absolute positioning relative to viewport
+                for (let villain in lockedPositions) {
+                    const card = document.querySelector(`.opponent-cards[data-villain="${villain}"]`);
+                    if (card) {
+                        document.body.appendChild(card);
+                        card.style.position = 'absolute';
+                        card.style.left = lockedPositions[villain].left;
+                        card.style.top = lockedPositions[villain].top;
+                    }
+                }
 
                 // 9 Unique Transparent Avatars - No Repeats
                 const AVATARS = [
@@ -1222,233 +907,25 @@
                 // LAW 2: Hero Anchor - Seat 1 is ALWAYS bottom center
                 // LAW 3: Law of the Rail - All avatars 100% on rail, NOT felt
                 const SEAT_POSITIONS = {
-                    'hero': { left: '50%', top: '88%' }, // Seat 1: Hero (Center Bottom - ANCHOR)
-                    'v1': { left: '18%', top: '75%' }, // Seat 2: Bottom-Left (SB)
-                    'v2': { left: '15%', top: '50%' }, // Seat 3: Middle-Left (BB)
-                    'v3': { left: '15%', top: '26%' }, // Seat 4: Upper-Left
-                    'v4': { left: '32%', top: '5%' }, // Seat 5: Top-Left
-                    'v5': { left: '68%', top: '5%' }, // Seat 6: Top-Right
-                    'v6': { left: '85%', top: '26%' }, // Seat 7: Upper-Right
-                    'v7': { left: '85%', top: '50%' }, // Seat 8: Middle-Right
-                    'v8': { left: '82%', top: '75%' } // Seat 9: Bottom-Right
+                    'hero': { left: '50%', top: '88%' },   // Seat 1: Hero (Center Bottom - ANCHOR)
+                    'v1': { left: '18%', top: '75%' },     // Seat 2: Bottom-Left
+                    'v2': { left: '15%', top: '50%' },     // Seat 3: Middle-Left
+                    'v3': { left: '15%', top: '26%' },     // Seat 4: Upper-Left
+                    'v4': { left: '32%', top: '5%' },      // Seat 5: Top-Left
+                    'v5': { left: '68%', top: '5%' },      // Seat 6: Top-Right
+                    'v6': { left: '85%', top: '26%' },     // Seat 7: Upper-Right
+                    'v7': { left: '85%', top: '50%' },     // Seat 8: Middle-Right
+                    'v8': { left: '82%', top: '75%' }      // Seat 9: Bottom-Right
                 };
 
-                // Apply FIXED positions and dynamic stacks
+                // Apply FIXED positions to each player (Zero-Float policy)
                 Object.keys(SEAT_POSITIONS).forEach(id => {
                     const player = document.getElementById(id);
                     if (player) {
                         player.style.left = SEAT_POSITIONS[id].left;
                         player.style.top = SEAT_POSITIONS[id].top;
-
-                        // Update stack size
-                        const stackEl = player.querySelector('.player-stack');
-                        if (stackEl && GAME_STATE[id]) {
-                            stackEl.textContent = `${GAME_STATE[id].stack} BB`;
-                        }
                     }
                 });
-
-                // ═══════════════════════════════════════════════════════════
-                // NO CHIPS - Clean state for positioning work
-                // ═══════════════════════════════════════════════════════════
-
-                // ═══════════════════════════════════════════════════════════
-                // ALL AVATARS ACTIVE - NO FOLDING, NO CHIPS
-                // Clean state for positioning work
-                // ═══════════════════════════════════════════════════════════
-
-                // Remove all chip stacks
-                document.querySelectorAll('.chip-stack').forEach(el => el.remove());
-
-                // Ensure all avatars are in full color (no grayscale)
-                document.querySelectorAll('.player').forEach(player => {
-                    player.classList.remove('player-folded');
-                    player.style.filter = 'none';
-                    player.style.opacity = '1';
-                });
-
-                // ═══════════════════════════════════════════════════════════
-                // ACTIVATE HERO - Golden Glow Effect + Countdown Timer
-                // ═══════════════════════════════════════════════════════════
-
-                const TIMER_DURATION = 15; // 15 seconds
-                const WARNING_THRESHOLD = 0.3; // 30%
-                const CRITICAL_SECONDS = 3; // Last 3 seconds
-                let timeRemaining = TIMER_DURATION;
-                let timerInterval = null;
-                let hasVibratedWarning = false; // Track if we've vibrated for red warning
-
-                // Create SVG countdown timer border
-                const hero = document.getElementById('hero');
-                if (hero) {
-                    hero.classList.add('active');
-
-                    // Find the player-info box
-                    const playerInfo = hero.querySelector('.player-info');
-                    if (playerInfo) {
-                        // Make player-info position relative for absolute SVG positioning
-                        playerInfo.style.position = 'relative';
-
-                        // DYNAMICALLY measure the actual player-info box size
-                        const boxRect = playerInfo.getBoundingClientRect();
-                        const boxWidth = boxRect.width;
-                        const boxHeight = boxRect.height;
-
-                        // Add padding for the SVG container
-                        const padding = 12;
-                        const svgWidth = boxWidth + padding;
-                        const svgHeight = boxHeight + padding;
-
-                        // Create SVG element for countdown timer
-                        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                        svg.setAttribute('class', 'countdown-timer-svg');
-                        svg.style.cssText = `
-                            position: absolute;
-                            top: -${padding / 2}px;
-                            left: 50%;
-                            transform: translateX(-50%);
-                            width: ${svgWidth}px;
-                            height: ${svgHeight}px;
-                            pointer-events: none;
-                            z-index: 100;
-                        `;
-
-                        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                        const width = boxWidth;
-                        const height = boxHeight;
-                        const rx = 8; // border radius to match player-info
-                        const perimeter = 2 * (width + height);
-
-                        rect.setAttribute('x', '5');
-                        rect.setAttribute('y', '5');
-                        rect.setAttribute('width', width);
-                        rect.setAttribute('height', height);
-                        rect.setAttribute('rx', rx);
-                        rect.setAttribute('fill', 'none');
-                        rect.setAttribute('stroke', 'rgba(255, 215, 0, 1)'); // GOLDEN
-                        rect.setAttribute('stroke-width', '4');
-                        rect.setAttribute('stroke-linecap', 'round');
-                        rect.style.cssText = `
-                            stroke-dasharray: ${perimeter};
-                            stroke-dashoffset: 0;
-                            filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
-                            transition: stroke 0.3s ease, stroke-dashoffset 0.1s linear;
-                        `;
-
-                        svg.appendChild(rect);
-                        playerInfo.appendChild(svg);
-
-                        // Start countdown timer
-                        function updateCountdown() {
-                            const timePercent = timeRemaining / TIMER_DURATION;
-                            // COUNTER-CLOCKWISE: negative offset to drain in reverse
-                            const offset = -perimeter * (1 - timePercent);
-
-                            // Update rect - drain the golden border counter-clockwise
-                            rect.style.strokeDashoffset = offset;
-
-                            // Change to red when time is running out
-                            if (timePercent <= WARNING_THRESHOLD) {
-                                rect.setAttribute('stroke', 'rgba(255, 0, 0, 1)');
-                                rect.style.filter = 'drop-shadow(0 0 8px rgba(255, 0, 0, 0.8))';
-
-                                // VIBRATE when first turning red (mobile haptic feedback)
-                                if (!hasVibratedWarning && navigator.vibrate) {
-                                    navigator.vibrate(200); // Single 200ms vibration
-                                    hasVibratedWarning = true;
-                                }
-                            } else {
-                                rect.setAttribute('stroke', 'rgba(255, 215, 0, 1)');
-                                rect.style.filter = 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))';
-                            }
-
-                            // VIBRATE during last 3 seconds (continuous buzz)
-                            if (timeRemaining <= CRITICAL_SECONDS && timeRemaining > 0) {
-                                if (navigator.vibrate) {
-                                    navigator.vibrate(100); // Short pulse every 100ms
-                                }
-                            }
-
-                            // Countdown
-                            if (timeRemaining > 0) {
-                                timeRemaining -= 0.1;
-                            } else {
-                                clearInterval(timerInterval);
-                                // Final strong vibration on timeout
-                                if (navigator.vibrate) {
-                                    navigator.vibrate([200, 100, 200]); // Pattern: buzz-pause-buzz
-                                }
-                                alert('⏰ TIME EXPIRED! Auto-folding...');
-                                // Reset and restart
-                                timeRemaining = TIMER_DURATION;
-                                hasVibratedWarning = false;
-                                rect.style.strokeDashoffset = 0;
-                                setTimeout(() => {
-                                    timerInterval = setInterval(updateCountdown, 100);
-                                }, 1000);
-                            }
-                        }
-
-                        // MANUAL START: Timer will be started when action is on this player
-                        // DISABLED FOR POSITIONING - Timer auto-start commented out
-                        // setTimeout(() => {
-                        //     timerInterval = setInterval(updateCountdown, 100);
-                        // }, 1000);
-
-                        console.log('✨ Hero activated with golden glow (timer disabled for positioning)');
-                    }
-                }
-
-                // ═══════════════════════════════════════════════════════════
-                // ========================================
-                // GAME STATE MANAGEMENT
-                // ========================================
-
-                // Demo: Show all villains with active hands (golden halo)
-                const allPlayers = document.querySelectorAll('.player');
-                allPlayers.forEach(player => {
-                    if (player.id !== 'hero') {
-                        player.classList.add('active-hand');
-                    }
-                });
-
-                // DEMO FUNCTIONS - Remove these and integrate with your game engine
-
-                // Function to mark a player as folded
-                window.playerFold = function (playerId) {
-                    const player = document.getElementById(playerId);
-                    if (player) {
-                        player.classList.remove('active-hand');
-                        player.classList.add('folded');
-                        console.log(`${playerId} folded - cards hidden, halo removed`);
-                    }
-                };
-
-                // Function to mark hero as folded
-                window.heroFold = function () {
-                    const hero = document.getElementById('hero');
-                    if (hero) {
-                        hero.classList.add('folded');
-                        console.log('Hero folded - cards greyed out');
-                    }
-                };
-
-                // Function to start new hand (reset all states)
-                window.newHand = function () {
-                    allPlayers.forEach(player => {
-                        player.classList.remove('folded');
-                        if (player.id !== 'hero') {
-                            player.classList.add('active-hand');
-                        }
-                    });
-                    console.log('New hand started - all players active');
-                };
-
-                console.log('🎯 Opponent card system ready!');
-                console.log('Demo functions available:');
-                console.log('  playerFold("v1") - Fold villain 1');
-                console.log('  heroFold() - Fold hero');
-                console.log('  newHand() - Start new hand');
             });
         </script>
 </body>
