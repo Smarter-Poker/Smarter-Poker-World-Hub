@@ -54,28 +54,28 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('Direct fetch failed:', error.message);
 
-        // Try using a free external OpenGraph API as fallback
+        // Try using Microlink.io API as fallback - bypasses Cloudflare
         try {
-            const externalApiUrl = `https://opengraph.io/api/1.1/site/${encodeURIComponent(url)}?app_id=free&accept_lang=en`;
-            const externalResponse = await fetch(externalApiUrl, {
+            const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}`;
+            const externalResponse = await fetch(microlinkUrl, {
                 headers: { 'Accept': 'application/json' }
             });
 
             if (externalResponse.ok) {
                 const data = await externalResponse.json();
-                if (data.hybridGraph) {
-                    const hg = data.hybridGraph;
+                if (data.status === 'success' && data.data) {
+                    const d = data.data;
                     return res.status(200).json({
                         url: url,
-                        title: hg.title || null,
-                        description: hg.description || null,
-                        image: hg.image || hg.imageSecureUrl || null,
-                        siteName: hg.site_name || new URL(url).hostname.replace(/^www\./, ''),
+                        title: d.title || null,
+                        description: d.description || null,
+                        image: d.image?.url || null,
+                        siteName: d.publisher || new URL(url).hostname.replace(/^www\./, ''),
                     });
                 }
             }
         } catch (externalError) {
-            console.error('External API also failed:', externalError.message);
+            console.error('Microlink API failed:', externalError.message);
         }
 
         // Final fallback: extract metadata from URL
