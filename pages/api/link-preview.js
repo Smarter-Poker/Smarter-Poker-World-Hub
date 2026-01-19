@@ -17,13 +17,21 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Fetch the HTML from the target URL
+        // Use realistic browser headers to bypass Cloudflare and similar protections
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; SmarterPoker/1.0; +https://smarter.poker)',
-                'Accept': 'text/html,application/xhtml+xml',
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'Upgrade-Insecure-Requests': '1',
             },
-            timeout: 5000,
         });
 
         if (!response.ok) {
@@ -32,15 +40,45 @@ export default async function handler(req, res) {
 
         const html = await response.text();
 
+        // Check if we got a Cloudflare challenge page
+        if (html.includes('Just a moment...') || html.includes('cf_chl_opt')) {
+            console.log('Cloudflare detected, using fallback');
+            throw new Error('Cloudflare challenge detected');
+        }
+
         // Parse OpenGraph meta tags
         const metadata = parseOpenGraph(html, url);
 
         return res.status(200).json(metadata);
 
     } catch (error) {
-        console.error('Link preview error:', error);
+        console.error('Direct fetch failed:', error.message);
 
-        // Return fallback metadata extracted from URL
+        // Try using a free external OpenGraph API as fallback
+        try {
+            const externalApiUrl = `https://opengraph.io/api/1.1/site/${encodeURIComponent(url)}?app_id=free&accept_lang=en`;
+            const externalResponse = await fetch(externalApiUrl, {
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (externalResponse.ok) {
+                const data = await externalResponse.json();
+                if (data.hybridGraph) {
+                    const hg = data.hybridGraph;
+                    return res.status(200).json({
+                        url: url,
+                        title: hg.title || null,
+                        description: hg.description || null,
+                        image: hg.image || hg.imageSecureUrl || null,
+                        siteName: hg.site_name || new URL(url).hostname.replace(/^www\./, ''),
+                    });
+                }
+            }
+        } catch (externalError) {
+            console.error('External API also failed:', externalError.message);
+        }
+
+        // Final fallback: extract metadata from URL
         const fallback = extractFallbackMetadata(url);
         return res.status(200).json(fallback);
     }

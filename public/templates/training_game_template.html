@@ -1563,28 +1563,27 @@
                 // Cards positioned with offset: left-side players have cards to their right,
                 // right-side players have cards to their left
                 const SEAT_POSITIONS = {
-                    'v1': { left: '18%', top: '75%' },   // bottom-left player
-                    'v2': { left: '15%', top: '50%' },   // middle-left player
+                    'v1': { left: '18%', top: '65%' },   // bottom-left player
+                    'v2': { left: '15%', top: '45%' },   // middle-left player
                     'v3': { left: '15%', top: '26%' },   // upper-left player
                     'v4': { left: '32%', top: '5%' },    // top-left player
                     'v5': { left: '68%', top: '5%' },    // top-right player
                     'v6': { left: '85%', top: '26%' },   // upper-right player
-                    'v7': { left: '85%', top: '50%' },   // middle-right player
-                    'v8': { left: '82%', top: '75%' }    // bottom-right player
+                    'v7': { left: '85%', top: '45%' },   // middle-right player
+                    'v8': { left: '82%', top: '65%' }    // bottom-right player
                 };
 
                 // Card offsets from player position (cards flow toward table center per golden template)
-                // Cards must appear BESIDE the avatar, not on top. DOUBLED offsets for clearance.
-                // At 768px viewport, 20% = 154px which should fully clear avatar (138px) + padding
+                // Reduced offsets to prevent card overlap between adjacent villains
                 const CARD_OFFSETS = {
-                    'v1': { left: 20, top: -3 },   // bottom-left: cards far to right
-                    'v2': { left: 22, top: 0 },    // middle-left: cards far to right  
-                    'v3': { left: 22, top: 3 },    // upper-left: cards far to right
-                    'v4': { left: 5, top: 18 },    // top-left: cards below avatar, slight right
-                    'v5': { left: -5, top: 18 },   // top-right: cards below avatar, slight left
-                    'v6': { left: -22, top: 3 },   // upper-right: cards far to left
-                    'v7': { left: -22, top: 0 },   // middle-right: cards far to left
-                    'v8': { left: -20, top: -3 }   // bottom-right: cards far to left
+                    'v1': { left: 15, top: -5 },   // bottom-left: cards to right, slight up
+                    'v2': { left: 16, top: 0 },    // middle-left: cards to right
+                    'v3': { left: 16, top: 4 },    // upper-left: cards to right, slight down
+                    'v4': { left: 4, top: 14 },    // top-left: cards below, slight right
+                    'v5': { left: -4, top: 14 },   // top-right: cards below, slight left
+                    'v6': { left: -16, top: 4 },   // upper-right: cards to left, slight down
+                    'v7': { left: -16, top: 0 },   // middle-right: cards to left
+                    'v8': { left: -15, top: -5 }   // bottom-right: cards to left, slight up
                 };
 
                 for (let villain in SEAT_POSITIONS) {
@@ -1636,15 +1635,15 @@
 
             function setupPlayerPositions() {
                 const SEAT_POSITIONS = {
-                    'hero': { left: '50%', top: '88%' },
-                    'v1': { left: '18%', top: '75%' },
-                    'v2': { left: '15%', top: '50%' },
-                    'v3': { left: '15%', top: '26%' },
-                    'v4': { left: '32%', top: '5%' },
-                    'v5': { left: '68%', top: '5%' },
-                    'v6': { left: '85%', top: '26%' },
-                    'v7': { left: '85%', top: '50%' },
-                    'v8': { left: '82%', top: '75%' }
+                    'hero': { left: '50%', top: '75%' },    // hero lower than villains
+                    'v1': { left: '18%', top: '65%' },      // moved up from 75% to be visible
+                    'v2': { left: '15%', top: '45%' },      // middle-left
+                    'v3': { left: '15%', top: '26%' },      // upper-left
+                    'v4': { left: '32%', top: '5%' },       // top-left
+                    'v5': { left: '68%', top: '5%' },       // top-right
+                    'v6': { left: '85%', top: '26%' },      // upper-right
+                    'v7': { left: '85%', top: '45%' },      // middle-right (matched v2)
+                    'v8': { left: '82%', top: '65%' }       // moved up from 75% to be visible
                 };
 
                 Object.keys(SEAT_POSITIONS).forEach(id => {
