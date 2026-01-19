@@ -104,23 +104,72 @@ export function ExternalLinkProvider({ children }) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📺 EXTERNAL LINK MODAL COMPONENT
+// Smart Hybrid: Iframe first, auto-fallback to popup if X-Frame-Options blocks
 // ═══════════════════════════════════════════════════════════════════════════
 
 function ExternalLinkModal({ url, title, onClose }) {
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
+    const [blocked, setBlocked] = useState(false);
+    const iframeRef = React.useRef(null);
+
+    // Open in popup window (for blocked sites)
+    const openInPopup = () => {
+        const width = window.screen.availWidth;
+        const height = window.screen.availHeight;
+        window.open(
+            url,
+            'smarterPokerBrowser',
+            `width=${width},height=${height},left=0,top=0,resizable=yes,scrollbars=yes,toolbar=yes,location=yes`
+        );
+        onClose();
+    };
+
+    // Detect if iframe is blocked (X-Frame-Options)
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            // If still loading after 3 seconds and iframe has no content, assume blocked
+            if (loading && iframeRef.current) {
+                try {
+                    // Try to access iframe content - will throw if blocked
+                    const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
+                    // If we can access it but it's blank/error page, it's blocked
+                    if (!doc || doc.body?.innerHTML === '' || doc.body?.innerHTML?.includes('refused')) {
+                        setBlocked(true);
+                        setLoading(false);
+                        // Auto-open in popup window
+                        openInPopup();
+                    }
+                } catch (e) {
+                    // Cross-origin error means iframe loaded something (not blocked)
+                    setLoading(false);
+                }
+            }
+        }, 2500);
+        return () => clearTimeout(timeout);
+    }, [loading, url]);
 
     const handleIframeLoad = () => {
         setLoading(false);
+        // Check if iframe loaded but is blank (blocked by X-Frame-Options)
+        try {
+            const iframe = iframeRef.current;
+            if (iframe) {
+                const doc = iframe.contentDocument || iframe.contentWindow?.document;
+                if (doc && (doc.body?.innerHTML === '' || !doc.body)) {
+                    // Iframe is blank - site blocked embedding
+                    setBlocked(true);
+                    openInPopup();
+                }
+            }
+        } catch (e) {
+            // Cross-origin is expected for external sites that work
+        }
     };
 
     const handleIframeError = () => {
         setLoading(false);
-        setError(true);
-    };
-
-    const openInNewTab = () => {
-        window.open(url, '_blank', 'noopener,noreferrer');
+        setBlocked(true);
+        openInPopup();
     };
 
     return (
@@ -137,11 +186,11 @@ function ExternalLinkModal({ url, title, onClose }) {
                     </div>
                     <div style={styles.headerActions}>
                         <button
-                            onClick={openInNewTab}
+                            onClick={openInPopup}
                             style={styles.newTabBtn}
-                            title="Open in new tab"
+                            title="Open in popup window"
                         >
-                            ↗️ New Tab
+                            ↗️ Open External
                         </button>
                         <button onClick={onClose} style={styles.closeBtn}>✕</button>
                     </div>
@@ -152,21 +201,14 @@ function ExternalLinkModal({ url, title, onClose }) {
                     {loading && (
                         <div style={styles.loader}>
                             <div style={styles.spinner} />
-                            <span>Loading external content...</span>
+                            <span>Loading content...</span>
+                            <span style={styles.loaderHint}>Opening in popup if blocked...</span>
                         </div>
                     )}
 
-                    {error ? (
-                        <div style={styles.errorState}>
-                            <span style={styles.errorIcon}>⚠️</span>
-                            <h3>Cannot display this content</h3>
-                            <p>This site doesn't allow embedding. Click below to open in a new tab.</p>
-                            <button onClick={openInNewTab} style={styles.errorBtn}>
-                                Open in New Tab ↗️
-                            </button>
-                        </div>
-                    ) : (
+                    {!blocked && (
                         <iframe
+                            ref={iframeRef}
                             src={url}
                             style={{
                                 ...styles.iframe,

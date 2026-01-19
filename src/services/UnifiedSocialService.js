@@ -41,6 +41,8 @@ export class UnifiedSocialService {
                     post_id: row.post_id,
                     author_id: row.author_id,
                     author_username: row.author_username,
+                    author_full_name: row.author_full_name,                    // Display name preference
+                    author_display_name_preference: row.author_display_name_preference, // User's choice
                     author_avatar: row.author_avatar,
                     author_level: row.author_level,
                     content: row.content,
