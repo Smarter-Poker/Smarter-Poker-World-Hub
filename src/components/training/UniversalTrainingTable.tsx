@@ -121,6 +121,100 @@ function PlayingCard({ card, size = 'medium' }: { card: string; size?: 'small' |
     );
 }
 
+// Professor Explanation Component (Phase 4: The Brain)
+function ProfessorExplanation({
+    isCorrect,
+    explanation,
+    xpEarned,
+    onDismiss
+}: {
+    isCorrect: boolean;
+    explanation?: string;
+    xpEarned?: number;
+    onDismiss: () => void;
+}) {
+    return (
+        <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                background: isCorrect
+                    ? 'linear-gradient(135deg, #27ae60, #229954)'
+                    : 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                padding: 40,
+                borderRadius: '20px 20px 0 0',
+                boxShadow: '0 -8px 32px rgba(0,0,0,0.5)',
+                zIndex: 1000
+            }}
+        >
+            <div style={{
+                fontSize: 48,
+                marginBottom: 16,
+                textAlign: 'center'
+            }}>
+                {isCorrect ? '✓' : '✗'}
+            </div>
+            <div style={{
+                fontSize: 24,
+                fontWeight: 700,
+                color: '#fff',
+                marginBottom: 12,
+                textAlign: 'center'
+            }}>
+                {isCorrect ? 'EXCELLENT!' : 'INCORRECT'}
+            </div>
+            {xpEarned && isCorrect && (
+                <div style={{
+                    fontSize: 18,
+                    color: '#FFD700',
+                    marginBottom: 16,
+                    textAlign: 'center',
+                    fontWeight: 600
+                }}>
+                    +{xpEarned} XP
+                </div>
+            )}
+            {explanation && (
+                <div style={{
+                    fontSize: 14,
+                    color: 'rgba(255,255,255,0.9)',
+                    marginBottom: 20,
+                    lineHeight: 1.6,
+                    textAlign: 'center',
+                    maxWidth: 600,
+                    margin: '0 auto 20px'
+                }}>
+                    {explanation}
+                </div>
+            )}
+            <motion.button
+                onClick={onDismiss}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                    width: '100%',
+                    padding: '16px 32px',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '2px solid rgba(255,255,255,0.5)',
+                    borderRadius: 12,
+                    color: '#fff',
+                    fontSize: 16,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                }}
+            >
+                CONTINUE
+            </motion.button>
+        </motion.div>
+    );
+}
+
 // Chip stack component
 function ChipStack({ amount, label }: { amount: number; label: string }) {
     return (
@@ -201,6 +295,14 @@ export default function UniversalTrainingTable({
     // Linear State Machine
     const [gamePhase, setGamePhase] = useState<GamePhase>(GamePhase.IDLE);
 
+    // Professor Feedback (Phase 4)
+    const [showProfessor, setShowProfessor] = useState(false);
+    const [professorData, setProfessorData] = useState<{
+        isCorrect: boolean;
+        explanation?: string;
+        xpEarned?: number;
+    } | null>(null);
+
     // Leak detection state
     const [showLeakIntercept, setShowLeakIntercept] = useState(false);
     const [detectedLeak, setDetectedLeak] = useState<any>(null);
@@ -279,11 +381,38 @@ export default function UniversalTrainingTable({
     }, [question]);
 
 
-    // Universal action handler with leak detection and XP logging
+    // PHASE 4: The Brain (Evaluation Logic with Visual Feedback)
     const handleAction = useCallback(async (action: string) => {
+        console.log('[PHASE 4] Evaluating action:', action);
+        setGamePhase(GamePhase.EVALUATING);
         setTotalAttempts(prev => prev + 1);
 
         const isCorrectMove = action === correctAction;
+
+        // Visual Feedback: Screen Flash
+        const flashColor = isCorrectMove ? '#22C55E' : '#EF4444';
+        const flashOverlay = document.createElement('div');
+        flashOverlay.style.cssText = `
+            position: fixed;
+            inset: 0;
+            background: ${flashColor};
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 9998;
+            animation: flash 300ms ease-out;
+        `;
+        document.body.appendChild(flashOverlay);
+        setTimeout(() => flashOverlay.remove(), 300);
+
+        // Audio Feedback
+        try {
+            const audio = new Audio(isCorrectMove ? '/audio/correct.mp3' : '/audio/incorrect.mp3');
+            audio.volume = 0.4;
+            audio.play().catch(() => { });
+        } catch { }
+
+        // Transition to feedback phase
+        setGamePhase(GamePhase.SHOWING_FEEDBACK);
 
         // LAW 1: Leak Detection
         if (!isCorrectMove) {
@@ -367,7 +496,16 @@ export default function UniversalTrainingTable({
 
         // Proceed with normal answer flow
         onAnswer?.(action);
-    }, [correctAction, mistakeCount, totalAttempts, activeClinic, clinicId, gameId, isRemediationMode, onAnswer]);
+
+        // Show Professor Explanation
+        const xpAwarded = isCorrectMove ? Math.round(100 * (isRemediationMode ? getRemediationXPMultiplier(clinicId || '') : 1.0)) : 0;
+        setProfessorData({
+            isCorrect: isCorrectMove,
+            explanation: question?.explanation || (isCorrectMove ? 'Great decision!' : 'Consider the pot odds and your equity.'),
+            xpEarned: xpAwarded
+        });
+        setShowProfessor(true);
+    }, [correctAction, mistakeCount, totalAttempts, activeClinic, clinicId, gameId, isRemediationMode, onAnswer, question, supabase]);
 
     // Handle fold - CRITICAL FIX: Immediately clear villain cards
     const handleFold = useCallback(() => {
@@ -389,6 +527,22 @@ export default function UniversalTrainingTable({
     const handleAllIn = useCallback(() => {
         handleAction('all-in');
     }, [handleAction]);
+
+    // PHASE 5: The Resolution (Dismiss Professor and Transition)
+    const handleProfessorDismiss = useCallback(() => {
+        console.log('[PHASE 5] Dismissing Professor, transitioning to next hand');
+        setShowProfessor(false);
+        setGamePhase(GamePhase.TRANSITIONING);
+
+        // Clear villain cards (force unmount)
+        setTimeout(() => {
+            setVillainCards([]);
+            setVillainAction(null);
+        }, 300);
+
+        // Auto-advance would happen here if we had handIndex state
+        // For now, parent component handles progression
+    }, []);
 
     return (
         <div style={{
@@ -647,89 +801,92 @@ export default function UniversalTrainingTable({
             </div>
 
             {/* Action Buttons - Bottom HUD */}
-            {!showResult && (
-                <div style={{
-                    position: 'absolute',
-                    bottom: 40,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    display: 'flex',
-                    gap: 12,
-                }}>
-                    <motion.button
-                        onClick={handleFold}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        style={{
-                            padding: '16px 32px',
-                            background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
-                            border: 'none',
-                            borderRadius: 12,
-                            color: '#fff',
-                            fontSize: 16,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                        }}
-                    >
-                        FOLD
-                    </motion.button>
-                    <motion.button
-                        onClick={handleCall}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        style={{
-                            padding: '16px 32px',
-                            background: 'linear-gradient(135deg, #3498db, #2980b9)',
-                            border: 'none',
-                            borderRadius: 12,
-                            color: '#fff',
-                            fontSize: 16,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                        }}
-                    >
-                        CALL
-                    </motion.button>
-                    <motion.button
-                        onClick={handleRaise}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        style={{
-                            padding: '16px 32px',
-                            background: 'linear-gradient(135deg, #27ae60, #229954)',
-                            border: 'none',
-                            borderRadius: 12,
-                            color: '#fff',
-                            fontSize: 16,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                        }}
-                    >
-                        RAISE
-                    </motion.button>
-                    <motion.button
-                        onClick={handleAllIn}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        style={{
-                            padding: '16px 32px',
-                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                            border: 'none',
-                            borderRadius: 12,
-                            color: '#000',
-                            fontSize: 16,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                        }}
-                    >
-                        ALL-IN
-                    </motion.button>
-                </div>
-            )}
+            {/* Action Buttons - Only active during PLAYER_TURN phase */}
+            <div style={{
+                position: 'absolute',
+                bottom: 80,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                gap: 16,
+                zIndex: 100,
+                opacity: gamePhase === GamePhase.PLAYER_TURN ? 1 : 0.5,
+                pointerEvents: gamePhase === GamePhase.PLAYER_TURN ? 'auto' : 'none',
+                transition: 'opacity 300ms ease'
+            }}>
+                <motion.button
+                    onClick={handleFold}
+                    whileHover={gamePhase === GamePhase.PLAYER_TURN ? { scale: 1.05 } : {}}
+                    whileTap={gamePhase === GamePhase.PLAYER_TURN ? { scale: 0.95 } : {}}
+                    style={{
+                        padding: '16px 32px',
+                        background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                        border: 'none',
+                        borderRadius: 12,
+                        color: '#fff',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    }}
+                >
+                    FOLD
+                </motion.button>
+                <motion.button
+                    onClick={handleCall}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{
+                        padding: '16px 32px',
+                        background: 'linear-gradient(135deg, #3498db, #2980b9)',
+                        border: 'none',
+                        borderRadius: 12,
+                        color: '#fff',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    }}
+                >
+                    CALL
+                </motion.button>
+                <motion.button
+                    onClick={handleRaise}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{
+                        padding: '16px 32px',
+                        background: 'linear-gradient(135deg, #27ae60, #229954)',
+                        border: 'none',
+                        borderRadius: 12,
+                        color: '#fff',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    }}
+                >
+                    RAISE
+                </motion.button>
+                <motion.button
+                    onClick={handleAllIn}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{
+                        padding: '16px 32px',
+                        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                        border: 'none',
+                        borderRadius: 12,
+                        color: '#000',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    }}
+                >
+                    ALL-IN
+                </motion.button>
+            </div>
 
             {/* Result Overlay */}
             <AnimatePresence>
@@ -770,6 +927,18 @@ export default function UniversalTrainingTable({
                             </div>
                         </div>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* PHASE 4: Professor Explanation - Shows after player action */}
+            <AnimatePresence>
+                {showProfessor && professorData && (
+                    <ProfessorExplanation
+                        isCorrect={professorData.isCorrect}
+                        explanation={professorData.explanation}
+                        xpEarned={professorData.xpEarned}
+                        onDismiss={handleProfessorDismiss}
+                    />
                 )}
             </AnimatePresence>
 

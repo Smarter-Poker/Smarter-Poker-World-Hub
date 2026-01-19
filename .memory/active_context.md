@@ -8,9 +8,11 @@
 
 ## 🎯 Current Focus
 
-**Primary Objective:** Complete nationwide poker venue and tournament series database population for the "Poker Near Me" feature.
+**Primary Objective:** Build the "Poker Near Me" Radar Search Engine - a high-performance query interface for the US poker market.
 
-**Status:** **BLOCKED** by Supabase infrastructure issues (100% CPU utilization, connection timeouts).
+**Architecture:** Search engine (not display-all) - users query by location/radius/date, results shown on-demand.
+
+**Status:** **IN PROGRESS** - Building Radar Command Center (Command Bar + Results Matrix + Query Logic)
 
 ---
 
