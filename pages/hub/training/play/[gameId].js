@@ -22,6 +22,7 @@ export default function TrainingPlayPage() {
     const [error, setError] = useState(null);
     const [currentLevel, setCurrentLevel] = useState(1);
     const [userId, setUserId] = useState(null);
+    const [seenQuestionIds, setSeenQuestionIds] = useState(new Set()); // Track seen questions
 
     // Get game metadata
     const game = gameId ? getGameById(gameId) : null;
@@ -95,7 +96,25 @@ export default function TrainingPlayPage() {
                         }
                     }));
 
-                    setQuestions(transformedQuestions);
+                    // ═══════════════════════════════════════════════════════════════
+                    // FRESHNESS CHECK: Filter out already-seen questions
+                    // ═══════════════════════════════════════════════════════════════
+                    const freshQuestions = transformedQuestions.filter(q => !seenQuestionIds.has(q.id));
+
+                    // Shuffle fresh questions for variety
+                    const shuffled = freshQuestions.sort(() => Math.random() - 0.5);
+
+                    // Take up to 20 questions for this session
+                    const sessionQuestions = shuffled.slice(0, 20);
+
+                    // Mark these questions as seen
+                    const newSeenIds = new Set(seenQuestionIds);
+                    sessionQuestions.forEach(q => newSeenIds.add(q.id));
+                    setSeenQuestionIds(newSeenIds);
+
+                    console.log(`🔍 Freshness: ${transformedQuestions.length} total, ${freshQuestions.length} unseen, ${sessionQuestions.length} selected`);
+
+                    setQuestions(sessionQuestions);
                     console.log(`✅ Loaded ${transformedQuestions.length} questions from TRAINING_CLINICS`);
                 } else {
                     setError('No questions found for this level');
