@@ -100,6 +100,22 @@ const parseScenario = (scenarioHash, rawQuestion = {}) => {
         totalSeats = 3;
     }
 
+    // FALLBACK: If no game type in hash, check question metadata
+    // ICM/MTT questions default to 9-max (Full Ring)
+    if (totalSeats === 2 && !hash) {
+        const questionText = (rawQuestion.explanation || rawQuestion.villainAction || '').toLowerCase();
+        const isICM = questionText.includes('icm') ||
+            questionText.includes('tournament') ||
+            questionText.includes('bubble') ||
+            questionText.includes('final table') ||
+            rawQuestion.lawId?.includes('LAW_07'); // ICM law
+
+        if (isICM) {
+            gameType = 'FullRing';
+            totalSeats = 9;
+        }
+    }
+
     // Parse positions from hash (e.g., BTN_vs_BB)
     const posMatch = hash.match(/([A-Z]{2,3})_vs_([A-Z]{2,3})/i);
     let heroPos = posMatch ? posMatch[1].toUpperCase() : (rawQuestion.position || 'BTN');
@@ -173,6 +189,7 @@ const parseScenario = (scenarioHash, rawQuestion = {}) => {
         villainBet,
         potSize: Math.round(potSize * 10) / 10, // Round to 1 decimal
         villainIsAllIn,
+        villainRemainingStack, // NEW: Villain's stack after bet
         heroCards: rawQuestion.hero_cards || rawQuestion.heroCards || ['As', 'Kh'],
         villainAction,
         boardCards: rawQuestion.board_cards || [],
@@ -194,8 +211,8 @@ const getSeatPosition = (index, totalSeats) => {
     const angle = startOffset + (index * angleStep);
 
     // VERTICAL ELLIPSE: Narrower width, taller height
-    const radiusX = 35; // Width (narrower)
-    const radiusY = 42; // Height (taller)
+    const radiusX = 32; // Width (narrower)
+    const radiusY = 48; // Height (taller - increased for more vertical look)
 
     return {
         left: `${50 + radiusX * Math.cos(angle)}%`,
