@@ -29,6 +29,7 @@ export const TRAINING_CLINICS = [
     {
         id: 'clinic-01',
         name: 'The Iron Wall',
+        title: 'Defending the Big Blind',
         subtitle: 'Clinic #1: Defense',
         category: 'DEFENSE',
         targetLeak: 'FOLD_TO_AGGRESSION',
@@ -41,11 +42,30 @@ export const TRAINING_CLINICS = [
         levels: 10,
         passThreshold: 85,
         villainArchetype: 'BULLY',
-        visualEffects: ['VILLAIN_SCALE_1.4x', 'INTIMIDATION_GLOW']
+        visualEffects: ['VILLAIN_SCALE_1.4x', 'INTIMIDATION_GLOW'],
+        startingState: {
+            heroCards: ['Ks', 'Qc'],
+            villainCards: ['??', '??'],
+            board: [],
+            pot: 5.5,
+            dealerBtn: 'villain',
+            heroStack: 40,
+            villainStack: 40
+        },
+        questions: [
+            {
+                id: 'q1',
+                street: 'preflop',
+                villainAction: 'Raises to 2.5BB',
+                correctAction: 'call',
+                explanation: 'With KQo, you are getting the right price to call and realize equity against a wide button range.'
+            }
+        ]
     },
     {
         id: 'clinic-02',
         name: 'The Value Extractor',
+        title: 'Thin Value Betting',
         subtitle: 'Clinic #2: Sizing',
         category: 'SIZING',
         targetLeak: 'THIN_VALUE',
@@ -58,11 +78,30 @@ export const TRAINING_CLINICS = [
         levels: 10,
         passThreshold: 85,
         requiresSlider: true,
-        visualEffects: ['SIZING_GLOW', 'EV_METER']
+        visualEffects: ['SIZING_GLOW', 'EV_METER'],
+        startingState: {
+            heroCards: ['As', 'Jh'],
+            villainCards: ['??', '??'],
+            board: ['Ah', '9c', '4d', '2s', '7h'],
+            pot: 45,
+            dealerBtn: 'hero',
+            heroStack: 60,
+            villainStack: 55
+        },
+        questions: [
+            {
+                id: 'q1',
+                street: 'river',
+                villainAction: 'Checks',
+                correctAction: 'raise',
+                explanation: 'With top pair on a dry board, you should bet for thin value. Villain will call with worse Ax hands.'
+            }
+        ]
     },
     {
         id: 'clinic-03',
         name: 'The Indifference',
+        title: 'Minimum Defense Frequency',
         subtitle: 'Clinic #3: Defense Math',
         category: 'DEFENSE',
         targetLeak: 'BLUFF_FREQUENCY',
@@ -75,11 +114,30 @@ export const TRAINING_CLINICS = [
         levels: 10,
         passThreshold: 85,
         focusStreet: 'RIVER',
-        visualEffects: ['LARGE_POT_1.5x', 'MATH_OVERLAY']
+        visualEffects: ['LARGE_POT_1.5x', 'MATH_OVERLAY'],
+        startingState: {
+            heroCards: ['Kd', 'Qd'],
+            villainCards: ['??', '??'],
+            board: ['Ac', 'Jh', '7s', '3c', '2d'],
+            pot: 80,
+            dealerBtn: 'villain',
+            heroStack: 45,
+            villainStack: 50
+        },
+        questions: [
+            {
+                id: 'q1',
+                street: 'river',
+                villainAction: 'Bets 60BB (Pot-sized)',
+                correctAction: 'call',
+                explanation: 'Villain is betting pot, so you need to defend 50% of your range (MDF). KQ high is a bluff-catcher that should call.'
+            }
+        ]
     },
     {
         id: 'clinic-04',
         name: 'The Positional Blitz',
+        title: 'Position Awareness Drill',
         subtitle: 'Clinic #4: Seat Mastery',
         category: 'POSITION',
         targetLeak: 'POSITION_AWARENESS',
@@ -92,7 +150,25 @@ export const TRAINING_CLINICS = [
         levels: 10,
         passThreshold: 85,
         timeLimit: 2, // Blitz mode: 2 seconds
-        visualEffects: ['BUTTON_ROTATION', 'SEAT_HIGHLIGHT']
+        visualEffects: ['BUTTON_ROTATION', 'SEAT_HIGHLIGHT'],
+        startingState: {
+            heroCards: ['Ts', '9s'],
+            villainCards: ['??', '??'],
+            board: [],
+            pot: 3.5,
+            dealerBtn: 'hero',
+            heroStack: 40,
+            villainStack: 40
+        },
+        questions: [
+            {
+                id: 'q1',
+                street: 'preflop',
+                villainAction: 'Raises to 3BB from UTG',
+                correctAction: 'fold',
+                explanation: 'T9s is too weak to call a UTG raise when out of position. Fold and wait for a better spot.'
+            }
+        ]
     },
 
     // ═══════════════════════════════════════════════════════════════════════
