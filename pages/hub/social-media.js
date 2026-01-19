@@ -498,12 +498,17 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         const pos = e.target.selectionStart;
 
         // 🔗 AUTO-DETECT URLs - Facebook-style: remove URL and show preview card
-        // Simple reliable regex: match http(s):// followed by non-whitespace
-        const urlRegex = /https?:\/\/\S+/gi;
+        // ONLY trigger when URL is followed by a space (user finished typing the URL)
+        // Regex matches: http(s)://... followed by a space
+        const urlRegex = /(https?:\/\/\S+)\s/i;
         const urlMatch = value.match(urlRegex);
 
         if (urlMatch && !linkPreview && !linkLoading) {
-            let detectedUrl = urlMatch[0];
+            // urlMatch[1] is the captured URL (without the trailing space)
+            let detectedUrl = urlMatch[1];
+
+            // Clean up any trailing punctuation (like commas or periods)
+            detectedUrl = detectedUrl.replace(/[.,;:!?)]+$/, '');
 
             // Ensure URL starts with http/https
             if (detectedUrl.toLowerCase().startsWith('www.')) {
@@ -513,7 +518,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
             // Check if it's a YouTube URL
             const isYouTube = /youtube\.com|youtu\.be/i.test(detectedUrl);
 
-            // Remove the ENTIRE matched URL from content
+            // Remove the URL (but keep other text) from content
             const cleanedValue = value.replace(urlMatch[0], '').trim();
             setContent(cleanedValue);
             setLinkLoading(true);
