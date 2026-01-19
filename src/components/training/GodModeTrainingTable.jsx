@@ -119,9 +119,9 @@ const Card3D = ({ card, isFlipped = false, delay = 0, size = 'normal' }) => {
         }
     }, [isFlipped, delay]);
 
-    const isFaceUp = card && card !== '??' && flipped;
-    const rank = isFaceUp ? card[0].toUpperCase() : '';
-    const suit = isFaceUp ? card[1].toLowerCase() : '';
+    const isFaceUp = card && card.length >= 2 && card !== '??' && flipped;
+    const rank = isFaceUp ? (card[0] || '').toUpperCase() : '';
+    const suit = isFaceUp ? (card[1] || '').toLowerCase() : '';
     const suitSymbol = SUIT_SYMBOLS[suit] || '';
     const suitColor = SUIT_COLORS[suit] || '#000';
 
