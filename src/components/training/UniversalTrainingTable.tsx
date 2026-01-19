@@ -19,6 +19,7 @@ import { supabase } from '../../lib/supabase';
 import { TRAINING_CLINICS } from '../../data/TRAINING_CLINICS';
 import { useTrainingAccountant } from '../../hooks/useTrainingAccountant';
 import { getLaw, getViolationExplanation } from '../../data/POKER_LAWS';
+import LeakFixerIntercept from './LeakFixerIntercept';
 
 // TypeScript interfaces
 interface Question {
