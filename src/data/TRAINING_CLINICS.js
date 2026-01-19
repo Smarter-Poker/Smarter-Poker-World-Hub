@@ -376,6 +376,60 @@ export const TRAINING_CLINICS = [
                     { id: 'L1Q19', heroCards: ['As', '8s'], position: 'SB', stackDepth: 11, villainAction: 'BB Only', correctAction: 'raise', lawId: 'LAW_01', explanation: 'A8s in SB = shove vs BB. Strong stealing candidate.' },
                     { id: 'L1Q20', heroCards: ['5d', '5h'], position: 'CO', stackDepth: 9, villainAction: 'Folds to You', correctAction: 'raise', lawId: 'LAW_01', explanation: '55 with 9BB = shove. Push/fold mode, pairs have fold equity.' }
                 ]
+            },
+            {
+                level: 2,
+                name: 'Bubble Pressure',
+                passThreshold: 85,
+                questions: [
+                    { id: 'L2Q01', heroCards: ['Ah', 'Jh'], position: 'BTN', stackDepth: 12, villainAction: 'Folds to You (Bubble)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'On bubble, aggression = survival. AJs is a clear shove.' },
+                    { id: 'L2Q02', heroCards: ['Kd', 'Td'], position: 'CO', stackDepth: 18, villainAction: 'UTG Raises 2.5BB (Bubble)', correctAction: 'fold', lawId: 'LAW_07', explanation: 'Bubble ICM pressure. KTo cant call vs UTG open range.' },
+                    { id: 'L2Q03', heroCards: ['As', 'Ac'], position: 'BB', stackDepth: 25, villainAction: 'BTN Shoves 15BB (Bubble)', correctAction: 'call', lawId: 'LAW_07', explanation: 'AA always calls. ICM matters but not with the nuts.' },
+                    { id: 'L2Q04', heroCards: ['Qh', 'Jh'], position: 'SB', stackDepth: 8, villainAction: 'Folds to You (Bubble)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'Short stack on bubble = shove. QJs has good equity.' },
+                    { id: 'L2Q05', heroCards: ['Tc', 'Td'], position: 'BTN', stackDepth: 20, villainAction: 'CO Raises 2.2BB (Bubble)', correctAction: 'call', lawId: 'LAW_08', explanation: 'TT vs CO open = call. Set mining + strong postflop.' },
+                    { id: 'L2Q06', heroCards: ['9s', '8s'], position: 'BB', stackDepth: 30, villainAction: 'BTN Min-raises (Bubble)', correctAction: 'call', lawId: 'LAW_08', explanation: 'Deep stacks, suited connector = call and outplay.' },
+                    { id: 'L2Q07', heroCards: ['Kh', 'Kc'], position: 'CO', stackDepth: 15, villainAction: 'UTG Shoves 12BB (Bubble)', correctAction: 'call', lawId: 'LAW_07', explanation: 'KK vs any shove = call. You dominate most hands.' },
+                    { id: 'L2Q08', heroCards: ['Ad', '4d'], position: 'BTN', stackDepth: 10, villainAction: 'Folds to You (1 from Bubble)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'A4s on button = shove. Maximum fold equity spot.' },
+                    { id: 'L2Q09', heroCards: ['7h', '6h'], position: 'SB', stackDepth: 22, villainAction: 'BB Only (Bubble)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'Any two vs BB on bubble = aggressive. 76s is fine.' },
+                    { id: 'L2Q10', heroCards: ['Qs', 'Tc'], position: 'BB', stackDepth: 14, villainAction: 'SB Shoves 18BB (Bubble)', correctAction: 'fold', lawId: 'LAW_07', explanation: 'QTo vs SB shove on bubble = fold. Not worth the risk.' },
+                    { id: 'L2Q11', heroCards: ['Jh', 'Jc'], position: 'UTG', stackDepth: 20, villainAction: 'You Open (Bubble)', correctAction: 'raise', lawId: 'LAW_06', explanation: 'JJ in UTG = open for value. Strong but controlled.' },
+                    { id: 'L2Q12', heroCards: ['As', '9c'], position: 'CO', stackDepth: 11, villainAction: 'Folds to You (Bubble)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'A9o with 11BB in CO = shove. Standard push/fold.' },
+                    { id: 'L2Q13', heroCards: ['6d', '6c'], position: 'BTN', stackDepth: 25, villainAction: 'CO Opens 2.5BB (Bubble)', correctAction: 'call', lawId: 'LAW_08', explanation: '66 vs CO = call. Set mining + position.' },
+                    { id: 'L2Q14', heroCards: ['Kc', '9c'], position: 'SB', stackDepth: 9, villainAction: 'Folds to You (Bubble)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'K9s with 9BB in SB = shove. Fold equity + decent equity.' },
+                    { id: 'L2Q15', heroCards: ['Ah', 'Qh'], position: 'BB', stackDepth: 16, villainAction: 'BTN Shoves 14BB (Bubble)', correctAction: 'call', lawId: 'LAW_07', explanation: 'AQs vs BTN shove = call. Great equity vs wide range.' },
+                    { id: 'L2Q16', heroCards: ['8c', '8h'], position: 'CO', stackDepth: 12, villainAction: 'Folds to You (Bubble)', correctAction: 'raise', lawId: 'LAW_01', explanation: '88 with 12BB = shove. Pairs are strong enough.' },
+                    { id: 'L2Q17', heroCards: ['Ks', 'Jd'], position: 'BTN', stackDepth: 30, villainAction: 'CO Min-raises (Bubble)', correctAction: 'raise', lawId: 'LAW_06', explanation: 'KJo in position vs min-raise = 3-bet bluff.' },
+                    { id: 'L2Q18', heroCards: ['4c', '4s'], position: 'SB', stackDepth: 7, villainAction: 'Folds to You (Bubble)', correctAction: 'raise', lawId: 'LAW_01', explanation: '44 with 7BB = shove. Push any pair short-stacked.' },
+                    { id: 'L2Q19', heroCards: ['Qd', 'Qc'], position: 'BB', stackDepth: 22, villainAction: 'SB Shoves 10BB (Bubble)', correctAction: 'call', lawId: 'LAW_07', explanation: 'QQ vs short stack shove = always call on bubble.' },
+                    { id: 'L2Q20', heroCards: ['Ts', '9s'], position: 'BTN', stackDepth: 15, villainAction: 'Folds to You (ITM)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'T9s once ITM = aggressive. Ladder pressure over.' }
+                ]
+            },
+            {
+                level: 3,
+                name: 'Final Table Dynamics',
+                passThreshold: 85,
+                questions: [
+                    { id: 'L3Q01', heroCards: ['Ah', 'Kh'], position: 'BTN', stackDepth: 40, villainAction: 'CO Opens 2.2BB (Final Table)', correctAction: 'raise', lawId: 'LAW_06', explanation: 'AKs deep at FT = 3-bet for value. Build the pot.' },
+                    { id: 'L3Q02', heroCards: ['Jc', 'Ts'], position: 'BB', stackDepth: 8, villainAction: 'SB Completes (Final Table)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'JTs vs limp at FT = shove. Punish passivity.' },
+                    { id: 'L3Q03', heroCards: ['Ks', 'Kd'], position: 'SB', stackDepth: 25, villainAction: 'BTN Raises 2.5BB (Final Table)', correctAction: 'raise', lawId: 'LAW_06', explanation: 'KK at FT = 3-bet always. Max value from premium.' },
+                    { id: 'L3Q04', heroCards: ['9h', '9d'], position: 'CO', stackDepth: 15, villainAction: '3 Left, Chip Leader Opens', correctAction: 'fold', lawId: 'LAW_07', explanation: '99 vs chip leader at 3-handed = fold. ICM suicide.' },
+                    { id: 'L3Q05', heroCards: ['Ac', '8c'], position: 'BTN', stackDepth: 20, villainAction: 'Heads Up (Big Blind)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'A8s heads up = raise. Aggression wins HU.' },
+                    { id: 'L3Q06', heroCards: ['Qh', 'Qd'], position: 'SB', stackDepth: 30, villainAction: 'Now Heads Up', correctAction: 'raise', lawId: 'LAW_06', explanation: 'QQ HU in SB = raise. Premium + aggression.' },
+                    { id: 'L3Q07', heroCards: ['7d', '6d'], position: 'BTN', stackDepth: 45, villainAction: 'Heads Up (Villain Limps)', correctAction: 'raise', lawId: 'LAW_01', explanation: '76s HU vs limp = raise. Punish passive play.' },
+                    { id: 'L3Q08', heroCards: ['As', '2s'], position: 'SB', stackDepth: 12, villainAction: 'Heads Up Only', correctAction: 'raise', lawId: 'LAW_01', explanation: 'A2s HU with 12BB = shove. Any ace is strong.' },
+                    { id: 'L3Q09', heroCards: ['Tc', '9c'], position: 'BB', stackDepth: 35, villainAction: 'Heads Up (SB Min-raises)', correctAction: 'call', lawId: 'LAW_03', explanation: 'T9s vs HU min-raise = call. Play postflop.' },
+                    { id: 'L3Q10', heroCards: ['Ad', 'Jd'], position: 'SB', stackDepth: 18, villainAction: 'Heads Up Only', correctAction: 'raise', lawId: 'LAW_01', explanation: 'AJd HU = raise. Strong hand + position.' },
+                    { id: 'L3Q11', heroCards: ['Kh', 'Qc'], position: 'BB', stackDepth: 22, villainAction: 'HU (SB Shoves 15BB)', correctAction: 'call', lawId: 'LAW_07', explanation: 'KQo vs HU shove = call. Top of calling range.' },
+                    { id: 'L3Q12', heroCards: ['5s', '5c'], position: 'SB', stackDepth: 10, villainAction: 'Heads Up Only', correctAction: 'raise', lawId: 'LAW_01', explanation: '55 HU with 10BB = shove. Pairs are gold HU.' },
+                    { id: 'L3Q13', heroCards: ['Jh', 'Tc'], position: 'BTN', stackDepth: 28, villainAction: '3-Handed (SB Short)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'JTo 3-handed vs short = open wide. Pressure counts.' },
+                    { id: 'L3Q14', heroCards: ['Ac', 'Tc'], position: 'SB', stackDepth: 35, villainAction: 'Big Stack in BB (3 Left)', correctAction: 'raise', lawId: 'LAW_06', explanation: 'ATs 3-handed vs BB = open. Strong + position.' },
+                    { id: 'L3Q15', heroCards: ['8h', '8s'], position: 'BB', stackDepth: 15, villainAction: 'HU (SB Raises 3BB)', correctAction: 'raise', lawId: 'LAW_06', explanation: '88 HU vs raise = 3-bet shove. Strong value hand.' },
+                    { id: 'L3Q16', heroCards: ['Ks', 'Ts'], position: 'SB', stackDepth: 25, villainAction: 'Heads Up Only', correctAction: 'raise', lawId: 'LAW_01', explanation: 'KTs HU = raise. Broadway + suited = aggression.' },
+                    { id: 'L3Q17', heroCards: ['Ad', 'Ad'], position: 'BB', stackDepth: 40, villainAction: 'HU (SB 3x Opens)', correctAction: 'raise', lawId: 'LAW_06', explanation: 'AA HU vs 3x = 3-bet. Max value from the best.' },
+                    { id: 'L3Q18', heroCards: ['6c', '5c'], position: 'SB', stackDepth: 20, villainAction: 'Heads Up Only', correctAction: 'raise', lawId: 'LAW_01', explanation: '65s HU = raise. Suited connector plays well.' },
+                    { id: 'L3Q19', heroCards: ['Qd', 'Jh'], position: 'BB', stackDepth: 18, villainAction: 'HU (SB Shoves 12BB)', correctAction: 'call', lawId: 'LAW_07', explanation: 'QJo vs HU short shove = call. Solid equity.' },
+                    { id: 'L3Q20', heroCards: ['2h', '2d'], position: 'SB', stackDepth: 8, villainAction: 'Heads Up Only', correctAction: 'raise', lawId: 'LAW_01', explanation: '22 HU with 8BB = shove. Any pair HU = win.' }
+                ]
             }
         ]
     },
