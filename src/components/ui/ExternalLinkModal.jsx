@@ -104,16 +104,38 @@ export function ExternalLinkProvider({ children }) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📺 EXTERNAL LINK MODAL COMPONENT
-// Smart Hybrid: Iframe first, auto-fallback to popup if X-Frame-Options blocks
+// Opens external content in popup window immediately (iframe unreliable due to X-Frame-Options)
 // ═══════════════════════════════════════════════════════════════════════════
 
 function ExternalLinkModal({ url, title, onClose }) {
-    const [loading, setLoading] = useState(true);
-    const [blocked, setBlocked] = useState(false);
-    const iframeRef = React.useRef(null);
+    const [popupBlocked, setPopupBlocked] = useState(false);
+    const hasTriedRef = React.useRef(false);
 
-    // Open in popup window (for blocked sites)
-    const openInPopup = () => {
+    // Open popup immediately on mount
+    useEffect(() => {
+        if (hasTriedRef.current) return;
+        hasTriedRef.current = true;
+
+        // Open full-screen popup window
+        const width = window.screen.availWidth;
+        const height = window.screen.availHeight;
+        const popup = window.open(
+            url,
+            'smarterPokerBrowser',
+            `width=${width},height=${height},left=0,top=0,resizable=yes,scrollbars=yes,toolbar=yes,location=yes`
+        );
+
+        // Check if popup was blocked
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            setPopupBlocked(true);
+        } else {
+            // Popup opened successfully, close modal
+            onClose();
+        }
+    }, [url, onClose]);
+
+    // Manual open for fallback
+    const openPopupManually = () => {
         const width = window.screen.availWidth;
         const height = window.screen.availHeight;
         window.open(
@@ -122,54 +144,6 @@ function ExternalLinkModal({ url, title, onClose }) {
             `width=${width},height=${height},left=0,top=0,resizable=yes,scrollbars=yes,toolbar=yes,location=yes`
         );
         onClose();
-    };
-
-    // Detect if iframe is blocked (X-Frame-Options)
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            // If still loading after 3 seconds and iframe has no content, assume blocked
-            if (loading && iframeRef.current) {
-                try {
-                    // Try to access iframe content - will throw if blocked
-                    const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
-                    // If we can access it but it's blank/error page, it's blocked
-                    if (!doc || doc.body?.innerHTML === '' || doc.body?.innerHTML?.includes('refused')) {
-                        setBlocked(true);
-                        setLoading(false);
-                        // Auto-open in popup window
-                        openInPopup();
-                    }
-                } catch (e) {
-                    // Cross-origin error means iframe loaded something (not blocked)
-                    setLoading(false);
-                }
-            }
-        }, 2500);
-        return () => clearTimeout(timeout);
-    }, [loading, url]);
-
-    const handleIframeLoad = () => {
-        setLoading(false);
-        // Check if iframe loaded but is blank (blocked by X-Frame-Options)
-        try {
-            const iframe = iframeRef.current;
-            if (iframe) {
-                const doc = iframe.contentDocument || iframe.contentWindow?.document;
-                if (doc && (doc.body?.innerHTML === '' || !doc.body)) {
-                    // Iframe is blank - site blocked embedding
-                    setBlocked(true);
-                    openInPopup();
-                }
-            }
-        } catch (e) {
-            // Cross-origin is expected for external sites that work
-        }
-    };
-
-    const handleIframeError = () => {
-        setLoading(false);
-        setBlocked(true);
-        openInPopup();
     };
 
     return (
@@ -185,48 +159,33 @@ function ExternalLinkModal({ url, title, onClose }) {
                         </div>
                     </div>
                     <div style={styles.headerActions}>
-                        <button
-                            onClick={openInPopup}
-                            style={styles.newTabBtn}
-                            title="Open in popup window"
-                        >
-                            ↗️ Open External
-                        </button>
                         <button onClick={onClose} style={styles.closeBtn}>✕</button>
                     </div>
                 </div>
 
-                {/* Content */}
+                {/* Content - only shows if popup was blocked */}
                 <div style={styles.content}>
-                    {loading && (
+                    {popupBlocked ? (
+                        <div style={styles.blockedState}>
+                            <span style={styles.blockedIcon}>🚫</span>
+                            <h3 style={styles.blockedTitle}>Popup Blocked</h3>
+                            <p style={styles.blockedText}>Your browser blocked the popup. Click below to open the link.</p>
+                            <button onClick={openPopupManually} style={styles.openBtn}>
+                                Open Link ↗️
+                            </button>
+                        </div>
+                    ) : (
                         <div style={styles.loader}>
                             <div style={styles.spinner} />
-                            <span>Loading content...</span>
-                            <span style={styles.loaderHint}>Opening in popup if blocked...</span>
+                            <span>Opening external content...</span>
                         </div>
-                    )}
-
-                    {!blocked && (
-                        <iframe
-                            ref={iframeRef}
-                            src={url}
-                            style={{
-                                ...styles.iframe,
-                                opacity: loading ? 0 : 1
-                            }}
-                            onLoad={handleIframeLoad}
-                            onError={handleIframeError}
-                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                            referrerPolicy="no-referrer"
-                            title={title}
-                        />
                     )}
                 </div>
 
                 {/* Footer */}
                 <div style={styles.footer}>
                     <span style={styles.footerText}>
-                        🛡️ You're still on Smarter.Poker — External content is displayed securely
+                        🛡️ You're still on Smarter.Poker
                     </span>
                 </div>
             </div>
@@ -380,6 +339,39 @@ const styles = {
         textAlign: 'center',
         color: '#0a1628',
         padding: 40,
+    },
+    blockedState: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        textAlign: 'center',
+        color: '#0a1628',
+        padding: 40,
+    },
+    blockedIcon: {
+        fontSize: 48,
+        display: 'block',
+        marginBottom: 16,
+    },
+    blockedTitle: {
+        margin: '0 0 8px 0',
+        fontSize: 20,
+        fontWeight: 600,
+    },
+    blockedText: {
+        margin: '0 0 20px 0',
+        opacity: 0.7,
+    },
+    openBtn: {
+        padding: '14px 28px',
+        background: '#00D4FF',
+        border: 'none',
+        borderRadius: 8,
+        color: '#0a1628',
+        fontSize: 16,
+        fontWeight: 600,
+        cursor: 'pointer',
     },
     errorIcon: {
         fontSize: 48,
