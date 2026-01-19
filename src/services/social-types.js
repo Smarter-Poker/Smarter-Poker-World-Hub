@@ -30,6 +30,8 @@ export function createAuthor(profile) {
     return {
         id: profile.user_id || profile.id,
         username: profile.username || 'Anonymous',
+        full_name: profile.full_name || null,                              // For display name preference
+        display_name_preference: profile.display_name_preference || 'full_name', // User preference
         avatarUrl: profile.avatar_url || null,
         level: profile.current_level || 1,
         tier: profile.tier_id || 'BRONZE',
@@ -89,6 +91,8 @@ export function createPost(row, author = null) {
         author: author || createAuthor({
             user_id: row.author_id,
             username: row.author_username,
+            full_name: row.author_full_name,                     // For display name preference
+            display_name_preference: row.author_display_name_preference, // User's preference
             avatar_url: row.author_avatar,
             current_level: row.author_level,
             tier_id: row.author_tier
