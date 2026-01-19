@@ -16,6 +16,7 @@ import { WorldNavHeader } from '../../../../src/components/navigation/WorldNavHe
 import { getPlayerCount } from '../../../../src/data/PLAYER_COUNT_MAP';
 import { generateLevelQuiz } from '../../../../lib/god-mode-service';
 import { supabase } from '../../../../src/lib/supabase';
+import UniversalTrainingTable from '../../../../src/components/training/UniversalTrainingTable';
 
 // Constants
 const TIME_PER_QUESTION = 21;
@@ -383,83 +384,18 @@ export default function TrainingPlayPage() {
         );
     }
 
-    // Standard React UI for non-9-max games
+    // Use UniversalTrainingTable for all games
     return (
         <>
             <Head>
-                <title>{game.name} — PokerIQ</title>
+                <title>{game?.name || 'Training'} — PokerIQ</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
             </Head>
-            <style>{EFFECT_STYLES}</style>
 
-            <motion.div ref={arenaRef} style={{ minHeight: '100vh', background: '#0a1628', color: '#fff', padding: 20 }}>
-                <WorldNavHeader title={game.name} backTo="/hub/training" backLabel="Training" />
-
-                <div style={{ maxWidth: 600, margin: '0 auto', paddingTop: 80 }}>
-                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                            QUESTION {questionIndex + 1} of {QUESTIONS_PER_RUN}
-                        </div>
-                        <h2 style={{ fontSize: 24, margin: '8px 0' }}>{currentScenario?.title}</h2>
-                        <p style={{ color: 'rgba(255,255,255,0.7)' }}>{currentScenario?.scenario}</p>
-                    </div>
-
-                    {/* Timer */}
-                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                        <div style={{
-                            fontSize: 48, fontWeight: 800,
-                            color: timeLeft < 5 ? '#FF1744' : timeLeft < 10 ? '#FF6B35' : '#4CAF50'
-                        }}>
-                            {Math.ceil(timeLeft)}
-                        </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                        {currentScenario?.options?.map(opt => (
-                            <motion.button
-                                key={opt.id}
-                                onClick={() => handleAnswer(opt.id)}
-                                disabled={showResult}
-                                style={{
-                                    padding: '20px',
-                                    background: showResult
-                                        ? (opt.isCorrect ? '#4CAF50' : selectedAnswer === opt.id ? '#FF4444' : 'rgba(255,255,255,0.1)')
-                                        : 'linear-gradient(135deg, #2563EB, #1D4ED8)',
-                                    border: 'none',
-                                    borderRadius: 12,
-                                    color: '#fff',
-                                    fontSize: 16,
-                                    fontWeight: 700,
-                                    cursor: showResult ? 'default' : 'pointer',
-                                }}
-                                whileHover={!showResult ? { scale: 1.03 } : {}}
-                                whileTap={!showResult ? { scale: 0.97 } : {}}
-                            >
-                                {opt.text}
-                            </motion.button>
-                        ))}
-                    </div>
-
-                    {/* Result overlay */}
-                    {showResult && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            style={{ marginTop: 24, padding: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 12, textAlign: 'center' }}
-                        >
-                            <p style={{ marginBottom: 16 }}>{currentScenario?.explanation}</p>
-                            <motion.button
-                                onClick={handleNext}
-                                style={{ padding: '16px 48px', background: '#2563EB', border: 'none', borderRadius: 12, color: '#fff', fontWeight: 700, cursor: 'pointer' }}
-                                whileHover={{ scale: 1.05 }}
-                            >
-                                NEXT
-                            </motion.button>
-                        </motion.div>
-                    )}
-                </div>
-            </motion.div>
+            <UniversalTrainingTable
+                gameId={gameId}
+                onAnswer={handleAnswer}
+            />
         </>
     );
 }
