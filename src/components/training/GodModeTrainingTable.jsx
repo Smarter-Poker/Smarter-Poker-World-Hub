@@ -606,11 +606,6 @@ export default function GodModeTrainingTable({
         heroPosition: currentQuestion.position || 'BTN'
     } : null;
 
-    // DEBUG: Log hero cards
-    if (scenario) {
-        console.log('🃏 Hero Cards:', scenario.heroCards, 'Raw:', currentQuestion?.hero_cards);
-    }
-
     // Player count based on topology
     const getPlayerCount = (topology) => {
         const counts = { 'HU': 2, '3-Max': 3, '6-Max': 6, '9-Max': 9 };
@@ -813,7 +808,7 @@ export default function GodModeTrainingTable({
     }, [isLastQuestion, score, totalQuestions, maxStreak, onLevelComplete]);
 
     // Available actions based on street/scenario
-    const availableActions = ['Fold', 'Call', 'Raise'];
+    const availableActions = ['Fold', 'Check', 'Call', 'Raise'];
 
     // ─────────────────────────────────────────────────────────────────────────
     // LOADING STATE
@@ -1026,6 +1021,32 @@ export default function GodModeTrainingTable({
                         }}>
                             {scenario?.pot || 6}bb
                         </div>
+
+                        {/* Question Prompt */}
+                        {gameState === GameState.ACTION_REQUIRED && (
+                            <div style={{
+                                marginTop: 16,
+                                padding: '10px 16px',
+                                background: 'rgba(0,0,0,0.5)',
+                                borderRadius: 12,
+                                border: '1px solid rgba(255,255,255,0.1)'
+                            }}>
+                                <div style={{
+                                    fontSize: 16,
+                                    fontWeight: 'bold',
+                                    color: '#fff',
+                                    marginBottom: 4
+                                }}>
+                                    🎯 What's your play?
+                                </div>
+                                <div style={{
+                                    fontSize: 12,
+                                    color: 'rgba(255,255,255,0.6)'
+                                }}>
+                                    Hero: {scenario?.heroCards?.join(' ') || 'A♠ K♥'}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Board Cards */}
