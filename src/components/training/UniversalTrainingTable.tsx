@@ -4,10 +4,10 @@
  * HARD RULES:
  * - NO <script> tags
  * - NO dangerouslySetInnerHTML
- * - NO external CSS files
+ * - NO external CSS files (including Tailwind)
  * - 100% React state-driven
  * - Data ONLY from TRAINING_CLINICS
- * - Fixed absolute positioning
+ * - INLINE STYLES ONLY
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -26,10 +26,19 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     // PHASE 1: FORCE CHECK - Fail fast if clinic not found
     if (!clinic) {
         return (
-            <div className="w-full h-screen flex items-center justify-center bg-slate-900 text-white">
-                <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-4">Error: Clinic Not Found</h1>
-                    <p className="text-gray-400">Game ID: {gameId}</p>
+            <div style={{
+                width: '100%',
+                height: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#0f172a',
+                color: '#fff'
+            }}>
+                <div style={{ textAlign: 'center' }}>
+                    <h1 style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>Error: Clinic Not Found</h1>
+                    <p style={{ color: '#9ca3af' }}>Game ID: {gameId}</p>
+                    <p style={{ color: '#6b7280', marginTop: 8 }}>Available clinics: clinic-01 to clinic-28</p>
                 </div>
             </div>
         );
@@ -70,23 +79,66 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         onAnswer?.(action);
     };
 
-    // PHASE 3: VISUAL ANCHORS - Fixed positioning with Tailwind
+    // PHASE 3: VISUAL ANCHORS - Fixed positioning with INLINE STYLES
     return (
-        <div className="w-full h-screen bg-gradient-to-b from-slate-900 to-slate-800 relative overflow-hidden">
+        <div style={{
+            width: '100%',
+            height: '100vh',
+            background: 'linear-gradient(to bottom, #0f172a, #1e293b)',
+            position: 'relative',
+            overflow: 'hidden'
+        }}>
             {/* Title Bar */}
-            <div className="absolute top-0 left-0 right-0 h-16 bg-slate-900/80 backdrop-blur-sm border-b border-cyan-500/30 flex items-center justify-center z-50">
-                <h1 className="text-xl font-bold text-white">{clinic.title}</h1>
+            <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 64,
+                background: 'rgba(15, 23, 42, 0.8)',
+                backdropFilter: 'blur(8px)',
+                borderBottom: '1px solid rgba(0, 212, 255, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 50
+            }}>
+                <h1 style={{ fontSize: 20, fontWeight: 'bold', color: '#fff' }}>{clinic.title || clinic.name}</h1>
             </div>
 
             {/* Poker Table */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-gradient-to-br from-green-800 to-green-900 rounded-[50%] border-8 border-amber-900 shadow-2xl">
+            <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 700,
+                height: 400,
+                background: 'linear-gradient(135deg, #166534, #14532d)',
+                borderRadius: '50%',
+                border: '8px solid #78350f',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+            }}>
                 {/* Table Center - Pot */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                    <div className="text-yellow-400 text-2xl font-bold">POT: {pot}BB</div>
+                <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    textAlign: 'center'
+                }}>
+                    <div style={{ color: '#facc15', fontSize: 24, fontWeight: 'bold' }}>POT: {pot}BB</div>
                 </div>
 
                 {/* Board Cards */}
-                <div className="absolute top-[35%] left-1/2 -translate-x-1/2 flex gap-2">
+                <div style={{
+                    position: 'absolute',
+                    top: '35%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    gap: 8
+                }}>
                     {boardCards.map((card, i) => (
                         <Card key={i} card={card} />
                     ))}
@@ -94,48 +146,107 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             </div>
 
             {/* VILLAIN - Top Center */}
-            <div className="absolute top-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-                <div className="text-white text-sm font-semibold">VILLAIN</div>
-                <div className="flex gap-2">
+            <div style={{
+                position: 'absolute',
+                top: 40,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 8
+            }}>
+                <div style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>VILLAIN</div>
+                <div style={{ display: 'flex', gap: 8 }}>
                     {villainCards.map((card, i) => (
                         <Card key={i} card={card} size="small" />
                     ))}
                 </div>
                 {villainAction && (
-                    <div className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-sm">
+                    <div style={{
+                        background: '#dc2626',
+                        color: '#fff',
+                        padding: '8px 16px',
+                        borderRadius: 8,
+                        fontWeight: 'bold',
+                        fontSize: 14
+                    }}>
                         {villainAction}
                     </div>
                 )}
             </div>
 
             {/* HERO - Bottom Center */}
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-                <div className="flex gap-2">
+            <div style={{
+                position: 'absolute',
+                bottom: 40,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 8
+            }}>
+                <div style={{ display: 'flex', gap: 8 }}>
                     {heroCards.map((card, i) => (
                         <Card key={i} card={card} />
                     ))}
                 </div>
-                <div className="text-white text-sm font-semibold">YOU</div>
+                <div style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>YOU</div>
             </div>
 
             {/* Action Buttons - Bottom */}
             {showActions && (
-                <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex gap-4">
+                <div style={{
+                    position: 'absolute',
+                    bottom: 128,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    gap: 16
+                }}>
                     <button
                         onClick={() => handleAction('fold')}
-                        className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all"
+                        style={{
+                            padding: '12px 24px',
+                            background: '#dc2626',
+                            border: 'none',
+                            borderRadius: 8,
+                            color: '#fff',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            transition: 'transform 0.1s'
+                        }}
                     >
                         FOLD
                     </button>
                     <button
                         onClick={() => handleAction('call')}
-                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all"
+                        style={{
+                            padding: '12px 24px',
+                            background: '#2563eb',
+                            border: 'none',
+                            borderRadius: 8,
+                            color: '#fff',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            transition: 'transform 0.1s'
+                        }}
                     >
                         CALL
                     </button>
                     <button
                         onClick={() => handleAction('raise')}
-                        className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all"
+                        style={{
+                            padding: '12px 24px',
+                            background: '#16a34a',
+                            border: 'none',
+                            borderRadius: 8,
+                            color: '#fff',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            transition: 'transform 0.1s'
+                        }}
                     >
                         RAISE
                     </button>
@@ -145,19 +256,27 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     );
 }
 
-// Card Component - Pure CSS, no images
+// Card Component - Pure CSS, no images, INLINE STYLES
 function Card({ card, size = 'medium' }: { card: string; size?: 'small' | 'medium' }) {
     const isBack = card === '??' || !card;
 
-    const sizes = {
-        small: 'w-12 h-16',
-        medium: 'w-16 h-24'
-    };
+    const dimensions = size === 'small'
+        ? { width: 48, height: 64 }
+        : { width: 64, height: 96 };
 
     if (isBack) {
         return (
-            <div className={`${sizes[size]} bg-gradient-to-br from-red-600 to-red-800 rounded-lg border-2 border-white shadow-lg flex items-center justify-center`}>
-                <span className="text-white text-2xl font-bold">?</span>
+            <div style={{
+                ...dimensions,
+                background: 'linear-gradient(135deg, #dc2626, #991b1b)',
+                borderRadius: 8,
+                border: '2px solid #fff',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}>
+                <span style={{ color: '#fff', fontSize: 24, fontWeight: 'bold' }}>?</span>
             </div>
         );
     }
@@ -173,19 +292,31 @@ function Card({ card, size = 'medium' }: { card: string; size?: 'small' | 'mediu
         's': '♠'
     };
 
-    const suitColors: Record<string, string> = {
-        'h': 'text-red-600',
-        'd': 'text-red-600',
-        'c': 'text-black',
-        's': 'text-black'
-    };
+    const isRed = suit === 'h' || suit === 'd';
 
     return (
-        <div className={`${sizes[size]} bg-white rounded-lg border-2 border-gray-800 shadow-lg flex flex-col items-center justify-center`}>
-            <span className={`text-2xl font-bold ${suitColors[suit] || 'text-black'}`}>
+        <div style={{
+            ...dimensions,
+            background: '#fff',
+            borderRadius: 8,
+            border: '2px solid #1f2937',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
+        }}>
+            <span style={{
+                fontSize: size === 'small' ? 18 : 24,
+                fontWeight: 'bold',
+                color: isRed ? '#dc2626' : '#000'
+            }}>
                 {rank}
             </span>
-            <span className={`text-xl ${suitColors[suit] || 'text-black'}`}>
+            <span style={{
+                fontSize: size === 'small' ? 16 : 20,
+                color: isRed ? '#dc2626' : '#000'
+            }}>
                 {suitSymbols[suit] || suit}
             </span>
         </div>
