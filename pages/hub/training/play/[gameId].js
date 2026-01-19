@@ -63,8 +63,7 @@ export default function TrainingPlayPage() {
                     .from('solved_spots_gold')
                     .select('*')
                     .eq('game_type', 'MTT')
-                    .eq('topology', '9-Max')
-                    .limit(100); // Get up to 100 spots for variety
+                    .limit(100); // Get up to 100 MTT spots
 
                 if (pioError) {
                     console.error('❌ Error loading from solved_spots_gold:', pioError);
