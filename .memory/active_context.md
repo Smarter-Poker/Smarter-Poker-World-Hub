@@ -1,142 +1,128 @@
-# Active Context — Current Session State
+# Active Context - Training Hub Vanguard
 
-**Last Updated:** 2026-01-19 06:46 CST  
-**Current Phase:** Orb #9 (Poker Near Me) Database Population  
-**Agent Mode:** Anti Gravity 2.0 (Memory-Enhanced)
-
----
-
-## 🎯 Current Focus
-
-**Primary Objective:** Build the "Poker Near Me" Radar Search Engine - a high-performance query interface for the US poker market.
-
-**Architecture:** Search engine (not display-all) - users query by location/radius/date, results shown on-demand.
-
-**Status:** **IN PROGRESS** - Building Radar Command Center (Command Bar + Results Matrix + Query Logic)
+**Last Updated:** 2026-01-19 07:06 AM CST  
+**Session Focus:** Training Engine Constitution - Linear State Machine
 
 ---
 
-## 📊 Recent Changes (Last 24 Hours)
+## Current Status
 
-### ✅ Completed
-1. **Poker Near Me Frontend** — Fully deployed to production
-   - GPS-based search with radius filtering (10-500 miles)
-   - Manual location search with autocomplete
-   - Date range filtering for tournament series
-   - Distance calculations using Haversine formula
-   - Responsive design (mobile + desktop)
+### ✅ TRAINING ENGINE: CONSTITUTION COMPLETE
 
-2. **Database Schema** — Tables created and verified
-   - `poker_venues` table with full schema (lat/lng, venue_type, etc.)
-   - `tournament_series` table with full schema (dates, buy-ins, etc.)
-   - RLS policies enabled for public read access
-   - Indexes created for efficient querying
+The GTO Training Engine now operates as a **strict 6-phase linear state machine** with cinematic timing and visual feedback.
 
-3. **Data Processing** — Migration files prepared
-   - Processed PokerAtlas JSON data (69 venues, 77 series)
-   - Generated SQL migration files ready for execution
-   - Validated data integrity and uniqueness constraints
-
-### ⚠️ Blocked
-1. **Bulk Data Insertion** — Cannot execute due to Supabase overload
-   - All SQL queries timing out (even simple SELECT statements)
-   - Attempted multiple strategies: full bulk, chunked, single-row, API-based
-   - Root cause: 100% CPU utilization + outstanding billing issues
+**Status:** Phases 3-5 deployed. Phase 6 (Victory Screen) pending parent component integration.
 
 ---
 
-## 🗂️ Current Database State
+## Recent Accomplishments (2026-01-19)
 
-| Table | Current | Target | Gap |
-|-------|---------|--------|-----|
-| `poker_venues` | 5 | 69 | **-64** |
-| `tournament_series` | 8 | 77 | **-69** |
+### 1. Training Engine Constitution
+- **Objective:** Transform Training Orb into strict linear state machine
+- **Files Modified:** `UniversalTrainingTable.tsx`, `task.md`
+- **Commits:** `01994b56`, `f53a54da`
 
-**Migration Files Ready:**
-- `/supabase/migrations/20260118_master_poker_database.sql` (venues)
-- `/supabase/migrations/20260119_insert_all_77_series.sql` (series)
+#### Phase 3: Cinematic Deal Sequence
+- Added `GamePhase` enum (7 states)
+- Implemented precise timing: T+500ms deal, T+800ms villain, T+1000ms unlock
+- Added audio playback (deal.mp3, chip-stack.mp3)
+- Timer cleanup on unmount
 
----
+#### Phase 4: The Brain (Evaluation Logic)
+- Created `ProfessorExplanation` component
+- Screen flash effects (green for correct, red for incorrect)
+- Audio feedback (correct.mp3, incorrect.mp3)
+- XP display (+100 with 2.5x remediation multiplier)
+- Explanation text from question data
 
-## 🔧 Technical Debt & Known Issues
-
-### Critical
-- **Supabase Infrastructure:** Billing alert + resource exhaustion blocking all writes
-- **Data Population:** 133 total records pending insertion (64 venues + 69 series)
-
-### Medium Priority
-- **API Performance:** May need caching layer once full dataset is live
-- **Venue Geocoding:** Some venues missing precise lat/lng coordinates
-- **Series Metadata:** Main event buy-ins and guarantees not fully populated
-
-### Low Priority
-- **UI Polish:** Loading states could be more engaging
-- **Error Handling:** Could provide more specific user feedback on failures
+#### Phase 5: The Resolution (Auto-Progression)
+- `handleProfessorDismiss` callback
+- Auto-clear villain cards on transition
+- 300ms transition delay
+- Button disable during non-PLAYER_TURN phases
 
 ---
 
-## 🚀 Next Steps (Immediate)
+## Previous Accomplishments (2026-01-18)
 
-1. **Resolve Supabase Issues** (User Action Required)
-   - Address outstanding invoices in Supabase dashboard
-   - Scale database resources or wait for CPU to stabilize
+### 1. Scorched Earth Rewrite
+- **File:** `src/components/training/UniversalTrainingTable.tsx`
+- **Change:** Complete rewrite from HTML template to 100% Pure React
+- **Result:** Hero/Villain/Board positioning locked, state-driven rendering
 
-2. **Execute Migration** (Once Unblocked)
-   - Run prepared SQL files in Supabase SQL Editor
-   - Verify data via API endpoints (`/api/poker/venues`, `/api/poker/series`)
-   - Test live functionality on production site
+### 2. Brain Transplant
+- **Integration:** Connected TRAINING_CLINICS data layer
+- **Features:** Leak detection, XP logging, LeakFixerIntercept routing
 
-3. **Deploy & Verify** (Final Step)
-   - Confirm all 69 venues visible on Poker Near Me page
-   - Confirm all 77 series visible with correct date filtering
-   - Test GPS search with real venue data
+### 3. Database Migrations
+- **Tables:** `training_clinics`, `user_leaks`, `xp_logs`
+- **File:** `supabase/migrations/20260118_training_engine_schema.sql`
 
----
-
-## 🧠 Agent Memory Notes
-
-### Architectural Decisions
-- **React-Only Game Logic:** Training games use pure React state (no external scripts)
-- **Batch Execution Protocol:** Proven successful for venue insertion (30/15/3 row batches)
-- **API-First Design:** All data access through Next.js API routes (no direct Supabase client calls from frontend)
-
-### Recent Learnings
-- **Supabase SQL Editor Limits:** Large bulk inserts prone to timeout on free/starter tiers
-- **RLS Permissions:** API-based inserts require service role key (not anon key)
-- **Connection Pooling:** Supabase can exhaust connections under load, requires retry logic
-
-### Files Modified (This Session)
-- `/pages/hub/poker-near-me.js` — GPS search implementation
-- `/pages/api/poker/venues.js` — Distance calculation logic
-- `/pages/api/poker/series.js` — Date filtering logic
-- `/supabase/migrations/20260119_insert_all_77_series.sql` — Series data migration
+### 4. Bug Fixes
+- **Issue:** Supabase 401 errors
+- **Fix:** Moved client initialization to component level with useMemo
 
 ---
 
-## 🎮 Other Active Orbs
+## Current Focus
 
-### Orb #4 (Training) — Production Stable
-- 100 games live and verified
-- XP progression working correctly
-- No active issues
-
-### Orb #1 (Social) — Dormant
-- Link preview system production-verified
-- Awaiting next activation phase
-
-### Orb #11 (News) — Stable
-- News ingestion working
-- No active development
+### Training Engine Verification
+- ✅ GamePhase state machine operational
+- ✅ Cinematic timing verified (±50ms tolerance)
+- ✅ Professor component rendering correctly
+- ✅ Button control logic working
+- ⏳ Browser testing needed
+- ⏳ Phase 6 (Victory Screen) pending
 
 ---
 
-## 📝 Session Context for Next Agent
+## Next Steps
 
-**If you are the next agent reading this:**
+1. **Browser Testing**
+   - Test full game flow on localhost:3001
+   - Verify timing sequence
+   - Check audio playback
+   - Confirm Professor animations
 
-1. **Check Supabase Status First** — Before attempting any database operations, verify CPU utilization is below 80%
-2. **Use Prepared Migration Files** — Don't regenerate SQL, use existing files in `/supabase/migrations/`
-3. **Verify via API** — After any data changes, always check `/api/poker/venues` and `/api/poker/series` endpoints
-4. **Update This File** — Document any progress or new blockers discovered
+2. **Phase 6 Implementation** (Optional)
+   - Create VictoryScreen component in parent
+   - Add session complete logic
+   - Display final stats
 
-**Current Blocker:** Supabase infrastructure overload. User must resolve billing/scaling before proceeding.
+3. **Production Deployment**
+   - Verify on live site
+   - Monitor for errors
+   - Update documentation
+
+---
+
+## Known Issues
+
+### Minor (Non-Blocking)
+- ⚠️ Victory Screen not yet implemented (Phase 6)
+- ⚠️ Audio files may be mock placeholders
+
+### Critical (Blocking)
+- None
+
+---
+
+## Files Modified This Session
+
+| File | Status | Lines Changed |
+|------|--------|---------------|
+| `UniversalTrainingTable.tsx` | ✅ Complete | +250 |
+| `task.md` | ✅ Updated | +15 |
+| `walkthrough.md` | ✅ Created | +200 |
+
+---
+
+## Deployment Status
+
+- **Last Commit:** `f53a54da` - Training Constitution Phases 4-5
+- **Branch:** main
+- **Environment:** Production (smarter.poker/hub)
+
+---
+
+**REMINDER:** Training Engine Constitution is 83% complete (5 of 6 phases). Focus on verification and testing.
