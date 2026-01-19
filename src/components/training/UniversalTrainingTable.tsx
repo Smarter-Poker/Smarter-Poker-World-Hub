@@ -13,17 +13,11 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TRAINING_CLINICS, getClinicById, getRemediationXPMultiplier } from '../../data/TRAINING_CLINICS';
 import LeakFixerIntercept from './LeakFixerIntercept';
 import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
 
 // Card suit configuration
 const SUITS = {
@@ -199,6 +193,15 @@ export default function UniversalTrainingTable({
     const [mistakeCount, setMistakeCount] = useState(0);
     const [totalAttempts, setTotalAttempts] = useState(0);
 
+    // Initialize Supabase client (lazy initialization)
+    const supabase = useMemo(() => {
+        if (typeof window === 'undefined') return null;
+        return createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+        );
+    }, []);
+
     // Load clinic data
     const activeClinic = clinicId ? getClinicById(clinicId) : null;
     const correctAction = question?.correctAction || question?.options?.find((o: any) => o.isCorrect)?.id;
@@ -247,23 +250,25 @@ export default function UniversalTrainingTable({
                 setShowLeakIntercept(true);
 
                 // Log leak to Supabase
-                try {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (user) {
-                        await supabase.from('user_leaks').insert({
-                            user_id: user.id,
-                            leak_category: leakCategory,
-                            leak_name: activeClinic?.name || 'Strategic Error',
-                            error_rate: errorRate,
-                            confidence: errorRate,
-                            total_samples: totalAttempts + 1,
-                            mistake_count: mistakeCount + 1,
-                            clinic_id: clinicId,
-                            is_active: true
-                        });
+                if (supabase) {
+                    try {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                            await supabase.from('user_leaks').insert({
+                                user_id: user.id,
+                                leak_category: leakCategory,
+                                leak_name: activeClinic?.name || 'Strategic Error',
+                                error_rate: errorRate,
+                                confidence: errorRate,
+                                total_samples: totalAttempts + 1,
+                                mistake_count: mistakeCount + 1,
+                                clinic_id: clinicId,
+                                is_active: true
+                            });
+                        }
+                    } catch (err) {
+                        console.error('[LEAK] Failed to log:', err);
                     }
-                } catch (err) {
-                    console.error('[LEAK] Failed to log:', err);
                 }
 
                 return; // Don't proceed to normal answer flow
@@ -271,7 +276,7 @@ export default function UniversalTrainingTable({
         }
 
         // Log XP to Supabase
-        if (isCorrectMove) {
+        if (isCorrectMove && supabase) {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
