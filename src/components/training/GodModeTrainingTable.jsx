@@ -117,16 +117,33 @@ const parseScenario = (scenarioHash, rawQuestion = {}) => {
     const villainAction = rawQuestion.villain_action || rawQuestion.villainAction || '';
     const villainActionLower = villainAction.toLowerCase();
 
-    // Parse villain bet size
-    const betMatch = villainActionLower.match(/(\d+(?:\.\d+)?)\s*(?:bb|x)/i);
-    if (betMatch) {
-        villainBet = parseFloat(betMatch[1]);
-    } else if (villainActionLower.includes('shoves') || villainActionLower.includes('all-in')) {
-        villainBet = stackDepth; // All-in = full stack
-    } else if (villainActionLower.includes('raise')) {
-        villainBet = 2.5; // Standard raise
-    } else if (villainActionLower.includes('minraise')) {
-        villainBet = 2.0;
+    // Parse villain bet size — Support formats: "2.5bb", "10BB", "(10BB)", "All-In (25bb)"
+    // Priority: Extract explicit number, then fallback to stack for shoves
+    const betPatterns = [
+        /\((\d+(?:\.\d+)?)\s*bb\)/i,      // (10BB) parenthesized
+        /(\d+(?:\.\d+)?)\s*bb/i,           // 10BB or 10 bb
+        /(\d+(?:\.\d+)?)\s*x/i             // 3x format
+    ];
+
+    let foundBet = false;
+    for (const pattern of betPatterns) {
+        const match = villainActionLower.match(pattern);
+        if (match) {
+            villainBet = parseFloat(match[1]);
+            foundBet = true;
+            break;
+        }
+    }
+
+    // If no explicit bet found but action is all-in/shoves, use full stack
+    if (!foundBet) {
+        if (villainActionLower.includes('shoves') || villainActionLower.includes('all-in')) {
+            villainBet = stackDepth; // All-in = full stack
+        } else if (villainActionLower.includes('raise')) {
+            villainBet = 2.5; // Standard raise
+        } else if (villainActionLower.includes('minraise')) {
+            villainBet = 2.0;
+        }
     }
 
     // Calculate blind contributions
