@@ -523,14 +523,27 @@ export default function GodModeTrainingTable({
     // ─────────────────────────────────────────────────────────────────────────
     // ENGINE 1: SCENARIO ORCHESTRATOR — Parse scenario data
     // ─────────────────────────────────────────────────────────────────────────
+
+    // Get hero cards from question (supports both formats)
+    const getHeroCards = (q) => {
+        if (q?.hero_cards) return q.hero_cards;
+        if (q?.heroCards) {
+            // Convert array like ['Ah', 'Ks'] to standard format
+            return q.heroCards;
+        }
+        return ['As', 'Kh']; // Fallback
+    };
+
     const scenario = currentQuestion ? {
         boardCards: currentQuestion.board_cards || [],
-        street: currentQuestion.street || 'Flop',
-        stackDepth: currentQuestion.stack_depth || 100,
+        street: currentQuestion.street || 'Preflop',
+        stackDepth: currentQuestion.stack_depth || currentQuestion.stackDepth || 100,
         topology: currentQuestion.topology || 'HU',
-        pot: currentQuestion.macro_metrics?.pot_size || 6,
-        heroCards: ['As', 'Kh'], // TODO: Get from question data
-        villainCards: ['??', '??']
+        pot: currentQuestion.macro_metrics?.pot_size || 4.5,
+        heroCards: getHeroCards(currentQuestion),
+        villainCards: ['??', '??'],
+        villainAction: currentQuestion.villain_action || currentQuestion.villainAction || '',
+        heroPosition: currentQuestion.position || 'BTN'
     } : null;
 
     // Player count based on topology
@@ -817,6 +830,26 @@ export default function GodModeTrainingTable({
                     border: '12px solid rgba(251, 191, 36, 0.6)',
                     boxShadow: 'inset 0 0 60px rgba(0,0,0,0.4), 0 0 40px rgba(0,0,0,0.6)'
                 }}>
+                    {/* Villain Action Banner */}
+                    {scenario?.villainAction && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '15%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            background: 'rgba(239, 68, 68, 0.9)',
+                            padding: '8px 16px',
+                            borderRadius: 20,
+                            fontSize: 13,
+                            fontWeight: 'bold',
+                            color: '#fff',
+                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            ⚠️ VILLAIN {scenario.villainAction}
+                        </div>
+                    )}
+
                     {/* Pot Display */}
                     <div style={{
                         position: 'absolute',
