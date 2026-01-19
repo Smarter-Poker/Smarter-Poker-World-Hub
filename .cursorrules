@@ -1,145 +1,207 @@
-# ANTI GRAVITY 2.0 SYSTEM RULES - TRAINING SECTOR
+# ANTI GRAVITY 2.0 SYSTEM RULES
 
-## Core Directives
-
-### 1. MEMORY FIRST (MANDATORY)
-
+## 🧠 MEMORY FIRST
 Before answering ANY prompt, you MUST:
-1. Read `.memory/active_context.md` to understand current state
-2. Read `.memory/project_mission.md` to understand project goals
-3. Update these files if plans change
+1. Read `.memory/active_context.md` to understand current session state
+2. Read `.memory/project_mission.md` to understand project goals and constraints
+3. Update these files if plans change during the session
 
-**CRITICAL:** The Training Engine is CODE COMPLETE. Do not refactor core logic without explicit "Override" command.
+**Why:** Prevents context loss between sessions and ensures continuity.
 
-### 2. CHAIN OF THOUGHT (REQUIRED)
+---
 
+## 🔗 CHAIN OF THOUGHT
 Do not just write code. Explain your "Mental Sandbox" first:
 
+**Template:**
 ```
-I am analyzing file X...
-I see this might conflict with Rule Y...
-I will execute Strategy Z...
-```
-
-Show your reasoning BEFORE taking action.
-
-### 3. SCORCHED EARTH PROTOCOL (STRICT)
-
-**NEVER:**
-- ❌ Introduce external scripts for UI logic
-- ❌ Use HTML templates or iframes for core gameplay
-- ❌ Rely on external dependencies that can 404
-- ❌ Directly manipulate the DOM
-
-**ALWAYS:**
-- ✅ Use React State to drive ALL visuals
-- ✅ Self-contained components only
-- ✅ CSS-generated fallbacks for missing assets
-- ✅ Verify positioning anchors after changes
-
-**Visual Anchors (LOCKED):**
-```css
-Hero:    bottom: -10%, left: 50%
-Villain: top: -10%, left: 50%
-Board:   top: 50%, left: 50%
+I am analyzing [file/component/feature]...
+I see a potential conflict with [rule/pattern/constraint]...
+I will execute [strategy/approach] because [reasoning]...
 ```
 
-### 4. PROJECT ISOLATION (CRITICAL)
-
-If the user mentions "Maps", "Poker Near Me", or "Venues":
-1. **STOP** current work
-2. **VERIFY** you are in the correct window
-3. **REMIND** user to switch to `smarter-poker-maps` if needed
-
-**Training code stays in `hub-vanguard`**  
-**Maps code goes in `smarter-poker-maps`**  
-**NEVER cross-pollinate**
-
-### 5. ASSET INTEGRITY (NO 404s)
-
-If an image or audio file is missing:
-1. Generate a CSS/SVG fallback immediately
-2. Log a warning to console
-3. Continue with degraded functionality
-4. **NEVER** ship broken UI
-
-### 6. DATABASE SAFETY
-
-- All Supabase operations must have null checks
-- Use RLS policies for all tables
-- Log errors verbosely to console
-- Fail gracefully if database is unavailable
-
-### 7. TESTING PROTOCOL
-
-After ANY code change:
-1. Verify visual positioning (Hero/Villain/Board)
-2. Test action buttons (Fold/Call/Raise/All-In)
-3. Check browser console for errors
-4. Verify database operations (if applicable)
-
-Use `browser_subagent` for automated testing.
+**Why:** Makes decision-making transparent and catches errors before execution.
 
 ---
 
-## Code Quality Standards
+## 🔥 SCORCHED EARTH PROTOCOL
 
-### TypeScript
-- Use strict typing
-- Avoid `any` (use `unknown` if needed)
-- Define interfaces for props
+### Rule 1: No External Scripts for UI Logic
+- All game logic must be React-native (state-driven)
+- No `<script>` tags for gameplay or core functionality
+- External libraries OK for utilities (charts, maps), but not for core business logic
 
-### React
-- Functional components only
-- Hooks for state and effects
-- Memoize expensive computations
+### Rule 2: Self-Contained Components
+- Components must work independently
+- No hidden dependencies on global scripts
+- All state management explicit (props, context, or Zustand)
 
-### Styling
-- Tailwind for utilities
-- Vanilla CSS for custom animations
-- Framer Motion for interactions
+### Rule 3: No 404s — Mock Assets First
+- If an image is missing, auto-generate a CSS/SVG fallback
+- Never ship broken UI due to missing resources
+- Fallbacks should be visually acceptable, not just error messages
 
-### Performance
-- Lazy load images
-- Debounce user inputs
-- Optimize re-renders with `useMemo`/`useCallback`
+**Why:** Ensures reliability and prevents cascading failures.
 
 ---
 
-## Deployment Checklist
+## 🎯 PROJECT ISOLATION
 
-Before pushing to production:
+### Workspace Verification
+Before making ANY code changes, verify you are in the correct workspace:
+
+**Triggers:**
+- User mentions "Mapping" or "Venues" → Verify in `hub-vanguard` workspace
+- User mentions "Solver" or "Training" → Verify correct orb context
+- User mentions "Social" or "Feed" → Verify Orb #1 context
+
+**Rule:** Do not pollute one feature area with another's code.
+
+**Why:** Prevents cross-contamination and maintains clean separation of concerns.
+
+---
+
+## 🏗️ ARCHITECTURAL STANDARDS
+
+### Visual Design
+- **Glassmorphism:** `backdrop-filter: blur(10px)` for all major containers
+- **Neon Accents:** Cyan (#00d4ff), Purple (#a855f7), Gold (#fbbf24)
+- **Video Game Feel:** Smooth animations, micro-interactions, personality
+
+### Code Patterns
+- **Singleton Supabase Client:** Always import from `@/lib/supabaseClient`
+- **RLS Enforcement:** All tables must have Row Level Security policies
+- **No Sensitive Data in Client:** API keys stay server-side only
+
+### Responsive Design
+- **Pattern A (Content Zoom):** For content-heavy pages
+- **Pattern B (Spatial Viewport):** For immersive experiences
+- **Pattern C (Fixed Aspect):** For game boards and video players
+
+**Reference:** See `.memory/system_patterns.md` for detailed specifications.
+
+---
+
+## 🚀 DEPLOYMENT LAW
+
+### Rule: All Sessions Must Conclude with Deployment
+**Standard Workflow:**
+```bash
+/auto-publish
+```
+
+**Manual Alternative:**
+```bash
+git add .
+git commit -m "feat: [description]"
+git push origin main
+```
+
+**Why:** Ensures production parity and prevents "works on my machine" issues.
+
+---
+
+## 🔐 SECURITY RULES
+
+### 1. No Service Role Keys in Client Code
+```javascript
+// ✅ CORRECT (server-side only)
+const supabase = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+// ❌ FORBIDDEN (client-side)
+const supabase = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY);
+```
+
+### 2. RLS Policies Required
+Every Supabase table MUST have:
+- Public read policy (if applicable)
+- Authenticated write policy
+- God mode override policy (for admin features)
+
+### 3. Input Validation
+- Sanitize all user inputs before database operations
+- Use parameterized queries (Supabase handles this by default)
+- Validate file uploads (type, size, content)
+
+---
+
+## 📊 DATA PATTERNS
+
+### Batch Execution Protocol
+When inserting large datasets:
+1. Split into batches: 30 → 15 → 3 rows
+2. Add 5-10 second delays between batches
+3. Verify each batch via API before proceeding
+4. Log all successes/failures
+
+**Why:** Prevents Supabase connection timeouts on bulk operations.
+
+---
+
+## 🧪 VERIFICATION CHECKLIST
+
+Before marking ANY feature "complete":
+- [ ] Works on mobile (iOS Safari, Android Chrome)
+- [ ] Works on desktop (Chrome, Safari, Firefox)
 - [ ] No console errors
-- [ ] No 404s in network tab
-- [ ] Visual positioning verified
-- [ ] Database operations tested
-- [ ] Mobile responsive
-- [ ] Dark mode compatible
+- [ ] Loading states implemented
+- [ ] Error states handled gracefully
+- [ ] Accessibility: keyboard navigation works
+- [ ] Performance: smooth 60fps, no jank
+- [ ] Production deployed and verified
 
 ---
 
-## Emergency Protocols
+## 🎮 ORBS & FEATURES
 
-### If Build Fails:
-1. Check TypeScript errors first
-2. Verify all imports exist
-3. Check for syntax errors
-4. Clear `.next` and rebuild
+### Orb #4 (Training) — Production Stable
+- 100 games live
+- React-native game logic (no external scripts)
+- 4x4 grid mapping for range construction
 
-### If Database Fails:
-1. Check Supabase connection
-2. Verify RLS policies
-3. Check environment variables
-4. Use localStorage as fallback
+### Orb #9 (Poker Near Me) — In Progress
+- GPS search with radius filtering
+- Venue and tournament series discovery
+- **Current Blocker:** Supabase infrastructure overload
 
-### If UI Breaks:
-1. Check browser console
-2. Verify React component tree
-3. Check for state mutation bugs
-4. Revert to last known good commit
+### Orb #1 (Social) — Dormant
+- Link preview system production-verified
+- Awaiting next activation phase
+
+**Reference:** See `.memory/project_mission.md` for full orb manifest.
 
 ---
 
-**Version:** 2.0  
-**Last Updated:** 2026-01-19  
-**Enforcement:** STRICT - Violations require explicit override
+## 🚨 CRITICAL REMINDERS
+
+1. **Read Memory Files First** — Before every session
+2. **Update Memory Files** — When plans change
+3. **Explain Before Executing** — Chain of thought mandatory
+4. **Verify Workspace** — Before making changes
+5. **Deploy at End** — Every session concludes with deployment
+
+**Failure to follow these rules will result in context loss, code pollution, and production issues.**
+
+---
+
+## 📝 AGENT BEHAVIOR
+
+### On Session Start
+1. Read `.memory/active_context.md`
+2. Read `.memory/project_mission.md`
+3. Acknowledge current state in first response
+
+### During Session
+1. Explain reasoning before code changes
+2. Update memory files if plans change
+3. Verify workspace context before edits
+
+### On Session End
+1. Update `.memory/active_context.md` with progress
+2. Deploy changes to production
+3. Document any new blockers or issues
+
+---
+
+**VERSION:** Anti Gravity 2.0  
+**LAST UPDATED:** 2026-01-19

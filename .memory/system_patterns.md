@@ -1,223 +1,360 @@
-# System Patterns - Training Hub Vanguard
+# System Patterns — Architectural Standards
 
-**Version:** 2.0 (Anti Gravity Intelligence Patch)  
-**Purpose:** Architectural patterns and design principles that MUST be followed
-
----
-
-## UI/UX Patterns
-
-### Visual Identity
-- **Glassmorphism:** Translucent backgrounds with blur effects
-- **Neon Accents:** Glowing borders and shadows (cyan, gold, orange)
-- **Video Game Feel:** AAA-quality animations and interactions
-- **Dark Mode First:** All interfaces designed for dark backgrounds
-
-### Animation Standards
-- **Framer Motion:** Primary animation library
-- **Micro-interactions:** Hover, tap, and focus states on all interactive elements
-- **Smooth Transitions:** 300-500ms duration, easeInOut curves
-- **Scale Effects:** 1.05x on hover, 0.95x on tap
-
-### Typography
-- **Primary Font:** Inter (system fallback: -apple-system, sans-serif)
-- **Monospace:** Orbitron (for scores, timers, stats)
-- **Hierarchy:** Clear visual hierarchy with size and weight
+**Purpose:** Define the core architectural patterns, visual standards, and coding conventions that govern the Smarter.Poker ecosystem.
 
 ---
 
-## Code Patterns
+## 🎨 Visual Design Patterns
 
-### 1. Scorched Earth Protocol (STRICT)
+### Glassmorphism UI
+**Standard:** All major UI containers use glass-morphic design with blur effects.
 
-**Rule:** All UI components must be 100% self-contained React components.
-
-**Forbidden:**
-- ❌ External HTML templates
-- ❌ Iframe-based game logic
-- ❌ Script tags for UI rendering
-- ❌ Direct DOM manipulation
-
-**Required:**
-- ✅ React State drives all visuals
-- ✅ Props for data flow
-- ✅ Hooks for side effects
-- ✅ CSS-in-JS or Tailwind for styling
-
-**Example:**
-```typescript
-// ❌ BAD: External template
-<iframe src="/templates/game.html" />
-
-// ✅ GOOD: Self-contained React
-<UniversalTrainingTable 
-    question={question}
-    onAnswer={handleAnswer}
-/>
-```
-
-### 2. Visual Anchor Pattern
-
-**Rule:** Critical UI elements must have FIXED positioning to prevent layout shifts.
-
-**Training Table Anchors:**
 ```css
-/* Hero (Player) */
-position: absolute;
-bottom: -10%;
-left: 50%;
-transform: translateX(-50%);
-
-/* Villain (Opponent) */
-position: absolute;
-top: -10%;
-left: 50%;
-transform: translateX(-50%);
-
-/* Board (Center) */
-position: absolute;
-top: 50%;
-left: 50%;
-transform: translate(-50%, -50%);
+.glass-container {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+}
 ```
 
-**Testing:** Always verify positioning after ANY changes to table components.
+**Application:**
+- Card containers
+- Modal overlays
+- Navigation bars
+- Dropdown menus
 
-### 3. Asset Fallback Pattern
+### Neon Accents
+**Color Palette:**
+- **Cyan:** `#00d4ff` (Primary actions, highlights)
+- **Purple:** `#a855f7` (Secondary actions, VIP features)
+- **Gold:** `#fbbf24` (Premium features, achievements)
+- **Red:** `#ef4444` (Errors, warnings)
+- **Green:** `#10b981` (Success, confirmations)
 
-**Rule:** Never ship broken UI due to missing assets.
+**Usage:**
+```css
+.neon-glow {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+}
+```
+
+### Video Game Feel
+**Requirements:**
+- Smooth animations (60fps target)
+- Sound effects on interactions (optional, user-controlled)
+- Haptic feedback on mobile (where supported)
+- Loading states with personality (not just spinners)
+- Micro-interactions on hover/click
+
+**Animation Standards:**
+```javascript
+// Framer Motion defaults
+const springConfig = {
+  type: "spring",
+  stiffness: 300,
+  damping: 30
+};
+
+const fadeIn = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.3 }
+};
+```
+
+---
+
+## 🏗️ Code Architecture Patterns
+
+### Scorched Earth Protocol
+**Rule:** Components must be self-contained and never rely on external scripts for core functionality.
+
+**✅ Correct:**
+```javascript
+// Self-contained React component
+function PokerGame() {
+  const [gameState, setGameState] = useState(initialState);
+  
+  const handleAction = (action) => {
+    setGameState(calculateNewState(gameState, action));
+  };
+  
+  return <div>{/* Render based on gameState */}</div>;
+}
+```
+
+**❌ Incorrect:**
+```javascript
+// External script dependency (FORBIDDEN)
+function PokerGame() {
+  useEffect(() => {
+    loadExternalGameEngine(); // NO!
+  }, []);
+  
+  return <div id="game-container"></div>;
+}
+```
+
+### No 404s — Mock Assets First
+**Rule:** Never ship broken UI due to missing assets. Always provide CSS/SVG fallbacks.
+
+**✅ Correct:**
+```javascript
+function Avatar({ src, name }) {
+  return (
+    <div className="avatar">
+      {src ? (
+        <img src={src} alt={name} onError={(e) => {
+          e.target.style.display = 'none';
+          e.target.nextSibling.style.display = 'flex';
+        }} />
+      ) : null}
+      <div className="avatar-fallback" style={{ display: src ? 'none' : 'flex' }}>
+        {name?.charAt(0) || '?'}
+      </div>
+    </div>
+  );
+}
+```
+
+### Batch Mapping (4x4 Grid)
+**Rule:** Training games use 4x4 grid for range construction (not 13x13).
 
 **Implementation:**
-```typescript
-// ❌ BAD: Direct image reference
-<img src="/images/clinic-icon.png" />
-
-// ✅ GOOD: CSS fallback
-{icon ? (
-    <img src={icon} onError={(e) => e.target.style.display = 'none'} />
-) : (
-    <div style={{ /* CSS-generated icon */ }}>
-        {emoji}
-    </div>
-)}
+```javascript
+const GRID_MAPPING = {
+  'AA': [0, 0], 'AKs': [0, 1], 'AQs': [0, 2], 'AJs': [0, 3],
+  'AKo': [1, 0], 'KK': [1, 1], 'KQs': [1, 2], 'KJs': [1, 3],
+  // ... 16 total cells
+};
 ```
 
-**Mock Assets:**
-- Audio: Silent WAV files (replace before production)
-- Images: SVG placeholders with text labels
-- Icons: Emoji fallbacks
+**Rationale:** Simplified UI, faster gameplay, mobile-friendly.
 
-### 4. State Management Pattern
+---
 
-**Rule:** Use the right tool for the right scope.
+## 🔐 Security Patterns
 
-| Scope | Tool | Example |
-|-------|------|---------|
-| Component | `useState` | Card visibility, animations |
-| Shared UI | `Zustand` | Filter state, modal visibility |
-| Server Data | `Supabase` | User progress, XP logs |
-| URL State | `useRouter` | Game ID, clinic ID |
+### RLS Enforcement
+**Rule:** All Supabase tables MUST have Row Level Security policies.
 
-### 5. Error Handling Pattern
+**Standard Policies:**
+```sql
+-- Public read access
+CREATE POLICY "public_read" ON table_name
+  FOR SELECT USING (true);
 
-**Rule:** Fail gracefully, log verbosely.
+-- Authenticated write access
+CREATE POLICY "authenticated_write" ON table_name
+  FOR INSERT TO authenticated
+  USING (auth.uid() = user_id);
 
-```typescript
-try {
-    const { data, error } = await supabase.from('table').insert(...)
-    if (error) throw error;
-    console.log('[SUCCESS] Operation completed');
-} catch (err) {
-    console.error('[ERROR] Operation failed:', err);
-    // Show user-friendly message
-    // Continue with degraded functionality
+-- God mode override
+CREATE POLICY "god_mode_all" ON table_name
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE id = auth.uid() AND is_god_mode = true
+    )
+  );
+```
+
+### No Sensitive Data in Client
+**Rule:** API keys, service role keys, and secrets stay server-side only.
+
+**✅ Correct:**
+```javascript
+// Server-side API route
+export default async function handler(req, res) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY // Server-only
+  );
+  // ...
+}
+```
+
+**❌ Incorrect:**
+```javascript
+// Client-side component (FORBIDDEN)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY // EXPOSED!
+);
+```
+
+---
+
+## 📐 Responsive Design Patterns
+
+### Pattern A: Content Zoom
+**Use Case:** Content-heavy pages (articles, documentation)
+
+```css
+.content-zoom {
+  zoom: var(--content-scale, 1);
+}
+
+@media (max-width: 768px) {
+  .content-zoom {
+    --content-scale: 0.85;
+  }
+}
+```
+
+### Pattern B: Spatial Viewport
+**Use Case:** Immersive experiences (World Hub, game tables)
+
+```css
+.spatial-viewport {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  overflow: hidden;
+}
+```
+
+### Pattern C: Fixed Aspect Ratio
+**Use Case:** Game boards, video players
+
+```css
+.aspect-container {
+  aspect-ratio: 16 / 9;
+  max-width: 100%;
+  margin: 0 auto;
 }
 ```
 
 ---
 
-## Testing Patterns
+## 🚀 Deployment Patterns
 
-### Visual Regression Testing
-1. **Positioning Check:** Verify Hero/Villain/Board anchors
-2. **Animation Check:** Confirm smooth card dealing
-3. **Interaction Check:** Test all action buttons
-4. **Responsive Check:** Test on mobile, tablet, desktop
+### Deployment Law
+**Rule:** All development sessions MUST conclude with a deployment command.
 
-### Functional Testing
-1. **Leak Detection:** Make 3+ mistakes, verify intercept shows
-2. **XP Logging:** Make correct move, check Supabase logs
-3. **Database:** Verify RLS policies allow user access
-4. **Navigation:** Test routing between hub → game → clinic
-
-### Browser Testing
-Use the browser_subagent to:
-- Navigate to training hub
-- Click game card
-- Play through a hand
-- Verify console has no errors
-- Check database for new records
-
----
-
-## Database Patterns
-
-### Table Naming
-- Lowercase with underscores: `user_leaks`, `xp_logs`
-- Plural for collections: `training_clinics`
-
-### RLS Policies
-```sql
--- Users can only see their own data
-CREATE POLICY "Users view own data"
-    ON table_name FOR SELECT
-    USING (auth.uid() = user_id);
-```
-
-### Timestamps
-- Always include `created_at` and `updated_at`
-- Use `TIMESTAMPTZ` for timezone awareness
-
----
-
-## Project Isolation Pattern
-
-**Rule:** Keep codebases separate to prevent cross-contamination.
-
-| Project | Directory | Purpose |
-|---------|-----------|---------|
-| Training Hub | `hub-vanguard` | GTO training engine |
-| Maps/Discovery | `smarter-poker-maps` | Venue finder |
-| Social Engine | `hub-vanguard/social` | Community features |
-
-**If user mentions "Maps" or "Poker Near Me":**
-1. STOP current work
-2. Verify you're in the correct window
-3. Remind user to switch if needed
-
----
-
-## Deployment Patterns
-
-### Git Workflow
+**Standard Workflow:**
 ```bash
-git add -A
-git commit -m "Feature: Description"
-git push origin main
+# Use the auto-publish workflow
+/auto-publish
 ```
 
-### Commit Messages
-- **Feature:** New functionality
-- **Bug Fix:** Fixes a bug
-- **Refactor:** Code improvement (no behavior change)
-- **Docs:** Documentation only
+**Manual Alternative:**
+```bash
+git add .
+git commit -m "feat: [description]"
+git push origin main
+# Vercel auto-deploys from main branch
+```
 
-### Environment Variables
-- Store in `.env.local` (never commit)
-- Access via `process.env.NEXT_PUBLIC_*`
-- Validate on component mount
+### Production Parity
+**Rule:** Localhost behavior must match production (no environment-specific hacks).
+
+**✅ Correct:**
+```javascript
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://smarter.poker';
+```
+
+**❌ Incorrect:**
+```javascript
+const API_URL = process.env.NODE_ENV === 'development' 
+  ? 'http://localhost:3000' 
+  : 'https://smarter.poker'; // Creates divergence!
+```
 
 ---
 
-**Last Updated:** 2026-01-19  
-**Enforcement:** STRICT - Violations require explicit override
+## 🧩 Component Patterns
+
+### Singleton Pattern (Supabase Client)
+**Rule:** Use centralized Supabase client to avoid SSO handshake failures.
+
+**✅ Correct:**
+```javascript
+// Import from singleton
+import { supabase } from '@/lib/supabaseClient';
+```
+
+**❌ Incorrect:**
+```javascript
+// Creating new instance (causes auth issues)
+const supabase = createClient(url, key);
+```
+
+### State Management Hierarchy
+**Preference Order:**
+1. **React State** — For component-local state
+2. **React Context** — For shared state across component tree
+3. **Zustand** — For global state that needs persistence
+4. **Supabase** — For server-synced state
+
+**Anti-Pattern:** Don't use Zustand for everything. Keep state as local as possible.
+
+---
+
+## 📊 Data Patterns
+
+### Batch Execution Protocol
+**Use Case:** Inserting large datasets into Supabase when SQL Editor times out.
+
+**Strategy:**
+1. Split data into batches: 30 rows → 15 rows → 3 rows
+2. Execute each batch with 5-10 second delays
+3. Verify each batch via API before proceeding
+4. Log successes/failures for debugging
+
+**Implementation:**
+```javascript
+async function batchInsert(data, batchSize = 30) {
+  for (let i = 0; i < data.length; i += batchSize) {
+    const batch = data.slice(i, i + batchSize);
+    await supabase.from('table').insert(batch);
+    await new Promise(resolve => setTimeout(resolve, 5000));
+  }
+}
+```
+
+---
+
+## 🎯 Testing Patterns
+
+### Verification Checklist
+Before marking any feature "complete":
+
+- [ ] Works on mobile (iOS Safari, Android Chrome)
+- [ ] Works on desktop (Chrome, Safari, Firefox)
+- [ ] No console errors
+- [ ] Loading states implemented
+- [ ] Error states handled gracefully
+- [ ] Accessibility: keyboard navigation works
+- [ ] Performance: no jank, smooth 60fps
+- [ ] Production deployed and verified
+
+---
+
+## 🧠 Agent Behavior Patterns
+
+### Chain of Thought
+**Rule:** Always explain reasoning before executing code changes.
+
+**Template:**
+```
+I am analyzing [file/feature]...
+I see a potential conflict with [rule/pattern]...
+I will execute [strategy] because [reasoning]...
+```
+
+### Memory First
+**Rule:** Before answering ANY prompt, read `.memory/active_context.md` and `.memory/project_mission.md`.
+
+**Update Trigger:** If plans change, update memory files immediately.
+
+### Project Isolation
+**Rule:** Verify workspace context before making changes.
+
+**Example:**
+- If user mentions "Mapping" or "Venues" → Verify in `hub-vanguard` workspace
+- If user mentions "Solver" or "Training" → Verify in correct orb context
+- Never pollute one feature area with another's code
