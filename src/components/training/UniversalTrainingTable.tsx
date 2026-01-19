@@ -19,6 +19,17 @@ import { TRAINING_CLINICS, getClinicById, getRemediationXPMultiplier } from '../
 import LeakFixerIntercept from './LeakFixerIntercept';
 import { createClient } from '@supabase/supabase-js';
 
+// Game Phase State Machine
+enum GamePhase {
+    IDLE = 'idle',
+    DEALING = 'dealing',
+    VILLAIN_ACTION = 'villain_action',
+    PLAYER_TURN = 'player_turn',
+    EVALUATING = 'evaluating',
+    SHOWING_FEEDBACK = 'showing_feedback',
+    TRANSITIONING = 'transitioning'
+}
+
 // Card suit configuration
 const SUITS = {
     s: { symbol: '♠', color: '#000' },
@@ -187,6 +198,9 @@ export default function UniversalTrainingTable({
     const [isDealing, setIsDealing] = useState(false);
     const [villainAction, setVillainAction] = useState<string | null>(null);
 
+    // Linear State Machine
+    const [gamePhase, setGamePhase] = useState<GamePhase>(GamePhase.IDLE);
+
     // Leak detection state
     const [showLeakIntercept, setShowLeakIntercept] = useState(false);
     const [detectedLeak, setDetectedLeak] = useState<any>(null);
@@ -206,20 +220,62 @@ export default function UniversalTrainingTable({
     const activeClinic = clinicId ? getClinicById(clinicId) : null;
     const correctAction = question?.correctAction || question?.options?.find((o: any) => o.isCorrect)?.id;
 
-    // Initialize from question
+    // PHASE 3: The Game Loop (Cinematic Deal Sequence)
     useEffect(() => {
-        if (question) {
-            setHeroCards(question.heroCards || ['Ah', 'Kh']);
-            setVillainCards(['??', '??']); // Always hidden
-            setBoardCards(question.board || []);
-            setPot(question.potSize || 12);
-            setHeroStack(question.heroStack || 40);
-            setVillainStack(question.villainStack || 40);
+        if (!question) return;
 
-            // Trigger deal animation
-            setIsDealing(true);
-            setTimeout(() => setIsDealing(false), 1000);
-        }
+        console.log('[PHASE 3] Starting cinematic deal sequence');
+
+        // T+0ms: RESET STATE
+        setGamePhase(GamePhase.IDLE);
+        setHeroCards(['??', '??']);
+        setVillainCards(['??', '??']);
+        setBoardCards([]);
+        setVillainAction(null);
+        setPot(question.potSize || 12);
+        setHeroStack(question.heroStack || 40);
+        setVillainStack(question.villainStack || 40);
+
+        // T+500ms: DEAL HERO CARDS
+        const dealTimer = setTimeout(() => {
+            console.log('[T+500ms] Dealing hero cards');
+            setGamePhase(GamePhase.DEALING);
+            setHeroCards(question.heroCards || ['Ah', 'Kh']);
+            setBoardCards(question.board || []);
+            // Play deal sound (if available)
+            try {
+                const audio = new Audio('/audio/deal.mp3');
+                audio.volume = 0.3;
+                audio.play().catch(() => { });
+            } catch { }
+        }, 500);
+
+        // T+800ms: VILLAIN ACTION
+        const villainTimer = setTimeout(() => {
+            console.log('[T+800ms] Villain action');
+            setGamePhase(GamePhase.VILLAIN_ACTION);
+            setVillainAction(question.villainAction || 'Bets 2.5BB');
+            // Play chip sound (if available)
+            try {
+                const audio = new Audio('/audio/chip-stack.mp3');
+                audio.volume = 0.3;
+                audio.play().catch(() => { });
+            } catch { }
+        }, 800);
+
+        // T+1000ms: UNLOCK PLAYER CONTROLS
+        const unlockTimer = setTimeout(() => {
+            console.log('[T+1000ms] Player turn - controls unlocked');
+            setGamePhase(GamePhase.PLAYER_TURN);
+            setIsDealing(false);
+        }, 1000);
+
+        // Cleanup timers on unmount
+        return () => {
+            clearTimeout(dealTimer);
+            clearTimeout(villainTimer);
+            clearTimeout(unlockTimer);
+        };
     }, [question]);
 
 
