@@ -200,6 +200,124 @@ const parseScenario = (scenarioHash, rawQuestion = {}) => {
     };
 };
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * NARRATIVE FLOW ENGINE: parseScenarioChain
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Simulates the action chain from the question text.
+ * 
+ * Requirements:
+ * 1. Action Chain Detection: Parse "Folds to CO" → ghost UTG, MP, HJ
+ * 2. Dynamic Prompt Injection: Generate "Folds to the CO who raises to 2.5BB"
+ * 3. Topology Mapping: Map positions (UTG, CO, BTN) to seat indices
+ * 
+ * @param {string} villainAction - e.g., "Folds to You", "CO raises to 2.5BB"
+ * @param {string} heroPosition - e.g., "BTN", "BB"
+ * @param {number} totalSeats - 2, 6, or 9
+ * @returns {object} - { actionChain, activeVillains, ghostSeats, narrativeText }
+ */
+const parseScenarioChain = (villainAction, heroPosition, totalSeats = 9) => {
+    // ─────────────────────────────────────────────────────────────────────────
+    // TOPOLOGY MAPPING: Position → Seat Index (9-max)
+    // ─────────────────────────────────────────────────────────────────────────
+    const POSITION_MAP_9MAX = {
+        'UTG': 1,
+        'UTG+1': 2,
+        'MP': 3,
+        'HJ': 4,
+        'CO': 5,
+        'BTN': 6,
+        'SB': 7,
+        'BB': 8
+    };
+
+    const POSITION_MAP_6MAX = {
+        'UTG': 1,
+        'MP': 2,
+        'CO': 3,
+        'BTN': 4,
+        'SB': 5,
+        'BB': 6
+    };
+
+    const POSITION_MAP_HU = {
+        'SB': 1,
+        'BB': 2
+    };
+
+    const positionMap = totalSeats === 9 ? POSITION_MAP_9MAX :
+        totalSeats === 6 ? POSITION_MAP_6MAX :
+            POSITION_MAP_HU;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 1. ACTION CHAIN DETECTION
+    // ─────────────────────────────────────────────────────────────────────────
+    const actionLower = (villainAction || '').toLowerCase();
+
+    // Pattern: "Folds to [Position]" or "Folds to You"
+    const foldsToMatch = actionLower.match(/folds?\s+to\s+(?:the\s+)?(\w+)/i);
+
+    let activeVillains = [];
+    let ghostSeats = [];
+    let narrativeText = villainAction;
+
+    if (foldsToMatch) {
+        const targetPosition = foldsToMatch[1].toUpperCase();
+
+        if (targetPosition === 'YOU') {
+            // "Folds to You" → All villains folded
+            ghostSeats = Object.values(positionMap);
+            narrativeText = "Folds to You";
+        } else {
+            // "Folds to CO" → Ghost all seats before CO
+            const targetSeat = positionMap[targetPosition];
+            if (targetSeat) {
+                // Ghost all seats from 1 to targetSeat-1
+                for (let i = 1; i < targetSeat; i++) {
+                    ghostSeats.push(i);
+                }
+
+                // Parse what the target villain did
+                const actionMatch = villainAction.match(/who\s+(.+)$/i);
+                const villainActionText = actionMatch ? actionMatch[1] : 'acts';
+
+                activeVillains.push({
+                    position: targetPosition,
+                    seatIndex: targetSeat,
+                    action: villainActionText
+                });
+
+                narrativeText = `Folds to the ${targetPosition} who ${villainActionText}`;
+            }
+        }
+    } else {
+        // Parse direct action: "CO raises to 2.5BB"
+        const positionMatch = villainAction.match(/^(UTG|MP|HJ|CO|BTN|SB|BB)\s+(.+)/i);
+        if (positionMatch) {
+            const position = positionMatch[1].toUpperCase();
+            const action = positionMatch[2];
+            const seatIndex = positionMap[position];
+
+            if (seatIndex) {
+                activeVillains.push({
+                    position,
+                    seatIndex,
+                    action
+                });
+
+                narrativeText = `${position} ${action}`;
+            }
+        }
+    }
+
+    return {
+        activeVillains,
+        ghostSeats,
+        narrativeText,
+        positionMap
+    };
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // SECTOR 2: VERTICAL GEOMETRY ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
@@ -917,21 +1035,40 @@ export default function GodModeTrainingTable({
         ? parseScenario(currentQuestion.scenario_hash || '', currentQuestion)
         : null;
 
-    // SECTOR 3: GHOST PLAYERS — Build players array with active/ghost state
+    // NARRATIVE FLOW ENGINE: Parse action chain
+    const actionChain = scenario
+        ? parseScenarioChain(scenario.villainAction, scenario.heroPos, scenario.totalSeats)
+        : { activeVillains: [], ghostSeats: [], narrativeText: '', positionMap: {} };
+
+    // SECTOR 3: GHOST PLAYERS — Build players array with action chain simulation
     const players = Array.from({ length: scenario?.totalSeats || 2 }, (_, i) => {
         const isHero = i === 0;
-        const isVillain = i === 1; // For now, villain is always seat 1
-        const isActive = isHero || isVillain;
+
+        // Check if this seat is an active villain from the action chain
+        const activeVillain = actionChain.activeVillains.find(v => v.seatIndex === i);
+
+        // Check if this seat should be ghosted (folded before action)
+        const isGhosted = actionChain.ghostSeats.includes(i);
+
+        const isActive = isHero || !!activeVillain;
 
         return {
             seatIndex: i,
             cards: isHero ? (scenario?.heroCards || ['??', '??']) : ['??', '??'],
-            stack: scenario?.stackDepth || 25,
+            stack: isHero
+                ? (scenario?.stackDepth || 25)
+                : activeVillain
+                    ? (scenario?.villainRemainingStack ?? scenario?.stackDepth ?? 25)
+                    : (scenario?.stackDepth || 25),
             totalPlayers: scenario?.totalSeats || 2,
-            lastAction: null,
-            isAllIn: isVillain && scenario?.villainIsAllIn,
-            isGhost: !isActive, // Ghost = folded/inactive
-            position: isHero ? scenario?.heroPos : (isVillain ? scenario?.villainPos : null)
+            lastAction: activeVillain ? activeVillain.action : null,
+            isAllIn: activeVillain && scenario?.villainIsAllIn,
+            isGhost: isGhosted || !isActive, // Ghost if folded OR inactive
+            position: isHero
+                ? scenario?.heroPos
+                : activeVillain
+                    ? activeVillain.position
+                    : null
         };
     });
 
