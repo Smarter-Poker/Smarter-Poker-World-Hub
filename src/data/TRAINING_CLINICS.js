@@ -355,6 +355,34 @@ export const TRAINING_CLINICS = [
                 villainAction: 'Shoves All-In (25BB)',
                 correctAction: 'call',
                 explanation: 'With AKs and 15BB, you are getting the right ICM-adjusted odds to call a shove. AKs has ~45% equity against a wide pushing range.'
+            },
+            {
+                id: 'q2',
+                street: 'preflop',
+                villainAction: 'Raises to 2.5BB',
+                correctAction: 'raise',
+                explanation: 'With AKs, 3-betting is the optimal play. Your hand is too strong to just call, and you want to build the pot preflop.'
+            },
+            {
+                id: 'q3',
+                street: 'preflop',
+                villainAction: 'Limps',
+                correctAction: 'raise',
+                explanation: 'Against a limper, you should always raise with premium hands like AKs. Isolating the limper gives you position and initiative.'
+            },
+            {
+                id: 'q4',
+                street: 'preflop',
+                villainAction: 'Min-raises to 2BB',
+                correctAction: 'raise',
+                explanation: 'A min-raise often indicates weakness or a trapping range. With AKs, 3-bet for value and to deny equity to weaker hands.'
+            },
+            {
+                id: 'q5',
+                street: 'preflop',
+                villainAction: '4-Bets to 12BB',
+                correctAction: 'call',
+                explanation: 'Against a 4-bet with 15BB effective, calling is correct. Shoving risks your tournament life, and AKs plays well postflop in position.'
             }
         ]
     },

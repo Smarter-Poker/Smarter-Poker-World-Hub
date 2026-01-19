@@ -106,6 +106,9 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     const [score, setScore] = useState(0);
     const [totalXP, setTotalXP] = useState(0);
 
+    // Session complete state
+    const [sessionComplete, setSessionComplete] = useState(false);
+
     // PHASE 3: CINEMATIC DEAL SEQUENCE
     useEffect(() => {
         if (!clinic.startingState || !clinic.questions) return;
@@ -208,21 +211,138 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             const totalQuestions = clinic.questions?.length || 1;
 
             if (nextIndex >= totalQuestions) {
-                // Session complete - for now just reset
-                console.log('Session Complete! Score:', score + (isCorrect ? 1 : 0));
-                setQuestionIndex(0);
-                setScore(0);
-                setTotalXP(0);
+                // Session complete - show Victory Screen
+                console.log('Session Complete! Final Score:', score + (isCorrect ? 1 : 0));
+                setSessionComplete(true);
             } else {
                 setQuestionIndex(nextIndex);
             }
         }, 500);
     }, [questionIndex, clinic, score, isCorrect]);
 
+    // Handle replay
+    const handleReplay = useCallback(() => {
+        setSessionComplete(false);
+        setQuestionIndex(0);
+        setScore(0);
+        setTotalXP(0);
+        setGamePhase(GamePhase.IDLE);
+    }, []);
+
+    // Handle return to hub
+    const handleReturnToHub = useCallback(() => {
+        window.location.href = '/hub/training';
+    }, []);
+
     // Determine if buttons should be active
     const buttonsActive = gamePhase === GamePhase.PLAYER_TURN;
 
     // RENDER
+
+    // PHASE 6: VICTORY SCREEN
+    if (sessionComplete) {
+        const totalQuestions = clinic.questions?.length || 1;
+        const accuracy = Math.round((score / totalQuestions) * 100);
+        const passed = accuracy >= 85;
+
+        return (
+            <div style={{
+                width: '100%',
+                height: '100vh',
+                background: 'linear-gradient(to bottom, #0f172a, #1e293b)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}>
+                <div style={{
+                    background: 'linear-gradient(135deg, #1a2744, #0a1628)',
+                    padding: 60,
+                    borderRadius: 24,
+                    border: passed ? '3px solid #fbbf24' : '3px solid #6b7280',
+                    textAlign: 'center',
+                    maxWidth: 500,
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                }}>
+                    {/* Trophy/Result Icon */}
+                    <div style={{ fontSize: 80, marginBottom: 16 }}>
+                        {passed ? '🏆' : '🔄'}
+                    </div>
+
+                    {/* Title */}
+                    <h1 style={{
+                        fontSize: 32,
+                        fontWeight: 'bold',
+                        color: passed ? '#4ade80' : '#fff',
+                        marginBottom: 24
+                    }}>
+                        {passed ? 'SESSION COMPLETE!' : 'KEEP PRACTICING'}
+                    </h1>
+
+                    {/* Accuracy */}
+                    <div style={{
+                        fontSize: 64,
+                        fontWeight: 'bold',
+                        color: passed ? '#4ade80' : '#f97316',
+                        marginBottom: 8
+                    }}>
+                        {accuracy}%
+                    </div>
+                    <div style={{ color: '#9ca3af', marginBottom: 24 }}>
+                        {score} / {totalQuestions} correct
+                    </div>
+
+                    {/* XP Earned */}
+                    <div style={{
+                        background: 'rgba(251, 191, 36, 0.1)',
+                        border: '1px solid #fbbf24',
+                        borderRadius: 12,
+                        padding: '12px 24px',
+                        marginBottom: 32,
+                        display: 'inline-block'
+                    }}>
+                        <span style={{ color: '#fbbf24', fontSize: 24, fontWeight: 'bold' }}>
+                            +{totalXP} XP
+                        </span>
+                    </div>
+
+                    {/* Buttons */}
+                    <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+                        <button
+                            onClick={handleReplay}
+                            style={{
+                                padding: '16px 32px',
+                                background: passed ? '#2563eb' : '#f97316',
+                                border: 'none',
+                                borderRadius: 12,
+                                color: '#fff',
+                                fontSize: 16,
+                                fontWeight: 'bold',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {passed ? 'REPLAY' : 'TRY AGAIN'}
+                        </button>
+                        <button
+                            onClick={handleReturnToHub}
+                            style={{
+                                padding: '16px 32px',
+                                background: 'transparent',
+                                border: '2px solid rgba(255,255,255,0.3)',
+                                borderRadius: 12,
+                                color: '#fff',
+                                fontSize: 16,
+                                fontWeight: 'bold',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            RETURN TO HUB
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div style={{
             width: '100%',
