@@ -498,8 +498,9 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         const pos = e.target.selectionStart;
 
         // 🔗 AUTO-DETECT URLs - Facebook-style: remove URL and show preview card
-        // Match http/https URLs OR www. URLs (which we'll prefix with https://)
-        const urlRegex = /(?:https?:\/\/|www\.)[^\s<>"\[\]{}|\\^`]+/gi;
+        // Match URLs: http(s)://(www.)domain or www.domain (no http)
+        // This regex ensures we capture the COMPLETE URL including www. after https://
+        const urlRegex = /https?:\/\/(?:www\.)?[^\s<>"'\[\]{}|\\^`]+|(?<![\/])www\.[^\s<>"'\[\]{}|\\^`]+/gi;
         const urlMatch = value.match(urlRegex);
 
         if (urlMatch && !linkPreview && !linkLoading) {
