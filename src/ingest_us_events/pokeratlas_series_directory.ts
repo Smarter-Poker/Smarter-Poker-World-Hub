@@ -155,7 +155,7 @@ function detectPaginationLinks($: cheerio.CheerioAPI): {
         }
     });
 
-    return { nextPage, allPageLinks: [...new Set(allPageLinks)] };
+    return { nextPage, allPageLinks: Array.from(new Set(allPageLinks)) };
 }
 
 // Check for uncrawled pages
@@ -253,7 +253,7 @@ export async function crawlSeriesDirectory(): Promise<CrawlResult<{
 
             // Get pagination info
             const { nextPage, allPageLinks } = detectPaginationLinks($);
-            allPaginationLinks = [...new Set([...allPaginationLinks, ...allPageLinks])];
+            allPaginationLinks = Array.from(new Set([...allPaginationLinks, ...allPageLinks]));
 
             // Extract max page number
             const pageNumbers = allPaginationLinks
