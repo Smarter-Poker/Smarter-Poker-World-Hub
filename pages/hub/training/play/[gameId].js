@@ -75,18 +75,41 @@ export default function TrainingPlayPage() {
                         scenario_hash: scenario.scenario_hash,
                         // Pick a random hand from strategy_matrix as hero cards
                         hero_cards: (() => {
-                            const hands = Object.keys(scenario.strategy_matrix || {});
-                            if (hands.length > 0) {
+                            const matrix = scenario.strategy_matrix;
+                            if (!matrix) return ['As', 'Kh'];
+
+                            // Handle array format: [{hand: "AhKd", actions: {...}}, ...]
+                            if (Array.isArray(matrix) && matrix.length > 0) {
+                                const item = matrix[Math.floor(Math.random() * matrix.length)];
+                                const hand = item?.hand || '';
+                                if (hand.length >= 4) {
+                                    return [hand.slice(0, 2), hand.slice(2, 4)];
+                                }
+                            }
+
+                            // Handle object format: {"AhKd": {...}, "QsQh": {...}, ...}
+                            const hands = Object.keys(matrix);
+                            if (hands.length > 0 && hands[0].length >= 4) {
                                 const hand = hands[Math.floor(Math.random() * hands.length)];
                                 return [hand.slice(0, 2), hand.slice(2, 4)];
                             }
+
                             return ['As', 'Kh'];
                         })(),
                         villain_action: 'Raises to 2.5BB',
                         correct_action: (() => {
-                            const hands = Object.keys(scenario.strategy_matrix || {});
+                            const matrix = scenario.strategy_matrix;
+                            if (!matrix) return 'call';
+
+                            // Handle array format
+                            if (Array.isArray(matrix) && matrix.length > 0) {
+                                return matrix[0]?.best_action?.toLowerCase() || 'call';
+                            }
+
+                            // Handle object format
+                            const hands = Object.keys(matrix);
                             if (hands.length > 0) {
-                                const handData = scenario.strategy_matrix[hands[0]];
+                                const handData = matrix[hands[0]];
                                 return handData?.best_action?.toLowerCase() || 'call';
                             }
                             return 'call';
