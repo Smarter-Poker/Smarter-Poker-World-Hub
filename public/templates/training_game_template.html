@@ -134,7 +134,7 @@
             text-transform: capitalize;
         }
 
-        /* MAIN STAGE */
+        /* MAIN STAGE - Optimized for 600x800 viewport */
         .stage {
             flex: 1;
             display: flex;
@@ -142,7 +142,7 @@
             justify-content: center;
             position: relative;
             min-height: 0;
-            padding: 95px 10px 35px 10px;
+            padding: 60px 10px 20px 10px;
             overflow: visible;
         }
 
@@ -572,25 +572,25 @@
         }
 
 
-        /* ACTION BUTTONS - Full Width Bottom */
+        /* ACTION BUTTONS - Compact for 600x800 viewport */
         .action-buttons {
             flex-shrink: 0;
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            padding: 12px 16px;
-            padding-bottom: 24px;
+            gap: 6px;
+            padding: 8px 12px;
+            padding-bottom: 12px;
             background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
             z-index: 100;
         }
 
         .action-button {
-            padding: 16px;
-            font-size: 15px;
+            padding: 10px;
+            font-size: 14px;
             font-weight: 700;
             background: linear-gradient(135deg, #2563EB, #1D4ED8);
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             color: #fff;
             cursor: pointer;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -1328,7 +1328,7 @@
                 }
             }
 
-            // Setup action button handlers
+            // Setup action button handlers with LOCAL UI feedback
             function setupActionButtons() {
                 const buttons = document.querySelectorAll('.action-button');
                 const actions = ['fold', 'call', 'raise', 'all-in'];
@@ -1337,11 +1337,14 @@
                     btn.addEventListener('click', () => {
                         if (gameState.showResult) return; // Ignore clicks during result
 
-                        // Play click sound
-                        audio.playClick();
-
                         const answerId = actions[index];
                         console.log('🎯 Answer selected:', answerId);
+
+                        // Set game state
+                        gameState.showResult = true;
+
+                        // Play click sound
+                        audio.playClick();
 
                         // Stop timer
                         clearInterval(gameState.timerInterval);
@@ -1350,6 +1353,22 @@
                         if (elements.timerContainer) {
                             elements.timerContainer.classList.remove('critical', 'warning');
                         }
+
+                        // ═══════════════════════════════════════════════════════════
+                        // LOCAL UI FEEDBACK - Immediate visual response
+                        // ═══════════════════════════════════════════════════════════
+
+                        // If FOLD: grey out hero cards
+                        if (answerId === 'fold') {
+                            const heroCards = document.querySelector('.hero-cards');
+                            if (heroCards) {
+                                heroCards.classList.add('folded');
+                                audio.playFold && audio.playFold();
+                            }
+                        }
+
+                        // Show quick feedback overlay
+                        showFeedback(answerId);
 
                         // Send to parent
                         window.parent.postMessage({
@@ -1559,57 +1578,50 @@
             // ═══════════════════════════════════════════════════════════════════════════
 
             function setupCardPositions() {
-                // Card positions aligned with player positions from setupPlayerPositions
-                // Cards positioned with offset: left-side players have cards to their right,
-                // right-side players have cards to their left
-                const SEAT_POSITIONS = {
-                    'v1': { left: '18%', top: '65%' },   // bottom-left player
-                    'v2': { left: '15%', top: '45%' },   // middle-left player
-                    'v3': { left: '15%', top: '26%' },   // upper-left player
-                    'v4': { left: '32%', top: '5%' },    // top-left player
-                    'v5': { left: '68%', top: '5%' },    // top-right player
-                    'v6': { left: '85%', top: '26%' },   // upper-right player
-                    'v7': { left: '85%', top: '45%' },   // middle-right player
-                    'v8': { left: '82%', top: '65%' }    // bottom-right player
+                // ═══════════════════════════════════════════════════════════════
+                // VILLAIN CARD POSITION LAW - IMMUTABLE PIXEL POSITIONS
+                // These are the LOCKED positions from VILLAIN_CARD_POSITION_LAW.md
+                // Original positions designed for ~1000px wide viewport
+                // ═══════════════════════════════════════════════════════════════
+
+                const LOCKED_POSITIONS = {
+                    'v1': { left: 760, top: 926 },   // Bottom-Right per law
+                    'v2': { left: 779, top: 694 },   // Middle-Right per law
+                    'v3': { left: 778, top: 478 },   // Upper-Right per law
+                    'v4': { left: 663, top: 282 },   // Top-Right per law
+                    'v5': { left: 289, top: 281 },   // Top-Left per law
+                    'v6': { left: 170, top: 474 },   // Upper-Left per law
+                    'v7': { left: 172, top: 696 },   // Middle-Left per law
+                    'v8': { left: 193, top: 922 },   // Bottom-Left per law
+                    'hero': { left: 574, top: 983 }  // Hero - LOCKED POSITION
                 };
 
-                // Card offsets from player position (cards flow toward table center per golden template)
-                // Reduced offsets to prevent card overlap between adjacent villains
-                const CARD_OFFSETS = {
-                    'v1': { left: 15, top: -5 },   // bottom-left: cards to right, slight up
-                    'v2': { left: 16, top: 0 },    // middle-left: cards to right
-                    'v3': { left: 16, top: 4 },    // upper-left: cards to right, slight down
-                    'v4': { left: 4, top: 14 },    // top-left: cards below, slight right
-                    'v5': { left: -4, top: 14 },   // top-right: cards below, slight left
-                    'v6': { left: -16, top: 4 },   // upper-right: cards to left, slight down
-                    'v7': { left: -16, top: 0 },   // middle-right: cards to left
-                    'v8': { left: -15, top: -5 }   // bottom-right: cards to left, slight up
-                };
+                // Scale factor: law positions are for ~1000px, our viewport is 600px
+                const SCALE_X = window.innerWidth / 1000;
+                const SCALE_Y = window.innerHeight / 1200;
 
-                for (let villain in SEAT_POSITIONS) {
+                for (let villain in LOCKED_POSITIONS) {
+                    if (villain === 'hero') continue; // Hero handled separately
+
                     const card = document.querySelector(`.opponent-cards[data-villain="${villain}"]`);
                     if (card) {
-                        // Move to body for viewport positioning
+                        // Move to body for viewport-relative positioning
                         document.body.appendChild(card);
 
-                        // Calculate position: player position + offset
-                        const playerLeft = parseFloat(SEAT_POSITIONS[villain].left);
-                        const playerTop = parseFloat(SEAT_POSITIONS[villain].top);
-                        const offset = CARD_OFFSETS[villain];
+                        // Scale the locked positions to current viewport
+                        const scaledLeft = LOCKED_POSITIONS[villain].left * SCALE_X;
+                        const scaledTop = LOCKED_POSITIONS[villain].top * SCALE_Y;
 
-                        const finalLeft = playerLeft + offset.left;
-                        const finalTop = playerTop + offset.top;
-
-                        // FORCE override ALL inline styles using cssText (clears any HTML-set styles)
+                        // FORCE override ALL inline styles
                         card.style.cssText = `
-                            position: absolute !important;
-                            left: ${finalLeft}% !important;
-                            top: ${finalTop}% !important;
+                            position: fixed !important;
+                            left: ${scaledLeft}px !important;
+                            top: ${scaledTop}px !important;
                             transform: translate(-50%, -50%) !important;
                             z-index: 100;
                         `;
 
-                        console.log(`[CARD POS] ${villain}: left=${finalLeft}%, top=${finalTop}%`);
+                        console.log(`[CARD LAW] ${villain}: ${scaledLeft.toFixed(0)}px, ${scaledTop.toFixed(0)}px (scaled from ${LOCKED_POSITIONS[villain].left}, ${LOCKED_POSITIONS[villain].top})`);
                     }
                 }
 

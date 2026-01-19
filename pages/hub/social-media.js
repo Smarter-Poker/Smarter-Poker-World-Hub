@@ -281,6 +281,122 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 🔗 LINK PREVIEW CARD - Fetches and displays rich link metadata for feed posts
+// ═══════════════════════════════════════════════════════════════════════════
+
+function LinkPreviewCard({ url }) {
+    const [metadata, setMetadata] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!url) return;
+
+        const fetchMetadata = async () => {
+            try {
+                const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+                const data = await response.json();
+                setMetadata(data);
+            } catch (error) {
+                console.error('Failed to fetch link metadata:', error);
+                // Fallback to basic info
+                try {
+                    const urlObj = new URL(url);
+                    setMetadata({
+                        title: urlObj.pathname.split('/').pop()?.replace(/-/g, ' ') || 'Link',
+                        description: null,
+                        image: null,
+                        siteName: urlObj.hostname.replace(/^www\./, '')
+                    });
+                } catch (e) { }
+            }
+            setLoading(false);
+        };
+
+        fetchMetadata();
+    }, [url]);
+
+    if (loading) {
+        return (
+            <div style={{
+                border: `1px solid ${C.border}`,
+                borderRadius: 8,
+                overflow: 'hidden',
+                background: C.bg,
+                margin: '0 12px 12px'
+            }}>
+                <div style={{
+                    height: 200,
+                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: 24
+                }}>⏳ Loading preview...</div>
+            </div>
+        );
+    }
+
+    return (
+        <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: 'none', display: 'block' }}
+        >
+            <div style={{
+                border: `1px solid ${C.border}`,
+                borderRadius: 8,
+                overflow: 'hidden',
+                background: C.bg,
+                margin: '0 12px 12px'
+            }}>
+                {/* Link Preview Image - real thumbnail or gradient fallback */}
+                <div style={{
+                    height: 200,
+                    background: metadata?.image
+                        ? `url(${metadata.image}) center/cover`
+                        : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: 48
+                }}>
+                    {!metadata?.image && '🔗'}
+                </div>
+                {/* Link Info */}
+                <div style={{ padding: '12px 16px', background: C.card }}>
+                    <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase', marginBottom: 4 }}>
+                        {metadata?.siteName || new URL(url).hostname.replace('www.', '')}
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>
+                        {metadata?.title || 'View Article'}
+                    </div>
+                    {metadata?.description && (
+                        <div style={{
+                            fontSize: 13,
+                            color: C.textSec,
+                            marginTop: 6,
+                            lineHeight: 1.4,
+                            overflow: 'hidden',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical'
+                        }}>
+                            {metadata.description}
+                        </div>
+                    )}
+                    <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>
+                        Click to read full article →
+                    </div>
+                </div>
+            </div>
+        </a>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 🎬 FULL SCREEN VIDEO VIEWER - TikTok/Reels style immersive viewer
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -970,44 +1086,8 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                                 />
                             </VideoPostWrapper>
                         ) : post.contentType === 'link' ? (
-                            // LINK: Clickable card preview (Facebook-style)
-                            <a
-                                href={post.mediaUrls[0]}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ textDecoration: 'none', display: 'block' }}
-                            >
-                                <div style={{
-                                    border: `1px solid ${C.border}`,
-                                    borderRadius: 8,
-                                    overflow: 'hidden',
-                                    background: C.bg,
-                                    margin: '0 12px 12px'
-                                }}>
-                                    {/* Link Preview Image placeholder with gradient */}
-                                    <div style={{
-                                        height: 200,
-                                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: 'white',
-                                        fontSize: 48
-                                    }}>🔗</div>
-                                    {/* Link Info */}
-                                    <div style={{ padding: '12px 16px', background: C.card }}>
-                                        <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase', marginBottom: 4 }}>
-                                            {new URL(post.mediaUrls[0]).hostname.replace('www.', '')}
-                                        </div>
-                                        <div style={{ fontSize: 16, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>
-                                            {post.mediaUrls[0].split('/').pop()?.replace(/-/g, ' ').replace(/\.htm.*/i, '') || 'View Article'}
-                                        </div>
-                                        <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>
-                                            Click to read full article →
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
+                            // LINK: Rich preview card with dynamic metadata
+                            <LinkPreviewCard url={post.mediaUrls[0]} />
                         ) : (
                             <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
                         )
