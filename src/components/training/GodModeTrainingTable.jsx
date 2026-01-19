@@ -206,12 +206,21 @@ const Card3D = ({ card, isFlipped = false, delay = 0, size = 'normal' }) => {
     );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// PLAYER SEAT COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// Villain avatar images (placeholder character styles)
+const VILLAIN_AVATARS = [
+    '🤖', // Robot
+    '🦊', // Fox
+    '🐺', // Wolf
+    '🦁', // Lion
+    '🐻', // Bear
+    '🦅', // Eagle
+    '🐙', // Octopus
+    '🦈'  // Shark
+];
 
 const PlayerSeat = ({ player, isHero, isActive, position, dealerSeat, showCards, cardDelay, heroPosition }) => {
     const hasDealer = dealerSeat === position;
+    const villainAvatar = VILLAIN_AVATARS[(position || 1) % VILLAIN_AVATARS.length];
 
     return (
         <div style={{
@@ -223,6 +232,41 @@ const PlayerSeat = ({ player, isHero, isActive, position, dealerSeat, showCards,
             gap: 8,
             zIndex: isHero ? 100 : 10
         }}>
+            {/* HERO GOLD GLOW — Only for Hero */}
+            {isHero && (
+                <div style={{
+                    position: 'absolute',
+                    top: -20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 140,
+                    height: 140,
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(251, 191, 36, 0.4) 0%, rgba(251, 191, 36, 0) 70%)',
+                    boxShadow: '0 0 40px rgba(251, 191, 36, 0.5), 0 0 80px rgba(251, 191, 36, 0.3)',
+                    zIndex: -1,
+                    pointerEvents: 'none'
+                }} />
+            )}
+
+            {/* Villain Avatar — Character image above cards */}
+            {!isHero && (
+                <div style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #374151, #1f2937)',
+                    border: '2px solid rgba(255,255,255,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 24,
+                    marginBottom: -4,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
+                }}>
+                    {villainAvatar}
+                </div>
+            )}
             {/* Dealer Button */}
             {hasDealer && (
                 <div style={{
@@ -393,50 +437,62 @@ const BoardCards = ({ cards, showCards, delayStart = 0 }) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ACTION BUTTONS COMPONENT
+// ACTION BUTTONS COMPONENT — VIDEO GAME STYLE
 // ═══════════════════════════════════════════════════════════════════════════
 
 const ActionButtons = ({ actions, onAction, disabled }) => {
-    const buttonStyles = {
-        Fold: { bg: '#dc2626', hoverBg: '#b91c1c' },
-        Check: { bg: '#059669', hoverBg: '#047857' },
-        Call: { bg: '#2563eb', hoverBg: '#1d4ed8' },
-        Bet: { bg: '#7c3aed', hoverBg: '#6d28d9' },
-        Raise: { bg: '#f59e0b', hoverBg: '#d97706' },
-        AllIn: { bg: '#be123c', hoverBg: '#9f1239' }
+    // All buttons now use a unified blue video game style
+    const getButtonStyle = (action) => {
+        const baseColors = {
+            Fold: { bg: 'linear-gradient(180deg, #1e40af, #1e3a8a)', border: '#3b82f6' },
+            Check: { bg: 'linear-gradient(180deg, #1e40af, #1e3a8a)', border: '#3b82f6' },
+            Call: { bg: 'linear-gradient(180deg, #1e40af, #1e3a8a)', border: '#3b82f6' },
+            Raise: { bg: 'linear-gradient(180deg, #1e40af, #1e3a8a)', border: '#3b82f6' },
+            Bet: { bg: 'linear-gradient(180deg, #1e40af, #1e3a8a)', border: '#3b82f6' },
+            AllIn: { bg: 'linear-gradient(180deg, #7c2d12, #9a3412)', border: '#f97316' }
+        };
+        return baseColors[action] || baseColors.Call;
     };
 
     return (
         <div style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${Math.min(actions.length, 3)}, 1fr)`,
-            gap: 12,
-            maxWidth: 500,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            width: '100%',
+            maxWidth: 400,
             margin: '0 auto',
-            padding: '0 16px'
+            padding: '0 20px'
         }}>
             {actions.map((action) => {
-                const style = buttonStyles[action] || buttonStyles.Call;
+                const style = getButtonStyle(action);
                 return (
                     <button
                         key={action}
                         onClick={() => !disabled && onAction(action)}
                         disabled={disabled}
                         style={{
-                            padding: '18px 24px',
-                            fontSize: 16,
+                            width: '100%',
+                            padding: '16px',
+                            fontSize: 18,
                             fontWeight: 'bold',
+                            letterSpacing: 1,
                             background: style.bg,
-                            border: 'none',
-                            borderRadius: 12,
+                            border: `3px solid ${style.border}`,
+                            borderRadius: 8,
                             color: '#fff',
                             cursor: disabled ? 'not-allowed' : 'pointer',
                             opacity: disabled ? 0.5 : 1,
-                            transition: 'transform 0.1s, background 0.2s',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                            textTransform: 'uppercase',
+                            transition: 'transform 0.1s, box-shadow 0.2s',
+                            boxShadow: disabled ? 'none' : '0 4px 0 #0f172a, 0 8px 20px rgba(0,0,0,0.4)',
+                            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
                         }}
+                        onMouseDown={(e) => { if (!disabled) e.target.style.transform = 'translateY(2px)'; }}
+                        onMouseUp={(e) => { e.target.style.transform = 'translateY(0)'; }}
+                        onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; }}
                     >
-                        {action.toUpperCase()}
+                        {action}
                     </button>
                 );
             })}
@@ -985,16 +1041,50 @@ export default function GodModeTrainingTable({
                 alignItems: 'center',
                 zIndex: 50
             }}>
-                <div style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>
-                    {levelName}
-                </div>
-                <div style={{ display: 'flex', gap: 20, fontSize: 14 }}>
-                    <span style={{ color: '#94a3b8' }}>
+                {/* Left: Level Name + Progress */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>
+                        {levelName}
+                    </div>
+                    <span style={{ color: '#94a3b8', fontSize: 14 }}>
                         Q: {currentQuestionIndex + 1}/{totalQuestions}
                     </span>
+                </div>
+
+                {/* Right: XP, Diamonds, Score, Streak */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 14 }}>
+                    {/* XP Counter */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        background: 'rgba(74, 222, 128, 0.2)',
+                        padding: '4px 10px',
+                        borderRadius: 12
+                    }}>
+                        <span style={{ fontSize: 16 }}>⚡</span>
+                        <span style={{ color: '#4ade80', fontWeight: 'bold' }}>1,250 XP</span>
+                    </div>
+
+                    {/* Diamond Counter */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        background: 'rgba(96, 165, 250, 0.2)',
+                        padding: '4px 10px',
+                        borderRadius: 12
+                    }}>
+                        <span style={{ fontSize: 16 }}>💎</span>
+                        <span style={{ color: '#60a5fa', fontWeight: 'bold' }}>50</span>
+                    </div>
+
+                    {/* Score */}
                     <span style={{ color: '#4ade80' }}>
                         ✓ {score}
                     </span>
+
+                    {/* Streak */}
                     {streak > 1 && (
                         <span style={{ color: '#f59e0b' }}>
                             🔥 {streak}x
@@ -1002,6 +1092,53 @@ export default function GodModeTrainingTable({
                     )}
                 </div>
             </div>
+
+            {/* SCENARIO PROMPT BOX — Above Table */}
+            {gameState === GameState.ACTION_REQUIRED && currentQuestion && (
+                <div style={{
+                    position: 'absolute',
+                    top: 80,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'linear-gradient(135deg, #1e3a5f, #0f2744)',
+                    border: '2px solid rgba(96, 165, 250, 0.4)',
+                    borderRadius: 16,
+                    padding: '16px 24px',
+                    maxWidth: 500,
+                    width: '90%',
+                    textAlign: 'center',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                    zIndex: 40
+                }}>
+                    <div style={{
+                        fontSize: 15,
+                        color: '#e2e8f0',
+                        lineHeight: 1.5
+                    }}>
+                        <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>You are on the {scenario?.heroPosition || 'BTN'}</span>
+                        {' with '}
+                        <span style={{ color: '#fff', fontWeight: 'bold' }}>
+                            {scenario?.heroCards?.join(' ') || 'A♠ K♥'}
+                        </span>
+                        {scenario?.villainAction && (
+                            <>
+                                {'. Villain '}
+                                <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
+                                    {scenario.villainAction}
+                                </span>
+                            </>
+                        )}
+                    </div>
+                    <div style={{
+                        marginTop: 8,
+                        fontSize: 18,
+                        fontWeight: 'bold',
+                        color: '#60a5fa'
+                    }}>
+                        What's your move?
+                    </div>
+                </div>
+            )}
 
             {/* POKER TABLE — Center */}
             <div style={{
