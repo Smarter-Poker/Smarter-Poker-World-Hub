@@ -353,7 +353,7 @@ function LinkPreviewCard({ url }) {
             }}>
                 {/* Link Preview Image - real thumbnail or gradient fallback */}
                 <div style={{
-                    height: 200,
+                    height: 280,
                     position: 'relative',
                     background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
                     display: 'flex',
@@ -909,7 +909,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                             <>
                                 {/* Preview Image/Thumbnail */}
                                 <div style={{
-                                    height: 180,
+                                    height: 240,
                                     position: 'relative',
                                     background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
                                     display: 'flex',
