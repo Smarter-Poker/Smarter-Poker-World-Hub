@@ -345,12 +345,17 @@ const PlayerSeat = ({ player, isHero, isActive, position, dealerSeat, showCards,
                         </span>
                     )}
                 </div>
+                {/* Stack Size — Prominent Display */}
                 <div style={{
-                    fontSize: 12,
-                    color: isHero ? '#93c5fd' : '#94a3b8',
-                    marginTop: 2
+                    fontSize: 14,
+                    fontWeight: 'bold',
+                    color: isHero ? '#4ade80' : '#f59e0b',
+                    marginTop: 4,
+                    background: isHero ? 'rgba(74, 222, 128, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                    padding: '3px 8px',
+                    borderRadius: 6
                 }}>
-                    {player.stack}bb
+                    {player.isAllIn ? '🔴 ALL-IN' : `${player.stack}bb`}
                 </div>
             </div>
 
@@ -437,10 +442,10 @@ const BoardCards = ({ cards, showCards, delayStart = 0 }) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ACTION BUTTONS COMPONENT — VIDEO GAME STYLE
+// ACTION BUTTONS COMPONENT — 2x2 GRID WITH TIMER & QUESTION COUNT
 // ═══════════════════════════════════════════════════════════════════════════
 
-const ActionButtons = ({ actions, onAction, disabled }) => {
+const ActionButtons = ({ actions, onAction, disabled, timer, currentQ, totalQ }) => {
     // All buttons now use a unified blue video game style
     const getButtonStyle = (action) => {
         const baseColors = {
@@ -449,53 +454,100 @@ const ActionButtons = ({ actions, onAction, disabled }) => {
             Call: { bg: 'linear-gradient(180deg, #1e40af, #1e3a8a)', border: '#3b82f6' },
             Raise: { bg: 'linear-gradient(180deg, #1e40af, #1e3a8a)', border: '#3b82f6' },
             Bet: { bg: 'linear-gradient(180deg, #1e40af, #1e3a8a)', border: '#3b82f6' },
-            AllIn: { bg: 'linear-gradient(180deg, #7c2d12, #9a3412)', border: '#f97316' }
+            AllIn: { bg: 'linear-gradient(180deg, #1e40af, #1e3a8a)', border: '#3b82f6' }
         };
         return baseColors[action] || baseColors.Call;
+    };
+
+    // Get timer color based on time remaining
+    const getTimerColor = () => {
+        if (timer > 10) return '#4ade80'; // Green
+        if (timer > 5) return '#fbbf24'; // Yellow
+        return '#ef4444'; // Red
     };
 
     return (
         <div style={{
             display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
+            alignItems: 'center',
+            gap: 12,
             width: '100%',
-            maxWidth: 400,
+            maxWidth: 600,
             margin: '0 auto',
-            padding: '0 20px'
+            padding: '0 16px'
         }}>
-            {actions.map((action) => {
-                const style = getButtonStyle(action);
-                return (
-                    <button
-                        key={action}
-                        onClick={() => !disabled && onAction(action)}
-                        disabled={disabled}
-                        style={{
-                            width: '100%',
-                            padding: '16px',
-                            fontSize: 18,
-                            fontWeight: 'bold',
-                            letterSpacing: 1,
-                            background: style.bg,
-                            border: `3px solid ${style.border}`,
-                            borderRadius: 8,
-                            color: '#fff',
-                            cursor: disabled ? 'not-allowed' : 'pointer',
-                            opacity: disabled ? 0.5 : 1,
-                            textTransform: 'uppercase',
-                            transition: 'transform 0.1s, box-shadow 0.2s',
-                            boxShadow: disabled ? 'none' : '0 4px 0 #0f172a, 0 8px 20px rgba(0,0,0,0.4)',
-                            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                        }}
-                        onMouseDown={(e) => { if (!disabled) e.target.style.transform = 'translateY(2px)'; }}
-                        onMouseUp={(e) => { e.target.style.transform = 'translateY(0)'; }}
-                        onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; }}
-                    >
-                        {action}
-                    </button>
-                );
-            })}
+            {/* Timer - Left Side */}
+            <div style={{
+                width: 60,
+                height: 60,
+                borderRadius: 12,
+                background: 'rgba(30, 41, 59, 0.9)',
+                border: `3px solid ${getTimerColor()}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 28,
+                fontWeight: 'bold',
+                color: getTimerColor(),
+                boxShadow: `0 0 20px ${getTimerColor()}40`,
+                flexShrink: 0
+            }}>
+                {timer}
+            </div>
+
+            {/* 2x2 Button Grid - Center */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: 8,
+                flex: 1
+            }}>
+                {actions.map((action) => {
+                    const style = getButtonStyle(action);
+                    return (
+                        <button
+                            key={action}
+                            onClick={() => !disabled && onAction(action)}
+                            disabled={disabled}
+                            style={{
+                                padding: '14px 8px',
+                                fontSize: 16,
+                                fontWeight: 'bold',
+                                letterSpacing: 0.5,
+                                background: style.bg,
+                                border: `2px solid ${style.border}`,
+                                borderRadius: 8,
+                                color: '#fff',
+                                cursor: disabled ? 'not-allowed' : 'pointer',
+                                opacity: disabled ? 0.5 : 1,
+                                transition: 'transform 0.1s, box-shadow 0.2s',
+                                boxShadow: disabled ? 'none' : '0 3px 0 #0f172a, 0 6px 15px rgba(0,0,0,0.3)',
+                                textShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                            }}
+                            onMouseDown={(e) => { if (!disabled) e.target.style.transform = 'translateY(2px)'; }}
+                            onMouseUp={(e) => { e.target.style.transform = 'translateY(0)'; }}
+                            onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; }}
+                        >
+                            {action}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Question Count - Right Side */}
+            <div style={{
+                padding: '10px 14px',
+                borderRadius: 12,
+                background: 'rgba(30, 41, 59, 0.9)',
+                border: '2px solid rgba(148, 163, 184, 0.3)',
+                flexShrink: 0,
+                textAlign: 'center'
+            }}>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 2 }}>Question</div>
+                <div style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>
+                    {currentQ} of {totalQ}
+                </div>
+            </div>
         </div>
     );
 };
@@ -705,12 +757,17 @@ export default function GodModeTrainingTable({
 
     const playerCount = scenario ? getPlayerCount(scenario.topology) : 2;
 
+    // Detect if villain is all-in based on action text
+    const villainIsAllIn = scenario?.villainAction?.toLowerCase().includes('all-in') ||
+        scenario?.villainAction?.toLowerCase().includes('shoves');
+
     // Build players array
     const players = Array.from({ length: playerCount }, (_, i) => ({
         cards: i === 0 ? (scenario?.heroCards || ['??', '??']) : scenario?.villainCards || ['??', '??'],
         stack: scenario?.stackDepth || 100,
         totalPlayers: playerCount,
-        lastAction: null
+        lastAction: null,
+        isAllIn: i !== 0 && villainIsAllIn // Villain is all-in if detected
     }));
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1317,6 +1374,9 @@ export default function GodModeTrainingTable({
                     actions={availableActions}
                     onAction={handleAction}
                     disabled={gameState !== GameState.ACTION_REQUIRED}
+                    timer={actionTimer}
+                    currentQ={currentQuestionIndex + 1}
+                    totalQ={totalQuestions}
                 />
             </div>
         </div>
