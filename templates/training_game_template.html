@@ -610,25 +610,27 @@
            ═══════════════════════════════════════════════════════════════════════════ */
 
         /* Card dealing animation - pop in with scale */
+        /* NOTE: Cards use transform: translate(-50%, -50%) for centering at their law positions */
+        /* Animation must COMBINE with that transform */
         @keyframes dealCard {
             0% {
-                transform: scale(0) rotate(-30deg);
+                transform: translate(-50%, -50%) scale(0) rotate(-15deg);
                 opacity: 0;
             }
 
-            70% {
-                transform: scale(1.1) rotate(5deg);
+            60% {
+                transform: translate(-50%, -50%) scale(1.15) rotate(3deg);
                 opacity: 1;
             }
 
             100% {
-                transform: scale(1) rotate(0deg);
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
                 opacity: 1;
             }
         }
 
         .opponent-cards.dealing {
-            animation: dealCard 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation: dealCard 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
         }
 
         .opponent-cards.dealing:nth-child(1) {
@@ -1328,7 +1330,7 @@
                 }
             }
 
-            // Setup action button handlers
+            // Setup action button handlers with LOCAL UI feedback
             function setupActionButtons() {
                 const buttons = document.querySelectorAll('.action-button');
                 const actions = ['fold', 'call', 'raise', 'all-in'];
@@ -1337,11 +1339,14 @@
                     btn.addEventListener('click', () => {
                         if (gameState.showResult) return; // Ignore clicks during result
 
-                        // Play click sound
-                        audio.playClick();
-
                         const answerId = actions[index];
                         console.log('🎯 Answer selected:', answerId);
+
+                        // Set game state
+                        gameState.showResult = true;
+
+                        // Play click sound
+                        audio.playClick();
 
                         // Stop timer
                         clearInterval(gameState.timerInterval);
@@ -1350,6 +1355,22 @@
                         if (elements.timerContainer) {
                             elements.timerContainer.classList.remove('critical', 'warning');
                         }
+
+                        // ═══════════════════════════════════════════════════════════
+                        // LOCAL UI FEEDBACK - Immediate visual response
+                        // ═══════════════════════════════════════════════════════════
+
+                        // If FOLD: grey out hero cards
+                        if (answerId === 'fold') {
+                            const heroCards = document.querySelector('.hero-cards');
+                            if (heroCards) {
+                                heroCards.classList.add('folded');
+                                audio.playFold && audio.playFold();
+                            }
+                        }
+
+                        // Show quick feedback overlay
+                        showFeedback(answerId);
 
                         // Send to parent
                         window.parent.postMessage({

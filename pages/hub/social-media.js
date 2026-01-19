@@ -354,16 +354,30 @@ function LinkPreviewCard({ url }) {
                 {/* Link Preview Image - real thumbnail or gradient fallback */}
                 <div style={{
                     height: 200,
-                    background: metadata?.image
-                        ? `url(${metadata.image}) center/cover`
-                        : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                    position: 'relative',
+                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: 'white',
-                    fontSize: 48
+                    fontSize: 48,
+                    overflow: 'hidden'
                 }}>
-                    {!metadata?.image && '🔗'}
+                    {metadata?.image ? (
+                        <img
+                            src={metadata.image}
+                            alt={metadata.title || 'Link preview'}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                objectPosition: 'center center',
+                                position: 'absolute',
+                                top: 0,
+                                left: 0
+                            }}
+                        />
+                    ) : '🔗'}
                 </div>
                 {/* Link Info */}
                 <div style={{ padding: '12px 16px', background: C.card }}>
@@ -896,14 +910,28 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                                 {/* Preview Image/Thumbnail */}
                                 <div style={{
                                     height: 180,
-                                    background: linkPreview.image
-                                        ? `url(${linkPreview.image}) center/cover`
-                                        : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                                    position: 'relative',
+                                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center'
+                                    justifyContent: 'center',
+                                    overflow: 'hidden'
                                 }}>
-                                    {!linkPreview.image && (
+                                    {linkPreview.image ? (
+                                        <img
+                                            src={linkPreview.image}
+                                            alt={linkPreview.title || 'Preview'}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover',
+                                                objectPosition: 'center center',
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0
+                                            }}
+                                        />
+                                    ) : (
                                         <span style={{ fontSize: 48, opacity: 0.5 }}>
                                             {linkPreview.type === 'video' ? '🎬' : '🔗'}
                                         </span>
@@ -914,7 +942,8 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                                             width: 64, height: 64, borderRadius: '50%',
                                             background: 'rgba(0,0,0,0.7)',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            color: 'white', fontSize: 28
+                                            color: 'white', fontSize: 28,
+                                            zIndex: 1
                                         }}>▶</div>
                                     )}
                                 </div>
