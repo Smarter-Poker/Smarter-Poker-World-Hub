@@ -107,6 +107,37 @@ function getYouTubeThumbnail(url) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 🔍 YOUTUBE VIDEO VALIDATOR - Check if video is available before posting
+// YouTube returns a 120x90 placeholder for unavailable videos instead of 404
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function validateYouTubeVideo(url) {
+    const videoId = getYouTubeVideoId(url);
+    if (!videoId) return { valid: false, error: 'Invalid YouTube URL' };
+
+    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            // YouTube's "Video Unavailable" placeholder is 120x90
+            // Real thumbnails are 480x360 (hqdefault) or higher
+            if (img.naturalWidth <= 120 && img.naturalHeight <= 90) {
+                resolve({ valid: false, error: 'This YouTube video is unavailable or has been removed' });
+            } else {
+                resolve({ valid: true });
+            }
+        };
+        img.onerror = () => {
+            resolve({ valid: false, error: 'Could not verify YouTube video' });
+        };
+        // Timeout after 5 seconds
+        setTimeout(() => resolve({ valid: false, error: 'Video check timed out' }), 5000);
+        img.src = thumbnailUrl;
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 🖼️ VIDEO THUMBNAIL COMPONENT - Robust with fallback for invalid YouTube IDs
 // YouTube returns a gray placeholder (not 404) for invalid videos, so we need
 // to detect the placeholder by checking the image dimensions after load.
@@ -521,6 +552,14 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         if (youtubeMatch && type === 'text') {
             // Found a YouTube URL - convert to video post
             const fullUrl = youtubeMatch[0].startsWith('http') ? youtubeMatch[0] : `https://${youtubeMatch[0]}`;
+
+            // 🔍 VALIDATE: Check if YouTube video is available before posting
+            const validation = await validateYouTubeVideo(fullUrl);
+            if (!validation.valid) {
+                setError(`❌ ${validation.error}`);
+                return;
+            }
+
             urls = [fullUrl];
             type = 'video';
             // 🎯 FACEBOOK-STYLE: Remove the URL from content text

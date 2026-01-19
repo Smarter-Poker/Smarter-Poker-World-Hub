@@ -50,16 +50,18 @@ export default function TrainingPlayPage() {
     const timerRef = useRef(null);
     const currentScenario = questions[questionIndex] || questions[0];
 
-    // Get user ID from Supabase auth
+    // Get user ID from Supabase auth (non-blocking)
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => {
             if (data?.user) {
                 setUserId(data.user.id);
             }
+        }).catch(() => {
+            console.warn('⚠️ Could not get user, will use fallback questions');
         });
     }, []);
 
-    // Load game and questions from Supabase
+    // Load game and questions - always proceeds, tries Supabase if possible
     useEffect(() => {
         async function loadGameAndQuiz() {
             if (!gameId) return;
@@ -75,10 +77,13 @@ export default function TrainingPlayPage() {
             setPlayerCount(count);
 
             console.log('📚 Loading questions for game:', gameId);
+
+            // Always try to load questions - Supabase attempt if we have userId
             const levelId = getLevelIdFromGameId(gameId);
 
-            try {
-                if (userId) {
+            // Try Supabase first if userId is available
+            if (userId) {
+                try {
                     console.log('🎯 Attempting to load quiz from Supabase...');
                     const quiz = await generateLevelQuiz(userId, levelId);
 
@@ -107,15 +112,31 @@ export default function TrainingPlayPage() {
                         setLoading(false);
                         return;
                     }
+                } catch (error) {
+                    console.warn('⚠️ Could not load from Supabase:', error);
                 }
-            } catch (error) {
-                console.warn('⚠️ Could not load from Supabase, using fallback:', error);
             }
 
-            // Fallback to static questions
+            // Fallback to static questions (always reaches here if Supabase fails or no userId)
             console.log('📖 Using static fallback questions');
             const gameQuestions = getQuestionsForGame(gameId);
-            setQuestions(gameQuestions);
+            if (gameQuestions && gameQuestions.length > 0) {
+                setQuestions(gameQuestions);
+            } else {
+                // Ultimate fallback - create sample questions
+                setQuestions([{
+                    id: 'fallback-1', title: 'Sample Question', scenario: 'What is your best move?',
+                    situation: 'You are on the button with 20BB', heroCards: ['Ah', 'Kh'], board: [],
+                    potSize: 12, heroPosition: 'BTN', heroStack: 20,
+                    options: [
+                        { id: 'fold', text: 'FOLD', isCorrect: false },
+                        { id: 'call', text: 'CALL', isCorrect: false },
+                        { id: 'raise', text: 'RAISE', isCorrect: true },
+                        { id: 'all-in', text: 'ALL-IN', isCorrect: false },
+                    ],
+                    explanation: 'Raise is correct with premium hands.',
+                }]);
+            }
             setLoading(false);
         }
 
