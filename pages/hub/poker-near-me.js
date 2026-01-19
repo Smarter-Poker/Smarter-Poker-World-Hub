@@ -128,150 +128,243 @@ export default function PokerNearMe() {
         <>
             <Head>
                 <title>Poker Near Me | Smarter.Poker</title>
-                <meta name="description" content="Find poker tournaments, cash games, and events near you. Discover the best poker rooms and upcoming events in your area." />
+                <meta name="description" content="Find poker casinos, card rooms, and tournament series near you. The most comprehensive poker venue database." />
             </Head>
 
             <div className="poker-near-me">
                 {/* Header */}
                 <header className="header">
-                    <Link href="/hub/news">
+                    <Link href="/hub">
                         <div className="back-link">
                             <Zap size={20} />
-                            <span>Back to News</span>
+                            <span>Back to Hub</span>
                         </div>
                     </Link>
                     <h1><MapPin size={28} /> Poker Near Me</h1>
-                    <p>Find tournaments, cash games, and events in your area</p>
+                    <p>Find casinos, poker clubs, and tournament series</p>
+
+                    {/* Stats */}
+                    <div className="stats-bar">
+                        <span><Building2 size={14} /> {venues.length} Venues</span>
+                        <span><Trophy size={14} /> {series.length} Series</span>
+                    </div>
                 </header>
 
-                {/* Search & Filters */}
+                {/* Main Tabs */}
+                <div className="main-tabs">
+                    <button
+                        className={`main-tab ${activeTab === 'venues' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('venues')}
+                    >
+                        <Building2 size={16} /> Poker Rooms
+                    </button>
+                    <button
+                        className={`main-tab ${activeTab === 'series' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('series')}
+                    >
+                        <Trophy size={16} /> Tournament Series
+                    </button>
+                </div>
+
+                {/* Controls */}
                 <div className="controls">
                     <div className="search-box">
                         <Search size={18} />
                         <input
                             type="text"
-                            placeholder="Search events, locations..."
+                            placeholder={activeTab === 'venues' ? "Search venues, cities..." : "Search series..."}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <div className="filters">
-                        {['all', 'tournament', 'cash', 'featured'].map(filter => (
-                            <button
-                                key={filter}
-                                className={`filter-btn ${activeFilter === filter ? 'active' : ''}`}
-                                onClick={() => setActiveFilter(filter)}
-                            >
-                                {filter === 'all' ? 'All Events' :
-                                    filter === 'tournament' ? 'Tournaments' :
-                                        filter === 'cash' ? 'Cash Games' : 'Featured'}
-                            </button>
-                        ))}
-                    </div>
+
+                    {activeTab === 'venues' && (
+                        <>
+                            {/* State Dropdown */}
+                            <div className="dropdown-wrap">
+                                <button className="dropdown-btn" onClick={() => setShowStateDropdown(!showStateDropdown)}>
+                                    {selectedState ? US_STATES.find(s => s.code === selectedState)?.name : 'All States'}
+                                    <ChevronDown size={16} />
+                                </button>
+                                {showStateDropdown && (
+                                    <div className="dropdown-menu">
+                                        <button onClick={() => { setSelectedState(''); setShowStateDropdown(false); }}>All States</button>
+                                        {US_STATES.map(s => (
+                                            <button key={s.code} onClick={() => { setSelectedState(s.code); setShowStateDropdown(false); }}>
+                                                {s.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Type Filter */}
+                            <div className="type-filters">
+                                {['all', 'casino', 'card_room', 'poker_club'].map(type => (
+                                    <button
+                                        key={type}
+                                        className={`filter-chip ${selectedType === type ? 'active' : ''}`}
+                                        onClick={() => setSelectedType(type)}
+                                    >
+                                        {type === 'all' ? 'All' :
+                                            type === 'casino' ? '🎰 Casinos' :
+                                                type === 'card_room' ? '🃏 Card Rooms' : '♠️ Clubs'}
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
 
-                {/* Featured Events */}
-                {featuredEvents.length > 0 && activeFilter !== 'cash' && (
-                    <section className="featured-section">
-                        <h2><Star size={20} /> Featured Events</h2>
-                        <div className="featured-grid">
-                            {featuredEvents.map(event => (
-                                <motion.div
-                                    key={event.id}
-                                    className="featured-card"
-                                    whileHover={{ y: -4 }}
-                                >
-                                    <div className="event-badge">Featured</div>
-                                    <h3>{event.name}</h3>
-                                    <div className="event-meta">
-                                        <span><MapPin size={14} /> {event.location}</span>
-                                        <span><Calendar size={14} /> {formatDate(event.event_date)}</span>
-                                    </div>
-                                    <div className="event-stats">
-                                        <div className="stat">
-                                            <DollarSign size={16} />
-                                            <span>Buy-in</span>
-                                            <strong>{formatMoney(event.buy_in)}</strong>
+                {/* Loading */}
+                {loading && (
+                    <div className="loading">
+                        <Loader className="spinner" size={32} />
+                        <span>Loading venues...</span>
+                    </div>
+                )}
+
+                {/* VENUES VIEW */}
+                {!loading && activeTab === 'venues' && (
+                    <section className="venues-section">
+                        {filteredVenues.length === 0 ? (
+                            <div className="no-results">
+                                <p>No venues found</p>
+                                <button onClick={() => { setSearchQuery(''); setSelectedState(''); setSelectedType('all'); }}>
+                                    Clear Filters
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="venues-grid">
+                                {filteredVenues.map((venue, i) => (
+                                    <motion.div
+                                        key={venue.id || i}
+                                        className={`venue-card ${venue.is_featured ? 'featured' : ''}`}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.03 }}
+                                        whileHover={{ y: -4 }}
+                                    >
+                                        {/* Header */}
+                                        <div className="venue-header">
+                                            <span className="venue-icon">{VENUE_ICONS[venue.venue_type] || '🎰'}</span>
+                                            <div className="venue-title">
+                                                <h3>{venue.name}</h3>
+                                                <span className="venue-type">{venue.venue_type?.replace('_', ' ')}</span>
+                                            </div>
+                                            <div className="trust-score">
+                                                <Star size={12} fill="#fbbf24" />
+                                                <span>{venue.trust_score?.toFixed(1) || '4.0'}</span>
+                                            </div>
                                         </div>
-                                        {event.guaranteed && (
-                                            <div className="stat">
-                                                <Trophy size={16} />
-                                                <span>GTD</span>
-                                                <strong>{formatMoney(event.guaranteed)}</strong>
+
+                                        {/* Location */}
+                                        <div className="venue-location">
+                                            <MapPin size={12} />
+                                            <span>{venue.city}, {venue.state}</span>
+                                        </div>
+
+                                        {/* Games */}
+                                        {venue.games_offered?.length > 0 && (
+                                            <div className="venue-games">
+                                                <Gamepad2 size={12} />
+                                                <div className="game-tags">
+                                                    {venue.games_offered.slice(0, 4).map(g => (
+                                                        <span key={g} className={`game-tag ${g.toLowerCase()}`}>{g}</span>
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
-                                    </div>
-                                    <button className="register-btn">
-                                        View Details <ChevronRight size={16} />
-                                    </button>
-                                </motion.div>
-                            ))}
-                        </div>
+
+                                        {/* Stakes */}
+                                        {venue.stakes_cash?.length > 0 && (
+                                            <div className="venue-stakes">
+                                                <CreditCard size={12} />
+                                                <span>{venue.stakes_cash.slice(0, 3).join(' • ')}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Footer */}
+                                        <div className="venue-footer">
+                                            <span className="tables"><Users size={12} /> {venue.poker_tables || '?'} tables</span>
+                                            <div className="venue-actions">
+                                                {venue.phone && (
+                                                    <a href={`tel:${venue.phone}`} className="action-btn" title="Call">
+                                                        <Phone size={14} />
+                                                    </a>
+                                                )}
+                                                {venue.website && (
+                                                    <a href={venue.website} target="_blank" rel="noopener noreferrer" className="action-btn" title="Website">
+                                                        <Globe size={14} />
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
                     </section>
                 )}
 
-                {/* All Events List */}
-                <section className="events-section">
-                    <h2><Calendar size={20} /> Upcoming Events</h2>
-
-                    {loading ? (
-                        <div className="loading">
-                            <Loader className="spinner" size={32} />
-                            <span>Finding events near you...</span>
-                        </div>
-                    ) : filteredEvents.length === 0 ? (
-                        <div className="no-results">
-                            <p>No events found matching your criteria</p>
-                            <button onClick={() => { setSearchQuery(''); setActiveFilter('all'); }}>
-                                Clear Filters
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="events-list">
-                            {filteredEvents.map((event, i) => (
-                                <motion.div
-                                    key={event.id}
-                                    className="event-row"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: i * 0.03 }}
-                                >
-                                    <div className="event-date">
-                                        <span className="day">{new Date(event.event_date).getDate()}</span>
-                                        <span className="month">{new Date(event.event_date).toLocaleDateString('en-US', { month: 'short' })}</span>
-                                    </div>
-                                    <div className="event-info">
-                                        <h4>{event.name}</h4>
-                                        <div className="event-details">
-                                            <span><MapPin size={12} /> {event.venue || event.location}</span>
-                                            <span className={`game-type ${event.game_type?.toLowerCase()}`}>{event.game_type}</span>
-                                            <span className={`format ${event.format?.toLowerCase().replace(' ', '-')}`}>{event.format}</span>
+                {/* SERIES VIEW */}
+                {!loading && activeTab === 'series' && (
+                    <section className="series-section">
+                        {filteredSeries.length === 0 ? (
+                            <div className="no-results">
+                                <p>No tournament series found</p>
+                            </div>
+                        ) : (
+                            <div className="series-grid">
+                                {filteredSeries.map((s, i) => (
+                                    <motion.div
+                                        key={s.id || i}
+                                        className={`series-card ${s.is_featured ? 'featured' : ''}`}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.05 }}
+                                        whileHover={{ y: -4 }}
+                                    >
+                                        {s.is_featured && <div className="featured-badge">Featured</div>}
+                                        <div className="series-header">
+                                            <span className="series-short">{s.short_name}</span>
+                                            <h3>{s.name}</h3>
                                         </div>
-                                    </div>
-                                    <div className="event-buyin">
-                                        <span className="label">Buy-in</span>
-                                        <strong>{formatMoney(event.buy_in)}</strong>
-                                    </div>
-                                    {event.guaranteed && (
-                                        <div className="event-gtd">
-                                            <span className="label">GTD</span>
-                                            <strong>{formatMoney(event.guaranteed)}</strong>
+                                        <div className="series-meta">
+                                            <span><MapPin size={12} /> {s.location}</span>
+                                            <span><Calendar size={12} /> {formatDate(s.start_date)} - {formatDate(s.end_date)}</span>
                                         </div>
-                                    )}
-                                    <button className="view-btn">
-                                        <ExternalLink size={16} />
-                                    </button>
-                                </motion.div>
-                            ))}
-                        </div>
-                    )}
-                </section>
+                                        <div className="series-stats">
+                                            <div className="stat">
+                                                <span>Main Event</span>
+                                                <strong>{formatMoney(s.main_event_buyin)}</strong>
+                                            </div>
+                                            <div className="stat">
+                                                <span>GTD</span>
+                                                <strong>{formatMoney(s.main_event_guaranteed)}</strong>
+                                            </div>
+                                            <div className="stat">
+                                                <span>Events</span>
+                                                <strong>{s.total_events}</strong>
+                                            </div>
+                                        </div>
+                                        {s.website && (
+                                            <a href={s.website} target="_blank" rel="noopener noreferrer" className="series-link">
+                                                View Schedule <ExternalLink size={12} />
+                                            </a>
+                                        )}
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                )}
 
                 {/* Location Notice */}
                 {userLocation && (
                     <div className="location-notice">
                         <Navigation size={16} />
-                        <span>Showing events based on your location</span>
+                        <span>Location detected</span>
                     </div>
                 )}
 
@@ -310,17 +403,51 @@ export default function PokerNearMe() {
                     }
 
                     .header h1 :global(svg) { color: #22c55e; }
+                    .header p { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 12px; }
 
-                    .header p {
-                        color: rgba(255,255,255,0.6);
-                        font-size: 14px;
+                    .stats-bar {
+                        display: flex;
+                        justify-content: center;
+                        gap: 24px;
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.5);
+                    }
+                    .stats-bar span { display: flex; align-items: center; gap: 6px; }
+
+                    /* Main Tabs */
+                    .main-tabs {
+                        display: flex;
+                        justify-content: center;
+                        gap: 8px;
+                        padding: 16px 24px;
+                        background: rgba(0,0,0,0.2);
                     }
 
+                    .main-tab {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 12px 24px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 10px;
+                        color: rgba(255,255,255,0.6);
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+
+                    .main-tab:hover { color: #fff; background: rgba(255,255,255,0.1); }
+                    .main-tab.active { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; border-color: transparent; }
+
+                    /* Controls */
                     .controls {
                         display: flex;
                         flex-wrap: wrap;
-                        gap: 16px;
-                        padding: 20px 24px;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 16px 24px;
                         border-bottom: 1px solid rgba(255,255,255,0.06);
                     }
 
@@ -330,142 +457,70 @@ export default function PokerNearMe() {
                         display: flex;
                         align-items: center;
                         gap: 10px;
-                        padding: 12px 16px;
+                        padding: 10px 14px;
                         background: rgba(255,255,255,0.05);
                         border: 1px solid rgba(255,255,255,0.08);
                         border-radius: 10px;
                     }
 
                     .search-box :global(svg) { color: rgba(255,255,255,0.4); }
+                    .search-box input { flex: 1; background: none; border: none; color: #fff; font-size: 14px; outline: none; }
 
-                    .search-box input {
-                        flex: 1;
-                        background: none;
-                        border: none;
-                        color: #fff;
-                        font-size: 14px;
-                        outline: none;
-                    }
-
-                    .filters {
+                    .dropdown-wrap { position: relative; }
+                    .dropdown-btn {
                         display: flex;
+                        align-items: center;
                         gap: 8px;
-                    }
-
-                    .filter-btn {
-                        padding: 10px 16px;
+                        padding: 10px 14px;
                         background: rgba(255,255,255,0.05);
                         border: 1px solid rgba(255,255,255,0.08);
                         border-radius: 8px;
+                        color: #fff;
+                        font-size: 13px;
+                        cursor: pointer;
+                    }
+
+                    .dropdown-menu {
+                        position: absolute;
+                        top: 100%;
+                        left: 0;
+                        margin-top: 4px;
+                        background: #1a1a2e;
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 8px;
+                        min-width: 180px;
+                        max-height: 300px;
+                        overflow-y: auto;
+                        z-index: 100;
+                    }
+
+                    .dropdown-menu button {
+                        display: block;
+                        width: 100%;
+                        padding: 10px 14px;
+                        background: none;
+                        border: none;
+                        color: rgba(255,255,255,0.8);
+                        font-size: 13px;
+                        text-align: left;
+                        cursor: pointer;
+                    }
+
+                    .dropdown-menu button:hover { background: rgba(255,255,255,0.1); }
+
+                    .type-filters { display: flex; gap: 6px; }
+                    .filter-chip {
+                        padding: 8px 12px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 20px;
                         color: rgba(255,255,255,0.6);
                         font-size: 12px;
-                        font-weight: 600;
                         cursor: pointer;
                         transition: all 0.2s;
                     }
-
-                    .filter-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
-                    .filter-btn.active { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; border-color: transparent; }
-
-                    .featured-section, .events-section {
-                        padding: 24px;
-                    }
-
-                    h2 {
-                        display: flex;
-                        align-items: center;
-                        gap: 10px;
-                        font-size: 18px;
-                        margin-bottom: 20px;
-                    }
-
-                    h2 :global(svg) { color: #fbbf24; }
-                    .events-section h2 :global(svg) { color: #00d4ff; }
-
-                    .featured-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                        gap: 16px;
-                    }
-
-                    .featured-card {
-                        position: relative;
-                        background: linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(22,163,74,0.05) 100%);
-                        border: 1px solid rgba(34,197,94,0.2);
-                        border-radius: 14px;
-                        padding: 20px;
-                        cursor: pointer;
-                    }
-
-                    .event-badge {
-                        position: absolute;
-                        top: 12px;
-                        right: 12px;
-                        padding: 4px 10px;
-                        background: linear-gradient(135deg, #fbbf24, #d97706);
-                        border-radius: 6px;
-                        font-size: 10px;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        color: #000;
-                    }
-
-                    .featured-card h3 {
-                        font-size: 16px;
-                        font-weight: 600;
-                        margin-bottom: 12px;
-                        padding-right: 60px;
-                    }
-
-                    .event-meta {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 12px;
-                        margin-bottom: 16px;
-                        font-size: 12px;
-                        color: rgba(255,255,255,0.6);
-                    }
-
-                    .event-meta span { display: flex; align-items: center; gap: 4px; }
-
-                    .event-stats {
-                        display: flex;
-                        gap: 16px;
-                        margin-bottom: 16px;
-                    }
-
-                    .stat {
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        gap: 4px;
-                        padding: 12px 16px;
-                        background: rgba(0,0,0,0.2);
-                        border-radius: 8px;
-                    }
-
-                    .stat :global(svg) { color: #22c55e; }
-                    .stat span { font-size: 10px; color: rgba(255,255,255,0.5); }
-                    .stat strong { font-size: 16px; }
-
-                    .register-btn {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 8px;
-                        width: 100%;
-                        padding: 12px;
-                        background: linear-gradient(135deg, #22c55e, #16a34a);
-                        border: none;
-                        border-radius: 8px;
-                        color: #fff;
-                        font-size: 13px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: transform 0.2s;
-                    }
-
-                    .register-btn:hover { transform: translateY(-2px); }
+                    .filter-chip:hover { color: #fff; }
+                    .filter-chip.active { background: rgba(0,212,255,0.2); color: #00d4ff; border-color: rgba(0,212,255,0.3); }
 
                     .loading, .no-results {
                         display: flex;
@@ -488,77 +543,87 @@ export default function PokerNearMe() {
                         cursor: pointer;
                     }
 
-                    .events-list {
-                        display: flex;
-                        flex-direction: column;
-                        gap: 8px;
+                    /* Venues Grid */
+                    .venues-section, .series-section { padding: 24px; }
+
+                    .venues-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+                        gap: 16px;
                     }
 
-                    .event-row {
-                        display: flex;
-                        align-items: center;
-                        gap: 16px;
-                        padding: 16px;
+                    .venue-card {
                         background: rgba(255,255,255,0.03);
                         border: 1px solid rgba(255,255,255,0.06);
-                        border-radius: 12px;
+                        border-radius: 14px;
+                        padding: 16px;
+                        cursor: pointer;
                         transition: all 0.2s;
                     }
 
-                    .event-row:hover {
-                        background: rgba(255,255,255,0.05);
-                        border-color: rgba(0,212,255,0.2);
+                    .venue-card:hover { border-color: rgba(0,212,255,0.3); }
+                    .venue-card.featured { border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.05); }
+
+                    .venue-header {
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 12px;
+                        margin-bottom: 12px;
                     }
 
-                    .event-date {
+                    .venue-icon { font-size: 24px; }
+                    .venue-title { flex: 1; }
+                    .venue-title h3 { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+                    .venue-type { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: capitalize; }
+
+                    .trust-score {
                         display: flex;
-                        flex-direction: column;
                         align-items: center;
-                        min-width: 50px;
-                        padding: 8px;
-                        background: rgba(0,212,255,0.1);
-                        border-radius: 8px;
-                    }
-
-                    .event-date .day { font-size: 20px; font-weight: 700; color: #00d4ff; }
-                    .event-date .month { font-size: 10px; text-transform: uppercase; color: rgba(255,255,255,0.6); }
-
-                    .event-info { flex: 1; }
-                    .event-info h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
-
-                    .event-details {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 10px;
-                        font-size: 11px;
-                        color: rgba(255,255,255,0.5);
-                    }
-
-                    .event-details span { display: flex; align-items: center; gap: 4px; }
-
-                    .game-type, .format {
-                        padding: 2px 6px;
-                        border-radius: 4px;
+                        gap: 4px;
+                        padding: 4px 8px;
+                        background: rgba(251,191,36,0.15);
+                        border-radius: 6px;
+                        font-size: 12px;
                         font-weight: 600;
+                        color: #fbbf24;
                     }
 
-                    .game-type.nlh { background: rgba(0,212,255,0.15); color: #00d4ff; }
-                    .game-type.plo { background: rgba(236,72,153,0.15); color: #ec4899; }
-                    .format.tournament { background: rgba(34,197,94,0.15); color: #22c55e; }
-                    .format.cash-game { background: rgba(251,191,36,0.15); color: #fbbf24; }
-
-                    .event-buyin, .event-gtd {
-                        text-align: center;
-                        min-width: 70px;
+                    .venue-location, .venue-games, .venue-stakes {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin-bottom: 8px;
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.6);
                     }
 
-                    .label { display: block; font-size: 10px; color: rgba(255,255,255,0.4); margin-bottom: 2px; }
-                    .event-buyin strong { color: #fbbf24; }
-                    .event-gtd strong { color: #22c55e; }
+                    .game-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+                    .game-tag {
+                        padding: 2px 6px;
+                        background: rgba(0,212,255,0.15);
+                        border-radius: 4px;
+                        font-size: 10px;
+                        font-weight: 600;
+                        color: #00d4ff;
+                    }
+                    .game-tag.plo { background: rgba(236,72,153,0.15); color: #ec4899; }
+                    .game-tag.mixed { background: rgba(168,85,247,0.15); color: #a855f7; }
 
-                    .view-btn {
-                        width: 36px;
-                        height: 36px;
+                    .venue-footer {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-top: 12px;
+                        padding-top: 12px;
+                        border-top: 1px solid rgba(255,255,255,0.06);
+                    }
+
+                    .tables { font-size: 11px; color: rgba(255,255,255,0.5); display: flex; align-items: center; gap: 4px; }
+
+                    .venue-actions { display: flex; gap: 6px; }
+                    .action-btn {
+                        width: 32px;
+                        height: 32px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -566,14 +631,99 @@ export default function PokerNearMe() {
                         border: 1px solid rgba(255,255,255,0.1);
                         border-radius: 8px;
                         color: rgba(255,255,255,0.6);
-                        cursor: pointer;
                         transition: all 0.2s;
                     }
 
-                    .view-btn:hover {
-                        background: rgba(0,212,255,0.2);
-                        color: #00d4ff;
+                    .action-btn:hover { background: rgba(0,212,255,0.2); color: #00d4ff; }
+
+                    /* Series Grid */
+                    .series-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+                        gap: 16px;
                     }
+
+                    .series-card {
+                        position: relative;
+                        background: linear-gradient(135deg, rgba(124,58,237,0.1) 0%, rgba(168,85,247,0.05) 100%);
+                        border: 1px solid rgba(124,58,237,0.2);
+                        border-radius: 14px;
+                        padding: 20px;
+                    }
+
+                    .series-card.featured { border-color: rgba(251,191,36,0.4); }
+
+                    .featured-badge {
+                        position: absolute;
+                        top: 12px;
+                        right: 12px;
+                        padding: 4px 10px;
+                        background: linear-gradient(135deg, #fbbf24, #d97706);
+                        border-radius: 6px;
+                        font-size: 10px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        color: #000;
+                    }
+
+                    .series-header { margin-bottom: 12px; }
+                    .series-short {
+                        display: inline-block;
+                        padding: 4px 8px;
+                        background: rgba(124,58,237,0.2);
+                        border-radius: 4px;
+                        font-size: 11px;
+                        font-weight: 700;
+                        color: #a855f7;
+                        margin-bottom: 8px;
+                    }
+
+                    .series-header h3 { font-size: 16px; font-weight: 600; }
+
+                    .series-meta {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 16px;
+                        margin-bottom: 16px;
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.6);
+                    }
+
+                    .series-meta span { display: flex; align-items: center; gap: 4px; }
+
+                    .series-stats {
+                        display: flex;
+                        gap: 12px;
+                        margin-bottom: 16px;
+                    }
+
+                    .series-stats .stat {
+                        flex: 1;
+                        padding: 10px;
+                        background: rgba(0,0,0,0.2);
+                        border-radius: 8px;
+                        text-align: center;
+                    }
+
+                    .series-stats .stat span { display: block; font-size: 10px; color: rgba(255,255,255,0.5); margin-bottom: 2px; }
+                    .series-stats .stat strong { font-size: 14px; color: #22c55e; }
+
+                    .series-link {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        padding: 10px;
+                        background: rgba(255,255,255,0.05);
+                        border-radius: 8px;
+                        color: #00d4ff;
+                        font-size: 12px;
+                        font-weight: 600;
+                        text-decoration: none;
+                        transition: background 0.2s;
+                    }
+
+                    .series-link:hover { background: rgba(0,212,255,0.1); }
 
                     .location-notice {
                         position: fixed;
@@ -591,12 +741,13 @@ export default function PokerNearMe() {
                     }
 
                     @media (max-width: 600px) {
-                        .event-row { flex-wrap: wrap; }
-                        .event-buyin, .event-gtd { display: none; }
-                        .filters { flex-wrap: wrap; }
+                        .controls { flex-direction: column; }
+                        .type-filters { flex-wrap: wrap; }
+                        .venues-grid, .series-grid { grid-template-columns: 1fr; }
                     }
                 `}</style>
             </div>
         </>
     );
 }
+
