@@ -1490,7 +1490,7 @@ export default function SocialMediaPage() {
                 const authorIds = [...new Set(mixedFeed.map(p => p.author_id).filter(Boolean))];
                 let authorMap = {};
                 if (authorIds.length) {
-                    const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url').in('id', authorIds);
+                    const { data: profiles } = await supabase.from('profiles').select('id, username, full_name, display_name_preference, avatar_url').in('id', authorIds);
                     if (profiles) authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
                 }
 
@@ -1509,7 +1509,14 @@ export default function SocialMediaPage() {
                     isFriend: friendIds.includes(p.author_id),
                     isFollowing: followingIds.includes(p.author_id),
                     author: {
-                        name: authorMap[p.author_id]?.username || 'Player',
+                        // Respect display_name_preference: 'full_name' shows full name, 'username' shows username
+                        name: (() => {
+                            const a = authorMap[p.author_id];
+                            if (!a) return 'Player';
+                            const pref = a.display_name_preference || 'full_name';
+                            if (pref === 'username') return a.username || a.full_name || 'Player';
+                            return a.full_name || a.username || 'Player';
+                        })(),
                         avatar: authorMap[p.author_id]?.avatar_url || null
                     }
                 }));
