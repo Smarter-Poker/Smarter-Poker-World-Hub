@@ -54,7 +54,53 @@ export default function TrainingPlayPage() {
 
             try {
                 // First try: Load from god-mode-service (solved_spots_gold)
-                // For now, fall back to clinic questions
+                console.log('🔍 Attempting to load from solved_spots_gold...');
+
+                const { data: gtoData, error: gtoError } = await supabase
+                    .from('solved_spots_gold')
+                    .select('*')
+                    .limit(20);
+
+                if (!gtoError && gtoData && gtoData.length > 0) {
+                    // Transform GTO scenarios to question format
+                    const gtoQuestions = gtoData.map((scenario, i) => ({
+                        id: scenario.id || `gto-${i}`,
+                        question_number: i + 1,
+                        board_cards: scenario.board_cards || [],
+                        street: scenario.street || 'Flop',
+                        stack_depth: scenario.stack_depth || 100,
+                        topology: scenario.topology || 'HU',
+                        strategy_matrix: scenario.strategy_matrix || {},
+                        macro_metrics: scenario.macro_metrics || {},
+                        scenario_hash: scenario.scenario_hash,
+                        // Pick a random hand from strategy_matrix as hero cards
+                        hero_cards: (() => {
+                            const hands = Object.keys(scenario.strategy_matrix || {});
+                            if (hands.length > 0) {
+                                const hand = hands[Math.floor(Math.random() * hands.length)];
+                                return [hand.slice(0, 2), hand.slice(2, 4)];
+                            }
+                            return ['As', 'Kh'];
+                        })(),
+                        villain_action: 'Raises to 2.5BB',
+                        correct_action: (() => {
+                            const hands = Object.keys(scenario.strategy_matrix || {});
+                            if (hands.length > 0) {
+                                const handData = scenario.strategy_matrix[hands[0]];
+                                return handData?.best_action?.toLowerCase() || 'call';
+                            }
+                            return 'call';
+                        })(),
+                        explanation: 'GTO solver recommendation.'
+                    }));
+
+                    setQuestions(gtoQuestions);
+                    console.log(`✅ Loaded ${gtoQuestions.length} GTO questions from solved_spots_gold`);
+                    return;
+                }
+
+                // Fallback: Load from TRAINING_CLINICS
+                console.log('📚 Falling back to TRAINING_CLINICS...');
 
                 if (levelData?.questions) {
                     // Transform clinic questions to god-mode format
@@ -92,7 +138,7 @@ export default function TrainingPlayPage() {
                     }));
 
                     setQuestions(transformedQuestions);
-                    console.log(`✅ Loaded ${transformedQuestions.length} questions for ${levelName}`);
+                    console.log(`✅ Loaded ${transformedQuestions.length} questions from TRAINING_CLINICS`);
                 } else {
                     setError('No questions found for this level');
                 }
