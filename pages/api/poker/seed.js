@@ -1,20 +1,15 @@
 /**
- * Seed Venues Script
- * Populates poker_venues table with comprehensive US venue data
+ * Admin Seed API Endpoint
+ * Server-side database population to bypass RLS
+ * 
+ * Usage: GET /api/poker/seed
  */
 
-require('dotenv').config({ path: '.env.local' });
-const { createClient } = require('@supabase/supabase-js');
-const fs = require('fs').promises;
-const path = require('path');
+import { createClient } from '@supabase/supabase-js';
+import fs from 'fs';
+import path from 'path';
 
-// Initialize Supabase client
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
-// Comprehensive venue data with precise lat/lng coordinates
+// Venue data (30+ major poker venues)
 const VENUES = [
     // === NEVADA (Las Vegas) ===
     { name: 'Bellagio Poker Room', venue_type: 'casino', address: '3600 S Las Vegas Blvd', city: 'Las Vegas', state: 'NV', country: 'US', phone: '(702) 693-7111', website: 'https://bellagio.mgmresorts.com', games_offered: ['NLH', 'PLO', 'Mixed'], stakes_cash: ['1/3', '2/5', '5/10', '10/20'], poker_tables: 40, hours_weekday: '24/7', hours_weekend: '24/7', lat: 36.1126, lng: -115.1767, is_featured: true, is_active: true },
@@ -69,76 +64,132 @@ const VENUES = [
     { name: 'Horseshoe Casino Tunica', venue_type: 'casino', address: '1021 Casino Center Dr', city: 'Robinsonville', state: 'MS', country: 'US', phone: '(800) 303-7463', website: 'https://caesars.com/horseshoe-tunica', games_offered: ['NLH', 'PLO'], stakes_cash: ['1/2', '2/5'], poker_tables: 15, hours_weekday: '24/7', hours_weekend: '24/7', lat: 34.8597, lng: -90.2897, is_featured: false, is_active: true },
 ];
 
-class VenueSeedService {
-    constructor() {
-        this.stats = {
-            inserted: 0,
-            errors: 0,
-            skipped: 0
-        };
+export default async function handler(req, res) {
+    // Security check
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        return res.status(500).json({
+            success: false,
+            error: 'MISSING_ADMIN_KEY',
+            message: 'Service role key not configured'
+        });
     }
 
-    async seedVenues() {
-        console.log('=== Venue Seeding Started ===\n');
-        console.log(`Target: ${VENUES.length} venues\n`);
-
-        for (const venue of VENUES) {
-            try {
-                // Insert venue
-                const { data, error } = await supabase
-                    .from('poker_venues')
-                    .upsert(venue, {
-                        onConflict: 'name,city,state',
-                        ignoreDuplicates: false
-                    })
-                    .select();
-
-                if (error) {
-                    console.error(`❌ Error inserting ${venue.name}:`, error.message);
-                    this.stats.errors++;
-                } else {
-                    console.log(`✅ Inserted: ${venue.name} (${venue.city}, ${venue.state})`);
-                    this.stats.inserted++;
-                }
-
-                // Small delay to avoid rate limiting
-                await new Promise(resolve => setTimeout(resolve, 100));
-
-            } catch (error) {
-                console.error(`❌ Exception for ${venue.name}:`, error.message);
-                this.stats.errors++;
-            }
-        }
-
-        console.log('\n=== Seeding Complete ===');
-        console.log(`✅ Inserted: ${this.stats.inserted}`);
-        console.log(`❌ Errors: ${this.stats.errors}`);
-        console.log(`⏭️  Skipped: ${this.stats.skipped}`);
-
-        return this.stats;
-    }
-}
-
-// Main execution
-async function main() {
-    const seeder = new VenueSeedService();
+    // Initialize Supabase with service role key (bypasses RLS)
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
 
     try {
-        const stats = await seeder.seedVenues();
+        console.log('🚀 Starting database seed...');
 
-        console.log('\n📊 Final Stats:');
-        console.log(JSON.stringify(stats, null, 2));
+        // STEP A: Clear Deck (COMMENTED OUT FOR SAFETY)
+        // Uncomment only if you want to wipe existing data
+        // await supabase.from('poker_venues').delete().neq('id', 0);
+        // await supabase.from('tournament_series').delete().neq('id', 0);
 
-        process.exit(0);
+        // STEP B: Inject Venues
+        console.log(`📍 Inserting ${VENUES.length} venues...`);
+        const { data: venuesData, error: venuesError } = await supabase
+            .from('poker_venues')
+            .upsert(VENUES, {
+                onConflict: 'name,city,state',
+                ignoreDuplicates: false
+            })
+            .select();
+
+        if (venuesError) {
+            console.error('Venues error:', venuesError);
+            throw new Error(`Venues insert failed: ${venuesError.message}`);
+        }
+
+        console.log(`✅ Inserted ${venuesData?.length || VENUES.length} venues`);
+
+        // STEP C: Inject Tournaments
+        console.log('🏆 Loading tournament data...');
+
+        // Load tournament JSON
+        const jsonPath = path.join(process.cwd(), '../Downloads/US_Poker_Series_Master_PokerAtlas_Upcoming_asof_2026-01-18.json');
+        let tournamentsRaw;
+
+        try {
+            const fileContent = fs.readFileSync(jsonPath, 'utf8');
+            tournamentsRaw = JSON.parse(fileContent);
+        } catch (fileError) {
+            console.warn('Could not load tournament JSON, using empty array');
+            tournamentsRaw = [];
+        }
+
+        // Filter to next 90 days
+        const now = new Date();
+        const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+
+        const upcomingSeries = tournamentsRaw.filter(s => {
+            const startDate = new Date(s.start_date);
+            return startDate >= now && startDate <= ninetyDaysFromNow;
+        });
+
+        // Transform to our schema
+        const tournaments = upcomingSeries.map(series => {
+            const nameLower = series.series_name.toLowerCase();
+            let seriesType = 'regional';
+
+            if (nameLower.includes('wsop') || nameLower.includes('wpt') || nameLower.includes('lapc')) {
+                seriesType = 'major';
+            } else if (nameLower.includes('circuit') || nameLower.includes('mspt') || nameLower.includes('rgps')) {
+                seriesType = 'circuit';
+            }
+
+            const isFeatured = seriesType === 'major' ||
+                nameLower.includes('wsop') ||
+                nameLower.includes('wpt') ||
+                (series.event_count && series.event_count > 30);
+
+            return {
+                name: series.series_name,
+                short_name: series.series_name.substring(0, 10).toUpperCase(),
+                venue_name: series.venue,
+                location: `${series.city}, ${series.state}`,
+                start_date: series.start_date,
+                end_date: series.end_date,
+                total_events: series.event_count || null,
+                series_type: seriesType,
+                is_featured: isFeatured,
+                website: series.source_url || null,
+            };
+        });
+
+        console.log(`🏆 Inserting ${tournaments.length} tournament series...`);
+
+        const { data: tournamentsData, error: tournamentsError } = await supabase
+            .from('tournament_series')
+            .upsert(tournaments, {
+                onConflict: 'name,start_date',
+                ignoreDuplicates: false
+            })
+            .select();
+
+        if (tournamentsError) {
+            console.error('Tournaments error:', tournamentsError);
+            throw new Error(`Tournaments insert failed: ${tournamentsError.message}`);
+        }
+
+        console.log(`✅ Inserted ${tournamentsData?.length || tournaments.length} tournaments`);
+
+        // Success response
+        return res.status(200).json({
+            success: true,
+            venues_added: venuesData?.length || VENUES.length,
+            tournaments_added: tournamentsData?.length || tournaments.length,
+            message: 'Database seeded successfully'
+        });
+
     } catch (error) {
-        console.error('\n❌ Seeding failed:', error);
-        process.exit(1);
+        console.error('❌ Seed failed:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 }
-
-// Run if executed directly
-if (require.main === module) {
-    main();
-}
-
-module.exports = VenueSeedService;
