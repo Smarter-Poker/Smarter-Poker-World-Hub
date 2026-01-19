@@ -593,34 +593,29 @@ export default function GodModeTrainingTable({
 
         setGameState(GameState.EVALUATING);
 
-        // Get strategy matrix from question
-        const strategyMatrix = currentQuestion?.strategy_matrix || {};
-        const heroHand = 'AsKh'; // TODO: Get actual hero hand
-        const handStrategy = strategyMatrix[heroHand];
+        // Normalize action to lowercase for comparison
+        const userAction = action.toLowerCase();
+
+        // Get correct action from question (supports old format and new format)
+        const correctAction = (
+            currentQuestion?.correct_action ||
+            currentQuestion?.correctAction ||
+            ''
+        ).toLowerCase();
 
         let verdict = Verdict.BLUNDER;
         let evLoss = 0;
-        let explanation = 'Action not found in GTO solution.';
+        let explanation = currentQuestion?.explanation || 'Action not found in GTO solution.';
 
-        if (handStrategy) {
-            const actionData = handStrategy.actions?.[action];
-
-            if (actionData && actionData.freq > 0) {
-                evLoss = handStrategy.max_ev - actionData.ev;
-
-                if (evLoss === 0) {
-                    verdict = Verdict.PERFECT;
-                    explanation = 'Perfect play! This is the highest EV action.';
-                } else if (evLoss < 0.05) {
-                    verdict = Verdict.ACCEPTABLE;
-                    explanation = `Good play. ${handStrategy.best_action} is slightly better but this is acceptable.`;
-                } else {
-                    verdict = Verdict.BLUNDER;
-                    explanation = `${handStrategy.best_action} would be better here. EV loss: ${(evLoss * 100).toFixed(1)}%.`;
-                }
-            } else {
-                explanation = currentQuestion?.explanation || 'This action is not recommended by GTO.';
-            }
+        // Simple case-insensitive match against correctAction
+        if (userAction === correctAction) {
+            verdict = Verdict.PERFECT;
+            explanation = currentQuestion?.explanation || 'Perfect play! This is the correct action.';
+            evLoss = 0;
+        } else {
+            // Wrong answer
+            verdict = Verdict.BLUNDER;
+            explanation = `The correct action was ${correctAction.toUpperCase()}. ${currentQuestion?.explanation || ''}`;
         }
 
         // Audio feedback
