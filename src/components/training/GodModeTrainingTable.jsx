@@ -696,15 +696,69 @@ export default function GodModeTrainingTable({
         let evLoss = 0;
         let explanation = currentQuestion?.explanation || 'Action not found in GTO solution.';
 
-        // Simple case-insensitive match against correctAction
-        if (userAction === correctAction) {
-            verdict = Verdict.PERFECT;
-            explanation = currentQuestion?.explanation || 'Perfect play! This is the correct action.';
-            evLoss = 0;
+        // ─────────────────────────────────────────────────────────────────────
+        // GTO BRAIN: Check strategy_matrix for mixed strategies
+        // ─────────────────────────────────────────────────────────────────────
+        const strategyMatrix = currentQuestion?.strategy_matrix || {};
+        const heroCards = currentQuestion?.hero_cards || currentQuestion?.heroCards || [];
+        const handKey = heroCards.join('');
+        const handStrategy = strategyMatrix[handKey] || null;
+
+        if (handStrategy && handStrategy.actions) {
+            // Look up user's chosen action in strategy_matrix
+            const actionKey = userAction.charAt(0).toUpperCase() + userAction.slice(1); // "call" -> "Call"
+            const actionData = handStrategy.actions[actionKey];
+
+            if (actionData) {
+                // Mixed Strategy Check: If frequency > 0, this action is acceptable
+                const frequency = actionData.freq || actionData.frequency || 0;
+                evLoss = actionData.ev_loss || actionData.evLoss || 0;
+
+                if (frequency >= 0.95) {
+                    // Pure strategy - this IS the correct action
+                    verdict = Verdict.PERFECT;
+                    explanation = currentQuestion?.explanation || 'Perfect! This is the GTO recommended play.';
+                } else if (frequency > 0) {
+                    // Mixed strategy - this is acceptable but not optimal
+                    // ACCEPTABLE if EV loss is small (< 0.05bb)
+                    if (evLoss < 0.05) {
+                        verdict = Verdict.PERFECT;
+                        explanation = `Perfect! GTO recommends this ${Math.round(frequency * 100)}% of the time.`;
+                    } else if (evLoss < 0.1) {
+                        verdict = Verdict.ACCEPTABLE;
+                        explanation = `Acceptable. GTO uses this ${Math.round(frequency * 100)}% (EV loss: ${evLoss.toFixed(2)}bb).`;
+                    } else {
+                        verdict = Verdict.BLUNDER;
+                        explanation = `Not optimal. EV loss: ${evLoss.toFixed(2)}bb. Best action: ${handStrategy.best_action || correctAction.toUpperCase()}.`;
+                    }
+                } else {
+                    // Frequency is 0 - this is a blunder
+                    verdict = Verdict.BLUNDER;
+                    const maxEv = handStrategy.max_ev || 0;
+                    const userEv = actionData.ev || 0;
+                    evLoss = maxEv - userEv;
+                    explanation = `Blunder! EV loss: ${Math.abs(evLoss).toFixed(2)}bb. Correct: ${handStrategy.best_action || correctAction.toUpperCase()}.`;
+                }
+            } else {
+                // Action not in strategy matrix - check against correctAction
+                if (userAction === correctAction) {
+                    verdict = Verdict.PERFECT;
+                    explanation = currentQuestion?.explanation || 'Perfect play!';
+                } else {
+                    verdict = Verdict.BLUNDER;
+                    explanation = `The correct action was ${correctAction.toUpperCase()}. ${currentQuestion?.explanation || ''}`;
+                }
+            }
         } else {
-            // Wrong answer
-            verdict = Verdict.BLUNDER;
-            explanation = `The correct action was ${correctAction.toUpperCase()}. ${currentQuestion?.explanation || ''}`;
+            // No strategy matrix - fall back to simple case-insensitive match
+            if (userAction === correctAction) {
+                verdict = Verdict.PERFECT;
+                explanation = currentQuestion?.explanation || 'Perfect play! This is the correct action.';
+                evLoss = 0;
+            } else {
+                verdict = Verdict.BLUNDER;
+                explanation = `The correct action was ${correctAction.toUpperCase()}. ${currentQuestion?.explanation || ''}`;
+            }
         }
 
         // Play chips sound on bet/raise actions
