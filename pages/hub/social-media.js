@@ -108,39 +108,68 @@ function getYouTubeThumbnail(url) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🖼️ VIDEO THUMBNAIL COMPONENT - Robust with fallback for invalid YouTube IDs
+// YouTube returns a gray placeholder (not 404) for invalid videos, so we need
+// to detect the placeholder by checking the image dimensions after load.
+// The default "Video Unavailable" placeholder is 120x90 pixels.
 // ═══════════════════════════════════════════════════════════════════════════
 
 function VideoThumbnail({ url, style = {} }) {
     const [thumbnailError, setThumbnailError] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(false);
+    const imgRef = useRef(null);
     const thumbnailUrl = getYouTubeThumbnail(url);
 
-    // If thumbnail failed to load or no thumbnail URL, show fallback
+    // Fallback UI for invalid/unavailable videos
+    const FallbackUI = () => (
+        <div style={{
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            ...style
+        }}>
+            <span style={{ fontSize: 48, marginBottom: 8 }}>🎬</span>
+            <span style={{ fontSize: 14, opacity: 0.8 }}>Video</span>
+        </div>
+    );
+
+    // If thumbnail failed to load, no URL, or detected as placeholder, show fallback
     if (thumbnailError || !thumbnailUrl) {
-        return (
-            <div style={{
-                width: '100%',
-                height: '100%',
-                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                ...style
-            }}>
-                <span style={{ fontSize: 48, marginBottom: 8 }}>🎬</span>
-                <span style={{ fontSize: 14, opacity: 0.8 }}>Video</span>
-            </div>
-        );
+        return <FallbackUI />;
     }
 
+    const handleLoad = (e) => {
+        setIsLoaded(true);
+        // YouTube's "Video Unavailable" placeholder is 120x90
+        // Real thumbnails are 480x360 (hqdefault) or higher
+        const img = e.target;
+        if (img.naturalWidth <= 120 && img.naturalHeight <= 90) {
+            setThumbnailError(true);
+        }
+    };
+
     return (
-        <img
-            src={thumbnailUrl}
-            alt="Video thumbnail"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', ...style }}
-            onError={() => setThumbnailError(true)}
-        />
+        <>
+            {!isLoaded && !thumbnailError && <FallbackUI />}
+            <img
+                ref={imgRef}
+                src={thumbnailUrl}
+                alt="Video thumbnail"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: (isLoaded && !thumbnailError) ? 'block' : 'none',
+                    ...style
+                }}
+                onLoad={handleLoad}
+                onError={() => setThumbnailError(true)}
+            />
+        </>
     );
 }
 
