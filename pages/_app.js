@@ -15,6 +15,7 @@ import { ThemeProvider } from '../src/providers/ThemeProvider';
 import { UnreadProvider } from '../src/hooks/useUnreadCount';
 import { SoundEngine } from '../src/audio/SoundEngine';
 import { AvatarProvider } from '../src/contexts/AvatarContext';
+import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
 import ToastContainer from '../src/components/ui/ToastContainer';
 
 // Dynamic import to avoid SSR issues with celebration animations
@@ -138,11 +139,13 @@ export default function App({ Component, pageProps }) {
       <ThemeProvider>
         <UnreadProvider>
           <AvatarProvider>
-            <NavigationGuard>
-              <Component {...pageProps} />
-              <CelebrationManager />
-              <ToastContainer />
-            </NavigationGuard>
+            <ExternalLinkProvider>
+              <NavigationGuard>
+                <Component {...pageProps} />
+                <CelebrationManager />
+                <ToastContainer />
+              </NavigationGuard>
+            </ExternalLinkProvider>
           </AvatarProvider>
         </UnreadProvider>
       </ThemeProvider>
