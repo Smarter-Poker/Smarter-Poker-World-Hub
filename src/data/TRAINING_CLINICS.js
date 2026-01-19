@@ -348,41 +348,34 @@ export const TRAINING_CLINICS = [
             heroStack: 15,
             villainStack: 25
         },
-        questions: [
+        // Level 1 Questions (20) - ICM Fundamentals
+        levels: [
             {
-                id: 'q1',
-                street: 'preflop',
-                villainAction: 'Shoves All-In (25BB)',
-                correctAction: 'call',
-                explanation: 'With AKs and 15BB, you are getting the right ICM-adjusted odds to call a shove. AKs has ~45% equity against a wide pushing range.'
-            },
-            {
-                id: 'q2',
-                street: 'preflop',
-                villainAction: 'Raises to 2.5BB',
-                correctAction: 'raise',
-                explanation: 'With AKs, 3-betting is the optimal play. Your hand is too strong to just call, and you want to build the pot preflop.'
-            },
-            {
-                id: 'q3',
-                street: 'preflop',
-                villainAction: 'Limps',
-                correctAction: 'raise',
-                explanation: 'Against a limper, you should always raise with premium hands like AKs. Isolating the limper gives you position and initiative.'
-            },
-            {
-                id: 'q4',
-                street: 'preflop',
-                villainAction: 'Min-raises to 2BB',
-                correctAction: 'raise',
-                explanation: 'A min-raise often indicates weakness or a trapping range. With AKs, 3-bet for value and to deny equity to weaker hands.'
-            },
-            {
-                id: 'q5',
-                street: 'preflop',
-                villainAction: '4-Bets to 12BB',
-                correctAction: 'call',
-                explanation: 'Against a 4-bet with 15BB effective, calling is correct. Shoving risks your tournament life, and AKs plays well postflop in position.'
+                level: 1,
+                name: 'ICM Basics',
+                passThreshold: 85,
+                questions: [
+                    { id: 'L1Q01', heroCards: ['Ah', 'Ks'], position: 'BTN', stackDepth: 15, villainAction: 'Shoves All-In (25BB)', correctAction: 'call', lawId: 'LAW_07', explanation: 'AKs vs wide shove = call. ICM adjusted, you have 45% equity.' },
+                    { id: 'L1Q02', heroCards: ['Ah', 'Ks'], position: 'BTN', stackDepth: 15, villainAction: 'Raises to 2.5BB', correctAction: 'raise', lawId: 'LAW_06', explanation: '3-bet for value with AKs. Denies equity from worse hands.' },
+                    { id: 'L1Q03', heroCards: ['Ah', 'Ks'], position: 'BB', stackDepth: 15, villainAction: 'Limps', correctAction: 'raise', lawId: 'LAW_03', explanation: 'Isolate the limper. Premium hand + position = raise.' },
+                    { id: 'L1Q04', heroCards: ['Qs', 'Qh'], position: 'CO', stackDepth: 20, villainAction: 'Shoves All-In (12BB)', correctAction: 'call', lawId: 'LAW_07', explanation: 'QQ vs 12BB shove is a snap call. You dominate most shoving ranges.' },
+                    { id: 'L1Q05', heroCards: ['Jc', 'Jd'], position: 'BB', stackDepth: 10, villainAction: 'Shoves All-In (15BB)', correctAction: 'call', lawId: 'LAW_07', explanation: 'JJ with 10BB effective = call. You are ahead of villain range.' },
+                    { id: 'L1Q06', heroCards: ['As', 'Qc'], position: 'BTN', stackDepth: 18, villainAction: 'Raises to 3BB', correctAction: 'raise', lawId: 'LAW_06', explanation: 'AQo in position vs open = 3-bet for value and position.' },
+                    { id: 'L1Q07', heroCards: ['Kh', 'Qh'], position: 'SB', stackDepth: 12, villainAction: 'Folds to You', correctAction: 'raise', lawId: 'LAW_01', explanation: 'KQs in SB = steal the blinds. Fold equity + equity when called.' },
+                    { id: 'L1Q08', heroCards: ['Ts', 'Tc'], position: 'CO', stackDepth: 25, villainAction: '3-Bets to 9BB', correctAction: 'call', lawId: 'LAW_08', explanation: 'TT vs 3-bet = call with deep stacks. Set mining + implied odds.' },
+                    { id: 'L1Q09', heroCards: ['9h', '9c'], position: 'BTN', stackDepth: 8, villainAction: 'Folds to You', correctAction: 'raise', lawId: 'LAW_01', explanation: 'With 8BB and 99, shove for fold equity. Push/fold territory.' },
+                    { id: 'L1Q10', heroCards: ['As', 'Js'], position: 'BB', stackDepth: 20, villainAction: 'Raises to 2.2BB', correctAction: 'call', lawId: 'LAW_03', explanation: 'AJs defends well OOP. Can call or 3-bet, calling is fine.' },
+                    { id: 'L1Q11', heroCards: ['Kc', 'Jc'], position: 'BTN', stackDepth: 30, villainAction: 'Min-raises to 2BB', correctAction: 'raise', lawId: 'LAW_06', explanation: 'KJs vs min-raise in position = 3-bet for value and position.' },
+                    { id: 'L1Q12', heroCards: ['8h', '8d'], position: 'CO', stackDepth: 15, villainAction: 'Shoves All-In (10BB)', correctAction: 'call', lawId: 'LAW_07', explanation: '88 vs short stack shove = call. Flipping at worst, often ahead.' },
+                    { id: 'L1Q13', heroCards: ['Ac', '5c'], position: 'BTN', stackDepth: 10, villainAction: 'Folds to You', correctAction: 'raise', lawId: 'LAW_01', explanation: 'A5s with 10BB = shove. Good blockers and fold equity.' },
+                    { id: 'L1Q14', heroCards: ['Kh', 'Ts'], position: 'SB', stackDepth: 20, villainAction: 'BB Only', correctAction: 'raise', lawId: 'LAW_01', explanation: 'KTo in SB vs BB only = steal. Wide stealing range here.' },
+                    { id: 'L1Q15', heroCards: ['7s', '7c'], position: 'BB', stackDepth: 22, villainAction: 'Raises to 2.5BB', correctAction: 'call', lawId: 'LAW_08', explanation: '77 in BB vs raise = call. Set mining with good odds.' },
+                    { id: 'L1Q16', heroCards: ['Ad', 'Td'], position: 'CO', stackDepth: 18, villainAction: 'Folds to You', correctAction: 'raise', lawId: 'LAW_06', explanation: 'ATs in CO = standard open. Premium suited broadway.' },
+                    { id: 'L1Q17', heroCards: ['6c', '6h'], position: 'BTN', stackDepth: 6, villainAction: 'Folds to You', correctAction: 'raise', lawId: 'LAW_01', explanation: '66 with 6BB = push. Any pair in push/fold zone is a shove.' },
+                    { id: 'L1Q18', heroCards: ['Ks', 'Qs'], position: 'BB', stackDepth: 14, villainAction: 'Shoves All-In (18BB)', correctAction: 'call', lawId: 'LAW_07', explanation: 'KQs vs shove with 14BB = call. Good equity vs shoving range.' },
+                    { id: 'L1Q19', heroCards: ['As', '8s'], position: 'SB', stackDepth: 11, villainAction: 'BB Only', correctAction: 'raise', lawId: 'LAW_01', explanation: 'A8s in SB = shove vs BB. Strong stealing candidate.' },
+                    { id: 'L1Q20', heroCards: ['5d', '5h'], position: 'CO', stackDepth: 9, villainAction: 'Folds to You', correctAction: 'raise', lawId: 'LAW_01', explanation: '55 with 9BB = shove. Push/fold mode, pairs have fold equity.' }
+                ]
             }
         ]
     },

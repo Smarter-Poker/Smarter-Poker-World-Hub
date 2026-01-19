@@ -20,10 +20,20 @@ import { TRAINING_CLINICS } from '../../data/TRAINING_CLINICS';
 // TypeScript interfaces
 interface Question {
     id: string;
-    street: string;
+    heroCards: string[];
+    position: string;
+    stackDepth: number;
     villainAction: string;
     correctAction: string;
+    lawId: string;
     explanation: string;
+}
+
+interface Level {
+    level: number;
+    name: string;
+    passThreshold: number;
+    questions: Question[];
 }
 
 interface StartingState {
@@ -41,7 +51,8 @@ interface Clinic {
     name: string;
     title?: string;
     startingState?: StartingState;
-    questions?: Question[];
+    questions?: Question[];  // Legacy support
+    levels?: Level[];        // New structure
 }
 
 // Game Phase Enum
@@ -109,11 +120,15 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     // Session complete state
     const [sessionComplete, setSessionComplete] = useState(false);
 
+    // Get questions from levels or legacy questions array
+    const currentLevel = clinic.levels?.[0] || null;
+    const questions = currentLevel?.questions || clinic.questions || [];
+
     // PHASE 3: CINEMATIC DEAL SEQUENCE
     useEffect(() => {
-        if (!clinic.startingState || !clinic.questions) return;
+        if (questions.length === 0) return;
 
-        const question = clinic.questions[questionIndex];
+        const question = questions[questionIndex];
         if (!question) return;
 
         // T+0ms: Reset to IDLE
@@ -125,11 +140,12 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         setShowFeedback(false);
         setFlashColor(null);
 
-        // T+500ms: Deal Hero Cards
+        // T+500ms: Deal Hero Cards (from question or startingState)
         const dealTimer = setTimeout(() => {
             setGamePhase(GamePhase.DEALING);
-            setHeroCards(clinic.startingState?.heroCards || ['Ah', 'Kh']);
-            setPot(clinic.startingState?.pot || 12);
+            // Use per-question heroCards if available, fallback to startingState
+            setHeroCards(question.heroCards || clinic.startingState?.heroCards || ['Ah', 'Kh']);
+            setPot(question.stackDepth || clinic.startingState?.pot || 12);
             setBoardCards(clinic.startingState?.board || []);
             // playSound('deal'); // TODO: Add audio
         }, 500);
@@ -163,14 +179,20 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         // Lock buttons immediately
         setGamePhase(GamePhase.EVALUATING);
 
-        // Get current question
-        const question = clinic.questions?.[questionIndex];
+        // Get current question from the questions array
+        const question = questions[questionIndex];
         if (!question) return;
 
         // Check if correct
         const correct = action.toLowerCase() === question.correctAction.toLowerCase();
         setIsCorrect(correct);
         setExplanation(question.explanation || 'Good decision!');
+
+        // Log law violation if incorrect (for leak detection)
+        if (!correct && question.lawId) {
+            console.log(`⚠️ LEAK DETECTED: ${question.lawId}`);
+            // TODO: Insert into user_leaks table via Supabase
+        }
 
         // Calculate XP
         const baseXP = correct ? 100 : 0;
@@ -194,7 +216,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             setShowFeedback(true);
         }, 400);
 
-    }, [gamePhase, clinic, questionIndex, onAnswer]);
+    }, [gamePhase, questions, questionIndex, onAnswer]);
 
     // PHASE 5: RESOLUTION - Dismiss feedback and transition
     const handleDismissFeedback = useCallback(() => {
@@ -208,7 +230,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         // Move to next question after delay
         setTimeout(() => {
             const nextIndex = questionIndex + 1;
-            const totalQuestions = clinic.questions?.length || 1;
+            const totalQuestions = questions.length;
 
             if (nextIndex >= totalQuestions) {
                 // Session complete - show Victory Screen
@@ -218,7 +240,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                 setQuestionIndex(nextIndex);
             }
         }, 500);
-    }, [questionIndex, clinic, score, isCorrect]);
+    }, [questionIndex, questions, score, isCorrect]);
 
     // Handle replay
     const handleReplay = useCallback(() => {
