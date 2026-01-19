@@ -546,44 +546,32 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                             type: 'video'
                         });
                     } else {
-                        // For non-YouTube links, generate preview from URL
-                        let parsedUrl;
+                        // For non-YouTube links, fetch real metadata via API
                         try {
-                            parsedUrl = new URL(detectedUrl);
-                        } catch {
-                            setError('Invalid URL');
-                            setLinkLoading(false);
-                            return;
+                            const response = await fetch(`/api/link-preview?url=${encodeURIComponent(detectedUrl)}`);
+                            const metadata = await response.json();
+
+                            setLinkPreview({
+                                url: detectedUrl,
+                                title: metadata.title || 'Link',
+                                description: metadata.description || null,
+                                image: metadata.image || null,
+                                domain: metadata.siteName || new URL(detectedUrl).hostname.replace(/^www\./i, ''),
+                                type: 'link'
+                            });
+                        } catch (apiError) {
+                            console.error('Link preview API error:', apiError);
+                            // Fallback to domain-only preview
+                            const domain = new URL(detectedUrl).hostname.replace(/^www\./i, '');
+                            setLinkPreview({
+                                url: detectedUrl,
+                                title: domain,
+                                description: null,
+                                image: null,
+                                domain: domain,
+                                type: 'link'
+                            });
                         }
-
-                        const domain = parsedUrl.hostname.replace(/^www\./i, '');
-
-                        // Extract title from URL path - take the last meaningful segment
-                        const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
-                        const lastPart = pathParts[pathParts.length - 1] || '';
-
-                        // Clean up the title: replace dashes with spaces, remove pure numbers at start
-                        let title = lastPart
-                            .replace(/-/g, ' ')           // dashes to spaces
-                            .replace(/^\d+\s*/g, '')      // remove leading numbers
-                            .trim();
-
-                        // Capitalize words
-                        if (title) {
-                            title = title.split(' ')
-                                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                                .join(' ');
-                        } else {
-                            title = domain; // Fallback to domain
-                        }
-
-                        setLinkPreview({
-                            url: detectedUrl,
-                            title: title,
-                            image: null, // Will show placeholder
-                            domain: domain,
-                            type: 'link'
-                        });
                     }
                 } catch (err) {
                     console.error('Link preview error:', err);
@@ -819,9 +807,22 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                                     <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase', marginBottom: 4 }}>
                                         {linkPreview.domain}
                                     </div>
-                                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: linkPreview.description ? 6 : 0 }}>
                                         {linkPreview.title}
                                     </div>
+                                    {linkPreview.description && (
+                                        <div style={{
+                                            fontSize: 12,
+                                            color: C.textSec,
+                                            lineHeight: 1.4,
+                                            overflow: 'hidden',
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: 'vertical'
+                                        }}>
+                                            {linkPreview.description}
+                                        </div>
+                                    )}
                                 </div>
                                 {/* Remove Button */}
                                 <button
