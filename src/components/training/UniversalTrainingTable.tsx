@@ -207,18 +207,16 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         setIsCorrect(correct);
         setExplanation(question.explanation || 'Good decision!');
 
-        // Calculate XP and log to Supabase (Engine 4: Accountant)
+        // Track score locally (XP awarded at level completion by XP Engine, not per question)
         const baseXP = correct ? 100 : 0;
         setXpEarned(baseXP);
 
         if (correct) {
             setScore(prev => prev + 1);
             setTotalXP(prev => prev + baseXP);
-
-            // Log correct answer to Supabase
-            logCorrectAnswer(clinic?.id || gameId, questionIndex, baseXP).catch(console.error);
+            // NOTE: XP is NOT logged here - awarded by automated XP engine at level completion
         } else {
-            // Log mistake to Supabase with lawId for leak detection
+            // Log mistake to Supabase with lawId for leak detection (per question)
             if (question.lawId) {
                 console.log(`⚠️ LEAK DETECTED: ${question.lawId}`);
                 logMistake(clinic?.id || gameId, questionIndex, question.lawId, clinic?.id)
