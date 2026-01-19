@@ -263,7 +263,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
 
     // PHASE 6: VICTORY SCREEN
     if (sessionComplete) {
-        const totalQuestions = clinic.questions?.length || 1;
+        const totalQuestions = questions.length;
         const accuracy = Math.round((score / totalQuestions) * 100);
         const passed = accuracy >= 85;
 
@@ -411,7 +411,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                     color: '#fff',
                     fontSize: 14
                 }}>
-                    <span>Q: {questionIndex + 1}/{clinic.questions?.length || 1}</span>
+                    <span>Q: {questionIndex + 1}/{questions.length}</span>
                     <span style={{ color: '#4ade80' }}>✓ {score}</span>
                     <span style={{ color: '#fbbf24' }}>XP: {totalXP}</span>
                 </div>
