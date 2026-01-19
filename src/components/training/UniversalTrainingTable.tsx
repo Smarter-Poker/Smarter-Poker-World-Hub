@@ -205,6 +205,10 @@ export function UniversalTrainingTable({
     const [timeLeft, setTimeLeft] = useState(21);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+    // LAW 3: Dealer button position
+    const [dealerSeat, setDealerSeat] = useState('v7');
+    const DEALER_SEATS = ['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8'];
+
     // Hand data
     const [heroCards, setHeroCards] = useState<string[]>(['As', 'Kh']);
     const [villainAction, setVillainAction] = useState('Bets 2.5 BB');
@@ -238,8 +242,14 @@ export function UniversalTrainingTable({
                         handleAction('timeout');
                         return 0;
                     }
-                    // Play tick sound for last 5 seconds
-                    if (t <= 6) SoundEngine.play('tick');
+                    // LAW 9: Play tick sound for last 5 seconds
+                    if (t <= 6) {
+                        SoundEngine.play('timerTick');
+                        // LAW 9: Play heartbeat every 2 seconds at critical
+                        if (t <= 3 && t % 2 === 0) {
+                            SoundEngine.play('timerWarning');
+                        }
+                    }
                     return t - 1;
                 });
             }, 1000);
@@ -311,10 +321,15 @@ export function UniversalTrainingTable({
         if (isCorrect) {
             setScore(s => s + 1);
             setStreak(s => s + 1);
-            SoundEngine.play('correct');
+            SoundEngine.play('correctAnswer');
         } else {
             setStreak(0);
-            SoundEngine.play('incorrect');
+            SoundEngine.play('wrongAnswer');
+        }
+
+        // LAW 4: Play chip stack sound for non-fold actions
+        if (action !== 'fold' && action !== 'timeout') {
+            SoundEngine.play('chipStack');
         }
 
         setGameState('FEEDBACK');
@@ -325,6 +340,12 @@ export function UniversalTrainingTable({
     // ═══════════════════════════════════════════════════════════════════════
 
     const nextHand = useCallback(() => {
+        // LAW 3: Rotate dealer button clockwise
+        setDealerSeat(current => {
+            const idx = DEALER_SEATS.indexOf(current);
+            return DEALER_SEATS[(idx + 1) % DEALER_SEATS.length];
+        });
+
         if (handIndex >= totalHands) {
             setGameState('SUMMARY');
             onComplete?.(score >= totalHands * 0.85, score * 50, score >= totalHands * 0.85 ? 10 : 0);
@@ -332,7 +353,7 @@ export function UniversalTrainingTable({
             setHandIndex(h => h + 1);
             dealNewHand();
         }
-    }, [handIndex, totalHands, score, dealNewHand, onComplete]);
+    }, [handIndex, totalHands, score, dealNewHand, onComplete, DEALER_SEATS]);
 
     // ═══════════════════════════════════════════════════════════════════════
     // TIMER COLOR
@@ -491,6 +512,35 @@ export function UniversalTrainingTable({
                     )}
                     <Avatar emoji="😎" isHero={true} label="HERO" stack={40} />
                 </div>
+
+                {/* LAW 3: DEALER BUTTON */}
+                <motion.div
+                    key={dealerSeat}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 400 }}
+                    style={{
+                        position: 'absolute',
+                        bottom: dealerSeat === 'v1' ? '10%' : dealerSeat === 'v8' ? '15%' : '80%',
+                        right: dealerSeat.includes('v') && parseInt(dealerSeat[1]) <= 4 ? undefined : '15%',
+                        left: dealerSeat.includes('v') && parseInt(dealerSeat[1]) <= 4 ? '15%' : undefined,
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(145deg, #fff, #ddd)',
+                        border: '3px solid #1a1a1a',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 14,
+                        fontWeight: 900,
+                        color: '#1a1a1a',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                        zIndex: 50
+                    }}
+                >
+                    D
+                </motion.div>
             </div>
 
             {/* ACTION BUTTONS */}

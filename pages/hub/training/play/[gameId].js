@@ -261,6 +261,22 @@ export default function TrainingPlayPage() {
                 case 'EXIT_GAME':
                     handleExit();
                     break;
+                // LAW 1: Leak-Fixer Intercept
+                case 'LEAKS_DETECTED':
+                    console.log('[LAW 1] 🎯 Leaks detected from template:', data.leaks);
+                    // Store leaks for remediation routing
+                    if (data.leaks?.length > 0) {
+                        try {
+                            localStorage.setItem('pokeriq_detected_leaks', JSON.stringify(data.leaks));
+                            // If high-confidence leak (≥0.9), show intercept notification
+                            const criticalLeak = data.leaks.find(l => l.confidence >= 0.9);
+                            if (criticalLeak) {
+                                console.log('[LAW 1] Critical leak detected:', criticalLeak.name);
+                                // Future: Trigger remediation intercept UI
+                            }
+                        } catch (e) { }
+                    }
+                    break;
             }
         }
 

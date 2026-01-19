@@ -25,6 +25,7 @@ import { TRAINING_LIBRARY, TRAINING_LANES, getGamesByCategory, getGamesByTag } f
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
 import GameIntroSplash from '../../src/components/training/GameIntroSplash';
+import LeakFixerIntercept from '../../src/components/training/LeakFixerIntercept';
 
 // God-Mode Stack
 import { useTrainingStore } from '../../src/stores/trainingStore';
@@ -676,6 +677,12 @@ export default function TrainingPage() {
                 isVisible={showIntro}
                 game={pendingGame ? { ...pendingGame, image: getGameImage(pendingGame.id) } : null}
                 onComplete={handleIntroComplete}
+            />
+
+            {/* LAW 1: Leak Fixer Intercept - Shows when leaks are detected */}
+            <LeakFixerIntercept
+                onDismiss={() => console.log('[LAW 1] Intercept dismissed')}
+                onAccept={(clinic) => console.log('[LAW 1] Starting clinic:', clinic.name)}
             />
 
             <div className="training-page" style={styles.page}>
