@@ -110,12 +110,15 @@ const useAudioEngine = () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const Card3D = ({ card, isFlipped = false, delay = 0, size = 'normal' }) => {
-    const [flipped, setFlipped] = useState(!isFlipped);
+    // Start face-down, then flip face-up after delay when isFlipped becomes true
+    const [flipped, setFlipped] = useState(false);
 
     useEffect(() => {
         if (isFlipped) {
             const timer = setTimeout(() => setFlipped(true), delay);
             return () => clearTimeout(timer);
+        } else {
+            setFlipped(false);
         }
     }, [isFlipped, delay]);
 
