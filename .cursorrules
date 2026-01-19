@@ -1,25 +1,145 @@
-# --- SMARTER POKER GLOBAL PROTOCOLS ---
+# ANTI GRAVITY 2.0 SYSTEM RULES - TRAINING SECTOR
 
-# IDENTITY & AESTHETIC
-- Organization: Smarter Poker
-- Visual Style: "TV Final Table" (High-Stakes, Cinematic, Deep Bass Audio).
-- Primary Color: ORANGE (Orange Balls/UI only).
-- Forbidden: Green is strictly prohibited.
+## Core Directives
 
-# CRITICAL OPERATING RULES
-1. SYSTEM: Do not build outside the Open Agent Manager.
-2. FOCUS: Complete the current project 100% before moving.
-3. QUALITY: Daily content must be A+ grade and AI-generated.
-4. MAPPING: New mapping = New Project + New Agent.
+### 1. MEMORY FIRST (MANDATORY)
 
-# PREFERRED TECH STACK (THE "GOD MODE" KIT)
-- 3D/Visuals: React Three Fiber, Spline, GSAP (for "Explosions" and "Zooms").
-- Audio: Howler.js (Cinematic Sound Effects).
-- State: Zustand (Instant Global State).
-- Forms/Data: React Hook Form + Zod (Bulletproof data handling).
-- UI: Tailwind CSS + DaisyUI + Framer Motion.
+Before answering ANY prompt, you MUST:
+1. Read `.memory/active_context.md` to understand current state
+2. Read `.memory/project_mission.md` to understand project goals
+3. Update these files if plans change
 
-# BEHAVIORAL INSTRUCTION
-- Assume every user interaction requires immediate, high-quality visual/audio feedback.
-- If the user wins/succeeds, trigger Confetti and Sound.
-- If the user fails, show GTO lines instantly.
+**CRITICAL:** The Training Engine is CODE COMPLETE. Do not refactor core logic without explicit "Override" command.
+
+### 2. CHAIN OF THOUGHT (REQUIRED)
+
+Do not just write code. Explain your "Mental Sandbox" first:
+
+```
+I am analyzing file X...
+I see this might conflict with Rule Y...
+I will execute Strategy Z...
+```
+
+Show your reasoning BEFORE taking action.
+
+### 3. SCORCHED EARTH PROTOCOL (STRICT)
+
+**NEVER:**
+- ❌ Introduce external scripts for UI logic
+- ❌ Use HTML templates or iframes for core gameplay
+- ❌ Rely on external dependencies that can 404
+- ❌ Directly manipulate the DOM
+
+**ALWAYS:**
+- ✅ Use React State to drive ALL visuals
+- ✅ Self-contained components only
+- ✅ CSS-generated fallbacks for missing assets
+- ✅ Verify positioning anchors after changes
+
+**Visual Anchors (LOCKED):**
+```css
+Hero:    bottom: -10%, left: 50%
+Villain: top: -10%, left: 50%
+Board:   top: 50%, left: 50%
+```
+
+### 4. PROJECT ISOLATION (CRITICAL)
+
+If the user mentions "Maps", "Poker Near Me", or "Venues":
+1. **STOP** current work
+2. **VERIFY** you are in the correct window
+3. **REMIND** user to switch to `smarter-poker-maps` if needed
+
+**Training code stays in `hub-vanguard`**  
+**Maps code goes in `smarter-poker-maps`**  
+**NEVER cross-pollinate**
+
+### 5. ASSET INTEGRITY (NO 404s)
+
+If an image or audio file is missing:
+1. Generate a CSS/SVG fallback immediately
+2. Log a warning to console
+3. Continue with degraded functionality
+4. **NEVER** ship broken UI
+
+### 6. DATABASE SAFETY
+
+- All Supabase operations must have null checks
+- Use RLS policies for all tables
+- Log errors verbosely to console
+- Fail gracefully if database is unavailable
+
+### 7. TESTING PROTOCOL
+
+After ANY code change:
+1. Verify visual positioning (Hero/Villain/Board)
+2. Test action buttons (Fold/Call/Raise/All-In)
+3. Check browser console for errors
+4. Verify database operations (if applicable)
+
+Use `browser_subagent` for automated testing.
+
+---
+
+## Code Quality Standards
+
+### TypeScript
+- Use strict typing
+- Avoid `any` (use `unknown` if needed)
+- Define interfaces for props
+
+### React
+- Functional components only
+- Hooks for state and effects
+- Memoize expensive computations
+
+### Styling
+- Tailwind for utilities
+- Vanilla CSS for custom animations
+- Framer Motion for interactions
+
+### Performance
+- Lazy load images
+- Debounce user inputs
+- Optimize re-renders with `useMemo`/`useCallback`
+
+---
+
+## Deployment Checklist
+
+Before pushing to production:
+- [ ] No console errors
+- [ ] No 404s in network tab
+- [ ] Visual positioning verified
+- [ ] Database operations tested
+- [ ] Mobile responsive
+- [ ] Dark mode compatible
+
+---
+
+## Emergency Protocols
+
+### If Build Fails:
+1. Check TypeScript errors first
+2. Verify all imports exist
+3. Check for syntax errors
+4. Clear `.next` and rebuild
+
+### If Database Fails:
+1. Check Supabase connection
+2. Verify RLS policies
+3. Check environment variables
+4. Use localStorage as fallback
+
+### If UI Breaks:
+1. Check browser console
+2. Verify React component tree
+3. Check for state mutation bugs
+4. Revert to last known good commit
+
+---
+
+**Version:** 2.0  
+**Last Updated:** 2026-01-19  
+**Enforcement:** STRICT - Violations require explicit override
