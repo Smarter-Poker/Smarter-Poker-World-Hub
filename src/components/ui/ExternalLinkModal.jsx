@@ -36,27 +36,12 @@ export function ExternalLinkProvider({ children }) {
         setMounted(true);
     }, []);
 
-    // Open in a Facebook-style popup window
+    // Open external content in FULL SCREEN INTERNAL MODAL
+    // User stays on smarter.poker URL - content displays inside our app
     const openExternal = (externalUrl, externalTitle = 'External Content') => {
-        // Calculate popup size (80% of screen, centered)
-        const width = Math.min(window.innerWidth * 0.85, 1200);
-        const height = Math.min(window.innerHeight * 0.85, 900);
-        const left = (window.innerWidth - width) / 2 + window.screenX;
-        const top = (window.innerHeight - height) / 2 + window.screenY;
-
-        // Open popup window
-        const popup = window.open(
-            externalUrl,
-            'smarterPokerExternal',
-            `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=yes,toolbar=no,menubar=no,location=yes`
-        );
-
-        // If popup was blocked, show the iframe modal as fallback
-        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-            setUrl(externalUrl);
-            setTitle(externalTitle);
-            setIsOpen(true);
-        }
+        setUrl(externalUrl);
+        setTitle(externalTitle);
+        setIsOpen(true);
     };
 
     const closeModal = () => {
@@ -234,13 +219,13 @@ const styles = {
         animation: 'fadeIn 0.2s ease-out',
     },
     modal: {
-        width: '95vw',
-        height: '90vh',
-        maxWidth: '1400px',
+        width: '100vw',
+        height: '100vh',
+        maxWidth: 'none',
         background: '#0a1628',
-        borderRadius: 16,
-        border: '1px solid rgba(0, 212, 255, 0.3)',
-        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5), 0 0 100px rgba(0, 212, 255, 0.1)',
+        borderRadius: 0,
+        border: 'none',
+        boxShadow: 'none',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
