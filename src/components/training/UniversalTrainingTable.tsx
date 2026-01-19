@@ -138,6 +138,9 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     // Level tracking
     const [levelIndex, setLevelIndex] = useState(0);
 
+    // Detected leaks in this session
+    const [detectedLeaks, setDetectedLeaks] = useState<string[]>([]);
+
     // Get questions from current level or legacy questions array
     const totalLevels = clinic.levels?.length || 1;
     const currentLevel = clinic.levels?.[levelIndex] || null;
@@ -219,6 +222,15 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             // Log mistake to Supabase with lawId for leak detection (per question)
             if (question.lawId) {
                 console.log(`⚠️ LEAK DETECTED: ${question.lawId}`);
+
+                // Track leak in session state for Victory Screen
+                setDetectedLeaks(prev => {
+                    if (!prev.includes(question.lawId)) {
+                        return [...prev, question.lawId];
+                    }
+                    return prev;
+                });
+
                 logMistake(clinic?.id || gameId, questionIndex, question.lawId, clinic?.id)
                     .then((result) => {
                         if (result) {
@@ -284,6 +296,19 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         window.location.href = '/hub/training';
     }, []);
 
+    // Handle next level
+    const handleNextLevel = useCallback(() => {
+        if (levelIndex < totalLevels - 1) {
+            setLevelIndex(prev => prev + 1);
+            setSessionComplete(false);
+            setQuestionIndex(0);
+            setScore(0);
+            setTotalXP(0);
+            setDetectedLeaks([]);
+            setGamePhase(GamePhase.IDLE);
+        }
+    }, [levelIndex, totalLevels]);
+
     // Determine if buttons should be active
     const buttonsActive = gamePhase === GamePhase.PLAYER_TURN;
 
@@ -294,6 +319,8 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         const totalQuestions = questions.length;
         const accuracy = Math.round((score / totalQuestions) * 100);
         const passed = accuracy >= 85;
+        const hasNextLevel = levelIndex < totalLevels - 1;
+        const levelName = currentLevel?.name || `Level ${levelIndex + 1}`;
 
         return (
             <div style={{
@@ -302,91 +329,171 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                 background: 'linear-gradient(to bottom, #0f172a, #1e293b)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                padding: 20
             }}>
                 <div style={{
                     background: 'linear-gradient(135deg, #1a2744, #0a1628)',
-                    padding: 60,
+                    padding: '40px 50px',
                     borderRadius: 24,
-                    border: passed ? '3px solid #fbbf24' : '3px solid #6b7280',
+                    border: passed ? '3px solid #4ade80' : '3px solid #f97316',
                     textAlign: 'center',
-                    maxWidth: 500,
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                    maxWidth: 520,
+                    width: '100%',
+                    boxShadow: passed
+                        ? '0 0 60px rgba(74, 222, 128, 0.3)'
+                        : '0 0 60px rgba(249, 115, 22, 0.2)'
                 }}>
+                    {/* Level Badge */}
+                    <div style={{
+                        background: 'rgba(255,255,255,0.1)',
+                        padding: '6px 16px',
+                        borderRadius: 20,
+                        display: 'inline-block',
+                        marginBottom: 16,
+                        fontSize: 14,
+                        color: '#9ca3af'
+                    }}>
+                        {levelName} • L{levelIndex + 1}/{totalLevels}
+                    </div>
+
                     {/* Trophy/Result Icon */}
-                    <div style={{ fontSize: 80, marginBottom: 16 }}>
-                        {passed ? '🏆' : '🔄'}
+                    <div style={{ fontSize: 72, marginBottom: 12 }}>
+                        {passed ? '🏆' : '📚'}
                     </div>
 
                     {/* Title */}
                     <h1 style={{
-                        fontSize: 32,
+                        fontSize: 28,
                         fontWeight: 'bold',
-                        color: passed ? '#4ade80' : '#fff',
-                        marginBottom: 24
+                        color: passed ? '#4ade80' : '#f97316',
+                        marginBottom: 20,
+                        margin: 0
                     }}>
-                        {passed ? 'SESSION COMPLETE!' : 'KEEP PRACTICING'}
+                        {passed ? 'LEVEL COMPLETE!' : 'KEEP PRACTICING'}
                     </h1>
 
                     {/* Accuracy */}
                     <div style={{
-                        fontSize: 64,
+                        fontSize: 56,
                         fontWeight: 'bold',
                         color: passed ? '#4ade80' : '#f97316',
-                        marginBottom: 8
+                        marginBottom: 4
                     }}>
                         {accuracy}%
                     </div>
-                    <div style={{ color: '#9ca3af', marginBottom: 24 }}>
-                        {score} / {totalQuestions} correct
+                    <div style={{ color: '#9ca3af', marginBottom: 20 }}>
+                        {score} / {totalQuestions} correct • Need 85% to pass
                     </div>
 
-                    {/* XP Earned */}
-                    <div style={{
-                        background: 'rgba(251, 191, 36, 0.1)',
-                        border: '1px solid #fbbf24',
-                        borderRadius: 12,
-                        padding: '12px 24px',
-                        marginBottom: 32,
-                        display: 'inline-block'
-                    }}>
-                        <span style={{ color: '#fbbf24', fontSize: 24, fontWeight: 'bold' }}>
-                            +{totalXP} XP
-                        </span>
-                    </div>
+                    {/* Detected Leaks Section */}
+                    {detectedLeaks.length > 0 && (
+                        <div style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            borderRadius: 12,
+                            padding: 16,
+                            marginBottom: 20,
+                            textAlign: 'left'
+                        }}>
+                            <div style={{
+                                color: '#ef4444',
+                                fontWeight: 'bold',
+                                marginBottom: 8,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8
+                            }}>
+                                ⚠️ {detectedLeaks.length} Leak{detectedLeaks.length > 1 ? 's' : ''} Detected
+                            </div>
+                            <div style={{ color: '#fca5a5', fontSize: 14 }}>
+                                {detectedLeaks.slice(0, 3).map(leakId => {
+                                    const law = getLaw(leakId);
+                                    return (
+                                        <div key={leakId} style={{ marginBottom: 4 }}>
+                                            • {law?.name || leakId}
+                                        </div>
+                                    );
+                                })}
+                                {detectedLeaks.length > 3 && (
+                                    <div style={{ opacity: 0.7 }}>
+                                        +{detectedLeaks.length - 3} more
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
-                    {/* Buttons */}
-                    <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-                        <button
-                            onClick={handleReplay}
-                            style={{
-                                padding: '16px 32px',
-                                background: passed ? '#2563eb' : '#f97316',
-                                border: 'none',
-                                borderRadius: 12,
-                                color: '#fff',
-                                fontSize: 16,
-                                fontWeight: 'bold',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            {passed ? 'REPLAY' : 'TRY AGAIN'}
-                        </button>
-                        <button
-                            onClick={handleReturnToHub}
-                            style={{
-                                padding: '16px 32px',
-                                background: 'transparent',
-                                border: '2px solid rgba(255,255,255,0.3)',
-                                borderRadius: 12,
-                                color: '#fff',
-                                fontSize: 16,
-                                fontWeight: 'bold',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            RETURN TO HUB
-                        </button>
+                    {/* Primary Action Button */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {passed && hasNextLevel ? (
+                            <button
+                                onClick={handleNextLevel}
+                                style={{
+                                    padding: '18px 32px',
+                                    background: 'linear-gradient(135deg, #4ade80, #22c55e)',
+                                    border: 'none',
+                                    borderRadius: 12,
+                                    color: '#fff',
+                                    fontSize: 18,
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 20px rgba(74, 222, 128, 0.4)'
+                                }}
+                            >
+                                🚀 NEXT LEVEL
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleReplay}
+                                style={{
+                                    padding: '18px 32px',
+                                    background: passed ? '#2563eb' : '#f97316',
+                                    border: 'none',
+                                    borderRadius: 12,
+                                    color: '#fff',
+                                    fontSize: 18,
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {passed ? '🔄 REPLAY LEVEL' : '🔄 TRY AGAIN'}
+                            </button>
+                        )}
+
+                        {/* Secondary Buttons */}
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                            {passed && hasNextLevel && (
+                                <button
+                                    onClick={handleReplay}
+                                    style={{
+                                        padding: '12px 24px',
+                                        background: 'transparent',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        borderRadius: 10,
+                                        color: '#9ca3af',
+                                        fontSize: 14,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Replay
+                                </button>
+                            )}
+                            <button
+                                onClick={handleReturnToHub}
+                                style={{
+                                    padding: '12px 24px',
+                                    background: 'transparent',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    borderRadius: 10,
+                                    color: '#9ca3af',
+                                    fontSize: 14,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Back to Hub
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
