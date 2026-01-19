@@ -36,10 +36,27 @@ export function ExternalLinkProvider({ children }) {
         setMounted(true);
     }, []);
 
+    // Open in a Facebook-style popup window
     const openExternal = (externalUrl, externalTitle = 'External Content') => {
-        setUrl(externalUrl);
-        setTitle(externalTitle);
-        setIsOpen(true);
+        // Calculate popup size (80% of screen, centered)
+        const width = Math.min(window.innerWidth * 0.85, 1200);
+        const height = Math.min(window.innerHeight * 0.85, 900);
+        const left = (window.innerWidth - width) / 2 + window.screenX;
+        const top = (window.innerHeight - height) / 2 + window.screenY;
+
+        // Open popup window
+        const popup = window.open(
+            externalUrl,
+            'smarterPokerExternal',
+            `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=yes,toolbar=no,menubar=no,location=yes`
+        );
+
+        // If popup was blocked, show the iframe modal as fallback
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            setUrl(externalUrl);
+            setTitle(externalTitle);
+            setIsOpen(true);
+        }
     };
 
     const closeModal = () => {
@@ -87,6 +104,7 @@ export function ExternalLinkProvider({ children }) {
     return (
         <ExternalLinkContext.Provider value={{ openExternal, closeModal, isOpen, url }}>
             {children}
+            {/* Fallback modal only shows if popup was blocked */}
             {mounted && isOpen && createPortal(
                 <ExternalLinkModal
                     url={url}
