@@ -5,13 +5,16 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import {
     Search, Clock, Eye, TrendingUp, Trophy, Calendar,
-    Zap, Play, Mail, Check, Flame, MapPin, ExternalLink, Loader
+    Zap, Play, Mail, Check, Flame, MapPin, ExternalLink, Loader,
+    Bookmark, BookmarkCheck, Share2, Twitter, Facebook, LinkIcon,
+    Moon, Sun, Lock, Target, CheckCircle, ChevronDown
 } from 'lucide-react';
 
 // God-Mode Stack

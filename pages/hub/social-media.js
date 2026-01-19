@@ -454,9 +454,13 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
     const [mentionResults, setMentionResults] = useState([]);
     const [showMentions, setShowMentions] = useState(false);
     const [cursorPosition, setCursorPosition] = useState(0);
+    // 🔗 LINK PREVIEW STATE - Facebook-style auto-detect
+    const [linkPreview, setLinkPreview] = useState(null); // { url, title, image, domain }
+    const [linkLoading, setLinkLoading] = useState(false);
     const fileRef = useRef(null);
     const inputRef = useRef(null);
     const mentionTimeout = useRef(null);
+    const linkTimeout = useRef(null);
 
     const handleFiles = async (e) => {
         const files = Array.from(e.target.files);
@@ -488,10 +492,75 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         setUploading(false);
     };
 
-    // Handle @mention detection
+    // Handle @mention detection AND auto URL detection (Facebook-style)
     const handleContentChange = (e) => {
         const value = e.target.value;
         const pos = e.target.selectionStart;
+
+        // 🔗 AUTO-DETECT URLs - Facebook-style: remove URL and show preview card
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const urlMatch = value.match(urlRegex);
+
+        if (urlMatch && !linkPreview && !linkLoading) {
+            const detectedUrl = urlMatch[0];
+
+            // Check if it's a YouTube URL
+            const isYouTube = /youtube\.com|youtu\.be/.test(detectedUrl);
+
+            // Remove the URL from content and show preview
+            const cleanedValue = value.replace(urlRegex, '').trim();
+            setContent(cleanedValue);
+            setLinkLoading(true);
+
+            // Clear any pending link timeout
+            if (linkTimeout.current) clearTimeout(linkTimeout.current);
+
+            linkTimeout.current = setTimeout(async () => {
+                try {
+                    if (isYouTube) {
+                        // Validate YouTube video before showing preview
+                        const validation = await validateYouTubeVideo(detectedUrl);
+                        if (!validation.valid) {
+                            setError(`❌ ${validation.error}`);
+                            setLinkLoading(false);
+                            return;
+                        }
+                        // Get YouTube video ID for thumbnail
+                        const videoId = getYouTubeVideoId(detectedUrl);
+                        setLinkPreview({
+                            url: detectedUrl,
+                            title: 'YouTube Video',
+                            image: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                            domain: 'youtube.com',
+                            type: 'video'
+                        });
+                    } else {
+                        // For non-YouTube links, generate preview from URL
+                        const domain = new URL(detectedUrl).hostname.replace('www.', '');
+                        // Try to extract title from URL path
+                        const pathParts = new URL(detectedUrl).pathname.split('/').filter(Boolean);
+                        const lastPart = pathParts[pathParts.length - 1] || '';
+                        const title = lastPart.replace(/-/g, ' ').replace(/\d+/g, '').trim() || domain;
+
+                        setLinkPreview({
+                            url: detectedUrl,
+                            title: title.charAt(0).toUpperCase() + title.slice(1),
+                            image: null, // Will show placeholder
+                            domain: domain,
+                            type: 'link'
+                        });
+                    }
+                } catch (err) {
+                    console.error('Link preview error:', err);
+                    setError('Could not load link preview');
+                }
+                setLinkLoading(false);
+            }, 300);
+
+            setCursorPosition(cleanedValue.length);
+            return; // Skip further processing
+        }
+
         setContent(value);
         setCursorPosition(pos);
 
@@ -523,6 +592,12 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         }
     };
 
+    // Remove the detected link preview
+    const removeLinkPreview = () => {
+        setLinkPreview(null);
+        setError('');
+    };
+
     const insertMention = (user) => {
         const textBeforeCursor = content.substring(0, cursorPosition);
         const textAfterCursor = content.substring(cursorPosition);
@@ -535,41 +610,40 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
     };
 
     const handlePost = async () => {
-        if (!content.trim() && !media.length) return;
+        // Allow posting if there's content, media, OR a link preview
+        if (!content.trim() && !media.length && !linkPreview) return;
         setError('');
         let urls = media.map(m => m.url);
         let type = media.some(m => m.type === 'video') ? 'video' : media.length ? 'photo' : 'text';
         let cleanContent = content;
 
-        // 🎬 AUTO-DETECT YOUTUBE URLs in content and convert to video post
-        const youtubeRegex = /(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/g;
-        const youtubeMatch = content.match(youtubeRegex);
+        // 🔗 USE LINK PREVIEW if available (Facebook-style - URL already extracted)
+        if (linkPreview && type === 'text') {
+            urls = [linkPreview.url];
+            type = linkPreview.type || 'link';
+            // Content is already clean (URL was auto-removed)
+        } else {
+            // Fallback: check for URLs in content (shouldn't happen with new flow)
+            const youtubeRegex = /(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/g;
+            const youtubeMatch = content.match(youtubeRegex);
+            const generalUrlRegex = /(https?:\/\/[^\s]+)/g;
+            const urlMatch = content.match(generalUrlRegex);
 
-        // 🔗 AUTO-DETECT ANY URL for link preview (Facebook-style)
-        const generalUrlRegex = /(https?:\/\/[^\s]+)/g;
-        const urlMatch = content.match(generalUrlRegex);
-
-        if (youtubeMatch && type === 'text') {
-            // Found a YouTube URL - convert to video post
-            const fullUrl = youtubeMatch[0].startsWith('http') ? youtubeMatch[0] : `https://${youtubeMatch[0]}`;
-
-            // 🔍 VALIDATE: Check if YouTube video is available before posting
-            const validation = await validateYouTubeVideo(fullUrl);
-            if (!validation.valid) {
-                setError(`❌ ${validation.error}`);
-                return;
+            if (youtubeMatch && type === 'text') {
+                const fullUrl = youtubeMatch[0].startsWith('http') ? youtubeMatch[0] : `https://${youtubeMatch[0]}`;
+                const validation = await validateYouTubeVideo(fullUrl);
+                if (!validation.valid) {
+                    setError(`❌ ${validation.error}`);
+                    return;
+                }
+                urls = [fullUrl];
+                type = 'video';
+                cleanContent = content.replace(youtubeRegex, '').trim();
+            } else if (urlMatch && type === 'text') {
+                urls = [urlMatch[0]];
+                type = 'link';
+                cleanContent = content.replace(generalUrlRegex, '').trim();
             }
-
-            urls = [fullUrl];
-            type = 'video';
-            // 🎯 FACEBOOK-STYLE: Remove the URL from content text
-            cleanContent = content.replace(youtubeRegex, '').trim();
-        } else if (urlMatch && type === 'text') {
-            // Found a general URL - convert to link post
-            urls = [urlMatch[0]];
-            type = 'link';
-            // 🎯 FACEBOOK-STYLE: Remove the URL from content text
-            cleanContent = content.replace(generalUrlRegex, '').trim();
         }
 
         // Extract mentions from content
@@ -581,7 +655,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         }
 
         const ok = await onPost(cleanContent, urls, type, mentions);
-        if (ok) { setContent(''); setMedia([]); }
+        if (ok) { setContent(''); setMedia([]); setLinkPreview(null); }
         else setError('Unable to post at this time. Please try again later.');
     };
 
@@ -659,6 +733,77 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                     <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>{media.length}/{MAX_MEDIA} files</div>
                 </div>
             )}
+            {/* 🔗 LINK PREVIEW CARD - Facebook-style */}
+            {(linkPreview || linkLoading) && (
+                <div style={{ padding: '0 12px 8px' }}>
+                    <div style={{
+                        border: `1px solid ${C.border}`,
+                        borderRadius: 8,
+                        overflow: 'hidden',
+                        background: C.bg,
+                        position: 'relative'
+                    }}>
+                        {linkLoading ? (
+                            <div style={{
+                                padding: 24,
+                                textAlign: 'center',
+                                color: C.textSec
+                            }}>
+                                <span style={{ fontSize: 24 }}>⏳</span>
+                                <div style={{ marginTop: 8 }}>Loading preview...</div>
+                            </div>
+                        ) : linkPreview && (
+                            <>
+                                {/* Preview Image/Thumbnail */}
+                                <div style={{
+                                    height: 180,
+                                    background: linkPreview.image
+                                        ? `url(${linkPreview.image}) center/cover`
+                                        : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    {!linkPreview.image && (
+                                        <span style={{ fontSize: 48, opacity: 0.5 }}>
+                                            {linkPreview.type === 'video' ? '🎬' : '🔗'}
+                                        </span>
+                                    )}
+                                    {linkPreview.type === 'video' && linkPreview.image && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            width: 64, height: 64, borderRadius: '50%',
+                                            background: 'rgba(0,0,0,0.7)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: 'white', fontSize: 28
+                                        }}>▶</div>
+                                    )}
+                                </div>
+                                {/* Preview Info */}
+                                <div style={{ padding: 12 }}>
+                                    <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase', marginBottom: 4 }}>
+                                        {linkPreview.domain}
+                                    </div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
+                                        {linkPreview.title}
+                                    </div>
+                                </div>
+                                {/* Remove Button */}
+                                <button
+                                    onClick={removeLinkPreview}
+                                    style={{
+                                        position: 'absolute', top: 8, right: 8,
+                                        width: 28, height: 28, borderRadius: '50%',
+                                        background: 'rgba(0,0,0,0.7)', border: 'none',
+                                        color: 'white', cursor: 'pointer', fontSize: 14,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}
+                                >✕</button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
             {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}>⚠️ {error}</div>}
             <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -684,7 +829,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                         }}
                     >🎬 Reels</Link>
                 </div>
-                <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length)} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length) ? 0.5 : 1 }}>Post</button>
+                <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1 }}>Post</button>
             </div>
         </div>
     );
