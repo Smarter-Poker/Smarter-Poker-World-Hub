@@ -1574,17 +1574,17 @@
                 };
 
                 // Card offsets from player position (cards flow toward table center per golden template)
-                // Cards must appear BESIDE the avatar, not on top. Need larger offsets.
-                // Avatar is ~138px (about 18% of 768px). Cards need to be at least half that distance away.
+                // Cards must appear BESIDE the avatar, not on top. DOUBLED offsets for clearance.
+                // At 768px viewport, 20% = 154px which should fully clear avatar (138px) + padding
                 const CARD_OFFSETS = {
-                    'v1': { left: 12, top: -5 },   // bottom-left: cards far to right
-                    'v2': { left: 14, top: 0 },    // middle-left: cards far to right  
-                    'v3': { left: 14, top: 0 },    // upper-left: cards far to right
-                    'v4': { left: 0, top: 14 },    // top-left: cards below avatar
-                    'v5': { left: 0, top: 14 },    // top-right: cards below avatar
-                    'v6': { left: -14, top: 0 },   // upper-right: cards far to left
-                    'v7': { left: -14, top: 0 },   // middle-right: cards far to left
-                    'v8': { left: -12, top: -5 }   // bottom-right: cards far to left
+                    'v1': { left: 20, top: -3 },   // bottom-left: cards far to right
+                    'v2': { left: 22, top: 0 },    // middle-left: cards far to right  
+                    'v3': { left: 22, top: 3 },    // upper-left: cards far to right
+                    'v4': { left: 5, top: 18 },    // top-left: cards below avatar, slight right
+                    'v5': { left: -5, top: 18 },   // top-right: cards below avatar, slight left
+                    'v6': { left: -22, top: 3 },   // upper-right: cards far to left
+                    'v7': { left: -22, top: 0 },   // middle-right: cards far to left
+                    'v8': { left: -20, top: -3 }   // bottom-right: cards far to left
                 };
 
                 for (let villain in SEAT_POSITIONS) {
