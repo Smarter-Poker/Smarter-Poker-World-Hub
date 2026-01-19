@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "ingest:us-events": "npx ts-node --esm src/ingest_us_events/run.ts"
   },
   "dependencies": {
     "@pinecone-database/pinecone": "^6.1.3",
