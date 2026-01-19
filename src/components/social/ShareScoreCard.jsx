@@ -13,19 +13,19 @@ import React, { useState, useCallback, useMemo } from 'react';
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SCORE_TIERS = {
-    perfect: { threshold: 100, label: 'PERFECT', color: '#FFD700', icon: '👑', glow: 'rgba(255, 215, 0, 0.5)' },
-    excellent: { threshold: 90, label: 'EXCELLENT', color: '#32CD32', icon: '🌟', glow: 'rgba(50, 205, 50, 0.5)' },
-    great: { threshold: 75, label: 'GREAT', color: '#00BFFF', icon: '✨', glow: 'rgba(0, 191, 255, 0.5)' },
-    good: { threshold: 50, label: 'GOOD', color: '#9400D3', icon: '👍', glow: 'rgba(148, 0, 211, 0.5)' },
-    learning: { threshold: 0, label: 'LEARNING', color: '#FF6B35', icon: '📚', glow: 'rgba(255, 107, 53, 0.5)' }
+  perfect: { threshold: 100, label: 'PERFECT', color: '#FFD700', icon: '👑', glow: 'rgba(255, 215, 0, 0.5)' },
+  excellent: { threshold: 90, label: 'EXCELLENT', color: '#32CD32', icon: '🌟', glow: 'rgba(50, 205, 50, 0.5)' },
+  great: { threshold: 75, label: 'GREAT', color: '#00BFFF', icon: '✨', glow: 'rgba(0, 191, 255, 0.5)' },
+  good: { threshold: 50, label: 'GOOD', color: '#9400D3', icon: '👍', glow: 'rgba(148, 0, 211, 0.5)' },
+  learning: { threshold: 0, label: 'LEARNING', color: '#FF6B35', icon: '📚', glow: 'rgba(255, 107, 53, 0.5)' }
 };
 
 const getScoreTier = (score) => {
-    if (score >= 100) return SCORE_TIERS.perfect;
-    if (score >= 90) return SCORE_TIERS.excellent;
-    if (score >= 75) return SCORE_TIERS.great;
-    if (score >= 50) return SCORE_TIERS.good;
-    return SCORE_TIERS.learning;
+  if (score >= 100) return SCORE_TIERS.perfect;
+  if (score >= 90) return SCORE_TIERS.excellent;
+  if (score >= 75) return SCORE_TIERS.great;
+  if (score >= 50) return SCORE_TIERS.good;
+  return SCORE_TIERS.learning;
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -33,165 +33,165 @@ const getScoreTier = (score) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const ShareScoreCard = ({
-    post,
-    currentUserId,
-    onPlayChallenge,
-    onLike,
-    onAuthorClick,
-    animationDelay = 0
+  post,
+  currentUserId,
+  onPlayChallenge,
+  onLike,
+  onAuthorClick,
+  animationDelay = 0
 }) => {
-    const [isPlayHovered, setIsPlayHovered] = useState(false);
-    const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlayHovered, setIsPlayHovered] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-    // Extract score data from post
-    const scoreData = useMemo(() => {
-        const data = post.achievementData || {};
-        return {
-            challengeType: data.challengeType || 'preflop',
-            challengeId: data.challengeId,
-            score: data.score || 0,
-            accuracy: data.accuracy || 0,
-            timeSpent: data.timeSpent || 0,
-            gtoLines: data.gtoLines || [],
-            xpEarned: data.xpEarned || 0
-        };
-    }, [post.achievementData]);
+  // Extract score data from post
+  const scoreData = useMemo(() => {
+    const data = post.achievementData || {};
+    return {
+      challengeType: data.challengeType || 'preflop',
+      challengeId: data.challengeId,
+      score: data.score || 0,
+      accuracy: data.accuracy || 0,
+      timeSpent: data.timeSpent || 0,
+      gtoLines: data.gtoLines || [],
+      xpEarned: data.xpEarned || 0
+    };
+  }, [post.achievementData]);
 
-    const scoreTier = useMemo(() => getScoreTier(scoreData.score), [scoreData.score]);
+  const scoreTier = useMemo(() => getScoreTier(scoreData.score), [scoreData.score]);
 
-    // Handle play challenge
-    const handlePlay = useCallback(() => {
-        setIsPlaying(true);
-        setTimeout(() => {
-            onPlayChallenge?.(scoreData.challengeId, scoreData.challengeType);
-        }, 500);
-    }, [scoreData, onPlayChallenge]);
+  // Handle play challenge
+  const handlePlay = useCallback(() => {
+    setIsPlaying(true);
+    setTimeout(() => {
+      onPlayChallenge?.(scoreData.challengeId, scoreData.challengeType);
+    }, 500);
+  }, [scoreData, onPlayChallenge]);
 
-    return (
-        <article
-            className="share-score-card glass-card"
-            style={{
-                '--score-color': scoreTier.color,
-                '--score-glow': scoreTier.glow,
-                animationDelay: `${animationDelay}ms`
-            }}
+  return (
+    <article
+      className="share-score-card glass-card"
+      style={{
+        '--score-color': scoreTier.color,
+        '--score-glow': scoreTier.glow,
+        animationDelay: `${animationDelay}ms`
+      }}
+    >
+      {/* Author Header */}
+      <header className="card-header">
+        <button
+          className="author-info interactive"
+          onClick={() => onAuthorClick?.(post.author?.id)}
         >
-            {/* Author Header */}
-            <header className="card-header">
-                <button
-                    className="author-info interactive"
-                    onClick={() => onAuthorClick?.(post.author?.id)}
-                >
-                    <div className="author-avatar">
-                        {post.author?.avatarUrl ? (
-                            <img src={post.author.avatarUrl} alt={post.author.username} />
-                        ) : (
-                            <div className="avatar-placeholder">
-                                {post.author?.username?.[0]?.toUpperCase() || '?'}
-                            </div>
-                        )}
-                    </div>
-                    <div className="author-details">
-                        <span className="author-name">{post.author?.username || 'Anonymous'}</span>
-                        <span className="post-time">{post.relativeTime}</span>
-                    </div>
-                </button>
-                <div className="score-badge">
-                    <span className="badge-icon">{scoreTier.icon}</span>
-                    <span className="badge-label">{scoreTier.label}</span>
-                </div>
-            </header>
-
-            {/* Score Display */}
-            <div className="score-display">
-                <div className="score-circle">
-                    <svg viewBox="0 0 100 100" className="score-ring">
-                        <circle
-                            cx="50" cy="50" r="45"
-                            fill="none"
-                            stroke="rgba(255,255,255,0.1)"
-                            strokeWidth="8"
-                        />
-                        <circle
-                            cx="50" cy="50" r="45"
-                            fill="none"
-                            stroke={scoreTier.color}
-                            strokeWidth="8"
-                            strokeDasharray={`${scoreData.score * 2.83} 283`}
-                            strokeLinecap="round"
-                            transform="rotate(-90 50 50)"
-                            className="score-progress"
-                        />
-                    </svg>
-                    <div className="score-value">
-                        <span className="score-number">{scoreData.score}</span>
-                        <span className="score-label">SCORE</span>
-                    </div>
-                </div>
-
-                <div className="score-stats">
-                    <div className="stat">
-                        <span className="stat-icon">🎯</span>
-                        <span className="stat-value">{scoreData.accuracy}%</span>
-                        <span className="stat-label">Accuracy</span>
-                    </div>
-                    <div className="stat">
-                        <span className="stat-icon">⏱️</span>
-                        <span className="stat-value">{scoreData.timeSpent}s</span>
-                        <span className="stat-label">Time</span>
-                    </div>
-                    <div className="stat">
-                        <span className="stat-icon">⚡</span>
-                        <span className="stat-value">+{scoreData.xpEarned}</span>
-                        <span className="stat-label">XP</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* GTO Lines Preview */}
-            {scoreData.gtoLines.length > 0 && (
-                <div className="gto-preview">
-                    <span className="gto-label">GTO Lines:</span>
-                    <div className="gto-lines">
-                        {scoreData.gtoLines.slice(0, 3).map((line, i) => (
-                            <span key={i} className="gto-line">{line}</span>
-                        ))}
-                        {scoreData.gtoLines.length > 3 && (
-                            <span className="gto-more">+{scoreData.gtoLines.length - 3} more</span>
-                        )}
-                    </div>
-                </div>
+          <div className="author-avatar">
+            {post.author?.avatarUrl ? (
+              <img src={post.author.avatarUrl} alt={post.author.username} />
+            ) : (
+              <div className="avatar-placeholder">
+                {post.author?.username?.[0]?.toUpperCase() || '?'}
+              </div>
             )}
+          </div>
+          <div className="author-details">
+            <span className="author-name">{getAuthorDisplayName(post.author)}</span>
+            <span className="post-time">{post.relativeTime}</span>
+          </div>
+        </button>
+        <div className="score-badge">
+          <span className="badge-icon">{scoreTier.icon}</span>
+          <span className="badge-label">{scoreTier.label}</span>
+        </div>
+      </header>
 
-            {/* Action Message */}
-            <div className="challenge-prompt">
-                <span>🎮</span>
-                <span>Can you beat this score?</span>
-            </div>
+      {/* Score Display */}
+      <div className="score-display">
+        <div className="score-circle">
+          <svg viewBox="0 0 100 100" className="score-ring">
+            <circle
+              cx="50" cy="50" r="45"
+              fill="none"
+              stroke="rgba(255,255,255,0.1)"
+              strokeWidth="8"
+            />
+            <circle
+              cx="50" cy="50" r="45"
+              fill="none"
+              stroke={scoreTier.color}
+              strokeWidth="8"
+              strokeDasharray={`${scoreData.score * 2.83} 283`}
+              strokeLinecap="round"
+              transform="rotate(-90 50 50)"
+              className="score-progress"
+            />
+          </svg>
+          <div className="score-value">
+            <span className="score-number">{scoreData.score}</span>
+            <span className="score-label">SCORE</span>
+          </div>
+        </div>
 
-            {/* Play Button */}
-            <button
-                className={`play-button interactive glow-shift ${isPlaying ? 'playing' : ''}`}
-                onClick={handlePlay}
-                onMouseEnter={() => setIsPlayHovered(true)}
-                onMouseLeave={() => setIsPlayHovered(false)}
-                disabled={isPlaying}
-            >
-                {isPlaying ? (
-                    <span className="play-loading">
-                        <span className="dot" />
-                        <span className="dot" />
-                        <span className="dot" />
-                    </span>
-                ) : (
-                    <>
-                        <span className="play-icon">{isPlayHovered ? '▶️' : '🎮'}</span>
-                        <span className="play-text">Play This Challenge</span>
-                    </>
-                )}
-            </button>
+        <div className="score-stats">
+          <div className="stat">
+            <span className="stat-icon">🎯</span>
+            <span className="stat-value">{scoreData.accuracy}%</span>
+            <span className="stat-label">Accuracy</span>
+          </div>
+          <div className="stat">
+            <span className="stat-icon">⏱️</span>
+            <span className="stat-value">{scoreData.timeSpent}s</span>
+            <span className="stat-label">Time</span>
+          </div>
+          <div className="stat">
+            <span className="stat-icon">⚡</span>
+            <span className="stat-value">+{scoreData.xpEarned}</span>
+            <span className="stat-label">XP</span>
+          </div>
+        </div>
+      </div>
 
-            <style>{`
+      {/* GTO Lines Preview */}
+      {scoreData.gtoLines.length > 0 && (
+        <div className="gto-preview">
+          <span className="gto-label">GTO Lines:</span>
+          <div className="gto-lines">
+            {scoreData.gtoLines.slice(0, 3).map((line, i) => (
+              <span key={i} className="gto-line">{line}</span>
+            ))}
+            {scoreData.gtoLines.length > 3 && (
+              <span className="gto-more">+{scoreData.gtoLines.length - 3} more</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Action Message */}
+      <div className="challenge-prompt">
+        <span>🎮</span>
+        <span>Can you beat this score?</span>
+      </div>
+
+      {/* Play Button */}
+      <button
+        className={`play-button interactive glow-shift ${isPlaying ? 'playing' : ''}`}
+        onClick={handlePlay}
+        onMouseEnter={() => setIsPlayHovered(true)}
+        onMouseLeave={() => setIsPlayHovered(false)}
+        disabled={isPlaying}
+      >
+        {isPlaying ? (
+          <span className="play-loading">
+            <span className="dot" />
+            <span className="dot" />
+            <span className="dot" />
+          </span>
+        ) : (
+          <>
+            <span className="play-icon">{isPlayHovered ? '▶️' : '🎮'}</span>
+            <span className="play-text">Play This Challenge</span>
+          </>
+        )}
+      </button>
+
+      <style>{`
         .share-score-card {
           padding: 0;
           overflow: hidden;
@@ -498,8 +498,8 @@ export const ShareScoreCard = ({
           }
         }
       `}</style>
-        </article>
-    );
+    </article>
+  );
 };
 
 export default ShareScoreCard;

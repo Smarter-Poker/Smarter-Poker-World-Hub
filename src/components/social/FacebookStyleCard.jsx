@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import { getAuthorDisplayName } from '../../utils/displayName';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 FACEBOOK COLOR PALETTE
@@ -171,7 +172,7 @@ export const FBPostCard = ({
 
     // Support both old and new data structures
     const author = user || post.author || post.user;
-    const authorName = author?.name || author?.username || 'Anonymous';
+    const authorName = getAuthorDisplayName(author);
     const authorAvatar = author?.avatar || author?.avatarUrl || null;
     const authorTier = author?.tier || (author?.isShark ? 'SHARK' : author?.isGTO ? 'GTO_MASTER' : null);
 
@@ -340,7 +341,7 @@ export const FBPostCard = ({
                         <div key={i} className="fb-comment">
                             <FBAvatar src={comment.user?.avatar || comment.author?.avatarUrl} size={32} />
                             <div className="fb-comment-content">
-                                <span className="fb-comment-author">{comment.user?.name || comment.author?.username}</span>
+                                <span className="fb-comment-author">{getAuthorDisplayName(comment.user || comment.author)}</span>
                                 <span className="fb-comment-text">{comment.text || comment.content}</span>
                             </div>
                         </div>

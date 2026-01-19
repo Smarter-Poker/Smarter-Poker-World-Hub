@@ -386,6 +386,9 @@ export default function TrainingPlayPage() {
     }
 
     // Use UniversalTrainingTable for all games
+    // Map game ID to clinic ID while preserving game name/image
+    const clinicId = getClinicIdForGame(gameId) || gameId;
+
     return (
         <>
             <Head>
@@ -394,7 +397,7 @@ export default function TrainingPlayPage() {
             </Head>
 
             <UniversalTrainingTable
-                gameId={gameId}
+                gameId={clinicId}
                 onAnswer={handleAnswer}
             />
         </>
