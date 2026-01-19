@@ -340,7 +340,8 @@ function LinkPreviewCard({ url }) {
     return (
         <a
             href={url}
-            data-title={metadata?.title || 'External Link'}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{ textDecoration: 'none', display: 'block' }}
         >
             <div style={{
