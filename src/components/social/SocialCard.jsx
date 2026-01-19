@@ -8,228 +8,229 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { INTERACTION_TYPES } from '../types';
+import { getAuthorDisplayName } from '../../utils/displayName';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎴 SOCIAL CARD COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const SocialCard = ({
-    post,
-    currentUserId,
-    onLike,
-    onComment,
-    onShare,
-    onAuthorClick,
-    onPostClick,
-    isExpanded = false,
-    animationDelay = 0
+  post,
+  currentUserId,
+  onLike,
+  onComment,
+  onShare,
+  onAuthorClick,
+  onPostClick,
+  isExpanded = false,
+  animationDelay = 0
 }) => {
-    const [isLiked, setIsLiked] = useState(post.isLiked);
-    const [likeCount, setLikeCount] = useState(post.engagement?.likeCount || 0);
-    const [showReactions, setShowReactions] = useState(false);
-    const [isAnimating, setIsAnimating] = useState(false);
+  const [isLiked, setIsLiked] = useState(post.isLiked);
+  const [likeCount, setLikeCount] = useState(post.engagement?.likeCount || 0);
+  const [showReactions, setShowReactions] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
-    // Tier-based styling
-    const tierStyles = useMemo(() => {
-        const tiers = {
-            BRONZE: { glow: 'rgba(205, 127, 50, 0.3)', accent: '#CD7F32' },
-            SILVER: { glow: 'rgba(192, 192, 192, 0.3)', accent: '#C0C0C0' },
-            GOLD: { glow: 'rgba(255, 215, 0, 0.3)', accent: '#FFD700' },
-            GTO_MASTER: { glow: 'rgba(148, 0, 211, 0.3)', accent: '#9400D3' }
-        };
-        return tiers[post.author?.tier] || tiers.BRONZE;
-    }, [post.author?.tier]);
+  // Tier-based styling
+  const tierStyles = useMemo(() => {
+    const tiers = {
+      BRONZE: { glow: 'rgba(205, 127, 50, 0.3)', accent: '#CD7F32' },
+      SILVER: { glow: 'rgba(192, 192, 192, 0.3)', accent: '#C0C0C0' },
+      GOLD: { glow: 'rgba(255, 215, 0, 0.3)', accent: '#FFD700' },
+      GTO_MASTER: { glow: 'rgba(148, 0, 211, 0.3)', accent: '#9400D3' }
+    };
+    return tiers[post.author?.tier] || tiers.BRONZE;
+  }, [post.author?.tier]);
 
-    // Handle like with optimistic update and particle burst
-    const handleLike = useCallback(async (reactionType = 'like') => {
-        const wasLiked = isLiked;
+  // Handle like with optimistic update and particle burst
+  const handleLike = useCallback(async (reactionType = 'like') => {
+    const wasLiked = isLiked;
 
-        // Optimistic update
-        setIsLiked(!wasLiked);
-        setLikeCount(prev => wasLiked ? prev - 1 : prev + 1);
-        setIsAnimating(true);
-        setShowReactions(false);
+    // Optimistic update
+    setIsLiked(!wasLiked);
+    setLikeCount(prev => wasLiked ? prev - 1 : prev + 1);
+    setIsAnimating(true);
+    setShowReactions(false);
 
-        // Trigger particle burst
-        if (!wasLiked) {
-            triggerParticleBurst();
-        }
+    // Trigger particle burst
+    if (!wasLiked) {
+      triggerParticleBurst();
+    }
 
-        try {
-            await onLike?.(post.id, reactionType);
-        } catch (error) {
-            // Rollback on error
-            setIsLiked(wasLiked);
-            setLikeCount(prev => wasLiked ? prev + 1 : prev - 1);
-        }
+    try {
+      await onLike?.(post.id, reactionType);
+    } catch (error) {
+      // Rollback on error
+      setIsLiked(wasLiked);
+      setLikeCount(prev => wasLiked ? prev + 1 : prev - 1);
+    }
 
-        setTimeout(() => setIsAnimating(false), 600);
-    }, [isLiked, post.id, onLike]);
+    setTimeout(() => setIsAnimating(false), 600);
+  }, [isLiked, post.id, onLike]);
 
-    // Particle burst effect
-    const triggerParticleBurst = useCallback(() => {
-        const button = document.querySelector(`#like-btn-${post.id}`);
-        if (!button) return;
+  // Particle burst effect
+  const triggerParticleBurst = useCallback(() => {
+    const button = document.querySelector(`#like-btn-${post.id}`);
+    if (!button) return;
 
-        const rect = button.getBoundingClientRect();
-        const particles = 8;
+    const rect = button.getBoundingClientRect();
+    const particles = 8;
 
-        for (let i = 0; i < particles; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'like-particle';
-            particle.style.left = `${rect.left + rect.width / 2}px`;
-            particle.style.top = `${rect.top + rect.height / 2}px`;
-            particle.style.setProperty('--angle', `${(i / particles) * 360}deg`);
-            document.body.appendChild(particle);
+    for (let i = 0; i < particles; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'like-particle';
+      particle.style.left = `${rect.left + rect.width / 2}px`;
+      particle.style.top = `${rect.top + rect.height / 2}px`;
+      particle.style.setProperty('--angle', `${(i / particles) * 360}deg`);
+      document.body.appendChild(particle);
 
-            setTimeout(() => particle.remove(), 800);
-        }
-    }, [post.id]);
+      setTimeout(() => particle.remove(), 800);
+    }
+  }, [post.id]);
 
-    return (
-        <article
-            className={`social-card glass-card interactive ${isExpanded ? 'expanded' : ''}`}
-            style={{
-                animationDelay: `${animationDelay}ms`,
-                '--tier-glow': tierStyles.glow,
-                '--tier-accent': tierStyles.accent
-            }}
+  return (
+    <article
+      className={`social-card glass-card interactive ${isExpanded ? 'expanded' : ''}`}
+      style={{
+        animationDelay: `${animationDelay}ms`,
+        '--tier-glow': tierStyles.glow,
+        '--tier-accent': tierStyles.accent
+      }}
+    >
+      {/* Author Header */}
+      <header className="card-header">
+        <button
+          className="author-info interactive"
+          onClick={() => onAuthorClick?.(post.author?.id)}
         >
-            {/* Author Header */}
-            <header className="card-header">
-                <button
-                    className="author-info interactive"
-                    onClick={() => onAuthorClick?.(post.author?.id)}
-                >
-                    <div className="author-avatar">
-                        {post.author?.avatarUrl ? (
-                            <img src={post.author.avatarUrl} alt={post.author.username} />
-                        ) : (
-                            <div className="avatar-placeholder">
-                                {post.author?.username?.[0]?.toUpperCase() || '?'}
-                            </div>
-                        )}
-                        <div className="level-badge">
-                            {post.author?.level || 1}
-                        </div>
-                    </div>
+          <div className="author-avatar">
+            {post.author?.avatarUrl ? (
+              <img src={post.author.avatarUrl} alt={post.author.username} />
+            ) : (
+              <div className="avatar-placeholder">
+                {post.author?.username?.[0]?.toUpperCase() || '?'}
+              </div>
+            )}
+            <div className="level-badge">
+              {post.author?.level || 1}
+            </div>
+          </div>
 
-                    <div className="author-details">
-                        <span className="author-name">
-                            {post.author?.username || 'Anonymous'}
-                            {post.author?.isVerified && <span className="verified-badge">✓</span>}
-                        </span>
-                        <span className="post-time">{post.relativeTime}</span>
-                    </div>
-                </button>
+          <div className="author-details">
+            <span className="author-name">
+              {getAuthorDisplayName(post.author)}
+              {post.author?.isVerified && <span className="verified-badge">✓</span>}
+            </span>
+            <span className="post-time">{post.relativeTime}</span>
+          </div>
+        </button>
 
-                <div className="tier-indicator" title={post.author?.tier}>
-                    {post.author?.tier === 'GTO_MASTER' ? '👑' :
-                        post.author?.tier === 'GOLD' ? '🥇' :
-                            post.author?.tier === 'SILVER' ? '🥈' : '🥉'}
-                </div>
-            </header>
+        <div className="tier-indicator" title={post.author?.tier}>
+          {post.author?.tier === 'GTO_MASTER' ? '👑' :
+            post.author?.tier === 'GOLD' ? '🥇' :
+              post.author?.tier === 'SILVER' ? '🥈' : '🥉'}
+        </div>
+      </header>
 
-            {/* Post Content */}
+      {/* Post Content */}
+      <div
+        className="card-content"
+        onClick={() => onPostClick?.(post.id)}
+      >
+        <p className="post-text">{post.content}</p>
+
+        {/* Media Grid */}
+        {post.mediaUrls?.length > 0 && (
+          <div className={`media-grid media-count-${Math.min(post.mediaUrls.length, 4)}`}>
+            {post.mediaUrls.slice(0, 4).map((url, i) => (
+              <div key={i} className="media-item">
+                <img src={url} alt={`Media ${i + 1}`} loading="lazy" />
+                {i === 3 && post.mediaUrls.length > 4 && (
+                  <div className="media-overflow">+{post.mediaUrls.length - 4}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Achievement Card */}
+        {post.contentType === 'achievement' && post.achievementData && (
+          <div className="achievement-card">
+            <div className="achievement-icon">{post.achievementData.icon || '🏆'}</div>
+            <div className="achievement-text">
+              <span className="achievement-title">{post.achievementData.title}</span>
+              <span className="achievement-desc">{post.achievementData.description}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Engagement Stats */}
+      <div className="engagement-stats">
+        {likeCount > 0 && (
+          <span className="stat-item">
+            {INTERACTION_TYPES.like.emoji} {likeCount}
+          </span>
+        )}
+        {post.engagement?.commentCount > 0 && (
+          <span className="stat-item">
+            {post.engagement.commentCount} comment{post.engagement.commentCount !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
+      {/* Action Bar */}
+      <footer className="card-actions">
+        <div className="reaction-container">
+          <button
+            id={`like-btn-${post.id}`}
+            className={`action-btn like-btn ${isLiked ? 'liked' : ''} ${isAnimating ? 'animating' : ''}`}
+            onClick={() => handleLike('like')}
+            onMouseEnter={() => setShowReactions(true)}
+            onMouseLeave={() => setTimeout(() => setShowReactions(false), 300)}
+          >
+            <span className="btn-icon">{isLiked ? '❤️' : '🤍'}</span>
+            <span className="btn-label">Like</span>
+          </button>
+
+          {/* Reaction picker */}
+          {showReactions && (
             <div
-                className="card-content"
-                onClick={() => onPostClick?.(post.id)}
+              className="reactions-popup"
+              onMouseEnter={() => setShowReactions(true)}
+              onMouseLeave={() => setShowReactions(false)}
             >
-                <p className="post-text">{post.content}</p>
-
-                {/* Media Grid */}
-                {post.mediaUrls?.length > 0 && (
-                    <div className={`media-grid media-count-${Math.min(post.mediaUrls.length, 4)}`}>
-                        {post.mediaUrls.slice(0, 4).map((url, i) => (
-                            <div key={i} className="media-item">
-                                <img src={url} alt={`Media ${i + 1}`} loading="lazy" />
-                                {i === 3 && post.mediaUrls.length > 4 && (
-                                    <div className="media-overflow">+{post.mediaUrls.length - 4}</div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Achievement Card */}
-                {post.contentType === 'achievement' && post.achievementData && (
-                    <div className="achievement-card">
-                        <div className="achievement-icon">{post.achievementData.icon || '🏆'}</div>
-                        <div className="achievement-text">
-                            <span className="achievement-title">{post.achievementData.title}</span>
-                            <span className="achievement-desc">{post.achievementData.description}</span>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Engagement Stats */}
-            <div className="engagement-stats">
-                {likeCount > 0 && (
-                    <span className="stat-item">
-                        {INTERACTION_TYPES.like.emoji} {likeCount}
-                    </span>
-                )}
-                {post.engagement?.commentCount > 0 && (
-                    <span className="stat-item">
-                        {post.engagement.commentCount} comment{post.engagement.commentCount !== 1 ? 's' : ''}
-                    </span>
-                )}
-            </div>
-
-            {/* Action Bar */}
-            <footer className="card-actions">
-                <div className="reaction-container">
-                    <button
-                        id={`like-btn-${post.id}`}
-                        className={`action-btn like-btn ${isLiked ? 'liked' : ''} ${isAnimating ? 'animating' : ''}`}
-                        onClick={() => handleLike('like')}
-                        onMouseEnter={() => setShowReactions(true)}
-                        onMouseLeave={() => setTimeout(() => setShowReactions(false), 300)}
-                    >
-                        <span className="btn-icon">{isLiked ? '❤️' : '🤍'}</span>
-                        <span className="btn-label">Like</span>
-                    </button>
-
-                    {/* Reaction picker */}
-                    {showReactions && (
-                        <div
-                            className="reactions-popup"
-                            onMouseEnter={() => setShowReactions(true)}
-                            onMouseLeave={() => setShowReactions(false)}
-                        >
-                            {Object.entries(INTERACTION_TYPES).map(([type, config]) => (
-                                <button
-                                    key={type}
-                                    className="reaction-btn scale-spring"
-                                    onClick={() => handleLike(type)}
-                                    title={config.label}
-                                >
-                                    {config.emoji}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
+              {Object.entries(INTERACTION_TYPES).map(([type, config]) => (
                 <button
-                    className="action-btn"
-                    onClick={() => onComment?.(post.id)}
+                  key={type}
+                  className="reaction-btn scale-spring"
+                  onClick={() => handleLike(type)}
+                  title={config.label}
                 >
-                    <span className="btn-icon">💬</span>
-                    <span className="btn-label">Comment</span>
+                  {config.emoji}
                 </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-                <button
-                    className="action-btn"
-                    onClick={() => onShare?.(post.id)}
-                >
-                    <span className="btn-icon">🔗</span>
-                    <span className="btn-label">Share</span>
-                </button>
-            </footer>
+        <button
+          className="action-btn"
+          onClick={() => onComment?.(post.id)}
+        >
+          <span className="btn-icon">💬</span>
+          <span className="btn-label">Comment</span>
+        </button>
 
-            <style>{`
+        <button
+          className="action-btn"
+          onClick={() => onShare?.(post.id)}
+        >
+          <span className="btn-icon">🔗</span>
+          <span className="btn-label">Share</span>
+        </button>
+      </footer>
+
+      <style>{`
         .social-card {
           padding: 0;
           overflow: hidden;
@@ -596,8 +597,8 @@ export const SocialCard = ({
           }
         }
       `}</style>
-        </article>
-    );
+    </article>
+  );
 };
 
 export default SocialCard;

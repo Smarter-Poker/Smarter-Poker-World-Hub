@@ -17,6 +17,7 @@ import { getPlayerCount } from '../../../../src/data/PLAYER_COUNT_MAP';
 import { generateLevelQuiz } from '../../../../lib/god-mode-service';
 import { supabase } from '../../../../src/lib/supabase';
 import UniversalTrainingTable from '../../../../src/components/training/UniversalTrainingTable';
+import { getClinicIdForGame } from '../../../../src/data/GAME_TO_CLINIC_MAP';
 
 // Constants
 const TIME_PER_QUESTION = 21;

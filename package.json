@@ -19,6 +19,7 @@
     "@supabase/supabase-js": "latest",
     "@use-gesture/react": "^10.3.1",
     "ai": "^6.0.39",
+    "axios": "^1.13.2",
     "canvas-confetti": "^1.9.4",
     "cheerio": "^1.1.2",
     "clsx": "^2.1.1",
