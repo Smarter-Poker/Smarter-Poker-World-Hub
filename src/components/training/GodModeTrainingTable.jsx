@@ -545,7 +545,7 @@ export default function GodModeTrainingTable({
     // ─────────────────────────────────────────────────────────────────────────
     // ENGINE 7: AUDIO ENGINE
     // ─────────────────────────────────────────────────────────────────────────
-    const { initAudio, playCardFlip, playSuccess, playError } = useAudioEngine();
+    const { initAudio, playCardFlip, playChips, playSuccess, playError } = useAudioEngine();
 
     // Current question data
     const currentQuestion = questions[currentQuestionIndex] || null;
@@ -663,7 +663,12 @@ export default function GodModeTrainingTable({
             explanation = `The correct action was ${correctAction.toUpperCase()}. ${currentQuestion?.explanation || ''}`;
         }
 
-        // Audio feedback
+        // Play chips sound on bet/raise actions
+        if (userAction === 'raise' || userAction === 'bet' || userAction === 'call') {
+            playChips();
+        }
+
+        // Audio feedback for result
         if (verdict === Verdict.PERFECT || verdict === Verdict.ACCEPTABLE) {
             playSuccess();
             setScore(prev => prev + 1);
@@ -681,7 +686,7 @@ export default function GodModeTrainingTable({
         setFeedback({ verdict, explanation, evLoss });
         setGameState(GameState.FEEDBACK_OVERLAY);
 
-    }, [gameState, currentQuestion, playSuccess, playError]);
+    }, [gameState, currentQuestion, playChips, playSuccess, playError]);
 
     // Handle continue after feedback
     const handleContinue = useCallback(() => {
@@ -890,6 +895,17 @@ export default function GodModeTrainingTable({
                         transform: 'translate(-50%, -50%)',
                         textAlign: 'center'
                     }}>
+                        {/* Street Indicator */}
+                        <div style={{
+                            fontSize: 11,
+                            fontWeight: 'bold',
+                            color: '#00d4ff',
+                            letterSpacing: 1,
+                            marginBottom: 6,
+                            textTransform: 'uppercase'
+                        }}>
+                            {scenario?.street || 'PREFLOP'}
+                        </div>
                         <div style={{
                             fontSize: 14,
                             color: 'rgba(255,255,255,0.6)',
