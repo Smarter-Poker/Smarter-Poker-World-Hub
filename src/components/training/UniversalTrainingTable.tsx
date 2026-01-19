@@ -120,8 +120,12 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     // Session complete state
     const [sessionComplete, setSessionComplete] = useState(false);
 
-    // Get questions from levels or legacy questions array
-    const currentLevel = clinic.levels?.[0] || null;
+    // Level tracking
+    const [levelIndex, setLevelIndex] = useState(0);
+
+    // Get questions from current level or legacy questions array
+    const totalLevels = clinic.levels?.length || 1;
+    const currentLevel = clinic.levels?.[levelIndex] || null;
     const questions = currentLevel?.questions || clinic.questions || [];
 
     // PHASE 3: CINEMATIC DEAL SEQUENCE
@@ -167,7 +171,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             clearTimeout(villainTimer);
             clearTimeout(unlockTimer);
         };
-    }, [clinic, questionIndex]);
+    }, [clinic, questionIndex, levelIndex]);
 
     // PHASE 4: THE BRAIN - Evaluation Logic
     const handleAction = useCallback((action: string) => {
@@ -411,6 +415,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                     color: '#fff',
                     fontSize: 14
                 }}>
+                    <span style={{ color: '#60a5fa' }}>L{levelIndex + 1}/{totalLevels}</span>
                     <span>Q: {questionIndex + 1}/{questions.length}</span>
                     <span style={{ color: '#4ade80' }}>✓ {score}</span>
                     <span style={{ color: '#fbbf24' }}>XP: {totalXP}</span>
