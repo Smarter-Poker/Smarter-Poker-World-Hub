@@ -1479,11 +1479,11 @@ export default function GodModeTrainingTable({
                         <span style={{ color: '#fff', fontWeight: 'bold' }}>
                             {scenario?.heroCards?.join(' ') || 'A♠ K♥'}
                         </span>
-                        {scenario?.villainAction && (
+                        {actionChain.narrativeText && (
                             <>
                                 {'. '}
                                 <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
-                                    {scenario.villainAction}
+                                    {actionChain.narrativeText}
                                 </span>
                             </>
                         )}
@@ -1534,7 +1534,7 @@ export default function GodModeTrainingTable({
                             boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
                             whiteSpace: 'nowrap'
                         }}>
-                            ⚠️ {scenario.villainAction.toUpperCase()}
+                            ⚠️ {actionChain.narrativeText.toUpperCase()}
                         </div>
                     )}
 
