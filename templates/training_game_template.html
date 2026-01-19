@@ -857,16 +857,17 @@
 
         <script>
             document.addEventListener('DOMContentLoaded', () => {
-                // LOCKED LAW POSITIONS - Enforce on page load
+                // LOCKED LAW POSITIONS - Converted to percentages for viewport scaling
+                // Cards positioned at SCREEN EDGES in the black margin area
                 const lockedPositions = {
-                    v1: { left: '760px', top: '926px' },
-                    v2: { left: '779px', top: '694px' },
-                    v3: { left: '778px', top: '478px' },
-                    v4: { left: '663px', top: '282px' },
-                    v5: { left: '289px', top: '281px' },
-                    v6: { left: '170px', top: '474px' },
-                    v7: { left: '172px', top: '696px' },
-                    v8: { left: '193px', top: '922px' }
+                    v1: { left: '92%', top: '82%' },   // Bottom-right cards (right edge)
+                    v2: { left: '94%', top: '60%' },   // Middle-right cards (right edge)
+                    v3: { left: '94%', top: '40%' },   // Upper-right cards (right edge)
+                    v4: { left: '72%', top: '18%' },   // Top-right cards
+                    v5: { left: '26%', top: '18%' },   // Top-left cards
+                    v6: { left: '2%', top: '40%' },    // Upper-left cards (left edge)
+                    v7: { left: '2%', top: '60%' },    // Middle-left cards (left edge)
+                    v8: { left: '4%', top: '82%' }     // Bottom-left cards (left edge)
                 };
 
                 // Move cards to body to enforce absolute positioning relative to viewport
