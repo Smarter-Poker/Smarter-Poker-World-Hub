@@ -104,46 +104,68 @@ export function ExternalLinkProvider({ children }) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📺 EXTERNAL LINK MODAL COMPONENT
-// Opens external content in popup window immediately (iframe unreliable due to X-Frame-Options)
+// Iframe first, if blocked show internal message with Copy Link - NO external popups
 // ═══════════════════════════════════════════════════════════════════════════
 
 function ExternalLinkModal({ url, title, onClose }) {
-    const [popupBlocked, setPopupBlocked] = useState(false);
-    const hasTriedRef = React.useRef(false);
+    const [loading, setLoading] = useState(true);
+    const [blocked, setBlocked] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const iframeRef = React.useRef(null);
+    const checkTimeoutRef = React.useRef(null);
 
-    // Open popup immediately on mount
+    // Detect iframe blocking after a delay
     useEffect(() => {
-        if (hasTriedRef.current) return;
-        hasTriedRef.current = true;
+        checkTimeoutRef.current = setTimeout(() => {
+            // If still loading after 3s, assume blocked
+            if (loading) {
+                setBlocked(true);
+                setLoading(false);
+            }
+        }, 3000);
 
-        // Open full-screen popup window
-        const width = window.screen.availWidth;
-        const height = window.screen.availHeight;
-        const popup = window.open(
-            url,
-            'smarterPokerBrowser',
-            `width=${width},height=${height},left=0,top=0,resizable=yes,scrollbars=yes,toolbar=yes,location=yes`
-        );
+        return () => {
+            if (checkTimeoutRef.current) {
+                clearTimeout(checkTimeoutRef.current);
+            }
+        };
+    }, [loading]);
 
-        // Check if popup was blocked
-        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-            setPopupBlocked(true);
-        } else {
-            // Popup opened successfully, close modal
-            onClose();
+    const handleIframeLoad = () => {
+        // Clear the timeout since iframe loaded
+        if (checkTimeoutRef.current) {
+            clearTimeout(checkTimeoutRef.current);
         }
-    }, [url, onClose]);
+        setLoading(false);
 
-    // Manual open for fallback
-    const openPopupManually = () => {
-        const width = window.screen.availWidth;
-        const height = window.screen.availHeight;
-        window.open(
-            url,
-            'smarterPokerBrowser',
-            `width=${width},height=${height},left=0,top=0,resizable=yes,scrollbars=yes,toolbar=yes,location=yes`
-        );
-        onClose();
+        // Check if iframe loaded but is blocked (will show error)
+        // Can't reliably detect X-Frame-Options, so we rely on timeout
+    };
+
+    const handleIframeError = () => {
+        if (checkTimeoutRef.current) {
+            clearTimeout(checkTimeoutRef.current);
+        }
+        setLoading(false);
+        setBlocked(true);
+    };
+
+    const copyLink = async () => {
+        try {
+            await navigator.clipboard.writeText(url);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = url;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
     };
 
     return (
@@ -159,33 +181,65 @@ function ExternalLinkModal({ url, title, onClose }) {
                         </div>
                     </div>
                     <div style={styles.headerActions}>
+                        <button onClick={copyLink} style={styles.copyBtn}>
+                            {copied ? '✓ Copied!' : '📋 Copy Link'}
+                        </button>
                         <button onClick={onClose} style={styles.closeBtn}>✕</button>
                     </div>
                 </div>
 
-                {/* Content - only shows if popup was blocked */}
+                {/* Content */}
                 <div style={styles.content}>
-                    {popupBlocked ? (
-                        <div style={styles.blockedState}>
-                            <span style={styles.blockedIcon}>🚫</span>
-                            <h3 style={styles.blockedTitle}>Popup Blocked</h3>
-                            <p style={styles.blockedText}>Your browser blocked the popup. Click below to open the link.</p>
-                            <button onClick={openPopupManually} style={styles.openBtn}>
-                                Open Link ↗️
-                            </button>
-                        </div>
-                    ) : (
+                    {/* Loading state */}
+                    {loading && (
                         <div style={styles.loader}>
                             <div style={styles.spinner} />
-                            <span>Opening external content...</span>
+                            <span>Loading content...</span>
                         </div>
+                    )}
+
+                    {/* Blocked state - shown inside the modal */}
+                    {blocked && (
+                        <div style={styles.blockedState}>
+                            <span style={styles.blockedIcon}>🔐</span>
+                            <h3 style={styles.blockedTitle}>Content Preview Unavailable</h3>
+                            <p style={styles.blockedText}>
+                                This website doesn't allow embedding.
+                                <br />
+                                Copy the link to view it in your browser.
+                            </p>
+                            <button onClick={copyLink} style={styles.openBtn}>
+                                {copied ? '✓ Link Copied!' : '📋 Copy Link to Clipboard'}
+                            </button>
+                            <div style={styles.urlDisplay}>
+                                <code style={styles.urlCode}>{url}</code>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Iframe - always rendered but hidden when blocked */}
+                    {!blocked && (
+                        <iframe
+                            ref={iframeRef}
+                            src={url}
+                            style={{
+                                ...styles.iframe,
+                                opacity: loading ? 0 : 1,
+                                display: blocked ? 'none' : 'block'
+                            }}
+                            onLoad={handleIframeLoad}
+                            onError={handleIframeError}
+                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                            referrerPolicy="no-referrer"
+                            title={title}
+                        />
                     )}
                 </div>
 
                 {/* Footer */}
                 <div style={styles.footer}>
                     <span style={styles.footerText}>
-                        🛡️ You're still on Smarter.Poker
+                        🛡️ You're still on Smarter.Poker — You never left!
                     </span>
                 </div>
             </div>
@@ -283,6 +337,16 @@ const styles = {
         fontWeight: 500,
         cursor: 'pointer',
     },
+    copyBtn: {
+        padding: '6px 12px',
+        background: 'rgba(0, 255, 136, 0.2)',
+        border: '1px solid rgba(0, 255, 136, 0.3)',
+        borderRadius: 6,
+        color: '#00ff88',
+        fontSize: 12,
+        fontWeight: 500,
+        cursor: 'pointer',
+    },
     closeBtn: {
         width: 32,
         height: 32,
@@ -372,6 +436,19 @@ const styles = {
         fontSize: 16,
         fontWeight: 600,
         cursor: 'pointer',
+    },
+    urlDisplay: {
+        marginTop: 20,
+        padding: 12,
+        background: 'rgba(0, 0, 0, 0.1)',
+        borderRadius: 8,
+        maxWidth: 500,
+        wordBreak: 'break-all',
+    },
+    urlCode: {
+        fontSize: 11,
+        color: '#666',
+        fontFamily: 'monospace',
     },
     errorIcon: {
         fontSize: 48,
