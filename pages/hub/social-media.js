@@ -498,17 +498,23 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         const pos = e.target.selectionStart;
 
         // 🔗 AUTO-DETECT URLs - Facebook-style: remove URL and show preview card
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        // Match http/https URLs OR www. URLs (which we'll prefix with https://)
+        const urlRegex = /(?:https?:\/\/|www\.)[^\s<>"\[\]{}|\\^`]+/gi;
         const urlMatch = value.match(urlRegex);
 
         if (urlMatch && !linkPreview && !linkLoading) {
-            const detectedUrl = urlMatch[0];
+            let detectedUrl = urlMatch[0];
+
+            // Ensure URL starts with http/https
+            if (detectedUrl.toLowerCase().startsWith('www.')) {
+                detectedUrl = 'https://' + detectedUrl;
+            }
 
             // Check if it's a YouTube URL
-            const isYouTube = /youtube\.com|youtu\.be/.test(detectedUrl);
+            const isYouTube = /youtube\.com|youtu\.be/i.test(detectedUrl);
 
-            // Remove the URL from content and show preview
-            const cleanedValue = value.replace(urlRegex, '').trim();
+            // Remove the ENTIRE matched URL from content
+            const cleanedValue = value.replace(urlMatch[0], '').trim();
             setContent(cleanedValue);
             setLinkLoading(true);
 
@@ -536,15 +542,39 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                         });
                     } else {
                         // For non-YouTube links, generate preview from URL
-                        const domain = new URL(detectedUrl).hostname.replace('www.', '');
-                        // Try to extract title from URL path
-                        const pathParts = new URL(detectedUrl).pathname.split('/').filter(Boolean);
+                        let parsedUrl;
+                        try {
+                            parsedUrl = new URL(detectedUrl);
+                        } catch {
+                            setError('Invalid URL');
+                            setLinkLoading(false);
+                            return;
+                        }
+
+                        const domain = parsedUrl.hostname.replace(/^www\./i, '');
+
+                        // Extract title from URL path - take the last meaningful segment
+                        const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
                         const lastPart = pathParts[pathParts.length - 1] || '';
-                        const title = lastPart.replace(/-/g, ' ').replace(/\d+/g, '').trim() || domain;
+
+                        // Clean up the title: replace dashes with spaces, remove pure numbers at start
+                        let title = lastPart
+                            .replace(/-/g, ' ')           // dashes to spaces
+                            .replace(/^\d+\s*/g, '')      // remove leading numbers
+                            .trim();
+
+                        // Capitalize words
+                        if (title) {
+                            title = title.split(' ')
+                                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                                .join(' ');
+                        } else {
+                            title = domain; // Fallback to domain
+                        }
 
                         setLinkPreview({
                             url: detectedUrl,
-                            title: title.charAt(0).toUpperCase() + title.slice(1),
+                            title: title,
                             image: null, // Will show placeholder
                             domain: domain,
                             type: 'link'

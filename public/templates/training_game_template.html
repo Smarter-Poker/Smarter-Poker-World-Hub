@@ -593,6 +593,208 @@
             border-radius: 10px;
             color: #fff;
             cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .action-button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        .action-button:active {
+            transform: scale(0.98);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           ANIMATION KEYFRAMES — Dealing, Pulse, Shake, Fold
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        /* Card dealing animation - fly from center */
+        @keyframes dealCard {
+            0% {
+                transform: translate(50vw, 50vh) scale(0.3) rotate(0deg);
+                opacity: 0;
+            }
+
+            60% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1) rotate(var(--card-rotation, 0deg));
+                opacity: 1;
+            }
+        }
+
+        .opponent-cards.dealing {
+            animation: dealCard 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .opponent-cards.dealing:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .opponent-cards.dealing:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .opponent-cards.dealing:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .opponent-cards.dealing:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+
+        .opponent-cards.dealing:nth-child(5) {
+            animation-delay: 0.5s;
+        }
+
+        .opponent-cards.dealing:nth-child(6) {
+            animation-delay: 0.6s;
+        }
+
+        .opponent-cards.dealing:nth-child(7) {
+            animation-delay: 0.7s;
+        }
+
+        .opponent-cards.dealing:nth-child(8) {
+            animation-delay: 0.8s;
+        }
+
+        .hero-cards.dealing .card {
+            animation: dealCard 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation-delay: 0.9s;
+        }
+
+        /* Timer heartbeat pulse */
+        @keyframes timerPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.15);
+            }
+        }
+
+        @keyframes timerGlow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 10px rgba(255, 23, 68, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(255, 23, 68, 0.8), 0 0 60px rgba(255, 23, 68, 0.4);
+            }
+        }
+
+        .timer-container.critical {
+            animation: timerPulse 0.5s ease-in-out infinite, timerGlow 0.5s ease-in-out infinite;
+        }
+
+        .timer-container.warning {
+            animation: timerPulse 1s ease-in-out infinite;
+        }
+
+        /* Screen shake effect */
+        @keyframes screenShake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            10% {
+                transform: translateX(-5px) rotate(-0.5deg);
+            }
+
+            20% {
+                transform: translateX(5px) rotate(0.5deg);
+            }
+
+            30% {
+                transform: translateX(-4px);
+            }
+
+            40% {
+                transform: translateX(4px);
+            }
+
+            50% {
+                transform: translateX(-3px);
+            }
+
+            60% {
+                transform: translateX(3px);
+            }
+
+            70% {
+                transform: translateX(-2px);
+            }
+
+            80% {
+                transform: translateX(2px);
+            }
+
+            90% {
+                transform: translateX(-1px);
+            }
+        }
+
+        .game-container.shake {
+            animation: screenShake 0.5s ease-in-out;
+        }
+
+        /* Correct flash effect */
+        @keyframes correctFlash {
+            0% {
+                background: #0a1628;
+            }
+
+            20% {
+                background: rgba(76, 175, 80, 0.3);
+            }
+
+            100% {
+                background: #0a1628;
+            }
+        }
+
+        .game-container.correct-flash {
+            animation: correctFlash 0.4s ease-out;
+        }
+
+        /* Fold animation - slide and fade */
+        @keyframes foldSlide {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(-30px, -30px) scale(0.7);
+                opacity: 0.3;
+                filter: grayscale(100%) brightness(0.5);
+            }
+        }
+
+        .opponent-cards.folding {
+            animation: foldSlide 0.4s ease-out forwards;
+        }
+
+        /* Player fold state */
+        .player.folded {
+            opacity: 0.5;
+            filter: grayscale(70%);
+            transition: all 0.3s ease;
+        }
+
+        .player.folded .player-name {
+            color: rgba(255, 255, 255, 0.4);
         }
     </style>
 </head>
@@ -857,8 +1059,110 @@
 
         <script>
             // ═══════════════════════════════════════════════════════════════════════════
-            // TRAINING GAME ENGINE — Full PostMessage Integration
+            // TRAINING GAME ENGINE — Full PostMessage Integration + Audio + Animations
             // ═══════════════════════════════════════════════════════════════════════════
+
+            // ───────────────────────────────────────────────────────────────────────────
+            // SYNTH AUDIO ENGINE — Web Audio API Synthesizer
+            // ───────────────────────────────────────────────────────────────────────────
+            class SynthAudioEngine {
+                constructor() {
+                    this.audioContext = null;
+                    this.enabled = true;
+                }
+
+                init() {
+                    if (this.audioContext) return;
+                    try {
+                        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        console.log('🔊 SynthAudioEngine initialized');
+                    } catch (e) {
+                        console.warn('⚠️ Web Audio not supported');
+                    }
+                }
+
+                playClick() {
+                    if (!this.audioContext || !this.enabled) return;
+                    const osc = this.audioContext.createOscillator();
+                    const gain = this.audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.audioContext.destination);
+                    osc.frequency.value = 800;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+                    osc.start();
+                    osc.stop(this.audioContext.currentTime + 0.1);
+                }
+
+                playCorrect() {
+                    if (!this.audioContext || !this.enabled) return;
+                    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+                    notes.forEach((freq, i) => {
+                        setTimeout(() => {
+                            const osc = this.audioContext.createOscillator();
+                            const gain = this.audioContext.createGain();
+                            osc.connect(gain);
+                            gain.connect(this.audioContext.destination);
+                            osc.frequency.value = freq;
+                            osc.type = 'triangle';
+                            gain.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                            osc.start();
+                            osc.stop(this.audioContext.currentTime + 0.3);
+                        }, i * 80);
+                    });
+                }
+
+                playIncorrect() {
+                    if (!this.audioContext || !this.enabled) return;
+                    const osc = this.audioContext.createOscillator();
+                    const gain = this.audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.audioContext.destination);
+                    osc.frequency.value = 150;
+                    osc.type = 'sawtooth';
+                    gain.gain.setValueAtTime(0.15, this.audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(this.audioContext.currentTime + 0.3);
+                }
+
+                playDeal() {
+                    if (!this.audioContext || !this.enabled) return;
+                    // White noise burst for deal sound
+                    const bufferSize = this.audioContext.sampleRate * 0.08;
+                    const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    const source = this.audioContext.createBufferSource();
+                    const gain = this.audioContext.createGain();
+                    source.buffer = buffer;
+                    source.connect(gain);
+                    gain.connect(this.audioContext.destination);
+                    gain.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.08);
+                    source.start();
+                }
+
+                playTick() {
+                    if (!this.audioContext || !this.enabled) return;
+                    const osc = this.audioContext.createOscillator();
+                    const gain = this.audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.audioContext.destination);
+                    osc.frequency.value = 1000;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.05);
+                    osc.start();
+                    osc.stop(this.audioContext.currentTime + 0.05);
+                }
+            }
+
+            const audio = new SynthAudioEngine();
 
             // Game State
             let gameState = {
@@ -873,26 +1177,31 @@
                 showResult: false,
                 selectedAnswer: null,
                 isComplete: false,
-                timerInterval: null
+                timerInterval: null,
+                lastQuestionIndex: -1
             };
 
             // DOM Elements
             const elements = {
                 timer: null,
+                timerContainer: null,
                 questionCounter: null,
                 questionText: null,
                 actionButtons: null,
-                feedbackOverlay: null
+                feedbackOverlay: null,
+                gameContainer: null
             };
 
             document.addEventListener('DOMContentLoaded', () => {
-                console.log('🎮 Training Game Template Loaded');
+                console.log('🎮 Training Game Template Loaded with Audio + Animations');
 
                 // Initialize DOM elements
                 elements.timer = document.querySelector('.timer-value');
+                elements.timerContainer = document.querySelector('.timer-container');
                 elements.questionCounter = document.querySelector('.question-counter');
                 elements.questionText = document.querySelector('.question-text');
                 elements.actionButtons = document.querySelectorAll('.action-button');
+                elements.gameContainer = document.querySelector('.game-container');
 
                 // Setup card positions (existing logic)
                 setupCardPositions();
@@ -905,8 +1214,15 @@
                 // Create feedback overlay
                 createFeedbackOverlay();
 
+                // Trigger dealing animations
+                triggerDealingAnimation();
+
                 // Start timer
                 startTimer();
+
+                // Initialize audio on first user interaction
+                document.body.addEventListener('click', () => audio.init(), { once: true });
+                document.body.addEventListener('touchstart', () => audio.init(), { once: true });
 
                 // Notify parent we're ready
                 window.parent.postMessage({ type: 'TEMPLATE_READY' }, '*');
@@ -914,6 +1230,37 @@
                 // Listen for messages from parent
                 window.addEventListener('message', handleParentMessage);
             });
+
+            // Trigger dealing animation for all cards
+            function triggerDealingAnimation() {
+                const opponentCards = document.querySelectorAll('.opponent-cards');
+                const heroCards = document.querySelector('.hero-cards');
+
+                // Add dealing class to trigger animation
+                opponentCards.forEach((cards, index) => {
+                    cards.style.opacity = '0';
+                    setTimeout(() => {
+                        cards.style.opacity = '';
+                        cards.classList.add('dealing');
+                        audio.playDeal();
+                    }, index * 100);
+                });
+
+                if (heroCards) {
+                    heroCards.style.opacity = '0';
+                    setTimeout(() => {
+                        heroCards.style.opacity = '';
+                        heroCards.classList.add('dealing');
+                        audio.playDeal();
+                    }, opponentCards.length * 100 + 200);
+                }
+
+                // Remove dealing class after animation
+                setTimeout(() => {
+                    opponentCards.forEach(c => c.classList.remove('dealing'));
+                    if (heroCards) heroCards.classList.remove('dealing');
+                }, 2000);
+            }
 
             // Handle messages from parent [gameId].js
             function handleParentMessage(event) {
@@ -989,11 +1336,19 @@
                     btn.addEventListener('click', () => {
                         if (gameState.showResult) return; // Ignore clicks during result
 
+                        // Play click sound
+                        audio.playClick();
+
                         const answerId = actions[index];
                         console.log('🎯 Answer selected:', answerId);
 
                         // Stop timer
                         clearInterval(gameState.timerInterval);
+
+                        // Remove timer pulse
+                        if (elements.timerContainer) {
+                            elements.timerContainer.classList.remove('critical', 'warning');
+                        }
 
                         // Send to parent
                         window.parent.postMessage({
@@ -1004,38 +1359,71 @@
                 });
             }
 
-            // Timer logic
+            // Timer logic with pulse effects
             function startTimer() {
                 clearInterval(gameState.timerInterval);
+                let lastTickTime = 0;
 
                 gameState.timerInterval = setInterval(() => {
                     if (gameState.showResult || gameState.isComplete) {
                         clearInterval(gameState.timerInterval);
+                        if (elements.timerContainer) {
+                            elements.timerContainer.classList.remove('critical', 'warning');
+                        }
                         return;
                     }
 
                     gameState.timeLeft -= 0.1;
+                    const currentTime = Math.ceil(gameState.timeLeft);
 
                     // Update timer display
                     if (elements.timer) {
-                        elements.timer.textContent = Math.ceil(gameState.timeLeft);
+                        elements.timer.textContent = currentTime;
 
-                        // Color coding
+                        // Color coding + pulse classes
                         const percent = (gameState.timeLeft / gameState.timeLimit) * 100;
+
                         if (percent < 15) {
                             elements.timer.style.color = '#FF1744';
+                            if (elements.timerContainer) {
+                                elements.timerContainer.classList.add('critical');
+                                elements.timerContainer.classList.remove('warning');
+                            }
+                            // Play tick sound every second when critical
+                            if (currentTime !== lastTickTime && currentTime > 0) {
+                                audio.playTick();
+                                lastTickTime = currentTime;
+                            }
                         } else if (percent < 30) {
                             elements.timer.style.color = '#FF6B35';
+                            if (elements.timerContainer) {
+                                elements.timerContainer.classList.add('warning');
+                                elements.timerContainer.classList.remove('critical');
+                            }
                         } else if (percent < 50) {
                             elements.timer.style.color = '#FFD700';
+                            if (elements.timerContainer) {
+                                elements.timerContainer.classList.remove('critical', 'warning');
+                            }
                         } else {
-                            elements.timer.style.color = '#ff4444';
+                            elements.timer.style.color = '#4CAF50';
+                            if (elements.timerContainer) {
+                                elements.timerContainer.classList.remove('critical', 'warning');
+                            }
                         }
                     }
 
                     // Time's up
                     if (gameState.timeLeft <= 0) {
                         clearInterval(gameState.timerInterval);
+                        if (elements.timerContainer) {
+                            elements.timerContainer.classList.remove('critical', 'warning');
+                        }
+                        // Shake effect on timeout
+                        if (elements.gameContainer) {
+                            elements.gameContainer.classList.add('shake');
+                            setTimeout(() => elements.gameContainer.classList.remove('shake'), 500);
+                        }
                         window.parent.postMessage({
                             type: 'ANSWER_SELECTED',
                             data: { answerId: null } // Timeout
@@ -1092,7 +1480,7 @@
                 elements.feedbackOverlay = overlay;
             }
 
-            // Show feedback overlay
+            // Show feedback overlay with audio
             function showFeedback(answerId) {
                 const overlay = elements.feedbackOverlay;
                 if (!overlay) return;
@@ -1112,12 +1500,26 @@
                     title.style.color = '#4CAF50';
                     content.style.background = 'linear-gradient(135deg, #1a3d1a, #0d2d0d)';
                     content.style.border = '2px solid #4CAF50';
+
+                    // Play correct sound and flash effect
+                    audio.playCorrect();
+                    if (elements.gameContainer) {
+                        elements.gameContainer.classList.add('correct-flash');
+                        setTimeout(() => elements.gameContainer.classList.remove('correct-flash'), 400);
+                    }
                 } else {
                     icon.textContent = '❌';
                     title.textContent = 'INCORRECT';
                     title.style.color = '#FF6B35';
                     content.style.background = 'linear-gradient(135deg, #3d1a1a, #2d0d0d)';
                     content.style.border = '2px solid #FF6B35';
+
+                    // Play incorrect sound and shake effect
+                    audio.playIncorrect();
+                    if (elements.gameContainer) {
+                        elements.gameContainer.classList.add('shake');
+                        setTimeout(() => elements.gameContainer.classList.remove('shake'), 500);
+                    }
                 }
 
                 explanation.textContent = q?.explanation || '';
