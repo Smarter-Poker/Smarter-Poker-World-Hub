@@ -325,6 +325,7 @@ export const TRAINING_CLINICS = [
     {
         id: 'clinic-13',
         name: 'Tournament World',
+        title: 'ICM Fundamentals',
         subtitle: 'Clinic #13: MTT',
         category: 'MTT',
         targetLeak: 'ICM_AWARENESS',
@@ -337,7 +338,25 @@ export const TRAINING_CLINICS = [
         levels: 150,
         passThreshold: 85,
         modes: ['PUSH_FOLD', 'ICM', 'CHIP_EV'],
-        visualEffects: ['MODE_SPECIFIC_GLOW', 'BUTTON_ROTATION']
+        visualEffects: ['MODE_SPECIFIC_GLOW', 'BUTTON_ROTATION'],
+        startingState: {
+            heroCards: ['Ah', 'Ks'],
+            villainCards: ['??', '??'],
+            board: [],
+            pot: 4.5,
+            dealerBtn: 'villain',
+            heroStack: 15,
+            villainStack: 25
+        },
+        questions: [
+            {
+                id: 'q1',
+                street: 'preflop',
+                villainAction: 'Shoves All-In (25BB)',
+                correctAction: 'call',
+                explanation: 'With AKs and 15BB, you are getting the right ICM-adjusted odds to call a shove. AKs has ~45% equity against a wide pushing range.'
+            }
+        ]
     },
     {
         id: 'clinic-14',
