@@ -15,7 +15,10 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../../lib/supabase';
 import { TRAINING_CLINICS } from '../../data/TRAINING_CLINICS';
+import { useTrainingAccountant } from '../../hooks/useTrainingAccountant';
+import { getLaw, getViolationExplanation } from '../../data/POKER_LAWS';
 
 // TypeScript interfaces
 interface Question {
@@ -72,6 +75,18 @@ interface UniversalTrainingTableProps {
 }
 
 export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTrainingTableProps) {
+    // Get authenticated user ID on mount
+    const [userId, setUserId] = useState<string | null>(null);
+
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data }) => {
+            setUserId(data.user?.id || null);
+        });
+    }, []);
+
+    // Initialize the Accountant (Engine 4)
+    const { logCorrectAnswer, logMistake, storeLeakForIntercept } = useTrainingAccountant(userId);
+
     // PHASE 1: DATA LOCK - Find the clinic
     const clinic = TRAINING_CLINICS.find(c => c.id === gameId) as Clinic | undefined;
 
@@ -192,18 +207,29 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         setIsCorrect(correct);
         setExplanation(question.explanation || 'Good decision!');
 
-        // Log law violation if incorrect (for leak detection)
-        if (!correct && question.lawId) {
-            console.log(`⚠️ LEAK DETECTED: ${question.lawId}`);
-            // TODO: Insert into user_leaks table via Supabase
-        }
-
-        // Calculate XP
+        // Calculate XP and log to Supabase (Engine 4: Accountant)
         const baseXP = correct ? 100 : 0;
         setXpEarned(baseXP);
+
         if (correct) {
             setScore(prev => prev + 1);
             setTotalXP(prev => prev + baseXP);
+
+            // Log correct answer to Supabase
+            logCorrectAnswer(clinic?.id || gameId, questionIndex, baseXP).catch(console.error);
+        } else {
+            // Log mistake to Supabase with lawId for leak detection
+            if (question.lawId) {
+                console.log(`⚠️ LEAK DETECTED: ${question.lawId}`);
+                logMistake(clinic?.id || gameId, questionIndex, question.lawId, clinic?.id)
+                    .then((result) => {
+                        if (result) {
+                            // Store in localStorage for LeakFixerIntercept
+                            storeLeakForIntercept(question.lawId, result.confidence, result.mistakeCount);
+                        }
+                    })
+                    .catch(console.error);
+            }
         }
 
         // VISUAL FEEDBACK: Screen flash
