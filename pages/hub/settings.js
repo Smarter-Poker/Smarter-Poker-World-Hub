@@ -83,7 +83,7 @@ export default function SettingsPage() {
         friendActivity: false,
 
         // Privacy
-        postIdentity: 'realname', // 'realname' or 'alias'
+        display_name_preference: 'full_name', // 'full_name' or 'username'
         profileVisibility: 'public',
         showOnlineStatus: true,
         showHandHistory: true,
@@ -103,9 +103,25 @@ export default function SettingsPage() {
     });
 
     useEffect(() => {
-        // Check for logged in user
-        supabase.auth.getUser().then(({ data }) => {
+        // Check for logged in user and load preferences
+        supabase.auth.getUser().then(async ({ data }) => {
             setUser(data?.user || null);
+
+            if (data?.user) {
+                // Load user's display preference from profiles table
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('display_name_preference')
+                    .eq('id', data.user.id)
+                    .single();
+
+                if (profile) {
+                    setSettings(prev => ({
+                        ...prev,
+                        display_name_preference: profile.display_name_preference || 'full_name'
+                    }));
+                }
+            }
         });
     }, []);
 
@@ -114,8 +130,21 @@ export default function SettingsPage() {
         setSaved(false);
     };
 
-    const saveSettings = () => {
-        // TODO: Save to Supabase
+    const saveSettings = async () => {
+        if (!user?.id) return;
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({
+                display_name_preference: settings.display_name_preference
+            })
+            .eq('id', user.id);
+
+        if (error) {
+            console.error('Error saving settings:', error);
+            return;
+        }
+
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
     };
@@ -232,6 +261,12 @@ export default function SettingsPage() {
                                     <button style={styles.secondaryButton}>Change Password</button>
                                     <button style={styles.secondaryButton}>Enable 2FA</button>
                                     <button style={styles.secondaryButton}>Connected Devices</button>
+                                    <button
+                                        onClick={() => router.push('/hub/avatars-complete')}
+                                        style={styles.secondaryButton}
+                                    >
+                                        🎨 Create or Select Avatar
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -281,16 +316,16 @@ export default function SettingsPage() {
 
                                 <div style={styles.card}>
                                     <Select
-                                        label="Post As"
-                                        value={settings.postIdentity || 'realname'}
-                                        onChange={(v) => updateSetting('postIdentity', v)}
+                                        label="Display Name in Social Media"
+                                        value={settings.display_name_preference || 'full_name'}
+                                        onChange={(v) => updateSetting('display_name_preference', v)}
                                         options={[
-                                            { value: 'realname', label: 'Real Name (e.g., John Smith)' },
-                                            { value: 'alias', label: 'Alias/Username (e.g., @pokerpro123)' },
+                                            { value: 'full_name', label: 'Full Name (e.g., John Smith)' },
+                                            { value: 'username', label: 'Username (e.g., @pokerpro123)' },
                                         ]}
                                     />
                                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: -8, marginBottom: 16, paddingLeft: 4 }}>
-                                        Choose how your name appears on posts and comments
+                                        Choose how your name appears in posts and comments
                                     </div>
                                     <Select
                                         label="Profile Visibility"

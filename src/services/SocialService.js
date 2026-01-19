@@ -105,6 +105,8 @@ export class SocialService {
           author:user_dna_profiles!author_id (
             user_id,
             username,
+            full_name,
+            display_name_preference,
             avatar_url,
             current_level,
             tier_id,
