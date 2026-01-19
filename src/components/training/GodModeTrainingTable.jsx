@@ -606,6 +606,11 @@ export default function GodModeTrainingTable({
         heroPosition: currentQuestion.position || 'BTN'
     } : null;
 
+    // DEBUG: Log hero cards
+    if (scenario) {
+        console.log('🃏 Hero Cards:', scenario.heroCards, 'Raw:', currentQuestion?.hero_cards);
+    }
+
     // Player count based on topology
     const getPlayerCount = (topology) => {
         const counts = { 'HU': 2, '3-Max': 3, '6-Max': 6, '9-Max': 9 };
