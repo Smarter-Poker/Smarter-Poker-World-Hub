@@ -207,7 +207,7 @@ const Card3D = ({ card, isFlipped = false, delay = 0, size = 'normal' }) => {
 // PLAYER SEAT COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-const PlayerSeat = ({ player, isHero, isActive, position, dealerSeat, showCards, cardDelay }) => {
+const PlayerSeat = ({ player, isHero, isActive, position, dealerSeat, showCards, cardDelay, heroPosition }) => {
     const hasDealer = dealerSeat === position;
 
     return (
@@ -265,19 +265,43 @@ const PlayerSeat = ({ player, isHero, isActive, position, dealerSeat, showCards,
                 borderRadius: 12,
                 border: isActive ? '2px solid #4ade80' : '1px solid rgba(255,255,255,0.2)',
                 textAlign: 'center',
-                boxShadow: isActive ? '0 0 20px rgba(74, 222, 128, 0.4)' : 'none'
+                boxShadow: isActive
+                    ? '0 0 20px rgba(74, 222, 128, 0.4), 0 0 40px rgba(74, 222, 128, 0.2)'
+                    : isHero
+                        ? '0 0 15px rgba(37, 99, 235, 0.5)'
+                        : 'none'
             }}>
                 <div style={{
-                    fontSize: 13,
-                    fontWeight: 'bold',
-                    color: '#fff',
-                    marginBottom: 2
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6
                 }}>
-                    {isHero ? 'YOU' : `V${position}`}
+                    <span style={{
+                        fontSize: 13,
+                        fontWeight: 'bold',
+                        color: '#fff'
+                    }}>
+                        {isHero ? 'YOU' : `V${position}`}
+                    </span>
+                    {isHero && heroPosition && (
+                        <span style={{
+                            fontSize: 10,
+                            fontWeight: 'bold',
+                            color: '#fbbf24',
+                            background: 'rgba(251, 191, 36, 0.2)',
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            letterSpacing: 0.5
+                        }}>
+                            {heroPosition}
+                        </span>
+                    )}
                 </div>
                 <div style={{
                     fontSize: 12,
-                    color: isHero ? '#93c5fd' : '#94a3b8'
+                    color: isHero ? '#93c5fd' : '#94a3b8',
+                    marginTop: 2
                 }}>
                     {player.stack}bb
                 </div>
@@ -950,6 +974,7 @@ export default function GodModeTrainingTable({
                         dealerSeat={playerCount - 1} // Button on last villain
                         showCards={showCards}
                         cardDelay={i * 200}
+                        heroPosition={i === 0 ? scenario?.heroPosition : null}
                     />
                 ))}
             </div>
