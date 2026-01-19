@@ -107,6 +107,44 @@ function getYouTubeThumbnail(url) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 🖼️ VIDEO THUMBNAIL COMPONENT - Robust with fallback for invalid YouTube IDs
+// ═══════════════════════════════════════════════════════════════════════════
+
+function VideoThumbnail({ url, style = {} }) {
+    const [thumbnailError, setThumbnailError] = useState(false);
+    const thumbnailUrl = getYouTubeThumbnail(url);
+
+    // If thumbnail failed to load or no thumbnail URL, show fallback
+    if (thumbnailError || !thumbnailUrl) {
+        return (
+            <div style={{
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                ...style
+            }}>
+                <span style={{ fontSize: 48, marginBottom: 8 }}>🎬</span>
+                <span style={{ fontSize: 14, opacity: 0.8 }}>Video</span>
+            </div>
+        );
+    }
+
+    return (
+        <img
+            src={thumbnailUrl}
+            alt="Video thumbnail"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', ...style }}
+            onError={() => setThumbnailError(true)}
+        />
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 🎬 FULL SCREEN VIDEO VIEWER - TikTok/Reels style immersive viewer
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -606,11 +644,7 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                             >
                                 {/* Use YouTube thumbnail for YouTube URLs, video element for direct files */}
                                 {isYouTubeUrl(post.mediaUrls[0]) ? (
-                                    <img
-                                        src={getYouTubeThumbnail(post.mediaUrls[0])}
-                                        alt="Video thumbnail"
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    />
+                                    <VideoThumbnail url={post.mediaUrls[0]} />
                                 ) : (
                                     <video
                                         src={post.mediaUrls[0]}
