@@ -1,18 +1,59 @@
 /**
- * 🎮 UNIVERSAL TRAINING TABLE — SCORCHED EARTH REWRITE
+ * 🎮 UNIVERSAL TRAINING TABLE — FULL IMPLEMENTATION
  * ═══════════════════════════════════════════════════════════════════════════
+ * IMPLEMENTS:
+ * - Phase 3: Cinematic Deal (500ms/800ms/1000ms timing)
+ * - Phase 4: The Brain (Evaluation + Visual Feedback)
+ * - Phase 5: Resolution (Auto-progression)
+ * 
  * HARD RULES:
  * - NO <script> tags
  * - NO dangerouslySetInnerHTML
- * - NO external CSS files (including Tailwind)
  * - 100% React state-driven
- * - Data ONLY from TRAINING_CLINICS
  * - INLINE STYLES ONLY
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TRAINING_CLINICS } from '../../data/TRAINING_CLINICS';
+
+// TypeScript interfaces
+interface Question {
+    id: string;
+    street: string;
+    villainAction: string;
+    correctAction: string;
+    explanation: string;
+}
+
+interface StartingState {
+    heroCards: string[];
+    villainCards: string[];
+    board: string[];
+    pot: number;
+    dealerBtn: string;
+    heroStack: number;
+    villainStack: number;
+}
+
+interface Clinic {
+    id: string;
+    name: string;
+    title?: string;
+    startingState?: StartingState;
+    questions?: Question[];
+}
+
+// Game Phase Enum
+enum GamePhase {
+    IDLE = 'idle',
+    DEALING = 'dealing',
+    VILLAIN_ACTION = 'villain_action',
+    PLAYER_TURN = 'player_turn',
+    EVALUATING = 'evaluating',
+    SHOWING_FEEDBACK = 'showing_feedback',
+    TRANSITIONING = 'transitioning'
+}
 
 interface UniversalTrainingTableProps {
     gameId: string;
@@ -21,7 +62,7 @@ interface UniversalTrainingTableProps {
 
 export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTrainingTableProps) {
     // PHASE 1: DATA LOCK - Find the clinic
-    const clinic = TRAINING_CLINICS.find(c => c.id === gameId);
+    const clinic = TRAINING_CLINICS.find(c => c.id === gameId) as Clinic | undefined;
 
     // PHASE 1: FORCE CHECK - Fail fast if clinic not found
     if (!clinic) {
@@ -38,48 +79,150 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                 <div style={{ textAlign: 'center' }}>
                     <h1 style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>Error: Clinic Not Found</h1>
                     <p style={{ color: '#9ca3af' }}>Game ID: {gameId}</p>
-                    <p style={{ color: '#6b7280', marginTop: 8 }}>Available clinics: clinic-01 to clinic-28</p>
                 </div>
             </div>
         );
     }
 
-    // PHASE 2: STATE ENGINE - Pure React state (NO external logic)
+    // PHASE 2: STATE ENGINE
+    const [gamePhase, setGamePhase] = useState<GamePhase>(GamePhase.IDLE);
     const [heroCards, setHeroCards] = useState<string[]>(['??', '??']);
     const [villainCards, setVillainCards] = useState<string[]>(['??', '??']);
     const [villainAction, setVillainAction] = useState<string>('');
     const [boardCards, setBoardCards] = useState<string[]>([]);
     const [pot, setPot] = useState(0);
-    const [showActions, setShowActions] = useState(false);
 
-    // PHASE 2: THE SCRIPT - Read ONLY from clinic data
+    // Feedback state
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [isCorrect, setIsCorrect] = useState(false);
+    const [explanation, setExplanation] = useState('');
+    const [xpEarned, setXpEarned] = useState(0);
+
+    // Flash overlay state
+    const [flashColor, setFlashColor] = useState<string | null>(null);
+
+    // Question tracking
+    const [questionIndex, setQuestionIndex] = useState(0);
+    const [score, setScore] = useState(0);
+    const [totalXP, setTotalXP] = useState(0);
+
+    // PHASE 3: CINEMATIC DEAL SEQUENCE
     useEffect(() => {
-        // T+0ms: Initialize from clinic starting state
-        if (clinic.startingState) {
-            setHeroCards(clinic.startingState.heroCards || ['Ah', 'Kh']);
-            setPot(clinic.startingState.pot || 12);
-            setBoardCards(clinic.startingState.board || []);
-        }
+        if (!clinic.startingState || !clinic.questions) return;
 
-        // T+1000ms: Show villain action from first question
-        const timer = setTimeout(() => {
-            if (clinic.questions && clinic.questions[0]) {
-                const firstQuestion = clinic.questions[0];
-                setVillainAction(firstQuestion.villainAction || 'Bets 2.5BB');
-                setShowActions(true);
-            }
+        const question = clinic.questions[questionIndex];
+        if (!question) return;
+
+        // T+0ms: Reset to IDLE
+        setGamePhase(GamePhase.IDLE);
+        setHeroCards(['??', '??']);
+        setVillainCards(['??', '??']);
+        setVillainAction('');
+        setBoardCards([]);
+        setShowFeedback(false);
+        setFlashColor(null);
+
+        // T+500ms: Deal Hero Cards
+        const dealTimer = setTimeout(() => {
+            setGamePhase(GamePhase.DEALING);
+            setHeroCards(clinic.startingState?.heroCards || ['Ah', 'Kh']);
+            setPot(clinic.startingState?.pot || 12);
+            setBoardCards(clinic.startingState?.board || []);
+            // playSound('deal'); // TODO: Add audio
+        }, 500);
+
+        // T+800ms: Villain Action
+        const villainTimer = setTimeout(() => {
+            setGamePhase(GamePhase.VILLAIN_ACTION);
+            setVillainAction(question.villainAction || 'Bets 2.5BB');
+            // playSound('chip-click'); // TODO: Add audio
+        }, 800);
+
+        // T+1000ms: Player Turn - Unlock buttons
+        const unlockTimer = setTimeout(() => {
+            setGamePhase(GamePhase.PLAYER_TURN);
         }, 1000);
 
-        return () => clearTimeout(timer);
-    }, [clinic]);
+        return () => {
+            clearTimeout(dealTimer);
+            clearTimeout(villainTimer);
+            clearTimeout(unlockTimer);
+        };
+    }, [clinic, questionIndex]);
 
-    // Action handlers
-    const handleAction = (action: string) => {
+    // PHASE 4: THE BRAIN - Evaluation Logic
+    const handleAction = useCallback((action: string) => {
+        if (gamePhase !== GamePhase.PLAYER_TURN) return;
+
         console.log('Player action:', action);
         onAnswer?.(action);
-    };
 
-    // PHASE 3: VISUAL ANCHORS - Fixed positioning with INLINE STYLES
+        // Lock buttons immediately
+        setGamePhase(GamePhase.EVALUATING);
+
+        // Get current question
+        const question = clinic.questions?.[questionIndex];
+        if (!question) return;
+
+        // Check if correct
+        const correct = action.toLowerCase() === question.correctAction.toLowerCase();
+        setIsCorrect(correct);
+        setExplanation(question.explanation || 'Good decision!');
+
+        // Calculate XP
+        const baseXP = correct ? 100 : 0;
+        setXpEarned(baseXP);
+        if (correct) {
+            setScore(prev => prev + 1);
+            setTotalXP(prev => prev + baseXP);
+        }
+
+        // VISUAL FEEDBACK: Screen flash
+        setFlashColor(correct ? 'rgba(34, 197, 94, 0.4)' : 'rgba(239, 68, 68, 0.4)');
+
+        // Clear flash after 300ms
+        setTimeout(() => {
+            setFlashColor(null);
+        }, 300);
+
+        // Show Professor feedback after flash
+        setTimeout(() => {
+            setGamePhase(GamePhase.SHOWING_FEEDBACK);
+            setShowFeedback(true);
+        }, 400);
+
+    }, [gamePhase, clinic, questionIndex, onAnswer]);
+
+    // PHASE 5: RESOLUTION - Dismiss feedback and transition
+    const handleDismissFeedback = useCallback(() => {
+        setShowFeedback(false);
+        setGamePhase(GamePhase.TRANSITIONING);
+
+        // Clear villain cards
+        setVillainCards(['??', '??']);
+        setVillainAction('');
+
+        // Move to next question after delay
+        setTimeout(() => {
+            const nextIndex = questionIndex + 1;
+            const totalQuestions = clinic.questions?.length || 1;
+
+            if (nextIndex >= totalQuestions) {
+                // Session complete - for now just reset
+                console.log('Session Complete! Score:', score + (isCorrect ? 1 : 0));
+                setQuestionIndex(0);
+                setScore(0);
+                setTotalXP(0);
+            } else {
+                setQuestionIndex(nextIndex);
+            }
+        }, 500);
+    }, [questionIndex, clinic, score, isCorrect]);
+
+    // Determine if buttons should be active
+    const buttonsActive = gamePhase === GamePhase.PLAYER_TURN;
+
+    // RENDER
     return (
         <div style={{
             width: '100%',
@@ -88,6 +231,18 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             position: 'relative',
             overflow: 'hidden'
         }}>
+            {/* FLASH OVERLAY */}
+            {flashColor && (
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: flashColor,
+                    zIndex: 100,
+                    pointerEvents: 'none',
+                    transition: 'opacity 0.3s'
+                }} />
+            )}
+
             {/* Title Bar */}
             <div style={{
                 position: 'absolute',
@@ -100,10 +255,24 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                 borderBottom: '1px solid rgba(0, 212, 255, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'space-between',
+                padding: '0 20px',
                 zIndex: 50
             }}>
-                <h1 style={{ fontSize: 20, fontWeight: 'bold', color: '#fff' }}>{clinic.title || clinic.name}</h1>
+                <h1 style={{ fontSize: 20, fontWeight: 'bold', color: '#fff' }}>
+                    {clinic.title || clinic.name}
+                </h1>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16,
+                    color: '#fff',
+                    fontSize: 14
+                }}>
+                    <span>Q: {questionIndex + 1}/{clinic.questions?.length || 1}</span>
+                    <span style={{ color: '#4ade80' }}>✓ {score}</span>
+                    <span style={{ color: '#fbbf24' }}>XP: {totalXP}</span>
+                </div>
             </div>
 
             {/* Poker Table */}
@@ -127,28 +296,32 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                     transform: 'translate(-50%, -50%)',
                     textAlign: 'center'
                 }}>
-                    <div style={{ color: '#facc15', fontSize: 24, fontWeight: 'bold' }}>POT: {pot}BB</div>
+                    <div style={{ color: '#facc15', fontSize: 24, fontWeight: 'bold' }}>
+                        POT: {pot}BB
+                    </div>
                 </div>
 
                 {/* Board Cards */}
-                <div style={{
-                    position: 'absolute',
-                    top: '35%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    display: 'flex',
-                    gap: 8
-                }}>
-                    {boardCards.map((card, i) => (
-                        <Card key={i} card={card} />
-                    ))}
-                </div>
+                {boardCards.length > 0 && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '35%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        display: 'flex',
+                        gap: 8
+                    }}>
+                        {boardCards.map((card, i) => (
+                            <Card key={i} card={card} />
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* VILLAIN - Top Center */}
             <div style={{
                 position: 'absolute',
-                top: 40,
+                top: 80,
                 left: '50%',
                 transform: 'translateX(-50%)',
                 display: 'flex',
@@ -169,7 +342,8 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                         padding: '8px 16px',
                         borderRadius: 8,
                         fontWeight: 'bold',
-                        fontSize: 14
+                        fontSize: 14,
+                        animation: 'fadeIn 0.3s ease'
                     }}>
                         {villainAction}
                     </div>
@@ -179,7 +353,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             {/* HERO - Bottom Center */}
             <div style={{
                 position: 'absolute',
-                bottom: 40,
+                bottom: 150,
                 left: '50%',
                 transform: 'translateX(-50%)',
                 display: 'flex',
@@ -195,68 +369,139 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                 <div style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>YOU</div>
             </div>
 
-            {/* Action Buttons - Bottom */}
-            {showActions && (
-                <div style={{
-                    position: 'absolute',
-                    bottom: 128,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    display: 'flex',
-                    gap: 16
-                }}>
-                    <button
-                        onClick={() => handleAction('fold')}
-                        style={{
-                            padding: '12px 24px',
-                            background: '#dc2626',
-                            border: 'none',
-                            borderRadius: 8,
-                            color: '#fff',
+            {/* Action Buttons */}
+            <div style={{
+                position: 'absolute',
+                bottom: 40,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                gap: 16
+            }}>
+                <ActionButton
+                    label="FOLD"
+                    color="#dc2626"
+                    onClick={() => handleAction('fold')}
+                    disabled={!buttonsActive}
+                />
+                <ActionButton
+                    label="CALL"
+                    color="#2563eb"
+                    onClick={() => handleAction('call')}
+                    disabled={!buttonsActive}
+                />
+                <ActionButton
+                    label="RAISE"
+                    color="#16a34a"
+                    onClick={() => handleAction('raise')}
+                    disabled={!buttonsActive}
+                />
+            </div>
+
+            {/* PROFESSOR FEEDBACK OVERLAY */}
+            {showFeedback && (
+                <div
+                    onClick={handleDismissFeedback}
+                    style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: isCorrect
+                            ? 'linear-gradient(135deg, #166534, #14532d)'
+                            : 'linear-gradient(135deg, #991b1b, #7f1d1d)',
+                        padding: '40px 20px',
+                        borderRadius: '20px 20px 0 0',
+                        cursor: 'pointer',
+                        zIndex: 200
+                    }}
+                >
+                    <div style={{
+                        maxWidth: 600,
+                        margin: '0 auto',
+                        textAlign: 'center',
+                        color: '#fff'
+                    }}>
+                        <div style={{
+                            fontSize: 48,
+                            marginBottom: 16
+                        }}>
+                            {isCorrect ? '✓' : '✗'}
+                        </div>
+                        <div style={{
+                            fontSize: 24,
                             fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'transform 0.1s'
-                        }}
-                    >
-                        FOLD
-                    </button>
-                    <button
-                        onClick={() => handleAction('call')}
-                        style={{
-                            padding: '12px 24px',
-                            background: '#2563eb',
-                            border: 'none',
-                            borderRadius: 8,
-                            color: '#fff',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'transform 0.1s'
-                        }}
-                    >
-                        CALL
-                    </button>
-                    <button
-                        onClick={() => handleAction('raise')}
-                        style={{
-                            padding: '12px 24px',
-                            background: '#16a34a',
-                            border: 'none',
-                            borderRadius: 8,
-                            color: '#fff',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'transform 0.1s'
-                        }}
-                    >
-                        RAISE
-                    </button>
+                            marginBottom: 8
+                        }}>
+                            {isCorrect ? 'CORRECT!' : 'INCORRECT'}
+                        </div>
+                        {isCorrect && (
+                            <div style={{
+                                fontSize: 18,
+                                color: '#fbbf24',
+                                marginBottom: 16
+                            }}>
+                                +{xpEarned} XP
+                            </div>
+                        )}
+                        <div style={{
+                            fontSize: 16,
+                            lineHeight: 1.5,
+                            color: 'rgba(255,255,255,0.9)'
+                        }}>
+                            {explanation}
+                        </div>
+                        <div style={{
+                            marginTop: 24,
+                            fontSize: 14,
+                            color: 'rgba(255,255,255,0.6)'
+                        }}>
+                            Tap anywhere to continue
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
     );
 }
 
-// Card Component - Pure CSS, no images, INLINE STYLES
+// Action Button Component
+function ActionButton({
+    label,
+    color,
+    onClick,
+    disabled
+}: {
+    label: string;
+    color: string;
+    onClick: () => void;
+    disabled: boolean;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            style={{
+                padding: '16px 32px',
+                background: disabled ? '#4b5563' : color,
+                border: 'none',
+                borderRadius: 12,
+                color: '#fff',
+                fontSize: 16,
+                fontWeight: 'bold',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                opacity: disabled ? 0.5 : 1,
+                transition: 'all 0.15s ease',
+                transform: disabled ? 'none' : 'scale(1)',
+                boxShadow: disabled ? 'none' : '0 4px 15px rgba(0,0,0,0.3)'
+            }}
+        >
+            {label}
+        </button>
+    );
+}
+
+// Card Component - Pure CSS, no images
 function Card({ card, size = 'medium' }: { card: string; size?: 'small' | 'medium' }) {
     const isBack = card === '??' || !card;
 
