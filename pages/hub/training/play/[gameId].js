@@ -1,7 +1,7 @@
 export default function TrainingGamePlay() {
     return (
         <iframe
-            src="/training-ui/index.html"
+            src={`/training-ui/index.html?v=${Date.now()}`}
             style={{
                 position: 'fixed',
                 top: 0,
