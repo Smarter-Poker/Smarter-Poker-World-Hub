@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ICM Fundamentals - Training Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="game-wrapper">
+        <div class="game-container">
+            <!-- Header Bar -->
+            <header class="game-header">
+                <button class="back-btn">← Back to Training</button>
+                <h1 class="game-title">ICM FUNDAMENTALS</h1>
+                <div class="header-stats">
+                    <span class="xp-display">⚡ 1,250 XP</span>
+                    <span class="diamond-display">💎 500</span>
+                </div>
+            </header>
+
+            <!-- Scenario Question -->
+            <div class="scenario-prompt">
+                <p>You Are On The Button (Last To Act). The Player To Your Right Bets 2.5 Big Blinds. What Is Your Best
+                    Move?</p>
+            </div>
+
+            <!-- Main Table Area -->
+            <div class="table-area">
+                <div class="poker-table">
+                    <!-- Vertical Table Image -->
+                    <img src="table-vertical.png" alt="Poker Table" class="table-image">
+
+                    <!-- Dark Felt -->
+                    <div class="table-felt">
+                        <!-- POT Display -->
+                        <div class="pot-display">
+                            <span class="pot-icon">●</span>
+                            <span class="pot-label">POT</span>
+                            <span class="pot-amount">0</span>
+                        </div>
+
+                        <!-- Community Cards (5-card board) -->
+                        <div class="community-cards">
+                            <div class="board-card">
+                                <span class="card-rank">J</span>
+                                <span class="card-suit red">♥</span>
+                            </div>
+                            <div class="board-card">
+                                <span class="card-rank">9</span>
+                                <span class="card-suit">♠</span>
+                            </div>
+                            <div class="board-card">
+                                <span class="card-rank">4</span>
+                                <span class="card-suit red">♦</span>
+                            </div>
+                            <div class="board-card">
+                                <span class="card-rank">2</span>
+                                <span class="card-suit">♣</span>
+                            </div>
+                            <div class="board-card">
+                                <span class="card-rank">K</span>
+                                <span class="card-suit">♠</span>
+                            </div>
+                        </div>
+
+                        <!-- Game Title (below cards) -->
+                        <div class="table-center-text">
+                            <span class="center-title">ICM Fundamentals</span>
+                            <span class="center-subtitle">Smarter.Poker</span>
+                        </div>
+
+                        <!-- Dealer Button -->
+                        <div class="dealer-button">D</div>
+                    </div>
+
+                    <!-- Player Positions - 9-max (positioned outside rail) -->
+                    <!-- Villain 4 - Top Left -->
+                    <div class="player-seat seat-v4">
+                        <div class="player-avatar">
+                            <img src="https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fwolf.png&w=256&q=75"
+                                alt="Villain 4">
+                        </div>
+                        <div class="player-label">
+                            <span class="player-name">Villain 4</span>
+                            <span class="player-stack">41 BB</span>
+                        </div>
+                    </div>
+
+                    <!-- Villain 5 - Top Right -->
+                    <div class="player-seat seat-v5">
+                        <div class="player-avatar">
+                            <img src="https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fspartan.png&w=256&q=75"
+                                alt="Villain 5">
+                        </div>
+                        <div class="player-label">
+                            <span class="player-name">Villain 5</span>
+                            <span class="player-stack">38 BB</span>
+                        </div>
+                    </div>
+
+                    <!-- Villain 3 - Left Upper -->
+                    <div class="player-seat seat-v3">
+                        <div class="player-avatar">
+                            <img src="https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fshark.png&w=256&q=75"
+                                alt="Villain 3">
+                        </div>
+                        <div class="player-label">
+                            <span class="player-name">Villain 3</span>
+                            <span class="player-stack">55 BB</span>
+                        </div>
+                    </div>
+
+                    <!-- Villain 6 - Right Upper -->
+                    <div class="player-seat seat-v6">
+                        <div class="player-avatar">
+                            <img src="https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fmonarch.png&w=256&q=75"
+                                alt="Villain 6">
+                        </div>
+                        <div class="player-label">
+                            <span class="player-name">Villain 6</span>
+                            <span class="player-stack">62 BB</span>
+                        </div>
+                    </div>
+
+                    <!-- Villain 2 - Left Middle -->
+                    <div class="player-seat seat-v2">
+                        <div class="player-avatar">
+                            <img src="https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Frock_legend.png&w=256&q=75"
+                                alt="Villain 2">
+                        </div>
+                        <div class="player-label">
+                            <span class="player-name">Villain 2</span>
+                            <span class="player-stack">28 BB</span>
+                        </div>
+                    </div>
+
+                    <!-- Villain 7 - Right Middle -->
+                    <div class="player-seat seat-v7">
+                        <div class="player-avatar">
+                            <img src="https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Ftech_mogul.png&w=256&q=75"
+                                alt="Villain 7">
+                        </div>
+                        <div class="player-label">
+                            <span class="player-name">Villain 7</span>
+                            <span class="player-stack">29 BB</span>
+                        </div>
+                    </div>
+
+                    <!-- Villain 1 - Bottom Left -->
+                    <div class="player-seat seat-v1">
+                        <div class="player-avatar">
+                            <img src="https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Flion.png&w=256&q=75"
+                                alt="Villain 1">
+                        </div>
+                        <div class="player-label">
+                            <span class="player-name">Villain 1</span>
+                            <span class="player-stack">32 BB</span>
+                        </div>
+                    </div>
+
+                    <!-- Villain 8 - Bottom Right -->
+                    <div class="player-seat seat-v8">
+                        <div class="player-avatar">
+                            <img src="https://smarter.poker/_next/image?url=%2Favatars%2Ffree%2Fowl.png&w=256&q=75"
+                                alt="Villain 8">
+                        </div>
+                        <div class="player-label">
+                            <span class="player-name">Villain 8</span>
+                            <span class="player-stack">51 BB</span>
+                        </div>
+                    </div>
+
+                    <!-- Hero Section - Avatar only -->
+                    <div class="hero-section">
+                        <div class="hero-avatar">
+                            <img src="https://smarter.poker/_next/image?url=%2Favatars%2Fvip%2Fdragon.png&w=256&q=75"
+                                alt="Hero">
+                        </div>
+                    </div>
+
+                    <!-- Hero Label - Separate for independent dragging -->
+                    <div class="hero-label">
+                        <span class="hero-name">Hero</span>
+                        <span class="hero-stack">45 BB</span>
+                    </div>
+
+                    <!-- Hero Cards - Separate for independent dragging -->
+                    <div class="hero-cards">
+                        <div class="hero-card">
+                            <span class="card-rank red">A</span>
+                            <span class="card-suit red">♥</span>
+                        </div>
+                        <div class="hero-card">
+                            <span class="card-rank red">K</span>
+                            <span class="card-suit red">♥</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timer Display -->
+                <div class="timer-display">
+                    <span class="timer-value">15</span>
+                </div>
+
+                <!-- Question Counter -->
+                <div class="question-counter">
+                    <span>Question 1 of 20</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons (2x2 Grid) -->
+            <div class="action-section">
+                <div class="action-grid">
+                    <button class="action-btn fold-btn">Fold</button>
+                    <button class="action-btn call-btn">Call</button>
+                    <button class="action-btn raise-btn">Raise to 8bb</button>
+                    <button class="action-btn allin-btn">All-In</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -9,7 +9,7 @@ export const GAME_IMAGES = {
     // MTT GAMES (25)
     // ═══════════════════════════════════════════════════════════════════════
     'mtt-001': '/images/training/mtt_push_fold.png',           // Push/Fold Mastery
-    'mtt-002': 'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/assets/fox_template.png', // ICM Fundamentals (Fox Template)
+    'mtt-002': '/images/training/mtt_icm_chart.png',           // ICM Fundamentals
     'mtt-003': '/images/training/mtt_bubble_tech.png',         // Bubble Pressure
     'mtt-004': '/images/training/mtt_final_table.png',         // Final Table ICM
     'mtt-005': '/images/training/mtt_pko_bounty.png',          // PKO Bounty Hunter
