@@ -15,16 +15,17 @@ import OpenAI from 'openai';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 
-// IMPORTANT: Service role key bypasses RLS - required for updating content_authors
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Use service role key if available (bypasses RLS), otherwise fall back to anon key
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const IS_SERVICE_ROLE = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Create admin client with service role key (bypasses RLS)
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+// Create client with appropriate auth settings
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, IS_SERVICE_ROLE ? {
     auth: {
         persistSession: false,
         autoRefreshToken: false
     }
-});
+} : {});
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -171,11 +172,12 @@ export default async function handler(req, res) {
     console.log('\n🐴 HORSE AVATAR GENERATOR');
     console.log('═'.repeat(50));
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !process.env.OPENAI_API_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_KEY || !process.env.OPENAI_API_KEY) {
         return res.status(500).json({
             error: 'Missing env vars',
             has_url: !!SUPABASE_URL,
-            has_service_key: !!SUPABASE_SERVICE_KEY,
+            has_key: !!SUPABASE_KEY,
+            is_service_role: IS_SERVICE_ROLE,
             has_openai: !!process.env.OPENAI_API_KEY
         });
     }
