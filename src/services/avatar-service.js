@@ -181,28 +181,49 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
  */
 async function generateAvatarFromPhoto(photoFile, additionalPrompt = '', userId = null) {
     try {
-        // Convert photo to base64
+        // Convert photo to base64 with proper error handling
         const reader = new FileReader();
-        const photoBase64 = await new Promise((resolve) => {
+        const photoBase64 = await new Promise((resolve, reject) => {
             reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(new Error('Failed to read photo file'));
+            reader.onabort = () => reject(new Error('Photo read was aborted'));
             reader.readAsDataURL(photoFile);
         });
 
-        // Call API for image-to-image generation
-        const response = await fetch('/api/avatar/generate-from-photo', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                photoBase64,
-                prompt: additionalPrompt,
-                userId
-            })
-        });
+        console.log('📏 Photo base64 length:', photoBase64?.length || 0);
 
-        if (!response.ok) throw new Error('AI generation failed');
+        // Call API for image-to-image generation with a 90 second timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
 
-        const data = await response.json();
-        return data.imageUrl;
+        try {
+            const response = await fetch('/api/avatar/generate-from-photo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    photoBase64,
+                    prompt: additionalPrompt,
+                    userId
+                }),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `AI generation failed (HTTP ${response.status})`);
+            }
+
+            const data = await response.json();
+            return data.imageUrl;
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+                throw new Error('Avatar generation timed out. Please try again with a smaller image.');
+            }
+            throw fetchError;
+        }
     } catch (error) {
         console.error('Photo generation error:', error);
         throw error;

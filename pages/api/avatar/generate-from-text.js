@@ -8,6 +8,11 @@ import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
+// Increase timeout for AI generation
+export const config = {
+    maxDuration: 60, // 60 second timeout for Vercel
+};
+
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });

@@ -7,6 +7,17 @@
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 
+// Increase body size limit for base64 images (10MB)
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '10mb',
+        },
+        responseLimit: false,
+    },
+    maxDuration: 60, // 60 second timeout for Vercel
+};
+
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
@@ -29,6 +40,7 @@ export default async function handler(req, res) {
         }
 
         console.log('🎨 Generating avatar from photo with GPT-4 Vision + DALL-E 3');
+        console.log('📏 Photo base64 length:', photoBase64?.length || 0);
 
         // Step 1: Use GPT-4 Vision to analyze the photo
         const analysisResponse = await openai.chat.completions.create({
@@ -131,3 +143,4 @@ IMPORTANT: Character portrait ONLY on white background. Nothing else.`;
         });
     }
 }
+
