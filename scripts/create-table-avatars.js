@@ -1,15 +1,19 @@
 /**
- * AVATAR WITH GOLD BADGE - Matching Template
- * Gold/yellow background badge with dark border
+ * AVATAR WITH GOLD BADGE - PROPER SIZE
+ * Character: 125×125px (minimum size)
+ * Badge: 125×45px
+ * Total: 125×170px
  */
 
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-const FINAL_WIDTH = 78;
-const FINAL_HEIGHT = 125;
-const BADGE_HEIGHT = 35;
+// PROPER SIZES
+const AVATAR_WIDTH = 125;
+const AVATAR_HEIGHT = 170;
+const CHARACTER_SIZE = 125;
+const BADGE_HEIGHT = 45;
 
 const FREE_INPUT = path.join(__dirname, '../public/avatars/free');
 const VIP_INPUT = path.join(__dirname, '../public/avatars/vip');
@@ -19,29 +23,31 @@ if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-// GOLD badge matching template style
+// GOLD badge with dark border
 function createBadgeSVG() {
     return Buffer.from(`
-        <svg width="${FINAL_WIDTH}" height="${BADGE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-            <rect x="1" y="1" width="${FINAL_WIDTH - 2}" height="${BADGE_HEIGHT - 2}" 
-                  rx="3" ry="3" 
+        <svg width="${AVATAR_WIDTH}" height="${BADGE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="${AVATAR_WIDTH - 4}" height="${BADGE_HEIGHT - 4}" 
+                  rx="4" ry="4" 
                   fill="#d4a000" 
                   stroke="#8B6914" 
-                  stroke-width="2"/>
+                  stroke-width="3"/>
         </svg>
     `);
 }
 
 async function processAvatar(inputPath, outputPath) {
     try {
+        // Resize character to fill full height, badge overlaps bottom
         const resizedCharacter = await sharp(inputPath)
-            .resize(FINAL_WIDTH, FINAL_HEIGHT, { fit: 'cover', position: 'top' })
+            .resize(AVATAR_WIDTH, AVATAR_HEIGHT, { fit: 'cover', position: 'top' })
             .toBuffer();
 
         const badgeSVG = createBadgeSVG();
 
+        // Badge ON TOP at the bottom
         await sharp(resizedCharacter)
-            .composite([{ input: badgeSVG, top: FINAL_HEIGHT - BADGE_HEIGHT, left: 0 }])
+            .composite([{ input: badgeSVG, top: AVATAR_HEIGHT - BADGE_HEIGHT, left: 0 }])
             .png()
             .toFile(outputPath);
 
@@ -66,7 +72,10 @@ async function processDirectory(inputDir, prefix) {
 }
 
 async function main() {
-    console.log('Creating avatars with GOLD badges...\n');
+    console.log('Creating avatars at PROPER SIZE (125×170)...\n');
+    console.log(`Character: ${CHARACTER_SIZE}×${CHARACTER_SIZE}px`);
+    console.log(`Badge: ${AVATAR_WIDTH}×${BADGE_HEIGHT}px`);
+    console.log(`Total: ${AVATAR_WIDTH}×${AVATAR_HEIGHT}px\n`);
 
     if (fs.existsSync(FREE_INPUT)) await processDirectory(FREE_INPUT, 'free');
     if (fs.existsSync(VIP_INPUT)) await processDirectory(VIP_INPUT, 'vip');

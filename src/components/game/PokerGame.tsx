@@ -149,10 +149,10 @@ class GameTableScene extends Phaser.Scene {
         const W = this.cameras.main.width;
         const H = this.cameras.main.height;
 
-        // Avatar dimensions (new table avatars with badge baked in)
-        const AVATAR_WIDTH = 78;
-        const AVATAR_HEIGHT = 125;
-        const BADGE_HEIGHT = 35;
+        // Avatar dimensions (125×170 with baked-in badge)
+        const AVATAR_WIDTH = 125;
+        const AVATAR_HEIGHT = 170;
+        const BADGE_HEIGHT = 45;
 
         SEAT_POSITIONS.forEach((seat, i) => {
             const x = seat.x * W;
@@ -177,17 +177,17 @@ class GameTableScene extends Phaser.Scene {
             const badgeY = avatarY + (AVATAR_HEIGHT / 2) - (BADGE_HEIGHT / 2);
 
             // Name - BLACK text on gold badge
-            this.add.text(x, badgeY - 7, seat.label, {
+            this.add.text(x, badgeY - 8, seat.label, {
                 fontFamily: 'Arial',
-                fontSize: isHero ? '11px' : '10px',
+                fontSize: '14px',
                 color: '#000000',
                 fontStyle: 'bold'
             }).setOrigin(0.5);
 
             // Stack - BLACK text on gold badge
-            this.add.text(x, badgeY + 7, `${seat.stack} BB`, {
+            this.add.text(x, badgeY + 10, `${seat.stack} BB`, {
                 fontFamily: 'Arial',
-                fontSize: isHero ? '11px' : '10px',
+                fontSize: '14px',
                 color: '#000000',
                 fontStyle: 'bold'
             }).setOrigin(0.5);
