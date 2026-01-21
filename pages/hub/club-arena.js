@@ -15,6 +15,7 @@ import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader'
 // God-Mode Stack
 import { useClubArenaStore } from '../../src/stores/clubArenaStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 export default function ClubArenaPage() {
     const router = useRouter();
@@ -73,8 +74,10 @@ export default function ClubArenaPage() {
             </Head>
 
             <div className="club-arena-page" style={styles.container}>
-                {/* Brain Home Button */}
-                <BrainHomeButton style={{ zIndex: 10001 }} />
+                {/* Universal Header */}
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10001 }}>
+                    <UniversalHeader pageDepth={1} />
+                </div>
 
                 {/* Loading state */}
                 {!iframeLoaded && (

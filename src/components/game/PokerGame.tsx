@@ -70,8 +70,8 @@ class GameTableScene extends Phaser.Scene {
     }
 
     preload() {
-        // Load pre-optimized table image (already perfectly sized for canvas)
-        this.load.image('table', '/game/table_optimized.png');
+        // Load the 480x800 table image - exact match to canvas dimensions
+        this.load.image('table', '/game/table.png');
     }
 
     create() {
@@ -79,7 +79,7 @@ class GameTableScene extends Phaser.Scene {
         const cy = this.cameras.main.height * 0.44;
 
         this.drawBackground();
-        this.drawDoubleRailTable(cx, cy);  // Use vector graphics for crisp lines
+        this.drawTable(cx, cy);  // Use 480x800 image at 1:1 scale
         this.drawBranding(cx, cy + 30);
         this.drawPotDisplay(cx, cy - 100);
         this.createSeats();
@@ -94,9 +94,9 @@ class GameTableScene extends Phaser.Scene {
     }
 
     drawTable(cx: number, cy: number) {
-        // Use pre-optimized table image at 1:1 scale (no pixelation)
-        const table = this.add.image(cx, cy + 20, 'table');
-        // No scaling needed - image is already the perfect size
+        // Use 480x800 table image at 1:1 native resolution - NO SCALING
+        const table = this.add.image(cx, cy, 'table');
+        // No setScale() call - image is exact canvas size, positioned centered
     }
 
     drawDoubleRailTable(cx: number, cy: number) {

@@ -14,6 +14,7 @@ import { supabase } from '../../src/lib/supabase';
 // God-Mode Stack
 import { useFriendsStore } from '../../src/stores/friendsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 const C = {
     bg: '#0a0a0a', card: '#1a1a1a', cardHover: '#252525', text: '#FFFFFF', textSec: '#9ca3af',
@@ -742,25 +743,8 @@ export default function FriendsPage() {
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
                 color: C.text
             }}>
-                {/* Header */}
-                <header style={{
-                    background: 'linear-gradient(180deg, rgba(26,26,26,0.98) 0%, rgba(10,10,10,0.95) 100%)',
-                    backdropFilter: 'blur(20px)',
-                    padding: '12px 16px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    borderBottom: `1px solid ${C.border}`,
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 100
-                }}>
-                    <Link href="/hub/social-media" style={{ color: C.textSec, textDecoration: 'none', fontSize: 20 }}>
-                        ←
-                    </Link>
-                    <div style={{ fontWeight: 700, fontSize: 18 }}>Friends & Followers</div>
-                    <div style={{ width: 20 }} />
-                </header>
+                {/* Header - Universal Header */}
+                <UniversalHeader pageDepth={2} />
 
                 {/* Stats Bar */}
                 <div style={{

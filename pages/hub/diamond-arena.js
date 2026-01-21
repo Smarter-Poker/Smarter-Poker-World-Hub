@@ -16,6 +16,7 @@ import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader'
 // God-Mode Stack
 import { useDiamondArenaStore } from '../../src/stores/diamondArenaStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 export default function DiamondArenaPage() {
     const router = useRouter();
@@ -89,8 +90,10 @@ export default function DiamondArenaPage() {
             </Head>
 
             <div className="diamond-arena-page" style={styles.container}>
-                {/* Brain Home Button */}
-                <BrainHomeButton style={{ zIndex: 1001 }} />
+                {/* Universal Header */}
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1001 }}>
+                    <UniversalHeader pageDepth={1} />
+                </div>
 
                 {/* Loading Overlay */}
                 {!iframeLoaded && (
