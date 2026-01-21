@@ -149,6 +149,56 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
     setGeneratedImage(null);
   }
 
+  // Show login prompt if not authenticated
+  if (!user) {
+    return (
+      <div style={{
+        width: '100%',
+        maxWidth: '600px',
+        margin: '40px auto',
+        padding: '40px',
+        background: 'rgba(10, 14, 39, 0.9)',
+        border: '2px solid rgba(0, 245, 255, 0.3)',
+        borderRadius: '20px',
+        textAlign: 'center'
+      }}>
+        <div style={{
+          fontSize: '48px',
+          marginBottom: '20px'
+        }}>🔐</div>
+        <h2 style={{
+          fontFamily: 'Orbitron, sans-serif',
+          fontSize: '24px',
+          color: '#00f5ff',
+          marginBottom: '15px'
+        }}>Sign In Required</h2>
+        <p style={{
+          color: 'rgba(255,255,255,0.7)',
+          fontSize: '16px',
+          marginBottom: '25px'
+        }}>
+          Please sign in to create your custom AI-powered avatar
+        </p>
+        <button
+          onClick={() => window.location.href = '/auth/login'}
+          style={{
+            padding: '14px 32px',
+            background: 'linear-gradient(135deg, #00f5ff, #0080ff)',
+            border: 'none',
+            borderRadius: '12px',
+            color: '#fff',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 20px rgba(0, 245, 255, 0.4)'
+          }}
+        >
+          🚀 Sign In Now
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="custom-avatar-builder">
       <style jsx>{`
