@@ -71,9 +71,11 @@ function Select({ value, onChange, options, label }) {
 // ═══════════════════════════════════════════════════════════════════════════
 export default function SettingsPage() {
     const router = useRouter();
+    const { avatar, isVip } = useAvatar();
     const [activeSection, setActiveSection] = useState('account');
     const [user, setUser] = useState(null);
     const [saved, setSaved] = useState(false);
+    const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
 
     // Settings State
     const [settings, setSettings] = useState({
@@ -243,9 +245,30 @@ export default function SettingsPage() {
                             <div style={styles.section}>
                                 <h2 style={styles.sectionTitle}>Account Settings</h2>
 
+                                {/* Profile Card with Avatar */}
                                 <div style={styles.card}>
                                     <div style={styles.profileRow}>
-                                        <div style={styles.profileAvatar}>👤</div>
+                                        <div style={{
+                                            width: 80,
+                                            height: 80,
+                                            borderRadius: '50%',
+                                            background: 'linear-gradient(135deg, #00D4FF, #8a2be2)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: 40,
+                                            overflow: 'hidden',
+                                            border: '3px solid rgba(0, 212, 255, 0.5)',
+                                            boxShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
+                                        }}>
+                                            {avatar ? (
+                                                <img
+                                                    src={avatar}
+                                                    alt="Your Avatar"
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                            ) : '👤'}
+                                        </div>
                                         <div style={styles.profileInfo}>
                                             <span style={styles.profileName}>
                                                 {user?.email || 'Guest User'}
@@ -253,9 +276,65 @@ export default function SettingsPage() {
                                             <span style={styles.profileEmail}>
                                                 {user?.email || 'Not logged in'}
                                             </span>
+                                            {isVip && (
+                                                <span style={{ color: '#FFD700', fontSize: 13, marginTop: 4 }}>
+                                                    💎 VIP Member
+                                                </span>
+                                            )}
                                         </div>
-                                        <button style={styles.editButton}>Edit Profile</button>
+                                        <button
+                                            onClick={() => router.push('/hub/profile')}
+                                            style={styles.editButton}
+                                        >
+                                            Edit Profile
+                                        </button>
                                     </div>
+                                </div>
+
+                                {/* Build Your Avatar Card */}
+                                <div style={{
+                                    ...styles.card,
+                                    background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.15), rgba(0, 212, 255, 0.15))',
+                                    border: '1px solid rgba(138, 43, 226, 0.4)',
+                                }}>
+                                    <h3 style={{ ...styles.cardTitle, color: '#00D4FF', marginBottom: 8 }}>
+                                        🎨 Build Your Avatar
+                                    </h3>
+                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 16 }}>
+                                        Create a unique AI-generated avatar to use as your profile picture across Smarter.Poker
+                                    </p>
+                                    <button
+                                        onClick={() => setShowAvatarBuilder(true)}
+                                        style={{
+                                            padding: '14px 28px',
+                                            background: 'linear-gradient(135deg, #8a2be2, #00D4FF)',
+                                            border: 'none',
+                                            borderRadius: 12,
+                                            color: '#fff',
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 10,
+                                            boxShadow: '0 4px 20px rgba(138, 43, 226, 0.4)',
+                                            transition: 'all 0.3s ease',
+                                        }}
+                                    >
+                                        ✨ Create Custom Avatar
+                                    </button>
+                                    <button
+                                        onClick={() => router.push('/hub/avatars-complete')}
+                                        style={{
+                                            ...styles.secondaryButton,
+                                            marginTop: 12,
+                                            marginBottom: 0,
+                                            display: 'inline-block',
+                                            width: 'auto',
+                                        }}
+                                    >
+                                        📚 Browse Avatar Library
+                                    </button>
                                 </div>
 
                                 <div style={styles.card}>
@@ -263,12 +342,6 @@ export default function SettingsPage() {
                                     <button style={styles.secondaryButton}>Change Password</button>
                                     <button style={styles.secondaryButton}>Enable 2FA</button>
                                     <button style={styles.secondaryButton}>Connected Devices</button>
-                                    <button
-                                        onClick={() => router.push('/hub/avatars-complete')}
-                                        style={styles.secondaryButton}
-                                    >
-                                        🎨 Create or Select Avatar
-                                    </button>
                                 </div>
                             </div>
                         )}
@@ -469,6 +542,41 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Custom Avatar Builder Modal */}
+            {showAvatarBuilder && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.95)',
+                    zIndex: 1000,
+                    overflow: 'auto',
+                    padding: '40px 20px'
+                }}>
+                    <button
+                        onClick={() => setShowAvatarBuilder(false)}
+                        style={{
+                            position: 'fixed',
+                            top: '20px',
+                            right: '20px',
+                            background: 'rgba(255, 255, 255, 0.2)',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '12px 24px',
+                            color: '#fff',
+                            fontSize: '16px',
+                            cursor: 'pointer',
+                            zIndex: 1001
+                        }}
+                    >
+                        ✕ Close
+                    </button>
+                    <CustomAvatarBuilder isVip={isVip} onClose={() => setShowAvatarBuilder(false)} />
+                </div>
+            )}
         </PageTransition>
     );
 }
