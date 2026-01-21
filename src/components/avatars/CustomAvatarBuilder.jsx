@@ -16,8 +16,6 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
   const [prompt, setPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState(null);
-  const [uploadedPhoto, setUploadedPhoto] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
   const [showResult, setShowResult] = useState(false);
 
   // Gallery management
@@ -100,51 +98,20 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
     return () => clearInterval(charInterval);
   }, [generating]);
 
-  function handlePhotoUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file');
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Image must be smaller than 10MB');
-      return;
-    }
-
-    setUploadedPhoto(file);
-    const reader = new FileReader();
-    reader.onload = (e) => setPhotoPreview(e.target.result);
-    reader.readAsDataURL(file);
-  }
-
-  function removePhoto() {
-    setUploadedPhoto(null);
-    setPhotoPreview(null);
-  }
 
   async function handleGenerate() {
-    if (!prompt.trim() && !uploadedPhoto) {
-      alert('Please enter a description or upload a photo for your avatar');
+    if (!prompt.trim()) {
+      alert('Please enter a description for your avatar');
       return;
     }
-
-    console.log('🚀 handleGenerate called with:', {
-      prompt,
-      hasUploadedPhoto: !!uploadedPhoto,
-      uploadedPhotoName: uploadedPhoto?.name,
-      uploadedPhotoSize: uploadedPhoto?.size,
-      effectiveVip
-    });
 
     setGenerating(true);
     setShowResult(false);
     setGeneratedImage(null);
 
     try {
-      const result = await createCustomAvatar(prompt, effectiveVip, uploadedPhoto);
+      const result = await createCustomAvatar(prompt, effectiveVip, null);
 
       if (result.success) {
         setGeneratedImage(result.imageUrl);
@@ -165,7 +132,6 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
     setShowResult(false);
     setGeneratedImage(null);
     setPrompt('');
-    removePhoto();
 
     // Close the modal immediately - no popup needed
     if (onClose) {
@@ -816,34 +782,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         </div>
       )}
 
-      <div className="photo-upload-section">
-        <div className="section-header">
-          <span className="prompt-label">📸 Upload Photo (Optional)</span>
-          <span className="helper-text">For AI to create a likeness</span>
-        </div>
 
-        {!photoPreview ? (
-          <label className="upload-zone">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoUpload}
-              style={{ display: 'none' }}
-              disabled={generating}
-            />
-            <div className="upload-icon">📷</div>
-            <div className="upload-text">Click or drag photo here</div>
-            <div className="upload-hint">Supports JPG, PNG (Max 10MB)</div>
-          </label>
-        ) : (
-          <div className="photo-preview-container">
-            <img src={photoPreview} alt="Uploaded" className="photo-preview" />
-            <button className="remove-photo-btn" onClick={removePhoto} disabled={generating}>
-              ✕ Remove
-            </button>
-          </div>
-        )}
-      </div>
 
       <div className="prompt-section">
         <div className="prompt-label">✨ Describe Your Avatar</div>
