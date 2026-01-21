@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   SMARTER.POKER — MARKETING LANDING PAGE
+   SMARTER.POKER — PREMIUM MARKETING LANDING PAGE
    Cyan/Electric Blue Aesthetic | Deep Navy Background
    Gateway to the PokerIQ Empire
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -11,25 +11,17 @@ import Head from 'next/head';
 import { motion } from 'framer-motion';
 import gsap from 'gsap';
 import confetti from 'canvas-confetti';
-import dynamic from 'next/dynamic';
 
 // God-Mode Stack
 import { useLandingStore } from '../src/stores/landingStore';
-// import { soundManager } from '../src/utils/soundManager'; // TODO: Add sounds when files are ready
-
-// Lazy load THREE.JS component for better performance
-const PokerTable3D = dynamic(() => import('../src/components/PokerTable3D'), {
-    ssr: false,
-    loading: () => <div style={{ width: '100%', height: '100%', background: '#0a1628' }} />
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🎮 MAIN LANDING PAGE COMPONENT (GOD-MODE RETROFITTED)
+// 🎮 MAIN LANDING PAGE COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
     const router = useRouter();
 
-    // Zustand Global State (replaces local useState)
+    // Zustand Global State
     const isLoading = useLandingStore((s) => s.isLoading);
     const setLoading = useLandingStore((s) => s.setLoading);
     const glowIntensity = useLandingStore((s) => s.glowIntensity);
@@ -42,7 +34,7 @@ export default function LandingPage() {
     const heroButtonsRef = useRef();
     const statsBarRef = useRef();
 
-    // GSAP: Infinite glow pulse (replaces manual requestAnimationFrame)
+    // GSAP: Infinite glow pulse
     useEffect(() => {
         gsap.to({}, {
             duration: 2,
@@ -85,7 +77,6 @@ export default function LandingPage() {
 
     const handleEnterHub = () => {
         incrementCtaClicks();
-        // Confetti celebration
         confetti({
             particleCount: 100,
             spread: 70,
@@ -108,7 +99,7 @@ export default function LandingPage() {
         <PageTransition>
             <Head>
                 <title>Smarter.Poker — Master Your GTO Game</title>
-                <meta name="description" content="The ultimate poker training platform. AI-powered GTO drills, strategic analysis, and Diamond rewards." />
+                <meta name="description" content="The ultimate poker training platform. AI-powered GTO drills, strategic analysis, and Diamond rewards. Join thousands mastering poker strategy." />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
             </Head>
@@ -124,7 +115,11 @@ export default function LandingPage() {
                 {/* Navigation */}
                 <nav style={styles.nav}>
                     <div style={styles.logo}>
-                        <BrainIcon size={32} />
+                        <img
+                            src="/smarter-poker-logo.png"
+                            alt="Smarter Poker"
+                            style={{ height: 40, filter: 'drop-shadow(0 0 10px rgba(0, 212, 255, 0.5))' }}
+                        />
                         <span style={styles.logoText}>SMARTER POKER</span>
                     </div>
                     <div style={styles.navLinks}>
@@ -146,13 +141,13 @@ export default function LandingPage() {
                         </div>
 
                         <h1 ref={heroTitleRef} style={styles.heroTitle}>
-                            Master <span style={styles.gradientText}>GTO Strategy</span>
-                            <br />Like Never Before
+                            Transform Your <span style={styles.gradientText}>Poker Game</span>
+                            <br />With AI-Powered Training
                         </h1>
 
                         <p ref={heroSubtitleRef} style={styles.heroSubtitle}>
-                            AI-powered training drills, real-time leak detection, and a
-                            Diamond economy that rewards your progression. Level up your game.
+                            Master GTO strategy through intelligent drills, real-time feedback, and a revolutionary Diamond economy.
+                            Join the next generation of elite poker players.
                         </p>
 
                         <div ref={heroButtonsRef} style={styles.heroButtons}>
@@ -190,16 +185,126 @@ export default function LandingPage() {
                         </div>
                     </div>
 
-                    {/* Hero Visual - THREE.JS 3D Poker Table */}
+                    {/* Hero Visual - Premium Card Display */}
                     <div style={styles.heroVisual}>
-                        <div style={{
-                            ...styles.pokerTableContainer,
-                            boxShadow: `0 0 60px rgba(0, 212, 255, ${0.2 + glowIntensity * 0.15})`,
-                        }}>
-                            <PokerTable3D />
+                        <div style={styles.heroCardStack}>
+                            <motion.div
+                                style={styles.heroCard}
+                                animate={{
+                                    y: [0, -10, 0],
+                                    rotateZ: [-2, 2, -2],
+                                }}
+                                transition={{
+                                    duration: 4,
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                }}
+                            >
+                                <div style={styles.cardInner}>
+                                    <div style={styles.cardHeader}>
+                                        <DiamondIcon size={24} />
+                                        <span style={styles.cardHeaderText}>GTO TRAINER</span>
+                                    </div>
+                                    <div style={styles.cardBody}>
+                                        <div style={styles.cardStat}>
+                                            <span style={styles.cardStatLabel}>Your Accuracy</span>
+                                            <span style={styles.cardStatValue}>87%</span>
+                                        </div>
+                                        <div style={styles.progressBar}>
+                                            <div style={styles.progressFill} />
+                                        </div>
+                                        <div style={styles.cardMastery}>
+                                            <span style={styles.masteryBadge}>ELITE</span>
+                                            <span style={styles.masteryText}>Top 5% of Players</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+
+                            {/* Floating Elements */}
+                            <motion.div
+                                style={styles.floatingChip}
+                                animate={{
+                                    y: [0, -15, 0],
+                                    rotate: [0, 360],
+                                }}
+                                transition={{
+                                    y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                                    rotate: { duration: 10, repeat: Infinity, ease: "linear" },
+                                }}
+                            >
+                                💎
+                            </motion.div>
+
+                            <motion.div
+                                style={styles.floatingCard}
+                                animate={{
+                                    y: [0, 10, 0],
+                                    x: [0, 5, 0],
+                                }}
+                                transition={{
+                                    duration: 3.5,
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                }}
+                            >
+                                🂡
+                            </motion.div>
+
+                            <motion.div
+                                style={styles.floatingCardRight}
+                                animate={{
+                                    y: [0, -8, 0],
+                                    x: [0, -5, 0],
+                                }}
+                                transition={{
+                                    duration: 3,
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                }}
+                            >
+                                🂮
+                            </motion.div>
                         </div>
                     </div>
                 </main>
+
+                {/* What is Smarter.Poker Section */}
+                <section style={styles.aboutSection}>
+                    <div style={styles.aboutContent}>
+                        <h2 style={styles.aboutTitle}>
+                            What is <span style={styles.cyanText}>Smarter.Poker</span>?
+                        </h2>
+                        <p style={styles.aboutDescription}>
+                            Smarter.Poker is the world's most advanced poker training ecosystem. Built by professional players
+                            and powered by cutting-edge AI, we've created a comprehensive platform that takes you from novice
+                            to elite through proven, systematic training methods.
+                        </p>
+                        <div style={styles.aboutGrid}>
+                            <div style={styles.aboutCard}>
+                                <span style={styles.aboutIcon}>🎯</span>
+                                <h3 style={styles.aboutCardTitle}>Precision Training</h3>
+                                <p style={styles.aboutCardDesc}>
+                                    Every drill is backed by solver-verified solutions. Practice the exact spots that matter most.
+                                </p>
+                            </div>
+                            <div style={styles.aboutCard}>
+                                <span style={styles.aboutIcon}>🧠</span>
+                                <h3 style={styles.aboutCardTitle}>AI-Powered Analysis</h3>
+                                <p style={styles.aboutCardDesc}>
+                                    Real-time leak detection identifies your weaknesses and provides targeted remediation.
+                                </p>
+                            </div>
+                            <div style={styles.aboutCard}>
+                                <span style={styles.aboutIcon}>💎</span>
+                                <h3 style={styles.aboutCardTitle}>Diamond Economy</h3>
+                                <p style={styles.aboutCardDesc}>
+                                    Earn and stake Diamonds as you progress. Your training investments compound over time.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
                 {/* Features Section - Orb Study Previews */}
                 <section style={styles.features}>
@@ -269,6 +374,30 @@ export default function LandingPage() {
                     </div>
                 </section>
 
+                {/* Testimonials Section */}
+                <section style={styles.testimonialSection}>
+                    <h2 style={styles.sectionTitle}>
+                        <span>What Players Are Saying</span>
+                    </h2>
+                    <div style={styles.testimonialGrid}>
+                        <TestimonialCard
+                            quote="I went from break-even to consistent winner in 3 months. The leak detection alone is worth 10x the price."
+                            author="Mike R."
+                            role="Tournament Pro"
+                        />
+                        <TestimonialCard
+                            quote="The Diamond economy keeps me coming back. It gamifies improvement in a way that actually works."
+                            author="Sarah L."
+                            role="Cash Game Regular"
+                        />
+                        <TestimonialCard
+                            quote="Training with my club on Smarter.Poker has made us all better. The competition drives real growth."
+                            author="James K."
+                            role="Club Captain"
+                        />
+                    </div>
+                </section>
+
                 {/* Final CTA */}
                 <section style={styles.finalCta}>
                     <h2 style={styles.finalCtaTitle}>Ready to Level Up?</h2>
@@ -294,40 +423,20 @@ export default function LandingPage() {
                 <footer style={styles.footer}>
                     <div style={styles.footerContent}>
                         <div style={styles.footerLogo}>
-                            <BrainIcon size={24} />
+                            <img
+                                src="/smarter-poker-logo.png"
+                                alt="Smarter Poker"
+                                style={{ height: 28, opacity: 0.8 }}
+                            />
                             <span style={styles.footerLogoText}>SMARTER POKER</span>
                         </div>
                         <p style={styles.footerCopyright}>
-                            © 2026 Smarter Poker. All rights reserved.
+                            © 2026 Smarter.Poker. All rights reserved.
                         </p>
                     </div>
                 </footer>
             </div>
         </PageTransition>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 🧠 BRAIN ICON (Smarter Poker Logo)
-// ─────────────────────────────────────────────────────────────────────────────
-function BrainIcon({ size = 24 }) {
-    return (
-        <div style={{
-            width: size,
-            height: size,
-            borderRadius: '8px',
-            background: 'linear-gradient(135deg, #0a1628, #1a2a4a)',
-            border: '2px solid #00D4FF',
-            boxShadow: `0 0 ${size / 2}px rgba(0, 212, 255, 0.6)`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-        }}>
-            <svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2">
-                <path d="M12 2a4 4 0 014 4c0 1.5-.8 2.8-2 3.5V12h2a4 4 0 110 8h-8a4 4 0 110-8h2V9.5A4 4 0 018 6a4 4 0 014-4z" />
-            </svg>
-        </div>
     );
 }
 
@@ -406,12 +515,31 @@ function MultiplierCard({ day, multiplier, active }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 💬 TESTIMONIAL CARD
+// ─────────────────────────────────────────────────────────────────────────────
+function TestimonialCard({ quote, author, role }) {
+    return (
+        <div style={styles.testimonialCard}>
+            <p style={styles.testimonialQuote}>"{quote}"</p>
+            <div style={styles.testimonialAuthor}>
+                <span style={styles.testimonialName}>{author}</span>
+                <span style={styles.testimonialRole}>{role}</span>
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ⏳ LOADING SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
 function LoadingScreen() {
     return (
         <div style={styles.loadingScreen}>
-            <BrainIcon size={60} />
+            <img
+                src="/smarter-poker-logo.png"
+                alt="Smarter Poker"
+                style={{ height: 60, filter: 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.5))' }}
+            />
             <p style={styles.loadingText}>Entering the Hub...</p>
         </div>
     );
@@ -513,10 +641,12 @@ const styles = {
         gap: '60px',
         position: 'relative',
         zIndex: 5,
+        flexWrap: 'wrap',
     },
     heroContent: {
         flex: 1,
         maxWidth: '600px',
+        minWidth: '300px',
     },
     tagline: {
         display: 'inline-flex',
@@ -535,7 +665,7 @@ const styles = {
     },
     heroTitle: {
         fontFamily: 'Orbitron, sans-serif',
-        fontSize: '48px',
+        fontSize: 'clamp(32px, 5vw, 48px)',
         fontWeight: 800,
         lineHeight: 1.1,
         marginBottom: '24px',
@@ -556,6 +686,7 @@ const styles = {
         display: 'flex',
         gap: '16px',
         marginBottom: '48px',
+        flexWrap: 'wrap',
     },
     ctaButton: {
         display: 'flex',
@@ -587,6 +718,7 @@ const styles = {
     statsBar: {
         display: 'flex',
         gap: '40px',
+        flexWrap: 'wrap',
     },
     statItem: {
         display: 'flex',
@@ -610,48 +742,168 @@ const styles = {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
+        minWidth: '300px',
     },
-    pokerTableContainer: {
-        width: '600px',
-        height: '600px',
-        background: 'transparent',
+    heroCardStack: {
+        position: 'relative',
+        width: '350px',
+        height: '400px',
+    },
+    heroCard: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '280px',
+        background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.95), rgba(0, 30, 60, 0.9))',
         borderRadius: '20px',
-        border: '2px solid rgba(0, 212, 255, 0.3)',
+        border: '2px solid rgba(0, 212, 255, 0.4)',
+        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 212, 255, 0.2)',
         overflow: 'hidden',
-        position: 'relative',
     },
-    phoneFrame: {
-        width: '320px',
-        height: '640px',
-        background: 'linear-gradient(180deg, #0a1628, #061018)',
-        borderRadius: '40px',
-        border: '4px solid rgba(0, 212, 255, 0.3)',
-        overflow: 'hidden',
-        position: 'relative',
+    cardInner: {
+        padding: '24px',
     },
-    phoneScreen: {
-        width: '100%',
-        height: '100%',
+    cardHeader: {
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
+        gap: '10px',
+        marginBottom: '24px',
+        paddingBottom: '16px',
+        borderBottom: '1px solid rgba(0, 212, 255, 0.2)',
     },
-    phoneImage: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
+    cardHeaderText: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: '14px',
+        fontWeight: 700,
+        letterSpacing: '2px',
+        color: '#00D4FF',
     },
-    phonePlaceholder: {
+    cardBody: {
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        gap: '16px',
+        gap: '20px',
     },
-    phonePlaceholderText: {
+    cardStat: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+    },
+    cardStatLabel: {
+        fontSize: '14px',
+        color: 'rgba(255, 255, 255, 0.6)',
+    },
+    cardStatValue: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: '36px',
+        fontWeight: 800,
+        color: '#00D4FF',
+    },
+    progressBar: {
+        height: '8px',
+        background: 'rgba(0, 212, 255, 0.2)',
+        borderRadius: '4px',
+        overflow: 'hidden',
+    },
+    progressFill: {
+        width: '87%',
+        height: '100%',
+        background: 'linear-gradient(90deg, #00D4FF, #0066FF)',
+        borderRadius: '4px',
+    },
+    cardMastery: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        paddingTop: '8px',
+    },
+    masteryBadge: {
+        padding: '6px 12px',
+        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        borderRadius: '6px',
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: '12px',
+        fontWeight: 700,
+        color: '#000000',
+    },
+    masteryText: {
+        fontSize: '13px',
+        color: 'rgba(255, 255, 255, 0.6)',
+    },
+    floatingChip: {
+        position: 'absolute',
+        top: '10%',
+        right: '10%',
+        fontSize: '40px',
+        filter: 'drop-shadow(0 0 15px rgba(0, 212, 255, 0.5))',
+    },
+    floatingCard: {
+        position: 'absolute',
+        bottom: '15%',
+        left: '5%',
+        fontSize: '50px',
+        filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.3))',
+    },
+    floatingCardRight: {
+        position: 'absolute',
+        top: '25%',
+        right: '0%',
+        fontSize: '45px',
+        filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.3))',
+    },
+    aboutSection: {
+        padding: '80px 40px',
+        background: 'linear-gradient(180deg, transparent, rgba(0, 212, 255, 0.03), transparent)',
+        position: 'relative',
+        zIndex: 5,
+    },
+    aboutContent: {
+        maxWidth: '1100px',
+        margin: '0 auto',
+        textAlign: 'center',
+    },
+    aboutTitle: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: 'clamp(28px, 4vw, 36px)',
+        fontWeight: 700,
+        marginBottom: '20px',
+    },
+    aboutDescription: {
+        fontSize: '17px',
+        lineHeight: 1.7,
+        color: 'rgba(255, 255, 255, 0.7)',
+        maxWidth: '800px',
+        margin: '0 auto 48px',
+    },
+    aboutGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '24px',
+    },
+    aboutCard: {
+        padding: '32px',
+        background: 'rgba(10, 22, 40, 0.6)',
+        borderRadius: '16px',
+        border: '1px solid rgba(0, 212, 255, 0.15)',
+        backdropFilter: 'blur(10px)',
+        textAlign: 'left',
+    },
+    aboutIcon: {
+        fontSize: '36px',
+        marginBottom: '16px',
+        display: 'block',
+    },
+    aboutCardTitle: {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: '18px',
-        fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.5)',
+        fontWeight: 700,
+        marginBottom: '12px',
+        color: '#00D4FF',
+    },
+    aboutCardDesc: {
+        fontSize: '14px',
+        lineHeight: 1.6,
+        color: 'rgba(255, 255, 255, 0.6)',
     },
     features: {
         padding: '80px 40px',
@@ -666,10 +918,11 @@ const styles = {
         justifyContent: 'center',
         gap: '12px',
         fontFamily: 'Orbitron, sans-serif',
-        fontSize: '28px',
+        fontSize: 'clamp(24px, 3.5vw, 28px)',
         fontWeight: 700,
         marginBottom: '48px',
         textAlign: 'center',
+        flexWrap: 'wrap',
     },
     featureGrid: {
         display: 'grid',
@@ -716,7 +969,7 @@ const styles = {
     },
     multiplierTitle: {
         fontFamily: 'Orbitron, sans-serif',
-        fontSize: '32px',
+        fontSize: 'clamp(28px, 4vw, 32px)',
         fontWeight: 700,
         marginBottom: '16px',
     },
@@ -756,6 +1009,47 @@ const styles = {
         fontSize: '24px',
         fontWeight: 700,
     },
+    testimonialSection: {
+        padding: '80px 40px',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        position: 'relative',
+        zIndex: 5,
+    },
+    testimonialGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: '24px',
+    },
+    testimonialCard: {
+        padding: '32px',
+        background: 'rgba(10, 22, 40, 0.6)',
+        borderRadius: '16px',
+        border: '1px solid rgba(0, 212, 255, 0.15)',
+        backdropFilter: 'blur(10px)',
+    },
+    testimonialQuote: {
+        fontSize: '15px',
+        lineHeight: 1.7,
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontStyle: 'italic',
+        marginBottom: '20px',
+    },
+    testimonialAuthor: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+    },
+    testimonialName: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: '14px',
+        fontWeight: 600,
+        color: '#00D4FF',
+    },
+    testimonialRole: {
+        fontSize: '12px',
+        color: 'rgba(255, 255, 255, 0.5)',
+    },
     finalCta: {
         padding: '80px 40px',
         textAlign: 'center',
@@ -764,7 +1058,7 @@ const styles = {
     },
     finalCtaTitle: {
         fontFamily: 'Orbitron, sans-serif',
-        fontSize: '36px',
+        fontSize: 'clamp(28px, 4vw, 36px)',
         fontWeight: 800,
         marginBottom: '16px',
     },
@@ -785,6 +1079,8 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '20px',
     },
     footerLogo: {
         display: 'flex',
