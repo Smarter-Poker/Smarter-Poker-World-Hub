@@ -95,10 +95,10 @@ class GameTableScene extends Phaser.Scene {
 
     drawTable(cx: number, cy: number) {
         // Use the Black Table.jpeg image
-        const table = this.add.image(cx, cy + 15, 'table');  // Moved DOWN to hide dark top
-        // Scale to fit within canvas showing full gold edges
-        const targetWidth = CANVAS_WIDTH - 60;  // Smaller to show full edges
-        const targetHeight = 520;
+        const table = this.add.image(cx, cy, 'table');
+        // Scale to show full table - taller/longer like reference
+        const targetWidth = CANVAS_WIDTH - 180;  // Narrower
+        const targetHeight = 560;  // Taller - more elongated like reference
         const scaleX = targetWidth / table.width;
         const scaleY = targetHeight / table.height;
         table.setScale(scaleX, scaleY);

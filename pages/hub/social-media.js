@@ -1370,7 +1370,7 @@ export default function SocialMediaPage() {
     }, []);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // 🔐 AUTH STATE LISTENER - Wait for INITIAL_SESSION event (Supabase v2 pattern)
+    // 🔐 AUTH - Direct getSession + event listener for updates
     // ═══════════════════════════════════════════════════════════════════════
     useEffect(() => {
         let isMounted = true;
@@ -1439,30 +1439,34 @@ export default function SocialMediaPage() {
             if (isMounted) setLoading(false);
         };
 
-        // Set up auth state change listener FIRST - this is the Supabase v2 pattern
-        // INITIAL_SESSION fires when auth is ready with the current session
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('[Social] 🔄 Auth event:', event, session?.user?.email || 'no user');
-
-            if (event === 'INITIAL_SESSION') {
-                // This is the first event, contains the current session state
+        // Direct initialization
+        const init = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                console.log('[Social] getSession result:', session?.user?.email || 'no user');
                 await handleAuthUser(session?.user);
                 await loadFeed();
-                // Load live streams
                 try {
                     const streams = await LiveStreamService.getLiveStreams();
                     if (isMounted) setLiveStreams(streams || []);
-                } catch (e) { console.log('No live streams:', e); }
-            } else if (event === 'SIGNED_IN' && session?.user) {
-                // User signed in while on this page
-                await handleAuthUser(session.user);
+                } catch (e) { }
+            } catch (e) {
+                console.error('[Social] Init error:', e);
+                if (isMounted) setLoading(false);
+            }
+        };
+
+        // Listen for auth changes (sign in/out while on page)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log('[Social] Auth event:', event);
+            if (event === 'SIGNED_IN' && session?.user) {
+                handleAuthUser(session.user);
             } else if (event === 'SIGNED_OUT') {
-                if (isMounted) {
-                    setUser(null);
-                    setLoading(false);
-                }
+                setUser(null);
             }
         });
+
+        init();
 
         return () => {
             isMounted = false;
