@@ -96,6 +96,16 @@ export async function setPresetAvatar(userId, avatarId) {
  */
 export async function generateCustomAvatar(userId, prompt, isVip = false, photoFile = null) {
     try {
+        console.log('🎨 generateCustomAvatar called with:', {
+            userId,
+            prompt,
+            isVip,
+            hasPhotoFile: !!photoFile,
+            photoFileName: photoFile?.name,
+            photoFileSize: photoFile?.size,
+            photoFileType: photoFile?.type
+        });
+
         // Check limits based on user tier
         if (isVip) {
             // VIP: Check ACTIVE avatars only (can delete to make room)
@@ -126,9 +136,11 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
         let generatedImageUrl;
 
         if (photoFile) {
+            console.log('📸 Using PHOTO-based generation (likeness mode)');
             // Photo-based generation (likeness)
             generatedImageUrl = await generateAvatarFromPhoto(photoFile, prompt, userId);
         } else {
+            console.log('📝 Using TEXT-based generation (no photo)');
             // Text-based generation
             generatedImageUrl = await generateAvatarFromText(prompt, userId);
         }

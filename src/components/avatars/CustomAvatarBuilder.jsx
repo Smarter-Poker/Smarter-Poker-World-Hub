@@ -131,6 +131,14 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
       return;
     }
 
+    console.log('🚀 handleGenerate called with:', {
+      prompt,
+      hasUploadedPhoto: !!uploadedPhoto,
+      uploadedPhotoName: uploadedPhoto?.name,
+      uploadedPhotoSize: uploadedPhoto?.size,
+      effectiveVip
+    });
+
     setGenerating(true);
     setShowResult(false);
     setGeneratedImage(null);
@@ -145,6 +153,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         alert(`❌ ${result.error}`);
       }
     } catch (error) {
+      console.error('Avatar generation error:', error);
       alert('Error generating avatar. Please try again.');
     } finally {
       setGenerating(false);
