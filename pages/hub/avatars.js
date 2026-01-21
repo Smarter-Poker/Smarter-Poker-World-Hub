@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import AvatarGallery from '../../src/components/avatars/AvatarGallery';
 
@@ -122,10 +123,8 @@ export default function AvatarsPage() {
                 `}</style>
 
                     {/* Header */}
+                    <UniversalHeader pageDepth={2} />
                     <div className="header">
-                        <Link href="/hub/profile" className="back-btn">
-                            ← Back to Profile
-                        </Link>
 
                         {avatar && (
                             <div className="current-avatar">

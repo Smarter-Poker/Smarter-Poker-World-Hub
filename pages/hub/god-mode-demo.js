@@ -7,6 +7,7 @@ import { useState } from 'react';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import AnimatedButton from '../../src/components/ui/AnimatedButton';
 import AnimatedCard from '../../src/components/ui/AnimatedCard';
 import AnimatedModal from '../../src/components/ui/AnimatedModal';
@@ -88,6 +89,9 @@ export default function GodModeDemoPage() {
                 background: 'linear-gradient(135deg, #0a0a15 0%, #1a1f3a 100%)',
                 padding: '40px 20px',
             }}>
+                {/* UniversalHeader */}
+                <UniversalHeader pageDepth={2} />
+
                 <div style={{ maxWidth: 1200, margin: '0 auto' }}>
                     {/* Header */}
                     <motion.div

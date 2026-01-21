@@ -13,6 +13,7 @@ import { supabase } from '../../src/lib/supabase';
 // God-Mode Stack
 import { useArticleStore } from '../../src/stores/articleStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 export default function ArticlePage() {
     const router = useRouter();
@@ -119,12 +120,15 @@ export default function ArticlePage() {
             </Head>
 
             <div className="article-page">
+                {/* UniversalHeader */}
+                <UniversalHeader pageDepth={2} />
+
                 {/* Header */}
                 <header className="header">
-                    <Link href="/hub/news" className="back-btn">
+                    <div className="back-btn">
                         <ArrowLeft size={20} />
                         <span>Back to News</span>
-                    </Link>
+                    </div>
                     <div className="actions">
                         <button onClick={handleShare}><Share2 size={18} /></button>
                         <button><Bookmark size={18} /></button>

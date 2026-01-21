@@ -16,6 +16,7 @@ import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilde
 // God-Mode Stack
 import { useAvatarsCompleteStore } from '../../src/stores/avatarsCompleteStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 export default function AvatarsComplete() {
     const [user, setUser] = useState(null);
@@ -200,6 +201,9 @@ export default function AvatarsComplete() {
                     maxWidth: '1400px',
                     margin: '0 auto'
                 }}>
+                    {/* UniversalHeader */}
+                    <UniversalHeader pageDepth={2} />
+
                     {/* Header */}
                     <h1 style={{
                         fontSize: '36px',

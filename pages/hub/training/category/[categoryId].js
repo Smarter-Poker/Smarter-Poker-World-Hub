@@ -22,6 +22,7 @@ import GameIntroSplash from '../../../../src/components/training/GameIntroSplash
 // God-Mode Stack
 import { useTrainingCategoryStore } from '../../../../src/stores/trainingCategoryStore';
 import PageTransition from '../../../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 
 // Category metadata
 const CATEGORY_META = {
@@ -116,16 +117,11 @@ export default function CategoryPage() {
             />
 
             <div style={styles.page}>
+                {/* UniversalHeader */}
+                <UniversalHeader pageDepth={2} />
+
                 {/* Header */}
                 <div style={{ ...styles.header, borderBottom: `2px solid ${categoryMeta.color}` }}>
-                    <motion.button
-                        style={styles.backButton}
-                        onClick={handleBack}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        ← Back
-                    </motion.button>
 
                     <div style={styles.headerContent}>
                         <span style={styles.headerIcon}>{categoryMeta.icon}</span>

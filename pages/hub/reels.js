@@ -13,6 +13,7 @@ import Link from 'next/link';
 
 // God-Mode Stack
 import { useReelsStore } from '../../src/stores/reelsStore';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 const C = {
     bg: '#000000',
@@ -172,6 +173,7 @@ export default function ReelsPage() {
 
     return (
         <>
+            <UniversalHeader pageDepth={2} />
             <Head>
                 <title>Reels | Smarter Poker</title>
                 <meta name="viewport" content="width=800, user-scalable=no" />

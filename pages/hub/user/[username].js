@@ -15,6 +15,7 @@ import { supabase } from '../../../src/lib/supabase';
 // God-Mode Stack
 import { useUserProfileStore } from '../../../src/stores/userProfileStore';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -201,11 +202,8 @@ export default function UserProfilePage() {
         <PageTransition>
             <Head><title>{profile.username || 'Profile'} | Smarter.Poker</title></Head>
             <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
-                {/* Header */}
-                <header style={{ background: C.card, padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
-                    <Link href="/hub" style={{ fontWeight: 700, fontSize: 22, color: C.blue, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>🧠 Smarter.Poker</Link>
-                    <Link href="/hub/social-media" style={{ color: C.textSec, textDecoration: 'none' }}>← Back to Social</Link>
-                </header>
+                {/* UniversalHeader */}
+                <UniversalHeader pageDepth={2} />
 
                 {/* Cover Photo */}
                 <div style={{
