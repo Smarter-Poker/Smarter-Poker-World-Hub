@@ -18,7 +18,7 @@ import { supabase as sharedSupabase } from './supabase';
 
 // Fallback values ensure the site ALWAYS boots even if env vars are not detected
 const FALLBACK_SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const FALLBACK_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+const FALLBACK_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4MDY2OTksImV4cCI6MjA1MjM4MjY5OX0.6MWsejkJtYDJEwRG_ht0LHEjsJRfyiZl7K1gIvhRRfc';
 
 const REQUIRED_ENV_VARS = [
     'NEXT_PUBLIC_SUPABASE_URL',
