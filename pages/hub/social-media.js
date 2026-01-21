@@ -1491,17 +1491,37 @@ export default function SocialMediaPage() {
             // Combine friends and following for priority
             const priorityUserIds = [...new Set([...friendIds, ...followingIds])];
 
-            // ♾️ INFINITE SCROLL: Fetch posts with offset
-            // Fetch all posts with pagination
+            // ♾️ INFINITE SCROLL: Fetch posts with retry logic
             console.log('[Social] Loading feed, offset:', offset);
-            const { data: allPostsData, error } = await supabase
-                .from('social_posts')
-                .select('id, content, content_type, media_urls, like_count, comment_count, share_count, created_at, author_id')
-                .or('visibility.eq.public,visibility.is.null')
-                .order('created_at', { ascending: false })
-                .range(offset, offset + POSTS_PER_PAGE - 1);
 
-            console.log('[Social] Feed query result:', { count: allPostsData?.length, error });
+            let allPostsData = null;
+            let error = null;
+
+            // Retry up to 3 times with delay
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    const result = await supabase
+                        .from('social_posts')
+                        .select('id, content, content_type, media_urls, like_count, comment_count, share_count, created_at, author_id')
+                        .or('visibility.eq.public,visibility.is.null')
+                        .order('created_at', { ascending: false })
+                        .range(offset, offset + POSTS_PER_PAGE - 1);
+
+                    allPostsData = result.data;
+                    error = result.error;
+
+                    if (!error) {
+                        console.log('[Social] ✅ Feed loaded on attempt', attempt, '- count:', allPostsData?.length);
+                        break;
+                    }
+                } catch (e) {
+                    console.warn('[Social] Feed attempt', attempt, 'failed:', e.message);
+                    if (attempt < 3) {
+                        await new Promise(r => setTimeout(r, 500 * attempt)); // Wait 500ms, 1000ms, 1500ms
+                    }
+                }
+            }
+
             if (error) throw error;
 
             // Check if there are more posts
