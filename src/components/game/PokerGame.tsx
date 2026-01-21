@@ -70,20 +70,42 @@ class GameTableScene extends Phaser.Scene {
     }
 
     preload() {
-        // Load the 480x800 table image - exact match to canvas dimensions
-        this.load.image('table', '/game/table.png');
+        // Load table avatars (78×125 with baked-in badge)
+        const avatarFiles = [
+            'vip_viking_warrior.png',   // Seat 0 - Hero
+            'free_wizard.png',          // Seat 1 - Villain 1
+            'free_ninja.png',           // Seat 2 - Villain 2
+            'free_cowboy.png',          // Seat 3 - Villain 3
+            'vip_pharaoh.png',          // Seat 4 - Villain 4
+            'vip_spartan.png',          // Seat 5 - Villain 5
+            'free_pirate.png',          // Seat 6 - Villain 6
+            'vip_wolf.png',             // Seat 7 - Villain 7
+            'free_samurai.png',         // Seat 8 - Villain 8
+        ];
+
+        avatarFiles.forEach((file, i) => {
+            this.load.image(`avatar_${i}`, `/avatars/table/${file}`);
+        });
     }
 
     create() {
-        // Use the 480x800 template image as the COMPLETE static UI
-        // No dynamic elements - the template has everything baked in
-        this.drawTable();
+        const cx = this.cameras.main.width / 2;
+        const cy = this.cameras.main.height * 0.44;
+
+        // Draw background and programmatic table (matches template style)
+        this.drawBackground();
+        this.drawDoubleRailTable(cx, cy);  // Vector graphics - no pixelation
+        this.drawBranding(cx, cy + 30);
+        this.drawPotDisplay(cx, cy - 100);
+        this.createSeats();
+        this.drawDealerButton();
+        this.drawHeroCards();
     }
 
-    drawTable() {
-        // Display the template at 1:1 native resolution, centered
-        const table = this.add.image(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 'table');
-        // No scaling needed - image matches canvas exactly
+    drawBackground() {
+        const g = this.add.graphics();
+        g.fillStyle(COLORS.bgDark, 1);
+        g.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     }
 
     drawDoubleRailTable(cx: number, cy: number) {
@@ -127,42 +149,46 @@ class GameTableScene extends Phaser.Scene {
         const W = this.cameras.main.width;
         const H = this.cameras.main.height;
 
+        // Avatar dimensions (new table avatars with badge baked in)
+        const AVATAR_WIDTH = 78;
+        const AVATAR_HEIGHT = 125;
+        const BADGE_HEIGHT = 35;
+
         SEAT_POSITIONS.forEach((seat, i) => {
             const x = seat.x * W;
             const y = seat.y * H;
             const isHero = i === 0;
-
-            // AVATARS - EXACT SIZE MATCH TO REFERENCE
-            const avatarSize = isHero ? 135 : 120;
             const avatarKey = `avatar_${i}`;
 
+            // Position avatar so badge is at y position
+            const avatarY = y - (AVATAR_HEIGHT / 2) + (BADGE_HEIGHT / 2);
+
             if (this.textures.exists(avatarKey)) {
-                const av = this.add.image(x, y - 35, avatarKey);
-                av.setDisplaySize(avatarSize, avatarSize);
+                // Use loaded avatar with baked-in badge
+                const av = this.add.image(x, avatarY, avatarKey);
+                av.setDisplaySize(AVATAR_WIDTH, AVATAR_HEIGHT);
             } else {
-                this.add.circle(x, y - 35, avatarSize / 2, 0x333333).setStrokeStyle(3, COLORS.goldOuter);
+                // Fallback: draw placeholder with badge
+                this.add.rectangle(x, avatarY, AVATAR_WIDTH, AVATAR_HEIGHT, 0x333333)
+                    .setStrokeStyle(2, 0xd4a000);
             }
 
-            // YELLOW BADGE below avatar - larger and more prominent
-            const bw = 78;
-            const bh = isHero ? 46 : 40;
-            const by = y + avatarSize / 2 - 15;
+            // TEXT OVERLAY on badge area (bottom of avatar)
+            const textY = y;  // Badge center
 
-            this.add.rectangle(x, by, bw, bh, 0xd4a000).setStrokeStyle(2, 0xffd700);
-
-            // Name
-            this.add.text(x, by - 8, seat.label, {
+            // Name - WHITE text
+            this.add.text(x, textY - 7, seat.label, {
                 fontFamily: 'Arial',
-                fontSize: isHero ? '12px' : '10px',
-                color: '#000000',
+                fontSize: isHero ? '11px' : '10px',
+                color: '#ffffff',
                 fontStyle: 'bold'
             }).setOrigin(0.5);
 
-            // Stack
-            this.add.text(x, by + 8, `${seat.stack} BB`, {
+            // Stack - GOLD text
+            this.add.text(x, textY + 7, `${seat.stack} BB`, {
                 fontFamily: 'Arial',
-                fontSize: isHero ? '12px' : '10px',
-                color: '#000000',
+                fontSize: isHero ? '11px' : '10px',
+                color: '#d4a000',
                 fontStyle: 'bold'
             }).setOrigin(0.5);
         });
