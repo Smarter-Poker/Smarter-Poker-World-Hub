@@ -73,11 +73,8 @@ function TrainingHeader({ gamesPlayed = 0 }) {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const { createClient } = await import('@supabase/supabase-js');
-                const supabase = createClient(
-                    process.env.NEXT_PUBLIC_SUPABASE_URL,
-                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-                );
+                // Use the shared singleton for global auth
+                const { supabase } = await import('../../src/lib/supabase');
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
                     const { data: profile } = await supabase

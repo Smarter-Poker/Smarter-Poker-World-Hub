@@ -5,14 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../src/lib/supabase';
 import styles from './horses.module.css';
-
-// Initialize Supabase
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
 
 // Demo personas for development
 const DEMO_PERSONAS = [

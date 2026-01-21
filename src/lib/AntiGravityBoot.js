@@ -10,7 +10,7 @@
  * FAIL-CLOSED: If any requirement fails, the system refuses to start.
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { supabase as sharedSupabase } from './supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURATION — HARDCODED FALLBACKS FOR PRODUCTION STABILITY
@@ -37,7 +37,8 @@ let bootState = {
     timestamp: null,
 };
 
-let supabaseClient = null;
+// Use the shared singleton
+let supabaseClient = sharedSupabase;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CORE BOOT FUNCTIONS
@@ -66,23 +67,12 @@ function verifyEnvVars() {
 }
 
 /**
- * Initialize Supabase client
- * Uses hardcoded fallbacks to ensure connection ALWAYS works
+ * Initialize Supabase client - now uses shared singleton
  */
 function initializeSupabase() {
     try {
-        // Use env vars if available, otherwise use fallbacks
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_SUPABASE_URL;
-        const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY;
-
-        if (!url || !key) {
-            // This should never happen with fallbacks, but just in case
-            console.error('[ANTIGRAVITY] Critical: No Supabase credentials available');
-            return { success: false, error: 'Supabase credentials not available' };
-        }
-
-        console.log('[ANTIGRAVITY] Initializing Supabase with URL:', url.substring(0, 30) + '...');
-        supabaseClient = createClient(url, key);
+        // Use the shared singleton to prevent multiple GoTrueClient instances
+        console.log('[ANTIGRAVITY] Using shared Supabase singleton');
         return { success: true, client: supabaseClient };
     } catch (error) {
         return { success: false, error: error.message };

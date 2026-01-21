@@ -9,18 +9,13 @@ import Head from 'next/head';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../src/lib/supabase';
 import { getAll } from '../../src/data/AVATAR_LIBRARY';
 import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
 
 // God-Mode Stack
 import { useAvatarsCompleteStore } from '../../src/stores/avatarsCompleteStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
-
-// Initialize Supabase
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function AvatarsComplete() {
     const [user, setUser] = useState(null);
