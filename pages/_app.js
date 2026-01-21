@@ -39,6 +39,50 @@ function NavigationGuard({ children }) {
   const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
+    // ═══════════════════════════════════════════════════════════════════════
+    // AUTH MIGRATION v1: Clear corrupted localStorage from old Supabase clients
+    // This runs ONCE per browser to fix sessions created by misconfigured clients
+    // ═══════════════════════════════════════════════════════════════════════
+    const AUTH_MIGRATION_VERSION = 'v1_2026_01_20';
+    const migrationKey = 'smarter_poker_auth_migration';
+
+    if (typeof window !== 'undefined') {
+      const completedMigration = localStorage.getItem(migrationKey);
+
+      if (completedMigration !== AUTH_MIGRATION_VERSION) {
+        console.log('[Auth Migration] Clearing corrupted session data from old clients...');
+
+        // Clear all Supabase-related localStorage keys
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (
+            key.startsWith('sb-') ||                    // Supabase session keys
+            key.includes('supabase') ||                  // Any supabase-related
+            key.includes('auth-token') ||                // Auth tokens
+            key.includes('gotrue')                       // GoTrue auth keys
+          )) {
+            keysToRemove.push(key);
+          }
+        }
+
+        keysToRemove.forEach(key => {
+          console.log(`[Auth Migration] Removing: ${key}`);
+          localStorage.removeItem(key);
+        });
+
+        // Mark migration as complete
+        localStorage.setItem(migrationKey, AUTH_MIGRATION_VERSION);
+        console.log('[Auth Migration] Complete! User will need to log in fresh.');
+
+        // Force reload to clear any in-memory state
+        if (keysToRemove.length > 0) {
+          window.location.reload();
+          return;
+        }
+      }
+    }
+
     // Initialize SoundEngine for audio playback
     SoundEngine.init().catch(err => console.warn('[App] SoundEngine init failed:', err));
 

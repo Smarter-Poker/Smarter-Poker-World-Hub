@@ -9,7 +9,7 @@ const CANVAS_HEIGHT = 750;
 
 const COLORS = {
     bgDark: 0x080810,
-    tableFelt: 0x1a1412,  // Brownish-black tint matching reference
+    tableFelt: 0x121010,  // Very dark with subtle warmth
     goldOuter: 0xc4960a,
     goldInner: 0xe8b810,
 };
