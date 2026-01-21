@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Fallback credentials MUST match production - from .env.local
 const FALLBACK_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4MDY2OTksImV4cCI6MjA1MjM4MjY5OX0.6MWsejkJtYDJEwRG_ht0LHEjsJRfyiZl7K1gIvhRRfc';
+const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
 
 // CRITICAL: .trim() removes trailing newlines/whitespace
 const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_URL).trim();
