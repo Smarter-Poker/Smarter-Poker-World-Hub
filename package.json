@@ -16,7 +16,7 @@
     "@splinetool/react-spline": "^4.1.0",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "latest",
-    "@supabase/supabase-js": "latest",
+    "@supabase/supabase-js": "^2.91.0",
     "@use-gesture/react": "^10.3.1",
     "ai": "^6.0.39",
     "axios": "^1.13.2",

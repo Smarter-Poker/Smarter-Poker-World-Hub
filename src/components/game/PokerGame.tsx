@@ -105,36 +105,36 @@ class GameTableScene extends Phaser.Scene {
     }
 
     drawDoubleRailTable(cx: number, cy: number) {
-        // Table dimensions - LARGER to match Table Template proportions
-        const w = 360;   // Wider felt
-        const h = 520;   // Taller felt
-        const r = 180;   // Corner radius for racetrack shape
+        // Training Table design - EXACT match to reference
+        const w = 320;   // Felt width
+        const h = 480;   // Felt height  
+        const r = 160;   // Corner radius for racetrack shape
 
         const g = this.add.graphics();
 
-        // 1. OUTER DARK BORDER (~24px)
-        g.lineStyle(24, 0x151515, 1);
-        g.strokeRoundedRect(cx - (w + 90) / 2, cy - (h + 90) / 2, w + 90, h + 90, r + 45);
+        // 1. OUTER DARK RAIL (thick dark border)
+        g.lineStyle(28, 0x1a1a1a, 1);
+        g.strokeRoundedRect(cx - (w + 100) / 2, cy - (h + 100) / 2, w + 100, h + 100, r + 50);
 
-        // 2. FIRST GOLD LINE (~6px)
-        g.lineStyle(6, 0xd4a000, 1);
+        // 2. FIRST GOLD LINE (outer gold)
+        g.lineStyle(8, 0xd4a000, 1);
+        g.strokeRoundedRect(cx - (w + 70) / 2, cy - (h + 70) / 2, w + 70, h + 70, r + 35);
+
+        // 3. BLACK GAP between golds
+        g.lineStyle(5, 0x0a0a0a, 1);
         g.strokeRoundedRect(cx - (w + 55) / 2, cy - (h + 55) / 2, w + 55, h + 55, r + 27);
 
-        // 3. BLACK GAP (~4px)
-        g.lineStyle(4, 0x080808, 1);
+        // 4. SECOND GOLD LINE (inner gold)
+        g.lineStyle(8, 0xe8b810, 1);
         g.strokeRoundedRect(cx - (w + 42) / 2, cy - (h + 42) / 2, w + 42, h + 42, r + 21);
 
-        // 4. SECOND GOLD LINE (~6px) 
-        g.lineStyle(6, 0xe8b810, 1);
-        g.strokeRoundedRect(cx - (w + 32) / 2, cy - (h + 32) / 2, w + 32, h + 32, r + 16);
+        // 5. THIN GOLD ACCENT
+        g.lineStyle(3, 0xc4960a, 1);
+        g.strokeRoundedRect(cx - (w + 30) / 2, cy - (h + 30) / 2, w + 30, h + 30, r + 15);
 
-        // 5. THIN GOLD ACCENT (~2px)
-        g.lineStyle(2, 0xc4960a, 1);
-        g.strokeRoundedRect(cx - (w + 20) / 2, cy - (h + 20) / 2, w + 20, h + 20, r + 10);
-
-        // 6. SUBTLE WHITE INNER GLOW (~8px at 12% opacity)
-        g.lineStyle(8, 0xffffff, 0.12);
-        g.strokeRoundedRect(cx - (w + 8) / 2, cy - (h + 8) / 2, w + 8, h + 8, r + 4);
+        // 6. WHITE GLOW - PROMINENT (this is the key feature)
+        g.lineStyle(18, 0xffffff, 0.35);
+        g.strokeRoundedRect(cx - (w + 14) / 2, cy - (h + 14) / 2, w + 14, h + 14, r + 7);
 
         // 7. FELT (pure black)
         g.fillStyle(0x0a0a0a, 1);

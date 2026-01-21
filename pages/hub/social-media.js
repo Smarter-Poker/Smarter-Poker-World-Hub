@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
+import { getAuthUser, querySocialPosts, queryProfiles, fetchWithAuth } from '../../src/lib/authUtils';
 import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
 import { StoriesBar, ShareToStoryPrompt } from '../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../src/components/social/ReelsFeedCarousel';
