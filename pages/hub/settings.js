@@ -11,6 +11,8 @@ import confetti from 'canvas-confetti';
 import { useTheme } from '../../src/providers/ThemeProvider';
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 import { supabase } from '../../src/lib/supabase';
+import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
+import { useAvatar } from '../../src/contexts/AvatarContext';
 
 // God-Mode Stack
 import { useSettingsStore } from '../../src/stores/settingsStore';

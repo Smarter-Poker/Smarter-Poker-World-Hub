@@ -1491,35 +1491,43 @@ export default function SocialMediaPage() {
             // Combine friends and following for priority
             const priorityUserIds = [...new Set([...friendIds, ...followingIds])];
 
-            // ♾️ INFINITE SCROLL: Fetch posts with retry logic
-            console.log('[Social] Loading feed, offset:', offset);
+            // ♾️ INFINITE SCROLL: Fetch posts using native fetch to bypass Supabase client AbortError
+            console.log('[Social] Loading feed via native fetch, offset:', offset);
 
             let allPostsData = null;
             let error = null;
 
-            // Retry up to 3 times with delay
-            for (let attempt = 1; attempt <= 3; attempt++) {
-                try {
-                    const result = await supabase
-                        .from('social_posts')
-                        .select('id, content, content_type, media_urls, like_count, comment_count, share_count, created_at, author_id')
-                        .or('visibility.eq.public,visibility.is.null')
-                        .order('created_at', { ascending: false })
-                        .range(offset, offset + POSTS_PER_PAGE - 1);
+            // Use native fetch directly to Supabase REST API
+            try {
+                const supabaseUrl = 'https://kuklfnapbkmacvwxktbh.supabase.co';
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4MDY2OTksImV4cCI6MjA1MjM4MjY5OX0.6MWsejkJtYDJEwRG_ht0LHEjsJRfyiZl7K1gIvhRRfc';
 
-                    allPostsData = result.data;
-                    error = result.error;
+                const queryParams = new URLSearchParams({
+                    select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id',
+                    or: '(visibility.eq.public,visibility.is.null)',
+                    order: 'created_at.desc',
+                    offset: offset.toString(),
+                    limit: POSTS_PER_PAGE.toString()
+                });
 
-                    if (!error) {
-                        console.log('[Social] ✅ Feed loaded on attempt', attempt, '- count:', allPostsData?.length);
-                        break;
+                const response = await fetch(`${supabaseUrl}/rest/v1/social_posts?${queryParams}`, {
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
                     }
-                } catch (e) {
-                    console.warn('[Social] Feed attempt', attempt, 'failed:', e.message);
-                    if (attempt < 3) {
-                        await new Promise(r => setTimeout(r, 500 * attempt)); // Wait 500ms, 1000ms, 1500ms
-                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
                 }
+
+                allPostsData = await response.json();
+                console.log('[Social] ✅ Feed loaded via fetch - count:', allPostsData?.length);
+            } catch (e) {
+                console.error('[Social] Feed fetch error:', e);
+                error = { message: e.message };
             }
 
             if (error) throw error;
