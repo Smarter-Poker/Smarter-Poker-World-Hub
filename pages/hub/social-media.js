@@ -1439,21 +1439,37 @@ export default function SocialMediaPage() {
             if (isMounted) setLoading(false);
         };
 
-        // Direct initialization
+        // Direct initialization with timeout protection
         const init = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                console.log('[Social] getSession result:', session?.user?.email || 'no user');
-                await handleAuthUser(session?.user);
-                await loadFeed();
+                // Wrap getSession with timeout to prevent hanging
+                const sessionPromise = supabase.auth.getSession();
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Session timeout')), 5000)
+                );
+
+                let session = null;
                 try {
-                    const streams = await LiveStreamService.getLiveStreams();
-                    if (isMounted) setLiveStreams(streams || []);
-                } catch (e) { }
+                    const result = await Promise.race([sessionPromise, timeoutPromise]);
+                    session = result?.data?.session;
+                    console.log('[Social] getSession result:', session?.user?.email || 'no user');
+                } catch (e) {
+                    console.warn('[Social] getSession failed, continuing without auth:', e.message);
+                }
+
+                await handleAuthUser(session?.user);
             } catch (e) {
                 console.error('[Social] Init error:', e);
-                if (isMounted) setLoading(false);
             }
+
+            // ALWAYS load feed and finish loading, even if auth fails
+            try {
+                await loadFeed();
+                const streams = await LiveStreamService.getLiveStreams();
+                if (isMounted) setLiveStreams(streams || []);
+            } catch (e) { }
+
+            if (isMounted) setLoading(false);
         };
 
         // Listen for auth changes (sign in/out while on page)
