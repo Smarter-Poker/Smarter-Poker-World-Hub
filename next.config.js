@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
-  reactStrictMode: true,
+  reactStrictMode: false, // Disabled - was causing AbortError on Supabase queries
   eslint: { ignoreDuringBuilds: true },
 
   // Force complete cache invalidation - v19.3 Golden Template Deploy
