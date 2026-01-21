@@ -13,8 +13,8 @@ import dynamic from 'next/dynamic';
 import Head from 'next/head';
 
 // Dynamic import to avoid SSR issues with Framer Motion
-const PremiumPokerTable = dynamic(
-    () => import('../src/components/poker/PremiumPokerTable'),
+const GoldenTemplateTable = dynamic(
+    () => import('../src/components/poker/GoldenTemplateTable'),
     { ssr: false }
 );
 
@@ -76,20 +76,19 @@ export default function PremiumTableDemo() {
                 <meta name="description" content="Next-gen poker table UI with cinematic animations" />
             </Head>
 
-            <PremiumPokerTable
+            <GoldenTemplateTable
                 players={DEMO_PLAYERS}
                 heroCards={heroCards}
                 communityCards={communityCards}
                 pot={pot}
-                activePlayer={activePlayer}
                 dealerPosition={dealerPosition}
-                timerProgress={timer / 15}
+                timer={timer}
                 onFold={handleFold}
                 onCheck={handleCheck}
                 onCall={handleCall}
                 onRaise={handleRaise}
                 onAllIn={handleAllIn}
-                gameTitle="ICM FUNDAMENTALS"
+                gameTitle="ICM Fundamentals"
             />
 
             {/* Demo Controls Overlay */}
