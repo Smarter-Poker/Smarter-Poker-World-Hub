@@ -12,6 +12,7 @@ import confetti from 'canvas-confetti';
 // God-Mode Stack
 import { useDiamondStoreStore } from '../../src/stores/diamondStoreStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DIAMOND PACKAGES — Available for purchase
@@ -221,13 +222,9 @@ export default function DiamondStorePage() {
                 <div style={styles.bgGlow} />
 
                 {/* Header */}
+                <UniversalHeader pageDepth={1} />
                 <div style={styles.header}>
-                    <button onClick={() => router.push('/hub')} style={styles.backButton}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M19 12H5M12 19l-7-7 7-7" />
-                        </svg>
-                        <span>Hub</span>
-                    </button>
+                    <div style={{ width: 100 }} />
 
                     <h1 style={styles.pageTitle}>💎 Diamond Store</h1>
 

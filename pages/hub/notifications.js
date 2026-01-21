@@ -13,6 +13,7 @@ import { supabase } from '../../src/lib/supabase';
 // God-Mode Stack
 import { useNotificationsStore } from '../../src/stores/notificationsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -87,10 +88,10 @@ export default function NotificationsPage() {
                 `}</style>
             </Head>
             <div className="notifications-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
-                {/* Header */}
-                <header style={{ background: C.card, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
+                {/* Header - Universal Header */}
+                <UniversalHeader pageDepth={2} />
+                <header style={{ background: C.card, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <Link href="/hub/social-media" style={{ color: C.textSec, textDecoration: 'none', fontSize: 24 }}>←</Link>
                         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.text }}>Notifications</h1>
                         {unreadCount > 0 && (
                             <span style={{

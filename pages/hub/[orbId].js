@@ -14,6 +14,7 @@ import { POKER_IQ_ORBS, getOrbById } from '../../src/orbs/manifest/registry';
 // God-Mode Stack
 import { useOrbPageStore } from '../../src/stores/orbPageStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // ORB METADATA — Descriptions and icons for each orb world
 const ORB_METADATA = {
@@ -142,13 +143,8 @@ export default function OrbPage() {
                     background: `radial-gradient(ellipse at center, ${orbMeta.color}22, transparent 60%)`,
                 }} />
 
-                {/* Back to Hub button */}
-                <button onClick={() => router.push('/hub')} style={styles.backButton}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M19 12H5M12 19l-7-7 7-7" />
-                    </svg>
-                    <span>Back to Hub</span>
-                </button>
+                {/* UniversalHeader */}
+                <UniversalHeader pageDepth={1} />
 
                 {/* Main content */}
                 <div style={styles.content}>

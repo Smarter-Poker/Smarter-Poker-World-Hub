@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // God-Mode Stack
 import { useMessengerStore } from '../../src/stores/messengerStore';

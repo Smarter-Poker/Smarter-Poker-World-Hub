@@ -20,6 +20,7 @@ import {
 // God-Mode Stack
 import { useNewsStore } from '../../src/stores/newsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // Fallback data in case DB is empty
 const FALLBACK_NEWS = [
@@ -312,14 +313,13 @@ export default function NewsHub() {
             </Head>
 
             <div className={`news-hub ${darkMode ? '' : 'light'}`}>
-                {/* Header */}
+                {/* UniversalHeader */}
+                <UniversalHeader pageDepth={1} />
                 <header className="header">
-                    <Link href="/hub">
-                        <div className="logo">
-                            <Zap className="logo-icon" />
-                            <span>News</span>
-                        </div>
-                    </Link>
+                    <div className="logo">
+                        <Zap className="logo-icon" />
+                        <span>News</span>
+                    </div>
 
                     <div className="search-box">
                         <Search className="search-icon" />

@@ -15,6 +15,7 @@ import {
     Zap, ExternalLink, Phone, Globe, Building2, Shield,
     Gamepad2, CreditCard, ChevronDown
 } from 'lucide-react';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // US States for filter
 const US_STATES = [
@@ -177,13 +178,9 @@ export default function PokerNearMe() {
 
             <div className="poker-near-me">
                 {/* Header */}
+                {/* UniversalHeader */}
+                <UniversalHeader pageDepth={1} />
                 <header className="header">
-                    <Link href="/hub">
-                        <div className="back-link">
-                            <Zap size={20} />
-                            <span>Back to Hub</span>
-                        </div>
-                    </Link>
                     <h1><MapPin size={28} /> Poker Near Me</h1>
                     <p>Find casinos, poker clubs, and tournament series</p>
 

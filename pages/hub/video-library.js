@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
@@ -319,7 +320,7 @@ export default function VideoLibraryPage() {
                             alignItems: 'center',
                             gap: 16,
                         }}>
-                            <BrainHomeButton style={{ position: 'relative', top: 0, left: 0 }} />
+                            <UniversalHeader pageDepth={1} />
                             <h1 style={{
                                 color: C.text,
                                 fontSize: 28,

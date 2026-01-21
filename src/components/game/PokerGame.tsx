@@ -78,13 +78,14 @@ class GameTableScene extends Phaser.Scene {
         const cx = this.cameras.main.width / 2;
         const cy = this.cameras.main.height * 0.44;
 
-        this.drawBackground();
-        this.drawTable(cx, cy);  // Use 480x800 image at 1:1 scale
-        this.drawBranding(cx, cy + 30);
-        this.drawPotDisplay(cx, cy - 100);
-        this.createSeats();
-        this.drawDealerButton();
-        this.drawHeroCards();
+        // Use the 480x800 template image as full background
+        this.drawTable(cx, cy);  // This is now the complete template
+        // Don't draw branding/pot - they're already in the template image
+        // this.drawBranding(cx, cy + 30);
+        // this.drawPotDisplay(cx, cy - 100);
+        this.createSeats();      // Keep - positions avatars
+        this.drawDealerButton(); // Keep - dynamic element
+        this.drawHeroCards();    // Keep - dynamic element
     }
 
     drawBackground() {
@@ -95,8 +96,9 @@ class GameTableScene extends Phaser.Scene {
 
     drawTable(cx: number, cy: number) {
         // Use 480x800 table image at 1:1 native resolution - NO SCALING
-        const table = this.add.image(cx, cy, 'table');
-        // No setScale() call - image is exact canvas size, positioned centered
+        // Position at center of canvas (image is centered by default in Phaser)
+        const table = this.add.image(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 'table');
+        // No scaling - perfect 1:1 match
     }
 
     drawDoubleRailTable(cx: number, cy: number) {

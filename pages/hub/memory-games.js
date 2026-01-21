@@ -33,6 +33,7 @@ import { supabase } from '../../src/lib/supabase';
 // God-Mode Stack
 import { useMemoryStore } from '../../src/stores/memoryStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💎 DIAMOND ENGINE — Local storage with VIP check
