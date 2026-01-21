@@ -1385,15 +1385,8 @@ export default function SocialMediaPage() {
                         if (tokenData?.user) {
                             authUser = tokenData.user;
                             console.log('[Social] ✅ Got user from localStorage:', authUser.email);
-
-                            // Set the session in Supabase client (without calling getSession)
-                            if (tokenData.access_token && tokenData.refresh_token) {
-                                await supabase.auth.setSession({
-                                    access_token: tokenData.access_token,
-                                    refresh_token: tokenData.refresh_token
-                                });
-                                console.log('[Social] ✅ Session restored to Supabase client');
-                            }
+                            // Note: We don't call setSession here as it can cause AbortError
+                            // The user data from localStorage is sufficient for displaying the UI
                         }
                     } catch (parseError) {
                         console.error('[Social] Failed to parse token:', parseError);
@@ -1464,12 +1457,15 @@ export default function SocialMediaPage() {
         try {
             if (append) setLoadingMore(true);
 
-            // Use getSession for consistent auth (same as initial load)
+            // Read user from localStorage to avoid getSession AbortError
             let authUser = null;
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (sessionData?.session?.user) {
-                authUser = sessionData.session.user;
-            }
+            try {
+                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                if (sbKeys.length > 0) {
+                    const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                    authUser = tokenData?.user || null;
+                }
+            } catch (e) { /* ignore parse errors */ }
 
             // Get friend IDs for prioritization
             let friendIds = [];
