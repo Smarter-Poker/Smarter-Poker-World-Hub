@@ -71,9 +71,8 @@ function Select({ value, onChange, options, label }) {
 // ═══════════════════════════════════════════════════════════════════════════
 export default function SettingsPage() {
     const router = useRouter();
-    const { avatar, isVip } = useAvatar();
+    const { avatar, isVip, user } = useAvatar();
     const [activeSection, setActiveSection] = useState('account');
-    const [user, setUser] = useState(null);
     const [saved, setSaved] = useState(false);
     const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
 
@@ -106,28 +105,25 @@ export default function SettingsPage() {
         timeBank: 30,
     });
 
+    // Load user settings when user is available
     useEffect(() => {
-        // Check for logged in user and load preferences
-        supabase.auth.getUser().then(async ({ data }) => {
-            setUser(data?.user || null);
-
-            if (data?.user) {
-                // Load user's display preference from profiles table
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('display_name_preference')
-                    .eq('id', data.user.id)
-                    .single();
-
-                if (profile) {
-                    setSettings(prev => ({
-                        ...prev,
-                        display_name_preference: profile.display_name_preference || 'full_name'
-                    }));
-                }
-            }
-        });
-    }, []);
+        if (user?.id) {
+            // Load user's display preference from profiles table
+            supabase
+                .from('profiles')
+                .select('display_name_preference')
+                .eq('id', user.id)
+                .single()
+                .then(({ data: profile }) => {
+                    if (profile) {
+                        setSettings(prev => ({
+                            ...prev,
+                            display_name_preference: profile.display_name_preference || 'full_name'
+                        }));
+                    }
+                });
+        }
+    }, [user?.id]);
 
     const updateSetting = (key, value) => {
         setSettings(prev => ({ ...prev, [key]: value }));
