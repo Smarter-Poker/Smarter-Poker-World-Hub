@@ -122,6 +122,105 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   POKER ROOM — PREMIUM UI CLASSES
+   High-end dark mode interface with glassmorphism and neon effects
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Glass Panel - Semi-transparent with blur */
+.glass-panel {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Gold Glow Effect */
+.gold-glow {
+  box-shadow:
+    0 0 20px rgba(255, 215, 0, 0.4),
+    0 0 40px rgba(255, 215, 0, 0.2),
+    0 0 60px rgba(255, 170, 0, 0.1);
+}
+
+/* Neon Text - Blue */
+.neon-text-blue {
+  color: #00d4ff;
+  text-shadow:
+    0 0 10px rgba(0, 212, 255, 0.8),
+    0 0 20px rgba(0, 212, 255, 0.5),
+    0 0 40px rgba(0, 212, 255, 0.3);
+}
+
+/* Neon Text - Cyan */
+.neon-text-cyan {
+  color: #22d3ee;
+  text-shadow:
+    0 0 8px rgba(34, 211, 238, 0.8),
+    0 0 16px rgba(34, 211, 238, 0.5);
+}
+
+/* Orange Pulse Animation */
+.orange-pulse {
+  animation: orangePulse 2s ease-in-out infinite;
+}
+
+@keyframes orangePulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgba(255, 136, 0, 0.4);
+    transform: scale(1);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(255, 136, 0, 0.7);
+    transform: scale(1.02);
+  }
+}
+
+/* Poker Room Background - Radial gradient */
+.poker-room-bg {
+  background: radial-gradient(ellipse at center, #0a1628 0%, #030508 70%, #000000 100%);
+}
+
+/* Glass Button with 3D lip */
+.glass-button {
+  background: rgba(37, 99, 235, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-top: 1px solid rgba(147, 197, 253, 0.5);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.2s ease;
+}
+
+.glass-button:hover {
+  background: rgba(59, 130, 246, 0.8);
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.glass-button:active {
+  transform: translateY(0);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Vignette Overlay */
+.vignette-overlay {
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.7) 100%);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    GLOBAL VIEWPORT-BASED SCALING SYSTEM (AUTHORITATIVE)
    ═══════════════════════════════════════════════════════════════════════════
    

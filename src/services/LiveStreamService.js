@@ -3,12 +3,7 @@
    Handles broadcaster and viewer connections with Supabase signaling
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { supabase } from '../lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HARDENING CONSTANTS
@@ -317,7 +312,7 @@ class LiveStreamService {
      */
     async sendSignal(toUserId, messageType, payload) {
         let lastError = null;
-        
+
         for (let attempt = 1; attempt <= SIGNALING_RETRY_ATTEMPTS; attempt++) {
             try {
                 const { error } = await supabase.from('live_signaling').insert({
@@ -327,20 +322,20 @@ class LiveStreamService {
                     message_type: messageType,
                     payload: payload,
                 });
-                
+
                 if (error) throw error;
                 return; // Success
             } catch (err) {
                 lastError = err;
                 logError(`sendSignal:${messageType}:attempt${attempt}`, err);
-                
+
                 if (attempt < SIGNALING_RETRY_ATTEMPTS) {
                     // Wait before retry with exponential backoff
                     await new Promise(r => setTimeout(r, SIGNALING_RETRY_DELAY_MS * attempt));
                 }
             }
         }
-        
+
         // All retries failed
         logError('sendSignal:failed', `Failed after ${SIGNALING_RETRY_ATTEMPTS} attempts: ${lastError?.message}`);
         throw lastError;
