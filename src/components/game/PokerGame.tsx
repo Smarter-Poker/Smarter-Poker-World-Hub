@@ -94,14 +94,14 @@ class GameTableScene extends Phaser.Scene {
     }
 
     drawTable(cx: number, cy: number) {
-        // Use the Black Table.jpeg image
+        // Use the Black Table.jpeg image with UNIFORM scaling
         const table = this.add.image(cx, cy, 'table');
-        // Scale to show full table - taller/longer like reference
-        const targetWidth = CANVAS_WIDTH - 180;  // Narrower
-        const targetHeight = 560;  // Taller - more elongated like reference
-        const scaleX = targetWidth / table.width;
-        const scaleY = targetHeight / table.height;
-        table.setScale(scaleX, scaleY);
+        // Use UNIFORM scale to prevent pixelation/distortion
+        // Scale to fit within available height, let width adjust naturally
+        const maxHeight = 540;  // Leave room for top question and bottom buttons
+        const maxWidth = CANVAS_WIDTH - 80;  // Padding on sides
+        const scale = Math.min(maxWidth / table.width, maxHeight / table.height);
+        table.setScale(scale);  // Single uniform scale - no distortion
     }
 
     drawDoubleRailTable(cx: number, cy: number) {

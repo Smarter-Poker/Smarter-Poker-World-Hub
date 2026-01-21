@@ -813,7 +813,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
       <button
         className="generate-btn"
         onClick={handleGenerate}
-        disabled={generating || (!prompt.trim() && !uploadedPhoto) || !canCreate}
+        disabled={generating || !prompt.trim() || !canCreate}
       >
         {canCreate ? '⚡ Generate Avatar' : '🔒 Slot Limit Reached'}
       </button>

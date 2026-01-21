@@ -1500,7 +1500,7 @@ export default function SocialMediaPage() {
             // Use native fetch directly to Supabase REST API
             try {
                 const supabaseUrl = 'https://kuklfnapbkmacvwxktbh.supabase.co';
-                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4MDY2OTksImV4cCI6MjA1MjM4MjY5OX0.6MWsejkJtYDJEwRG_ht0LHEjsJRfyiZl7K1gIvhRRfc';
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
 
                 const queryParams = new URLSearchParams({
                     select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id',
