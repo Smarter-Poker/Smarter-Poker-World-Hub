@@ -299,20 +299,46 @@ export default function ProfilePage() {
 
     useEffect(() => {
         const fetchUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setUser(user);
-                // Fetch profile
-                const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', user.id)
-                    .single();
-
-                if (profileData) {
-                    setProfile(prev => ({ ...prev, ...profileData }));
-                    setOriginalProfile(profileData);
+            try {
+                // Use localStorage to get user - avoids AbortError from supabase.auth.getUser()
+                let authUser = null;
+                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                if (sbKeys.length > 0) {
+                    try {
+                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        authUser = tokenData?.user || null;
+                    } catch (e) { /* ignore parse errors */ }
                 }
+
+                if (authUser) {
+                    setUser(authUser);
+                    // Fetch profile using native fetch to avoid AbortError
+                    try {
+                        const supabaseUrl = 'https://kuklfnapbkmacvwxktbh.supabase.co';
+                        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+
+                        const response = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${authUser.id}&select=*`, {
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': `Bearer ${supabaseKey}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (response.ok) {
+                            const profiles = await response.json();
+                            const profileData = profiles[0];
+                            if (profileData) {
+                                setProfile(prev => ({ ...prev, ...profileData }));
+                                setOriginalProfile(profileData);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[Profile] Error fetching profile:', e);
+                    }
+                }
+            } catch (e) {
+                console.error('[Profile] Auth error:', e);
             }
             setLoading(false);
         };
