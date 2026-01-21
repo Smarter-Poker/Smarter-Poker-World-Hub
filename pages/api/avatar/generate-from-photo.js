@@ -42,7 +42,7 @@ export default async function handler(req, res) {
         console.log('🎨 Generating avatar from photo with GPT-4 Vision + DALL-E 3');
         console.log('📏 Photo base64 length:', photoBase64?.length || 0);
 
-        // Step 1: Use GPT-4 Vision to analyze the photo
+        // Step 1: Use GPT-4 Vision to analyze the photo with MORE DETAIL
         const analysisResponse = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [
@@ -51,7 +51,26 @@ export default async function handler(req, res) {
                     content: [
                         {
                             type: "text",
-                            text: "Analyze this person's facial features in detail. Describe their face shape, hair style, hair color, eye color, distinctive features, and overall appearance. Be specific and detailed. This will be used to create a 3D Pixar-style avatar that looks like them."
+                            text: `Analyze this person's appearance in EXTREME detail for avatar creation. Be VERY specific about:
+
+1. FACE SHAPE: (oval, round, square, heart, oblong, etc.)
+2. SKIN TONE: (exact shade - fair, olive, tan, brown, dark, with undertones)
+3. HAIR: 
+   - Exact color (not just "brown" but "warm chestnut brown with golden highlights")
+   - Style (wavy, straight, curly, length, parting)
+   - Texture
+4. EYES:
+   - Exact color and any unique patterns
+   - Shape (almond, round, hooded, etc.)
+   - Size relative to face
+5. EYEBROWS: Shape, thickness, color, arch
+6. NOSE: Size, shape, bridge width
+7. LIPS: Shape, fullness, natural color
+8. DISTINCTIVE FEATURES: Dimples, freckles, beauty marks, smile characteristics
+9. OVERALL VIBE: Expression, energy, personality that comes through
+10. AGE RANGE: Approximate age appearance
+
+Be as specific as possible - this will create a Pixar-style avatar that should be RECOGNIZABLE as this person.`
                         },
                         {
                             type: "image_url",
@@ -62,28 +81,33 @@ export default async function handler(req, res) {
                     ]
                 }
             ],
-            max_tokens: 500
+            max_tokens: 800
         });
 
         const faceDescription = analysisResponse.choices[0].message.content;
         console.log('📝 Face analysis:', faceDescription);
 
-        // Step 2: Generate avatar with DALL-E 3 using the analysis
-        const additionalStyle = prompt ? `Additional style: ${prompt}. ` : '';
-        const dallePrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT ONLY.
-FACIAL FEATURES TO MATCH: ${faceDescription}
+        // Step 2: Generate avatar with DALL-E 3 using the detailed analysis
+        const additionalStyle = prompt ? `ADDITIONAL STYLE REQUESTS: ${prompt}. ` : '';
+        const dallePrompt = `Create a 3D Pixar/Disney-style cartoon PORTRAIT that MATCHES these EXACT features:
+
+${faceDescription}
+
 ${additionalStyle}
-STRICT RULES:
-- ONLY the character's head and upper shoulders (bust portrait)
-- PURE SOLID WHITE BACKGROUND - nothing else
-- NO poker tables, NO cards, NO chips, NO props around character
-- NO scene, NO environment, NO accessories
-- Face must be the MAIN FOCUS and MATCH the described features
-- High quality 3D render like Pixar/Disney animation
-- Vibrant colors, detailed facial features that look like the person described
-- Professional avatar suitable for profile picture
-- Must look like a stylized 3D version of the person described
-IMPORTANT: Character portrait ONLY on white background. Nothing else.`;
+
+CRITICAL REQUIREMENTS:
+- This avatar MUST be recognizable as the person described above
+- MATCH the exact face shape, skin tone, hair color/style described
+- MATCH the eye color, eyebrow shape, and nose described  
+- MATCH any distinctive features (dimples, beauty marks, etc.)
+- The animated style should enhance but NOT change the core features
+- Head and upper shoulders only (bust portrait)
+- PURE WHITE BACKGROUND (#FFFFFF)
+- NO props, NO accessories, NO poker chips, NO cards
+- High quality 3D render with Pixar-level detail
+- Warm, friendly expression matching the photo's energy
+
+The goal is that if someone knows this person, they would IMMEDIATELY recognize this avatar as that person in cartoon form.`;
 
         const imageResponse = await openai.images.generate({
             model: "dall-e-3",
