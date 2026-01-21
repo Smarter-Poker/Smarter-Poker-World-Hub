@@ -174,21 +174,21 @@ class GameTableScene extends Phaser.Scene {
             }
 
             // TEXT OVERLAY on badge area (bottom of avatar)
-            const textY = y;  // Badge center
+            const badgeY = avatarY + (AVATAR_HEIGHT / 2) - (BADGE_HEIGHT / 2);
 
-            // Name - WHITE text
-            this.add.text(x, textY - 7, seat.label, {
+            // Name - BLACK text on gold badge
+            this.add.text(x, badgeY - 7, seat.label, {
                 fontFamily: 'Arial',
                 fontSize: isHero ? '11px' : '10px',
-                color: '#ffffff',
+                color: '#000000',
                 fontStyle: 'bold'
             }).setOrigin(0.5);
 
-            // Stack - GOLD text
-            this.add.text(x, textY + 7, `${seat.stack} BB`, {
+            // Stack - BLACK text on gold badge
+            this.add.text(x, badgeY + 7, `${seat.stack} BB`, {
                 fontFamily: 'Arial',
                 fontSize: isHero ? '11px' : '10px',
-                color: '#d4a000',
+                color: '#000000',
                 fontStyle: 'bold'
             }).setOrigin(0.5);
         });
