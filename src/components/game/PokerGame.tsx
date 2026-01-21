@@ -96,12 +96,12 @@ class GameTableScene extends Phaser.Scene {
     drawTable(cx: number, cy: number) {
         // Use the actual downloaded table image
         const table = this.add.image(cx, cy, 'table');
-        // Scale to fill available space
-        const targetWidth = CANVAS_WIDTH - 20;  // Minimal side padding
-        const targetHeight = 530;  // Taller to fill more vertical space
-        const scaleX = targetWidth / table.width;
-        const scaleY = targetHeight / table.height;
-        table.setScale(scaleX, scaleY);
+        // Scale uniformly to prevent pixelation - use single scale factor
+        const targetWidth = CANVAS_WIDTH - 20;
+        const targetHeight = 530;
+        // Use the SMALLER scale to maintain aspect ratio (no stretching)
+        const scale = Math.min(targetWidth / table.width, targetHeight / table.height);
+        table.setScale(scale);
     }
 
     drawDoubleRailTable(cx: number, cy: number) {

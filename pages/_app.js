@@ -40,17 +40,17 @@ function NavigationGuard({ children }) {
 
   useEffect(() => {
     // ═══════════════════════════════════════════════════════════════════════
-    // AUTH MIGRATION v2: Clear corrupted localStorage from env var newlines
-    // This runs ONCE per browser to fix sessions with corrupted storage keys
+    // AUTH MIGRATION v3: Clear tokens from wrong key rotation
+    // Production env vars were missing, using stale fallback key
     // ═══════════════════════════════════════════════════════════════════════
-    const AUTH_MIGRATION_VERSION = 'v2_2026_01_20_newline_fix';
+    const AUTH_MIGRATION_VERSION = 'v3_2026_01_20_key_rotation_fix';
     const migrationKey = 'smarter_poker_auth_migration';
 
     if (typeof window !== 'undefined') {
       const completedMigration = localStorage.getItem(migrationKey);
 
       if (completedMigration !== AUTH_MIGRATION_VERSION) {
-        console.log('[Auth Migration v2] Clearing corrupted session data (newline fix)...');
+        console.log('[Auth Migration v3] Clearing sessions from wrong key rotation...');
 
         // Clear all Supabase-related localStorage keys, especially those with newlines
         const keysToRemove = [];
@@ -69,13 +69,13 @@ function NavigationGuard({ children }) {
         }
 
         keysToRemove.forEach(key => {
-          console.log(`[Auth Migration v2] Removing: ${key.replace(/\n/g, '\\n')}`);
+          console.log(`[Auth Migration v3] Removing: ${key.replace(/\n/g, '\\n')}`);
           localStorage.removeItem(key);
         });
 
         // Mark migration as complete
         localStorage.setItem(migrationKey, AUTH_MIGRATION_VERSION);
-        console.log('[Auth Migration v2] Complete! User will need to log in fresh.');
+        console.log('[Auth Migration v3] Complete! User will need to log in fresh.');
 
         // Force reload to clear any in-memory state
         if (keysToRemove.length > 0) {
