@@ -41,40 +41,53 @@ function NavigationGuard({ children }) {
 
   useEffect(() => {
     // ═══════════════════════════════════════════════════════════════════════
-    // AUTH MIGRATION v5: Session preservation mode (correct key rotation complete)
-    // Only clear corrupted keys (with newlines), preserve all valid sessions
+    // AUTH MIGRATION v6: Migrate to explicit 'smarter-poker-auth' key
+    // Ensures cross-window session persistence by using consistent storage key
     // ═══════════════════════════════════════════════════════════════════════
-    const AUTH_MIGRATION_VERSION = 'v5_2026_01_21_session_preservation';
+    const AUTH_MIGRATION_VERSION = 'v6_2026_01_21_explicit_storage_key';
     const migrationKey = 'smarter_poker_auth_migration';
+    const NEW_AUTH_KEY = 'smarter-poker-auth';
 
     if (typeof window !== 'undefined') {
       const completedMigration = localStorage.getItem(migrationKey);
 
       if (completedMigration !== AUTH_MIGRATION_VERSION) {
-        console.log('[Auth Migration v5] Running session preservation check...');
+        console.log('[Auth Migration v6] Running storage key migration...');
 
-        // Only clear CORRUPTED keys (with newlines) - preserve all valid sessions
-        const keysToRemove = [];
+        // Look for existing Supabase auth sessions with old auto-generated keys
+        let migratedSession = false;
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
-          if (key && (
-            key.includes('\n') ||                        // Keys with trailing newlines (corrupted!)
-            key.includes('\r')                           // Keys with carriage returns (corrupted!)
-          )) {
-            keysToRemove.push(key);
+          if (key && key.startsWith('sb-') && key.includes('-auth-token')) {
+            try {
+              const sessionData = localStorage.getItem(key);
+              if (sessionData && !localStorage.getItem(NEW_AUTH_KEY)) {
+                // Migrate to new explicit key
+                localStorage.setItem(NEW_AUTH_KEY, sessionData);
+                console.log(`[Auth Migration v6] Migrated session from ${key} to ${NEW_AUTH_KEY}`);
+                migratedSession = true;
+              }
+            } catch (e) {
+              console.warn('[Auth Migration v6] Failed to migrate:', e);
+            }
           }
         }
 
-        if (keysToRemove.length > 0) {
-          keysToRemove.forEach(key => {
-            console.log(`[Auth Migration v5] Removing corrupted key: ${key.replace(/\n/g, '\\n')}`);
-            localStorage.removeItem(key);
-          });
+        // Also clear any corrupted keys with newlines
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes('\n') || key.includes('\r'))) {
+            keysToRemove.push(key);
+          }
         }
+        keysToRemove.forEach(key => {
+          console.log(`[Auth Migration v6] Removing corrupted key`);
+          localStorage.removeItem(key);
+        });
 
-        // Mark migration as complete - DO NOT clear valid sessions
         localStorage.setItem(migrationKey, AUTH_MIGRATION_VERSION);
-        console.log('[Auth Migration v5] Complete! Valid sessions preserved.');
+        console.log(`[Auth Migration v6] Complete! Migrated: ${migratedSession}`);
       }
     }
 

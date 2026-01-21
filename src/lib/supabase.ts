@@ -17,12 +17,14 @@ if (typeof window !== 'undefined') {
    console.log('[Supabase] Init:', supabaseUrl.substring(8, 30) + '...');
 }
 
-// Create Supabase client - let Supabase handle storage key automatically
+// Create Supabase client with EXPLICIT storage key for cross-window persistence
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
    auth: {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      storageKey: 'smarter-poker-auth', // CRITICAL: Explicit key ensures same session across all windows
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
    }
 });
 
