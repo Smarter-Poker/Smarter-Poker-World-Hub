@@ -1,154 +1,118 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * UNIVERSAL HEADER COMPONENT
+ * UNIVERSAL HEADER COMPONENT — Hub-Style Dark Theme
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * Consistent header for all hub pages with:
- * - Hub button / Back navigation
- * - XP display
- * - Diamond wallet (+ links to store)
- * - Messages, Settings, Notifications
- * - Profile avatar
+ * Matches the Hub page header style:
+ * - Dark background with neon blue accents
+ * - "Smarter.Poker" in white text 
+ * - Diamond wallet with +
+ * - XP display with level
+ * - Neon orb icons for profile, messages, notifications, search, settings
+ * - Return to Hub button (for major pages) or Back button (for nested pages)
  */
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { supabase } from '../../lib/supabase';
+import { getAuthUser, queryProfiles } from '../../lib/authUtils';
 
-// Avatar component inline to avoid import issues
-const Avatar = ({ src, name, size = 40 }) => {
-    const initials = name ? name.charAt(0).toUpperCase() : '?';
-    return src ? (
-        <img
-            src={src}
-            alt={name || 'Avatar'}
-            style={{
-                width: size,
-                height: size,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '2px solid #0088ff'
-            }}
-        />
-    ) : (
-        <div style={{
-            width: size,
-            height: size,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #0088ff 0%, #0066cc 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: 700,
-            fontSize: size * 0.4
-        }}>
-            {initials}
-        </div>
-    );
+// Dark theme colors matching hub
+const C = {
+    bg: '#0a0e1a',
+    border: 'rgba(0, 136, 255, 0.2)',
+    cyan: '#00f5ff',
+    blue: '#0088ff',
+    gold: '#ffd700',
+    white: '#ffffff',
+    textSec: 'rgba(255,255,255,0.6)'
 };
 
-// Unread badge component
-const UnreadBadge = ({ count, size = 'normal' }) => {
-    if (!count || count <= 0) return null;
-    const badgeSize = size === 'small' ? 16 : 20;
-    return (
-        <span style={{
-            position: 'absolute',
-            top: -2,
-            right: -2,
-            background: 'red',
-            color: 'white',
+// Neon orb icon button
+const OrbButton = ({ href, icon, badge = 0, onClick }) => {
+    const content = (
+        <div style={{
+            width: 44,
+            height: 44,
             borderRadius: '50%',
-            width: badgeSize,
-            height: badgeSize,
-            fontSize: size === 'small' ? 10 : 12,
-            fontWeight: 700,
+            background: 'linear-gradient(135deg, rgba(0, 136, 255, 0.15) 0%, rgba(0, 245, 255, 0.08) 100%)',
+            border: '1px solid rgba(0, 245, 255, 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '2px solid white'
+            fontSize: 20,
+            cursor: 'pointer',
+            position: 'relative',
+            boxShadow: '0 0 15px rgba(0, 245, 255, 0.15), inset 0 0 10px rgba(0, 245, 255, 0.05)',
+            transition: 'all 0.2s'
         }}>
-            {count > 99 ? '99+' : count}
-        </span>
+            {icon}
+            {badge > 0 && (
+                <span style={{
+                    position: 'absolute', top: -4, right: -4,
+                    background: '#ff3b3b', color: 'white',
+                    borderRadius: 10, padding: '2px 6px',
+                    fontSize: 10, fontWeight: 700, minWidth: 16, textAlign: 'center'
+                }}>{badge > 99 ? '99+' : badge}</span>
+            )}
+        </div>
     );
+
+    if (onClick) {
+        return <button onClick={onClick} style={{ background: 'none', border: 'none', padding: 0 }}>{content}</button>;
+    }
+
+    return href ? (
+        <Link href={href} style={{ textDecoration: 'none' }}>{content}</Link>
+    ) : content;
 };
 
 export default function UniversalHeader({
-    pageTitle,
-    showBackButton = true,
-    backHref = null, // null = use browser history, string = specific path
-    user = null,
-    xp = 0,
-    diamonds = 0,
-    unreadMessages = 0,
-    unreadNotifications = 0
+    pageDepth = 1,  // 1 = major page (show Hub button), 2+ = nested (show Back)
+    showSearch = false,
+    onSearchClick = null
 }) {
     const router = useRouter();
-    const [userData, setUserData] = useState(user);
-    const [stats, setStats] = useState({ xp, diamonds });
-    const [notifications, setNotifications] = useState({ messages: unreadMessages, alerts: unreadNotifications });
+    const [user, setUser] = useState(null);
+    const [stats, setStats] = useState({ xp: 0, diamonds: 0, level: 1 });
 
-    // Fetch user data if not provided
     useEffect(() => {
-        if (!userData) {
-            const fetchUser = async () => {
+        const loadUser = async () => {
+            const authUser = getAuthUser();
+            if (authUser) {
+                setUser(authUser);
                 try {
-                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                    if (sbKeys.length > 0) {
-                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                        if (tokenData?.user) {
-                            const { data: profile } = await supabase
-                                .from('profiles')
-                                .select('username, full_name, avatar_url, xp_total, diamond_balance')
-                                .eq('id', tokenData.user.id)
-                                .maybeSingle();
-
-                            if (profile) {
-                                setUserData({
-                                    id: tokenData.user.id,
-                                    name: profile.full_name || profile.username || 'Player',
-                                    avatar: profile.avatar_url
-                                });
-                                setStats({
-                                    xp: profile.xp_total || 0,
-                                    diamonds: profile.diamond_balance || 0
-                                });
-                            }
-                        }
+                    const profile = await queryProfiles(authUser.id, 'username,full_name,avatar_url,xp_total,diamond_balance');
+                    if (profile) {
+                        const xp = profile.xp_total || 0;
+                        const level = Math.floor(xp / 100) + 1;
+                        setStats({
+                            xp: xp % 100,
+                            diamonds: profile.diamond_balance || 0,
+                            level
+                        });
+                        setUser(prev => ({ ...prev, avatar: profile.avatar_url, name: profile.full_name || profile.username }));
                     }
                 } catch (e) {
-                    console.error('[UniversalHeader] Error fetching user:', e);
+                    console.error('[Header] Profile fetch error:', e);
                 }
-            };
-            fetchUser();
-        }
-    }, [userData]);
+            }
+        };
+        loadUser();
+    }, []);
 
     const handleBack = () => {
-        if (backHref) {
-            router.push(backHref);
-        } else if (typeof window !== 'undefined' && window.history.length > 1) {
+        if (typeof window !== 'undefined' && window.history.length > 1) {
             router.back();
         } else {
             router.push('/hub');
         }
     };
 
-    const C = {
-        bg: '#0a0a0f',
-        card: '#1a1a24',
-        border: '#2a2a3a',
-        blue: '#0088ff',
-        gold: '#ffd700',
-        cyan: '#00d4ff'
-    };
-
     return (
         <header style={{
-            background: C.card,
-            padding: '8px 12px',
+            background: C.bg,
+            padding: '8px 16px',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -157,136 +121,118 @@ export default function UniversalHeader({
             top: 0,
             zIndex: 100
         }}>
-            {/* LEFT: Back/Hub Button */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {showBackButton && (
-                    <button
-                        onClick={handleBack}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            padding: '8px 14px',
-                            borderRadius: 8,
-                            background: 'linear-gradient(135deg, #0088ff 0%, #0066cc 100%)',
-                            color: 'white',
-                            fontWeight: 600,
-                            fontSize: 14,
-                            border: 'none',
-                            cursor: 'pointer',
-                            boxShadow: '0 2px 8px rgba(0,136,255,0.3)',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        <span style={{ fontSize: 16 }}>←</span>
-                        {backHref === '/hub' || !backHref ? 'Hub' : 'Back'}
-                    </button>
-                )}
-                {pageTitle && (
-                    <span style={{ color: 'white', fontWeight: 600, fontSize: 16, marginLeft: 8 }}>
-                        {pageTitle}
-                    </span>
-                )}
+            {/* LEFT: Back/Hub Button + "Smarter.Poker" */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {/* Navigation Button */}
+                <button
+                    onClick={pageDepth > 1 ? handleBack : () => router.push('/hub')}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        background: 'linear-gradient(135deg, rgba(0, 136, 255, 0.2) 0%, rgba(0, 102, 204, 0.3) 100%)',
+                        border: '1px solid rgba(0, 136, 255, 0.4)',
+                        color: C.white,
+                        fontWeight: 600,
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(0,136,255,0.2)',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <span style={{ fontSize: 16 }}>←</span>
+                    {pageDepth > 1 ? 'Back' : 'Hub'}
+                </button>
+
+                {/* Smarter.Poker text */}
+                <span style={{
+                    color: C.white,
+                    fontSize: 18,
+                    fontWeight: 700,
+                    letterSpacing: 0.5
+                }}>
+                    Smarter.Poker
+                </span>
             </div>
 
-            {/* CENTER: XP and Diamond Wallet */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {/* XP Display */}
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    background: 'linear-gradient(135deg, #ffd700 0%, #ffb800 100%)',
-                    padding: '4px 10px',
-                    borderRadius: 20,
-                    fontWeight: 700,
-                    fontSize: 13,
-                    color: '#1a1a1a'
-                }}>
-                    <span>⭐</span>
-                    <span>{stats.xp.toLocaleString()}</span>
-                </div>
-
+            {/* CENTER: Diamond Wallet + XP */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 {/* Diamond Wallet */}
                 <Link href="/hub/diamond-store" style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 4,
-                    background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
-                    padding: '4px 10px',
+                    gap: 6,
+                    background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.2) 100%)',
+                    border: '1px solid rgba(0, 212, 255, 0.4)',
+                    padding: '6px 14px',
                     borderRadius: 20,
-                    fontWeight: 700,
-                    fontSize: 13,
-                    color: 'white',
-                    textDecoration: 'none'
+                    textDecoration: 'none',
+                    color: C.white
                 }}>
-                    <span>💎</span>
-                    <span>{stats.diamonds.toLocaleString()}</span>
-                    <span style={{ fontSize: 12, opacity: 0.8, marginLeft: 2 }}>+</span>
+                    <span style={{ fontSize: 16 }}>💎</span>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{stats.diamonds.toLocaleString()}</span>
+                    <span style={{
+                        width: 18, height: 18, borderRadius: '50%',
+                        background: 'rgba(0, 212, 255, 0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 12, fontWeight: 700, marginLeft: 4
+                    }}>+</span>
                 </Link>
+
+                {/* XP + Level */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    padding: '6px 14px',
+                    borderRadius: 20
+                }}>
+                    <span style={{ color: C.gold, fontWeight: 700, fontSize: 14 }}>XP</span>
+                    <span style={{ color: C.white, fontWeight: 600, fontSize: 14 }}>{stats.xp}</span>
+                    <span style={{ color: C.textSec, fontSize: 12 }}>•</span>
+                    <span style={{ color: C.cyan, fontWeight: 700, fontSize: 14 }}>LV {stats.level}</span>
+                </div>
             </div>
 
-            {/* RIGHT: Messages, Settings, Notifications, Profile */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {/* Messages */}
-                <Link href="/hub/messenger" style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    background: '#2a2a3a',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: 18,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textDecoration: 'none',
-                    position: 'relative'
-                }}>
-                    💬
-                    <UnreadBadge count={notifications.messages} size="small" />
+            {/* RIGHT: Orb Icons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {/* Avatar/Profile */}
+                <Link href="/hub/profile" style={{ textDecoration: 'none' }}>
+                    <div style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: '50%',
+                        background: user?.avatar
+                            ? `url(${user.avatar}) center/cover`
+                            : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)',
+                        border: '2px solid rgba(0, 245, 255, 0.5)',
+                        boxShadow: '0 0 15px rgba(0, 245, 255, 0.3), inset 0 0 10px rgba(0, 245, 255, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 20
+                    }}>
+                        {!user?.avatar && '👤'}
+                    </div>
                 </Link>
 
-                {/* Settings */}
-                <Link href="/hub/settings" style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    background: '#2a2a3a',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: 18,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textDecoration: 'none'
-                }}>
-                    ⚙️
-                </Link>
+                {/* Messages */}
+                <OrbButton href="/hub/messenger" icon="✉️" />
 
                 {/* Notifications */}
-                <Link href="/hub/notifications" style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    background: '#2a2a3a',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: 18,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textDecoration: 'none',
-                    position: 'relative'
-                }}>
-                    🔔
-                    <UnreadBadge count={notifications.alerts} size="small" />
-                </Link>
+                <OrbButton href="/hub/notifications" icon="🔔" />
 
-                {/* Profile */}
-                <Link href="/hub/profile" style={{ display: 'block' }}>
-                    <Avatar src={userData?.avatar} name={userData?.name} size={40} />
-                </Link>
+                {/* Search */}
+                {showSearch && (
+                    <OrbButton onClick={onSearchClick} icon="🔍" />
+                )}
+
+                {/* Settings */}
+                <OrbButton href="/hub/settings" icon="⚙️" />
             </div>
         </header>
     );

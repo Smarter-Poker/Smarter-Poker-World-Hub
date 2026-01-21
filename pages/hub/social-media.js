@@ -1988,26 +1988,22 @@ export default function SocialMediaPage() {
                 </div>
             </div>
 
-            <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', paddingBottom: 70 }}>
-                {/* Header with UniversalHeader + Hamburger for Sidebar */}
-                <div style={{ display: 'flex', alignItems: 'center', background: C.card, borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
+            <div style={{ minHeight: '100vh', background: '#0a0e1a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', paddingBottom: 70 }}>
+                {/* Hub-Style Header */}
+                <div style={{ display: 'flex', alignItems: 'center' }}>
                     <button
                         onClick={() => setSidebarOpen(true)}
                         style={{
                             background: 'none', border: 'none', fontSize: 24, cursor: 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            width: 50, height: 56, marginLeft: 4
+                            width: 50, height: 56, marginLeft: 4, color: 'white'
                         }}
                     >☰</button>
                     <div style={{ flex: 1 }}>
                         <UniversalHeader
-                            pageTitle="Social"
-                            backHref="/hub"
-                            user={user}
-                            xp={0}
-                            diamonds={0}
-                            unreadMessages={unreadCount}
-                            unreadNotifications={notifications.filter(n => !n.read).length}
+                            pageDepth={1}
+                            showSearch={true}
+                            onSearchClick={() => setShowGlobalSearch(!showGlobalSearch)}
                         />
                     </div>
                 </div>

@@ -70,8 +70,8 @@ class GameTableScene extends Phaser.Scene {
     }
 
     preload() {
-        // Load the actual table image from Downloads
-        this.load.image('table', '/game/table.png');
+        // Load pre-optimized table image (already perfectly sized for canvas)
+        this.load.image('table', '/game/table_optimized.png');
     }
 
     create() {
@@ -79,7 +79,7 @@ class GameTableScene extends Phaser.Scene {
         const cy = this.cameras.main.height * 0.44;
 
         this.drawBackground();
-        this.drawDoubleRailTable(cx, cy);  // Use programmatic drawing for perfect quality
+        this.drawDoubleRailTable(cx, cy);  // Use vector graphics for crisp lines
         this.drawBranding(cx, cy + 30);
         this.drawPotDisplay(cx, cy - 100);
         this.createSeats();
@@ -94,46 +94,41 @@ class GameTableScene extends Phaser.Scene {
     }
 
     drawTable(cx: number, cy: number) {
-        // Use the Black Table.jpeg image with UNIFORM scaling
-        const table = this.add.image(cx, cy, 'table');
-        // Use UNIFORM scale to prevent pixelation/distortion
-        // Scale to fit within available height, let width adjust naturally
-        const maxHeight = 540;  // Leave room for top question and bottom buttons
-        const maxWidth = CANVAS_WIDTH - 80;  // Padding on sides
-        const scale = Math.min(maxWidth / table.width, maxHeight / table.height);
-        table.setScale(scale);  // Single uniform scale - no distortion
+        // Use pre-optimized table image at 1:1 scale (no pixelation)
+        const table = this.add.image(cx, cy + 20, 'table');
+        // No scaling needed - image is already the perfect size
     }
 
     drawDoubleRailTable(cx: number, cy: number) {
-        // Training Table design - EXACT match to reference
-        const w = 320;   // Felt width
-        const h = 480;   // Felt height  
-        const r = 160;   // Corner radius for racetrack shape
+        // Large table with crisp vector graphics - fills more of the screen
+        const w = 380;   // Wider felt
+        const h = 540;   // Taller felt  
+        const r = 190;   // Corner radius for racetrack shape
 
         const g = this.add.graphics();
 
         // 1. OUTER DARK RAIL (thick dark border)
-        g.lineStyle(28, 0x1a1a1a, 1);
-        g.strokeRoundedRect(cx - (w + 100) / 2, cy - (h + 100) / 2, w + 100, h + 100, r + 50);
+        g.lineStyle(30, 0x1a1a1a, 1);
+        g.strokeRoundedRect(cx - (w + 110) / 2, cy - (h + 110) / 2, w + 110, h + 110, r + 55);
 
-        // 2. FIRST GOLD LINE (outer gold)
-        g.lineStyle(8, 0xd4a000, 1);
-        g.strokeRoundedRect(cx - (w + 70) / 2, cy - (h + 70) / 2, w + 70, h + 70, r + 35);
+        // 2. FIRST GOLD LINE (outer gold) - crisp 10px
+        g.lineStyle(10, 0xd4a000, 1);
+        g.strokeRoundedRect(cx - (w + 75) / 2, cy - (h + 75) / 2, w + 75, h + 75, r + 37);
 
         // 3. BLACK GAP between golds
-        g.lineStyle(5, 0x0a0a0a, 1);
-        g.strokeRoundedRect(cx - (w + 55) / 2, cy - (h + 55) / 2, w + 55, h + 55, r + 27);
+        g.lineStyle(6, 0x0a0a0a, 1);
+        g.strokeRoundedRect(cx - (w + 58) / 2, cy - (h + 58) / 2, w + 58, h + 58, r + 29);
 
-        // 4. SECOND GOLD LINE (inner gold)
-        g.lineStyle(8, 0xe8b810, 1);
-        g.strokeRoundedRect(cx - (w + 42) / 2, cy - (h + 42) / 2, w + 42, h + 42, r + 21);
+        // 4. SECOND GOLD LINE (inner gold) - crisp 10px
+        g.lineStyle(10, 0xe8b810, 1);
+        g.strokeRoundedRect(cx - (w + 44) / 2, cy - (h + 44) / 2, w + 44, h + 44, r + 22);
 
         // 5. THIN GOLD ACCENT
-        g.lineStyle(3, 0xc4960a, 1);
+        g.lineStyle(4, 0xc4960a, 1);
         g.strokeRoundedRect(cx - (w + 30) / 2, cy - (h + 30) / 2, w + 30, h + 30, r + 15);
 
-        // 6. WHITE GLOW - PROMINENT (this is the key feature)
-        g.lineStyle(18, 0xffffff, 0.35);
+        // 6. WHITE GLOW - PROMINENT
+        g.lineStyle(20, 0xffffff, 0.35);
         g.strokeRoundedRect(cx - (w + 14) / 2, cy - (h + 14) / 2, w + 14, h + 14, r + 7);
 
         // 7. FELT (pure black)
