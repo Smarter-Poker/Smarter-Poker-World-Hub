@@ -14,18 +14,17 @@ const COLORS = {
     goldInner: 0xe8b810,
 };
 
-// Seat positions - 100% EXACT match to reference
-// Avatars positioned OUTSIDE table, sitting ON the rail
+// Seat positions - V20 match to Table Template.png
 const SEAT_POSITIONS = [
-    { x: 0.50, y: 0.90, label: 'Hero', stack: 45 },       // Hero - very bottom center
-    { x: 0.13, y: 0.74, label: 'Villain 1', stack: 32 },  // Viking - bottom left
-    { x: 0.07, y: 0.52, label: 'Villain 2', stack: 28 },  // Wizard - left mid  
-    { x: 0.09, y: 0.30, label: 'Villain 3', stack: 55 },  // Ninja - left upper
-    { x: 0.25, y: 0.12, label: 'Villain 4', stack: 41 },  // Spartan - top left
-    { x: 0.75, y: 0.12, label: 'Villain 5', stack: 38 },  // Wolf - top right
-    { x: 0.91, y: 0.30, label: 'Villain 6', stack: 62 },  // Pharaoh - right upper
-    { x: 0.93, y: 0.52, label: 'Villain 7', stack: 29 },  // Cowboy - right mid
-    { x: 0.87, y: 0.74, label: 'Villain 8', stack: 51 },  // Pirate - bottom right
+    { x: 0.50, y: 0.88, label: 'Hero', stack: 45 },       // Hero - bottom center
+    { x: 0.14, y: 0.72, label: 'Villain 1', stack: 32 },  // Viking - bottom left
+    { x: 0.08, y: 0.50, label: 'Villain 2', stack: 28 },  // Wizard - left mid  
+    { x: 0.10, y: 0.28, label: 'Villain 3', stack: 55 },  // Ninja - left upper
+    { x: 0.28, y: 0.12, label: 'Villain 4', stack: 41 },  // Spartan - top left
+    { x: 0.72, y: 0.12, label: 'Villain 5', stack: 38 },  // Wolf - top right
+    { x: 0.90, y: 0.28, label: 'Villain 6', stack: 62 },  // Pharaoh - right upper
+    { x: 0.92, y: 0.50, label: 'Villain 7', stack: 29 },  // Cowboy - right mid
+    { x: 0.86, y: 0.72, label: 'Villain 8', stack: 51 },  // Pirate - bottom right
 ];
 
 // Avatar URLs - EXACT match to reference characters
@@ -63,11 +62,16 @@ class BootScene extends Phaser.Scene {
 }
 
 // ==========================================
-// GAME TABLE SCENE - EXACT REFERENCE MATCH
+// GAME TABLE SCENE - USING ACTUAL TABLE IMAGE
 // ==========================================
 class GameTableScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameTableScene' });
+    }
+
+    preload() {
+        // Load the actual table image from Downloads
+        this.load.image('table', '/game/table.png');
     }
 
     create() {
@@ -75,7 +79,7 @@ class GameTableScene extends Phaser.Scene {
         const cy = this.cameras.main.height * 0.42;
 
         this.drawBackground();
-        this.drawDoubleRailTable(cx, cy);
+        this.drawTable(cx, cy);
         this.drawBranding(cx, cy + 30);
         this.drawPotDisplay(cx, cy - 100);
         this.createSeats();
@@ -87,6 +91,17 @@ class GameTableScene extends Phaser.Scene {
         const g = this.add.graphics();
         g.fillStyle(COLORS.bgDark, 1);
         g.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    }
+
+    drawTable(cx: number, cy: number) {
+        // Use the actual downloaded table image
+        const table = this.add.image(cx, cy, 'table');
+        // Scale to fill width (with small padding) while respecting top/bottom UI
+        const targetWidth = CANVAS_WIDTH - 40;  // 20px padding each side
+        const targetHeight = 480;  // Leave room for top question and bottom buttons
+        const scaleX = targetWidth / table.width;
+        const scaleY = targetHeight / table.height;
+        table.setScale(scaleX, scaleY);
     }
 
     drawDoubleRailTable(cx: number, cy: number) {
