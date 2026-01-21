@@ -171,8 +171,13 @@ export default async function handler(req, res) {
     console.log('\n🐴 HORSE AVATAR GENERATOR');
     console.log('═'.repeat(50));
 
-    if (!SUPABASE_URL || !process.env.OPENAI_API_KEY) {
-        return res.status(500).json({ error: 'Missing env vars' });
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !process.env.OPENAI_API_KEY) {
+        return res.status(500).json({
+            error: 'Missing env vars',
+            has_url: !!SUPABASE_URL,
+            has_service_key: !!SUPABASE_SERVICE_KEY,
+            has_openai: !!process.env.OPENAI_API_KEY
+        });
     }
 
     const limit = parseInt(req.query.limit) || 5;
