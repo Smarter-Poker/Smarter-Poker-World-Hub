@@ -17,6 +17,7 @@ import { useAvatar } from '../../src/contexts/AvatarContext';
 // God-Mode Stack
 import { useSettingsStore } from '../../src/stores/settingsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT
@@ -192,17 +193,10 @@ export default function SettingsPage() {
                 {/* Background */}
                 <div style={styles.bgGrid} />
 
-                {/* Header */}
-                <div style={styles.header}>
-                    <button onClick={() => router.push('/hub')} style={styles.backButton}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M19 12H5M12 19l-7-7 7-7" />
-                        </svg>
-                        <span>Hub</span>
-                    </button>
-
+                {/* Header - Universal Header */}
+                <UniversalHeader pageDepth={2} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                     <h1 style={styles.pageTitle}>⚙️ Settings</h1>
-
                     <button
                         onClick={saveSettings}
                         style={{

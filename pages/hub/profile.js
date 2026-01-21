@@ -14,6 +14,7 @@ import { ProfilePictureHistory } from '../../src/components/social/ProfilePictur
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { supabase } from '../../src/lib/supabase';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // God-Mode Stack
 import { useProfileStore } from '../../src/stores/profileStore';
@@ -475,15 +476,9 @@ export default function ProfilePage() {
                     @media (min-width: 1400px) { .profile-page { zoom: 1.5; } }
                 `}</style>
             </Head>
-            <div className="profile-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
-                {/* Header */}
-                <header style={{ background: C.card, padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <BrainHomeButton style={{ position: 'relative', top: 0, left: 0, width: 40, height: 40 }} />
-                        <span style={{ fontWeight: 600, fontSize: 18, color: C.text }}>Edit Profile</span>
-                    </div>
-                    <Link href="/hub/social-media" style={{ color: C.textSec, textDecoration: 'none' }}>← Back to Social</Link>
-                </header>
+            <div className="profile-page" style={{ minHeight: '100vh', background: '#0a0e1a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
+                {/* Header - Universal Header with Back navigation (nested page) */}
+                <UniversalHeader pageDepth={2} />
 
                 {/* Cover Photo Area */}
                 <div style={{

@@ -26,6 +26,7 @@ import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
 import GameIntroSplash from '../../src/components/training/GameIntroSplash';
 import LeakFixerIntercept from '../../src/components/training/LeakFixerIntercept';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // God-Mode Stack
 import { useTrainingStore } from '../../src/stores/trainingStore';
@@ -683,8 +684,8 @@ export default function TrainingPage() {
             />
 
             <div className="training-page" style={styles.page}>
-                {/* Fixed Header */}
-                <TrainingHeader gamesPlayed={stats.gamesPlayed} />
+                {/* Fixed Header - Universal Header with Hub navigation */}
+                <UniversalHeader pageDepth={1} />
 
                 {/* Promo/Ad Section */}
                 <PromoSection onPlayFeatured={handlePlayFeatured} />
