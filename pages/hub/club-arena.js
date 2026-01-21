@@ -3,6 +3,7 @@
  * Loads Club Engine iframe from club.smarter.poker
  * 
  * FIX: Proper cleanup on navigation to prevent page freeze
+ * FIX: Pass auth token via URL for SSO with iframe
  */
 
 import Head from 'next/head';
@@ -11,6 +12,8 @@ import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+import { useAvatar } from '../../src/contexts/AvatarContext';
+import supabase from '../../src/lib/supabase.ts';
 
 // God-Mode Stack
 import { useClubArenaStore } from '../../src/stores/clubArenaStore';
@@ -18,9 +21,27 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 
 export default function ClubArenaPage() {
     const router = useRouter();
+    const { user } = useAvatar();
     const iframeRef = useRef(null);
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [iframeUrl, setIframeUrl] = useState('https://club.smarter.poker');
+
+    // Get session and build iframe URL with token for SSO
+    useEffect(() => {
+        async function getSessionAndBuildUrl() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) {
+                    // Pass token via URL for the iframe to pick up
+                    setIframeUrl(`https://club.smarter.poker?token=${session.access_token}`);
+                }
+            } catch (error) {
+                console.error('Error getting session for club-arena:', error);
+            }
+        }
+        getSessionAndBuildUrl();
+    }, [user]);
 
     // Cleanup iframe on unmount or navigation
     useEffect(() => {
@@ -84,10 +105,10 @@ export default function ClubArenaPage() {
                     </div>
                 )}
 
-                {/* Club Engine iframe */}
+                {/* Club Engine iframe with SSO token */}
                 <iframe
                     ref={iframeRef}
-                    src="https://club.smarter.poker"
+                    src={iframeUrl}
                     style={{
                         ...styles.iframe,
                         opacity: iframeLoaded ? 1 : 0,
