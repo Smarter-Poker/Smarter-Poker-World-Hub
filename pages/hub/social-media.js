@@ -5,6 +5,7 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1987,110 +1988,28 @@ export default function SocialMediaPage() {
             </div>
 
             <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', paddingBottom: 70 }}>
-                {/* Header */}
-                <header style={{ background: C.card, padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
-                    {/* LEFT: Hamburger + Back Button + Logo */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <button
-                            onClick={() => setSidebarOpen(true)}
-                            style={{
-                                background: 'none', border: 'none', fontSize: 24, cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                width: 40, height: 40, borderRadius: 8
-                            }}
-                        >☰</button>
-                        <Link href="/hub" style={{
-                            display: 'flex', alignItems: 'center', gap: 6,
-                            textDecoration: 'none',
-                            padding: '8px 14px',
-                            borderRadius: 8,
-                            background: 'linear-gradient(135deg, #0088ff 0%, #0066cc 100%)',
-                            color: 'white',
-                            fontWeight: 600,
-                            fontSize: 14,
-                            boxShadow: '0 2px 8px rgba(0,136,255,0.3)',
-                            transition: 'all 0.2s'
-                        }}>
-                            <span style={{ fontSize: 16 }}>←</span>
-                            Hub
-                        </Link>
+                {/* Header with UniversalHeader + Hamburger for Sidebar */}
+                <div style={{ display: 'flex', alignItems: 'center', background: C.card, borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
+                    <button
+                        onClick={() => setSidebarOpen(true)}
+                        style={{
+                            background: 'none', border: 'none', fontSize: 24, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: 50, height: 56, marginLeft: 4
+                        }}
+                    >☰</button>
+                    <div style={{ flex: 1 }}>
+                        <UniversalHeader
+                            pageTitle="Social"
+                            backHref="/hub"
+                            user={user}
+                            xp={0}
+                            diamonds={0}
+                            unreadMessages={unreadCount}
+                            unreadNotifications={notifications.filter(n => !n.read).length}
+                        />
                     </div>
-
-                    {/* CENTER: XP and Diamond Wallet */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        {/* XP Display */}
-                        <div style={{
-                            display: 'flex', alignItems: 'center', gap: 4,
-                            background: 'linear-gradient(135deg, #ffd700 0%, #ffb800 100%)',
-                            padding: '4px 10px',
-                            borderRadius: 20,
-                            fontWeight: 700,
-                            fontSize: 13,
-                            color: '#1a1a1a'
-                        }}>
-                            <span>⭐</span>
-                            <span>XP</span>
-                        </div>
-                        {/* Diamond Wallet */}
-                        <Link href="/hub/diamond-store" style={{
-                            display: 'flex', alignItems: 'center', gap: 4,
-                            background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
-                            padding: '4px 10px',
-                            borderRadius: 20,
-                            fontWeight: 700,
-                            fontSize: 13,
-                            color: 'white',
-                            textDecoration: 'none'
-                        }}>
-                            <span>💎</span>
-                            <span>0</span>
-                            <span style={{ fontSize: 12, opacity: 0.8 }}>+</span>
-                        </Link>
-                    </div>
-
-                    {/* RIGHT: Search, Notifications, Messenger, Profile */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <button
-                            onClick={() => setShowGlobalSearch(!showGlobalSearch)}
-                            style={{
-                                width: 40, height: 40, borderRadius: '50%',
-                                background: showGlobalSearch ? C.blue : '#e4e6eb',
-                                border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
-                                alignItems: 'center', justifyContent: 'center',
-                                color: showGlobalSearch ? 'white' : 'inherit'
-                            }}
-                        >🔍</button>
-                        <button
-                            onClick={() => setShowNotifications(!showNotifications)}
-                            style={{
-                                width: 40, height: 40, borderRadius: '50%', background: showNotifications ? C.blue : '#e4e6eb',
-                                border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
-                                alignItems: 'center', justifyContent: 'center', position: 'relative',
-                                color: showNotifications ? 'white' : 'inherit'
-                            }}>
-                            🔔
-                            {notifications.filter(n => !n.read).length > 0 && (
-                                <span style={{
-                                    position: 'absolute', top: 0, right: 0, background: 'red', color: 'white',
-                                    borderRadius: '50%', width: 18, height: 18, fontSize: 11, fontWeight: 700,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                }}>{notifications.filter(n => !n.read).length}</span>
-                            )}
-                        </button>
-                        <Link href="/hub/messenger" style={{
-                            width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb',
-                            border: 'none', cursor: 'pointer', fontSize: 18, display: 'flex',
-                            alignItems: 'center', justifyContent: 'center', textDecoration: 'none',
-                            position: 'relative',
-                        }}>
-                            💬
-                            <UnreadBadge count={unreadCount} size="small" />
-                        </Link>
-                        <Link href="/hub/profile" style={{ display: 'block' }}>
-                            <Avatar src={user?.avatar} name={user?.name} size={40} />
-                        </Link>
-                    </div>
-                </header>
+                </div>
 
                 {/* Global Search Overlay */}
                 {showGlobalSearch && (

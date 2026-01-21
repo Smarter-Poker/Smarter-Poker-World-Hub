@@ -76,10 +76,10 @@ class GameTableScene extends Phaser.Scene {
 
     create() {
         const cx = this.cameras.main.width / 2;
-        const cy = this.cameras.main.height * 0.44;  // Moved down slightly
+        const cy = this.cameras.main.height * 0.44;
 
         this.drawBackground();
-        this.drawTable(cx, cy);
+        this.drawDoubleRailTable(cx, cy);  // Use programmatic drawing for perfect quality
         this.drawBranding(cx, cy + 30);
         this.drawPotDisplay(cx, cy - 100);
         this.createSeats();
@@ -105,36 +105,36 @@ class GameTableScene extends Phaser.Scene {
     }
 
     drawDoubleRailTable(cx: number, cy: number) {
-        // Table dimensions - V20 PERFECT match to Table Template.png
-        const w = 305;   // Felt width
-        const h = 460;   // Taller felt to fill more space
-        const r = 152;   // Corner radius
+        // Table dimensions - LARGER to match Table Template proportions
+        const w = 360;   // Wider felt
+        const h = 520;   // Taller felt
+        const r = 180;   // Corner radius for racetrack shape
 
         const g = this.add.graphics();
 
-        // 1. OUTER DARK BORDER (~24px very dark)
+        // 1. OUTER DARK BORDER (~24px)
         g.lineStyle(24, 0x151515, 1);
         g.strokeRoundedRect(cx - (w + 90) / 2, cy - (h + 90) / 2, w + 90, h + 90, r + 45);
 
-        // 2. FIRST GOLD LINE (~5px)
-        g.lineStyle(5, 0xd4a000, 1);
+        // 2. FIRST GOLD LINE (~6px)
+        g.lineStyle(6, 0xd4a000, 1);
         g.strokeRoundedRect(cx - (w + 55) / 2, cy - (h + 55) / 2, w + 55, h + 55, r + 27);
 
-        // 3. BLACK GAP (~3px)
-        g.lineStyle(3, 0x080808, 1);
-        g.strokeRoundedRect(cx - (w + 44) / 2, cy - (h + 44) / 2, w + 44, h + 44, r + 22);
+        // 3. BLACK GAP (~4px)
+        g.lineStyle(4, 0x080808, 1);
+        g.strokeRoundedRect(cx - (w + 42) / 2, cy - (h + 42) / 2, w + 42, h + 42, r + 21);
 
-        // 4. SECOND GOLD LINE (~5px) 
-        g.lineStyle(5, 0xe8b810, 1);
-        g.strokeRoundedRect(cx - (w + 36) / 2, cy - (h + 36) / 2, w + 36, h + 36, r + 18);
+        // 4. SECOND GOLD LINE (~6px) 
+        g.lineStyle(6, 0xe8b810, 1);
+        g.strokeRoundedRect(cx - (w + 32) / 2, cy - (h + 32) / 2, w + 32, h + 32, r + 16);
 
-        // 5. VERY THIN GOLD ACCENT (~2px)
+        // 5. THIN GOLD ACCENT (~2px)
         g.lineStyle(2, 0xc4960a, 1);
-        g.strokeRoundedRect(cx - (w + 24) / 2, cy - (h + 24) / 2, w + 24, h + 24, r + 12);
+        g.strokeRoundedRect(cx - (w + 20) / 2, cy - (h + 20) / 2, w + 20, h + 20, r + 10);
 
-        // 6. VERY SUBTLE WHITE GLOW (~8px at 15% opacity)
-        g.lineStyle(8, 0xffffff, 0.15);
-        g.strokeRoundedRect(cx - (w + 10) / 2, cy - (h + 10) / 2, w + 10, h + 10, r + 5);
+        // 6. SUBTLE WHITE INNER GLOW (~8px at 12% opacity)
+        g.lineStyle(8, 0xffffff, 0.12);
+        g.strokeRoundedRect(cx - (w + 8) / 2, cy - (h + 8) / 2, w + 8, h + 8, r + 4);
 
         // 7. FELT (pure black)
         g.fillStyle(0x0a0a0a, 1);
