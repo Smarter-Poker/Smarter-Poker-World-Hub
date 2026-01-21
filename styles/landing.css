@@ -1,0 +1,220 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   LANDING PAGE - MOBILE RESPONSIVE STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Base mobile-first overrides */
+@media (max-width: 768px) {
+
+    /* Navigation - Stack on mobile */
+    .landing-nav {
+        flex-direction: column !important;
+        gap: 16px !important;
+        padding: 16px 20px !important;
+    }
+
+    .landing-nav-links {
+        width: 100%;
+        justify-content: center !important;
+    }
+
+    .landing-logo-text {
+        font-size: 16px !important;
+    }
+
+    /* Hero section - Stack vertically */
+    .landing-hero {
+        flex-direction: column !important;
+        padding: 40px 20px 60px !important;
+        gap: 40px !important;
+        text-align: center;
+    }
+
+    .landing-hero-content {
+        max-width: 100% !important;
+    }
+
+    .landing-hero-title {
+        font-size: 28px !important;
+    }
+
+    .landing-hero-subtitle {
+        font-size: 16px !important;
+    }
+
+    .landing-tagline {
+        font-size: 10px !important;
+        padding: 6px 12px !important;
+    }
+
+    /* Hero buttons - Stack on mobile */
+    .landing-hero-buttons {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 12px !important;
+    }
+
+    .landing-hero-buttons button {
+        width: 100% !important;
+        max-width: 280px !important;
+    }
+
+    /* Stats bar - Column layout */
+    .landing-stats-bar {
+        flex-direction: column !important;
+        gap: 20px !important;
+        align-items: center !important;
+    }
+
+    /* Hero visual - Shrink card */
+    .landing-hero-visual {
+        min-width: unset !important;
+        width: 100% !important;
+    }
+
+    .landing-hero-card-stack {
+        width: 280px !important;
+        height: 340px !important;
+        margin: 0 auto;
+    }
+
+    .landing-hero-card {
+        width: 240px !important;
+    }
+
+    .landing-card-stat-value {
+        font-size: 28px !important;
+    }
+
+    /* About section */
+    .landing-about-section {
+        padding: 60px 20px !important;
+    }
+
+    .landing-about-title {
+        font-size: 24px !important;
+    }
+
+    .landing-about-description {
+        font-size: 15px !important;
+    }
+
+    .landing-about-grid {
+        gap: 16px !important;
+    }
+
+    .landing-about-card {
+        padding: 24px !important;
+    }
+
+    /* Features section */
+    .landing-features {
+        padding: 60px 20px !important;
+    }
+
+    .landing-section-title {
+        font-size: 20px !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    .landing-feature-grid {
+        gap: 16px !important;
+    }
+
+    .landing-feature-card {
+        padding: 24px !important;
+    }
+
+    /* Multiplier section */
+    .landing-multiplier-section {
+        padding: 60px 20px !important;
+    }
+
+    .landing-multiplier-title {
+        font-size: 24px !important;
+    }
+
+    .landing-multiplier-grid {
+        gap: 10px !important;
+    }
+
+    .landing-multiplier-card {
+        padding: 14px 18px !important;
+    }
+
+    .landing-multiplier-value {
+        font-size: 18px !important;
+    }
+
+    /* Testimonials section */
+    .landing-testimonial-section {
+        padding: 60px 20px !important;
+    }
+
+    .landing-testimonial-grid {
+        gap: 16px !important;
+    }
+
+    .landing-testimonial-card {
+        padding: 24px !important;
+    }
+
+    /* Final CTA */
+    .landing-final-cta {
+        padding: 60px 20px !important;
+    }
+
+    .landing-final-cta-title {
+        font-size: 24px !important;
+    }
+
+    /* Footer */
+    .landing-footer {
+        padding: 30px 20px !important;
+    }
+
+    .landing-footer-content {
+        flex-direction: column !important;
+        text-align: center !important;
+        gap: 16px !important;
+    }
+}
+
+/* Extra small screens (less than 400px) */
+@media (max-width: 400px) {
+    .landing-hero-title {
+        font-size: 24px !important;
+    }
+
+    .landing-hero-card-stack {
+        width: 250px !important;
+        height: 320px !important;
+    }
+
+    .landing-hero-card {
+        width: 220px !important;
+    }
+
+    .landing-card-inner {
+        padding: 18px !important;
+    }
+
+    .landing-stat-value {
+        font-size: 20px !important;
+    }
+
+    .landing-nav-button {
+        padding: 8px 16px !important;
+        font-size: 11px !important;
+    }
+}
+
+/* Floating decorative elements - Hide on mobile for cleaner look */
+@media (max-width: 768px) {
+
+    .landing-floating-chip,
+    .landing-floating-card,
+    .landing-floating-card-right {
+        display: none !important;
+    }
+}

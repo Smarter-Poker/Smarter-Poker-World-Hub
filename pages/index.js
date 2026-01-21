@@ -113,44 +113,44 @@ export default function LandingPage() {
                 }} />
 
                 {/* Navigation */}
-                <nav style={styles.nav}>
+                <nav className="landing-nav" style={styles.nav}>
                     <div style={styles.logo}>
                         <img
                             src="/smarter-poker-logo.png"
                             alt="Smarter Poker"
                             style={{ height: 40, filter: 'drop-shadow(0 0 10px rgba(0, 212, 255, 0.5))' }}
                         />
-                        <span style={styles.logoText}>SMARTER POKER</span>
+                        <span className="landing-logo-text" style={styles.logoText}>SMARTER POKER</span>
                     </div>
-                    <div style={styles.navLinks}>
-                        <button onClick={handleSignUp} style={styles.navButton}>
+                    <div className="landing-nav-links" style={styles.navLinks}>
+                        <button className="landing-nav-button" onClick={handleSignUp} style={styles.navButton}>
                             Sign Up
                         </button>
-                        <button onClick={handleEnterHub} style={styles.navButtonPrimary}>
+                        <button className="landing-nav-button" onClick={handleEnterHub} style={styles.navButtonPrimary}>
                             Sign In
                         </button>
                     </div>
                 </nav>
 
                 {/* Hero Section */}
-                <main style={styles.hero}>
-                    <div style={styles.heroContent}>
-                        <div style={styles.tagline}>
+                <main className="landing-hero" style={styles.hero}>
+                    <div className="landing-hero-content" style={styles.heroContent}>
+                        <div className="landing-tagline" style={styles.tagline}>
                             <DiamondIcon size={16} />
                             <span>THE FUTURE OF POKER TRAINING</span>
                         </div>
 
-                        <h1 ref={heroTitleRef} style={styles.heroTitle}>
+                        <h1 ref={heroTitleRef} className="landing-hero-title" style={styles.heroTitle}>
                             Transform Your <span style={styles.gradientText}>Poker Game</span>
                             <br />With AI-Powered Training
                         </h1>
 
-                        <p ref={heroSubtitleRef} style={styles.heroSubtitle}>
+                        <p ref={heroSubtitleRef} className="landing-hero-subtitle" style={styles.heroSubtitle}>
                             Master GTO strategy through intelligent drills, real-time feedback, and a revolutionary Diamond economy.
                             Join the next generation of elite poker players.
                         </p>
 
-                        <div ref={heroButtonsRef} style={styles.heroButtons}>
+                        <div ref={heroButtonsRef} className="landing-hero-buttons" style={styles.heroButtons}>
                             <motion.button
                                 onClick={handleEnterHub}
                                 whileHover={{ scale: 1.05 }}
@@ -178,7 +178,7 @@ export default function LandingPage() {
                         </div>
 
                         {/* Stats Preview */}
-                        <div ref={statsBarRef} style={styles.statsBar}>
+                        <div ref={statsBarRef} className="landing-stats-bar" style={styles.statsBar}>
                             <StatItem label="Active Players" value="12,450+" />
                             <StatItem label="Drills Completed" value="2.1M" />
                             <StatItem label="Win Rate Increase" value="+18%" />
@@ -186,9 +186,10 @@ export default function LandingPage() {
                     </div>
 
                     {/* Hero Visual - Premium Card Display */}
-                    <div style={styles.heroVisual}>
-                        <div style={styles.heroCardStack}>
+                    <div className="landing-hero-visual" style={styles.heroVisual}>
+                        <div className="landing-hero-card-stack" style={styles.heroCardStack}>
                             <motion.div
+                                className="landing-hero-card"
                                 style={styles.heroCard}
                                 animate={{
                                     y: [0, -10, 0],
@@ -200,7 +201,7 @@ export default function LandingPage() {
                                     ease: "easeInOut"
                                 }}
                             >
-                                <div style={styles.cardInner}>
+                                <div className="landing-card-inner" style={styles.cardInner}>
                                     <div style={styles.cardHeader}>
                                         <DiamondIcon size={24} />
                                         <span style={styles.cardHeaderText}>GTO TRAINER</span>
@@ -208,7 +209,7 @@ export default function LandingPage() {
                                     <div style={styles.cardBody}>
                                         <div style={styles.cardStat}>
                                             <span style={styles.cardStatLabel}>Your Accuracy</span>
-                                            <span style={styles.cardStatValue}>87%</span>
+                                            <span className="landing-card-stat-value" style={styles.cardStatValue}>87%</span>
                                         </div>
                                         <div style={styles.progressBar}>
                                             <div style={styles.progressFill} />
@@ -223,6 +224,7 @@ export default function LandingPage() {
 
                             {/* Floating Elements */}
                             <motion.div
+                                className="landing-floating-chip"
                                 style={styles.floatingChip}
                                 animate={{
                                     y: [0, -15, 0],
@@ -237,6 +239,7 @@ export default function LandingPage() {
                             </motion.div>
 
                             <motion.div
+                                className="landing-floating-card"
                                 style={styles.floatingCard}
                                 animate={{
                                     y: [0, 10, 0],
@@ -252,6 +255,7 @@ export default function LandingPage() {
                             </motion.div>
 
                             <motion.div
+                                className="landing-floating-card-right"
                                 style={styles.floatingCardRight}
                                 animate={{
                                     y: [0, -8, 0],
@@ -270,32 +274,32 @@ export default function LandingPage() {
                 </main>
 
                 {/* What is Smarter.Poker Section */}
-                <section style={styles.aboutSection}>
+                <section className="landing-about-section" style={styles.aboutSection}>
                     <div style={styles.aboutContent}>
-                        <h2 style={styles.aboutTitle}>
+                        <h2 className="landing-about-title" style={styles.aboutTitle}>
                             What is <span style={styles.cyanText}>Smarter.Poker</span>?
                         </h2>
-                        <p style={styles.aboutDescription}>
+                        <p className="landing-about-description" style={styles.aboutDescription}>
                             Smarter.Poker is the world's most advanced poker training ecosystem. Built by professional players
                             and powered by cutting-edge AI, we've created a comprehensive platform that takes you from novice
                             to elite through proven, systematic training methods.
                         </p>
-                        <div style={styles.aboutGrid}>
-                            <div style={styles.aboutCard}>
+                        <div className="landing-about-grid" style={styles.aboutGrid}>
+                            <div className="landing-about-card" style={styles.aboutCard}>
                                 <span style={styles.aboutIcon}>🎯</span>
                                 <h3 style={styles.aboutCardTitle}>Precision Training</h3>
                                 <p style={styles.aboutCardDesc}>
                                     Every drill is backed by solver-verified solutions. Practice the exact spots that matter most.
                                 </p>
                             </div>
-                            <div style={styles.aboutCard}>
+                            <div className="landing-about-card" style={styles.aboutCard}>
                                 <span style={styles.aboutIcon}>🧠</span>
                                 <h3 style={styles.aboutCardTitle}>AI-Powered Analysis</h3>
                                 <p style={styles.aboutCardDesc}>
                                     Real-time leak detection identifies your weaknesses and provides targeted remediation.
                                 </p>
                             </div>
-                            <div style={styles.aboutCard}>
+                            <div className="landing-about-card" style={styles.aboutCard}>
                                 <span style={styles.aboutIcon}>💎</span>
                                 <h3 style={styles.aboutCardTitle}>Diamond Economy</h3>
                                 <p style={styles.aboutCardDesc}>
@@ -307,13 +311,13 @@ export default function LandingPage() {
                 </section>
 
                 {/* Features Section - Orb Study Previews */}
-                <section style={styles.features}>
-                    <h2 style={styles.sectionTitle}>
+                <section className="landing-features" style={styles.features}>
+                    <h2 className="landing-section-title" style={styles.sectionTitle}>
                         <DiamondIcon size={20} />
                         <span>10 Worlds. Infinite Possibilities.</span>
                     </h2>
 
-                    <div style={styles.featureGrid}>
+                    <div className="landing-feature-grid" style={styles.featureGrid}>
                         <FeatureCard
                             icon="🎯"
                             title="GTO Training"
@@ -354,9 +358,9 @@ export default function LandingPage() {
                 </section>
 
                 {/* Diamond Multiplier Preview */}
-                <section style={styles.multiplierSection}>
+                <section className="landing-multiplier-section" style={styles.multiplierSection}>
                     <div style={styles.multiplierContent}>
-                        <h2 style={styles.multiplierTitle}>
+                        <h2 className="landing-multiplier-title" style={styles.multiplierTitle}>
                             Daily Streak <span style={styles.cyanText}>Multipliers</span>
                         </h2>
                         <p style={styles.multiplierDesc}>
@@ -364,7 +368,7 @@ export default function LandingPage() {
                             The longer your streak, the bigger your earnings.
                         </p>
 
-                        <div style={styles.multiplierGrid}>
+                        <div className="landing-multiplier-grid" style={styles.multiplierGrid}>
                             <MultiplierCard day={1} multiplier="1x" active />
                             <MultiplierCard day={3} multiplier="1.5x" />
                             <MultiplierCard day={7} multiplier="2x" />
@@ -375,11 +379,11 @@ export default function LandingPage() {
                 </section>
 
                 {/* Testimonials Section */}
-                <section style={styles.testimonialSection}>
-                    <h2 style={styles.sectionTitle}>
+                <section className="landing-testimonial-section" style={styles.testimonialSection}>
+                    <h2 className="landing-section-title" style={styles.sectionTitle}>
                         <span>What Players Are Saying</span>
                     </h2>
-                    <div style={styles.testimonialGrid}>
+                    <div className="landing-testimonial-grid" style={styles.testimonialGrid}>
                         <TestimonialCard
                             quote="I went from break-even to consistent winner in 3 months. The leak detection alone is worth 10x the price."
                             author="Mike R."
@@ -399,8 +403,8 @@ export default function LandingPage() {
                 </section>
 
                 {/* Final CTA */}
-                <section style={styles.finalCta}>
-                    <h2 style={styles.finalCtaTitle}>Ready to Level Up?</h2>
+                <section className="landing-final-cta" style={styles.finalCta}>
+                    <h2 className="landing-final-cta-title" style={styles.finalCtaTitle}>Ready to Level Up?</h2>
                     <p style={styles.finalCtaDesc}>
                         Join thousands of players mastering GTO strategy with Smarter.Poker
                     </p>
@@ -420,8 +424,8 @@ export default function LandingPage() {
                 </section>
 
                 {/* Footer */}
-                <footer style={styles.footer}>
-                    <div style={styles.footerContent}>
+                <footer className="landing-footer" style={styles.footer}>
+                    <div className="landing-footer-content" style={styles.footerContent}>
                         <div style={styles.footerLogo}>
                             <img
                                 src="/smarter-poker-logo.png"
@@ -465,7 +469,7 @@ function DiamondIcon({ size = 16 }) {
 function StatItem({ label, value }) {
     return (
         <div style={styles.statItem}>
-            <span style={styles.statValue}>{value}</span>
+            <span className="landing-stat-value" style={styles.statValue}>{value}</span>
             <span style={styles.statLabel}>{label}</span>
         </div>
     );
@@ -479,6 +483,7 @@ function FeatureCard({ icon, title, description, color }) {
 
     return (
         <div
+            className="landing-feature-card"
             style={{
                 ...styles.featureCard,
                 transform: isHovered ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
@@ -500,13 +505,13 @@ function FeatureCard({ icon, title, description, color }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function MultiplierCard({ day, multiplier, active }) {
     return (
-        <div style={{
+        <div className="landing-multiplier-card" style={{
             ...styles.multiplierCard,
             borderColor: active ? '#00D4FF' : 'rgba(0, 212, 255, 0.2)',
             background: active ? 'rgba(0, 212, 255, 0.1)' : 'rgba(10, 22, 40, 0.6)',
         }}>
             <span style={styles.multiplierDay}>Day {day}</span>
-            <span style={{
+            <span className="landing-multiplier-value" style={{
                 ...styles.multiplierValue,
                 color: active ? '#00D4FF' : '#ffffff',
             }}>{multiplier}</span>
@@ -519,7 +524,7 @@ function MultiplierCard({ day, multiplier, active }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function TestimonialCard({ quote, author, role }) {
     return (
-        <div style={styles.testimonialCard}>
+        <div className="landing-testimonial-card" style={styles.testimonialCard}>
             <p style={styles.testimonialQuote}>"{quote}"</p>
             <div style={styles.testimonialAuthor}>
                 <span style={styles.testimonialName}>{author}</span>
@@ -665,7 +670,7 @@ const styles = {
     },
     heroTitle: {
         fontFamily: 'Orbitron, sans-serif',
-        fontSize: 'clamp(32px, 5vw, 48px)',
+        fontSize: 'clamp(28px, 5vw, 48px)',
         fontWeight: 800,
         lineHeight: 1.1,
         marginBottom: '24px',
@@ -677,7 +682,7 @@ const styles = {
         WebkitTextFillColor: 'transparent',
     },
     heroSubtitle: {
-        fontSize: '18px',
+        fontSize: 'clamp(15px, 2vw, 18px)',
         lineHeight: 1.6,
         color: 'rgba(255, 255, 255, 0.7)',
         marginBottom: '32px',
@@ -727,7 +732,7 @@ const styles = {
     },
     statValue: {
         fontFamily: 'Orbitron, sans-serif',
-        fontSize: '24px',
+        fontSize: 'clamp(20px, 3vw, 24px)',
         fontWeight: 700,
         color: '#00D4FF',
     },
@@ -864,12 +869,12 @@ const styles = {
     },
     aboutTitle: {
         fontFamily: 'Orbitron, sans-serif',
-        fontSize: 'clamp(28px, 4vw, 36px)',
+        fontSize: 'clamp(24px, 4vw, 36px)',
         fontWeight: 700,
         marginBottom: '20px',
     },
     aboutDescription: {
-        fontSize: '17px',
+        fontSize: 'clamp(15px, 2vw, 17px)',
         lineHeight: 1.7,
         color: 'rgba(255, 255, 255, 0.7)',
         maxWidth: '800px',
@@ -918,7 +923,7 @@ const styles = {
         justifyContent: 'center',
         gap: '12px',
         fontFamily: 'Orbitron, sans-serif',
-        fontSize: 'clamp(24px, 3.5vw, 28px)',
+        fontSize: 'clamp(20px, 3.5vw, 28px)',
         fontWeight: 700,
         marginBottom: '48px',
         textAlign: 'center',
@@ -926,7 +931,7 @@ const styles = {
     },
     featureGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         gap: '24px',
     },
     featureCard: {
@@ -969,7 +974,7 @@ const styles = {
     },
     multiplierTitle: {
         fontFamily: 'Orbitron, sans-serif',
-        fontSize: 'clamp(28px, 4vw, 32px)',
+        fontSize: 'clamp(24px, 4vw, 32px)',
         fontWeight: 700,
         marginBottom: '16px',
     },
@@ -997,6 +1002,7 @@ const styles = {
         alignItems: 'center',
         gap: '8px',
         transition: 'all 0.3s ease',
+        minWidth: '80px',
     },
     multiplierDay: {
         fontSize: '12px',
@@ -1018,7 +1024,7 @@ const styles = {
     },
     testimonialGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         gap: '24px',
     },
     testimonialCard: {
@@ -1058,7 +1064,7 @@ const styles = {
     },
     finalCtaTitle: {
         fontFamily: 'Orbitron, sans-serif',
-        fontSize: 'clamp(28px, 4vw, 36px)',
+        fontSize: 'clamp(24px, 4vw, 36px)',
         fontWeight: 800,
         marginBottom: '16px',
     },

@@ -7,6 +7,7 @@
 
 import '../src/index.css';
 import '../src/styles/premium.css';
+import '../styles/landing.css';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { useEffect, createContext, useState, useContext } from 'react';
