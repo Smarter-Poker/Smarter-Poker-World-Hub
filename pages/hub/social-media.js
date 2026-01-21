@@ -1369,125 +1369,66 @@ export default function SocialMediaPage() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // 🔐 AUTH - Direct getSession + event listener for updates
-    // ═══════════════════════════════════════════════════════════════════════
     useEffect(() => {
-        let isMounted = true;
-
-        const handleAuthUser = async (authUser) => {
-            if (!isMounted || !authUser) {
-                console.log('[Social] ❌ No authenticated user');
-                if (isMounted) setLoading(false);
-                return;
-            }
-
-            console.log('[Social] ✅ User authenticated:', authUser.email);
-
+        (async () => {
             try {
-                const { data: p, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role')
-                    .eq('id', authUser.id)
-                    .maybeSingle();
-
-                if (profileError) {
-                    console.error('[Social] Profile fetch error:', profileError);
+                // Try getSession first (more reliable for browser sessions)
+                let authUser = null;
+                const { data: sessionData } = await supabase.auth.getSession();
+                if (sessionData?.session?.user) {
+                    authUser = sessionData.session.user;
+                    console.log('[Social] Auth via getSession:', authUser.email);
+                } else {
+                    // Fallback to getUser
+                    const { data: { user: au } } = await supabase.auth.getUser();
+                    authUser = au;
+                    console.log('[Social] Auth via getUser:', authUser?.email || 'null');
                 }
 
-                if (!isMounted) return;
-
-                // 👑 Check for God Mode
-                if (p?.role === 'god') {
-                    setIsGodMode(true);
+                if (authUser) {
+                    const { data: p } = await supabase.from('profiles').select('username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
+                    // 👑 Check for God Mode
+                    if (p?.role === 'god') {
+                        setIsGodMode(true);
+                    }
+                    // Respect display_name_preference: 'full_name' shows real name, 'username' shows alias
+                    const displayNamePref = p?.display_name_preference || 'full_name';
+                    const displayName = displayNamePref === 'full_name' && p?.full_name
+                        ? p.full_name
+                        : (p?.username || authUser.email?.split('@')[0] || 'Player');
+                    setUser({
+                        id: authUser.id,
+                        name: displayName,
+                        avatar: p?.avatar_url || null,
+                        tier: p?.skill_tier,
+                        role: p?.role || 'user',
+                        hendon: p?.hendon_url ? {
+                            url: p.hendon_url,
+                            cashes: p.hendon_total_cashes,
+                            earnings: p.hendon_total_earnings,
+                            bestFinish: p.hendon_best_finish
+                        } : null
+                    });
+                    await loadContacts(authUser.id);
+                    // Load notifications
+                    const { data: notifs } = await supabase.from('notifications')
+                        .select('*')
+                        .eq('user_id', authUser.id)
+                        .order('created_at', { ascending: false })
+                        .limit(20);
+                    if (notifs) setNotifications(notifs);
+                } else {
+                    console.log('[Social] No authenticated user found');
                 }
-
-                // Respect display_name_preference
-                const displayNamePref = p?.display_name_preference || 'full_name';
-                const displayName = displayNamePref === 'full_name' && p?.full_name
-                    ? p.full_name
-                    : (p?.username || authUser.email?.split('@')[0] || 'Player');
-
-                setUser({
-                    id: authUser.id,
-                    name: displayName,
-                    avatar: p?.avatar_url || null,
-                    tier: p?.skill_tier,
-                    role: p?.role || 'user',
-                    hendon: p?.hendon_url ? {
-                        url: p.hendon_url,
-                        cashes: p.hendon_total_cashes,
-                        earnings: p.hendon_total_earnings,
-                        bestFinish: p.hendon_best_finish
-                    } : null
-                });
-                console.log('[Social] ✅ User state set:', displayName);
-
-                await loadContacts(authUser.id);
-
-                // Load notifications
-                const { data: notifs } = await supabase.from('notifications')
-                    .select('*')
-                    .eq('user_id', authUser.id)
-                    .order('created_at', { ascending: false })
-                    .limit(20);
-                if (notifs && isMounted) setNotifications(notifs);
-            } catch (e) {
-                console.error('[Social] Profile load error:', e);
-            }
-
-            if (isMounted) setLoading(false);
-        };
-
-        // Direct initialization with timeout protection
-        const init = async () => {
-            try {
-                // Wrap getSession with timeout to prevent hanging
-                const sessionPromise = supabase.auth.getSession();
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Session timeout')), 5000)
-                );
-
-                let session = null;
-                try {
-                    const result = await Promise.race([sessionPromise, timeoutPromise]);
-                    session = result?.data?.session;
-                    console.log('[Social] getSession result:', session?.user?.email || 'no user');
-                } catch (e) {
-                    console.warn('[Social] getSession failed, continuing without auth:', e.message);
-                }
-
-                await handleAuthUser(session?.user);
-            } catch (e) {
-                console.error('[Social] Init error:', e);
-            }
-
-            // ALWAYS load feed and finish loading, even if auth fails
-            try {
                 await loadFeed();
-                const streams = await LiveStreamService.getLiveStreams();
-                if (isMounted) setLiveStreams(streams || []);
-            } catch (e) { }
-
-            if (isMounted) setLoading(false);
-        };
-
-        // Listen for auth changes (sign in/out while on page)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log('[Social] Auth event:', event);
-            if (event === 'SIGNED_IN' && session?.user) {
-                handleAuthUser(session.user);
-            } else if (event === 'SIGNED_OUT') {
-                setUser(null);
-            }
-        });
-
-        init();
-
-        return () => {
-            isMounted = false;
-            subscription?.unsubscribe();
-        };
+                // Load live streams
+                try {
+                    const streams = await LiveStreamService.getLiveStreams();
+                    setLiveStreams(streams || []);
+                } catch (e) { console.log('No live streams:', e); }
+            } catch (e) { console.error('[Social] Auth error:', e); }
+            setLoading(false);
+        })();
     }, []);
 
     const loadFeed = async (offset = 0, append = false) => {
