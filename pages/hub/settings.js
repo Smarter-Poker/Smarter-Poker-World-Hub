@@ -150,8 +150,15 @@ export default function SettingsPage() {
     };
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.push('/');
+        try {
+            await supabase.auth.signOut();
+            // Force hard redirect to clear all cached state
+            window.location.href = '/';
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Even if there's an error, redirect anyway
+            window.location.href = '/';
+        }
     };
 
     const sections = [
