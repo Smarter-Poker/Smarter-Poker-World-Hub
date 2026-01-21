@@ -12,6 +12,23 @@ const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || FALLBACK_URL).trim();
 const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || FALLBACK_ANON_KEY).trim();
 
+// Extract project reference for storage key validation
+const projectRef = supabaseUrl.match(/https:\/\/([a-z0-9]+)\.supabase\.co/)?.[1] || 'unknown';
+const expectedStorageKey = `sb-${projectRef}-auth-token`;
+
+// Log configuration for debugging (only in browser)
+if (typeof window !== 'undefined') {
+   console.log('[Supabase] Initializing singleton...');
+   console.log('[Supabase] Project ref:', projectRef);
+   console.log('[Supabase] Expected storage key:', expectedStorageKey);
+   console.log('[Supabase] URL length:', supabaseUrl.length, '(should be 41 for this project)');
+   console.log('[Supabase] Key length:', supabaseAnonKey.length, '(should be 219)');
+
+   // Check if we have the token
+   const existingToken = localStorage.getItem(expectedStorageKey);
+   console.log('[Supabase] Existing token in localStorage:', existingToken ? 'YES (' + existingToken.length + ' chars)' : 'NO');
+}
+
 // Create Supabase client with explicit session persistence
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
    auth: {
@@ -19,6 +36,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       persistSession: true,         // Persist session in localStorage
       detectSessionInUrl: true,     // Detect OAuth redirects
       storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      storageKey: expectedStorageKey, // Explicitly set storage key for consistency
    }
 });
 

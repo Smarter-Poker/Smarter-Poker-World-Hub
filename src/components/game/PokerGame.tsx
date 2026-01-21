@@ -14,17 +14,17 @@ const COLORS = {
     goldInner: 0xe8b810,
 };
 
-// Seat positions - V20 match to Table Template.png
+// Seat positions - FINAL match to Table Template
 const SEAT_POSITIONS = [
-    { x: 0.50, y: 0.88, label: 'Hero', stack: 45 },       // Hero - bottom center
-    { x: 0.14, y: 0.72, label: 'Villain 1', stack: 32 },  // Viking - bottom left
-    { x: 0.08, y: 0.50, label: 'Villain 2', stack: 28 },  // Wizard - left mid  
-    { x: 0.10, y: 0.28, label: 'Villain 3', stack: 55 },  // Ninja - left upper
-    { x: 0.28, y: 0.12, label: 'Villain 4', stack: 41 },  // Spartan - top left
-    { x: 0.72, y: 0.12, label: 'Villain 5', stack: 38 },  // Wolf - top right
-    { x: 0.90, y: 0.28, label: 'Villain 6', stack: 62 },  // Pharaoh - right upper
-    { x: 0.92, y: 0.50, label: 'Villain 7', stack: 29 },  // Cowboy - right mid
-    { x: 0.86, y: 0.72, label: 'Villain 8', stack: 51 },  // Pirate - bottom right
+    { x: 0.50, y: 0.85, label: 'Hero', stack: 45 },       // Hero - bottom center
+    { x: 0.12, y: 0.68, label: 'Villain 1', stack: 32 },  // Viking - bottom left
+    { x: 0.06, y: 0.46, label: 'Villain 2', stack: 28 },  // Wizard - left mid  
+    { x: 0.08, y: 0.24, label: 'Villain 3', stack: 55 },  // Ninja - left upper
+    { x: 0.26, y: 0.10, label: 'Villain 4', stack: 41 },  // Spartan - top left
+    { x: 0.74, y: 0.10, label: 'Villain 5', stack: 38 },  // Wolf - top right
+    { x: 0.92, y: 0.24, label: 'Villain 6', stack: 62 },  // Pharaoh - right upper
+    { x: 0.94, y: 0.46, label: 'Villain 7', stack: 29 },  // Cowboy - right mid
+    { x: 0.88, y: 0.68, label: 'Villain 8', stack: 51 },  // Pirate - bottom right
 ];
 
 // Avatar URLs - EXACT match to reference characters
@@ -76,7 +76,7 @@ class GameTableScene extends Phaser.Scene {
 
     create() {
         const cx = this.cameras.main.width / 2;
-        const cy = this.cameras.main.height * 0.42;
+        const cy = this.cameras.main.height * 0.44;  // Moved down slightly
 
         this.drawBackground();
         this.drawTable(cx, cy);
@@ -96,9 +96,9 @@ class GameTableScene extends Phaser.Scene {
     drawTable(cx: number, cy: number) {
         // Use the actual downloaded table image
         const table = this.add.image(cx, cy, 'table');
-        // Scale to fill width (with small padding) while respecting top/bottom UI
-        const targetWidth = CANVAS_WIDTH - 40;  // 20px padding each side
-        const targetHeight = 480;  // Leave room for top question and bottom buttons
+        // Scale to fill available space
+        const targetWidth = CANVAS_WIDTH - 20;  // Minimal side padding
+        const targetHeight = 530;  // Taller to fill more vertical space
         const scaleX = targetWidth / table.width;
         const scaleY = targetHeight / table.height;
         table.setScale(scaleX, scaleY);

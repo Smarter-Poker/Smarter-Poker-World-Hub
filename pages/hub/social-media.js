@@ -1369,24 +1369,50 @@ export default function SocialMediaPage() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // 🔐 AUTH STATE LISTENER - Subscribe to auth changes for reliable session
+    // ═══════════════════════════════════════════════════════════════════════
     useEffect(() => {
-        (async () => {
+        let isMounted = true;
+
+        const initAuth = async () => {
             try {
+                // Diagnostic logging
+                console.log('[Social] Checking auth state...');
+                console.log('[Social] localStorage keys:', Object.keys(localStorage).filter(k => k.startsWith('sb-')));
+
                 // Try getSession first (more reliable for browser sessions)
                 let authUser = null;
-                const { data: sessionData } = await supabase.auth.getSession();
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+                if (sessionError) {
+                    console.error('[Social] getSession error:', sessionError);
+                }
+
                 if (sessionData?.session?.user) {
                     authUser = sessionData.session.user;
-                    console.log('[Social] Auth via getSession:', authUser.email);
+                    console.log('[Social] ✅ Auth via getSession:', authUser.email);
                 } else {
+                    console.log('[Social] getSession returned null, trying getUser...');
                     // Fallback to getUser
-                    const { data: { user: au } } = await supabase.auth.getUser();
+                    const { data: { user: au }, error: getUserError } = await supabase.auth.getUser();
+                    if (getUserError) {
+                        console.error('[Social] getUser error:', getUserError);
+                    }
                     authUser = au;
                     console.log('[Social] Auth via getUser:', authUser?.email || 'null');
                 }
 
+                if (!isMounted) return;
+
                 if (authUser) {
-                    const { data: p } = await supabase.from('profiles').select('username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
+                    console.log('[Social] ✅ User authenticated, loading profile...');
+                    const { data: p, error: profileError } = await supabase.from('profiles').select('username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
+
+                    if (profileError) {
+                        console.error('[Social] Profile fetch error:', profileError);
+                    }
+
                     // 👑 Check for God Mode
                     if (p?.role === 'god') {
                         setIsGodMode(true);
@@ -1409,6 +1435,7 @@ export default function SocialMediaPage() {
                             bestFinish: p.hendon_best_finish
                         } : null
                     });
+                    console.log('[Social] ✅ User state set:', displayName);
                     await loadContacts(authUser.id);
                     // Load notifications
                     const { data: notifs } = await supabase.from('notifications')
@@ -1418,7 +1445,7 @@ export default function SocialMediaPage() {
                         .limit(20);
                     if (notifs) setNotifications(notifs);
                 } else {
-                    console.log('[Social] No authenticated user found');
+                    console.log('[Social] ❌ No authenticated user found');
                 }
                 await loadFeed();
                 // Load live streams
@@ -1426,9 +1453,29 @@ export default function SocialMediaPage() {
                     const streams = await LiveStreamService.getLiveStreams();
                     setLiveStreams(streams || []);
                 } catch (e) { console.log('No live streams:', e); }
-            } catch (e) { console.error('[Social] Auth error:', e); }
-            setLoading(false);
-        })();
+            } catch (e) {
+                console.error('[Social] Auth error:', e);
+            }
+            if (isMounted) setLoading(false);
+        };
+
+        // Set up auth state change listener for real-time updates
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log('[Social] 🔄 Auth state changed:', event, session?.user?.email || 'no user');
+            if (event === 'SIGNED_IN' && session?.user) {
+                // Re-initialize if user signs in while on this page
+                initAuth();
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null);
+            }
+        });
+
+        initAuth();
+
+        return () => {
+            isMounted = false;
+            subscription?.unsubscribe();
+        };
     }, []);
 
     const loadFeed = async (offset = 0, append = false) => {
