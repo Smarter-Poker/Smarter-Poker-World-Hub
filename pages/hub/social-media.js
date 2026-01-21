@@ -1370,107 +1370,99 @@ export default function SocialMediaPage() {
     }, []);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // 🔐 AUTH STATE LISTENER - Subscribe to auth changes for reliable session
+    // 🔐 AUTH STATE LISTENER - Wait for INITIAL_SESSION event (Supabase v2 pattern)
     // ═══════════════════════════════════════════════════════════════════════
     useEffect(() => {
         let isMounted = true;
 
-        const initAuth = async () => {
+        const handleAuthUser = async (authUser) => {
+            if (!isMounted || !authUser) {
+                console.log('[Social] ❌ No authenticated user');
+                if (isMounted) setLoading(false);
+                return;
+            }
+
+            console.log('[Social] ✅ User authenticated:', authUser.email);
+
             try {
-                // Diagnostic logging
-                console.log('[Social] Checking auth state...');
-                console.log('[Social] localStorage keys:', Object.keys(localStorage).filter(k => k.startsWith('sb-')));
+                const { data: p, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role')
+                    .eq('id', authUser.id)
+                    .maybeSingle();
 
-                // Try getSession first (more reliable for browser sessions)
-                let authUser = null;
-                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-
-                if (sessionError) {
-                    console.error('[Social] getSession error:', sessionError);
-                }
-
-                if (sessionData?.session?.user) {
-                    authUser = sessionData.session.user;
-                    console.log('[Social] ✅ Auth via getSession:', authUser.email);
-                } else {
-                    console.log('[Social] getSession returned null, trying getUser...');
-                    // Fallback to getUser
-                    const { data: { user: au }, error: getUserError } = await supabase.auth.getUser();
-                    if (getUserError) {
-                        console.error('[Social] getUser error:', getUserError);
-                    }
-                    authUser = au;
-                    console.log('[Social] Auth via getUser:', authUser?.email || 'null');
+                if (profileError) {
+                    console.error('[Social] Profile fetch error:', profileError);
                 }
 
                 if (!isMounted) return;
 
-                if (authUser) {
-                    console.log('[Social] ✅ User authenticated, loading profile...');
-                    const { data: p, error: profileError } = await supabase.from('profiles').select('username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
-
-                    if (profileError) {
-                        console.error('[Social] Profile fetch error:', profileError);
-                    }
-
-                    // 👑 Check for God Mode
-                    if (p?.role === 'god') {
-                        setIsGodMode(true);
-                    }
-                    // Respect display_name_preference: 'full_name' shows real name, 'username' shows alias
-                    const displayNamePref = p?.display_name_preference || 'full_name';
-                    const displayName = displayNamePref === 'full_name' && p?.full_name
-                        ? p.full_name
-                        : (p?.username || authUser.email?.split('@')[0] || 'Player');
-                    setUser({
-                        id: authUser.id,
-                        name: displayName,
-                        avatar: p?.avatar_url || null,
-                        tier: p?.skill_tier,
-                        role: p?.role || 'user',
-                        hendon: p?.hendon_url ? {
-                            url: p.hendon_url,
-                            cashes: p.hendon_total_cashes,
-                            earnings: p.hendon_total_earnings,
-                            bestFinish: p.hendon_best_finish
-                        } : null
-                    });
-                    console.log('[Social] ✅ User state set:', displayName);
-                    await loadContacts(authUser.id);
-                    // Load notifications
-                    const { data: notifs } = await supabase.from('notifications')
-                        .select('*')
-                        .eq('user_id', authUser.id)
-                        .order('created_at', { ascending: false })
-                        .limit(20);
-                    if (notifs) setNotifications(notifs);
-                } else {
-                    console.log('[Social] ❌ No authenticated user found');
+                // 👑 Check for God Mode
+                if (p?.role === 'god') {
+                    setIsGodMode(true);
                 }
+
+                // Respect display_name_preference
+                const displayNamePref = p?.display_name_preference || 'full_name';
+                const displayName = displayNamePref === 'full_name' && p?.full_name
+                    ? p.full_name
+                    : (p?.username || authUser.email?.split('@')[0] || 'Player');
+
+                setUser({
+                    id: authUser.id,
+                    name: displayName,
+                    avatar: p?.avatar_url || null,
+                    tier: p?.skill_tier,
+                    role: p?.role || 'user',
+                    hendon: p?.hendon_url ? {
+                        url: p.hendon_url,
+                        cashes: p.hendon_total_cashes,
+                        earnings: p.hendon_total_earnings,
+                        bestFinish: p.hendon_best_finish
+                    } : null
+                });
+                console.log('[Social] ✅ User state set:', displayName);
+
+                await loadContacts(authUser.id);
+
+                // Load notifications
+                const { data: notifs } = await supabase.from('notifications')
+                    .select('*')
+                    .eq('user_id', authUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+                if (notifs && isMounted) setNotifications(notifs);
+            } catch (e) {
+                console.error('[Social] Profile load error:', e);
+            }
+
+            if (isMounted) setLoading(false);
+        };
+
+        // Set up auth state change listener FIRST - this is the Supabase v2 pattern
+        // INITIAL_SESSION fires when auth is ready with the current session
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('[Social] 🔄 Auth event:', event, session?.user?.email || 'no user');
+
+            if (event === 'INITIAL_SESSION') {
+                // This is the first event, contains the current session state
+                await handleAuthUser(session?.user);
                 await loadFeed();
                 // Load live streams
                 try {
                     const streams = await LiveStreamService.getLiveStreams();
-                    setLiveStreams(streams || []);
+                    if (isMounted) setLiveStreams(streams || []);
                 } catch (e) { console.log('No live streams:', e); }
-            } catch (e) {
-                console.error('[Social] Auth error:', e);
-            }
-            if (isMounted) setLoading(false);
-        };
-
-        // Set up auth state change listener for real-time updates
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log('[Social] 🔄 Auth state changed:', event, session?.user?.email || 'no user');
-            if (event === 'SIGNED_IN' && session?.user) {
-                // Re-initialize if user signs in while on this page
-                initAuth();
+            } else if (event === 'SIGNED_IN' && session?.user) {
+                // User signed in while on this page
+                await handleAuthUser(session.user);
             } else if (event === 'SIGNED_OUT') {
-                setUser(null);
+                if (isMounted) {
+                    setUser(null);
+                    setLoading(false);
+                }
             }
         });
-
-        initAuth();
 
         return () => {
             isMounted = false;
