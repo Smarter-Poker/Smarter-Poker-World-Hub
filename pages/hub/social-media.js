@@ -2000,19 +2000,51 @@ export default function SocialMediaPage() {
                             }}
                         >☰</button>
                         <Link href="/hub" style={{
-                            display: 'flex', alignItems: 'center', gap: 8,
+                            display: 'flex', alignItems: 'center', gap: 6,
                             textDecoration: 'none',
-                            padding: '6px 12px',
+                            padding: '8px 14px',
                             borderRadius: 8,
-                            background: 'rgba(0, 136, 255, 0.1)',
-                            transition: 'background 0.2s'
+                            background: 'linear-gradient(135deg, #0088ff 0%, #0066cc 100%)',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: 14,
+                            boxShadow: '0 2px 8px rgba(0,136,255,0.3)',
+                            transition: 'all 0.2s'
                         }}>
-                            <span style={{ fontSize: 18 }}>←</span>
-                            <img
-                                src="/smarter-poker-logo.png"
-                                alt="Smarter.Poker"
-                                style={{ height: 28, width: 'auto' }}
-                            />
+                            <span style={{ fontSize: 16 }}>←</span>
+                            Hub
+                        </Link>
+                    </div>
+
+                    {/* CENTER: XP and Diamond Wallet */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {/* XP Display */}
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 4,
+                            background: 'linear-gradient(135deg, #ffd700 0%, #ffb800 100%)',
+                            padding: '4px 10px',
+                            borderRadius: 20,
+                            fontWeight: 700,
+                            fontSize: 13,
+                            color: '#1a1a1a'
+                        }}>
+                            <span>⭐</span>
+                            <span>XP</span>
+                        </div>
+                        {/* Diamond Wallet */}
+                        <Link href="/hub/diamond-store" style={{
+                            display: 'flex', alignItems: 'center', gap: 4,
+                            background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
+                            padding: '4px 10px',
+                            borderRadius: 20,
+                            fontWeight: 700,
+                            fontSize: 13,
+                            color: 'white',
+                            textDecoration: 'none'
+                        }}>
+                            <span>💎</span>
+                            <span>0</span>
+                            <span style={{ fontSize: 12, opacity: 0.8 }}>+</span>
                         </Link>
                     </div>
 
