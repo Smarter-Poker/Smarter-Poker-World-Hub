@@ -41,26 +41,23 @@ function NavigationGuard({ children }) {
 
   useEffect(() => {
     // ═══════════════════════════════════════════════════════════════════════
-    // AUTH MIGRATION v4: Force clear all tokens for fresh auth state
+    // AUTH MIGRATION v5: Session preservation mode (correct key rotation complete)
+    // Only clear corrupted keys (with newlines), preserve all valid sessions
     // ═══════════════════════════════════════════════════════════════════════
-    const AUTH_MIGRATION_VERSION = 'v4_2026_01_20_clean_slate';
+    const AUTH_MIGRATION_VERSION = 'v5_2026_01_21_session_preservation';
     const migrationKey = 'smarter_poker_auth_migration';
 
     if (typeof window !== 'undefined') {
       const completedMigration = localStorage.getItem(migrationKey);
 
       if (completedMigration !== AUTH_MIGRATION_VERSION) {
-        console.log('[Auth Migration v4] Clearing all session data for clean slate...');
+        console.log('[Auth Migration v5] Running session preservation check...');
 
-        // Clear all Supabase-related localStorage keys, especially those with newlines
+        // Only clear CORRUPTED keys (with newlines) - preserve all valid sessions
         const keysToRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
           if (key && (
-            key.startsWith('sb-') ||                    // Supabase session keys
-            key.includes('supabase') ||                  // Any supabase-related
-            key.includes('auth-token') ||                // Auth tokens
-            key.includes('gotrue') ||                    // GoTrue auth keys
             key.includes('\n') ||                        // Keys with trailing newlines (corrupted!)
             key.includes('\r')                           // Keys with carriage returns (corrupted!)
           )) {
@@ -68,20 +65,16 @@ function NavigationGuard({ children }) {
           }
         }
 
-        keysToRemove.forEach(key => {
-          console.log(`[Auth Migration v4] Removing: ${key.replace(/\n/g, '\\n')}`);
-          localStorage.removeItem(key);
-        });
-
-        // Mark migration as complete
-        localStorage.setItem(migrationKey, AUTH_MIGRATION_VERSION);
-        console.log('[Auth Migration v4] Complete! User will need to log in fresh.');
-
-        // Force reload to clear any in-memory state
         if (keysToRemove.length > 0) {
-          window.location.reload();
-          return;
+          keysToRemove.forEach(key => {
+            console.log(`[Auth Migration v5] Removing corrupted key: ${key.replace(/\n/g, '\\n')}`);
+            localStorage.removeItem(key);
+          });
         }
+
+        // Mark migration as complete - DO NOT clear valid sessions
+        localStorage.setItem(migrationKey, AUTH_MIGRATION_VERSION);
+        console.log('[Auth Migration v5] Complete! Valid sessions preserved.');
       }
     }
 
