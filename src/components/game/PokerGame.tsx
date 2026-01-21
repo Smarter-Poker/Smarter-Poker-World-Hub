@@ -14,17 +14,17 @@ const COLORS = {
     goldInner: 0xe8b810,
 };
 
-// Seat positions - FINAL match to Table Template
+// Seat positions - Adjusted to prevent avatar cutoff on sides
 const SEAT_POSITIONS = [
     { x: 0.50, y: 0.85, label: 'Hero', stack: 45 },       // Hero - bottom center
-    { x: 0.12, y: 0.68, label: 'Villain 1', stack: 32 },  // Viking - bottom left
-    { x: 0.06, y: 0.46, label: 'Villain 2', stack: 28 },  // Wizard - left mid  
-    { x: 0.08, y: 0.24, label: 'Villain 3', stack: 55 },  // Ninja - left upper
-    { x: 0.26, y: 0.10, label: 'Villain 4', stack: 41 },  // Spartan - top left
-    { x: 0.74, y: 0.10, label: 'Villain 5', stack: 38 },  // Wolf - top right
-    { x: 0.92, y: 0.24, label: 'Villain 6', stack: 62 },  // Pharaoh - right upper
-    { x: 0.94, y: 0.46, label: 'Villain 7', stack: 29 },  // Cowboy - right mid
-    { x: 0.88, y: 0.68, label: 'Villain 8', stack: 51 },  // Pirate - bottom right
+    { x: 0.15, y: 0.68, label: 'Villain 1', stack: 32 },  // Viking - bottom left
+    { x: 0.10, y: 0.46, label: 'Villain 2', stack: 28 },  // Wizard - left mid  
+    { x: 0.12, y: 0.24, label: 'Villain 3', stack: 55 },  // Ninja - left upper
+    { x: 0.28, y: 0.10, label: 'Villain 4', stack: 41 },  // Spartan - top left
+    { x: 0.72, y: 0.10, label: 'Villain 5', stack: 38 },  // Wolf - top right
+    { x: 0.88, y: 0.24, label: 'Villain 6', stack: 62 },  // Pharaoh - right upper
+    { x: 0.90, y: 0.46, label: 'Villain 7', stack: 29 },  // Cowboy - right mid
+    { x: 0.85, y: 0.68, label: 'Villain 8', stack: 51 },  // Pirate - bottom right
 ];
 
 // Avatar URLs - EXACT match to reference characters
