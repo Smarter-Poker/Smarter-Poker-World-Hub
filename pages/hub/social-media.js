@@ -1497,6 +1497,7 @@ export default function SocialMediaPage() {
 
             // ♾️ INFINITE SCROLL: Fetch posts with offset
             // Fetch all posts with pagination
+            console.log('[Social] Loading feed, offset:', offset);
             const { data: allPostsData, error } = await supabase
                 .from('social_posts')
                 .select('id, content, content_type, media_urls, like_count, comment_count, share_count, created_at, author_id')
@@ -1504,6 +1505,7 @@ export default function SocialMediaPage() {
                 .order('created_at', { ascending: false })
                 .range(offset, offset + POSTS_PER_PAGE - 1);
 
+            console.log('[Social] Feed query result:', { count: allPostsData?.length, error });
             if (error) throw error;
 
             // Check if there are more posts
