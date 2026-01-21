@@ -1989,7 +1989,7 @@ export default function SocialMediaPage() {
             <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', paddingBottom: 70 }}>
                 {/* Header */}
                 <header style={{ background: C.card, padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 100 }}>
-                    {/* LEFT: Hamburger + Logo */}
+                    {/* LEFT: Hamburger + Back Button + Logo */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <button
                             onClick={() => setSidebarOpen(true)}
@@ -1999,7 +1999,21 @@ export default function SocialMediaPage() {
                                 width: 40, height: 40, borderRadius: 8
                             }}
                         >☰</button>
-                        <Link href="/hub" style={{ fontWeight: 700, fontSize: 22, color: C.blue, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 20 }}>🔵</span> smarter.poker</Link>
+                        <Link href="/hub" style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            textDecoration: 'none',
+                            padding: '6px 12px',
+                            borderRadius: 8,
+                            background: 'rgba(0, 136, 255, 0.1)',
+                            transition: 'background 0.2s'
+                        }}>
+                            <span style={{ fontSize: 18 }}>←</span>
+                            <img
+                                src="/smarter-poker-logo.png"
+                                alt="Smarter.Poker"
+                                style={{ height: 28, width: 'auto' }}
+                            />
+                        </Link>
                     </div>
 
                     {/* RIGHT: Search, Notifications, Messenger, Profile */}
