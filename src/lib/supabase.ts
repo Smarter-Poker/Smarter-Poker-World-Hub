@@ -21,8 +21,8 @@ if (typeof window !== 'undefined') {
    console.log('[Supabase] Initializing singleton...');
    console.log('[Supabase] Project ref:', projectRef);
    console.log('[Supabase] Expected storage key:', expectedStorageKey);
-   console.log('[Supabase] URL length:', supabaseUrl.length, '(should be 41 for this project)');
-   console.log('[Supabase] Key length:', supabaseAnonKey.length, '(should be 219)');
+   console.log('[Supabase] URL length:', supabaseUrl.length, '(should be 40)');
+   console.log('[Supabase] Key length:', supabaseAnonKey.length, '(should be 208)');
 
    // Check if we have the token
    const existingToken = localStorage.getItem(expectedStorageKey);
