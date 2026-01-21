@@ -1372,16 +1372,33 @@ export default function SocialMediaPage() {
     useEffect(() => {
         (async () => {
             try {
+                // DIAGNOSTIC: Log localStorage state
+                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-'));
+                console.log('[Social] localStorage sb- keys:', sbKeys);
+                if (sbKeys.length > 0) {
+                    const tokenValue = localStorage.getItem(sbKeys[0]);
+                    console.log('[Social] Token exists, length:', tokenValue?.length);
+                }
+
                 // Try getSession first (more reliable for browser sessions)
                 let authUser = null;
-                const { data: sessionData } = await supabase.auth.getSession();
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+                if (sessionError) {
+                    console.error('[Social] getSession ERROR:', sessionError);
+                }
+
                 if (sessionData?.session?.user) {
                     authUser = sessionData.session.user;
-                    console.log('[Social] Auth via getSession:', authUser.email);
+                    console.log('[Social] ✅ Auth via getSession:', authUser.email);
                 } else {
+                    console.log('[Social] getSession returned no session, trying getUser...');
                     // Fallback to getUser
-                    const { data: { user: au } } = await supabase.auth.getUser();
-                    authUser = au;
+                    const { data: userData, error: getUserError } = await supabase.auth.getUser();
+                    if (getUserError) {
+                        console.error('[Social] getUser ERROR:', getUserError);
+                    }
+                    authUser = userData?.user;
                     console.log('[Social] Auth via getUser:', authUser?.email || 'null');
                 }
 
