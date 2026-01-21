@@ -1372,34 +1372,46 @@ export default function SocialMediaPage() {
     useEffect(() => {
         (async () => {
             try {
-                // DIAGNOSTIC: Log localStorage state
-                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-'));
-                console.log('[Social] localStorage sb- keys:', sbKeys);
-                if (sbKeys.length > 0) {
-                    const tokenValue = localStorage.getItem(sbKeys[0]);
-                    console.log('[Social] Token exists, length:', tokenValue?.length);
-                }
-
-                // Try getSession first (more reliable for browser sessions)
+                // NEW APPROACH: Read session directly from localStorage to bypass AbortError
                 let authUser = null;
-                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
-                if (sessionError) {
-                    console.error('[Social] getSession ERROR:', sessionError);
+                // Find the Supabase auth token in localStorage
+                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                console.log('[Social] Looking for auth token, found keys:', sbKeys);
+
+                if (sbKeys.length > 0) {
+                    try {
+                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        if (tokenData?.user) {
+                            authUser = tokenData.user;
+                            console.log('[Social] ✅ Got user from localStorage:', authUser.email);
+
+                            // Set the session in Supabase client (without calling getSession)
+                            if (tokenData.access_token && tokenData.refresh_token) {
+                                await supabase.auth.setSession({
+                                    access_token: tokenData.access_token,
+                                    refresh_token: tokenData.refresh_token
+                                });
+                                console.log('[Social] ✅ Session restored to Supabase client');
+                            }
+                        }
+                    } catch (parseError) {
+                        console.error('[Social] Failed to parse token:', parseError);
+                    }
                 }
 
-                if (sessionData?.session?.user) {
-                    authUser = sessionData.session.user;
-                    console.log('[Social] ✅ Auth via getSession:', authUser.email);
-                } else {
-                    console.log('[Social] getSession returned no session, trying getUser...');
-                    // Fallback to getUser
-                    const { data: userData, error: getUserError } = await supabase.auth.getUser();
-                    if (getUserError) {
-                        console.error('[Social] getUser ERROR:', getUserError);
+                // Fallback: try getSession if localStorage approach failed
+                if (!authUser) {
+                    console.log('[Social] No user from localStorage, trying getSession...');
+                    try {
+                        const { data: sessionData } = await supabase.auth.getSession();
+                        if (sessionData?.session?.user) {
+                            authUser = sessionData.session.user;
+                            console.log('[Social] ✅ Got user from getSession:', authUser.email);
+                        }
+                    } catch (e) {
+                        console.warn('[Social] getSession failed:', e.message);
                     }
-                    authUser = userData?.user;
-                    console.log('[Social] Auth via getUser:', authUser?.email || 'null');
                 }
 
                 if (authUser) {
