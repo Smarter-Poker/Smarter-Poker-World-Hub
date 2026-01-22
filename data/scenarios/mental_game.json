@@ -1,0 +1,419 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "engine": "SCENARIO",
+    "description": "Mental game scenarios for psychology training"
+  },
+  "categories": {
+    "tilt_control": {
+      "name": "Tilt Control",
+      "description": "Managing emotions after bad beats and coolers",
+      "scenarios": [
+        {
+          "id": "tilt_001",
+          "title": "The River Suckout",
+          "context": "You're in a $500 tournament, 20 players from the money. You get it all-in preflop with AA vs KK for a 150bb pot. The board runs out K-7-2-J-K. You just lost to quads.",
+          "prompt": "What should you do next?",
+          "options": [
+            {
+              "id": "a",
+              "text": "Take a short break, do some breathing exercises, then return with a clear mind",
+              "type": "rational",
+              "correct": true,
+              "feedback": "Perfect. Taking a tactical break to reset emotionally is the optimal play. Your remaining stack needs your A-game."
+            },
+            {
+              "id": "b",
+              "text": "Play the next few hands ultra-tight until you calm down",
+              "type": "passive",
+              "correct": false,
+              "feedback": "While better than tilting off, playing scared poker costs you EV. Your emotions are still affecting your decisions."
+            },
+            {
+              "id": "c",
+              "text": "Try to win it back quickly by playing more hands",
+              "type": "impulsive",
+              "correct": false,
+              "feedback": "This is revenge tilt. Trying to 'win it back' leads to poor decisions and usually more losses."
+            },
+            {
+              "id": "d",
+              "text": "Keep playing normally - bad beats happen",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Suppressing emotions without processing them often leads to hidden tilt. Acknowledge the feeling, then move on strategically."
+            }
+          ],
+          "timeout_seconds": 30,
+          "xp_reward": 50
+        },
+        {
+          "id": "tilt_002",
+          "title": "The Cooler Cascade",
+          "context": "In the last 30 minutes, you've lost: set over set, flush over flush, and just now AA vs AK all-in pre where villain hit a K. Your bankroll is down 5 buy-ins.",
+          "prompt": "How do you handle this situation?",
+          "options": [
+            {
+              "id": "a",
+              "text": "End your session immediately and review hands tomorrow with a clear head",
+              "type": "rational",
+              "correct": true,
+              "feedback": "Excellent discipline. Recognizing when you're not playing your best and preserving your bankroll is a winning mindset."
+            },
+            {
+              "id": "b",
+              "text": "Move down in stakes to protect your bankroll",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Moving down while tilted just means losing at lower stakes. Address the mental state first."
+            },
+            {
+              "id": "c",
+              "text": "Keep playing - variance evens out eventually",
+              "type": "impulsive",
+              "correct": false,
+              "feedback": "While true about variance, playing through heavy tilt compounds the problem. You need a reset."
+            },
+            {
+              "id": "d",
+              "text": "Move up in stakes to recover losses faster",
+              "type": "aggressive",
+              "correct": false,
+              "feedback": "This is textbook tilt behavior. Moving up when running bad accelerates bankroll destruction."
+            }
+          ],
+          "timeout_seconds": 25,
+          "xp_reward": 60
+        },
+        {
+          "id": "tilt_003",
+          "title": "The Chat Tilter",
+          "context": "A recreational player just called your river bluff with bottom pair and typed 'LMAO SO OBVIOUS' in chat. You know your play was theoretically correct.",
+          "prompt": "What's the best response?",
+          "options": [
+            {
+              "id": "a",
+              "text": "Mute chat, take a breath, and continue playing your game",
+              "type": "rational",
+              "correct": true,
+              "feedback": "Perfect response. Don't let external noise affect your internal game. Your play was correct - results don't change that."
+            },
+            {
+              "id": "b",
+              "text": "Type 'NH' and move on",
+              "type": "passive",
+              "correct": false,
+              "feedback": "While civil, engaging at all keeps you mentally connected to the hand. Better to fully disengage."
+            },
+            {
+              "id": "c",
+              "text": "Explain why your play was mathematically correct",
+              "type": "impulsive",
+              "correct": false,
+              "feedback": "Trying to educate fish is -EV. They won't understand, and you're wasting mental energy."
+            },
+            {
+              "id": "d",
+              "text": "Target this player specifically in future hands",
+              "type": "aggressive",
+              "correct": false,
+              "feedback": "Revenge targeting leads to forced plays and poor decisions. Let your good play naturally exploit their mistakes."
+            }
+          ],
+          "timeout_seconds": 20,
+          "xp_reward": 45
+        }
+      ]
+    },
+    "fear_management": {
+      "name": "Fear Management",
+      "description": "Overcoming fear of big pots and tournament pressure",
+      "scenarios": [
+        {
+          "id": "fear_001",
+          "title": "The Final Table Bubble",
+          "context": "You're on the bubble of a $10K tournament final table. 9 players left, 8 get paid. You have 15bb in the BB. The chip leader (50bb) opens to 2.5x from the CO. You look down at QQ.",
+          "prompt": "What's going through your mind?",
+          "options": [
+            {
+              "id": "a",
+              "text": "This is a clear shove spot - ICM considerations don't change that QQ is far ahead of their range",
+              "type": "rational",
+              "correct": true,
+              "feedback": "Correct mindset. While ICM matters, QQ is too strong to fold. Trust your strategy and make the +EV play."
+            },
+            {
+              "id": "b",
+              "text": "Fold and wait for a better spot - min-cashing is better than bubbling",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Folding QQ here is a massive ICM mistake. Fear of bubbling is costing you significant equity in the tournament."
+            },
+            {
+              "id": "c",
+              "text": "Just call and see a flop to avoid risk",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Flatting QQ out of position with 15bb is terrible. You're making a scared poker play."
+            },
+            {
+              "id": "d",
+              "text": "Shove and hope for the best - whatever happens, happens",
+              "type": "impulsive",
+              "correct": false,
+              "feedback": "The action is correct but the mindset is wrong. You should shove because it's strategically correct, not because you've given up on thinking."
+            }
+          ],
+          "timeout_seconds": 30,
+          "xp_reward": 70
+        },
+        {
+          "id": "fear_002",
+          "title": "The Monster Pot",
+          "context": "You're playing $5/$10 cash, your biggest stakes ever. You have top set on a J-7-2 rainbow board. The pot is $800 and your opponent just raised your bet to $2,400. You have $4,000 behind.",
+          "prompt": "What mental approach should you take?",
+          "options": [
+            {
+              "id": "a",
+              "text": "Focus on the strategic decision - evaluate their range and respond optimally",
+              "type": "rational",
+              "correct": true,
+              "feedback": "Exactly right. The dollar amounts are just numbers. Focus on making the correct poker decision regardless of stakes."
+            },
+            {
+              "id": "b",
+              "text": "Just call to control the pot size and minimize risk",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Pot controlling with top set is leaving massive value on the table. You're letting fear dictate your strategy."
+            },
+            {
+              "id": "c",
+              "text": "Fold - they probably have a bigger set",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Folding top set here is a catastrophic mistake. You're monster hunting based on fear, not logic."
+            },
+            {
+              "id": "d",
+              "text": "Shove immediately - no way they have 77 or 22",
+              "type": "aggressive",
+              "correct": false,
+              "feedback": "The action might be correct, but the reasoning isn't. Dismissing their possible holdings is overconfident."
+            }
+          ],
+          "timeout_seconds": 25,
+          "xp_reward": 55
+        }
+      ]
+    },
+    "discipline": {
+      "name": "Session Discipline",
+      "description": "Maintaining focus and making quality decisions",
+      "scenarios": [
+        {
+          "id": "disc_001",
+          "title": "The Long Session",
+          "context": "You've been playing a cash session for 8 hours. You're up 3 buy-ins but feeling mentally fatigued. You just made a questionable call that happened to work out. A new player just sat down with a full stack.",
+          "prompt": "What should you do?",
+          "options": [
+            {
+              "id": "a",
+              "text": "Lock up the win and end the session - fatigue is clearly affecting your decisions",
+              "type": "rational",
+              "correct": true,
+              "feedback": "Perfect read on yourself. Recognizing diminished decision quality and protecting your profit shows elite discipline."
+            },
+            {
+              "id": "b",
+              "text": "Stay for one more orbit to evaluate the new player",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Slippery slope. One orbit becomes one hour. If you're fatigued, the new player's presence doesn't matter."
+            },
+            {
+              "id": "c",
+              "text": "Order some coffee and push through - you're running hot",
+              "type": "impulsive",
+              "correct": false,
+              "feedback": "Running hot is not a reason to play tired. Variance gave you those chips; fatigue will give them back."
+            },
+            {
+              "id": "d",
+              "text": "Take a 15-minute break then continue playing",
+              "type": "passive",
+              "correct": false,
+              "feedback": "After 8 hours, a short break won't restore full cognitive function. You need proper rest."
+            }
+          ],
+          "timeout_seconds": 25,
+          "xp_reward": 50
+        },
+        {
+          "id": "disc_002",
+          "title": "The Distraction",
+          "context": "You're playing an important MTT. During a crucial hand, your phone buzzes with a work emergency. You're facing a tough decision with 2 minutes on your time bank.",
+          "prompt": "How do you handle this?",
+          "options": [
+            {
+              "id": "a",
+              "text": "Ignore the phone, focus on the hand, deal with work after making your decision",
+              "type": "rational",
+              "correct": true,
+              "feedback": "Correct prioritization. The hand in front of you requires your full attention. Work can wait 2 minutes."
+            },
+            {
+              "id": "b",
+              "text": "Quickly check the phone while the time bank runs",
+              "type": "impulsive",
+              "correct": false,
+              "feedback": "Split attention leads to poor decisions in both areas. You'll make a worse poker decision AND a rushed work response."
+            },
+            {
+              "id": "c",
+              "text": "Fold and handle the work emergency immediately",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Folding a tough spot because of external distraction is letting non-poker factors dictate your strategy."
+            },
+            {
+              "id": "d",
+              "text": "Let the hand time out while you check the phone",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Timing out is the worst outcome. You're neither making a poker decision nor properly handling work."
+            }
+          ],
+          "timeout_seconds": 20,
+          "xp_reward": 45
+        }
+      ]
+    },
+    "confidence": {
+      "name": "Confidence Building",
+      "description": "Trusting your reads and making bold plays",
+      "scenarios": [
+        {
+          "id": "conf_001",
+          "title": "The Hero Call Spot",
+          "context": "On the river, the board is K-Q-7-4-2 rainbow. You have A-K. The pot is $500, and your opponent just bet $400. You've noticed they've been bluffing a lot, but this time they look confident.",
+          "prompt": "What should guide your decision?",
+          "options": [
+            {
+              "id": "a",
+              "text": "Analyze their full range and bet sizing - physical tells are unreliable",
+              "type": "rational",
+              "correct": true,
+              "feedback": "Exactly. Live tells can deceive you. Focus on their range construction, bet sizing, and the overall hand narrative."
+            },
+            {
+              "id": "b",
+              "text": "Trust your read that they look confident and fold",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Physical tells are often wrong or intentionally misleading. Folding top pair top kicker based on 'confidence' is weak."
+            },
+            {
+              "id": "c",
+              "text": "Call instantly to show you can't be bullied",
+              "type": "aggressive",
+              "correct": false,
+              "feedback": "Ego-based decisions are -EV. Make the call if it's correct, not to prove a point."
+            },
+            {
+              "id": "d",
+              "text": "Raise to find out where you stand",
+              "type": "aggressive",
+              "correct": false,
+              "feedback": "Raising for information on the river with a bluff catcher is a common mistake. You're either value-owned or folding out bluffs."
+            }
+          ],
+          "timeout_seconds": 25,
+          "xp_reward": 55
+        },
+        {
+          "id": "conf_002",
+          "title": "The Ambitious Bluff",
+          "context": "You've identified a spot where a triple barrel bluff makes sense. The math says it should work 60% of the time. Your heart is racing as you contemplate the river bet.",
+          "prompt": "How do you proceed?",
+          "options": [
+            {
+              "id": "a",
+              "text": "Execute the bluff confidently - you've done the analysis and the spot is correct",
+              "type": "rational",
+              "correct": true,
+              "feedback": "Perfect. Trust your preparation. If the math supports the play, physical anxiety shouldn't stop you from executing."
+            },
+            {
+              "id": "b",
+              "text": "Size down your bluff to risk less",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Sizing down often makes your bluff less effective while still committing chips. Either execute fully or don't bluff."
+            },
+            {
+              "id": "c",
+              "text": "Give up - the physical stress isn't worth it",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Letting anxiety dictate your strategy costs you money. Learn to play through the discomfort."
+            },
+            {
+              "id": "d",
+              "text": "Overbet to really put them to the test",
+              "type": "aggressive",
+              "correct": false,
+              "feedback": "If 60% is the right frequency, stick to your planned sizing. Overbetting might lower your success rate."
+            }
+          ],
+          "timeout_seconds": 20,
+          "xp_reward": 50
+        }
+      ]
+    },
+    "winners_tilt": {
+      "name": "Winners Tilt",
+      "description": "Staying sharp when running good",
+      "scenarios": [
+        {
+          "id": "win_001",
+          "title": "The Heater",
+          "context": "You've won 5 buy-ins in the last hour. Every hand seems to hit. You just flopped a set again and your opponent is betting into you.",
+          "prompt": "What mindset should you maintain?",
+          "options": [
+            {
+              "id": "a",
+              "text": "Stay focused on making correct decisions - running good doesn't change strategy",
+              "type": "rational",
+              "correct": true,
+              "feedback": "Perfect discipline. Winning streaks are variance too. Keep making +EV plays regardless of recent results."
+            },
+            {
+              "id": "b",
+              "text": "Press your luck and play more hands while you're hot",
+              "type": "impulsive",
+              "correct": false,
+              "feedback": "This is winners tilt. Playing more hands because you're 'hot' is just as irrational as playing scared when running bad."
+            },
+            {
+              "id": "c",
+              "text": "Book the win - it can only go down from here",
+              "type": "passive",
+              "correct": false,
+              "feedback": "Quitting just because you're ahead is results-oriented thinking. If you're playing well and the game is good, continue."
+            },
+            {
+              "id": "d",
+              "text": "Move up in stakes to maximize the heater",
+              "type": "aggressive",
+              "correct": false,
+              "feedback": "Moving up based on recent results rather than bankroll and skill is a recipe for giving back your winnings."
+            }
+          ],
+          "timeout_seconds": 20,
+          "xp_reward": 55
+        }
+      ]
+    }
+  }
+}

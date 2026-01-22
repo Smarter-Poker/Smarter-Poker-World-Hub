@@ -1,0 +1,423 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "engine": "PIO",
+    "description": "Sample hands for PIO engine testing"
+  },
+  "hands": [
+    {
+      "hand_id": "demo_001",
+      "board": [
+        "As",
+        "Kd",
+        "7h"
+      ],
+      "hero_hand": [
+        "Ac",
+        "Kc"
+      ],
+      "pot_size": 159,
+      "stack_effective": 143,
+      "position": "MP",
+      "street": "River",
+      "correct_actions": [
+        "BET 33%",
+        "BET 100%"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_002",
+      "board": [
+        "Qh",
+        "Jd",
+        "Tc"
+      ],
+      "hero_hand": [
+        "Qd",
+        "Qc"
+      ],
+      "pot_size": 304,
+      "stack_effective": 174,
+      "position": "UTG",
+      "street": "River",
+      "correct_actions": [
+        "CHECK",
+        "BET 100%"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_003",
+      "board": [
+        "9s",
+        "8s",
+        "2d"
+      ],
+      "hero_hand": [
+        "Jh",
+        "Ts"
+      ],
+      "pot_size": 269,
+      "stack_effective": 200,
+      "position": "BTN",
+      "street": "Flop",
+      "correct_actions": [
+        "FOLD",
+        "CHECK"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_004",
+      "board": [
+        "Ah",
+        "Th",
+        "5h"
+      ],
+      "hero_hand": [
+        "9h",
+        "9d"
+      ],
+      "pot_size": 460,
+      "stack_effective": 100,
+      "position": "CO",
+      "street": "Turn",
+      "correct_actions": [
+        "BET 33%",
+        "BET 100%"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_005",
+      "board": [
+        "Kc",
+        "Kd",
+        "3s"
+      ],
+      "hero_hand": [
+        "As",
+        "5s"
+      ],
+      "pot_size": 259,
+      "stack_effective": 130,
+      "position": "CO",
+      "street": "Flop",
+      "correct_actions": [
+        "BET 66%",
+        "CHECK"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_006",
+      "board": [
+        "As",
+        "Kd",
+        "7h"
+      ],
+      "hero_hand": [
+        "Ac",
+        "Kc"
+      ],
+      "pot_size": 417,
+      "stack_effective": 60,
+      "position": "UTG",
+      "street": "Flop",
+      "correct_actions": [
+        "CHECK",
+        "BET 33%"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_007",
+      "board": [
+        "Qh",
+        "Jd",
+        "Tc"
+      ],
+      "hero_hand": [
+        "Qd",
+        "Qc"
+      ],
+      "pot_size": 327,
+      "stack_effective": 58,
+      "position": "CO",
+      "street": "Flop",
+      "correct_actions": [
+        "BET 100%",
+        "BET 66%"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_008",
+      "board": [
+        "9s",
+        "8s",
+        "2d"
+      ],
+      "hero_hand": [
+        "Jh",
+        "Ts"
+      ],
+      "pot_size": 288,
+      "stack_effective": 165,
+      "position": "BTN",
+      "street": "Turn",
+      "correct_actions": [
+        "CHECK"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_009",
+      "board": [
+        "Ah",
+        "Th",
+        "5h"
+      ],
+      "hero_hand": [
+        "9h",
+        "9d"
+      ],
+      "pot_size": 348,
+      "stack_effective": 152,
+      "position": "CO",
+      "street": "River",
+      "correct_actions": [
+        "BET 66%",
+        "CHECK"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_010",
+      "board": [
+        "Kc",
+        "Kd",
+        "3s"
+      ],
+      "hero_hand": [
+        "As",
+        "5s"
+      ],
+      "pot_size": 169,
+      "stack_effective": 80,
+      "position": "BTN",
+      "street": "Flop",
+      "correct_actions": [
+        "FOLD"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_011",
+      "board": [
+        "As",
+        "Kd",
+        "7h"
+      ],
+      "hero_hand": [
+        "Ac",
+        "Kc"
+      ],
+      "pot_size": 438,
+      "stack_effective": 112,
+      "position": "CO",
+      "street": "Flop",
+      "correct_actions": [
+        "BET 66%"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_012",
+      "board": [
+        "Qh",
+        "Jd",
+        "Tc"
+      ],
+      "hero_hand": [
+        "Qd",
+        "Qc"
+      ],
+      "pot_size": 248,
+      "stack_effective": 155,
+      "position": "BTN",
+      "street": "River",
+      "correct_actions": [
+        "FOLD"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_013",
+      "board": [
+        "9s",
+        "8s",
+        "2d"
+      ],
+      "hero_hand": [
+        "Jh",
+        "Ts"
+      ],
+      "pot_size": 335,
+      "stack_effective": 181,
+      "position": "MP",
+      "street": "Turn",
+      "correct_actions": [
+        "BET 33%",
+        "BET 66%"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_014",
+      "board": [
+        "Ah",
+        "Th",
+        "5h"
+      ],
+      "hero_hand": [
+        "9h",
+        "9d"
+      ],
+      "pot_size": 308,
+      "stack_effective": 187,
+      "position": "MP",
+      "street": "River",
+      "correct_actions": [
+        "CHECK",
+        "BET 66%"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_015",
+      "board": [
+        "Kc",
+        "Kd",
+        "3s"
+      ],
+      "hero_hand": [
+        "As",
+        "5s"
+      ],
+      "pot_size": 491,
+      "stack_effective": 81,
+      "position": "CO",
+      "street": "Flop",
+      "correct_actions": [
+        "CHECK"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_016",
+      "board": [
+        "As",
+        "Kd",
+        "7h"
+      ],
+      "hero_hand": [
+        "Ac",
+        "Kc"
+      ],
+      "pot_size": 210,
+      "stack_effective": 195,
+      "position": "CO",
+      "street": "River",
+      "correct_actions": [
+        "BET 66%",
+        "CHECK"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_017",
+      "board": [
+        "Qh",
+        "Jd",
+        "Tc"
+      ],
+      "hero_hand": [
+        "Qd",
+        "Qc"
+      ],
+      "pot_size": 272,
+      "stack_effective": 189,
+      "position": "BTN",
+      "street": "Flop",
+      "correct_actions": [
+        "FOLD",
+        "BET 100%"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_018",
+      "board": [
+        "9s",
+        "8s",
+        "2d"
+      ],
+      "hero_hand": [
+        "Jh",
+        "Ts"
+      ],
+      "pot_size": 240,
+      "stack_effective": 69,
+      "position": "CO",
+      "street": "Flop",
+      "correct_actions": [
+        "BET 100%"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_019",
+      "board": [
+        "Ah",
+        "Th",
+        "5h"
+      ],
+      "hero_hand": [
+        "9h",
+        "9d"
+      ],
+      "pot_size": 168,
+      "stack_effective": 93,
+      "position": "CO",
+      "street": "Turn",
+      "correct_actions": [
+        "FOLD",
+        "CHECK"
+      ],
+      "villain_range_description": "Typical opener range"
+    },
+    {
+      "hand_id": "demo_020",
+      "board": [
+        "Kc",
+        "Kd",
+        "3s"
+      ],
+      "hero_hand": [
+        "As",
+        "5s"
+      ],
+      "pot_size": 246,
+      "stack_effective": 51,
+      "position": "BTN",
+      "street": "Turn",
+      "correct_actions": [
+        "BET 33%",
+        "BET 66%"
+      ],
+      "villain_range_description": "Typical opener range"
+    }
+  ]
+}
