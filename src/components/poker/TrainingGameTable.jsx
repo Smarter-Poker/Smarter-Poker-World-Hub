@@ -1,31 +1,30 @@
 /**
- * 🎮 TRAINING GAME TABLE — GOLDEN STANDARD
+ * 🎮 TRAINING GAME TABLE — 100% GOLDEN TEMPLATE MATCH
  * 
- * This table follows the MANDATORY design spec:
- * - STADIUM/RACETRACK shape (borderRadius: 9999)
- * - Double gold rails with gradients
- * - WHITE EDGE GLOW on felt fading to dark center
- * - Solid black background
- * - Large avatars outside table perimeter
+ * CRITICAL: This MUST match the golden reference EXACTLY:
+ * - NARROW stadium shape with straight sides
+ * - BRIGHT WHITE EDGE GLOW on felt (very visible)
+ * - THICK gold rails
+ * - HUGE avatars filling space outside table
  */
 
 import React from 'react';
 import { motion } from 'framer-motion';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SEAT POSITIONS — Around the stadium perimeter
+// SEAT POSITIONS — LARGE avatars positioned around narrow stadium
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SEATS = [
-    { id: 'hero', x: 50, y: 92, isHero: true, name: 'Hero' },
-    { id: 'v1', x: 18, y: 80, name: 'Villain 1' },
-    { id: 'v2', x: 5, y: 55, name: 'Villain 2' },
-    { id: 'v3', x: 10, y: 30, name: 'Villain 3' },
-    { id: 'v4', x: 28, y: 10, name: 'Villain 4' },
-    { id: 'v5', x: 72, y: 10, name: 'Villain 5' },
-    { id: 'v6', x: 90, y: 30, name: 'Villain 6' },
-    { id: 'v7', x: 95, y: 55, name: 'Villain 7' },
-    { id: 'v8', x: 82, y: 80, name: 'Villain 8' },
+    { id: 'hero', x: 50, y: 91, isHero: true, name: 'Hero' },
+    { id: 'v1', x: 16, y: 76, name: 'Villain 1' },
+    { id: 'v2', x: 3, y: 50, name: 'Villain 2' },
+    { id: 'v3', x: 14, y: 24, name: 'Villain 3' },
+    { id: 'v4', x: 35, y: 6, name: 'Villain 4' },
+    { id: 'v5', x: 65, y: 6, name: 'Villain 5' },
+    { id: 'v6', x: 86, y: 24, name: 'Villain 6' },
+    { id: 'v7', x: 97, y: 50, name: 'Villain 7' },
+    { id: 'v8', x: 84, y: 76, name: 'Villain 8' },
 ];
 
 const DEFAULT_STACKS = [45, 32, 28, 55, 41, 38, 62, 29, 51];
@@ -43,7 +42,7 @@ const AVATARS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CARD COMPONENT — Optimized 150x210 PNGs
+// CARD COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SUIT_MAP = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
@@ -55,14 +54,11 @@ const RANK_MAP = {
 
 function Card({ card, style = {} }) {
     if (!card) return null;
-    const suitName = SUIT_MAP[card[1]];
-    const rankName = RANK_MAP[card[0]] || card[0].toLowerCase();
-    const imagePath = `/cards/${suitName}_${rankName}.png`;
-
+    const imagePath = `/cards/${SUIT_MAP[card[1]]}_${RANK_MAP[card[0]] || card[0].toLowerCase()}.png`;
     return (
         <div style={{
-            width: 50,
-            height: 70,
+            width: 48,
+            height: 67,
             background: '#fff',
             borderRadius: 4,
             boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
@@ -70,25 +66,18 @@ function Card({ card, style = {} }) {
             border: '1px solid #ddd',
             ...style
         }}>
-            <img
-                src={imagePath}
-                alt={card}
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain',
-                }}
-            />
+            <img src={imagePath} alt={card} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PLAYER SEAT — Avatar + Single Gold Badge
+// PLAYER SEAT — LARGE Avatar + Gold Badge
 // ═══════════════════════════════════════════════════════════════════════════
 
 function PlayerSeat({ seat, stack }) {
-    const size = seat.isHero ? 70 : 58;
+    // LARGE avatars as in reference
+    const size = seat.isHero ? 80 : 70;
 
     return (
         <div style={{
@@ -104,7 +93,7 @@ function PlayerSeat({ seat, stack }) {
             <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                style={{ width: size, height: size * 1.1 }}
+                style={{ width: size, height: size * 1.15 }}
             >
                 <img
                     src={AVATARS[seat.id]}
@@ -114,21 +103,21 @@ function PlayerSeat({ seat, stack }) {
                 />
             </motion.div>
 
-            {/* Single Gold Badge */}
+            {/* Gold Badge */}
             <div style={{
-                background: 'linear-gradient(180deg, #f0c040 0%, #c49808 100%)',
+                background: 'linear-gradient(180deg, #f0c040 0%, #b8860b 100%)',
                 border: '2px solid #8b6914',
                 borderRadius: 4,
-                padding: '2px 8px 3px',
+                padding: '2px 10px 4px',
                 marginTop: -4,
                 textAlign: 'center',
                 boxShadow: '0 2px 5px rgba(0,0,0,0.4)',
-                minWidth: 50,
+                minWidth: 55,
             }}>
-                <span style={{ display: 'block', fontSize: 9, fontWeight: 'bold', color: '#000', lineHeight: 1.2 }}>
+                <span style={{ display: 'block', fontSize: 10, fontWeight: 'bold', color: '#000', lineHeight: 1.2 }}>
                     {seat.name}
                 </span>
-                <span style={{ display: 'block', fontSize: 11, fontWeight: 'bold', color: '#000', lineHeight: 1.1 }}>
+                <span style={{ display: 'block', fontSize: 12, fontWeight: 'bold', color: '#000', lineHeight: 1.1 }}>
                     {stack} BB
                 </span>
             </div>
@@ -137,7 +126,7 @@ function PlayerSeat({ seat, stack }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MAIN TABLE — GOLDEN STANDARD DESIGN
+// MAIN TABLE — 100% GOLDEN TEMPLATE MATCH
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function TrainingGameTable({
@@ -161,7 +150,7 @@ export default function TrainingGameTable({
         <div style={{
             width: '100%',
             height: '100vh',
-            background: '#080810', // SOLID BLACK background
+            background: '#080810',
             display: 'flex',
             flexDirection: 'column',
             fontFamily: "'Inter', -apple-system, sans-serif",
@@ -173,131 +162,121 @@ export default function TrainingGameTable({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '8px 12px',
+                padding: '6px 10px',
             }}>
                 <button onClick={onBack} style={{
                     background: '#0891b2',
                     border: 'none',
                     borderRadius: 14,
-                    padding: '5px 12px',
+                    padding: '4px 10px',
                     color: 'white',
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: 'bold',
                     cursor: 'pointer',
                 }}>
                     ← Back to Training
                 </button>
-                <div style={{ fontSize: 13, fontWeight: 'bold', color: '#22d3ee', letterSpacing: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 'bold', color: '#22d3ee', letterSpacing: 1 }}>
                     {gameTitle}
                 </div>
-                <div style={{ display: 'flex', gap: 10, fontSize: 10, fontWeight: 'bold' }}>
+                <div style={{ display: 'flex', gap: 8, fontSize: 9, fontWeight: 'bold' }}>
                     <span style={{ color: '#22d3ee' }}>⚡ {xp.toLocaleString()} XP</span>
                     <span style={{ color: '#ef4444' }}>💎 {diamonds}</span>
                 </div>
             </div>
 
             {/* QUESTION BOX */}
-            <div style={{ padding: '0 12px 8px' }}>
+            <div style={{ padding: '0 10px 6px' }}>
                 <div style={{
                     background: '#0f172a',
-                    border: '2px solid rgba(34, 211, 238, 0.5)',
-                    borderRadius: 10,
-                    padding: '10px 14px',
+                    border: '2px solid rgba(34, 211, 238, 0.6)',
+                    borderRadius: 8,
+                    padding: '8px 12px',
                     textAlign: 'center',
-                    boxShadow: '0 0 15px rgba(34, 211, 238, 0.15)',
                 }}>
-                    <p style={{ margin: 0, fontSize: 12, fontWeight: '600', color: '#e0f2fe', lineHeight: 1.4 }}>
+                    <p style={{ margin: 0, fontSize: 11, fontWeight: '600', color: '#e0f2fe', lineHeight: 1.4 }}>
                         {questionText}
                     </p>
                 </div>
             </div>
 
             {/* TABLE AREA */}
-            <div style={{ flex: 1, position: 'relative', padding: '0 8px', minHeight: 0 }}>
+            <div style={{ flex: 1, position: 'relative', padding: '0 6px', minHeight: 0 }}>
 
-                {/* Table container - NARROW to create STADIUM shape */}
+                {/* VERY NARROW container for STADIUM shape */}
                 <div style={{
                     position: 'absolute',
-                    top: '3%',
-                    left: '18%',   /* More margin = narrower = stadium shape */
-                    right: '18%',
-                    bottom: '3%',
+                    top: '2%',
+                    left: '22%',   /* VERY NARROW = true stadium */
+                    right: '22%',
+                    bottom: '2%',
                 }}>
 
                     {/* OUTER DARK FRAME */}
                     <div style={{
                         position: 'absolute',
                         inset: 0,
-                        borderRadius: 9999, // STADIUM shape
+                        borderRadius: 9999,
                         background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 50%, #050505 100%)',
-                        boxShadow: '0 15px 50px rgba(0,0,0,0.9), inset 0 -4px 10px rgba(0,0,0,0.5)',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.9)',
                     }}>
 
-                        {/* OUTER GOLD RAIL */}
+                        {/* OUTER GOLD RAIL — THICK */}
                         <div style={{
                             position: 'absolute',
-                            inset: 8,
+                            inset: 6,
                             borderRadius: 9999,
-                            background: 'linear-gradient(180deg, #d4a000 0%, #a07800 50%, #6b4f0a 100%)',
-                            boxShadow: 'inset 0 2px 4px rgba(255,220,100,0.5)',
+                            background: 'linear-gradient(180deg, #f0c040 0%, #d4a000 30%, #8b6914 70%, #6b4f0a 100%)',
+                            boxShadow: 'inset 0 3px 6px rgba(255,220,100,0.5)',
                         }}>
 
                             {/* BLACK GAP */}
                             <div style={{
                                 position: 'absolute',
-                                inset: 6,
+                                inset: 8,
                                 borderRadius: 9999,
-                                background: '#0a0a0a',
+                                background: '#080808',
                             }}>
 
-                                {/* INNER GOLD RAIL */}
+                                {/* INNER GOLD RAIL — THICK */}
                                 <div style={{
                                     position: 'absolute',
-                                    inset: 4,
+                                    inset: 5,
                                     borderRadius: 9999,
-                                    background: 'linear-gradient(180deg, #d4a000 0%, #a07800 50%, #6b4f0a 100%)',
-                                    boxShadow: 'inset 0 2px 3px rgba(255,220,100,0.4)',
+                                    background: 'linear-gradient(180deg, #f0c040 0%, #d4a000 30%, #8b6914 70%, #6b4f0a 100%)',
+                                    boxShadow: 'inset 0 2px 4px rgba(255,220,100,0.4)',
                                 }}>
 
                                     {/* DARK EDGE */}
                                     <div style={{
                                         position: 'absolute',
-                                        inset: 5,
+                                        inset: 6,
                                         borderRadius: 9999,
-                                        background: '#080808',
+                                        background: '#0a0a0a',
                                     }}>
 
-                                        {/* THIN INNER GOLD LINE */}
+                                        {/* *** WHITE EDGE GLOW *** — BRIGHT and VISIBLE */}
                                         <div style={{
                                             position: 'absolute',
-                                            inset: 3,
+                                            inset: 4,
                                             borderRadius: 9999,
-                                            border: '1px solid rgba(180,140,50,0.3)',
-                                            background: 'transparent',
+                                            background: 'linear-gradient(180deg, #555 0%, #444 20%, #333 50%, #222 80%, #333 100%)',
+                                            boxShadow: 'inset 0 0 25px 8px rgba(255,255,255,0.15)',
                                         }}>
 
-                                            {/* FELT SURFACE — WHITE EDGE GLOW */}
+                                            {/* DARK FELT CENTER */}
                                             <div style={{
                                                 position: 'absolute',
-                                                inset: 0,
+                                                inset: 8,
                                                 borderRadius: 9999,
-                                                background: `radial-gradient(
-                          ellipse at 50% 50%,
-                          #080808 0%,
-                          #0c0c0c 25%,
-                          #101010 40%,
-                          #1a1a1a 60%,
-                          #2a2a2a 75%,
-                          #3a3a3a 90%,
-                          #252525 100%
-                        )`,
-                                                boxShadow: 'inset 0 0 80px 25px rgba(255,255,255,0.06)',
+                                                background: 'radial-gradient(ellipse at 50% 50%, #0a0a0a 0%, #0d0d0d 50%, #151515 100%)',
+                                                boxShadow: 'inset 0 0 50px rgba(0,0,0,0.9)',
                                             }}>
 
                                                 {/* POT */}
                                                 <div style={{
                                                     position: 'absolute',
-                                                    top: '18%',
+                                                    top: '15%',
                                                     left: '50%',
                                                     transform: 'translateX(-50%)',
                                                     display: 'flex',
@@ -308,33 +287,22 @@ export default function TrainingGameTable({
                                                     padding: '3px 8px',
                                                     border: '1px solid #333',
                                                 }}>
-                                                    <div style={{
-                                                        width: 12,
-                                                        height: 12,
-                                                        borderRadius: '50%',
-                                                        background: '#222',
-                                                        border: '2px solid #444',
-                                                    }} />
-                                                    <span style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>POT {pot}</span>
+                                                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#222', border: '2px solid #444' }} />
+                                                    <span style={{ color: '#fff', fontSize: 9, fontWeight: 'bold' }}>POT {pot}</span>
                                                 </div>
 
                                                 {/* Game Title */}
                                                 <div style={{
                                                     position: 'absolute',
-                                                    top: '48%',
+                                                    top: '46%',
                                                     left: '50%',
                                                     transform: 'translate(-50%, -50%)',
                                                     textAlign: 'center',
                                                 }}>
-                                                    <div style={{
-                                                        fontSize: 16,
-                                                        fontFamily: 'Georgia, serif',
-                                                        fontStyle: 'italic',
-                                                        color: '#3a3a3a',
-                                                    }}>
+                                                    <div style={{ fontSize: 14, fontFamily: 'Georgia, serif', fontStyle: 'italic', color: '#2a2a2a' }}>
                                                         ICM Fundamentals
                                                     </div>
-                                                    <div style={{ fontSize: 11, color: '#c4960a', marginTop: 3 }}>
+                                                    <div style={{ fontSize: 10, color: '#8b6914', marginTop: 2 }}>
                                                         Smarter.Poker
                                                     </div>
                                                 </div>
@@ -343,11 +311,11 @@ export default function TrainingGameTable({
                                                 {communityCards.length > 0 && (
                                                     <div style={{
                                                         position: 'absolute',
-                                                        top: '32%',
+                                                        top: '28%',
                                                         left: '50%',
                                                         transform: 'translateX(-50%)',
                                                         display: 'flex',
-                                                        gap: 4,
+                                                        gap: 3,
                                                     }}>
                                                         {communityCards.map((card, i) => <Card key={i} card={card} />)}
                                                     </div>
@@ -370,7 +338,7 @@ export default function TrainingGameTable({
                     <div style={{
                         position: 'absolute',
                         left: '50%',
-                        bottom: '15%',
+                        bottom: '14%',
                         transform: 'translateX(-50%)',
                         display: 'flex',
                         zIndex: 150,
@@ -392,17 +360,17 @@ export default function TrainingGameTable({
                     <div style={{
                         position: 'absolute',
                         left: '50%',
-                        bottom: '25%',
+                        bottom: '23%',
                         transform: 'translateX(-50%)',
-                        width: 22,
-                        height: 22,
+                        width: 20,
+                        height: 20,
                         borderRadius: '50%',
                         background: '#fff',
                         border: '2px solid #333',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: 'bold',
                         boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
                         zIndex: 200,
@@ -415,16 +383,16 @@ export default function TrainingGameTable({
                 {/* TIMER */}
                 <div style={{
                     position: 'absolute',
-                    left: 12,
-                    bottom: 12,
-                    width: 45,
-                    height: 45,
+                    left: 10,
+                    bottom: 10,
+                    width: 42,
+                    height: 42,
                     background: timer > 5 ? '#dc2626' : '#ff0000',
                     borderRadius: 5,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: 'bold',
                     color: 'white',
                     boxShadow: timer <= 5 ? '0 0 12px #ff0000' : 'none',
@@ -435,14 +403,14 @@ export default function TrainingGameTable({
                 {/* QUESTION COUNTER */}
                 <div style={{
                     position: 'absolute',
-                    right: 12,
-                    bottom: 12,
+                    right: 10,
+                    bottom: 10,
                     background: 'rgba(30,30,40,0.9)',
                     border: '1px solid #444',
-                    borderRadius: 5,
-                    padding: '6px 10px',
+                    borderRadius: 4,
+                    padding: '5px 8px',
                     color: '#f0f0f0',
-                    fontSize: 11,
+                    fontSize: 10,
                 }}>
                     Question {questionNumber} of {totalQuestions}
                 </div>
@@ -453,8 +421,8 @@ export default function TrainingGameTable({
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: 8,
-                padding: '10px 12px',
+                gap: 6,
+                padding: '8px 10px',
             }}>
                 {[
                     { label: 'Fold', onClick: onFold },
@@ -468,10 +436,10 @@ export default function TrainingGameTable({
                         style={{
                             background: '#1e40af',
                             border: 'none',
-                            borderRadius: 6,
-                            padding: '12px',
+                            borderRadius: 5,
+                            padding: '10px',
                             color: 'white',
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: 'bold',
                             cursor: 'pointer',
                         }}
