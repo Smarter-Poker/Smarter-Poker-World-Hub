@@ -21,6 +21,8 @@ Complete implementation of the Smarter.Poker "God Mode" training system.
 | **LevelSelector** | `src/components/training/LevelSelector.tsx` | 697 |
 | Play Page | `pages/hub/training/play/[gameId].js` | 85 |
 | Arena Page | `pages/hub/training/arena/[gameId].js` | 120 |
+| **ChartGrid** | `src/components/training/ChartGrid.tsx` | 580 |
+| **MentalGym** | `src/components/training/MentalGym.tsx` | 520 |
 
 ---
 
@@ -107,6 +109,38 @@ Body: { user_id, game_id, level }
 
 ---
 
+## Step 8: Missing Engines (CHART & SCENARIO)
+
+### ChartGrid.tsx — Push/Fold Training
+| Feature | Description |
+|---------|-------------|
+| **13x13 Grid** | All 169 hand combos (pairs diagonal, suited above, offsuit below) |
+| **Cell Interaction** | Click hand → action popup (PUSH/FOLD) |
+| **Visual Feedback** | Green=correct, Red=wrong, Gold=highlighted question |
+| **Position Display** | Hero position badge with color coding |
+| **Stack Depth** | Shows BB stack for ICM decisions |
+| **Result Overlay** | Animated correct/incorrect with hand info |
+
+### MentalGym.tsx — Psychology Training
+| Feature | Description |
+|---------|-------------|
+| **Scenario Text** | Large italic quote with emotional context |
+| **Countdown Timer** | Visual pressure with 15s default |
+| **Choice Buttons** | Big buttons with icons and emotional type tags |
+| **Emotional Types** | `impulsive` / `rational` / `passive` / `aggressive` |
+| **Feedback Panel** | Explanation + emotional lesson after choice |
+| **Trigger Badges** | TILT ALERT / FEAR TEST / GREED CHECK |
+
+### Integration with GameSession
+```typescript
+// Engine detection and component switching
+if (engineType === 'PIO') → PokerTable component
+if (engineType === 'CHART') → ChartGrid component
+if (engineType === 'SCENARIO') → MentalGym component
+```
+
+---
+
 ## Skill Files
 
 | File | Purpose |
@@ -129,5 +163,6 @@ Body: { user_id, game_id, level }
 - [x] Step 4: GameSession component
 - [x] Step 5: FastAPI server
 - [x] Step 6: Training Hub enhancements
-- [x] **Step 7: Level Select screen**
-- [ ] Step 8: Production deploy
+- [x] Step 7: Level Select screen
+- [x] **Step 8: Missing Engines (ChartGrid & MentalGym)**
+- [ ] Step 9: Production deploy

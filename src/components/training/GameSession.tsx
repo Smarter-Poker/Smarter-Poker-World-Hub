@@ -16,6 +16,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 
+// Import engine-specific components
+import ChartGrid from './ChartGrid';
+import MentalGym from './MentalGym';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -467,70 +471,8 @@ const ResultOverlay: React.FC<{
 };
 
 // ============================================================================
-// PLACEHOLDER COMPONENTS (CHART & SCENARIO)
+// ENGINE COMPONENTS (ChartGrid & MentalGym imported above)
 // ============================================================================
-
-/**
- * Chart Grid Component (CHART Engine)
- * TODO: Implement full push/fold chart UI
- */
-const ChartGrid: React.FC<{
-    chartType: string;
-    heroPosition: string;
-    stackBB: number;
-    onAction: (action: string) => void;
-}> = ({ chartType, heroPosition, stackBB, onAction }) => {
-    return (
-        <div className="chart-grid-placeholder">
-            <h2>📊 Chart Mode: {chartType}</h2>
-            <p>Hero: {heroPosition} | Stack: {stackBB} BB</p>
-
-            {/* TODO: Implement 13x13 push/fold grid */}
-            <div className="chart-actions">
-                <button onClick={() => onAction('PUSH')}>PUSH</button>
-                <button onClick={() => onAction('FOLD')}>FOLD</button>
-            </div>
-
-            <p className="placeholder-note">
-                Full ChartGrid implementation coming in Phase 2
-            </p>
-        </div>
-    );
-};
-
-/**
- * Mental Drill Component (SCENARIO Engine)
- * TODO: Implement scripted psychology drills
- */
-const MentalDrill: React.FC<{
-    scenarioId: string;
-    scriptName: string;
-    riggedOutcome?: string;
-    onChoice: (choice: string) => void;
-}> = ({ scenarioId, scriptName, riggedOutcome, onChoice }) => {
-    return (
-        <div className="mental-drill-placeholder">
-            <h2>🧠 Mental Game: {scenarioId}</h2>
-            <p>Script: {scriptName}</p>
-
-            {/* TODO: Implement scenario narrative and choices */}
-            <div className="scenario-text">
-                <p>You just got coolered for the 3rd time this session...</p>
-                <p>What do you do?</p>
-            </div>
-
-            <div className="scenario-choices">
-                <button onClick={() => onChoice('TILT')}>Express Frustration</button>
-                <button onClick={() => onChoice('BREATHE')}>Take a Deep Breath</button>
-                <button onClick={() => onChoice('LEAVE')}>Leave the Table</button>
-            </div>
-
-            <p className="placeholder-note">
-                Full MentalDrill implementation coming in Phase 2
-            </p>
-        </div>
-    );
-};
 
 // ============================================================================
 // MAIN COMPONENT
@@ -576,6 +518,23 @@ const GameSession: React.FC<GameSessionProps> = ({
         feedback: string;
         evLoss: number;
     } | null>(null);
+
+    // CHART Engine State
+    const [chartFeedback, setChartFeedback] = useState<{
+        hand: string;
+        isCorrect: boolean;
+        correctAction: string;
+    } | null>(null);
+    const [chartPhase, setChartPhase] = useState<'SELECT_HAND' | 'SELECT_ACTION' | 'SHOWING_RESULT'>('SELECT_HAND');
+
+    // SCENARIO Engine State
+    const [scenarioFeedback, setScenarioFeedback] = useState<{
+        choiceId: string;
+        isCorrect: boolean;
+        explanation: string;
+        emotionalLesson?: string;
+    } | null>(null);
+    const [scenarioPhase, setScenarioPhase] = useState<'READING' | 'DECIDING' | 'SHOWING_RESULT'>('DECIDING');
 
     // Animation controls
     const screenControls = useAnimation();
@@ -636,6 +595,16 @@ const GameSession: React.FC<GameSessionProps> = ({
                 setCurrentHand(data);
                 setHandNumber(prev => prev + 1);
                 setPhase('USER_TURN');
+
+                // Reset engine-specific states
+                if (data.engineType === 'CHART') {
+                    setChartPhase('SELECT_HAND');
+                    setChartFeedback(null);
+                }
+                if (data.engineType === 'SCENARIO') {
+                    setScenarioPhase('DECIDING');
+                    setScenarioFeedback(null);
+                }
             }
 
         } catch (error) {
@@ -643,10 +612,14 @@ const GameSession: React.FC<GameSessionProps> = ({
         }
     }, [userId, gameId, currentLevel]);
 
-    const submitAction = useCallback(async (action: string, sizing?: number) => {
+    const submitAction = useCallback(async (action: string, sizingOrHand?: number | string) => {
         if (!currentHand) return;
 
         setIsControlsLocked(true);
+
+        // Determine if second param is sizing (number) or hand (string for CHART)
+        const sizing = typeof sizingOrHand === 'number' ? sizingOrHand : undefined;
+        const selectedHand = typeof sizingOrHand === 'string' ? sizingOrHand : undefined;
 
         try {
             const response = await fetch('/api/god-mode/submit-action', {
@@ -657,7 +630,9 @@ const GameSession: React.FC<GameSessionProps> = ({
                     gameId,
                     action,
                     sizing,
+                    selectedHand,  // For CHART engine
                     handData: currentHand,
+                    engineType,
                 }),
             });
 
@@ -670,6 +645,24 @@ const GameSession: React.FC<GameSessionProps> = ({
                 feedback: result.feedback,
                 evLoss: result.evLoss,
             });
+
+            // Engine-specific feedback
+            if (engineType === 'CHART' && selectedHand) {
+                setChartFeedback({
+                    hand: selectedHand,
+                    isCorrect: result.isCorrect,
+                    correctAction: result.correctAction || action,
+                });
+            }
+
+            if (engineType === 'SCENARIO') {
+                setScenarioFeedback({
+                    choiceId: action,
+                    isCorrect: result.isCorrect,
+                    explanation: result.explanation || result.feedback,
+                    emotionalLesson: result.emotionalLesson,
+                });
+            }
 
             // Apply damage
             if (result.hpDamage > 0) {
@@ -934,17 +927,42 @@ const GameSession: React.FC<GameSessionProps> = ({
                         chartType={(currentHand as any).chartType || 'push_fold'}
                         heroPosition={(currentHand as any).heroPosition || 'BTN'}
                         stackBB={(currentHand as any).stackBB || 15}
-                        onAction={(action) => submitAction(action)}
+                        villainPosition={(currentHand as any).villainPosition}
+                        correctRange={(currentHand as any).correctRange}
+                        highlightHand={(currentHand as any).highlightHand}
+                        phase={chartPhase}
+                        resultFeedback={chartFeedback}
+                        onAction={(action, hand) => {
+                            // Handle chart action
+                            setChartPhase('SHOWING_RESULT');
+                            submitAction(action, hand);
+                        }}
                     />
                 )}
 
-                {/* SCENARIO Engine: Mental Drill */}
+                {/* SCENARIO Engine: Mental Gym */}
                 {engineType === 'SCENARIO' && currentHand && (
-                    <MentalDrill
+                    <MentalGym
                         scenarioId={(currentHand as any).scenarioId || 'tilt-control'}
                         scriptName={(currentHand as any).scriptName || 'bad_beats'}
+                        scenarioText={(currentHand as any).scenarioText || 'You just lost 3 buy-ins. How do you respond?'}
+                        situationContext={(currentHand as any).situationContext}
+                        choices={(currentHand as any).choices || [
+                            { id: 'TILT', label: 'Express Frustration', icon: '😤', emotionalType: 'impulsive' },
+                            { id: 'BREATHE', label: 'Take a Deep Breath', icon: '🧘', emotionalType: 'rational' },
+                            { id: 'LEAVE', label: 'Leave the Table', icon: '🚪', emotionalType: 'passive' },
+                        ]}
+                        correctChoice={(currentHand as any).correctChoice || 'BREATHE'}
+                        timeLimit={(currentHand as any).timeLimit || 15}
                         riggedOutcome={(currentHand as any).riggedOutcome}
-                        onChoice={(choice) => submitAction(choice)}
+                        emotionalTrigger={(currentHand as any).emotionalTrigger}
+                        phase={scenarioPhase}
+                        resultFeedback={scenarioFeedback}
+                        onChoice={(choiceId, timeRemaining) => {
+                            // Handle scenario choice
+                            setScenarioPhase('SHOWING_RESULT');
+                            submitAction(choiceId);
+                        }}
                     />
                 )}
 
@@ -1390,29 +1408,7 @@ const GameSession: React.FC<GameSessionProps> = ({
           color: white;
         }
 
-        /* Placeholder styles */
-        .chart-grid-placeholder,
-        .mental-drill-placeholder {
-          text-align: center;
-          padding: 2rem;
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 12px;
-          border: 2px dashed rgba(255, 255, 255, 0.2);
-        }
-
-        .placeholder-note {
-          margin-top: 1rem;
-          font-style: italic;
-          color: rgba(255, 255, 255, 0.5);
-        }
-
-        .chart-actions,
-        .scenario-choices {
-          display: flex;
-          gap: 1rem;
-          justify-content: center;
-          margin-top: 1rem;
-        }
+        /* Engine-specific styles (ChartGrid & MentalGym handle their own styling) */
 
         .chart-actions button,
         .scenario-choices button {
