@@ -286,8 +286,9 @@ class PipelineOrchestrator {
                 timeout: 30000
             });
 
+            // Wait for page to fully load and JS to execute
             await page.waitForSelector('body', { timeout: 10000 });
-            await this.sleep(2000);
+            await this.sleep(3000); // Wait longer for JS content
 
             // Check if we got blocked
             const content = await page.content();
@@ -295,36 +296,67 @@ class PipelineOrchestrator {
                 throw new Error('Cloudflare challenge detected');
             }
 
+            // Try to wait for tournament table specifically
+            try {
+                await page.waitForSelector('table, .schedule, [class*="tournament"]', { timeout: 5000 });
+            } catch (e) {
+                // Table might not exist, continue anyway
+            }
+
             const tournaments = await page.evaluate(() => {
                 const results = [];
+                const debug = {
+                    tables: document.querySelectorAll('table').length,
+                    rows: 0,
+                    textSamples: []
+                };
+
+                // More comprehensive selectors for PokerAtlas
                 const selectors = [
+                    'table.schedule tbody tr',
+                    'table.tournaments tbody tr',
+                    '.tournament-list tr',
+                    '.schedule-table tr',
                     'table tbody tr',
                     '.tournament-schedule tr',
                     '[class*="tournament"] tr',
-                    'table tr'
+                    'table tr',
+                    // Also try div-based layouts
+                    '.tournament-row',
+                    '.schedule-row',
+                    '[class*="schedule"] > div'
                 ];
 
                 let rows = [];
                 for (const selector of selectors) {
-                    rows = document.querySelectorAll(selector);
-                    if (rows.length > 1) break;
+                    const found = document.querySelectorAll(selector);
+                    if (found.length > rows.length) {
+                        rows = found;
+                    }
                 }
 
-                rows.forEach((row, index) => {
-                    if (row.querySelector('th')) return;
-                    if (index === 0 && row.textContent.toLowerCase().includes('day')) return;
+                debug.rows = rows.length;
 
-                    const text = row.textContent || '';
+                // Also check for any elements containing tournament-like text
+                const allText = document.body.innerText || '';
+                const lines = allText.split('\n').filter(l => l.trim());
+
+                // Look for patterns in the full page text
+                lines.forEach(line => {
+                    const text = line.trim();
+                    if (text.length < 10 || text.length > 200) return;
+
                     const buyinMatch = text.match(/\$(\d{1,3}(?:,\d{3})*|\d+)/);
                     const timeMatch = text.match(/(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)/i);
                     const dayMatch = text.match(/(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Daily|Mon|Tue|Wed|Thu|Fri|Sat|Sun)/i);
-                    const gtdMatch = text.match(/(?:GTD|Guaranteed)[:\s]*\$?([\d,]+)/i) ||
-                                     text.match(/\$(\d{1,3}(?:,\d{3})+)\s*(?:GTD|Guaranteed)/i);
 
                     if (buyinMatch && (timeMatch || dayMatch)) {
                         const buyin = parseInt(buyinMatch[1].replace(/,/g, ''));
 
-                        if (buyin > 0 && buyin < 50000) {
+                        if (buyin >= 20 && buyin < 50000) {
+                            const gtdMatch = text.match(/(?:GTD|Guaranteed)[:\s]*\$?([\d,]+)/i) ||
+                                           text.match(/\$(\d{1,3}(?:,\d{3})+)\s*(?:GTD|Guaranteed)/i);
+
                             let day = dayMatch ? dayMatch[1] : 'Daily';
                             const dayMap = {
                                 'Mon': 'Monday', 'Tue': 'Tuesday', 'Wed': 'Wednesday',
@@ -332,16 +364,35 @@ class PipelineOrchestrator {
                             };
                             day = dayMap[day] || day;
 
-                            results.push({
-                                day_of_week: day,
-                                start_time: timeMatch ? timeMatch[1].toUpperCase() : '7:00 PM',
-                                buy_in: buyin,
-                                guaranteed: gtdMatch ? parseInt(gtdMatch[1].replace(/,/g, '')) : null,
-                                game_type: text.toLowerCase().includes('plo') || text.toLowerCase().includes('omaha') ? 'PLO' : 'NLH'
-                            });
+                            // Avoid duplicates
+                            const existing = results.find(r =>
+                                r.day_of_week === day &&
+                                r.buy_in === buyin &&
+                                r.start_time === (timeMatch ? timeMatch[1].toUpperCase() : '7:00 PM')
+                            );
+
+                            if (!existing) {
+                                results.push({
+                                    day_of_week: day,
+                                    start_time: timeMatch ? timeMatch[1].toUpperCase() : '7:00 PM',
+                                    buy_in: buyin,
+                                    guaranteed: gtdMatch ? parseInt(gtdMatch[1].replace(/,/g, '')) : null,
+                                    game_type: text.toLowerCase().includes('plo') || text.toLowerCase().includes('omaha') ? 'PLO' : 'NLH'
+                                });
+                            }
                         }
                     }
                 });
+
+                // Log debug info
+                if (results.length === 0) {
+                    console.log('DEBUG: tables=' + debug.tables + ', rows=' + debug.rows + ', lines=' + lines.length);
+                    // Sample first few lines that might contain tournament info
+                    const samples = lines.filter(l => l.includes('$') || l.match(/\d:\d{2}/)).slice(0, 3);
+                    if (samples.length > 0) {
+                        console.log('SAMPLES: ' + samples.join(' | '));
+                    }
+                }
 
                 return results;
             });
