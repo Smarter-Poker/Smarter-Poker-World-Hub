@@ -1,5 +1,11 @@
 /**
- * GAME CARD — Finalized badge design with three states
+ * GAME CARD — Enhanced with Progress Bar and Action States
+ * 
+ * Features:
+ * - Visual progress bar showing "Level X/10"
+ * - Three action states: START / RESUME / MASTERED
+ * - Gold border for mastered games
+ * - Streak badge for completed games
  */
 
 import { motion } from 'framer-motion';
@@ -17,13 +23,24 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
 
     const categoryColor = CATEGORY_COLORS[game.category] || '#FF6B35';
 
-    // Check if mastered (all 10 levels complete)
-    const isMastered = progress?.levelsCompleted >= 10;
-
-    // Get current level and last score
+    // Progress state calculations
     const currentLevel = progress?.levelsCompleted || 0;
+    const maxLevel = 10;
+    const progressPercent = (currentLevel / maxLevel) * 100;
     const lastScore = progress?.bestScore || 0;
+
+    // Game states
+    const isMastered = currentLevel >= maxLevel;
     const hasPlayed = currentLevel > 0 || lastScore > 0;
+    const isNew = !hasPlayed;
+
+    // Action button state
+    const getActionState = () => {
+        if (isMastered) return { text: '✓ MASTERED', color: '#FFD700', bg: 'linear-gradient(135deg, #FFD700, #FFA500)' };
+        if (hasPlayed) return { text: '▶ RESUME', color: '#fff', bg: 'linear-gradient(135deg, #4CAF50, #45a049)' };
+        return { text: '▶ START', color: '#fff', bg: 'linear-gradient(135deg, #00D4FF, #0099CC)' };
+    };
+    const actionState = getActionState();
 
     return (
         <motion.div
@@ -197,7 +214,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
 
             <h3
                 style={{
-                    margin: '10px 0 0 0',
+                    margin: '10px 0 4px 0',
                     fontSize: 15,
                     fontWeight: 800,
                     color: '#fff',
@@ -208,6 +225,71 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
             >
                 {game.name}
             </h3>
+
+            {/* PROGRESS BAR — Shows Level X/10 */}
+            {!isMastered && (
+                <div style={{
+                    width: '100%',
+                    maxWidth: 200,
+                    marginTop: 6,
+                }}>
+                    {/* Progress Label */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontSize: 10,
+                        fontWeight: 600,
+                        color: 'rgba(255,255,255,0.7)',
+                        marginBottom: 4,
+                    }}>
+                        <span>Level {currentLevel}/{maxLevel}</span>
+                        <span>{Math.round(progressPercent)}%</span>
+                    </div>
+
+                    {/* Progress Track */}
+                    <div style={{
+                        width: '100%',
+                        height: 6,
+                        background: 'rgba(255,255,255,0.1)',
+                        borderRadius: 3,
+                        overflow: 'hidden',
+                    }}>
+                        <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progressPercent}%` }}
+                            transition={{ duration: 0.5, delay: index * 0.05 }}
+                            style={{
+                                height: '100%',
+                                background: hasPlayed
+                                    ? 'linear-gradient(90deg, #4CAF50, #8BC34A)'
+                                    : 'linear-gradient(90deg, #00D4FF, #0099CC)',
+                                borderRadius: 3,
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* ACTION BUTTON — Start / Resume / Mastered */}
+            <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                    marginTop: 8,
+                    padding: '6px 16px',
+                    background: actionState.bg,
+                    borderRadius: 16,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: isMastered ? '#000' : actionState.color,
+                    letterSpacing: 0.5,
+                    boxShadow: isMastered
+                        ? '0 2px 12px rgba(255, 215, 0, 0.5)'
+                        : '0 2px 8px rgba(0, 0, 0, 0.3)',
+                }}
+            >
+                {actionState.text}
+            </motion.div>
         </motion.div>
     );
 }
