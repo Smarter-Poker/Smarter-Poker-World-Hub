@@ -8,24 +8,74 @@ description: Automated scraping of poker tournament schedules from major tour we
 ## Overview
 Efficiently scrape and populate the database with poker tournament schedules from major tours.
 
-## Primary Data Sources
-| Tour | URL | Schedule Format |
-|------|-----|-----------------|
-| WSOP Circuit | wsop.com/tournaments | HTML tables |
-| WPT | wpt.com/schedule | HTML cards |
-| RGPS | rungoodpokerseries.com | Event cards |
-| MSPT | msptpoker.com | Schedule page |
-| PokerGO Tour | pgt.com/schedule | Dynamic cards |
-| Borgata | borgata.mgmresorts.com/poker | PDF + HTML |
-| Wynn | wynnlasvegas.com/poker | HTML tables |
-| Venetian | venetianlasvegas.com/poker | HTML |
-| Seminole | seminolehardrockpokeropen.com | HTML |
-| Card Player | cardplayer.com/poker-tournaments | Master index |
+## ⚠️ PRIMARY SOURCE: POKER ATLAS
+**ALWAYS check Poker Atlas FIRST before visiting individual tour websites.**
 
-## Secondary Sources (Aggregators)
-- **PokerNews**: pokernews.com/tours - Tour schedules
-- **Hendon Mob**: pokerdb.thehendonmob.com/venues - Historical + upcoming
-- **Poker Atlas**: pokeratlas.com - Real-time schedule updates
+### Poker Atlas URLs
+- **Main Site**: https://www.pokeratlas.com
+- **Tournaments by State**: https://www.pokeratlas.com/poker-tournaments/[state]
+- **Venue-Specific**: https://www.pokeratlas.com/poker-room/[venue-slug]/tournaments
+
+### Why Poker Atlas First?
+1. **Aggregated data** - All venues in one place
+2. **Consistent format** - Standardized table structure
+3. **Real-time updates** - Venues push updates here
+4. **Complete info** - Buy-ins, dates, guarantees, structure
+
+### Poker Atlas Venue Examples
+| Venue | Poker Atlas URL |
+|-------|-----------------|
+| TCH Dallas | pokeratlas.com/poker-room/texas-card-house-dallas/tournaments |
+| Wynn | pokeratlas.com/poker-room/wynn-las-vegas/tournaments |
+| Borgata | pokeratlas.com/poker-room/borgata-hotel-casino-spa/tournaments |
+| Thunder Valley | pokeratlas.com/poker-room/thunder-valley-casino-resort/tournaments |
+
+---
+
+## ✅ VERIFIED SOURCE URLs (Successfully Scraped)
+**CRITICAL: Always save the EXACT URL where data was scraped to `scrape_url` field in database.**
+
+### Poker Atlas (Primary - Use First)
+| Venue | Verified Scrape URL | Last Scraped |
+|-------|---------------------|--------------|
+| TCH Dallas | https://www.pokeratlas.com/poker-room/texas-card-house-dallas/tournaments | 2026-01-21 |
+| TCH Austin | https://www.pokeratlas.com/poker-room/texas-card-house-austin/tournaments | 2026-01-21 |
+| TCH Houston | https://www.pokeratlas.com/poker-room/texas-card-house-houston/tournaments | 2026-01-21 |
+| Talking Stick | https://www.pokeratlas.com/poker-room/talking-stick-resort/tournaments | Pending |
+| Wynn | https://www.pokeratlas.com/poker-room/wynn-las-vegas/tournaments | Pending |
+| Venetian | https://www.pokeratlas.com/poker-room/venetian/tournaments | Pending |
+| Borgata | https://www.pokeratlas.com/poker-room/borgata-hotel-casino-spa/tournaments | Pending |
+| bestbet Jax | https://www.pokeratlas.com/poker-room/bestbet-jacksonville/tournaments | Pending |
+| Commerce | https://www.pokeratlas.com/poker-room/commerce-casino/tournaments | Pending |
+
+### Tour Official Sites (Secondary)
+| Tour | Verified Scrape URL | Last Scraped |
+|------|---------------------|--------------|
+| WSOP Circuit | https://www.wsop.com/tournaments/ | 2026-01-21 |
+| WSOPC Thunder Valley | https://www.wsop.com/tournaments/2026-wsop-circuit-thunder-valley/ | 2026-01-21 |
+| WSOPC Cherokee | https://www.wsop.com/tournaments/2026-wsop-circuit-harrah-s-cherokee/ | 2026-01-21 |
+| WSOPC Baltimore | https://www.wsop.com/tournaments/2026-wsop-circuit-horseshoe-baltimore/ | 2026-01-21 |
+| WPT Schedule | https://www.worldpokertour.com/schedule/ | 2026-01-21 |
+| MSPT Schedule | https://msptpoker.com/schedule/ | 2026-01-21 |
+
+### Venue Official Sites (Tertiary)
+| Venue | Verified Scrape URL | Last Scraped |
+|-------|---------------------|--------------|
+| Talking Stick | https://www.talkingstickresort.com/phoenix-scottsdale-casino/poker/arena-poker-room-tournaments/ | 2026-01-21 |
+| AZ State Champ | https://www.talkingstickresort.com/poker-tournaments/az-state-championship/ | 2026-01-21 |
+| bestbet Blizzard | https://bestbetjax.com/poker/tournaments/bestbet-blizzard-festival | 2026-01-21 |
+| LAPC | https://commercecasino.com/tournament/lapc/ | 2026-01-21 |
+| Card Player (LAPC) | https://www.cardplayer.com/poker-tournaments/1627315-2026-l-a-poker-classic | 2026-01-21 |
+
+### Aggregators (Backup/Verification)
+| Source | Verified Scrape URL | Notes |
+|--------|---------------------|-------|
+| Hendon Mob | https://pokerdb.thehendonmob.com/venues/[venue-id]/festivals | Use for historical + upcoming |
+| Card Player | https://www.cardplayer.com/poker-tournaments/[tournament-id] | Good for schedule tables |
+
+---
+
+## Secondary Sources (Individual Tour Websites)
 
 ## Database Schema
 ```sql
@@ -114,12 +164,12 @@ async function scrapeEventDetails(seriesUid) {
 
 ## SQL Generation Pattern
 ```sql
--- Series INSERT template
+-- Series INSERT template (ALWAYS include scrape_url!)
 INSERT INTO poker_series (
   series_uid, series_name, tour, tier, venue_name, 
   city, state, start_date, end_date, 
   buy_in_min, buy_in_max, guarantee, source, 
-  events_scraped, scrape_status
+  scrape_url, events_scraped, scrape_status
 ) VALUES (
   '[tour]-[venue-slug]-[year]',
   '[Full Series Name]',
@@ -130,8 +180,11 @@ INSERT INTO poker_series (
   '[YYYY-MM-DD]', '[YYYY-MM-DD]',
   [min_buyin], [max_buyin], [guarantee],
   '[source.com]',
+  '[EXACT URL WHERE DATA WAS SCRAPED]', -- ⚠️ REQUIRED: Save exact source URL
   [true/false], '[complete/series_only/pending]'
-) ON CONFLICT (series_uid) DO NOTHING;
+) ON CONFLICT (series_uid) DO UPDATE SET 
+  scrape_url = EXCLUDED.scrape_url,
+  last_scraped = NOW();
 
 -- Events INSERT template
 INSERT INTO poker_events (

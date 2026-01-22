@@ -57,47 +57,53 @@ const AVATARS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CARD COMPONENT
+// CARD COMPONENT — Uses custom 52-card deck from /cards/
+// File format: {suit}_{rank}.png (e.g., hearts_a.png, spades_k.png)
 // ═══════════════════════════════════════════════════════════════════════════
+
+// Map card notation to file names
+const SUIT_MAP = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
+const RANK_MAP = {
+    'A': 'a', '2': '2', '3': '3', '4': '4', '5': '5',
+    '6': '6', '7': '7', '8': '8', '9': '9', 'T': '10',
+    'J': 'j', 'Q': 'q', 'K': 'k'
+};
 
 function Card({ card, style = {} }) {
     if (!card) return null;
 
-    const rank = card[0];
-    const suit = card[1];
-    const isRed = suit === 'h' || suit === 'd';
-    const suitSymbols = { s: '♠', h: '♥', d: '♦', c: '♣' };
+    const rank = card[0]; // A, 2-9, T, J, Q, K
+    const suit = card[1]; // s, h, d, c
+
+    // Build image path: /cards/{suit}_{rank}.png
+    const suitName = SUIT_MAP[suit];
+    const rankName = RANK_MAP[rank] || rank.toLowerCase();
+    const imagePath = `/cards/${suitName}_${rankName}.png`;
 
     return (
         <div style={{
-            width: 50,
-            height: 70,
-            background: 'linear-gradient(145deg, #ffffff 0%, #f0f0f0 100%)',
-            border: '1.5px solid #ccc',
+            width: 55,
+            height: 77,
+            background: '#fff',
             borderRadius: 6,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            padding: '3px 5px',
-            boxShadow: '0 3px 10px rgba(0,0,0,0.3)',
+            boxShadow: '0 3px 12px rgba(0,0,0,0.35)',
+            overflow: 'hidden',
+            border: '1px solid #ddd',
             ...style
         }}>
-            <div style={{
-                fontSize: 18,
-                fontWeight: 'bold',
-                fontFamily: 'Arial Black, sans-serif',
-                color: isRed ? '#cc0000' : '#1a1a2e',
-                lineHeight: 1,
-            }}>
-                {rank === 'T' ? '10' : rank}
-            </div>
-            <div style={{
-                fontSize: 24,
-                textAlign: 'center',
-                color: isRed ? '#cc0000' : '#1a1a2e',
-            }}>
-                {suitSymbols[suit]}
-            </div>
+            <img
+                src={imagePath}
+                alt={`${rank}${suit}`}
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                }}
+                onError={(e) => {
+                    // Fallback to text if image fails
+                    e.target.style.display = 'none';
+                }}
+            />
         </div>
     );
 }
