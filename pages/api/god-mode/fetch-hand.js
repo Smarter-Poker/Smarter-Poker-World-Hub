@@ -2,8 +2,8 @@
  * 🎮 GOD MODE ENGINE — Fetch Hand API
  * ═══════════════════════════════════════════════════════════════════════════
  * POST /api/god-mode/fetch-hand
- * 
- * Fetches the next training hand for a user with suit isomorphism applied.
+ *
+ * Fetches the next training hand from solved_spots_gold with suit isomorphism.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -14,7 +14,7 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// Suit rotation mappings (cyclic permutations)
+// Suit rotation mappings (cyclic permutations for isomorphism)
 const SUIT_ROTATIONS = {
     0: { s: 's', h: 'h', d: 'd', c: 'c' }, // Identity
     1: { s: 'h', h: 'd', d: 'c', c: 's' }, // Rotate +1
@@ -54,26 +54,40 @@ function shuffle(array) {
     return result;
 }
 
+/**
+ * Pick a random hand from the strategy matrix
+ */
+function pickRandomHand(strategyMatrix) {
+    const hands = Object.keys(strategyMatrix);
+    if (hands.length === 0) return null;
+    return hands[Math.floor(Math.random() * hands.length)];
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        const { gameId, userId } = req.body;
+        const { gameId, userId, currentLevel = 1 } = req.body;
 
         if (!gameId || !userId) {
             return res.status(400).json({ error: 'Missing gameId or userId' });
         }
 
-        // 1. Get game configuration
-        const { data: gameConfig, error: gameError } = await supabase
+        // 1. Get game configuration from game_registry
+        let gameConfig = null;
+
+        // Try by ID first
+        const { data: gameById } = await supabase
             .from('game_registry')
             .select('*')
             .eq('id', gameId)
             .single();
 
-        if (gameError || !gameConfig) {
+        if (gameById) {
+            gameConfig = gameById;
+        } else {
             // Try by slug
             const { data: gameBySlug } = await supabase
                 .from('game_registry')
@@ -81,96 +95,228 @@ export default async function handler(req, res) {
                 .eq('slug', gameId)
                 .single();
 
-            if (!gameBySlug) {
-                return res.status(404).json({ error: 'Game not found' });
+            if (gameBySlug) {
+                gameConfig = gameBySlug;
             }
-
-            Object.assign(gameConfig || {}, gameBySlug);
         }
 
-        // 2. Get user's seen hands
+        if (!gameConfig) {
+            return res.status(404).json({ error: 'Game not found', gameId });
+        }
+
+        const engineType = gameConfig.engine_type;
+        const config = gameConfig.config || {};
+
+        // 2. Get user's seen scenarios
         const { data: seenHands } = await supabase
             .from('god_mode_hand_history')
             .select('source_file_id, variant_hash')
             .eq('user_id', userId)
-            .eq('game_id', gameId);
+            .eq('game_id', gameConfig.id);
 
         const seenSet = new Set(
             (seenHands || []).map(h => `${h.source_file_id}_${h.variant_hash}`)
         );
 
-        // 3. Fetch candidate hands based on engine type
-        let candidates = [];
-        const engineType = gameConfig.engine_type;
-        const config = gameConfig.config || {};
-
+        // 3. Query solved_spots_gold based on game config
         if (engineType === 'PIO') {
-            // Query solved_spots_gold
+            // Build query for solved_spots_gold
             let query = supabase.from('solved_spots_gold').select('*');
 
-            if (config.stack_depth) {
-                const depth = config.stack_depth;
-                query = query.gte('effective_stack', depth - 20).lte('effective_stack', depth + 20);
+            // Filter by game_type (Cash, MTT, Spin)
+            if (config.game_type) {
+                query = query.eq('game_type', config.game_type);
             }
 
+            // Filter by stack depth range
+            if (config.stack_depth) {
+                const depth = config.stack_depth;
+                const range = config.stack_range || 10; // +/- range
+                query = query.gte('stack_depth', depth - range).lte('stack_depth', depth + range);
+            }
+
+            // Filter by street
             if (config.street) {
                 query = query.eq('street', config.street);
             }
 
-            const { data } = await query.limit(200);
-            candidates = data || [];
+            // Filter by position
+            if (config.position) {
+                query = query.ilike('scenario_hash', `%${config.position}%`);
+            }
 
-        } else if (engineType === 'CHART') {
-            // Generate from static charts
-            candidates = generateChartHands(config);
+            // Filter by mode (ChipEV, ICM, PKO)
+            if (config.mode) {
+                query = query.eq('mode', config.mode);
+            }
 
-        } else if (engineType === 'SCENARIO') {
-            // Load scripted scenarios
-            candidates = getScenarios(config.scenario_type);
-        }
+            // Limit results
+            const { data: scenarios, error: queryError } = await query.limit(100);
 
-        // 4. Shuffle and find unseen hand + rotation
-        candidates = shuffle(candidates);
-        const rotations = shuffle([0, 1, 2, 3]);
+            if (queryError) {
+                console.error('Error querying solved_spots_gold:', queryError);
+                return res.status(500).json({ error: 'Database query failed', details: queryError.message });
+            }
 
-        for (const candidate of candidates) {
-            const fileId = candidate.id || candidate.file_id;
+            if (!scenarios || scenarios.length === 0) {
+                return res.status(200).json({
+                    hand: null,
+                    message: 'No scenarios available for this game configuration',
+                    debug: { engineType, config }
+                });
+            }
 
-            for (const rotation of rotations) {
-                const variantHash = String(rotation);
-                const key = `${fileId}_${variantHash}`;
+            // 4. Shuffle scenarios and find unseen one
+            const shuffledScenarios = shuffle(scenarios);
+            const rotations = shuffle([0, 1, 2, 3]);
 
-                if (!seenSet.has(key)) {
-                    // Apply suit rotation
-                    const hand = {
-                        fileId,
-                        variantHash,
-                        heroHand: rotateSuits(candidate.hero_hand, rotation),
-                        board: rotateSuits(candidate.board, rotation),
-                        potSize: candidate.pot_size || 100,
-                        heroStack: candidate.hero_stack || config.stack_depth || 100,
-                        villainStack: candidate.villain_stack || config.stack_depth || 100,
-                        position: candidate.position || 'BTN',
-                        street: candidate.street || 'flop',
-                        actionHistory: candidate.action_history || [],
-                        solverNode: candidate.solver_node || candidate.strategy || {},
-                    };
+            for (const scenario of shuffledScenarios) {
+                const fileId = scenario.id || scenario.scenario_hash;
 
-                    return res.status(200).json({ hand, game: gameConfig });
+                for (const rotation of rotations) {
+                    const variantHash = String(rotation);
+                    const key = `${fileId}_${variantHash}`;
+
+                    if (!seenSet.has(key)) {
+                        // Pick a random hand from strategy matrix
+                        const strategyMatrix = scenario.strategy_matrix || {};
+                        const heroHandKey = pickRandomHand(strategyMatrix);
+
+                        if (!heroHandKey) {
+                            continue; // No hands in this scenario
+                        }
+
+                        const heroStrategy = strategyMatrix[heroHandKey];
+
+                        // Parse board cards (stored as array or string)
+                        const boardCards = Array.isArray(scenario.board_cards)
+                            ? scenario.board_cards.join('')
+                            : scenario.board_cards || '';
+
+                        // Apply suit rotation for isomorphism
+                        const hand = {
+                            fileId,
+                            variantHash,
+                            scenario_hash: scenario.scenario_hash,
+                            hero_hand: rotateSuits(heroHandKey, rotation),
+                            board: rotateSuits(boardCards, rotation),
+                            pot_size: scenario.macro_metrics?.pot_size || config.pot_size || 100,
+                            hero_stack: scenario.stack_depth || config.stack_depth || 100,
+                            villain_stack: scenario.stack_depth || config.stack_depth || 100,
+                            hero_position: config.hero_position || 'BTN',
+                            villain_position: config.villain_position || 'BB',
+                            street: scenario.street || 'Flop',
+                            action_history: scenario.action_history || [],
+                            solver_node: {
+                                actions: heroStrategy?.actions || {},
+                                best_action: heroStrategy?.best_action,
+                                max_ev: heroStrategy?.max_ev,
+                                is_mixed: heroStrategy?.is_mixed
+                            },
+                            macro_metrics: scenario.macro_metrics
+                        };
+
+                        return res.status(200).json({
+                            hand,
+                            game: gameConfig,
+                            engineType: 'PIO'
+                        });
+                    }
                 }
             }
+
+            // All scenarios exhausted
+            return res.status(200).json({
+                hand: null,
+                message: 'All scenarios exhausted for this game. Great job completing them all!'
+            });
+
+        } else if (engineType === 'CHART') {
+            // CHART engine - generate from static charts
+            const candidates = generateChartHands(config);
+            const shuffled = shuffle(candidates);
+            const rotations = shuffle([0, 1, 2, 3]);
+
+            for (const candidate of shuffled) {
+                const fileId = candidate.id;
+
+                for (const rotation of rotations) {
+                    const variantHash = String(rotation);
+                    const key = `${fileId}_${variantHash}`;
+
+                    if (!seenSet.has(key)) {
+                        const hand = {
+                            fileId,
+                            variantHash,
+                            hero_hand: rotateSuits(candidate.hero_hand, rotation),
+                            board: '',
+                            pot_size: candidate.pot_size,
+                            hero_stack: candidate.hero_stack,
+                            villain_stack: candidate.villain_stack,
+                            hero_position: candidate.position,
+                            villain_position: getVillainPosition(candidate.position),
+                            street: 'preflop',
+                            action_history: [],
+                            solver_node: candidate.solver_node
+                        };
+
+                        return res.status(200).json({
+                            hand,
+                            game: gameConfig,
+                            engineType: 'CHART'
+                        });
+                    }
+                }
+            }
+
+            return res.status(200).json({
+                hand: null,
+                message: 'All chart scenarios exhausted'
+            });
+
+        } else if (engineType === 'SCENARIO') {
+            // SCENARIO engine - mental game drills
+            const scenarios = getScenarios(config.scenario_type);
+            const shuffled = shuffle(scenarios);
+
+            for (const scenario of shuffled) {
+                const key = `${scenario.id}_0`;
+                if (!seenSet.has(key)) {
+                    return res.status(200).json({
+                        hand: scenario,
+                        game: gameConfig,
+                        engineType: 'SCENARIO'
+                    });
+                }
+            }
+
+            return res.status(200).json({
+                hand: null,
+                message: 'All mental game scenarios exhausted'
+            });
         }
 
-        // No hands available
-        return res.status(200).json({
-            hand: null,
-            message: 'All hands exhausted for this game'
-        });
+        return res.status(400).json({ error: `Unknown engine type: ${engineType}` });
 
     } catch (error) {
         console.error('Fetch hand error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
+}
+
+/**
+ * Get villain position based on hero position
+ */
+function getVillainPosition(heroPosition) {
+    const positions = {
+        'BTN': 'BB',
+        'CO': 'BTN',
+        'HJ': 'CO',
+        'LJ': 'HJ',
+        'SB': 'BB',
+        'BB': 'SB'
+    };
+    return positions[heroPosition] || 'BB';
 }
 
 /**
@@ -226,8 +372,6 @@ function generateChartHands(config) {
  * Convert hand notation to card string
  */
 function convertToCards(hand) {
-    const ranks = { A: 'A', K: 'K', Q: 'Q', J: 'J', T: 'T', '9': '9', '8': '8', '7': '7', '6': '6', '5': '5', '4': '4', '3': '3', '2': '2' };
-
     if (hand.length === 2) {
         // Pocket pair
         return `${hand[0]}h${hand[1]}s`;
@@ -244,12 +388,10 @@ function convertToCards(hand) {
  * Get chart action for a hand/position
  */
 function getChartAction(hand, position, stackDepth) {
-    // Simplified push/fold chart for short stacks
     const premiumHands = ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AQs', 'AKo'];
     const goodHands = ['99', '88', '77', 'AJs', 'ATs', 'AQo', 'AJo', 'KQs', 'KJs'];
 
     if (stackDepth <= 15) {
-        // Push/fold mode
         if (premiumHands.includes(hand)) {
             return { allin: { frequency: 1.0, ev: 15 }, fold: { frequency: 0, ev: 0 } };
         } else if (goodHands.includes(hand) && ['BTN', 'CO', 'SB'].includes(position)) {
@@ -259,7 +401,6 @@ function getChartAction(hand, position, stackDepth) {
         }
     }
 
-    // Standard open ranges
     if (premiumHands.includes(hand)) {
         return { raise: { frequency: 1.0, ev: 5 }, fold: { frequency: 0, ev: 0 } };
     }
@@ -282,19 +423,7 @@ function getScenarios(scenarioType) {
                 villain_stack: 0,
                 position: 'BTN',
                 street: 'river',
-                action_history: ['Hero:raises', 'Villain:3-bets', 'Hero:4-bets all-in', 'Villain:calls'],
-                solver_node: { correct_response: 'stay_calm' }
-            },
-            {
-                id: 'bb_002',
-                hero_hand: 'KhKd',
-                board: 'Kc4s2d5c7c',
-                pot_size: 150,
-                hero_stack: 0,
-                villain_stack: 0,
-                position: 'CO',
-                street: 'river',
-                action_history: ['Hero:raises', 'Villain:calls', 'Hero:bets', 'Villain:raises all-in', 'Hero:calls'],
+                action_history: ['Hero raises', 'Villain 3-bets', 'Hero 4-bets all-in', 'Villain calls'],
                 solver_node: { correct_response: 'stay_calm' }
             },
         ],
@@ -308,7 +437,7 @@ function getScenarios(scenarioType) {
                 villain_stack: 100,
                 position: 'BTN',
                 street: 'flop',
-                action_history: ['Villain:bets 50%'],
+                action_history: ['Villain bets 50%'],
                 solver_node: {
                     actions: {
                         fold: { frequency: 0.4, ev: 0 },
