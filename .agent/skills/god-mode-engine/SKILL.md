@@ -14,8 +14,8 @@ The complete implementation guide for the Smarter.Poker "God Mode" training syst
 | Master Spec | `/god_mode_architecture.md` |
 | Business Rules | `/GOD_MODE_SPECS.md` |
 | Database Schema | `/database/migrations/god_mode_engine.sql` |
-| Seed Data (100 Games) | `/database/migrations/seed_game_registry.sql` |
-| Game Seeder Script | `/scripts/seed_games.py` |
+| **Game Seeder Script** | `/scripts/seed_games.py` |
+| Seed Data SQL | `/database/migrations/seed_game_registry_v2.sql` |
 | Engine Core | `/src/engine/engine_core.py` |
 | Game Session UI | `/src/components/training/GameSession.tsx` |
 | Fetch Hand API | `/pages/api/god-mode/fetch-hand.js` |
@@ -23,22 +23,58 @@ The complete implementation guide for the Smarter.Poker "God Mode" training syst
 
 ---
 
-## DATABASE DEPLOYMENT (Browser Automation)
+## GAME SEEDER SCRIPT (seed_games.py)
 
-### Automated via Supabase SQL Editor
+### Location
+`/scripts/seed_games.py`
 
-The database migrations can be executed automatically using browser subagent:
+### Usage
+```bash
+# Preview engine distribution stats
+python3 scripts/seed_games.py --stats
 
-```javascript
-// 1. Copy SQL to clipboard
-cat /database/migrations/god_mode_engine.sql | pbcopy
+# Preview without inserting to database
+python3 scripts/seed_games.py --dry-run
 
-// 2. Use browser_subagent to:
-//    - Navigate to Supabase SQL Editor
-//    - Use Monaco API: window.monaco.editor.getModels()[0].setValue(sql)
-//    - Click Run button
-//    - Verify with SELECT COUNT(*) query
+# Generate SQL file
+python3 scripts/seed_games.py --output database/migrations/seed_game_registry_v2.sql
+
+# Execute upsert to Supabase (requires SUPABASE_URL & SUPABASE_KEY)
+python3 scripts/seed_games.py
 ```
+
+### Engine Assignment Logic
+
+| Pattern | Engine | Reasoning |
+|---------|--------|-----------|
+| Push/Fold, Bubble, Satellite, ICM, Preflop, Bounty, Registration, Ranges | `CHART` | Static preflop charts |
+| Mental, Tilt, Zen, Focus, Discipline, Ego, Fear, Habits, Mind | `SCENARIO` | Scripted riggings |
+| Everything else (C-Bet, Cash, Postflop) | `PIO` | Solver queries |
+
+### Config Auto-Assignment
+
+**Stack Depth:**
+- "Short Stack", "Push/Fold", "10-20BB" → `{"stack": 20}`
+- "Deep Stack" → `{"stack": 200}`
+- "Hyper" → `{"stack": 10}`
+- Default → `{"stack": 100}`
+
+**Players:**
+- "Heads Up", "Duel" → `{"players": 2}`
+- "3-Max", "Spin" → `{"players": 3}`
+- Default → `{"players": 6}`
+
+### Current Distribution
+| Engine | Count |
+|--------|-------|
+| **PIO** | 60 |
+| **SCENARIO** | 21 |
+| **CHART** | 19 |
+| **Total** | **100** |
+
+---
+
+## DATABASE TABLES
 
 ### Tables Created
 
@@ -49,32 +85,34 @@ cat /database/migrations/god_mode_engine.sql | pbcopy
 | `god_mode_hand_history` | Hand logs + variant_hash | User-owned |
 | `god_mode_leaderboard` | Competitive rankings | Public read |
 
-### Verified Engine Distribution
+### Browser Automation Deployment
 
-| Engine | Count | Purpose |
-|--------|-------|---------|
-| **PIO** | 56 | Postflop solver (suit isomorphism) |
-| **CHART** | 20 | Preflop/ICM static charts |
-| **SCENARIO** | 24 | Mental game "rigged" psychology |
-| **Total** | **100** | |
+```bash
+# 1. Copy schema SQL to clipboard
+cat database/migrations/god_mode_engine.sql | pbcopy
+
+# 2. Use browser_subagent to execute in Supabase SQL Editor
+# 3. Repeat with seed SQL
+cat database/migrations/seed_game_registry_v2.sql | pbcopy
+```
 
 ---
 
 ## The 3-Engine Architecture
 
-### ENGINE A: PIO (Postflop)
+### ENGINE A: PIO (Postflop) — 60 Games
 
 - **Source:** `solved_spots_gold` table (PioSolver files)
 - **Isomorphism:** Randomly rotate suits for visual uniqueness
 - **CRITICAL:** Track `(file_id + variant_hash)` to prevent duplicate questions
 
-### ENGINE B: CHART (Preflop/ICM)
+### ENGINE B: CHART (Preflop/ICM) — 19 Games
 
 - **Source:** Static JSON charts (`/data/charts`)
 - **Logic:** Compare user input to ranges, no solver calls
 - **Use Cases:** Push/fold, bubble play, satellites
 
-### ENGINE C: SCENARIO (Mental Game)
+### ENGINE C: SCENARIO (Mental Game) — 21 Games
 
 - **Source:** Hardcoded scripts (`/data/scenarios`)
 - **Logic:** Rigged RNG to test psychology
@@ -89,7 +127,6 @@ cat /database/migrations/god_mode_engine.sql | pbcopy
 ```python
 from engine_core import GameEngine
 
-# Rotate suits so same hand looks different visually
 SUIT_ROTATIONS = {
     0: {'s':'s', 'h':'h', 'd':'d', 'c':'c'},  # Identity
     1: {'s':'h', 'h':'d', 'd':'c', 'c':'s'},  # +1
@@ -97,8 +134,7 @@ SUIT_ROTATIONS = {
     3: {'s':'c', 'h':'s', 'd':'h', 'c':'d'},  # +3
 }
 
-original = "AhKs"
-rotated = GameEngine.rotate_suits(original, rotation_key=1)
+rotated = GameEngine.rotate_suits("AhKs", rotation_key=1)
 # Result: "AdKh"
 ```
 
@@ -109,12 +145,9 @@ solver_node = {
     'actions': {
         'check': {'frequency': 0.60, 'ev': 0.5},
         'bet_50': {'frequency': 0.25, 'ev': 0.7},
-        'bet_100': {'frequency': 0.15, 'ev': 0.65}
     }
 }
-
 villain_action = GameEngine.resolve_villain_action(solver_node)
-# Randomly selects action weighted by frequency
 ```
 
 ### 3. Damage Calculation
@@ -122,39 +155,11 @@ villain_action = GameEngine.resolve_villain_action(solver_node)
 ```python
 result = GameEngine.calculate_damage(
     user_action='fold',
-    user_sizing=None,
     solver_node=solver_node,
     pot_size=100
 )
-
-# result.is_correct = False
-# result.ev_loss = 12.5
-# result.chip_penalty = 6  # Health bar damage (0-25 range)
-
-# INDIFFERENCE RULE: Actions with ≥40% frequency are accepted as correct
-```
-
----
-
-## Frontend Components
-
-### GameSession.tsx Features
-
-1. **Director Animation** - Typewriter effect: "Hero raises... Villain calls..."
-2. **Health Bar** - Visual HP (0-100) with screen shake on damage
-3. **Bet Slider** - Snaps to solver nodes (25%, 33%, 50%, 66%, 75%, 100%, 150%, 200%)
-4. **Feedback Overlay** - Shows EV loss, chip penalty, mixed strategy indicator
-
-### API Endpoints
-
-```javascript
-// Fetch next hand with suit isomorphism
-POST /api/god-mode/fetch-hand
-Body: { gameId, userId }
-
-// Submit action and get damage result
-POST /api/god-mode/submit-action
-Body: { gameId, userId, action, sizing, fileId, variantHash }
+# result.chip_penalty = 0-25 based on EV loss
+# INDIFFERENCE: Actions with ≥40% frequency are accepted as correct
 ```
 
 ---
@@ -172,31 +177,11 @@ Body: { gameId, userId, action, sizing, fileId, variantHash }
 
 ---
 
-## Usage Example
-
-```tsx
-import { GameSession } from '@/components/training/GameSession';
-
-function TrainingPage() {
-  return (
-    <GameSession
-      gameId="short-stack-ninja"
-      userId={currentUser.id}
-      onSessionComplete={(stats) => {
-        console.log(`Passed: ${stats.passed}`);
-        console.log(`Score: ${stats.correctAnswers}/${stats.handsPlayed}`);
-      }}
-    />
-  );
-}
-```
-
----
-
 ## Deployment Checklist
 
 - [x] Database schema created (`god_mode_engine.sql`)
-- [x] 100 games seeded (PIO=56, CHART=20, SCENARIO=24)
+- [x] Python seeder script (`seed_games.py`)
+- [x] 100 games seeded (PIO=60, CHART=19, SCENARIO=21)
 - [x] RLS policies enabled on all tables
 - [x] Backend engine core (`engine_core.py`)
 - [x] Frontend component (`GameSession.tsx`)
