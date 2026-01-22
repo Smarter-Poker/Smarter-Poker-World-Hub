@@ -11,9 +11,9 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { getGameById, getGameBySlug } from '../../../../src/data/TRAINING_LIBRARY';
 
-// Dynamic import GameSession to avoid SSR issues with framer-motion
-const GameSession = dynamic(
-    () => import('../../../../src/components/training/GameSession'),
+// Dynamic import GodModeArena - the polished training UI with avatars
+const GodModeArena = dynamic(
+    () => import('../../../../src/components/training/GodModeArena'),
     { ssr: false }
 );
 
@@ -131,13 +131,12 @@ export default function TrainingArenaPage() {
                 <title>{game.title} — Level {levelNum} | Smarter.Poker</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
             </Head>
-            <GameSession
+            <GodModeArena
                 userId={userId}
                 gameId={gameId}
-                gameName={game.title}
+                gameName={game.title || game.name}
                 level={levelNum}
                 sessionId={sessionId}
-                engineType={game.engine_type || game.engineType || 'PIO'}
                 onComplete={handleSessionComplete}
                 onExit={handleExit}
             />
