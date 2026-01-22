@@ -371,76 +371,74 @@ export default function TrainingGameTable({
                     D
                 </div>
 
-            </div>
-
-            {/* TIMER */}
-            <div style={{
-                position: 'absolute',
-                left: 8,
-                bottom: 8,
-                width: 38,
-                height: 38,
-                background: timer > 5 ? '#dc2626' : '#ff0000',
-                borderRadius: 4,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 20,
-                fontWeight: 'bold',
-                color: 'white',
-                boxShadow: timer <= 5 ? '0 0 10px #ff0000' : 'none',
-            }}>
-                {timer}
-            </div>
-
-            {/* QUESTION COUNTER */}
-            <div style={{
-                position: 'absolute',
-                right: 8,
-                bottom: 8,
-                background: 'rgba(30,30,40,0.9)',
-                border: '1px solid #444',
-                borderRadius: 4,
-                padding: '4px 6px',
-                color: '#f0f0f0',
-                fontSize: 9,
-            }}>
-                Question {questionNumber} of {totalQuestions}
-            </div>
-
-        </div>
-
-            {/* ACTION BUTTONS */ }
-    <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 5,
-        padding: '6px 8px',
-    }}>
-        {[
-            { label: 'Fold', onClick: onFold },
-            { label: 'Call', onClick: onCall },
-            { label: 'Raise to 8bb', onClick: onRaise },
-            { label: 'All-In', onClick: onAllIn },
-        ].map((btn) => (
-            <button
-                key={btn.label}
-                onClick={btn.onClick}
-                style={{
-                    background: '#1e40af',
-                    border: 'none',
+                {/* TIMER */}
+                <div style={{
+                    position: 'absolute',
+                    left: 8,
+                    bottom: 8,
+                    width: 38,
+                    height: 38,
+                    background: timer > 5 ? '#dc2626' : '#ff0000',
                     borderRadius: 4,
-                    padding: '9px',
-                    color: 'white',
-                    fontSize: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 20,
                     fontWeight: 'bold',
-                    cursor: 'pointer',
-                }}
-            >
-                {btn.label}
-            </button>
-        ))}
-    </div>
+                    color: 'white',
+                    boxShadow: timer <= 5 ? '0 0 10px #ff0000' : 'none',
+                }}>
+                    {timer}
+                </div>
+
+                {/* QUESTION COUNTER */}
+                <div style={{
+                    position: 'absolute',
+                    right: 8,
+                    bottom: 8,
+                    background: 'rgba(30,30,40,0.9)',
+                    border: '1px solid #444',
+                    borderRadius: 4,
+                    padding: '4px 6px',
+                    color: '#f0f0f0',
+                    fontSize: 9,
+                }}>
+                    Question {questionNumber} of {totalQuestions}
+                </div>
+
+            </div>
+
+            {/* ACTION BUTTONS */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 5,
+                padding: '6px 8px',
+            }}>
+                {[
+                    { label: 'Fold', onClick: onFold },
+                    { label: 'Call', onClick: onCall },
+                    { label: 'Raise to 8bb', onClick: onRaise },
+                    { label: 'All-In', onClick: onAllIn },
+                ].map((btn) => (
+                    <button
+                        key={btn.label}
+                        onClick={btn.onClick}
+                        style={{
+                            background: '#1e40af',
+                            border: 'none',
+                            borderRadius: 4,
+                            padding: '9px',
+                            color: 'white',
+                            fontSize: 12,
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        {btn.label}
+                    </button>
+                ))}
+            </div>
 
         </div >
     );

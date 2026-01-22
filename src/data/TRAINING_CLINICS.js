@@ -50,7 +50,23 @@ export const TRAINING_CLINICS = [
             pot: 5.5,
             dealerBtn: 'villain',
             heroStack: 40,
-            villainStack: 40
+            villainStack: 40,
+            // Data-Driven GameLoop fields
+            topology: 9,              // 9-max table
+            buttonPosition: 6,        // BTN at seat 6
+            heroPosition: 'BB',       // Hero in Big Blind
+            effectiveStacks: {
+                hero: 40,
+                villains: [45, 38, 52, 40, 35, 40, 42]  // UTG→SB stacks
+            },
+            actionHistory: [
+                { seat: 0, position: 'UTG', action: 'fold' },
+                { seat: 1, position: 'UTG+1', action: 'fold' },
+                { seat: 2, position: 'MP', action: 'fold' },
+                { seat: 3, position: 'MP+1', action: 'fold' },
+                { seat: 4, position: 'CO', action: 'fold' },
+                { seat: 5, position: 'BTN', action: 'raise', amount: 2.5 }
+            ]
         },
         questions: [
             {
@@ -86,7 +102,21 @@ export const TRAINING_CLINICS = [
             pot: 45,
             dealerBtn: 'hero',
             heroStack: 60,
-            villainStack: 55
+            villainStack: 55,
+            // Data-Driven GameLoop fields
+            topology: 6,              // 6-max table
+            buttonPosition: 3,        // BTN at seat 3 (hero)
+            heroPosition: 'BTN',      // Hero on Button
+            effectiveStacks: {
+                hero: 60,
+                villains: [55, 48, 62, 45]  // UTG→BB stacks (excluding hero)
+            },
+            actionHistory: [
+                { seat: 0, position: 'UTG', action: 'fold' },
+                { seat: 1, position: 'MP', action: 'call', amount: 2 },
+                { seat: 2, position: 'CO', action: 'fold' }
+                // Hero acts next from BTN
+            ]
         },
         questions: [
             {
@@ -122,7 +152,23 @@ export const TRAINING_CLINICS = [
             pot: 80,
             dealerBtn: 'villain',
             heroStack: 45,
-            villainStack: 50
+            villainStack: 50,
+            // Data-Driven GameLoop fields
+            topology: 6,              // 6-max table
+            buttonPosition: 4,        // BTN at seat 4
+            heroPosition: 'BB',       // Hero in Big Blind
+            effectiveStacks: {
+                hero: 45,
+                villains: [50, 42, 55, 38]  // UTG→SB stacks
+            },
+            actionHistory: [
+                { seat: 0, position: 'UTG', action: 'fold' },
+                { seat: 1, position: 'MP', action: 'fold' },
+                { seat: 2, position: 'CO', action: 'fold' },
+                { seat: 3, position: 'BTN', action: 'raise', amount: 3 },
+                { seat: 4, position: 'SB', action: 'fold' }
+                // Hero acts next from BB
+            ]
         },
         questions: [
             {
@@ -158,7 +204,19 @@ export const TRAINING_CLINICS = [
             pot: 3.5,
             dealerBtn: 'hero',
             heroStack: 40,
-            villainStack: 40
+            villainStack: 40,
+            // Data-Driven GameLoop fields
+            topology: 9,              // 9-max for position training
+            buttonPosition: 5,        // BTN at seat 5 (hero)
+            heroPosition: 'BTN',      // Hero on Button
+            effectiveStacks: {
+                hero: 40,
+                villains: [50, 45, 38, 42, 55, 48, 40]  // UTG→BB stacks
+            },
+            actionHistory: [
+                { seat: 0, position: 'UTG', action: 'raise', amount: 3 }
+                // Hero acts next from BTN facing UTG open
+            ]
         },
         questions: [
             {
@@ -346,7 +404,22 @@ export const TRAINING_CLINICS = [
             pot: 4.5,
             dealerBtn: 'villain',
             heroStack: 15,
-            villainStack: 25
+            villainStack: 25,
+            // Data-Driven GameLoop fields
+            topology: 9,              // 9-max MTT table
+            buttonPosition: 4,        // BTN at seat 4
+            heroPosition: 'BTN',      // Hero on Button
+            effectiveStacks: {
+                hero: 15,
+                villains: [25, 18, 32, 12, 45, 22, 28]  // UTG→BB stacks
+            },
+            actionHistory: [
+                { seat: 0, position: 'UTG', action: 'fold' },
+                { seat: 1, position: 'UTG+1', action: 'fold' },
+                { seat: 2, position: 'MP', action: 'fold' },
+                { seat: 3, position: 'CO', action: 'raise', amount: 2.5 }
+                // Hero acts next from BTN facing CO open
+            ]
         },
         // Level 1 Questions (20) - ICM Fundamentals
         levels: [
