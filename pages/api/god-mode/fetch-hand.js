@@ -56,9 +56,30 @@ function shuffle(array) {
 
 /**
  * Pick a random hand from the strategy matrix
+ * The matrix structure is: { hand_evs: {hand: ev}, frequencies: {action: {hand: freq}}, actions: [] }
  */
 function pickRandomHand(strategyMatrix) {
-    const hands = Object.keys(strategyMatrix);
+    // Try hand_evs first
+    if (strategyMatrix.hand_evs && typeof strategyMatrix.hand_evs === 'object') {
+        const hands = Object.keys(strategyMatrix.hand_evs);
+        if (hands.length > 0) {
+            return hands[Math.floor(Math.random() * hands.length)];
+        }
+    }
+
+    // Try frequencies
+    if (strategyMatrix.frequencies && typeof strategyMatrix.frequencies === 'object') {
+        const firstAction = Object.keys(strategyMatrix.frequencies)[0];
+        if (firstAction && strategyMatrix.frequencies[firstAction]) {
+            const hands = Object.keys(strategyMatrix.frequencies[firstAction]);
+            if (hands.length > 0) {
+                return hands[Math.floor(Math.random() * hands.length)];
+            }
+        }
+    }
+
+    // Fallback to direct keys (old format)
+    const hands = Object.keys(strategyMatrix).filter(k => !['actions', 'frequencies', 'hand_evs', 'ev_ip', 'ev_oop', 'tree_file', 'tree_lines', 'exploitability'].includes(k));
     if (hands.length === 0) return null;
     return hands[Math.floor(Math.random() * hands.length)];
 }
@@ -177,24 +198,50 @@ export default async function handler(req, res) {
                             continue; // No hands in this scenario
                         }
 
-                        const heroStrategy = strategyMatrix[heroHandKey];
-
-                        // Extract board from scenario_hash if present
-                        // Format might be: "AsKd2h_BTN_vs_BB_100bb_Cash_Flop" or similar
+                        // Extract board from scenario_hash
+                        // Format: "hu_cash_BB_100bb_Jh7sJd" - board is at the END
                         let boardCards = '';
                         if (scenario.scenario_hash) {
                             const hashParts = scenario.scenario_hash.split('_');
-                            if (hashParts[0] && /^[AKQJT98765432][shdc]/.test(hashParts[0])) {
-                                boardCards = hashParts[0];
+                            const lastPart = hashParts[hashParts.length - 1];
+                            // Board cards are like "Jh7sJd" (6 chars for flop, 8 for turn, 10 for river)
+                            if (lastPart && /^[AKQJT98765432][shdc]/.test(lastPart)) {
+                                boardCards = lastPart;
                             }
                         }
+
+                        // Build solver node from actual data structure
+                        // strategyMatrix has: { actions: [...], frequencies: {action: {hand: freq}}, hand_evs: {hand: ev} }
+                        const availableActions = strategyMatrix.actions || [];
+                        const frequencies = strategyMatrix.frequencies || {};
+                        const handEv = strategyMatrix.hand_evs?.[heroHandKey] || 0;
+
+                        // Build actions object for this hand
+                        const handActions = {};
+                        let bestAction = null;
+                        let bestFreq = 0;
+
+                        for (const action of availableActions) {
+                            const freq = frequencies[action]?.[heroHandKey] || 0;
+                            handActions[action] = {
+                                frequency: freq,
+                                ev: handEv
+                            };
+                            if (freq > bestFreq) {
+                                bestFreq = freq;
+                                bestAction = action;
+                            }
+                        }
+
+                        // Convert hand notation (e.g., "A2s" -> "Ah2h", "AKo" -> "AhKs")
+                        const heroHandCards = convertHandNotation(heroHandKey);
 
                         // Apply suit rotation for isomorphism
                         const hand = {
                             fileId,
                             variantHash,
                             scenario_hash: scenario.scenario_hash,
-                            hero_hand: rotateSuits(heroHandKey, rotation),
+                            hero_hand: rotateSuits(heroHandCards, rotation),
                             board: rotateSuits(boardCards, rotation),
                             pot_size: config.pot_size || 100,
                             hero_stack: scenario.stack_depth || config.stack_depth || 100,
@@ -204,10 +251,10 @@ export default async function handler(req, res) {
                             street: scenario.street || 'Flop',
                             action_history: [],
                             solver_node: {
-                                actions: heroStrategy?.actions || heroStrategy || {},
-                                best_action: heroStrategy?.best_action,
-                                max_ev: heroStrategy?.max_ev,
-                                is_mixed: heroStrategy?.is_mixed
+                                actions: handActions,
+                                best_action: bestAction,
+                                max_ev: handEv,
+                                is_mixed: availableActions.filter(a => (frequencies[a]?.[heroHandKey] || 0) > 0.1).length > 1
                             }
                         };
 
@@ -297,6 +344,40 @@ export default async function handler(req, res) {
         console.error('Fetch hand error:', error);
         return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
+}
+
+/**
+ * Convert hand notation like "A2s", "AKo", "22" to card format like "Ah2h", "AhKs", "2h2s"
+ */
+function convertHandNotation(hand) {
+    if (!hand) return '';
+
+    // Already in card format (e.g., "AhKs")
+    if (hand.length >= 4 && /[shdc]/.test(hand[1])) {
+        return hand;
+    }
+
+    // Pocket pair (e.g., "22", "AA")
+    if (hand.length === 2 && hand[0] === hand[1]) {
+        return `${hand[0]}h${hand[1]}s`;
+    }
+
+    // Suited (e.g., "A2s", "KQs")
+    if (hand.endsWith('s')) {
+        return `${hand[0]}h${hand[1]}h`;
+    }
+
+    // Offsuit (e.g., "A2o", "KQo")
+    if (hand.endsWith('o')) {
+        return `${hand[0]}h${hand[1]}s`;
+    }
+
+    // Two cards without suffix (e.g., "AK")
+    if (hand.length === 2) {
+        return `${hand[0]}h${hand[1]}s`;
+    }
+
+    return hand;
 }
 
 /**
