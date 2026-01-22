@@ -8,6 +8,8 @@
 ALTER TABLE poker_venues
 ADD COLUMN IF NOT EXISTS pokeratlas_url TEXT,
 ADD COLUMN IF NOT EXISTS pokeratlas_slug TEXT,
+ADD COLUMN IF NOT EXISTS scrape_url TEXT,
+ADD COLUMN IF NOT EXISTS scrape_source TEXT DEFAULT 'pending',
 ADD COLUMN IF NOT EXISTS last_scraped TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS scrape_status TEXT DEFAULT 'pending';
 
@@ -21,7 +23,7 @@ ADD COLUMN IF NOT EXISTS scrape_status TEXT DEFAULT 'pending';
 -- Create venue_daily_tournaments table for daily/nightly events
 CREATE TABLE IF NOT EXISTS venue_daily_tournaments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+    venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
     venue_name TEXT NOT NULL,
 
     -- Schedule
