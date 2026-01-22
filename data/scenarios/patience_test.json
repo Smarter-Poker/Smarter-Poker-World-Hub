@@ -1,0 +1,48 @@
+{
+  "id": "patience_test_001",
+  "name": "Patience Test",
+  "category": "impatience",
+  "difficulty": 1,
+  "scenarios": [
+    {
+      "id": "patience_001",
+      "intro": "You've folded 25 hands in a row. Finally you pick up KQo in middle position.",
+      "situation_context": "Last 25 hands: 0 VPIP | Table image: Ultra tight | Position: MP",
+      "emotional_trigger": "impatience",
+      "time_limit": 15,
+      "choices": [
+        {
+          "id": "RAISE",
+          "label": "Open Raise",
+          "description": "Finally a playable hand, let's go",
+          "icon": "🎰",
+          "emotional_type": "impulsive"
+        },
+        {
+          "id": "FOLD",
+          "label": "Fold",
+          "description": "KQo in MP isn't that strong",
+          "icon": "❌",
+          "emotional_type": "rational"
+        },
+        {
+          "id": "LIMP",
+          "label": "Limp In",
+          "description": "See a flop cheaply",
+          "icon": "👀",
+          "emotional_type": "passive"
+        },
+        {
+          "id": "3X",
+          "label": "Make It 3x",
+          "description": "Standard open raise",
+          "icon": "📊",
+          "emotional_type": "rational"
+        }
+      ],
+      "correct_choice": "FOLD",
+      "explanation": "KQo in middle position is a marginal hand. Being card dead doesn't make it better. Your tight image also means you'll get less action from worse hands.",
+      "emotional_lesson": "Hand selection doesn't change based on how long you've been folding. Stay disciplined."
+    }
+  ]
+}

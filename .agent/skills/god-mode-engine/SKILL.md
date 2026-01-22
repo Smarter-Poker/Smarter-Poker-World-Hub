@@ -27,6 +27,7 @@ Complete implementation of the Smarter.Poker "God Mode" training system.
 | **RoundSummary** | `src/components/training/RoundSummary.tsx` | 980 |
 | **Card** | `src/components/training/Card.tsx` | 320 |
 | **Chip** | `src/components/training/Chip.tsx` | 350 |
+| Mock Data Script | `scripts/setup_dummy_data.py` | 450 |
 
 ---
 
@@ -419,6 +420,74 @@ parseCards("Ah Kd Qc")
 
 ---
 
+## Step 13: Mock Data Generation (Safety Net)
+
+### Purpose
+Creates dummy data files for CHART and SCENARIO engines to prevent crashes when the app tries to load game data that doesn't exist yet.
+
+### Script Location
+`scripts/setup_dummy_data.py`
+
+### Run Command
+```bash
+python3 scripts/setup_dummy_data.py
+```
+
+### Created Files
+
+**Charts (`/data/charts/`):**
+| File | Description |
+|------|-------------|
+| `push_fold_basic.json` | Basic push/fold ranges for 10-15bb |
+| `push_fold_advanced.json` | ICM-adjusted ranges (bubble/FT) |
+| `bb_defense.json` | BB defense vs button opens |
+
+**Scenarios (`/data/scenarios/`):**
+| File | Description |
+|------|-------------|
+| `tilt_test.json` | Tilt control scenarios (3 hands) |
+| `fear_test.json` | Fear management scenarios (2 hands) |
+| `greed_test.json` | Greed control scenarios (2 hands) |
+| `patience_test.json` | Patience test scenarios (1 hand) |
+
+### Chart Data Structure
+```json
+{
+  "name": "Push/Fold Basic",
+  "positions": ["BTN", "SB", "CO", ...],
+  "charts": {
+    "BTN": {
+      "15bb": { "AA": "PUSH", "KK": "PUSH", ... },
+      "10bb": { "AA": "PUSH", ... }
+    }
+  },
+  "default_action": "FOLD"
+}
+```
+
+### Scenario Data Structure
+```json
+{
+  "id": "tilt_test_001",
+  "name": "Tilt Control Test",
+  "category": "tilt",
+  "scenarios": [
+    {
+      "id": "tilt_001",
+      "intro": "You just lost 3 buy-ins...",
+      "choices": [
+        { "id": "BREATHE", "label": "Take a Deep Breath", "emotional_type": "rational" },
+        { "id": "TILT", "label": "Express Frustration", "emotional_type": "impulsive" }
+      ],
+      "correct_choice": "BREATHE",
+      "explanation": "..."
+    }
+  ]
+}
+```
+
+---
+
 ## Deployment Checklist
 
 - [x] Step 1: Database schema
@@ -433,4 +502,5 @@ parseCards("Ah Kd Qc")
 - [x] **Step 10: Victory Screen (RoundSummary)**
 - [x] **Step 11: Navigation Wiring (Next.js Routing)**
 - [x] **Step 12: Graphics Engine (Card & Chip components)**
-- [ ] Step 13: Production deploy
+- [x] **Step 13: Mock Data Generation (Safety Net)**
+- [ ] Step 14: Production deploy

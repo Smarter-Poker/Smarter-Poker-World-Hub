@@ -1,0 +1,58 @@
+{
+  "name": "Push/Fold Advanced",
+  "description": "Advanced push/fold with ICM considerations",
+  "stack_range": [
+    5,
+    25
+  ],
+  "positions": [
+    "BTN",
+    "SB",
+    "BB",
+    "CO",
+    "HJ",
+    "LJ",
+    "UTG"
+  ],
+  "icm_spots": {
+    "bubble": {
+      "BTN": {
+        "AA": "PUSH",
+        "KK": "PUSH",
+        "QQ": "PUSH",
+        "JJ": "PUSH",
+        "TT": "PUSH",
+        "99": "PUSH",
+        "88": "PUSH",
+        "77": "PUSH",
+        "AKs": "PUSH",
+        "AQs": "PUSH",
+        "AJs": "PUSH",
+        "AKo": "PUSH",
+        "AQo": "PUSH"
+      }
+    },
+    "final_table": {
+      "BTN": {
+        "AA": "PUSH",
+        "KK": "PUSH",
+        "QQ": "PUSH",
+        "JJ": "PUSH",
+        "TT": "PUSH",
+        "99": "PUSH",
+        "88": "PUSH",
+        "77": "PUSH",
+        "66": "PUSH",
+        "55": "PUSH",
+        "AKs": "PUSH",
+        "AQs": "PUSH",
+        "AJs": "PUSH",
+        "ATs": "PUSH",
+        "AKo": "PUSH",
+        "AQo": "PUSH",
+        "AJo": "PUSH"
+      }
+    }
+  },
+  "default_action": "FOLD"
+}
