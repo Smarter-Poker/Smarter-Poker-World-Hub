@@ -202,11 +202,13 @@ class PipelineOrchestrator {
         console.log('🕷️  PHASE 2: DATA SCRAPING (Puppeteer + Stealth)');
         console.log('─'.repeat(60));
 
+        // Only scrape venues with verified URLs (scrape_status='ready')
         let query = this.supabase
             .from('poker_venues')
             .select('id, name, city, state, scrape_url, pokeratlas_url')
             .not('scrape_url', 'is', null)
-            .eq('is_active', true);
+            .eq('is_active', true)
+            .eq('scrape_status', 'ready');
 
         if (this.options.state) {
             query = query.eq('state', this.options.state.toUpperCase());
