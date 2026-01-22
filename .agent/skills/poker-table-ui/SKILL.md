@@ -5,91 +5,135 @@ description: Build pixel-perfect poker table interfaces following the Golden Tem
 
 # Poker Table UI Skill
 
-## Overview
-Build poker table interfaces that match the Golden Template visual standard for the Smarter.Poker ecosystem.
+## 🏆 GOLDEN STANDARD — MANDATORY FOR ALL POKER TABLES
 
-## Design Standards
+**EVERY poker table in Smarter.Poker MUST look IDENTICAL to this reference. NO EXCEPTIONS.**
 
-### Canvas Size
-- **Design canvas**: 600x800 (3:4 portrait)
-- **Racetrack geometry**: 305x460 inner table
-- **Scaling**: Fixed-aspect responsive scaling
+![Golden Table Reference](file:///Users/smarter.poker/Documents/hub-vanguard/.agent/skills/poker-table-ui/golden-table-reference.png)
 
-### Color Palette
+---
+
+## 🎯 Core Requirements
+
+### 1. Table Shape: STADIUM/RACETRACK (NOT Ellipse)
 ```css
-/* Table felt */
---felt-green: linear-gradient(135deg, #1a4d33 0%, #0d3621 100%);
-
-/* Rail/border */
---rail-gold: linear-gradient(90deg, #8B6914 0%, #C9A227 50%, #8B6914 100%);
-
-/* Neon accents */
---neon-cyan: #00f5ff;
---neon-gold: #ffd700;
---neon-pink: #ff69b4;
-
-/* Card backs */
---card-back: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+borderRadius: 9999  /* Creates pill/stadium shape with rounded ends and straight sides */
 ```
 
-### Avatar Positions (9-max fanned layout)
-```javascript
-const SEAT_POSITIONS = {
-  0: { x: 152, y: 400 },  // Hero (bottom center)
-  1: { x: 50, y: 330 },   // Left bottom
-  2: { x: 20, y: 200 },   // Left middle
-  3: { x: 50, y: 90 },    // Left top
-  4: { x: 120, y: 30 },   // Top left
-  5: { x: 185, y: 20 },   // Top center
-  6: { x: 250, y: 30 },   // Top right
-  7: { x: 290, y: 90 },   // Right top
-  8: { x: 280, y: 200 },  // Right middle
-};
+### 2. Layer Structure (Outside → Inside)
+```
+┌─ OUTER DARK FRAME (gradient: #1a1a1a → #0a0a0a)
+│  └─ OUTER GOLD RAIL (gradient: #d4a000 → #8b6914)
+│     └─ BLACK GAP (#0a0a0a)
+│        └─ INNER GOLD RAIL (thinner, same gradient)
+│           └─ DARK EDGE (#080808)
+│              └─ THIN GOLD INNER LINE (subtle glow)
+│                 └─ FELT with WHITE EDGE GLOW
 ```
 
-## Component Structure
+### 3. Felt Surface — WHITE EDGE GLOW
+**CRITICAL**: The felt has a distinctive WHITE/LIGHT GLOW around the inner edge that fades to dark center.
+```css
+background: `radial-gradient(
+  ellipse at 50% 50%,
+  #0a0a0a 0%,           /* Dark center */
+  #0a0a0a 40%,          /* Dark mid */
+  #2a2a2a 70%,          /* Lighter edge */
+  #4a4a4a 85%,          /* Glow edge */
+  #303030 100%          /* Outer edge */
+)`,
+boxShadow: 'inset 0 0 60px 20px rgba(255,255,255,0.08)'  /* White glow */
+```
 
-### Required Components
-1. **Table felt** - Gradient background with racetrack shape
-2. **Rail** - Gold gradient border with shadow
-3. **Seats** - Avatar + name + stack display
-4. **Community cards** - 5-card board area
-5. **Pot display** - Center pot amount
-6. **Action buttons** - Fold/Check/Call/Raise
-7. **Dealer button** - Position indicator
+### 4. Background: SOLID BLACK
+```css
+background: '#080810'  /* Pure black, no gradients on page background */
+```
 
-### Avatar Display
+### 5. Gold Rail Colors
+- **Bright**: #d4a000, #f0c040
+- **Dark**: #8b6914, #6b4f0a
+- **Use gradients** for 3D depth effect
+
+---
+
+## 📐 CSS Implementation
+
+### Stadium Shape
 ```jsx
-<div className="seat">
-  <img src={player.avatar_url} className="avatar" />
-  <span className="player-name">{player.name}</span>
-  <span className="stack">${player.stack}</span>
-</div>
+borderRadius: 9999,  // NOT '50%' which creates ellipse
 ```
 
-## Animation Standards
+### Gold Rail Gradient
+```jsx
+background: 'linear-gradient(180deg, #d4a000 0%, #8b6914 50%, #6b4f0a 100%)',
+boxShadow: 'inset 0 2px 3px rgba(255,220,100,0.4)',
+```
 
-### Card Dealing
-- Duration: 300ms per card
-- Easing: cubic-bezier(0.25, 0.8, 0.25, 1)
-- Stagger: 100ms between cards
+### Felt with White Edge Glow
+```jsx
+background: `radial-gradient(
+  ellipse at 50% 50%,
+  #080808 0%,
+  #0c0c0c 30%,
+  #151515 60%,
+  #252525 80%,
+  #1a1a1a 100%
+)`,
+boxShadow: 'inset 0 0 80px 30px rgba(255,255,255,0.06)',
+```
 
-### Chip Movement
-- Duration: 400ms
-- Easing: ease-out
-- Use CSS transforms for performance
+---
 
-### Action Timer
-- Full ring: 30-45 seconds
-- Visual countdown with color change (green → yellow → red)
+## 🎴 Card Standards
 
-## Files to Reference
-- `/src/components/PokerTable.jsx`
-- `/public/images/training/` - Asset directory
-- `/src/games/` - Game logic
+### Optimal Card Image Size
+- **Dimensions**: 150 × 210 pixels (2x for retina)
+- **Format**: WebP preferred, PNG acceptable
+- **Aspect Ratio**: 5:7 (standard playing card)
 
-## Best Practices
-1. Always use the 3:4 portrait canvas
-2. Test on mobile (375px width minimum)
-3. Use inline styles for mission-critical positioning
-4. Preload avatar images for smooth rendering
+### Display Size on Table
+- **Hero cards**: 50-55px wide
+- **Community cards**: 48-52px wide
+- **Opponent cards (if shown)**: 40-45px wide
+
+### Card Rendering
+```jsx
+objectFit: 'contain',  // NEVER 'cover' (causes cropping)
+imageRendering: 'high-quality',
+```
+
+---
+
+## 👤 Player Positions (9-max)
+
+Avatars positioned OUTSIDE the table perimeter:
+- **Hero**: Bottom center
+- **Villain 1**: Bottom left
+- **Villain 2**: Left lower
+- **Villain 3**: Left upper  
+- **Villain 4**: Top left
+- **Villain 5**: Top right
+- **Villain 6**: Right upper
+- **Villain 7**: Right lower
+- **Villain 8**: Bottom right
+
+### Avatar Size
+- **Hero**: 70-80px
+- **Villains**: 55-65px
+
+### Player Badge
+Single gold box with:
+- Name (9-10px, bold)
+- BB count (11-12px, bold)
+- Gradient background matching gold rails
+
+---
+
+## 🚫 DO NOT
+
+- Use `borderRadius: '50%'` (creates ellipse, not stadium)
+- Use `objectFit: 'cover'` on cards (crops image)
+- Use colored backgrounds (must be solid black)
+- Deviate from the gold rail colors
+- Skip the white edge glow on felt
