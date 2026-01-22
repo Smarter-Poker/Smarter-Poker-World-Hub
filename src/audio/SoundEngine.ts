@@ -61,7 +61,7 @@ export const AUDIO_SLOTS: Record<string, AudioSlot> = {
     // 🖱️ UI INTERACTIONS - Clicks, hovers, navigation
     // ─────────────────────────────────────────────────────────────────
     buttonClick: {
-        file: null,  // <- e.g., 'ui-click.mp3'
+        file: 'click.mp3',
         volume: 0.5,
         description: 'Standard button click',
         preload: true
@@ -169,13 +169,13 @@ export const AUDIO_SLOTS: Record<string, AudioSlot> = {
     // 🎮 GAMES - Training games, trivia, etc.
     // ─────────────────────────────────────────────────────────────────
     correctAnswer: {
-        file: null,  // <- e.g., 'correct-ding.mp3'
+        file: 'correct.mp3',
         volume: 0.6,
         description: 'Correct answer in games',
         preload: true
     },
     wrongAnswer: {
-        file: null,
+        file: 'incorrect.mp3',
         volume: 0.5,
         description: 'Wrong answer feedback',
         preload: true
@@ -199,7 +199,7 @@ export const AUDIO_SLOTS: Record<string, AudioSlot> = {
         preload: false
     },
     timerTick: {
-        file: null,
+        file: 'tick.mp3',
         volume: 0.25,
         description: 'Timer countdown tick',
         preload: true
@@ -215,13 +215,13 @@ export const AUDIO_SLOTS: Record<string, AudioSlot> = {
     // ♠️ POKER SPECIFIC
     // ─────────────────────────────────────────────────────────────────
     chipStack: {
-        file: null,
+        file: 'chip-stack.mp3',
         volume: 0.5,
         description: 'Chips stacking/moving',
         preload: false
     },
     cardDeal: {
-        file: null,
+        file: 'deal.mp3',
         volume: 0.4,
         description: 'Card dealing sound',
         preload: false
