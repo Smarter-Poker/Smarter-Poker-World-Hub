@@ -22,6 +22,7 @@ import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 // Engine Components
 import ChartGrid from './ChartGrid';
 import MentalGym from './MentalGym';
+import RoundSummary from './RoundSummary';
 
 // ============================================================================
 // TYPES
@@ -40,6 +41,16 @@ interface GameArenaProps {
     onLevelFailed: () => void;
 }
 
+interface BlunderData {
+    handNumber: number;
+    heroHand: string;
+    board?: string;
+    userAction: string;
+    correctAction: string;
+    evLoss: number;
+    damage: number;
+}
+
 interface SessionStats {
     handsPlayed: number;
     correctAnswers: number;
@@ -48,6 +59,9 @@ interface SessionStats {
     finalHealth: number;
     xpEarned: number;
     timeElapsed: number;
+    blunders: BlunderData[];
+    streakBest?: number;
+    perfectHands?: number;
 }
 
 interface HandData {
@@ -307,108 +321,6 @@ const LevelFailedModal: React.FC<{
 };
 
 // ============================================================================
-// SESSION COMPLETE MODAL
-// ============================================================================
-
-const SessionCompleteModal: React.FC<{
-    stats: SessionStats;
-    passed: boolean;
-    level: number;
-    onContinue: () => void;
-    onRetry: () => void;
-}> = ({ stats, passed, level, onContinue, onRetry }) => {
-    const passingGrade = PASSING_GRADES[level - 1] || 85;
-
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={styles.modalOverlay}
-        >
-            <motion.div
-                initial={{ scale: 0.8, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
-                style={{
-                    ...styles.completeModal,
-                    borderColor: passed ? '#4CAF50' : '#FF9800',
-                }}
-            >
-                <div style={styles.completeIcon}>{passed ? '🏆' : '📊'}</div>
-                <h2 style={{
-                    ...styles.completeTitle,
-                    color: passed ? '#4CAF50' : '#FF9800',
-                }}>
-                    {passed ? 'Level Complete!' : 'Session Complete'}
-                </h2>
-
-                {passed ? (
-                    <p style={styles.completeSubtitle}>
-                        You passed Level {level}! 🎉
-                    </p>
-                ) : (
-                    <p style={styles.completeSubtitle}>
-                        Need {passingGrade}% to pass. You got {stats.accuracy.toFixed(1)}%
-                    </p>
-                )}
-
-                <div style={styles.completeStats}>
-                    <div style={styles.bigStat}>
-                        <span style={styles.bigStatValue}>{stats.accuracy.toFixed(1)}%</span>
-                        <span style={styles.bigStatLabel}>Accuracy</span>
-                    </div>
-                    <div style={styles.smallStats}>
-                        <div style={styles.statRow}>
-                            <span>Correct Answers</span>
-                            <span>{stats.correctAnswers} / {stats.handsPlayed}</span>
-                        </div>
-                        <div style={styles.statRow}>
-                            <span>Final Health</span>
-                            <span>{stats.finalHealth} HP</span>
-                        </div>
-                        <div style={styles.statRow}>
-                            <span>XP Earned</span>
-                            <span style={{ color: '#FFD700' }}>+{stats.xpEarned}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div style={styles.modalButtons}>
-                    {passed ? (
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={onContinue}
-                            style={styles.continueButton}
-                        >
-                            Continue ▶
-                        </motion.button>
-                    ) : (
-                        <>
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={onRetry}
-                                style={styles.retryButton}
-                            >
-                                🔄 Try Again
-                            </motion.button>
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={onContinue}
-                                style={styles.exitButton}
-                            >
-                                Exit
-                            </motion.button>
-                        </>
-                    )}
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-};
-
-// ============================================================================
 // PIO ENGINE PLACEHOLDER (Full implementation in GameSession.tsx)
 // ============================================================================
 
@@ -519,6 +431,12 @@ const GameArena: React.FC<GameArenaProps> = ({
     const [recentXP, setRecentXP] = useState(0);
     const [showDamage, setShowDamage] = useState(0);
 
+    // Blunder & Streak Tracking
+    const [blunders, setBlunders] = useState<BlunderData[]>([]);
+    const [currentStreak, setCurrentStreak] = useState(0);
+    const [bestStreak, setBestStreak] = useState(0);
+    const [perfectHands, setPerfectHands] = useState(0);
+
     // Game State
     const [engineType, setEngineType] = useState<EngineType>('PIO');
     const [currentHand, setCurrentHand] = useState<HandData | null>(null);
@@ -618,9 +536,33 @@ const GameArena: React.FC<GameArenaProps> = ({
 
             const result: ActionResult = await response.json();
 
-            // Update correct count
+            // Update correct count and streak tracking
             if (result.isCorrect) {
                 setCorrectCount(prev => prev + 1);
+                setCurrentStreak(prev => {
+                    const newStreak = prev + 1;
+                    setBestStreak(best => Math.max(best, newStreak));
+                    return newStreak;
+                });
+                // Track perfect hands (no damage taken)
+                if (result.damage === 0) {
+                    setPerfectHands(prev => prev + 1);
+                }
+            } else {
+                // Reset streak on wrong answer
+                setCurrentStreak(0);
+
+                // Collect blunder data
+                const blunderData: BlunderData = {
+                    handNumber: handNumber + 1,
+                    heroHand: currentHand?.heroCards || currentHand?.highlightHand || 'Unknown',
+                    board: currentHand?.board,
+                    userAction: action,
+                    correctAction: result.correctAction || 'Unknown',
+                    evLoss: result.evLoss || 0,
+                    damage: result.damage || 0,
+                };
+                setBlunders(prev => [...prev, blunderData]);
             }
 
             // Apply damage
@@ -701,6 +643,9 @@ const GameArena: React.FC<GameArenaProps> = ({
         const accuracy = handNumber > 0 ? (correctCount / handNumber) * 100 : 0;
         const timeElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
 
+        // Sort blunders by damage (worst first) for review
+        const sortedBlunders = [...blunders].sort((a, b) => b.damage - a.damage);
+
         return {
             handsPlayed: handNumber,
             correctAnswers: correctCount,
@@ -709,8 +654,11 @@ const GameArena: React.FC<GameArenaProps> = ({
             finalHealth: health,
             xpEarned: totalXP,
             timeElapsed,
+            blunders: sortedBlunders,
+            streakBest: bestStreak,
+            perfectHands,
         };
-    }, [handNumber, correctCount, health, totalXP]);
+    }, [handNumber, correctCount, health, totalXP, blunders, bestStreak, perfectHands]);
 
     // ========================================================================
     // HANDLERS
@@ -721,11 +669,28 @@ const GameArena: React.FC<GameArenaProps> = ({
         setHandNumber(0);
         setCorrectCount(0);
         setTotalXP(0);
+        setBlunders([]);
+        setCurrentStreak(0);
+        setBestStreak(0);
+        setPerfectHands(0);
         setShowFailed(false);
         setShowComplete(false);
         startTimeRef.current = Date.now();
         fetchNextHand();
     }, [fetchNextHand]);
+
+    const handleNextLevel = useCallback(() => {
+        // Pass stats to parent and let it handle navigation to next level
+        if (sessionStats) {
+            onLevelComplete(sessionStats);
+        }
+    }, [sessionStats, onLevelComplete]);
+
+    const handleReviewHand = useCallback((blunder: BlunderData) => {
+        // For now, log the blunder - could open a detailed review modal
+        console.log('Review blunder:', blunder);
+        // Future: Open hand replay modal
+    }, []);
 
     const handleQuit = useCallback(() => {
         if (window.confirm('Are you sure you want to quit? Progress will be lost.')) {
@@ -859,12 +824,17 @@ const GameArena: React.FC<GameArenaProps> = ({
                 )}
 
                 {showComplete && sessionStats && (
-                    <SessionCompleteModal
-                        stats={sessionStats}
+                    <RoundSummary
+                        isOpen={true}
                         passed={sessionStats.passed}
                         level={level}
-                        onContinue={onExit}
+                        passingGrade={PASSING_GRADES[level - 1] || 85}
+                        stats={sessionStats}
+                        gameName={gameName}
+                        onNextLevel={handleNextLevel}
                         onRetry={handleRetry}
+                        onExit={onExit}
+                        onReviewHand={handleReviewHand}
                     />
                 )}
             </AnimatePresence>
@@ -1291,61 +1261,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         borderRadius: 12,
         padding: 16,
         marginBottom: 24,
-    },
-
-    completeModal: {
-        background: 'linear-gradient(135deg, #1a1a2e, #0d0d1a)',
-        borderRadius: 24,
-        padding: 32,
-        textAlign: 'center',
-        border: '2px solid',
-        maxWidth: 400,
-        width: '90%',
-    },
-
-    completeIcon: {
-        fontSize: 64,
-        marginBottom: 16,
-    },
-
-    completeTitle: {
-        margin: 0,
-        fontSize: 28,
-        fontWeight: 800,
-    },
-
-    completeSubtitle: {
-        margin: '8px 0 24px',
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
-    },
-
-    completeStats: {
-        marginBottom: 24,
-    },
-
-    bigStat: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-
-    bigStatValue: {
-        fontSize: 48,
-        fontWeight: 800,
-        color: '#00D4FF',
-    },
-
-    bigStatLabel: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.5)',
-    },
-
-    smallStats: {
-        background: 'rgba(0, 0, 0, 0.3)',
-        borderRadius: 12,
-        padding: 16,
     },
 
     statRow: {
