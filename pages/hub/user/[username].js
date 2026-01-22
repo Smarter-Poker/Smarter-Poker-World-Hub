@@ -200,8 +200,19 @@ export default function UserProfilePage() {
 
     return (
         <PageTransition>
-            <Head><title>{profile.username || 'Profile'} | Smarter.Poker</title></Head>
-            <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
+            <Head>
+                <title>{profile.username || 'Profile'} | Smarter.Poker</title>
+                <meta name="viewport" content="width=800, user-scalable=no" />
+                <style>{`
+                    .user-profile-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
+                    @media (max-width: 500px) { .user-profile-page { zoom: 0.5; } }
+                    @media (min-width: 501px) and (max-width: 700px) { .user-profile-page { zoom: 0.75; } }
+                    @media (min-width: 701px) and (max-width: 900px) { .user-profile-page { zoom: 0.95; } }
+                    @media (min-width: 901px) { .user-profile-page { zoom: 1.2; } }
+                    @media (min-width: 1400px) { .user-profile-page { zoom: 1.5; } }
+                `}</style>
+            </Head>
+            <div className="user-profile-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 {/* UniversalHeader */}
                 <UniversalHeader pageDepth={2} />
 

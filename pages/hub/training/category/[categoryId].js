@@ -100,12 +100,19 @@ export default function CategoryPage() {
         <PageTransition>
             <Head>
                 <title>{categoryMeta.title} — PokerIQ Training</title>
+                <meta name="viewport" content="width=800, user-scalable=no" />
                 <style>{`
                     * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { 
-                        background: #0a0a15; 
+                    body {
+                        background: #0a0a15;
                         overflow-x: hidden;
                     }
+                    .training-category-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
+                    @media (max-width: 500px) { .training-category-page { zoom: 0.5; } }
+                    @media (min-width: 501px) and (max-width: 700px) { .training-category-page { zoom: 0.75; } }
+                    @media (min-width: 701px) and (max-width: 900px) { .training-category-page { zoom: 0.95; } }
+                    @media (min-width: 901px) { .training-category-page { zoom: 1.2; } }
+                    @media (min-width: 1400px) { .training-category-page { zoom: 1.5; } }
                 `}</style>
             </Head>
 
@@ -116,7 +123,7 @@ export default function CategoryPage() {
                 onComplete={handleIntroComplete}
             />
 
-            <div style={styles.page}>
+            <div className="training-category-page" style={styles.page}>
                 {/* UniversalHeader */}
                 <UniversalHeader pageDepth={2} />
 
