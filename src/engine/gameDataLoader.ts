@@ -83,7 +83,8 @@ export function loadGameData(gameId: string): LoadedGameData | null {
     const validationErrors: string[] = [];
 
     // Get starting state (default to empty if missing)
-    const startingState: GameLoopStartingState = clinic.startingState || {
+    // Cast from external data - topology validation happens below
+    const startingState = (clinic.startingState as GameLoopStartingState) || {
         heroCards: ['??', '??'],
         villainCards: ['??', '??'],
         board: [],
