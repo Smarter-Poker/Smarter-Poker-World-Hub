@@ -1,16 +1,31 @@
-name: Daily Tournament Scraper
+name: Venue Tournament Scraper (Every 3 Days)
 
 on:
   schedule:
-    # Run at 6am UTC (midnight CST) every day
-    - cron: '0 6 * * *'
+    # Run every 3 days at 6am UTC (midnight CST)
+    - cron: '0 6 */3 * *'
   workflow_dispatch:
-    # Allow manual trigger
+    # Allow manual trigger with options
+    inputs:
+      mode:
+        description: 'Scraping mode'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - test
+          - setup-only
+      state:
+        description: 'Filter by state (optional, e.g., TX, NV, FL)'
+        required: false
+        type: string
 
 jobs:
-  scrape-tournaments:
+  scrape-venue-tournaments:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 180  # 3 hour max for full scrape of 777 venues
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,11 +39,42 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Tournament Scraper
+      - name: Run Full Pipeline (Scheduled)
+        if: ${{ github.event_name == 'schedule' }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/daily-tournament-scraper.js
+        run: |
+          echo "🎰 Running full venue tournament scraping pipeline..."
+          echo "📅 Triggered: $(date -u)"
+          node scripts/run-full-pipeline.js
+
+      - name: Run Pipeline (Manual - Full)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🎰 Running full pipeline (manual trigger)..."
+          node scripts/run-full-pipeline.js ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
+
+      - name: Run Pipeline (Manual - Test)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'test' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🧪 Running test scrape (10 venues)..."
+          node scripts/run-full-pipeline.js --test ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
+
+      - name: Run Pipeline (Manual - Setup Only)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'setup-only' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "📦 Running setup only..."
+          node scripts/run-full-pipeline.js --setup-only
 
       - name: Upload scraper logs
         if: always()
@@ -38,3 +84,14 @@ jobs:
           path: |
             *.log
           retention-days: 7
+
+      - name: Report Summary
+        if: always()
+        run: |
+          echo "═══════════════════════════════════════════════════════════"
+          echo "📊 SCRAPER WORKFLOW COMPLETED"
+          echo "═══════════════════════════════════════════════════════════"
+          echo "Mode: ${{ github.event.inputs.mode || 'scheduled-full' }}"
+          echo "State Filter: ${{ github.event.inputs.state || 'all' }}"
+          echo "Completed at: $(date -u)"
+          echo "═══════════════════════════════════════════════════════════"
