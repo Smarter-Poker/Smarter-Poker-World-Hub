@@ -152,6 +152,8 @@ if (engineType === 'SCENARIO') → MentalGym component
 | `SEEDER_REFERENCE.md` | Game seeding |
 | `TRAINING_HUB_REFERENCE.md` | Training Hub UI |
 | `DATABASE_DEPLOYMENT.md` | Browser automation |
+| `CHARTGRID_REFERENCE.md` | Push/fold chart UI |
+| `MENTALGYM_REFERENCE.md` | Mental game scenarios |
 
 ---
 
