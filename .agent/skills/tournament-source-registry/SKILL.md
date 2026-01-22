@@ -44,6 +44,9 @@ This skill provides the **authoritative source of truth** for all poker tourname
 | **Wynn** | https://www.pokeratlas.com/poker-room/wynn-las-vegas/tournaments |
 | **Venetian** | https://www.pokeratlas.com/poker-room/venetian-poker-room/tournaments |
 | **ARIA** | https://www.pokeratlas.com/poker-room/aria-poker-room/tournaments |
+| **ARIA Poker Classic** | https://www.pokeratlas.com/poker-room/aria-poker-room/tournaments |
+| **U.S. Poker Open** | https://www.pokergo.com/schedule |
+| **Poker Masters** | https://www.pokergo.com/schedule |
 
 ### C-Tier: Regional Venues (PokerAtlas)
 
