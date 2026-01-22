@@ -217,15 +217,20 @@ export default async function handler(req, res) {
                         const handEv = strategyMatrix.hand_evs?.[heroHandKey] || 0;
 
                         // Build actions object for this hand
+                        // EVs are calculated based on frequency - higher frequency actions have higher EV
+                        // This is a simplification since we don't have per-action EVs in the data
                         const handActions = {};
                         let bestAction = null;
                         let bestFreq = 0;
+                        const baseEv = handEv || 10; // Base EV for the hand
 
                         for (const action of availableActions) {
                             const freq = frequencies[action]?.[heroHandKey] || 0;
+                            // EV scales with frequency - 100% freq = full EV, 0% freq = penalty
+                            const actionEv = freq > 0.01 ? baseEv * freq : -5; // Penalty for actions not in strategy
                             handActions[action] = {
                                 frequency: freq,
-                                ev: handEv
+                                ev: actionEv
                             };
                             if (freq > bestFreq) {
                                 bestFreq = freq;

@@ -11,9 +11,9 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { getGameById, getGameBySlug } from '../../../../src/data/TRAINING_LIBRARY';
 
-// Dynamic import GodModeArena - the polished training UI with avatars
-const GodModeArena = dynamic(
-    () => import('../../../../src/components/training/GodModeArena'),
+// Dynamic import GameSession - the proper 1400-line component with full features
+const GameSession = dynamic(
+    () => import('../../../../src/components/training/GameSession'),
     { ssr: false }
 );
 
@@ -131,13 +131,11 @@ export default function TrainingArenaPage() {
                 <title>{game.title} — Level {levelNum} | Smarter.Poker</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
             </Head>
-            <GodModeArena
+            <GameSession
                 userId={userId}
                 gameId={gameId}
                 gameName={game.title || game.name}
-                level={levelNum}
-                sessionId={sessionId}
-                onComplete={handleSessionComplete}
+                onSessionComplete={handleSessionComplete}
                 onExit={handleExit}
             />
         </>

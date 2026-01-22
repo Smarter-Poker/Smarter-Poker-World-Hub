@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         }
 
         // 2. Calculate damage
-        const damageResult = calculateDamage(action, sizing, solverNode, potSize);
+        const damageResult = calculateDamage(action, sizing, solverNode, effectivePotSize);
 
         // 3. Record in hand history
         try {
