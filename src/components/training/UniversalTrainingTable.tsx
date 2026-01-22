@@ -21,6 +21,15 @@ import { useTrainingAccountant } from '../../hooks/useTrainingAccountant';
 import { getLaw, getViolationExplanation } from '../../data/POKER_LAWS';
 import LeakFixerIntercept from './LeakFixerIntercept';
 
+// Data-Driven GameLoop Engines
+import { loadGameData, GameLoopStartingState } from '../../engine/gameDataLoader';
+import {
+    useActionReplay,
+    generateFullNarrative,
+    ghostPlayerVariants,
+    ANIMATION_TIMING
+} from '../../engine/actionReplayEngine';
+
 // TypeScript interfaces
 interface Question {
     id: string;
@@ -142,6 +151,32 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     // Detected leaks in this session
     const [detectedLeaks, setDetectedLeaks] = useState<string[]>([]);
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // DATA-DRIVEN GAMELOOP INTEGRATION
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Load structured game data with validation
+    const gameData = loadGameData(gameId);
+    const startingState = gameData?.startingState as GameLoopStartingState | undefined;
+    const isGameLoopReady = gameData?.isGameLoopReady ?? false;
+
+    // Action Replay Hook - replays pre-hero actions with animations
+    const {
+        isReplaying,
+        currentStep,
+        ghostedSeats,
+        allInSeats,
+        narrative,
+        startReplay,
+        skipReplay
+    } = useActionReplay(startingState?.actionHistory, {
+        autoStart: false, // Will trigger manually after deal
+        onComplete: () => {
+            // Unlock player buttons after replay completes
+            setGamePhase(GamePhase.PLAYER_TURN);
+        }
+    });
+
     // Get questions from current level or legacy questions array
     const totalLevels = clinic.levels?.length || 1;
     const currentLevel = clinic.levels?.[levelIndex] || null;
@@ -173,16 +208,28 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             // playSound('deal'); // TODO: Add audio
         }, 500);
 
-        // T+800ms: Villain Action
+        // T+800ms: Start Action Replay OR Legacy Villain Action
         const villainTimer = setTimeout(() => {
             setGamePhase(GamePhase.VILLAIN_ACTION);
-            setVillainAction(question.villainAction || 'Bets 2.5BB');
+
+            if (isGameLoopReady && startingState?.actionHistory?.length) {
+                // DATA-DRIVEN: Trigger cinematic action replay
+                startReplay();
+                // Narrative will update automatically via hook
+            } else {
+                // LEGACY: Just show simple villain action text
+                setVillainAction(question.villainAction || 'Bets 2.5BB');
+            }
             // playSound('chip-click'); // TODO: Add audio
         }, 800);
 
-        // T+1000ms: Player Turn - Unlock buttons
+        // T+1000ms: Player Turn - Unlock buttons (only if NOT replaying)
+        // When replaying, buttons unlock via onComplete callback
         const unlockTimer = setTimeout(() => {
-            setGamePhase(GamePhase.PLAYER_TURN);
+            if (!isGameLoopReady) {
+                setGamePhase(GamePhase.PLAYER_TURN);
+            }
+            // If GameLoop ready, replay's onComplete handles this
         }, 1000);
 
         return () => {
@@ -190,7 +237,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             clearTimeout(villainTimer);
             clearTimeout(unlockTimer);
         };
-    }, [clinic, questionIndex, levelIndex]);
+    }, [clinic, questionIndex, levelIndex, isGameLoopReady, startReplay]);
 
     // PHASE 4: THE BRAIN - Evaluation Logic
     const handleAction = useCallback((action: string) => {
@@ -614,7 +661,43 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                         <Card key={i} card={card} size="small" />
                     ))}
                 </div>
-                {villainAction && (
+                {/* Action Narrative - GameLoop mode */}
+                {isReplaying && narrative && (
+                    <div style={{
+                        background: 'linear-gradient(135deg, #1e3a5f, #0f2744)',
+                        color: '#fff',
+                        padding: '10px 20px',
+                        borderRadius: 12,
+                        fontWeight: 600,
+                        fontSize: 14,
+                        border: '1px solid rgba(0, 212, 255, 0.3)',
+                        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
+                        animation: 'fadeIn 0.3s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12
+                    }}>
+                        <span style={{ color: '#00d4ff' }}>⚡</span>
+                        {narrative}
+                        <button
+                            onClick={skipReplay}
+                            style={{
+                                background: 'rgba(255,255,255,0.1)',
+                                border: 'none',
+                                borderRadius: 6,
+                                color: '#9ca3af',
+                                padding: '4px 8px',
+                                fontSize: 12,
+                                cursor: 'pointer',
+                                marginLeft: 8
+                            }}
+                        >
+                            Skip →
+                        </button>
+                    </div>
+                )}
+                {/* Legacy villain action display */}
+                {!isReplaying && villainAction && (
                     <div style={{
                         background: '#dc2626',
                         color: '#fff',
