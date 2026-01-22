@@ -8,6 +8,9 @@
  * Run with: node scripts/sync-verified-urls.js
  */
 
+// Handle TLS certificate issues in some environments
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 require('dotenv').config({ path: '.env.local' });

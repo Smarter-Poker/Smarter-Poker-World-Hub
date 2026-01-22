@@ -4,6 +4,9 @@
  * Uses Puppeteer with stealth plugin to bypass Cloudflare protection
  */
 
+// Handle TLS certificate issues in some environments
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const { createClient } = require('@supabase/supabase-js');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
@@ -44,8 +47,27 @@ class PipelineOrchestrator {
 
     async initBrowser() {
         this.log('🌐', 'Launching headless browser with stealth...');
+
+        // Try to find Chrome executable
+        const chromePaths = [
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium'
+        ];
+
+        let executablePath;
+        for (const p of chromePaths) {
+            try {
+                require('fs').accessSync(p);
+                executablePath = p;
+                break;
+            } catch (e) {}
+        }
+
         this.browser = await puppeteer.launch({
             headless: 'new',
+            executablePath: executablePath || undefined,
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -55,7 +77,7 @@ class PipelineOrchestrator {
                 '--window-size=1920,1080'
             ]
         });
-        this.log('✅', 'Browser ready');
+        this.log('✅', `Browser ready (using: ${executablePath || 'bundled'})`);
     }
 
     async closeBrowser() {
