@@ -1,1039 +1,1436 @@
 /**
- * 🎮 GOD MODE ENGINE — Game Session Component
- * ═══════════════════════════════════════════════════════════════════════════
- * Main gameplay component that orchestrates:
- * - Director Animation (narrative text before showing table)
- * - Health Bar (visual HP with shake on damage)
- * - Bet Slider (snaps to nearest solver node)
- * ═══════════════════════════════════════════════════════════════════════════
+ * GameSession.tsx
+ * ================
+ * The main UI component for God Mode training sessions.
+ *
+ * Features:
+ * - 3-Engine Rendering (PIO/CHART/SCENARIO)
+ * - Director Mode Intro Animation (Typewriter effect)
+ * - Health Bar with damage shake
+ * - Bet Slider with solver node snapping
+ * - Active Villain with thinking delay
+ *
+ * @author Smarter.Poker Engineering
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ============================================================================
 // TYPES
-// ═══════════════════════════════════════════════════════════════════════════
+// ============================================================================
 
-interface HandState {
-    fileId: string;
-    variantHash: string;
-    heroHand: string;
+type EngineType = 'PIO' | 'CHART' | 'SCENARIO';
+
+type GamePhase =
+    | 'LOADING'
+    | 'DIRECTOR_INTRO'      // Typewriter animation
+    | 'USER_TURN'           // Waiting for user action
+    | 'VILLAIN_THINKING'    // Villain is deciding
+    | 'SHOWING_RESULT'      // Showing correct/incorrect
+    | 'HAND_COMPLETE'       // Ready for next hand
+    | 'SESSION_COMPLETE';   // All hands done
+
+interface HandData {
+    heroCards: string;
+    villainCards: string;
     board: string;
     potSize: number;
     heroStack: number;
     villainStack: number;
-    position: string;
-    street: string;
-    actionHistory: string[];
+    heroPosition: string;
+    villainPosition: string;
+    actionHistory: ActionStep[];
     solverNode: SolverNode;
 }
 
+interface ActionStep {
+    player: 'hero' | 'villain';
+    action: string;
+    amount?: number;
+}
+
 interface SolverNode {
-    actions: Record<string, ActionData>;
-}
-
-interface ActionData {
-    frequency: number;
-    ev: number;
-}
-
-interface DamageResult {
-    isCorrect: boolean;
-    isIndifferent: boolean;
-    evLoss: number;
-    chipPenalty: number;
-    feedback: string;
+    actions: {
+        [key: string]: {
+            frequency: number;
+            ev: number;
+        };
+    };
 }
 
 interface GameSessionProps {
-    gameId: string;
     userId: string;
+    gameId: string;
+    gameName: string;
     onSessionComplete?: (stats: SessionStats) => void;
+    onExit?: () => void;
 }
 
 interface SessionStats {
     handsPlayed: number;
     correctAnswers: number;
-    totalDamage: number;
+    accuracy: number;
     passed: boolean;
+    finalHealth: number;
+    xpEarned: number;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ============================================================================
 // CONSTANTS
-// ═══════════════════════════════════════════════════════════════════════════
+// ============================================================================
 
-const HANDS_PER_ROUND = 20;
-const STARTING_HEALTH = 100;
-const SOLVER_SIZING_NODES = [0, 25, 33, 50, 66, 75, 100, 150, 200]; // % of pot
+const SOLVER_BET_NODES = [0, 25, 33, 50, 66, 75, 100, 150, 200]; // % of pot
 
-// ═══════════════════════════════════════════════════════════════════════════
-// HEALTH BAR COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+const DIRECTOR_DELAY_MS = 800; // Time between typewriter lines
+const VILLAIN_THINK_MS = 1500; // How long villain "thinks"
+const RESULT_DISPLAY_MS = 2000; // How long to show result
 
-interface HealthBarProps {
-    health: number;
-    maxHealth: number;
-    isShaking: boolean;
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Find the nearest solver node for a bet size
+ */
+function snapToSolverNode(value: number): number {
+    let closest = SOLVER_BET_NODES[0];
+    let minDiff = Math.abs(value - closest);
+
+    for (const node of SOLVER_BET_NODES) {
+        const diff = Math.abs(value - node);
+        if (diff < minDiff) {
+            minDiff = diff;
+            closest = node;
+        }
+    }
+
+    return closest;
 }
 
-const HealthBar: React.FC<HealthBarProps> = ({ health, maxHealth, isShaking }) => {
-    const percentage = (health / maxHealth) * 100;
+/**
+ * Format card string for display (AhKs -> A♥ K♠)
+ */
+function formatCards(cards: string): string {
+    if (!cards) return '';
 
-    // Color transitions: Green -> Yellow -> Orange -> Red
-    const getBarColor = () => {
-        if (percentage > 66) return 'linear-gradient(90deg, #22c55e, #4ade80)';
-        if (percentage > 33) return 'linear-gradient(90deg, #eab308, #facc15)';
-        if (percentage > 15) return 'linear-gradient(90deg, #f97316, #fb923c)';
-        return 'linear-gradient(90deg, #dc2626, #ef4444)';
+    const suitSymbols: Record<string, string> = {
+        s: '♠', h: '♥', d: '♦', c: '♣',
     };
 
-    return (
-        <motion.div
-            animate={isShaking ? { x: [-5, 5, -5, 5, 0] } : {}}
-            transition={{ duration: 0.4 }}
-            style={{
-                width: '100%',
-                padding: '0.5rem',
-                background: 'rgba(0,0,0,0.5)',
-                borderRadius: '0.75rem',
-                border: '2px solid rgba(255,215,0,0.3)',
-            }}
-        >
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                marginBottom: '0.25rem',
-                fontSize: '0.875rem',
-                color: '#ffd700',
-                fontWeight: 600,
-            }}>
-                <span>🏥 HEALTH</span>
-                <span>{health} / {maxHealth}</span>
-            </div>
-            <div style={{
-                width: '100%',
-                height: '1.5rem',
-                background: 'rgba(0,0,0,0.6)',
-                borderRadius: '0.5rem',
-                overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.1)',
-            }}>
-                <motion.div
-                    initial={{ width: '100%' }}
-                    animate={{ width: `${percentage}%` }}
-                    transition={{ duration: 0.5, type: 'spring' }}
-                    style={{
-                        height: '100%',
-                        background: getBarColor(),
-                        borderRadius: '0.5rem',
-                        boxShadow: '0 0 10px rgba(255,255,255,0.3)',
-                    }}
-                />
-            </div>
-        </motion.div>
-    );
-};
+    const suitColors: Record<string, string> = {
+        s: '#1a1a2e', h: '#e63946', d: '#4361ee', c: '#2d6a4f',
+    };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// DIRECTOR ANIMATION COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+    // Parse cards (format: "AhKs" or "Ah Ks")
+    const cardPattern = /([AKQJT98765432])([shdc])/g;
+    let match;
+    const formatted: string[] = [];
 
-interface DirectorProps {
-    actionHistory: string[];
-    onComplete: () => void;
+    while ((match = cardPattern.exec(cards)) !== null) {
+        const [, rank, suit] = match;
+        formatted.push(`${rank}${suitSymbols[suit]}`);
+    }
+
+    return formatted.join(' ');
 }
 
-const DirectorAnimation: React.FC<DirectorProps> = ({ actionHistory, onComplete }) => {
-    const [currentLine, setCurrentLine] = useState(0);
-    const [displayedText, setDisplayedText] = useState('');
+/**
+ * Play chip slide sound effect
+ */
+function playChipSound() {
+    try {
+        const audio = new Audio('/sounds/chip-slide.mp3');
+        audio.volume = 0.3;
+        audio.play().catch(() => { }); // Ignore autoplay restrictions
+    } catch (e) {
+        // Audio not available
+    }
+}
 
-    // Format action history into narrative lines
-    const narrativeLines = actionHistory.map((action, i) => {
-        const parts = action.split(':');
-        const player = parts[0] || 'Player';
-        const move = parts[1] || action;
-        return `${player} ${move}...`;
-    });
+// ============================================================================
+// SUB-COMPONENTS
+// ============================================================================
 
-    // Add dramatic intro
-    const allLines = [
-        '🎬 Setting the scene...',
-        ...narrativeLines,
-        '⚡ Your turn to act!'
-    ];
+/**
+ * Typewriter Text Animation for Director Mode
+ */
+const TypewriterText: React.FC<{
+    text: string;
+    onComplete?: () => void;
+    delay?: number;
+}> = ({ text, onComplete, delay = 50 }) => {
+    const [displayText, setDisplayText] = useState('');
+    const [currentIndex, setCurrentIndex] = useState(0);
 
     useEffect(() => {
-        if (currentLine >= allLines.length) {
-            // All lines shown, wait then complete
-            const timer = setTimeout(onComplete, 800);
-            return () => clearTimeout(timer);
+        if (currentIndex < text.length) {
+            const timeout = setTimeout(() => {
+                setDisplayText(prev => prev + text[currentIndex]);
+                setCurrentIndex(prev => prev + 1);
+            }, delay);
+            return () => clearTimeout(timeout);
+        } else if (onComplete) {
+            onComplete();
         }
-
-        // Typewriter effect
-        const line = allLines[currentLine];
-        let charIndex = 0;
-
-        const typeInterval = setInterval(() => {
-            if (charIndex <= line.length) {
-                setDisplayedText(line.substring(0, charIndex));
-                charIndex++;
-            } else {
-                clearInterval(typeInterval);
-                // Move to next line after pause
-                setTimeout(() => {
-                    setCurrentLine(prev => prev + 1);
-                    setDisplayedText('');
-                }, 400);
-            }
-        }, 30);
-
-        return () => clearInterval(typeInterval);
-    }, [currentLine, allLines, onComplete]);
+    }, [currentIndex, text, delay, onComplete]);
 
     return (
-        <motion.div
+        <motion.span
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 100%)',
-                zIndex: 50,
-            }}
+            className="typewriter-text"
         >
-            <div style={{
-                maxWidth: '600px',
-                padding: '2rem',
-                textAlign: 'center',
-            }}>
-                {/* Previous lines (faded) */}
-                {allLines.slice(0, currentLine).map((line, i) => (
-                    <motion.p
-                        key={i}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 0.4, y: 0 }}
-                        style={{
-                            fontSize: '1.25rem',
-                            color: '#888',
-                            marginBottom: '0.5rem',
-                            fontFamily: 'monospace',
-                        }}
-                    >
-                        {line}
-                    </motion.p>
-                ))}
-
-                {/* Current line (typing) */}
-                {currentLine < allLines.length && (
-                    <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        style={{
-                            fontSize: '1.5rem',
-                            color: '#ffd700',
-                            fontWeight: 600,
-                            fontFamily: 'monospace',
-                            minHeight: '2rem',
-                        }}
-                    >
-                        {displayedText}
-                        <span style={{
-                            animation: 'blink 0.8s infinite',
-                            marginLeft: '2px',
-                        }}>|</span>
-                    </motion.p>
-                )}
-            </div>
-
-            <style>{`
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
-        }
-      `}</style>
-        </motion.div>
+            {displayText}
+            <motion.span
+                animate={{ opacity: [1, 0] }}
+                transition={{ duration: 0.5, repeat: Infinity }}
+            >
+                |
+            </motion.span>
+        </motion.span>
     );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// BET SLIDER WITH SNAPPING
-// ═══════════════════════════════════════════════════════════════════════════
+/**
+ * Health Bar Component with damage animation
+ */
+const HealthBar: React.FC<{
+    health: number;
+    maxHealth: number;
+    showDamage: number;
+}> = ({ health, maxHealth, showDamage }) => {
+    const percentage = (health / maxHealth) * 100;
 
-interface BetSliderProps {
-    potSize: number;
-    heroStack: number;
-    onSubmit: (sizing: number) => void;
-    disabled?: boolean;
-}
-
-const BetSlider: React.FC<BetSliderProps> = ({ potSize, heroStack, onSubmit, disabled }) => {
-    const [visualValue, setVisualValue] = useState(50); // What user sees (0-200%)
-    const [snappedValue, setSnappedValue] = useState(50); // What we submit
-
-    // Find nearest solver node
-    const snapToNode = (value: number): number => {
-        let closest = SOLVER_SIZING_NODES[0];
-        let minDiff = Math.abs(value - closest);
-
-        for (const node of SOLVER_SIZING_NODES) {
-            const diff = Math.abs(value - node);
-            if (diff < minDiff) {
-                minDiff = diff;
-                closest = node;
-            }
-        }
-        return closest;
+    // Color based on health level
+    const getColor = () => {
+        if (percentage > 60) return '#22c55e'; // Green
+        if (percentage > 30) return '#f59e0b'; // Orange
+        return '#ef4444'; // Red
     };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = parseInt(e.target.value);
-        setVisualValue(value);
-        setSnappedValue(snapToNode(value));
-    };
-
-    const handleSubmit = () => {
-        if (!disabled) {
-            onSubmit(snappedValue);
-        }
-    };
-
-    const actualBetAmount = Math.min((snappedValue / 100) * potSize, heroStack);
 
     return (
-        <div style={{
-            width: '100%',
-            padding: '1rem',
-            background: 'rgba(0,0,0,0.6)',
-            borderRadius: '1rem',
-            border: '2px solid rgba(255,215,0,0.3)',
-        }}>
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                marginBottom: '0.5rem',
-                fontSize: '0.875rem',
-                color: '#888',
-            }}>
-                <span>Bet Size</span>
-                <span style={{ color: '#ffd700' }}>
-                    {snappedValue}% pot = ${actualBetAmount.toFixed(0)}
-                </span>
+        <div className="health-bar-container">
+            <div className="health-bar-label">
+                <span>❤️ HP</span>
+                <span>{health}/{maxHealth}</span>
             </div>
-
-            {/* Visual slider */}
-            <div style={{ position: 'relative', marginBottom: '1rem' }}>
-                <input
-                    type="range"
-                    min={0}
-                    max={200}
-                    value={visualValue}
-                    onChange={handleChange}
-                    disabled={disabled}
-                    style={{
-                        width: '100%',
-                        height: '0.5rem',
-                        appearance: 'none',
-                        background: `linear-gradient(to right, #ffd700 ${visualValue / 2}%, #333 ${visualValue / 2}%)`,
-                        borderRadius: '0.25rem',
-                        cursor: disabled ? 'not-allowed' : 'pointer',
+            <div className="health-bar-track">
+                <motion.div
+                    className="health-bar-fill"
+                    initial={false}
+                    animate={{
+                        width: `${percentage}%`,
+                        backgroundColor: getColor(),
                     }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 />
+                <AnimatePresence>
+                    {showDamage > 0 && (
+                        <motion.span
+                            className="damage-indicator"
+                            initial={{ opacity: 1, y: 0 }}
+                            animate={{ opacity: 0, y: -20 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 1 }}
+                        >
+                            -{showDamage}
+                        </motion.span>
+                    )}
+                </AnimatePresence>
+            </div>
+        </div>
+    );
+};
 
-                {/* Snap indicator */}
-                {visualValue !== snappedValue && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        style={{
-                            position: 'absolute',
-                            left: `${snappedValue / 2}%`,
-                            top: '-1.5rem',
-                            transform: 'translateX(-50%)',
-                            fontSize: '0.75rem',
-                            color: '#22c55e',
-                            whiteSpace: 'nowrap',
-                        }}
-                    >
-                        ↓ Snaps to {snappedValue}%
-                    </motion.div>
-                )}
+/**
+ * Bet Slider with Solver Node Snapping
+ */
+const BetSlider: React.FC<{
+    value: number;
+    onChange: (value: number) => void;
+    onRelease: (snappedValue: number) => void;
+    disabled: boolean;
+    availableNodes: number[];
+}> = ({ value, onChange, onRelease, disabled, availableNodes }) => {
+    const [isDragging, setIsDragging] = useState(false);
+    const [displayValue, setDisplayValue] = useState(value);
+    const [showSnap, setShowSnap] = useState(false);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = parseInt(e.target.value, 10);
+        setDisplayValue(newValue);
+        onChange(newValue);
+    };
+
+    const handleRelease = () => {
+        setIsDragging(false);
+        const snapped = snapToSolverNode(displayValue);
+
+        if (snapped !== displayValue) {
+            setShowSnap(true);
+            setTimeout(() => setShowSnap(false), 500);
+        }
+
+        setDisplayValue(snapped);
+        onRelease(snapped);
+        playChipSound();
+    };
+
+    return (
+        <div className="bet-slider-container">
+            <div className="bet-slider-header">
+                <span>Bet Size</span>
+                <motion.span
+                    className="bet-value"
+                    animate={showSnap ? { scale: [1, 1.2, 1] } : {}}
+                >
+                    {displayValue}% pot
+                    {showSnap && <span className="snap-icon">🧲</span>}
+                </motion.span>
             </div>
 
-            {/* Solver nodes markers */}
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '0.625rem',
-                color: '#666',
-                marginBottom: '1rem',
-            }}>
-                {SOLVER_SIZING_NODES.map(node => (
-                    <span
+            {/* Solver node markers */}
+            <div className="slider-markers">
+                {availableNodes.map(node => (
+                    <div
                         key={node}
-                        style={{
-                            color: snappedValue === node ? '#ffd700' : '#666',
-                            fontWeight: snappedValue === node ? 600 : 400,
-                        }}
+                        className="marker"
+                        style={{ left: `${(node / 200) * 100}%` }}
                     >
-                        {node}%
-                    </span>
+                        <span className="marker-dot" />
+                        <span className="marker-label">{node}%</span>
+                    </div>
                 ))}
             </div>
 
-            {/* Submit button */}
-            <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleSubmit}
+            <input
+                type="range"
+                min="0"
+                max="200"
+                value={displayValue}
+                onChange={handleChange}
+                onMouseDown={() => setIsDragging(true)}
+                onMouseUp={handleRelease}
+                onTouchEnd={handleRelease}
                 disabled={disabled}
-                style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    background: disabled
-                        ? '#333'
-                        : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                    color: disabled ? '#666' : '#000',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    cursor: disabled ? 'not-allowed' : 'pointer',
-                    textTransform: 'uppercase',
-                }}
+                className={`bet-slider ${isDragging ? 'dragging' : ''}`}
+            />
+        </div>
+    );
+};
+
+/**
+ * Action Buttons (Fold, Check/Call, Bet/Raise)
+ */
+const ActionButtons: React.FC<{
+    onAction: (action: string, sizing?: number) => void;
+    disabled: boolean;
+    canCheck: boolean;
+    betSizing: number;
+}> = ({ onAction, disabled, canCheck, betSizing }) => {
+    return (
+        <div className="action-buttons">
+            <motion.button
+                className="action-btn fold"
+                onClick={() => onAction('FOLD')}
+                disabled={disabled}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
             >
-                🎯 Bet {snappedValue}%
+                FOLD
+            </motion.button>
+
+            <motion.button
+                className="action-btn check-call"
+                onClick={() => onAction(canCheck ? 'CHECK' : 'CALL')}
+                disabled={disabled}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+            >
+                {canCheck ? 'CHECK' : 'CALL'}
+            </motion.button>
+
+            <motion.button
+                className="action-btn bet-raise"
+                onClick={() => onAction('BET', betSizing)}
+                disabled={disabled}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+            >
+                BET {betSizing}%
             </motion.button>
         </div>
     );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ACTION BUTTONS
-// ═══════════════════════════════════════════════════════════════════════════
-
-interface ActionButtonsProps {
-    onAction: (action: string, sizing?: number) => void;
-    disabled?: boolean;
-    availableActions: string[];
-}
-
-const ActionButtons: React.FC<ActionButtonsProps> = ({
-    onAction,
-    disabled,
-    availableActions
-}) => {
-    const buttonConfig: Record<string, { color: string; icon: string }> = {
-        fold: { color: '#ef4444', icon: '🃏' },
-        check: { color: '#22c55e', icon: '✓' },
-        call: { color: '#3b82f6', icon: '📞' },
-        raise: { color: '#f59e0b', icon: '⬆️' },
-        allin: { color: '#a855f7', icon: '🔥' },
-    };
-
+/**
+ * Poker Table Display (CHIP Style)
+ */
+const PokerTable: React.FC<{
+    hand: HandData;
+    showVillainCards: boolean;
+}> = ({ hand, showVillainCards }) => {
     return (
-        <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '0.75rem',
-            marginBottom: '1rem',
-        }}>
-            {availableActions.map(action => {
-                const config = buttonConfig[action] || { color: '#666', icon: '?' };
-                return (
-                    <motion.button
-                        key={action}
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => onAction(action)}
-                        disabled={disabled}
-                        style={{
-                            padding: '1rem',
-                            background: disabled ? '#333' : config.color,
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '0.75rem',
-                            fontSize: '1rem',
-                            fontWeight: 700,
-                            cursor: disabled ? 'not-allowed' : 'pointer',
-                            textTransform: 'uppercase',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.5rem',
-                            opacity: disabled ? 0.5 : 1,
-                        }}
-                    >
-                        <span>{config.icon}</span>
-                        <span>{action}</span>
-                    </motion.button>
-                );
-            })}
+        <div className="poker-table">
+            {/* Villain Area */}
+            <div className="player-area villain">
+                <div className="position-badge">{hand.villainPosition}</div>
+                <div className="cards">
+                    {showVillainCards ? formatCards(hand.villainCards) : '🂠 🂠'}
+                </div>
+                <div className="stack">{hand.villainStack} BB</div>
+            </div>
+
+            {/* Board */}
+            <motion.div
+                className="board"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+            >
+                <div className="board-cards">
+                    {formatCards(hand.board)}
+                </div>
+                <div className="pot-display">
+                    Pot: {hand.potSize} BB
+                </div>
+            </motion.div>
+
+            {/* Hero Area */}
+            <div className="player-area hero">
+                <div className="position-badge">{hand.heroPosition}</div>
+                <motion.div
+                    className="cards hero-cards"
+                    initial={{ y: 50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                >
+                    {formatCards(hand.heroCards)}
+                </motion.div>
+                <div className="stack">{hand.heroStack} BB</div>
+            </div>
         </div>
     );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// FEEDBACK OVERLAY
-// ═══════════════════════════════════════════════════════════════════════════
-
-interface FeedbackOverlayProps {
-    result: DamageResult | null;
-    onContinue: () => void;
-}
-
-const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({ result, onContinue }) => {
-    if (!result) return null;
-
+/**
+ * Result Overlay (Correct/Incorrect feedback)
+ */
+const ResultOverlay: React.FC<{
+    isCorrect: boolean;
+    damage: number;
+    feedback: string;
+    evLoss: number;
+}> = ({ isCorrect, damage, feedback, evLoss }) => {
     return (
         <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(0,0,0,0.85)',
-                zIndex: 100,
-            }}
-            onClick={onContinue}
+            className={`result-overlay ${isCorrect ? 'correct' : 'incorrect'}`}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
         >
             <motion.div
-                initial={{ scale: 0.8, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                style={{
-                    padding: '2rem',
-                    background: result.isCorrect
-                        ? 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)'
-                        : 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)',
-                    borderRadius: '1.5rem',
-                    border: `3px solid ${result.isCorrect ? '#10b981' : '#ef4444'}`,
-                    textAlign: 'center',
-                    maxWidth: '400px',
-                }}
+                className="result-icon"
+                animate={isCorrect ? { rotate: [0, 10, -10, 0] } : { x: [0, -10, 10, -10, 10, 0] }}
+                transition={{ duration: 0.5 }}
             >
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-                    {result.isCorrect ? '✓' : '✗'}
-                </div>
-                <h3 style={{
-                    fontSize: '1.5rem',
-                    color: result.isCorrect ? '#10b981' : '#ef4444',
-                    marginBottom: '0.5rem',
-                }}>
-                    {result.isCorrect ? 'CORRECT!' : 'MISTAKE'}
-                </h3>
-                <p style={{
-                    fontSize: '1rem',
-                    color: '#fff',
-                    marginBottom: '1rem',
-                }}>
-                    {result.feedback}
-                </p>
-
-                {result.isIndifferent && (
-                    <div style={{
-                        padding: '0.5rem',
-                        background: 'rgba(255,215,0,0.2)',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                        color: '#ffd700',
-                        marginBottom: '1rem',
-                    }}>
-                        🎲 Mixed Strategy — Both plays are acceptable
-                    </div>
-                )}
-
-                {!result.isCorrect && (
-                    <div style={{
-                        padding: '0.75rem',
-                        background: 'rgba(0,0,0,0.3)',
-                        borderRadius: '0.5rem',
-                        marginBottom: '1rem',
-                    }}>
-                        <div style={{ fontSize: '0.875rem', color: '#888' }}>EV LOSS</div>
-                        <div style={{ fontSize: '1.5rem', color: '#ef4444' }}>
-                            -{result.evLoss.toFixed(2)} EV
-                        </div>
-                        <div style={{ fontSize: '0.875rem', color: '#f97316' }}>
-                            -{result.chipPenalty} Health
-                        </div>
-                    </div>
-                )}
-
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={onContinue}
-                    style={{
-                        padding: '0.75rem 2rem',
-                        background: 'linear-gradient(135deg, #ffd700 0%, #f59e0b 100%)',
-                        color: '#000',
-                        border: 'none',
-                        borderRadius: '0.5rem',
-                        fontSize: '1rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                    }}
-                >
-                    NEXT HAND →
-                </motion.button>
+                {isCorrect ? '✅' : '❌'}
             </motion.div>
+
+            <h2 className="result-title">
+                {isCorrect ? 'Correct!' : 'Mistake!'}
+            </h2>
+
+            <p className="result-feedback">{feedback}</p>
+
+            {!isCorrect && (
+                <div className="result-stats">
+                    <span>EV Loss: {evLoss.toFixed(2)} BB</span>
+                    <span>HP Damage: -{damage}</span>
+                </div>
+            )}
+
+            {isCorrect && (
+                <motion.div
+                    className="xp-bonus"
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                >
+                    <span className="sparkle">✨</span>
+                    +10 XP
+                    <span className="sparkle">✨</span>
+                </motion.div>
+            )}
         </motion.div>
     );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MAIN GAME SESSION COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ============================================================================
+// PLACEHOLDER COMPONENTS (CHART & SCENARIO)
+// ============================================================================
 
-export const GameSession: React.FC<GameSessionProps> = ({
-    gameId,
+/**
+ * Chart Grid Component (CHART Engine)
+ * TODO: Implement full push/fold chart UI
+ */
+const ChartGrid: React.FC<{
+    chartType: string;
+    heroPosition: string;
+    stackBB: number;
+    onAction: (action: string) => void;
+}> = ({ chartType, heroPosition, stackBB, onAction }) => {
+    return (
+        <div className="chart-grid-placeholder">
+            <h2>📊 Chart Mode: {chartType}</h2>
+            <p>Hero: {heroPosition} | Stack: {stackBB} BB</p>
+
+            {/* TODO: Implement 13x13 push/fold grid */}
+            <div className="chart-actions">
+                <button onClick={() => onAction('PUSH')}>PUSH</button>
+                <button onClick={() => onAction('FOLD')}>FOLD</button>
+            </div>
+
+            <p className="placeholder-note">
+                Full ChartGrid implementation coming in Phase 2
+            </p>
+        </div>
+    );
+};
+
+/**
+ * Mental Drill Component (SCENARIO Engine)
+ * TODO: Implement scripted psychology drills
+ */
+const MentalDrill: React.FC<{
+    scenarioId: string;
+    scriptName: string;
+    riggedOutcome?: string;
+    onChoice: (choice: string) => void;
+}> = ({ scenarioId, scriptName, riggedOutcome, onChoice }) => {
+    return (
+        <div className="mental-drill-placeholder">
+            <h2>🧠 Mental Game: {scenarioId}</h2>
+            <p>Script: {scriptName}</p>
+
+            {/* TODO: Implement scenario narrative and choices */}
+            <div className="scenario-text">
+                <p>You just got coolered for the 3rd time this session...</p>
+                <p>What do you do?</p>
+            </div>
+
+            <div className="scenario-choices">
+                <button onClick={() => onChoice('TILT')}>Express Frustration</button>
+                <button onClick={() => onChoice('BREATHE')}>Take a Deep Breath</button>
+                <button onClick={() => onChoice('LEAVE')}>Leave the Table</button>
+            </div>
+
+            <p className="placeholder-note">
+                Full MentalDrill implementation coming in Phase 2
+            </p>
+        </div>
+    );
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+const GameSession: React.FC<GameSessionProps> = ({
     userId,
+    gameId,
+    gameName,
     onSessionComplete,
+    onExit,
 }) => {
-    // Game state
-    const [currentHand, setCurrentHand] = useState<HandState | null>(null);
-    const [health, setHealth] = useState(STARTING_HEALTH);
-    const [handsPlayed, setHandsPlayed] = useState(0);
-    const [correctAnswers, setCorrectAnswers] = useState(0);
-    const [totalDamage, setTotalDamage] = useState(0);
+    // ========================================================================
+    // STATE
+    // ========================================================================
 
-    // UI state
-    const [phase, setPhase] = useState<'loading' | 'director' | 'playing' | 'feedback' | 'complete'>('loading');
-    const [isShaking, setIsShaking] = useState(false);
-    const [feedbackResult, setFeedbackResult] = useState<DamageResult | null>(null);
-    const [showSlider, setShowSlider] = useState(false);
+    const [phase, setPhase] = useState<GamePhase>('LOADING');
+    const [engineType, setEngineType] = useState<EngineType>('PIO');
+    const [currentHand, setCurrentHand] = useState<HandData | null>(null);
+    const [handNumber, setHandNumber] = useState(0);
+    const [totalHands] = useState(20); // Hands per round
+    const [currentLevel, setCurrentLevel] = useState(1);
 
-    // Fetch next hand
+    // Health & Progress
+    const [health, setHealth] = useState(100);
+    const [maxHealth] = useState(100);
+    const [showDamage, setShowDamage] = useState(0);
+    const [correctCount, setCorrectCount] = useState(0);
+
+    // Director Mode
+    const [directorLines, setDirectorLines] = useState<string[]>([]);
+    const [currentLineIndex, setCurrentLineIndex] = useState(0);
+
+    // Input Controls
+    const [betSizing, setBetSizing] = useState(50);
+    const [isControlsLocked, setIsControlsLocked] = useState(true);
+
+    // Result Display
+    const [showResult, setShowResult] = useState(false);
+    const [lastResult, setLastResult] = useState<{
+        isCorrect: boolean;
+        damage: number;
+        feedback: string;
+        evLoss: number;
+    } | null>(null);
+
+    // Animation controls
+    const screenControls = useAnimation();
+
+    // ========================================================================
+    // API CALLS
+    // ========================================================================
+
     const fetchNextHand = useCallback(async () => {
-        setPhase('loading');
+        setPhase('LOADING');
 
         try {
-            // Call API to get next hand
             const response = await fetch('/api/god-mode/fetch-hand', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ gameId, userId }),
+                body: JSON.stringify({
+                    userId,
+                    gameId,
+                    currentLevel,
+                }),
             });
 
             const data = await response.json();
 
-            if (data.hand) {
-                setCurrentHand(data.hand);
-                setPhase('director'); // Start with director animation
-            } else {
-                // No more hands available
-                setPhase('complete');
+            if (data.error) {
+                console.error('Error fetching hand:', data.error);
+                return;
             }
+
+            setEngineType(data.engineType);
+
+            if (data.engineType === 'PIO') {
+                // Transform to frontend format
+                const hand: HandData = {
+                    heroCards: data.hand.hero_hand || '',
+                    villainCards: data.hand.villain_hand || '??',
+                    board: data.hand.board || '',
+                    potSize: data.hand.pot || 6,
+                    heroStack: data.hand.hero_stack || 100,
+                    villainStack: data.hand.villain_stack || 100,
+                    heroPosition: data.hand.hero_position || 'BTN',
+                    villainPosition: data.hand.villain_position || 'BB',
+                    actionHistory: data.hand.action_history || [],
+                    solverNode: data.hand.solver_node || { actions: {} },
+                };
+
+                setCurrentHand(hand);
+                setHandNumber(prev => prev + 1);
+
+                // Build director lines from action history
+                const lines = buildDirectorLines(hand);
+                setDirectorLines(lines);
+                setCurrentLineIndex(0);
+                setPhase('DIRECTOR_INTRO');
+
+            } else {
+                // CHART or SCENARIO - direct to user turn
+                setCurrentHand(data);
+                setHandNumber(prev => prev + 1);
+                setPhase('USER_TURN');
+            }
+
         } catch (error) {
             console.error('Failed to fetch hand:', error);
-            // Fallback: use mock data for demo
-            setCurrentHand(getMockHand());
-            setPhase('director');
         }
-    }, [gameId, userId]);
+    }, [userId, gameId, currentLevel]);
 
-    // Handle user action
-    const handleAction = async (action: string, sizing?: number) => {
+    const submitAction = useCallback(async (action: string, sizing?: number) => {
         if (!currentHand) return;
 
-        setPhase('feedback');
+        setIsControlsLocked(true);
 
         try {
-            // Call API to calculate damage
             const response = await fetch('/api/god-mode/submit-action', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    gameId,
                     userId,
-                    fileId: currentHand.fileId,
-                    variantHash: currentHand.variantHash,
+                    gameId,
                     action,
                     sizing,
+                    handData: currentHand,
                 }),
             });
 
-            const result: DamageResult = await response.json();
+            const result = await response.json();
+
+            // Store result for display
+            setLastResult({
+                isCorrect: result.isCorrect,
+                damage: result.hpDamage,
+                feedback: result.feedback,
+                evLoss: result.evLoss,
+            });
 
             // Apply damage
-            if (result.chipPenalty > 0) {
-                setIsShaking(true);
-                setTimeout(() => setIsShaking(false), 500);
-                setHealth(prev => Math.max(0, prev - result.chipPenalty));
-                setTotalDamage(prev => prev + result.chipPenalty);
+            if (result.hpDamage > 0) {
+                setHealth(prev => Math.max(0, prev - result.hpDamage));
+                setShowDamage(result.hpDamage);
+
+                // Screen shake for damage
+                await screenControls.start({
+                    x: [0, -10, 10, -10, 10, 0],
+                    transition: { duration: 0.4 },
+                });
+
+                setTimeout(() => setShowDamage(0), 1000);
             }
 
             if (result.isCorrect) {
-                setCorrectAnswers(prev => prev + 1);
+                setCorrectCount(prev => prev + 1);
             }
 
-            setHandsPlayed(prev => prev + 1);
-            setFeedbackResult(result);
+            // Show result overlay
+            setPhase('SHOWING_RESULT');
+            setShowResult(true);
+
+            // Check if hand continues (villain's turn)
+            if (result.continuation) {
+                setTimeout(async () => {
+                    setShowResult(false);
+                    setPhase('VILLAIN_THINKING');
+
+                    // Simulate villain thinking
+                    setTimeout(() => {
+                        // Update board with new card if applicable
+                        if (result.newCard) {
+                            setCurrentHand(prev => prev ? {
+                                ...prev,
+                                board: prev.board + result.newCard,
+                            } : null);
+                        }
+
+                        setPhase('USER_TURN');
+                        setIsControlsLocked(false);
+                    }, VILLAIN_THINK_MS);
+
+                }, RESULT_DISPLAY_MS);
+            } else {
+                // Hand complete, move to next
+                setTimeout(() => {
+                    setShowResult(false);
+
+                    // Check if session complete
+                    if (handNumber >= totalHands || health <= 0) {
+                        completeSession();
+                    } else {
+                        fetchNextHand();
+                    }
+                }, RESULT_DISPLAY_MS);
+            }
 
         } catch (error) {
             console.error('Failed to submit action:', error);
-            // Fallback: use mock result
-            const mockResult = getMockDamageResult(action);
-            setFeedbackResult(mockResult);
-            if (mockResult.chipPenalty > 0) {
-                setIsShaking(true);
-                setTimeout(() => setIsShaking(false), 500);
-                setHealth(prev => Math.max(0, prev - mockResult.chipPenalty));
+            setIsControlsLocked(false);
+        }
+    }, [currentHand, userId, gameId, handNumber, totalHands, health, screenControls, fetchNextHand]);
+
+    // ========================================================================
+    // HELPERS
+    // ========================================================================
+
+    const buildDirectorLines = (hand: HandData): string[] => {
+        const lines: string[] = [];
+
+        // Add action history as director lines
+        for (const action of hand.actionHistory) {
+            const player = action.player === 'hero' ? 'Hero' : 'Villain';
+            const pos = action.player === 'hero' ? hand.heroPosition : hand.villainPosition;
+
+            let line = `${player} (${pos}) `;
+
+            if (action.action === 'raises') {
+                line += `Raises to ${action.amount} BB...`;
+            } else if (action.action === 'calls') {
+                line += 'Calls...';
+            } else if (action.action === 'checks') {
+                line += 'Checks...';
+            } else if (action.action === 'bets') {
+                line += `Bets ${action.amount} BB...`;
+            } else {
+                line += `${action.action}...`;
             }
-            setHandsPlayed(prev => prev + 1);
+
+            lines.push(line);
         }
+
+        // Add flop reveal if board exists
+        if (hand.board && hand.board.length >= 6) {
+            lines.push(`Flop: ${formatCards(hand.board.slice(0, 6))} 🃏`);
+        }
+
+        return lines;
     };
 
-    // Continue to next hand
-    const handleContinue = () => {
-        setFeedbackResult(null);
-        setShowSlider(false);
+    const completeSession = () => {
+        setPhase('SESSION_COMPLETE');
 
-        // Check if round is complete
-        if (handsPlayed >= HANDS_PER_ROUND || health <= 0) {
-            setPhase('complete');
-            onSessionComplete?.({
-                handsPlayed,
-                correctAnswers,
-                totalDamage,
-                passed: (correctAnswers / handsPlayed) * 100 >= 85, // Level 1 threshold
-            });
-        } else {
-            fetchNextHand();
-        }
+        const accuracy = handNumber > 0 ? (correctCount / handNumber) * 100 : 0;
+        const thresholds = [85, 87, 89, 91, 93, 95, 97, 98, 99, 100];
+        const passed = accuracy >= (thresholds[currentLevel - 1] || 85);
+
+        const stats: SessionStats = {
+            handsPlayed: handNumber,
+            correctAnswers: correctCount,
+            accuracy,
+            passed,
+            finalHealth: health,
+            xpEarned: correctCount * 10 + (passed ? 100 : 0),
+        };
+
+        onSessionComplete?.(stats);
     };
+
+    // ========================================================================
+    // EFFECTS
+    // ========================================================================
 
     // Initial load
     useEffect(() => {
         fetchNextHand();
     }, [fetchNextHand]);
 
-    // Director animation complete
-    const handleDirectorComplete = () => {
-        setPhase('playing');
-    };
+    // Director mode progression
+    useEffect(() => {
+        if (phase === 'DIRECTOR_INTRO' && currentLineIndex < directorLines.length) {
+            // Wait for typewriter to complete, then show next line
+            const timer = setTimeout(() => {
+                playChipSound();
+                setCurrentLineIndex(prev => prev + 1);
+            }, DIRECTOR_DELAY_MS + directorLines[currentLineIndex].length * 40);
 
-    // Determine available actions
-    const getAvailableActions = (): string[] => {
-        if (!currentHand) return [];
+            return () => clearTimeout(timer);
+        } else if (phase === 'DIRECTOR_INTRO' && currentLineIndex >= directorLines.length) {
+            // Director complete, unlock controls
+            setTimeout(() => {
+                setPhase('USER_TURN');
+                setIsControlsLocked(false);
+            }, 500);
+        }
+    }, [phase, currentLineIndex, directorLines]);
 
-        const actions = Object.keys(currentHand.solverNode?.actions || {});
-        // Normalize action names
-        return [...new Set(actions.map(a => {
-            if (a.includes('bet') || a.includes('raise')) return 'raise';
-            return a.split('_')[0];
-        }))];
-    };
+    // ========================================================================
+    // RENDER
+    // ========================================================================
 
     return (
-        <div style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
-            minHeight: '600px',
-            background: 'linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 100%)',
-            overflow: 'hidden',
-            borderRadius: '1.5rem',
-        }}>
+        <motion.div
+            className="game-session"
+            animate={screenControls}
+        >
             {/* Header */}
-            <div style={{
-                padding: '1rem',
-                borderBottom: '1px solid rgba(255,215,0,0.2)',
-            }}>
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '0.75rem',
-                }}>
-                    <span style={{ color: '#888', fontSize: '0.875rem' }}>
-                        Hand {handsPlayed + 1} / {HANDS_PER_ROUND}
-                    </span>
-                    <span style={{
-                        color: '#22c55e',
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                    }}>
-                        {correctAnswers} / {handsPlayed} Correct
-                    </span>
+            <header className="game-header">
+                <div className="game-info">
+                    <h1>{gameName}</h1>
+                    <span className="level-badge">Level {currentLevel}</span>
                 </div>
-                <HealthBar health={health} maxHealth={STARTING_HEALTH} isShaking={isShaking} />
-            </div>
 
-            {/* Main Content Area */}
-            <div style={{
-                padding: '1rem',
-                height: 'calc(100% - 120px)',
-                display: 'flex',
-                flexDirection: 'column',
-            }}>
-                <AnimatePresence mode="wait">
-                    {/* Loading State */}
-                    {phase === 'loading' && (
+                <div className="progress-info">
+                    <span>Hand {handNumber}/{totalHands}</span>
+                    <span>|</span>
+                    <span>{correctCount} Correct</span>
+                </div>
+
+                <HealthBar
+                    health={health}
+                    maxHealth={maxHealth}
+                    showDamage={showDamage}
+                />
+
+                <button className="exit-btn" onClick={onExit}>
+                    ✕
+                </button>
+            </header>
+
+            {/* Main Content */}
+            <main className="game-content">
+                {/* Loading State */}
+                {phase === 'LOADING' && (
+                    <div className="loading-state">
                         <motion.div
-                            key="loading"
+                            className="loading-spinner"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        >
+                            🎰
+                        </motion.div>
+                        <p>Dealing hand...</p>
+                    </div>
+                )}
+
+                {/* Director Mode Intro */}
+                <AnimatePresence>
+                    {phase === 'DIRECTOR_INTRO' && (
+                        <motion.div
+                            className="director-overlay"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            style={{
-                                flex: 1,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
                         >
-                            <div style={{
-                                fontSize: '3rem',
-                                animation: 'spin 1s linear infinite',
-                            }}>
-                                🎴
+                            <div className="director-content">
+                                {directorLines.slice(0, currentLineIndex + 1).map((line, index) => (
+                                    <motion.div
+                                        key={index}
+                                        className="director-line"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                    >
+                                        {index === currentLineIndex ? (
+                                            <TypewriterText text={line} />
+                                        ) : (
+                                            <span>{line}</span>
+                                        )}
+                                    </motion.div>
+                                ))}
                             </div>
-                            <style>{`
-                @keyframes spin {
-                  from { transform: rotate(0deg); }
-                  to { transform: rotate(360deg); }
-                }
-              `}</style>
-                        </motion.div>
-                    )}
-
-                    {/* Director Animation */}
-                    {phase === 'director' && currentHand && (
-                        <DirectorAnimation
-                            key="director"
-                            actionHistory={currentHand.actionHistory}
-                            onComplete={handleDirectorComplete}
-                        />
-                    )}
-
-                    {/* Playing Phase */}
-                    {phase === 'playing' && currentHand && (
-                        <motion.div
-                            key="playing"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-                        >
-                            {/* Hand Display (placeholder for actual table) */}
-                            <div style={{
-                                flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '1rem',
-                            }}>
-                                {/* Hero Cards */}
-                                <div style={{
-                                    display: 'flex',
-                                    gap: '0.5rem',
-                                    fontSize: '3rem',
-                                    padding: '1rem',
-                                    background: 'rgba(0,0,0,0.5)',
-                                    borderRadius: '1rem',
-                                    border: '2px solid rgba(255,215,0,0.3)',
-                                }}>
-                                    {formatCards(currentHand.heroHand)}
-                                </div>
-
-                                {/* Board */}
-                                {currentHand.board && (
-                                    <div style={{
-                                        display: 'flex',
-                                        gap: '0.25rem',
-                                        fontSize: '2rem',
-                                        padding: '0.75rem',
-                                        background: 'rgba(34,139,34,0.3)',
-                                        borderRadius: '0.75rem',
-                                    }}>
-                                        {formatCards(currentHand.board)}
-                                    </div>
-                                )}
-
-                                {/* Pot & Stack Info */}
-                                <div style={{
-                                    display: 'flex',
-                                    gap: '2rem',
-                                    fontSize: '1rem',
-                                    color: '#888',
-                                }}>
-                                    <span>Pot: <b style={{ color: '#ffd700' }}>${currentHand.potSize}</b></span>
-                                    <span>Stack: <b style={{ color: '#22c55e' }}>${currentHand.heroStack}</b></span>
-                                    <span>Position: <b style={{ color: '#3b82f6' }}>{currentHand.position}</b></span>
-                                </div>
-                            </div>
-
-                            {/* Action Controls */}
-                            <div style={{ marginTop: 'auto' }}>
-                                <ActionButtons
-                                    onAction={(action) => {
-                                        if (action === 'raise') {
-                                            setShowSlider(true);
-                                        } else {
-                                            handleAction(action);
-                                        }
-                                    }}
-                                    disabled={false}
-                                    availableActions={getAvailableActions()}
-                                />
-
-                                {showSlider && (
-                                    <BetSlider
-                                        potSize={currentHand.potSize}
-                                        heroStack={currentHand.heroStack}
-                                        onSubmit={(sizing) => handleAction('raise', sizing)}
-                                    />
-                                )}
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* Complete Phase */}
-                    {phase === 'complete' && (
-                        <motion.div
-                            key="complete"
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            style={{
-                                flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                textAlign: 'center',
-                            }}
-                        >
-                            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>
-                                {health > 0 ? '🏆' : '💀'}
-                            </div>
-                            <h2 style={{
-                                fontSize: '2rem',
-                                color: health > 0 ? '#22c55e' : '#ef4444',
-                                marginBottom: '0.5rem',
-                            }}>
-                                {health > 0 ? 'ROUND COMPLETE!' : 'BUSTED!'}
-                            </h2>
-                            <p style={{ color: '#888', marginBottom: '2rem' }}>
-                                {correctAnswers} / {handsPlayed} Correct ({((correctAnswers / handsPlayed) * 100).toFixed(0)}%)
-                            </p>
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => window.location.reload()}
-                                style={{
-                                    padding: '1rem 2rem',
-                                    background: 'linear-gradient(135deg, #ffd700 0%, #f59e0b 100%)',
-                                    color: '#000',
-                                    border: 'none',
-                                    borderRadius: '0.75rem',
-                                    fontSize: '1.25rem',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                PLAY AGAIN
-                            </motion.button>
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </div>
 
-            {/* Feedback Overlay */}
-            <AnimatePresence>
-                {feedbackResult && (
-                    <FeedbackOverlay result={feedbackResult} onContinue={handleContinue} />
+                {/* PIO Engine: Poker Table */}
+                {engineType === 'PIO' && currentHand && phase !== 'LOADING' && (
+                    <>
+                        <PokerTable
+                            hand={currentHand}
+                            showVillainCards={phase === 'SESSION_COMPLETE'}
+                        />
+
+                        {/* Villain Thinking State */}
+                        <AnimatePresence>
+                            {phase === 'VILLAIN_THINKING' && (
+                                <motion.div
+                                    className="villain-thinking"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                >
+                                    <span className="thinking-dots">
+                                        Villain is thinking
+                                        <motion.span
+                                            animate={{ opacity: [0, 1, 0] }}
+                                            transition={{ duration: 1.5, repeat: Infinity }}
+                                        >
+                                            ...
+                                        </motion.span>
+                                    </span>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </>
                 )}
-            </AnimatePresence>
-        </div>
+
+                {/* CHART Engine: Chart Grid */}
+                {engineType === 'CHART' && currentHand && (
+                    <ChartGrid
+                        chartType={(currentHand as any).chartType || 'push_fold'}
+                        heroPosition={(currentHand as any).heroPosition || 'BTN'}
+                        stackBB={(currentHand as any).stackBB || 15}
+                        onAction={(action) => submitAction(action)}
+                    />
+                )}
+
+                {/* SCENARIO Engine: Mental Drill */}
+                {engineType === 'SCENARIO' && currentHand && (
+                    <MentalDrill
+                        scenarioId={(currentHand as any).scenarioId || 'tilt-control'}
+                        scriptName={(currentHand as any).scriptName || 'bad_beats'}
+                        riggedOutcome={(currentHand as any).riggedOutcome}
+                        onChoice={(choice) => submitAction(choice)}
+                    />
+                )}
+
+                {/* Result Overlay */}
+                <AnimatePresence>
+                    {showResult && lastResult && (
+                        <ResultOverlay
+                            isCorrect={lastResult.isCorrect}
+                            damage={lastResult.damage}
+                            feedback={lastResult.feedback}
+                            evLoss={lastResult.evLoss}
+                        />
+                    )}
+                </AnimatePresence>
+
+                {/* Session Complete */}
+                {phase === 'SESSION_COMPLETE' && (
+                    <motion.div
+                        className="session-complete"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                    >
+                        <h2>Session Complete!</h2>
+                        <div className="final-stats">
+                            <p>Accuracy: {((correctCount / handNumber) * 100).toFixed(1)}%</p>
+                            <p>Final HP: {health}/{maxHealth}</p>
+                            <p>XP Earned: {correctCount * 10 + (health > 0 ? 100 : 0)}</p>
+                        </div>
+                        <button onClick={onExit}>Continue</button>
+                    </motion.div>
+                )}
+            </main>
+
+            {/* Controls (PIO Engine Only) */}
+            {engineType === 'PIO' && phase === 'USER_TURN' && (
+                <footer className="game-controls">
+                    <BetSlider
+                        value={betSizing}
+                        onChange={setBetSizing}
+                        onRelease={(snapped) => setBetSizing(snapped)}
+                        disabled={isControlsLocked}
+                        availableNodes={SOLVER_BET_NODES}
+                    />
+
+                    <ActionButtons
+                        onAction={submitAction}
+                        disabled={isControlsLocked}
+                        canCheck={true} // TODO: Determine from hand state
+                        betSizing={betSizing}
+                    />
+                </footer>
+            )}
+
+            {/* Styles */}
+            <style jsx>{`
+        .game-session {
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
+          background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+          color: white;
+          font-family: 'Inter', sans-serif;
+        }
+
+        .game-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1rem 2rem;
+          background: rgba(0, 0, 0, 0.3);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .game-info h1 {
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: 600;
+        }
+
+        .level-badge {
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+          padding: 0.25rem 0.75rem;
+          border-radius: 999px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          margin-left: 0.75rem;
+        }
+
+        .progress-info {
+          display: flex;
+          gap: 0.5rem;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        .health-bar-container {
+          min-width: 200px;
+        }
+
+        .health-bar-label {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.875rem;
+          margin-bottom: 0.25rem;
+        }
+
+        .health-bar-track {
+          height: 12px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 6px;
+          overflow: hidden;
+          position: relative;
+        }
+
+        .health-bar-fill {
+          height: 100%;
+          border-radius: 6px;
+        }
+
+        .damage-indicator {
+          position: absolute;
+          right: 0;
+          top: -20px;
+          color: #ef4444;
+          font-weight: bold;
+          font-size: 1.25rem;
+        }
+
+        .exit-btn {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          border: none;
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+          font-size: 1.25rem;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .exit-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+
+        .game-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          position: relative;
+        }
+
+        .loading-state {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .loading-spinner {
+          font-size: 3rem;
+        }
+
+        .director-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.9);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10;
+        }
+
+        .director-content {
+          max-width: 600px;
+          padding: 2rem;
+        }
+
+        .director-line {
+          font-size: 1.5rem;
+          margin: 1rem 0;
+          color: #f59e0b;
+          font-family: 'Courier New', monospace;
+        }
+
+        .poker-table {
+          width: 100%;
+          max-width: 600px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2rem;
+        }
+
+        .player-area {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .position-badge {
+          background: rgba(255, 255, 255, 0.1);
+          padding: 0.25rem 0.75rem;
+          border-radius: 4px;
+          font-size: 0.875rem;
+        }
+
+        .cards {
+          font-size: 2rem;
+          letter-spacing: 0.5rem;
+        }
+
+        .hero-cards {
+          color: #22c55e;
+        }
+
+        .stack {
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        .board {
+          padding: 2rem 3rem;
+          background: linear-gradient(135deg, #166534, #14532d);
+          border-radius: 12px;
+          border: 4px solid #ca8a04;
+          text-align: center;
+        }
+
+        .board-cards {
+          font-size: 2.5rem;
+          letter-spacing: 0.75rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .pot-display {
+          font-size: 1.25rem;
+          color: #f59e0b;
+        }
+
+        .villain-thinking {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(0, 0, 0, 0.8);
+          padding: 1rem 2rem;
+          border-radius: 8px;
+          font-size: 1.25rem;
+        }
+
+        .result-overlay {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          z-index: 20;
+        }
+
+        .result-overlay.correct {
+          background: rgba(34, 197, 94, 0.9);
+        }
+
+        .result-overlay.incorrect {
+          background: rgba(239, 68, 68, 0.9);
+        }
+
+        .result-icon {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+        }
+
+        .result-title {
+          font-size: 2rem;
+          margin: 0;
+        }
+
+        .result-feedback {
+          font-size: 1.25rem;
+          opacity: 0.9;
+        }
+
+        .result-stats {
+          display: flex;
+          gap: 2rem;
+          margin-top: 1rem;
+          font-size: 1rem;
+        }
+
+        .xp-bonus {
+          font-size: 1.5rem;
+          font-weight: bold;
+          color: #fcd34d;
+        }
+
+        .sparkle {
+          margin: 0 0.5rem;
+        }
+
+        .session-complete {
+          text-align: center;
+          padding: 2rem;
+          background: rgba(0, 0, 0, 0.8);
+          border-radius: 16px;
+          border: 2px solid #ca8a04;
+        }
+
+        .session-complete h2 {
+          font-size: 2rem;
+          margin-bottom: 1rem;
+          color: #f59e0b;
+        }
+
+        .final-stats {
+          margin: 1.5rem 0;
+        }
+
+        .final-stats p {
+          margin: 0.5rem 0;
+          font-size: 1.25rem;
+        }
+
+        .session-complete button {
+          padding: 0.75rem 2rem;
+          font-size: 1.25rem;
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+          border: none;
+          border-radius: 8px;
+          color: white;
+          cursor: pointer;
+          font-weight: 600;
+        }
+
+        .game-controls {
+          padding: 1.5rem 2rem;
+          background: rgba(0, 0, 0, 0.5);
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bet-slider-container {
+          margin-bottom: 1rem;
+        }
+
+        .bet-slider-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 0.5rem;
+        }
+
+        .bet-value {
+          font-weight: 600;
+          color: #f59e0b;
+        }
+
+        .snap-icon {
+          margin-left: 0.5rem;
+        }
+
+        .slider-markers {
+          position: relative;
+          height: 20px;
+          margin-bottom: -10px;
+        }
+
+        .marker {
+          position: absolute;
+          transform: translateX(-50%);
+          text-align: center;
+        }
+
+        .marker-dot {
+          display: block;
+          width: 4px;
+          height: 8px;
+          background: rgba(255, 255, 255, 0.3);
+          margin: 0 auto;
+        }
+
+        .marker-label {
+          font-size: 0.625rem;
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        .bet-slider {
+          width: 100%;
+          height: 8px;
+          -webkit-appearance: none;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 4px;
+          outline: none;
+        }
+
+        .bet-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 24px;
+          height: 24px;
+          background: #f59e0b;
+          border-radius: 50%;
+          cursor: pointer;
+        }
+
+        .bet-slider.dragging::-webkit-slider-thumb {
+          transform: scale(1.2);
+        }
+
+        .action-buttons {
+          display: flex;
+          gap: 1rem;
+        }
+
+        .action-btn {
+          flex: 1;
+          padding: 1rem;
+          font-size: 1.125rem;
+          font-weight: 600;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .action-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .action-btn.fold {
+          background: linear-gradient(135deg, #dc2626, #b91c1c);
+          color: white;
+        }
+
+        .action-btn.check-call {
+          background: linear-gradient(135deg, #059669, #047857);
+          color: white;
+        }
+
+        .action-btn.bet-raise {
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+          color: white;
+        }
+
+        /* Placeholder styles */
+        .chart-grid-placeholder,
+        .mental-drill-placeholder {
+          text-align: center;
+          padding: 2rem;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 12px;
+          border: 2px dashed rgba(255, 255, 255, 0.2);
+        }
+
+        .placeholder-note {
+          margin-top: 1rem;
+          font-style: italic;
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        .chart-actions,
+        .scenario-choices {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          margin-top: 1rem;
+        }
+
+        .chart-actions button,
+        .scenario-choices button {
+          padding: 0.75rem 1.5rem;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          color: white;
+          cursor: pointer;
+        }
+
+        .chart-actions button:hover,
+        .scenario-choices button:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+      `}</style>
+        </motion.div>
     );
 };
-
-// ═══════════════════════════════════════════════════════════════════════════
-// HELPER FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════
-
-function formatCards(cards: string): React.ReactNode[] {
-    const cardToEmoji: Record<string, string> = {
-        's': '♠', 'h': '♥', 'd': '♦', 'c': '♣'
-    };
-
-    const result: React.ReactNode[] = [];
-    let i = 0;
-
-    while (i < cards.length) {
-        const rank = cards[i];
-        const suit = cards[i + 1];
-        const color = (suit === 'h' || suit === 'd') ? '#ef4444' : '#fff';
-
-        result.push(
-            <span key={i} style={{ color }}>
-                {rank}{cardToEmoji[suit] || suit}
-            </span>
-        );
-        i += 2;
-    }
-
-    return result;
-}
-
-function getMockHand(): HandState {
-    return {
-        fileId: 'mock_001',
-        variantHash: '0',
-        heroHand: 'AhKs',
-        board: 'Qh7c2d',
-        potSize: 50,
-        heroStack: 100,
-        villainStack: 100,
-        position: 'BTN',
-        street: 'flop',
-        actionHistory: ['Hero:raises 2.5x', 'Villain:calls'],
-        solverNode: {
-            actions: {
-                check: { frequency: 0.35, ev: 10 },
-                bet_50: { frequency: 0.45, ev: 12 },
-                bet_100: { frequency: 0.20, ev: 11 },
-            }
-        }
-    };
-}
-
-function getMockDamageResult(action: string): DamageResult {
-    if (action === 'raise' || action === 'bet_50') {
-        return {
-            isCorrect: true,
-            isIndifferent: false,
-            evLoss: 0,
-            chipPenalty: 0,
-            feedback: 'Perfect play! c-betting is optimal here.',
-        };
-    }
-    if (action === 'check') {
-        return {
-            isCorrect: true,
-            isIndifferent: true,
-            evLoss: 0.2,
-            chipPenalty: 0,
-            feedback: 'Mixed strategy — checking is acceptable.',
-        };
-    }
-    return {
-        isCorrect: false,
-        isIndifferent: false,
-        evLoss: 12,
-        chipPenalty: 6,
-        feedback: 'BET 50% was the optimal play.',
-    };
-}
 
 export default GameSession;
