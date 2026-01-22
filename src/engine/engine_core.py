@@ -1,413 +1,639 @@
 """
-🎮 GOD MODE ENGINE — Core Game Engine
-═══════════════════════════════════════════════════════════════════════════
-The brain of the training system. Handles:
-- Suit Isomorphism (rotate suits so hands look unique)
-- Active Villain (weighted RNG for opponent actions)
-- Damage Calculation (EV loss -> health bar penalty)
-═══════════════════════════════════════════════════════════════════════════
+God Mode Engine — Core Backend Logic
+=====================================
+The heart of the 100-game poker training RPG.
+
+This module provides:
+- GameEngine class for fetching hands and evaluating actions
+- Suit isomorphism ("The Magic Trick") for infinite content from finite files
+- Active villain resolution using weighted RNG
+- HP loss calculation with indifference rule support
+
+Tables Used:
+- game_registry: 100 games with engine_type routing
+- solved_spots_gold: PioSolver hand data
+- user_hand_history: Tracks seen hands (file_id + variant_hash)
+
+Author: Smarter.Poker Engineering
 """
 
 import random
-import hashlib
+import re
 import json
+import hashlib
 from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# CONSTANTS & ENUMS
-# ═══════════════════════════════════════════════════════════════════════════
+# ============================================================================
+# DATA STRUCTURES
+# ============================================================================
 
 class EngineType(Enum):
-    PIO = "PIO"           # Postflop solver (solved_spots_gold)
-    CHART = "CHART"       # Preflop/ICM static charts
-    SCENARIO = "SCENARIO" # Mental game with rigged RNG
+    """The 3 engines that power God Mode."""
+    PIO = "PIO"           # Postflop solver queries
+    CHART = "CHART"       # Static preflop/ICM charts
+    SCENARIO = "SCENARIO" # Mental game scripted drills
 
-
-class Action(Enum):
-    FOLD = "fold"
-    CHECK = "check"
-    CALL = "call"
-    BET = "bet"
-    RAISE = "raise"
-    ALLIN = "allin"
-
-
-# The 4 possible suit rotation mappings (cyclic permutations)
-SUIT_ROTATIONS = {
-    0: {'s': 's', 'h': 'h', 'd': 'd', 'c': 'c'},  # Identity
-    1: {'s': 'h', 'h': 'd', 'd': 'c', 'c': 's'},  # Rotate +1
-    2: {'s': 'd', 'h': 'c', 'd': 's', 'c': 'h'},  # Rotate +2
-    3: {'s': 'c', 'h': 's', 'd': 'h', 'c': 'd'},  # Rotate +3
-}
-
-# Reverse mappings for display
-SUIT_SYMBOLS = {'s': '♠', 'h': '♥', 'd': '♦', 'c': '♣'}
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# DATA CLASSES
-# ═══════════════════════════════════════════════════════════════════════════
 
 @dataclass
-class HandState:
-    """Represents a poker hand state for training."""
-    file_id: str                    # Source file/record ID
-    variant_hash: str               # Suit rotation used (0-3)
-    hero_hand: str                  # Hero's cards (post-rotation)
-    board: str                      # Community cards (post-rotation)
-    pot_size: float                 # Current pot
-    hero_stack: float               # Hero's remaining stack
-    villain_stack: float            # Villain's remaining stack
-    position: str                   # Hero's position (BTN, CO, etc.)
-    street: str                     # Current street (preflop, flop, turn, river)
-    action_history: List[str]       # Actions so far
-    solver_node: Dict[str, Any]     # GTO solution data
+class HandResult:
+    """Result from fetching a new hand."""
+    engine_type: EngineType
+    file_id: str
+    variant_hash: str
+    hand_data: Dict[str, Any]
+    config: Dict[str, Any]
+    
+    
+@dataclass
+class ChartInstruction:
+    """Instruction for CHART engine frontend."""
+    chart_type: str  # e.g., "push_fold", "3bet_range"
+    hero_position: str
+    stack_bb: int
+    villain_position: Optional[str] = None
+    extra_params: Optional[Dict] = None
 
+
+@dataclass
+class ScenarioInstruction:
+    """Instruction for SCENARIO engine frontend."""
+    scenario_id: str
+    script_name: str
+    rigged_outcome: Optional[str] = None  # e.g., "bad_beat", "cooler"
+    
 
 @dataclass
 class VillainAction:
-    """Result of villain's weighted random action."""
-    action: Action
-    sizing: Optional[float] = None  # Bet/raise size if applicable
-    frequency: float = 0.0          # How often villain takes this action
+    """Result of villain action resolution."""
+    action: str  # "CHECK", "BET", "CALL", "RAISE", "FOLD"
+    sizing: Optional[float] = None  # Bet/raise size as % of pot
+    frequency: float = 0.0  # How often solver does this
+    next_node: Optional[Dict] = None  # Next position in game tree
 
 
 @dataclass
-class DamageResult:
-    """Result of damage calculation."""
+class HPResult:
+    """Result of HP loss calculation."""
     is_correct: bool
-    is_indifferent: bool            # True if GTO was mixed (50/50)
-    ev_loss: float                  # EV difference
-    chip_penalty: int               # Health bar damage (0-25)
-    feedback: str                   # Explanation for user
+    is_indifferent: bool  # Mixed strategy with similar EVs
+    user_ev: float
+    max_ev: float
+    ev_loss: float
+    hp_damage: int  # 0-25 points of health bar damage
+    feedback: str
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ============================================================================
+# SUIT ISOMORPHISM — THE MAGIC TRICK
+# ============================================================================
+
+# All 24 possible suit permutations (4! = 24)
+SUITS = ['s', 'h', 'd', 'c']
+
+# Rank regex for card detection
+CARD_PATTERN = re.compile(r'([AKQJT98765432])([shdc])')
+
+
+def generate_suit_map() -> Tuple[Dict[str, str], str]:
+    """
+    Generate a random suit mapping for isomorphism.
+    
+    Returns:
+        Tuple of (suit_map dict, variant_hash string)
+        
+    Example:
+        {"s": "h", "h": "d", "d": "c", "c": "s"} -> "s=h,h=d,d=c,c=s"
+    """
+    shuffled = SUITS.copy()
+    random.shuffle(shuffled)
+    
+    suit_map = {original: new for original, new in zip(SUITS, shuffled)}
+    variant_hash = ",".join(f"{k}={v}" for k, v in sorted(suit_map.items()))
+    
+    return suit_map, variant_hash
+
+
+def apply_suit_rotation(card: str, suit_map: Dict[str, str]) -> str:
+    """
+    Apply suit rotation to a single card.
+    
+    Args:
+        card: Card string like "As", "Td", "7c"
+        suit_map: Mapping from original suits to rotated suits
+        
+    Returns:
+        Rotated card string
+    """
+    if len(card) < 2:
+        return card
+        
+    rank = card[:-1]  # Handle "10" as rank if needed
+    suit = card[-1].lower()
+    
+    if suit in suit_map:
+        return rank + suit_map[suit]
+    return card
+
+
+def rotate_cards_in_value(value: Any, suit_map: Dict[str, str]) -> Any:
+    """
+    Recursively apply suit rotation to any value that contains cards.
+    
+    Handles:
+    - Single card strings: "As" -> "Ah"
+    - Card lists: ["As", "Kd"] -> ["Ah", "Kc"]
+    - Board strings: "AhKd7c" -> "AdKc7s"
+    - Range strings: "AKs,QQ" (preserves 's' only when it's a suit)
+    """
+    if isinstance(value, str):
+        # Check if it's a board string (consecutive cards without separators)
+        if CARD_PATTERN.search(value):
+            def replace_card(match):
+                rank, suit = match.groups()
+                return rank + suit_map.get(suit, suit)
+            return CARD_PATTERN.sub(replace_card, value)
+        return value
+        
+    elif isinstance(value, list):
+        return [rotate_cards_in_value(item, suit_map) for item in value]
+        
+    elif isinstance(value, dict):
+        return {k: rotate_cards_in_value(v, suit_map) for k, v in value.items()}
+        
+    return value
+
+
+# ============================================================================
 # GAME ENGINE CLASS
-# ═══════════════════════════════════════════════════════════════════════════
+# ============================================================================
 
 class GameEngine:
     """
-    Core engine for God Mode training system.
+    Core engine for the God Mode training system.
     
-    Handles the 3-engine architecture:
-    - ENGINE A (PIO): Postflop solver with isomorphism
-    - ENGINE B (CHART): Static preflop/ICM charts
-    - ENGINE C (SCENARIO): Scripted mental game scenarios
+    Handles:
+    - Fetching hands based on engine type (PIO/CHART/SCENARIO)
+    - Suit isomorphism for content multiplication
+    - Villain action resolution
+    - HP damage calculation
+    
+    Usage:
+        engine = GameEngine(supabase_client)
+        hand = await engine.fetch_next_hand(user_id, game_id, level=3)
+        villain = engine.resolve_villain_action(solver_node)
+        result = engine.calculate_hp_loss("CALL", solver_node)
     """
     
-    def __init__(self, supabase_client=None):
+    def __init__(self, supabase_client):
         """
-        Initialize the game engine.
+        Initialize the engine with a Supabase client.
         
         Args:
-            supabase_client: Supabase client for database access
+            supabase_client: Authenticated Supabase client instance
         """
         self.supabase = supabase_client
-        self._chart_cache: Dict[str, Any] = {}
-        self._scenario_cache: Dict[str, Any] = {}
+        self._game_cache: Dict[str, Dict] = {}
+        
+    # ========================================================================
+    # MAIN API: fetch_next_hand
+    # ========================================================================
     
-    # ═══════════════════════════════════════════════════════════════════════
-    # SUIT ISOMORPHISM — The "Suit Spinner"
-    # ═══════════════════════════════════════════════════════════════════════
-    
-    @staticmethod
-    def rotate_suits(cards: str, rotation_key: int) -> str:
-        """
-        Apply suit rotation to a card string.
-        
-        Args:
-            cards: Card string like "AhKd" or "Qh7h2c"
-            rotation_key: Rotation index (0-3)
-            
-        Returns:
-            Rotated card string (e.g., "AdKc" if rotation=1)
-        """
-        if rotation_key not in SUIT_ROTATIONS:
-            raise ValueError(f"Invalid rotation key: {rotation_key}. Must be 0-3.")
-        
-        suit_map = SUIT_ROTATIONS[rotation_key]
-        result = []
-        
-        i = 0
-        while i < len(cards):
-            # Get rank (could be 2-9, T, J, Q, K, A)
-            rank = cards[i]
-            i += 1
-            
-            # Get suit
-            if i < len(cards) and cards[i] in 'shdc':
-                suit = cards[i]
-                result.append(rank + suit_map[suit])
-                i += 1
-            else:
-                result.append(rank)
-        
-        return ''.join(result)
-    
-    @staticmethod
-    def rotate_hand_state(hand_data: Dict[str, Any], rotation_key: int) -> Dict[str, Any]:
-        """
-        Apply suit rotation to an entire hand state.
-        
-        Args:
-            hand_data: Raw hand data from solver
-            rotation_key: Rotation index (0-3)
-            
-        Returns:
-            Hand data with all cards rotated
-        """
-        rotated = hand_data.copy()
-        
-        # Rotate hero hand
-        if 'hero_hand' in rotated:
-            rotated['hero_hand'] = GameEngine.rotate_suits(rotated['hero_hand'], rotation_key)
-        
-        # Rotate board
-        if 'board' in rotated:
-            rotated['board'] = GameEngine.rotate_suits(rotated['board'], rotation_key)
-        
-        # Rotate any villain hands in the solution
-        if 'villain_range' in rotated and isinstance(rotated['villain_range'], list):
-            rotated['villain_range'] = [
-                GameEngine.rotate_suits(h, rotation_key) for h in rotated['villain_range']
-            ]
-        
-        return rotated
-    
-    @staticmethod
-    def generate_variant_hash(file_id: str, rotation_key: int) -> str:
-        """
-        Generate a unique hash for this file + rotation combination.
-        
-        Args:
-            file_id: Source file/record ID
-            rotation_key: Rotation index (0-3)
-            
-        Returns:
-            Hash string for uniqueness checking
-        """
-        return str(rotation_key)  # Simple: just use the rotation key
-    
-    # ═══════════════════════════════════════════════════════════════════════
-    # HAND FETCHING — Main Entry Point
-    # ═══════════════════════════════════════════════════════════════════════
-    
-    async def fetch_hand(self, user_id: str, game_id: str) -> Optional[HandState]:
-        """
-        Fetch a training hand for the user.
-        
-        CRITICAL LOGIC:
-        1. Look up game config to determine engine type
-        2. Fetch candidate hand from appropriate source
-        3. Apply suit rotation (isomorphism)
-        4. Verify user hasn't seen this exact rotation
-        5. Return the hand state
-        
-        Args:
-            user_id: User's UUID
-            game_id: Game's UUID
-            
-        Returns:
-            HandState ready for training, or None if no hands available
-        """
-        # 1. Get game config
-        game_config = await self._get_game_config(game_id)
-        if not game_config:
-            raise ValueError(f"Game not found: {game_id}")
-        
-        engine_type = EngineType(game_config['engine_type'])
-        
-        # 2. Get user's seen hands for this game
-        seen_variants = await self._get_user_seen_variants(user_id, game_id)
-        
-        # 3. Fetch hand based on engine type
-        if engine_type == EngineType.PIO:
-            return await self._fetch_pio_hand(user_id, game_id, game_config, seen_variants)
-        elif engine_type == EngineType.CHART:
-            return await self._fetch_chart_hand(user_id, game_id, game_config, seen_variants)
-        elif engine_type == EngineType.SCENARIO:
-            return await self._fetch_scenario_hand(user_id, game_id, game_config, seen_variants)
-        else:
-            raise ValueError(f"Unknown engine type: {engine_type}")
-    
-    async def _fetch_pio_hand(
+    async def fetch_next_hand(
         self, 
         user_id: str, 
         game_id: str, 
-        config: Dict, 
-        seen_variants: set
-    ) -> Optional[HandState]:
+        current_level: int
+    ) -> HandResult | ChartInstruction | ScenarioInstruction:
         """
-        Fetch a hand from PioSolver data (solved_spots_gold).
+        Fetch the next training hand for a user.
         
-        Implements:
-        - Random hand selection from solver database
-        - Suit isomorphism to ensure visual uniqueness
-        - Variant checking against user history
+        This is the main router that directs to the appropriate engine.
+        
+        Args:
+            user_id: UUID of the current user
+            game_id: UUID or slug of the game from game_registry
+            current_level: Current level (1-10) for difficulty scaling
+            
+        Returns:
+            HandResult for PIO engine
+            ChartInstruction for CHART engine
+            ScenarioInstruction for SCENARIO engine
+            
+        Raises:
+            ValueError: If game not found or no valid hands available
         """
-        # Query solved_spots_gold for matching hands
+        # STEP A: Get game config from registry
+        game = await self._get_game_config(game_id)
+        engine_type = EngineType(game['engine_type'])
+        config = game.get('config', {})
+        
+        # STEP B: Route to appropriate engine
+        if engine_type == EngineType.PIO:
+            return await self._fetch_solver_hand(user_id, game_id, config, current_level)
+            
+        elif engine_type == EngineType.CHART:
+            return self._build_chart_instruction(config, current_level)
+            
+        elif engine_type == EngineType.SCENARIO:
+            return self._build_scenario_instruction(game_id, config, current_level)
+            
+        raise ValueError(f"Unknown engine type: {engine_type}")
+    
+    # ========================================================================
+    # PIO ENGINE: Solver Hand Fetching
+    # ========================================================================
+    
+    async def _fetch_solver_hand(
+        self, 
+        user_id: str,
+        game_id: str,
+        config: Dict,
+        level: int
+    ) -> HandResult:
+        """
+        Fetch a hand from solved_spots_gold with suit isomorphism.
+        
+        CRITICAL LOGIC:
+        1. Query solved_spots_gold for candidates matching config
+        2. For each candidate, check if user has seen ALL 24 suit variations
+        3. If not all seen, pick a random unseen variation
+        4. Apply suit rotation to the hand data
+        5. Return the transformed hand with variant_hash
+        
+        This creates 24x content multiplication from the solver database.
+        """
+        # Build query filters from config
+        filters = self._build_solver_filters(config, level)
+        
+        # Query candidate hands
         query = self.supabase.table('solved_spots_gold').select('*')
         
-        # Apply game-specific filters
-        if 'stack_depth' in config.get('config', {}):
-            stack = config['config']['stack_depth']
-            query = query.gte('effective_stack', stack - 10).lte('effective_stack', stack + 10)
-        
-        if 'street_filter' in config.get('config', {}):
-            query = query.eq('street', config['config']['street_filter'])
-        
-        # Fetch candidates
-        response = query.limit(100).execute()
-        candidates = response.data if response.data else []
+        for field, value in filters.items():
+            query = query.eq(field, value)
+            
+        # Get batch of candidates
+        result = query.limit(50).execute()
+        candidates = result.data if result.data else []
         
         if not candidates:
-            return None
+            raise ValueError(f"No solver hands found for config: {config}")
         
-        # Shuffle and find a hand + rotation not yet seen
+        # Shuffle to randomize selection
         random.shuffle(candidates)
         
+        # Find a hand with an unseen variant
         for candidate in candidates:
             file_id = candidate['id']
             
-            # Try each rotation
-            for rotation_key in random.sample([0, 1, 2, 3], 4):
-                variant_hash = self.generate_variant_hash(file_id, rotation_key)
+            # Check which variants user has seen for this file
+            seen_variants = await self._get_seen_variants(user_id, file_id)
+            
+            # Generate all 24 possible variant hashes
+            all_variants = self._generate_all_variant_hashes()
+            unseen_variants = [v for v in all_variants if v not in seen_variants]
+            
+            if unseen_variants:
+                # Pick a random unseen variant
+                chosen_variant = random.choice(unseen_variants)
                 
-                # Check if user has seen this exact rotation
-                if (file_id, variant_hash) not in seen_variants:
-                    # Apply rotation
-                    rotated_data = self.rotate_hand_state(candidate, rotation_key)
-                    
-                    return HandState(
-                        file_id=file_id,
-                        variant_hash=variant_hash,
-                        hero_hand=rotated_data.get('hero_hand', ''),
-                        board=rotated_data.get('board', ''),
-                        pot_size=rotated_data.get('pot_size', 0),
-                        hero_stack=rotated_data.get('hero_stack', 0),
-                        villain_stack=rotated_data.get('villain_stack', 0),
-                        position=rotated_data.get('position', ''),
-                        street=rotated_data.get('street', ''),
-                        action_history=rotated_data.get('action_history', []),
-                        solver_node=rotated_data.get('solver_node', {})
-                    )
-        
-        # All hands exhausted for this user!
-        return None
-    
-    async def _fetch_chart_hand(
-        self, 
-        user_id: str, 
-        game_id: str, 
-        config: Dict, 
-        seen_variants: set
-    ) -> Optional[HandState]:
-        """Fetch a hand from static preflop/ICM charts."""
-        # Load chart data (cached)
-        chart_key = config.get('config', {}).get('chart_key', 'default')
-        
-        if chart_key not in self._chart_cache:
-            # Load from JSON file or database
-            self._chart_cache[chart_key] = await self._load_chart(chart_key)
-        
-        chart_data = self._chart_cache[chart_key]
-        
-        # Generate a random preflop scenario
-        # For charts, we don't need solver data - just the situation
-        hands = list(chart_data.get('ranges', {}).keys())
-        random.shuffle(hands)
-        
-        for hand in hands:
-            file_id = f"chart_{chart_key}_{hand}"
-            variant_hash = "0"  # Charts don't need rotation
-            
-            if (file_id, variant_hash) not in seen_variants:
-                return HandState(
+                # Parse the variant hash back to suit map
+                suit_map = self._parse_variant_hash(chosen_variant)
+                
+                # Apply suit rotation to hand data
+                rotated_data = self._rotate_suits(candidate, suit_map)
+                
+                return HandResult(
+                    engine_type=EngineType.PIO,
                     file_id=file_id,
-                    variant_hash=variant_hash,
-                    hero_hand=hand,
-                    board="",  # Preflop
-                    pot_size=chart_data.get('pot_size', 2.5),
-                    hero_stack=config.get('config', {}).get('stack_depth', 20),
-                    villain_stack=config.get('config', {}).get('stack_depth', 20),
-                    position=random.choice(['BTN', 'CO', 'HJ', 'LJ', 'SB', 'BB']),
-                    street='preflop',
-                    action_history=[],
-                    solver_node={'action': chart_data['ranges'].get(hand, 'fold')}
+                    variant_hash=chosen_variant,
+                    hand_data=rotated_data,
+                    config=config
                 )
         
-        return None
-    
-    async def _fetch_scenario_hand(
-        self, 
-        user_id: str, 
-        game_id: str, 
-        config: Dict, 
-        seen_variants: set
-    ) -> Optional[HandState]:
-        """Fetch a scripted mental game scenario."""
-        scenario_type = config.get('config', {}).get('scenario_type', 'bad_beat')
+        # All variants seen for all candidates — need more content!
+        # Fallback: Return first candidate with identity rotation
+        fallback = candidates[0]
+        identity_map = {s: s for s in SUITS}
+        identity_hash = ",".join(f"{s}={s}" for s in sorted(SUITS))
         
-        # Scripted scenarios for mental game training
-        scenarios = self._get_scenarios(scenario_type)
-        random.shuffle(scenarios)
-        
-        for scenario in scenarios:
-            file_id = scenario['id']
-            variant_hash = "0"
-            
-            if (file_id, variant_hash) not in seen_variants:
-                return HandState(
-                    file_id=file_id,
-                    variant_hash=variant_hash,
-                    hero_hand=scenario['hero_hand'],
-                    board=scenario['board'],
-                    pot_size=scenario['pot_size'],
-                    hero_stack=scenario['hero_stack'],
-                    villain_stack=scenario['villain_stack'],
-                    position=scenario['position'],
-                    street=scenario['street'],
-                    action_history=scenario.get('action_history', []),
-                    solver_node=scenario.get('solver_node', {})
-                )
-        
-        return None
+        return HandResult(
+            engine_type=EngineType.PIO,
+            file_id=fallback['id'],
+            variant_hash=identity_hash,
+            hand_data=fallback,
+            config=config
+        )
     
-    # ═══════════════════════════════════════════════════════════════════════
-    # ACTIVE VILLAIN — Weighted RNG for Opponent Actions
-    # ═══════════════════════════════════════════════════════════════════════
-    
-    @staticmethod
-    def resolve_villain_action(solver_node: Dict[str, Any]) -> VillainAction:
+    async def _get_seen_variants(self, user_id: str, file_id: str) -> set:
         """
-        Determine villain's action using weighted random selection.
-        
-        Input: Solver frequencies like:
-        {
-            "actions": {
-                "check": {"frequency": 0.6, "ev": 0.5},
-                "bet_50": {"frequency": 0.25, "ev": 0.7},
-                "bet_100": {"frequency": 0.15, "ev": 0.65}
-            }
-        }
-        
-        Logic: Use random.random() to pick action based on frequencies.
+        Get all variant hashes the user has seen for a specific file.
         
         Args:
-            solver_node: GTO solution with action frequencies
+            user_id: User's UUID
+            file_id: Solver file ID
             
         Returns:
-            VillainAction with the chosen action
+            Set of variant_hash strings the user has already played
+        """
+        result = self.supabase.table('user_hand_history') \
+            .select('variant_hash') \
+            .eq('user_id', user_id) \
+            .eq('file_id', file_id) \
+            .execute()
+            
+        if result.data:
+            return {row['variant_hash'] for row in result.data}
+        return set()
+    
+    def _generate_all_variant_hashes(self) -> List[str]:
+        """
+        Generate all 24 possible variant hashes for suit permutations.
+        
+        4! = 24 permutations of [s, h, d, c]
+        """
+        from itertools import permutations
+        
+        hashes = []
+        for perm in permutations(SUITS):
+            suit_map = {original: new for original, new in zip(SUITS, perm)}
+            variant_hash = ",".join(f"{k}={v}" for k, v in sorted(suit_map.items()))
+            hashes.append(variant_hash)
+            
+        return hashes
+    
+    def _parse_variant_hash(self, variant_hash: str) -> Dict[str, str]:
+        """
+        Parse a variant hash string back to suit map.
+        
+        Args:
+            variant_hash: String like "c=s,d=h,h=d,s=c"
+            
+        Returns:
+            Dict mapping original suits to rotated suits
+        """
+        suit_map = {}
+        for pair in variant_hash.split(','):
+            original, new = pair.split('=')
+            suit_map[original] = new
+        return suit_map
+    
+    def _build_solver_filters(self, config: Dict, level: int) -> Dict:
+        """
+        Build query filters for solved_spots_gold based on game config.
+        
+        Args:
+            config: Game configuration from registry
+            level: Current difficulty level (affects hand complexity)
+            
+        Returns:
+            Dict of field=value filters for the query
+        """
+        filters = {}
+        
+        # Stack depth filter
+        if 'stack' in config:
+            stack = config['stack']
+            if stack <= 20:
+                filters['stack_category'] = 'short'
+            elif stack >= 150:
+                filters['stack_category'] = 'deep'
+            else:
+                filters['stack_category'] = 'standard'
+                
+        # Position filter
+        if 'position' in config:
+            filters['hero_position'] = config['position']
+            
+        # Street filter (for postflop games)
+        if 'street' in config:
+            filters['street'] = config['street']
+            
+        # Spot type (c-bet, check-raise, etc.)
+        if 'spot_type' in config:
+            filters['spot_type'] = config['spot_type']
+            
+        return filters
+    
+    # ========================================================================
+    # SUIT ISOMORPHISM: The Magic Trick
+    # ========================================================================
+    
+    def _rotate_suits(self, hand_json: Dict, suit_map: Dict[str, str]) -> Dict:
+        """
+        Apply suit rotation to a hand's JSON data.
+        
+        THE MAGIC TRICK: This creates infinite visual content from finite files.
+        The same hand (As Kd on Ah7c2s) can appear as 24 different visual
+        combinations without changing the strategic meaning.
+        
+        Args:
+            hand_json: Raw hand data from solver
+            suit_map: Mapping like {"s": "h", "h": "d", "d": "c", "c": "s"}
+            
+        Returns:
+            New dict with all card values rotated
+        """
+        # Deep copy to avoid mutating original
+        rotated = json.loads(json.dumps(hand_json))
+        
+        # Fields that contain card data
+        card_fields = [
+            'board', 'hero_hand', 'villain_hand',
+            'flop', 'turn', 'river',
+            'hero_range', 'villain_range',
+            'hand', 'cards'
+        ]
+        
+        for field in card_fields:
+            if field in rotated:
+                rotated[field] = rotate_cards_in_value(rotated[field], suit_map)
+                
+        # Handle nested structures (actions, nodes, etc.)
+        if 'actions' in rotated:
+            rotated['actions'] = rotate_cards_in_value(rotated['actions'], suit_map)
+            
+        if 'tree' in rotated:
+            rotated['tree'] = rotate_cards_in_value(rotated['tree'], suit_map)
+            
+        return rotated
+    
+    @staticmethod
+    def rotate_suits_static(cards: str, rotation_key: int) -> str:
+        """
+        Static method for simple suit rotation by key (0-3).
+        
+        Rotation keys:
+        - 0: Identity (s->s, h->h, d->d, c->c)
+        - 1: Shift +1 (s->h, h->d, d->c, c->s)
+        - 2: Shift +2 (s->d, h->c, d->s, c->h)
+        - 3: Shift +3 (s->c, h->s, d->h, c->d)
+        
+        Args:
+            cards: Card string like "AhKs", "Td7c"
+            rotation_key: 0-3
+            
+        Returns:
+            Rotated card string
+        """
+        rotations = {
+            0: {'s': 's', 'h': 'h', 'd': 'd', 'c': 'c'},
+            1: {'s': 'h', 'h': 'd', 'd': 'c', 'c': 's'},
+            2: {'s': 'd', 'h': 'c', 'd': 's', 'c': 'h'},
+            3: {'s': 'c', 'h': 's', 'd': 'h', 'c': 'd'},
+        }
+        
+        if rotation_key not in rotations:
+            raise ValueError(f"Invalid rotation key: {rotation_key}. Must be 0-3.")
+            
+        suit_map = rotations[rotation_key]
+        return rotate_cards_in_value(cards, suit_map)
+    
+    # ========================================================================
+    # CHART ENGINE: Static Range Instructions
+    # ========================================================================
+    
+    def _build_chart_instruction(
+        self, 
+        config: Dict, 
+        level: int
+    ) -> ChartInstruction:
+        """
+        Build instruction for CHART engine frontend.
+        
+        Chart games use static JSON files, not solver queries.
+        The frontend loads the appropriate chart UI.
+        
+        Args:
+            config: Game configuration with chart parameters
+            level: Difficulty level (affects stack depths, etc.)
+            
+        Returns:
+            ChartInstruction for frontend to render
+        """
+        # Generate a random scenario based on config
+        positions = ['BTN', 'CO', 'HJ', 'LJ', 'SB', 'BB']
+        
+        hero_pos = config.get('position', random.choice(positions))
+        
+        # Scale stack based on level (lower levels = more desperate stacks)
+        base_stack = config.get('stack', 15)
+        stack_variance = random.randint(-3, 3)
+        stack_bb = max(5, min(25, base_stack + stack_variance))
+        
+        # Determine chart type
+        chart_type = config.get('chart_type', 'push_fold')
+        if 'icm' in str(config).lower():
+            chart_type = 'icm_ranges'
+        elif 'bubble' in str(config).lower():
+            chart_type = 'bubble_pressure'
+            
+        # Pick villain position for 3bet/squeeze charts
+        villain_pos = None
+        if chart_type in ['3bet_range', 'squeeze', 'resteal']:
+            available = [p for p in positions if p != hero_pos]
+            villain_pos = random.choice(available)
+            
+        return ChartInstruction(
+            chart_type=chart_type,
+            hero_position=hero_pos,
+            stack_bb=stack_bb,
+            villain_position=villain_pos,
+            extra_params={
+                'level': level,
+                'ante': config.get('ante', True),
+                'players_remaining': config.get('players', 6)
+            }
+        )
+    
+    # ========================================================================
+    # SCENARIO ENGINE: Mental Game Scripts
+    # ========================================================================
+    
+    def _build_scenario_instruction(
+        self, 
+        game_id: str,
+        config: Dict, 
+        level: int
+    ) -> ScenarioInstruction:
+        """
+        Build instruction for SCENARIO engine frontend.
+        
+        Scenario games use hardcoded scripts with "rigged" RNG
+        to test mental game and psychology.
+        
+        Args:
+            game_id: Slug of the scenario game
+            config: Game configuration
+            level: Difficulty level (affects rigging intensity)
+            
+        Returns:
+            ScenarioInstruction for frontend to render
+        """
+        # Map game_id to scenario scripts
+        scenario_map = {
+            'tilt-control': 'bad_beats_sequence',
+            'cooler-cage': 'cooler_hell',
+            'variance-zen': 'variance_torture',
+            'patience-master': 'card_dead_marathon',
+            'winners-tilt': 'heater_discipline',
+            'pressure-chamber': 'high_stakes_bubble',
+            'ego-killer': 'humble_pie_sequence',
+            'fear-eraser': 'scary_spots_drill',
+        }
+        
+        script_name = scenario_map.get(game_id, 'generic_mental_drill')
+        
+        # Higher levels = more intense rigging
+        rigged_outcomes = None
+        if level >= 7:
+            rigged_outcomes = ['cooler', 'bad_beat', 'setup_hand']
+        elif level >= 4:
+            rigged_outcomes = ['bad_beat', 'card_dead']
+            
+        rigged = random.choice(rigged_outcomes) if rigged_outcomes else None
+        
+        return ScenarioInstruction(
+            scenario_id=game_id,
+            script_name=script_name,
+            rigged_outcome=rigged
+        )
+    
+    # ========================================================================
+    # VILLAIN ACTION RESOLUTION
+    # ========================================================================
+    
+    def resolve_villain_action(self, solver_node: Dict) -> VillainAction:
+        """
+        Resolve villain's action using weighted random selection.
+        
+        The solver provides frequencies for each action. We use RNG
+        weighted by those frequencies to simulate realistic villain play.
+        
+        Args:
+            solver_node: Node with action frequencies like:
+                {
+                    "actions": {
+                        "check": {"frequency": 0.60, "ev": 0.5, "next_node": {...}},
+                        "bet_50": {"frequency": 0.25, "ev": 0.7, "next_node": {...}},
+                        "bet_100": {"frequency": 0.15, "ev": 0.65, "next_node": {...}}
+                    }
+                }
+                
+        Returns:
+            VillainAction with chosen action, sizing, and next node
         """
         actions = solver_node.get('actions', {})
         
         if not actions:
-            # Default to check if no actions specified
-            return VillainAction(action=Action.CHECK, frequency=1.0)
+            # No actions available = check/call through
+            return VillainAction(
+                action="CHECK",
+                frequency=1.0,
+                next_node=solver_node.get('next_node')
+            )
         
         # Build cumulative probability distribution
         cumulative = []
@@ -419,91 +645,103 @@ class GameEngine:
             cumulative.append((running_total, action_key, action_data))
         
         # Normalize if frequencies don't sum to 1
-        if running_total > 0:
-            cumulative = [(c / running_total, k, d) for c, k, d in cumulative]
+        if running_total > 0 and running_total != 1.0:
+            cumulative = [
+                (c / running_total, k, d) 
+                for c, k, d in cumulative
+            ]
         
         # Roll the dice
         roll = random.random()
         
+        # Find the action that matches the roll
         for threshold, action_key, action_data in cumulative:
             if roll <= threshold:
-                # Parse action type and sizing
-                action, sizing = GameEngine._parse_action_key(action_key)
+                # Parse action key to extract action and sizing
+                action, sizing = self._parse_action_key(action_key)
                 
                 return VillainAction(
                     action=action,
                     sizing=sizing,
-                    frequency=action_data.get('frequency', 0)
+                    frequency=action_data.get('frequency', 0),
+                    next_node=action_data.get('next_node')
                 )
         
-        # Fallback (shouldn't happen with normalized probabilities)
-        return VillainAction(action=Action.CHECK, frequency=1.0)
+        # Fallback (should never reach here)
+        return VillainAction(action="CHECK", frequency=1.0)
     
-    @staticmethod
-    def _parse_action_key(action_key: str) -> Tuple[Action, Optional[float]]:
-        """Parse action key like 'bet_50' into (Action.BET, 50)."""
+    def _parse_action_key(self, action_key: str) -> Tuple[str, Optional[float]]:
+        """
+        Parse action key like "bet_50" to ("BET", 50.0).
+        
+        Common formats:
+        - "check" -> ("CHECK", None)
+        - "fold" -> ("FOLD", None)
+        - "call" -> ("CALL", None)
+        - "bet_50" -> ("BET", 50.0)
+        - "raise_150" -> ("RAISE", 150.0)
+        - "allin" -> ("ALLIN", None)
+        """
         action_key = action_key.lower()
         
         if action_key == 'check':
-            return Action.CHECK, None
+            return ('CHECK', None)
         elif action_key == 'fold':
-            return Action.FOLD, None
+            return ('FOLD', None)
         elif action_key == 'call':
-            return Action.CALL, None
+            return ('CALL', None)
+        elif action_key == 'allin':
+            return ('ALLIN', None)
         elif action_key.startswith('bet_'):
-            try:
-                sizing = float(action_key.split('_')[1])
-                return Action.BET, sizing
-            except (IndexError, ValueError):
-                return Action.BET, None
+            sizing = float(action_key.split('_')[1])
+            return ('BET', sizing)
         elif action_key.startswith('raise_'):
-            try:
-                sizing = float(action_key.split('_')[1])
-                return Action.RAISE, sizing
-            except (IndexError, ValueError):
-                return Action.RAISE, None
-        elif action_key in ('allin', 'all_in', 'all-in'):
-            return Action.ALLIN, None
+            sizing = float(action_key.split('_')[1])
+            return ('RAISE', sizing)
         else:
-            # Try to match action name
-            for action in Action:
-                if action.value in action_key:
-                    return action, None
-            return Action.CHECK, None
+            # Unknown action format
+            return (action_key.upper(), None)
     
-    # ═══════════════════════════════════════════════════════════════════════
-    # DAMAGE CALCULATION — EV Loss to Health Bar Penalty
-    # ═══════════════════════════════════════════════════════════════════════
+    # ========================================================================
+    # HP LOSS CALCULATION
+    # ========================================================================
     
-    @staticmethod
-    def calculate_damage(
+    def calculate_hp_loss(
+        self, 
         user_action: str, 
-        user_sizing: Optional[float],
-        solver_node: Dict[str, Any],
+        solver_node: Dict,
+        user_sizing: Optional[float] = None,
         pot_size: float = 100.0
-    ) -> DamageResult:
+    ) -> HPResult:
         """
         Calculate health bar damage based on EV loss.
         
-        INDIFFERENCE RULE: If GTO strategy is mixed (50/50), 
-        accept BOTH answers as correct.
+        INDIFFERENCE RULE:
+        If the solver uses a mixed strategy where multiple actions have
+        similar EV (within 0.05 of each other), both are considered correct.
+        This is game-theoretically correct behavior.
+        
+        DAMAGE SCALING:
+        - 0 EV loss = 0 damage
+        - Up to 5% pot loss = 1-5 damage
+        - Up to 25% pot loss = 6-15 damage
+        - 25%+ pot loss = 16-25 damage (max)
         
         Args:
-            user_action: User's chosen action ("fold", "call", "raise", etc.)
-            user_sizing: User's bet/raise sizing if applicable
-            solver_node: GTO solution data
-            pot_size: Current pot size for scaling
+            user_action: Action user chose ("FOLD", "CALL", "BET", etc.)
+            solver_node: Solver node with action frequencies and EVs
+            user_sizing: Bet sizing if applicable (% of pot)
+            pot_size: Current pot size for EV normalization
             
         Returns:
-            DamageResult with correctness, EV loss, and chip penalty
+            HPResult with damage amount and feedback
         """
         actions = solver_node.get('actions', {})
         
-        # Find the user's action in solver data
-        user_action_key = GameEngine._find_matching_action(user_action, user_sizing, actions)
+        # Find user's action in solver data
+        user_action_key = self._find_matching_action(user_action, user_sizing, actions)
         user_action_data = actions.get(user_action_key, {})
         
-        # Get user's EV and frequency
         user_ev = user_action_data.get('ev', 0)
         user_freq = user_action_data.get('frequency', 0)
         
@@ -514,217 +752,178 @@ class GameEngine:
         # Calculate EV loss
         ev_loss = max(0, max_ev - user_ev)
         
-        # Check for indifference (mixed strategy where user's action is significant)
-        is_indifferent = user_freq >= 0.40  # 40% or more = acceptable
+        # Check for indifference (mixed strategy acceptance)
+        # Actions with ≥40% frequency OR EV within 0.05 of max are acceptable
+        is_indifferent = user_freq >= 0.40 or ev_loss <= 0.05
         
         # Determine correctness
-        # Correct if: user picked max EV action OR action is indifferent
-        is_correct = (user_action_key in max_ev_actions) or is_indifferent
+        is_correct = user_action_key in max_ev_actions or is_indifferent
         
-        # Calculate chip penalty (0-25 based on EV loss relative to pot)
+        # Calculate HP damage
         if is_correct:
-            chip_penalty = 0
-            feedback = "✓ Correct! " + (
-                "GTO play." if user_action_key in max_ev_actions 
-                else f"Mixed strategy - {user_freq:.0%} frequency is acceptable."
-            )
-        else:
-            # Scale EV loss to chip penalty
-            # EV loss of 10% pot = ~2.5 chips, 100% pot = 25 chips
-            relative_loss = ev_loss / pot_size if pot_size > 0 else 0
-            chip_penalty = min(25, max(1, int(relative_loss * 25)))
+            hp_damage = 0
+            feedback = "✅ Correct!"
             
-            # Generate feedback
+            if is_indifferent and user_action_key not in max_ev_actions:
+                feedback = "✅ Acceptable (Mixed Strategy)"
+                
+        else:
+            # Scale damage based on EV loss relative to pot
+            ev_loss_pct = (ev_loss / pot_size) * 100 if pot_size > 0 else 0
+            
+            if ev_loss_pct <= 5:
+                hp_damage = int(ev_loss_pct)  # 1-5 damage
+            elif ev_loss_pct <= 25:
+                hp_damage = 5 + int((ev_loss_pct - 5) * 0.5)  # 6-15 damage
+            else:
+                hp_damage = 16 + min(9, int((ev_loss_pct - 25) * 0.2))  # 16-25 damage
+                
+            hp_damage = min(25, max(1, hp_damage))  # Clamp to 1-25
+            
+            # Build feedback message
             best_action = max_ev_actions[0] if max_ev_actions else "unknown"
-            feedback = f"✗ {best_action.upper()} was {max_ev:.2f} EV. You lost {ev_loss:.2f} EV (-{chip_penalty} chips)"
+            feedback = f"❌ Mistake! Best: {best_action.upper()} (EV loss: {ev_loss:.2f})"
         
-        return DamageResult(
+        return HPResult(
             is_correct=is_correct,
             is_indifferent=is_indifferent,
+            user_ev=user_ev,
+            max_ev=max_ev,
             ev_loss=ev_loss,
-            chip_penalty=chip_penalty,
+            hp_damage=hp_damage,
             feedback=feedback
         )
     
-    @staticmethod
     def _find_matching_action(
+        self, 
         user_action: str, 
-        user_sizing: Optional[float], 
-        actions: Dict[str, Any]
+        user_sizing: Optional[float],
+        actions: Dict
     ) -> str:
-        """Find the solver action key that matches user's action."""
-        user_action = user_action.lower()
+        """
+        Find the solver action key that matches user's action.
         
-        # Direct match
-        if user_action in actions:
-            return user_action
+        Handles sizing matching with tolerance for bet/raise actions.
+        """
+        user_action = user_action.upper()
         
-        # Match with sizing
-        if user_sizing is not None:
-            sized_key = f"{user_action}_{int(user_sizing)}"
-            if sized_key in actions:
-                return sized_key
-            
-            # Find closest sizing
+        # Direct matches
+        simple_actions = {'CHECK', 'FOLD', 'CALL', 'ALLIN'}
+        if user_action in simple_actions:
             for key in actions:
-                if key.startswith(user_action):
+                if key.lower() == user_action.lower():
                     return key
+            return user_action.lower()
         
-        # Partial match
-        for key in actions:
-            if user_action in key:
-                return key
+        # Bet/Raise with sizing
+        if user_action in ('BET', 'RAISE') and user_sizing is not None:
+            best_match = None
+            best_diff = float('inf')
+            
+            prefix = 'bet' if user_action == 'BET' else 'raise'
+            
+            for key in actions:
+                if key.lower().startswith(prefix + '_'):
+                    try:
+                        solver_sizing = float(key.split('_')[1])
+                        diff = abs(solver_sizing - user_sizing)
+                        if diff < best_diff:
+                            best_diff = diff
+                            best_match = key
+                    except (ValueError, IndexError):
+                        pass
+                        
+            return best_match if best_match else f"{prefix}_{int(user_sizing)}"
         
-        # No match - return user action anyway for EV=0 default
-        return user_action
+        return user_action.lower()
     
-    # ═══════════════════════════════════════════════════════════════════════
-    # HELPER METHODS
-    # ═══════════════════════════════════════════════════════════════════════
+    # ========================================================================
+    # GAME CONFIG CACHING
+    # ========================================================================
     
-    async def _get_game_config(self, game_id: str) -> Optional[Dict]:
-        """Fetch game configuration from database."""
-        if not self.supabase:
-            return None
+    async def _get_game_config(self, game_id: str) -> Dict:
+        """
+        Get game configuration from registry (with caching).
         
-        response = self.supabase.table('game_registry').select('*').eq('id', game_id).single().execute()
-        return response.data if response.data else None
-    
-    async def _get_user_seen_variants(self, user_id: str, game_id: str) -> set:
-        """Get set of (file_id, variant_hash) tuples user has already seen."""
-        if not self.supabase:
-            return set()
+        Args:
+            game_id: UUID or slug of the game
+            
+        Returns:
+            Game configuration dict
+            
+        Raises:
+            ValueError: If game not found
+        """
+        if game_id in self._game_cache:
+            return self._game_cache[game_id]
         
-        response = (
-            self.supabase
-            .table('god_mode_hand_history')
-            .select('source_file_id, variant_hash')
-            .eq('user_id', user_id)
-            .eq('game_id', game_id)
+        # Query by slug first, then by ID
+        result = self.supabase.table('game_registry') \
+            .select('*') \
+            .eq('slug', game_id) \
             .execute()
-        )
+            
+        if not result.data:
+            # Try by UUID
+            result = self.supabase.table('game_registry') \
+                .select('*') \
+                .eq('id', game_id) \
+                .execute()
         
-        return {(r['source_file_id'], r['variant_hash']) for r in (response.data or [])}
+        if not result.data:
+            raise ValueError(f"Game not found: {game_id}")
+            
+        game = result.data[0]
+        self._game_cache[game_id] = game
+        return game
+
+
+# ============================================================================
+# HELPER FUNCTIONS FOR FRONTEND
+# ============================================================================
+
+def format_hand_for_display(hand_data: Dict) -> Dict:
+    """
+    Format hand data for frontend display.
     
-    async def _load_chart(self, chart_key: str) -> Dict:
-        """Load chart data from file or database."""
-        # TODO: Implement chart loading from charts.json
-        return {
-            'ranges': {
-                'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise',
-                'AKs': 'raise', 'AQs': 'raise', 'AKo': 'raise',
-                # ... more hands
-            },
-            'pot_size': 2.5
-        }
+    Converts internal representation to display-friendly format.
+    """
+    display = {
+        'hero_cards': hand_data.get('hero_hand', ''),
+        'villain_cards': hand_data.get('villain_hand', '??'),
+        'board': hand_data.get('board', ''),
+        'pot_size': hand_data.get('pot', 100),
+        'hero_stack': hand_data.get('hero_stack', 100),
+        'villain_stack': hand_data.get('villain_stack', 100),
+        'hero_position': hand_data.get('hero_position', 'BTN'),
+        'villain_position': hand_data.get('villain_position', 'BB'),
+        'action_history': hand_data.get('action_history', []),
+    }
+    return display
+
+
+def get_available_actions(solver_node: Dict) -> List[Dict]:
+    """
+    Get available actions for the frontend action buttons.
     
-    def _get_scenarios(self, scenario_type: str) -> List[Dict]:
-        """Get scripted scenarios for mental game training."""
-        # Bad beat scenarios to test tilt control
-        if scenario_type == 'bad_beat':
-            return [
-                {
-                    'id': 'bb_001',
-                    'hero_hand': 'AhAs',
-                    'board': 'Ad7c2s8h9h',
-                    'pot_size': 200,
-                    'hero_stack': 0,  # All-in
-                    'villain_stack': 0,
-                    'position': 'BTN',
-                    'street': 'river',
-                    'description': 'You had set of Aces. Villain hit runner-runner flush.',
-                    'solver_node': {'correct_response': 'stay_calm'}
-                },
-                {
-                    'id': 'bb_002',
-                    'hero_hand': 'KhKd',
-                    'board': 'Kc4s2d5c7c',
-                    'pot_size': 150,
-                    'hero_stack': 0,
-                    'villain_stack': 0,
-                    'position': 'CO',
-                    'street': 'river',
-                    'description': 'Your set of Kings lost to a backdoor flush.',
-                    'solver_node': {'correct_response': 'stay_calm'}
-                },
-                # Add more scenarios...
-            ]
+    Returns list of {action, sizing, label} dicts.
+    """
+    actions = solver_node.get('actions', {})
+    result = []
+    
+    for key, data in actions.items():
+        action, sizing = key.split('_') if '_' in key else (key, None)
         
-        return []
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# UTILITY FUNCTIONS
-# ═══════════════════════════════════════════════════════════════════════════
-
-def test_suit_rotation():
-    """Test the suit rotation functionality."""
-    print("🎴 Testing Suit Rotation (Isomorphism)\n")
+        label = action.upper()
+        if sizing:
+            label = f"{action.upper()} {sizing}%"
+            
+        result.append({
+            'action': action.upper(),
+            'sizing': float(sizing) if sizing else None,
+            'label': label,
+            'frequency': data.get('frequency', 0),
+            'ev': data.get('ev', 0)
+        })
     
-    test_cases = [
-        ("AhKs", "Hero Hand"),
-        ("Qh7h2c", "Flop"),
-        ("AhKsQh7h2c", "Full Board"),
-    ]
-    
-    for cards, label in test_cases:
-        print(f"{label}: {cards}")
-        for rotation in range(4):
-            rotated = GameEngine.rotate_suits(cards, rotation)
-            print(f"  Rotation {rotation}: {rotated}")
-        print()
-
-
-def test_villain_action():
-    """Test the villain action resolver."""
-    print("🎭 Testing Active Villain\n")
-    
-    solver_node = {
-        'actions': {
-            'check': {'frequency': 0.60, 'ev': 0.5},
-            'bet_50': {'frequency': 0.25, 'ev': 0.7},
-            'bet_100': {'frequency': 0.15, 'ev': 0.65}
-        }
-    }
-    
-    results = {'check': 0, 'bet_50': 0, 'bet_100': 0}
-    trials = 10000
-    
-    for _ in range(trials):
-        action = GameEngine.resolve_villain_action(solver_node)
-        key = f"{action.action.value}_{int(action.sizing)}" if action.sizing else action.action.value
-        if key in results:
-            results[key] += 1
-    
-    print(f"After {trials} trials:")
-    for action, count in results.items():
-        pct = count / trials * 100
-        print(f"  {action}: {pct:.1f}%")
-
-
-def test_damage_calculation():
-    """Test the damage calculation system."""
-    print("\n💔 Testing Damage Calculation\n")
-    
-    solver_node = {
-        'actions': {
-            'fold': {'frequency': 0.0, 'ev': 0.0},
-            'call': {'frequency': 0.55, 'ev': 12.5},
-            'raise': {'frequency': 0.45, 'ev': 12.3}
-        }
-    }
-    
-    test_actions = ['call', 'raise', 'fold']
-    
-    for action in test_actions:
-        result = GameEngine.calculate_damage(action, None, solver_node, pot_size=50)
-        print(f"User action: {action}")
-        print(f"  Correct: {result.is_correct}, Indifferent: {result.is_indifferent}")
-        print(f"  EV Loss: {result.ev_loss:.2f}, Chip Penalty: {result.chip_penalty}")
-        print(f"  Feedback: {result.feedback}\n")
-
-
-if __name__ == '__main__':
-    test_suit_rotation()
-    test_villain_action()
-    test_damage_calculation()
+    return result
