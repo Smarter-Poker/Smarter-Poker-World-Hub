@@ -5,6 +5,34 @@ description: Automated scraping of poker tournament schedules from major tour we
 
 # Poker Schedule Scraper Skill
 
+## 🎯 MISSION STATEMENT (LOCKED)
+**Goal:** Create the MOST COMPREHENSIVE tournament database on the planet.
+
+**Product:** **PokerNearMe** - A "Google-style" search engine for poker players to find:
+- 🎰 All cash games and tournaments near them
+- 🏢 **777 venues nationwide** (complete US coverage)
+
+**Search Capabilities:**
+- By **Distance** (miles from user)
+- By **State**
+- By **Dates** (start date, end date, specific day)
+- By **Buy-in Amount** (min/max range)
+- By **Tournament Type** (NLH, PLO, Mixed, Bounty, etc.)
+- By **Series Name** (WSOP, WPT, MSPT, etc.)
+- By **Game Type** (Cash vs Tournament)
+
+**Display:**
+- List view with all requested data
+- **Optional Map View** showing all matching venues/events
+
+**Data Quality Standard:**
+- ✅ Complete yearly schedule for each tour
+- ✅ Every individual event within each series
+- ✅ Verified source URLs for daily updates
+- ✅ 777 venue enrichment (address, lat/lng, hours, games offered)
+
+---
+
 ## Overview
 Efficiently scrape and populate the database with poker tournament schedules from major tours.
 

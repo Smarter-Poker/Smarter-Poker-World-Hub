@@ -53,7 +53,7 @@ const AVATARS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CARD COMPONENT — Custom 52-card deck
+// CARD COMPONENT — Custom 52-card deck (high-res 3125x4375 PNGs)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SUIT_MAP = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
@@ -69,18 +69,31 @@ function Card({ card, style = {} }) {
     const rankName = RANK_MAP[card[0]] || card[0].toLowerCase();
     const imagePath = `/cards/${suitName}_${rankName}.png`;
 
+    // Card aspect ratio is 3125:4375 = ~1:1.4
     return (
         <div style={{
-            width: 52,
-            height: 72,
-            background: '#fff',
+            width: 50,
+            height: 70,
+            background: '#ffffff',
             borderRadius: 5,
-            boxShadow: '0 3px 10px rgba(0,0,0,0.4)',
+            boxShadow: '0 3px 12px rgba(0,0,0,0.45)',
             overflow: 'hidden',
-            border: '1px solid #ccc',
+            border: '1.5px solid #e0e0e0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             ...style
         }}>
-            <img src={imagePath} alt={card} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img
+                src={imagePath}
+                alt={card}
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',  // CONTAIN preserves aspect ratio, no cropping
+                    imageRendering: 'high-quality',
+                }}
+            />
         </div>
     );
 }
