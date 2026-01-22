@@ -99,6 +99,17 @@ jobs:
             *.log
           retention-days: 7
 
+      - name: Upload debug artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-artifacts-${{ github.run_number }}
+          path: |
+            /tmp/venue-*.png
+            /tmp/venue-*.html
+          retention-days: 3
+          if-no-files-found: ignore
+
       - name: Report Summary
         if: always()
         run: |

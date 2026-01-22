@@ -303,15 +303,26 @@ class PipelineOrchestrator {
                 // Table might not exist, continue anyway
             }
 
-            // Debug: Take screenshot for first venue
+            // Debug: Take screenshot and save HTML for first venues
             if (this.stats.venuesProcessed < 2) {
                 const screenshotPath = `/tmp/venue-${this.stats.venuesProcessed}.png`;
                 await page.screenshot({ path: screenshotPath, fullPage: true });
                 this.log('📸', `Screenshot saved: ${screenshotPath}`);
 
-                // Also log page title and URL to verify we're on the right page
+                // Save HTML content for debugging
+                const htmlPath = `/tmp/venue-${this.stats.venuesProcessed}.html`;
+                const fs = require('fs');
+                fs.writeFileSync(htmlPath, content);
+                this.log('📄', `HTML saved: ${htmlPath}`);
+
+                // Log page title and URL to verify we're on the right page
                 const title = await page.title();
                 this.log('📄', `Page title: ${title}`);
+                this.log('📄', `Current URL: ${page.url()}`);
+
+                // Log content snippet
+                const bodyText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || 'no body text');
+                this.log('📝', `Page content preview:\n${bodyText}`);
             }
 
             const tournaments = await page.evaluate(() => {
