@@ -8,6 +8,8 @@
 ALTER TABLE poker_venues
 ADD COLUMN IF NOT EXISTS pokeratlas_url TEXT,
 ADD COLUMN IF NOT EXISTS pokeratlas_slug TEXT,
+ADD COLUMN IF NOT EXISTS scrape_url TEXT,
+ADD COLUMN IF NOT EXISTS scrape_source TEXT DEFAULT 'pending',
 ADD COLUMN IF NOT EXISTS last_scraped TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS scrape_status TEXT DEFAULT 'pending';
 
