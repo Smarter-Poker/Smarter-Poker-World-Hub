@@ -1,24 +1,23 @@
 /**
- * 🎮 GOD MODE ARENA — Polished Training UI
+ * 🎮 GOD MODE ARENA — Premium Training UI
  * ═══════════════════════════════════════════════════════════════════════════
- * Integrates the beautiful TrainingGameTable with the God Mode API
+ * VERTICAL portrait layout matching the golden reference design.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Seat positions around the table
+// Vertical seat positions (portrait layout - hero at bottom)
 const SEATS = [
-    { id: 'hero', x: 50, y: 88, isHero: true, name: 'Hero' },
-    { id: 'v1', x: 18, y: 72, name: 'Villain 1' },
-    { id: 'v2', x: 6, y: 45, name: 'Villain 2' },
-    { id: 'v3', x: 18, y: 18, name: 'Villain 3' },
-    { id: 'v4', x: 38, y: 5, name: 'Villain 4' },
-    { id: 'v5', x: 62, y: 5, name: 'Villain 5' },
-    { id: 'v6', x: 82, y: 18, name: 'Villain 6' },
-    { id: 'v7', x: 94, y: 45, name: 'Villain 7' },
-    { id: 'v8', x: 82, y: 72, name: 'Villain 8' },
+    { id: 'v4', x: 35, y: 6, name: 'Villain 4' },
+    { id: 'v5', x: 65, y: 6, name: 'Villain 5' },
+    { id: 'v3', x: 12, y: 18, name: 'Villain 3' },
+    { id: 'v6', x: 88, y: 18, name: 'Villain 6' },
+    { id: 'v2', x: 6, y: 38, name: 'Villain 2' },
+    { id: 'v7', x: 94, y: 38, name: 'Villain 7' },
+    { id: 'v1', x: 15, y: 58, name: 'Villain 1' },
+    { id: 'v8', x: 85, y: 58, name: 'Villain 8' },
 ];
 
 const AVATARS = {
@@ -33,131 +32,137 @@ const AVATARS = {
     v8: '/avatars/table/free_pirate.png',
 };
 
-const DEFAULT_STACKS = [45, 32, 28, 55, 41, 38, 62, 29, 51];
+const DEFAULT_STACKS = [32, 28, 55, 41, 38, 62, 29, 51];
 
 const SUIT_SYMBOLS = { s: '♠', h: '♥', d: '♦', c: '♣' };
-const SUIT_COLORS = { s: '#1a1a2e', h: '#ff4757', d: '#3498db', c: '#2ecc71' };
+const SUIT_COLORS = { s: '#1a1a2e', h: '#e63946', d: '#3b82f6', c: '#22c55e' };
 
-// Format card for display (e.g., "Ah" -> "A♥")
-function formatCard(card) {
-    if (!card || card === '??') return null;
+// Parse card string like "Ah" -> { rank: "A", suit: "h", symbol: "♥", color: "#e63946" }
+function parseCard(card) {
+    if (!card || card === '??' || card.length < 2) return null;
     const rank = card.slice(0, -1);
     const suit = card.slice(-1).toLowerCase();
     return { rank, suit, symbol: SUIT_SYMBOLS[suit], color: SUIT_COLORS[suit] };
 }
 
+// Split hero hand "AhKs" into ["Ah", "Ks"]
+function splitHand(hand) {
+    if (!hand || hand.length < 4) return ['??', '??'];
+    return [hand.slice(0, 2), hand.slice(2, 4)];
+}
+
+// Split board "Jh7s2d" into ["Jh", "7s", "2d"]
+function splitBoard(board) {
+    if (!board) return [];
+    const cards = [];
+    for (let i = 0; i < board.length; i += 2) {
+        if (i + 1 < board.length) {
+            cards.push(board.slice(i, i + 2));
+        }
+    }
+    return cards;
+}
+
+// Format action name for display
+function formatAction(action) {
+    if (!action) return 'Unknown';
+    // Handle sizing actions like "b33", "b50", "b66", "b100"
+    if (action.startsWith('b') && /^\d+$/.test(action.slice(1))) {
+        return `Bet ${action.slice(1)}%`;
+    }
+    if (action === 'c') return 'Check';
+    if (action === 'f') return 'Fold';
+    if (action === 'x') return 'Check';
+    if (action.toLowerCase() === 'call') return 'Call';
+    if (action.toLowerCase() === 'fold') return 'Fold';
+    if (action.toLowerCase() === 'check') return 'Check';
+    if (action.toLowerCase() === 'raise') return 'Raise';
+    if (action.toLowerCase() === 'allin') return 'All-In';
+    return action.charAt(0).toUpperCase() + action.slice(1);
+}
+
 // Card component
 function Card({ card, size = 'medium' }) {
-    const parsed = formatCard(card);
+    const parsed = parseCard(card);
+    const dims = size === 'small' ? { w: 32, h: 44, fs: 12 } : { w: 44, h: 60, fs: 16 };
+
     if (!parsed) {
         return (
             <div style={{
-                width: size === 'small' ? 40 : 52,
-                height: size === 'small' ? 56 : 72,
+                width: dims.w,
+                height: dims.h,
                 background: 'linear-gradient(135deg, #1e3a5f, #0f2744)',
-                borderRadius: 6,
-                border: '2px solid #334155',
+                borderRadius: 4,
+                border: '1px solid #334155',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
             }}>
-                <span style={{ color: '#64748b', fontSize: 20 }}>?</span>
+                <span style={{ color: '#64748b', fontSize: dims.fs }}>?</span>
             </div>
         );
     }
 
     return (
         <div style={{
-            width: size === 'small' ? 40 : 52,
-            height: size === 'small' ? 56 : 72,
-            background: 'linear-gradient(135deg, #fff, #f8fafc)',
-            borderRadius: 6,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            width: dims.w,
+            height: dims.h,
+            background: 'linear-gradient(145deg, #ffffff, #f0f0f0)',
+            borderRadius: 4,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #d1d5db',
         }}>
-            <span style={{
-                fontSize: size === 'small' ? 16 : 20,
-                fontWeight: 'bold',
-                color: parsed.color,
-                lineHeight: 1,
-            }}>
+            <span style={{ fontSize: dims.fs, fontWeight: 'bold', color: parsed.color, lineHeight: 1 }}>
                 {parsed.rank}
             </span>
-            <span style={{
-                fontSize: size === 'small' ? 18 : 24,
-                color: parsed.color,
-                lineHeight: 1,
-            }}>
+            <span style={{ fontSize: dims.fs + 2, color: parsed.color, lineHeight: 1 }}>
                 {parsed.symbol}
             </span>
         </div>
     );
 }
 
-// Player seat component
-function PlayerSeat({ seat, stack, isActive }) {
-    const size = seat.isHero ? 80 : 70;
-
+// Player seat with avatar
+function PlayerSeat({ seat, stack }) {
     return (
-        <motion.div
-            style={{
-                position: 'absolute',
-                left: `${seat.x}%`,
-                top: `${seat.y}%`,
-                transform: 'translate(-50%, -50%)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                zIndex: seat.isHero ? 100 : 50,
-            }}
-            animate={isActive ? {
-                filter: ['drop-shadow(0 0 20px rgba(255,215,0,0.8))', 'drop-shadow(0 0 40px rgba(255,215,0,1))', 'drop-shadow(0 0 20px rgba(255,215,0,0.8))'],
-            } : {}}
-            transition={{ duration: 1.5, repeat: Infinity }}
-        >
-            <div style={{ width: size, height: size * 1.1, position: 'relative' }}>
+        <div style={{
+            position: 'absolute',
+            left: `${seat.x}%`,
+            top: `${seat.y}%`,
+            transform: 'translate(-50%, -50%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            zIndex: 50,
+        }}>
+            <div style={{ width: 50, height: 55 }}>
                 <img
                     src={AVATARS[seat.id]}
                     alt={seat.name}
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                    onError={(e) => { e.target.src = '/avatars/table/free_fox.png'; }}
+                    onError={(e) => { e.target.style.display = 'none'; }}
                 />
             </div>
             <div style={{
-                background: seat.isHero
-                    ? 'linear-gradient(180deg, #FFD700, #FFA500, #CC8800)'
-                    : 'linear-gradient(180deg, #374151, #1f2937)',
-                border: seat.isHero ? '2px solid #996600' : '1px solid #4b5563',
-                borderRadius: 6,
-                padding: '3px 12px 5px',
-                marginTop: -6,
+                background: 'linear-gradient(180deg, #374151, #1f2937)',
+                border: '1px solid #4b5563',
+                borderRadius: 4,
+                padding: '2px 8px',
+                marginTop: -4,
                 textAlign: 'center',
-                minWidth: 60,
             }}>
-                <span style={{
-                    display: 'block',
-                    fontSize: 11,
-                    fontWeight: 'bold',
-                    color: seat.isHero ? '#000' : '#9ca3af',
-                    lineHeight: 1.2,
-                }}>
+                <span style={{ display: 'block', fontSize: 9, color: '#9ca3af', lineHeight: 1.2 }}>
                     {seat.name}
                 </span>
-                <span style={{
-                    display: 'block',
-                    fontSize: 13,
-                    fontWeight: 'bold',
-                    color: seat.isHero ? '#000' : '#22d3ee',
-                    lineHeight: 1.1,
-                }}>
+                <span style={{ display: 'block', fontSize: 11, fontWeight: 'bold', color: '#22d3ee', lineHeight: 1.1 }}>
                     {stack} BB
                 </span>
             </div>
-        </motion.div>
+        </div>
     );
 }
 
@@ -170,23 +175,21 @@ export default function GodModeArena({
     onComplete,
     onExit,
 }) {
-    // Game state
+    // State
     const [loading, setLoading] = useState(true);
     const [hand, setHand] = useState(null);
     const [handNumber, setHandNumber] = useState(0);
     const [correctCount, setCorrectCount] = useState(0);
-    const [health, setHealth] = useState(100);
-    const [xp, setXp] = useState(0);
+    const [xp, setXp] = useState(1250);
+    const [diamonds, setDiamonds] = useState(500);
 
     // Timer
     const [timer, setTimer] = useState(15);
     const timerRef = useRef(null);
 
-    // Result state
+    // Result
     const [showResult, setShowResult] = useState(false);
     const [lastResult, setLastResult] = useState(null);
-
-    // Session complete
     const [sessionComplete, setSessionComplete] = useState(false);
 
     // Fetch next hand
@@ -208,7 +211,6 @@ export default function GodModeArena({
                 setHand(data.hand);
                 setHandNumber(prev => prev + 1);
             } else {
-                // No more hands
                 setSessionComplete(true);
             }
         } catch (err) {
@@ -219,10 +221,9 @@ export default function GodModeArena({
     }, [userId, gameId, level]);
 
     // Submit action
-    const submitAction = useCallback(async (action) => {
+    const submitAction = useCallback(async (actionKey) => {
         if (showResult || !hand) return;
 
-        // Stop timer
         clearInterval(timerRef.current);
 
         try {
@@ -232,8 +233,8 @@ export default function GodModeArena({
                 body: JSON.stringify({
                     userId,
                     gameId,
-                    action,
-                    handData: hand,
+                    action: actionKey,
+                    handData: hand, // Pass full hand data including solver_node
                 }),
             });
 
@@ -245,31 +246,27 @@ export default function GodModeArena({
             if (result.isCorrect) {
                 setCorrectCount(prev => prev + 1);
                 setXp(prev => prev + 50);
-            } else {
-                setHealth(prev => Math.max(0, prev - (result.hpDamage || 10)));
             }
 
-            // Auto-advance after delay
+            // Auto-advance
             setTimeout(() => {
-                if (handNumber >= 20 || health <= 0) {
+                if (handNumber >= 20) {
                     setSessionComplete(true);
                     onComplete?.({
                         handsPlayed: handNumber,
                         correctAnswers: correctCount + (result.isCorrect ? 1 : 0),
                         accuracy: ((correctCount + (result.isCorrect ? 1 : 0)) / handNumber) * 100,
                         passed: ((correctCount + (result.isCorrect ? 1 : 0)) / handNumber) >= 0.85,
-                        finalHealth: health - (result.isCorrect ? 0 : (result.hpDamage || 10)),
-                        xpEarned: xp + (result.isCorrect ? 50 : 0),
                     });
                 } else {
                     fetchHand();
                 }
-            }, 2000);
+            }, 2500);
 
         } catch (err) {
             console.error('Failed to submit action:', err);
         }
-    }, [hand, showResult, userId, gameId, handNumber, health, correctCount, xp, onComplete, fetchHand]);
+    }, [hand, showResult, userId, gameId, handNumber, correctCount, onComplete, fetchHand]);
 
     // Initial fetch
     useEffect(() => {
@@ -283,7 +280,7 @@ export default function GodModeArena({
         timerRef.current = setInterval(() => {
             setTimer(prev => {
                 if (prev <= 1) {
-                    submitAction('TIMEOUT');
+                    submitAction('timeout');
                     return 0;
                 }
                 return prev - 1;
@@ -291,36 +288,25 @@ export default function GodModeArena({
         }, 1000);
 
         return () => clearInterval(timerRef.current);
-    }, [loading, showResult, sessionComplete, submitAction]);
+    }, [loading, showResult, sessionComplete]);
 
-    // Parse hero cards
-    const heroCards = hand?.hero_hand ? [
-        hand.hero_hand.slice(0, 2),
-        hand.hero_hand.slice(2, 4)
-    ] : ['??', '??'];
+    // Parse hand data
+    const heroCards = hand ? splitHand(hand.hero_hand) : ['??', '??'];
+    const boardCards = hand ? splitBoard(hand.board) : [];
+    const potSize = hand?.pot_size || 0;
+    const heroStack = hand?.hero_stack || 100;
+    const heroPosition = hand?.hero_position || 'BTN';
+    const villainPosition = hand?.villain_position || 'BB';
+    const street = hand?.street || 'Flop';
 
-    // Parse board cards
-    const boardCards = [];
-    if (hand?.board) {
-        for (let i = 0; i < hand.board.length; i += 2) {
-            boardCards.push(hand.board.slice(i, i + 2));
-        }
-    }
+    // Get available actions from solver_node
+    const solverActions = hand?.solver_node?.actions || {};
+    const actionKeys = Object.keys(solverActions);
 
     // Build question text
-    const questionText = hand ?
-        `You are ${hand.hero_position || 'SB'} with ${heroCards.join('')}. ${hand.street || 'Flop'}: ${hand.board || 'No board'}. Pot is ${hand.pot_size || 6} BB. What's your action?` :
-        'Loading hand...';
-
-    // Get available actions from solver node
-    const actions = hand?.solver_node?.actions || {};
-    const actionButtons = Object.keys(actions).length > 0
-        ? Object.keys(actions).map(a => ({ id: a, label: a.toUpperCase() }))
-        : [
-            { id: 'fold', label: 'Fold' },
-            { id: 'call', label: 'Call' },
-            { id: 'raise', label: 'Raise' },
-        ];
+    const questionText = hand
+        ? `You Are ${heroPosition} (Last To Act). ${villainPosition} ${potSize > 6 ? 'Bets' : 'Checks'}. What Is Your Best Move?`
+        : 'Loading...';
 
     // Session complete screen
     if (sessionComplete) {
@@ -337,51 +323,39 @@ export default function GodModeArena({
                 justifyContent: 'center',
                 fontFamily: "'Inter', sans-serif",
             }}>
-                <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    style={{
-                        background: 'linear-gradient(135deg, #1a2744, #0f1a2e)',
-                        padding: '40px 60px',
-                        borderRadius: 24,
-                        textAlign: 'center',
-                        border: passed ? '3px solid #22c55e' : '3px solid #f97316',
-                        boxShadow: passed ? '0 0 60px rgba(34, 197, 94, 0.3)' : '0 0 60px rgba(249, 115, 22, 0.2)',
-                    }}
-                >
-                    <div style={{ fontSize: 72, marginBottom: 16 }}>{passed ? '🏆' : '📚'}</div>
-                    <h1 style={{
-                        fontSize: 32,
-                        fontWeight: 'bold',
-                        color: passed ? '#22c55e' : '#f97316',
-                        marginBottom: 20,
-                    }}>
+                <div style={{
+                    background: 'linear-gradient(135deg, #1a2744, #0f1a2e)',
+                    padding: '40px 50px',
+                    borderRadius: 20,
+                    textAlign: 'center',
+                    border: passed ? '3px solid #22c55e' : '3px solid #f97316',
+                }}>
+                    <div style={{ fontSize: 64 }}>{passed ? '🏆' : '📚'}</div>
+                    <h1 style={{ fontSize: 28, color: passed ? '#22c55e' : '#f97316', margin: '16px 0' }}>
                         {passed ? 'LEVEL COMPLETE!' : 'KEEP PRACTICING'}
                     </h1>
-                    <div style={{ fontSize: 64, fontWeight: 'bold', color: passed ? '#22c55e' : '#f97316' }}>
+                    <div style={{ fontSize: 56, fontWeight: 'bold', color: passed ? '#22c55e' : '#f97316' }}>
                         {accuracy}%
                     </div>
-                    <p style={{ color: '#9ca3af', marginBottom: 24 }}>
+                    <p style={{ color: '#9ca3af', margin: '16px 0 24px' }}>
                         {correctCount}/{handNumber} correct • Need 85% to pass
                     </p>
-                    <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-                        <button
-                            onClick={onExit}
-                            style={{
-                                padding: '14px 32px',
-                                fontSize: 16,
-                                fontWeight: 'bold',
-                                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                                border: 'none',
-                                borderRadius: 12,
-                                color: '#fff',
-                                cursor: 'pointer',
-                            }}
-                        >
-                            Continue
-                        </button>
-                    </div>
-                </motion.div>
+                    <button
+                        onClick={onExit}
+                        style={{
+                            padding: '12px 32px',
+                            fontSize: 16,
+                            fontWeight: 'bold',
+                            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                            border: 'none',
+                            borderRadius: 10,
+                            color: '#fff',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        Continue
+                    </button>
+                </div>
             </div>
         );
     }
@@ -401,108 +375,110 @@ export default function GodModeArena({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '8px 16px',
-                background: 'rgba(0,0,0,0.5)',
+                padding: '8px 12px',
+                background: 'rgba(0,0,0,0.6)',
+                borderBottom: '1px solid #1e293b',
             }}>
                 <button onClick={onExit} style={{
                     background: '#0891b2',
                     border: 'none',
-                    borderRadius: 8,
-                    padding: '6px 12px',
+                    borderRadius: 6,
+                    padding: '6px 10px',
                     color: 'white',
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: 'bold',
                     cursor: 'pointer',
                 }}>
                     ← Back to Training
                 </button>
-                <div style={{ fontSize: 14, fontWeight: 'bold', color: '#22d3ee', letterSpacing: 1 }}>
-                    {gameName?.toUpperCase() || 'TRAINING'}
+                <div style={{ fontSize: 12, fontWeight: 'bold', color: '#fbbf24', letterSpacing: 1, textTransform: 'uppercase' }}>
+                    {gameName || 'Training'}
                 </div>
-                <div style={{ display: 'flex', gap: 12, fontSize: 12, fontWeight: 'bold' }}>
-                    <span style={{ color: '#22d3ee' }}>⚡ {xp.toLocaleString()} XP</span>
-                    <span style={{ color: '#ef4444' }}>❤️ {health}</span>
+                <div style={{ display: 'flex', gap: 10, fontSize: 11, fontWeight: 'bold' }}>
+                    <span style={{ color: '#fbbf24' }}>⚡ {xp.toLocaleString()} XP</span>
+                    <span style={{ color: '#22d3ee' }}>💎 {diamonds}</span>
                 </div>
             </div>
 
             {/* QUESTION BOX */}
-            <div style={{ padding: '8px 16px' }}>
+            <div style={{ padding: '10px 12px' }}>
                 <div style={{
-                    background: '#0f172a',
-                    border: '2px solid rgba(34, 211, 238, 0.6)',
-                    borderRadius: 12,
-                    padding: '12px 20px',
+                    background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+                    border: '2px solid rgba(34, 211, 238, 0.5)',
+                    borderRadius: 10,
+                    padding: '10px 16px',
                     textAlign: 'center',
                 }}>
-                    <p style={{ margin: 0, fontSize: 14, fontWeight: '600', color: '#e0f2fe', lineHeight: 1.4 }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: '600', color: '#e0f2fe', lineHeight: 1.4 }}>
                         {questionText}
                     </p>
                 </div>
             </div>
 
-            {/* TABLE AREA */}
-            <div style={{ flex: 1, position: 'relative', padding: '0 8px' }}>
-                {/* Poker Table */}
+            {/* TABLE AREA - VERTICAL LAYOUT */}
+            <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+                {/* Poker Table - Vertical Oval */}
                 <div style={{
                     position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: '85%',
-                    maxWidth: 500,
-                    aspectRatio: '1.6/1',
+                    top: '5%',
+                    left: '15%',
+                    right: '15%',
+                    bottom: '20%',
                 }}>
-                    {/* Table Layers */}
+                    {/* Outer dark rail */}
                     <div style={{
                         position: 'absolute',
                         inset: 0,
-                        borderRadius: 9999,
+                        borderRadius: '50%',
                         background: 'linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0d0d0d 100%)',
-                        boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
                     }}>
+                        {/* Gold outer ring */}
                         <div style={{
                             position: 'absolute',
                             inset: 8,
-                            borderRadius: 9999,
-                            background: 'linear-gradient(135deg, #FFE066 0%, #FFD700 30%, #FFA500 60%, #CC8800 100%)',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #FFE066, #FFD700, #FFA500, #CC8800)',
                         }}>
+                            {/* Dark inner section */}
                             <div style={{
                                 position: 'absolute',
                                 inset: 4,
-                                borderRadius: 9999,
-                                background: 'linear-gradient(180deg, #222 0%, #111 100%)',
+                                borderRadius: '50%',
+                                background: 'linear-gradient(180deg, #262626, #1a1a1a, #0f0f0f)',
                             }}>
+                                {/* Gold inner ring */}
                                 <div style={{
                                     position: 'absolute',
                                     inset: 6,
-                                    borderRadius: 9999,
-                                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #996600 100%)',
+                                    borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, #FFD700, #FFA500, #996600)',
                                 }}>
+                                    {/* Dark felt */}
                                     <div style={{
                                         position: 'absolute',
                                         inset: 3,
-                                        borderRadius: 9999,
-                                        background: 'radial-gradient(ellipse at 50% 40%, #1a1a1a 0%, #0f0f0f 50%, #050505 100%)',
+                                        borderRadius: '50%',
+                                        background: 'radial-gradient(ellipse at 50% 40%, #1a1a1a 0%, #0f0f0f 40%, #050505 100%)',
                                     }}>
-                                        {/* Pot */}
+                                        {/* POT */}
                                         <div style={{
                                             position: 'absolute',
-                                            top: '15%',
+                                            top: '8%',
                                             left: '50%',
                                             transform: 'translateX(-50%)',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: 6,
+                                            gap: 4,
                                             background: 'rgba(0,0,0,0.8)',
-                                            borderRadius: 12,
-                                            padding: '4px 12px',
+                                            borderRadius: 8,
+                                            padding: '3px 10px',
                                         }}>
-                                            <span style={{ color: '#FFD700', fontSize: 12, fontWeight: 'bold' }}>
-                                                POT {hand?.pot_size || 0}
-                                            </span>
+                                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', border: '1px solid #fca5a5' }} />
+                                            <span style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>POT {potSize}</span>
                                         </div>
 
-                                        {/* Game Title */}
+                                        {/* Game title */}
                                         <div style={{
                                             position: 'absolute',
                                             top: '45%',
@@ -510,28 +486,28 @@ export default function GodModeArena({
                                             transform: 'translate(-50%, -50%)',
                                             textAlign: 'center',
                                         }}>
-                                            <div style={{ fontSize: 14, fontStyle: 'italic', color: '#333' }}>
+                                            <div style={{ fontSize: 11, fontStyle: 'italic', color: '#333' }}>
                                                 {gameName}
                                             </div>
-                                            <div style={{ fontSize: 10, color: '#8b6914' }}>Smarter.Poker</div>
+                                            <div style={{ fontSize: 8, color: '#8b6914' }}>Smarter.Poker</div>
                                         </div>
 
-                                        {/* Community Cards */}
+                                        {/* Board cards */}
                                         {boardCards.length > 0 && (
                                             <div style={{
                                                 position: 'absolute',
-                                                top: '28%',
+                                                top: '22%',
                                                 left: '50%',
                                                 transform: 'translateX(-50%)',
                                                 display: 'flex',
-                                                gap: 4,
+                                                gap: 3,
                                             }}>
                                                 {boardCards.map((card, i) => (
                                                     <motion.div
                                                         key={i}
-                                                        initial={{ y: -20, opacity: 0 }}
+                                                        initial={{ y: -15, opacity: 0 }}
                                                         animate={{ y: 0, opacity: 1 }}
-                                                        transition={{ delay: i * 0.1 }}
+                                                        transition={{ delay: i * 0.08 }}
                                                     >
                                                         <Card card={card} size="small" />
                                                     </motion.div>
@@ -545,21 +521,49 @@ export default function GodModeArena({
                     </div>
                 </div>
 
-                {/* Player Seats */}
+                {/* Villain seats */}
                 {SEATS.map((seat, i) => (
-                    <PlayerSeat
-                        key={seat.id}
-                        seat={seat}
-                        stack={seat.isHero ? (hand?.hero_stack || 100) : DEFAULT_STACKS[i]}
-                        isActive={seat.isHero && !showResult && !loading}
-                    />
+                    <PlayerSeat key={seat.id} seat={seat} stack={DEFAULT_STACKS[i]} />
                 ))}
 
-                {/* Hero Cards */}
+                {/* Hero area */}
                 <div style={{
                     position: 'absolute',
                     left: '50%',
-                    bottom: '16%',
+                    bottom: '8%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    zIndex: 100,
+                }}>
+                    {/* Hero avatar */}
+                    <div style={{ width: 60, height: 66, marginBottom: -8 }}>
+                        <img
+                            src={AVATARS.hero}
+                            alt="Hero"
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
+                    </div>
+                    {/* Hero badge */}
+                    <div style={{
+                        background: 'linear-gradient(180deg, #FFD700, #FFA500, #CC8800)',
+                        border: '2px solid #996600',
+                        borderRadius: 6,
+                        padding: '3px 14px 5px',
+                        textAlign: 'center',
+                        minWidth: 60,
+                    }}>
+                        <span style={{ display: 'block', fontSize: 10, fontWeight: 'bold', color: '#000' }}>Hero</span>
+                        <span style={{ display: 'block', fontSize: 12, fontWeight: 'bold', color: '#000' }}>{heroStack} BB</span>
+                    </div>
+                </div>
+
+                {/* Hero cards */}
+                <div style={{
+                    position: 'absolute',
+                    left: '50%',
+                    bottom: '26%',
                     transform: 'translateX(-50%)',
                     display: 'flex',
                     gap: 4,
@@ -568,51 +572,71 @@ export default function GodModeArena({
                     {heroCards.map((card, i) => (
                         <motion.div
                             key={i}
-                            initial={{ y: 30, opacity: 0, rotate: i === 0 ? -8 : 8 }}
+                            initial={{ y: 20, opacity: 0, rotate: i === 0 ? -8 : 8 }}
                             animate={{ y: 0, opacity: 1, rotate: i === 0 ? -5 : 5 }}
-                            transition={{ delay: 0.3 + i * 0.1 }}
+                            transition={{ delay: 0.2 + i * 0.1 }}
                         >
                             <Card card={card} />
                         </motion.div>
                     ))}
                 </div>
 
-                {/* Timer */}
+                {/* Dealer button */}
                 <div style={{
                     position: 'absolute',
-                    left: 16,
-                    bottom: 16,
-                    width: 50,
-                    height: 50,
-                    background: timer > 5 ? '#dc2626' : '#ff0000',
-                    borderRadius: 8,
+                    left: '58%',
+                    bottom: '32%',
+                    width: 18,
+                    height: 18,
+                    borderRadius: '50%',
+                    background: '#fff',
+                    border: '2px solid #333',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 24,
+                    fontSize: 9,
+                    fontWeight: 'bold',
+                    zIndex: 200,
+                }}>
+                    D
+                </div>
+
+                {/* Timer */}
+                <div style={{
+                    position: 'absolute',
+                    left: 12,
+                    bottom: 12,
+                    width: 44,
+                    height: 44,
+                    background: timer > 5 ? '#dc2626' : '#ff0000',
+                    borderRadius: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 22,
                     fontWeight: 'bold',
                     color: 'white',
-                    boxShadow: timer <= 5 ? '0 0 20px #ff0000' : 'none',
+                    boxShadow: timer <= 5 ? '0 0 16px #ff0000' : 'none',
                 }}>
                     {timer}
                 </div>
 
-                {/* Question Counter */}
+                {/* Question counter */}
                 <div style={{
                     position: 'absolute',
-                    right: 16,
-                    bottom: 16,
-                    background: 'rgba(30,30,40,0.9)',
-                    border: '1px solid #444',
-                    borderRadius: 8,
-                    padding: '6px 12px',
-                    color: '#f0f0f0',
-                    fontSize: 12,
+                    right: 12,
+                    bottom: 12,
+                    background: 'rgba(30,30,40,0.95)',
+                    border: '1px solid #374151',
+                    borderRadius: 6,
+                    padding: '5px 10px',
+                    color: '#e5e7eb',
+                    fontSize: 11,
                 }}>
                     Question {handNumber} of 20
                 </div>
 
-                {/* Result Overlay */}
+                {/* Result overlay */}
                 <AnimatePresence>
                     {showResult && lastResult && (
                         <motion.div
@@ -623,31 +647,31 @@ export default function GodModeArena({
                                 position: 'absolute',
                                 inset: 0,
                                 background: lastResult.isCorrect
-                                    ? 'rgba(34, 197, 94, 0.9)'
-                                    : 'rgba(239, 68, 68, 0.9)',
+                                    ? 'rgba(34, 197, 94, 0.92)'
+                                    : 'rgba(239, 68, 68, 0.92)',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                zIndex: 200,
+                                zIndex: 300,
                             }}
                         >
                             <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
-                                style={{ fontSize: 72 }}
+                                style={{ fontSize: 64 }}
                             >
                                 {lastResult.isCorrect ? '✅' : '❌'}
                             </motion.div>
-                            <h2 style={{ fontSize: 28, fontWeight: 'bold', color: '#fff', marginTop: 16 }}>
+                            <h2 style={{ fontSize: 24, fontWeight: 'bold', color: '#fff', marginTop: 12 }}>
                                 {lastResult.isCorrect ? 'CORRECT!' : 'INCORRECT'}
                             </h2>
-                            {lastResult.isCorrect && (
-                                <p style={{ color: '#fcd34d', fontSize: 18 }}>+50 XP</p>
-                            )}
-                            <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14, maxWidth: 400, textAlign: 'center' }}>
-                                {lastResult.feedback || 'Moving to next hand...'}
+                            <p style={{ color: 'rgba(255,255,255,0.95)', fontSize: 13, maxWidth: 300, textAlign: 'center', marginTop: 8 }}>
+                                {lastResult.feedback || (lastResult.isCorrect ? 'Great play!' : `${formatAction(lastResult.gtoAction)} was optimal`)}
                             </p>
+                            {lastResult.isCorrect && (
+                                <p style={{ color: '#fcd34d', fontSize: 16, fontWeight: 'bold', marginTop: 8 }}>+50 XP</p>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -658,41 +682,63 @@ export default function GodModeArena({
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: 8,
-                    padding: '12px 16px 24px',
+                    gap: 6,
+                    padding: '10px 12px 20px',
+                    background: 'rgba(0,0,0,0.4)',
                 }}>
-                    {actionButtons.map((btn) => (
-                        <button
-                            key={btn.id}
-                            onClick={() => submitAction(btn.id)}
-                            style={{
-                                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                                border: 'none',
-                                borderRadius: 8,
-                                padding: '14px',
-                                color: 'white',
-                                fontSize: 14,
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                textTransform: 'capitalize',
-                            }}
-                        >
-                            {btn.label}
-                        </button>
-                    ))}
+                    {actionKeys.length > 0 ? (
+                        actionKeys.slice(0, 4).map((actionKey) => (
+                            <button
+                                key={actionKey}
+                                onClick={() => submitAction(actionKey)}
+                                style={{
+                                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                                    border: 'none',
+                                    borderRadius: 6,
+                                    padding: '12px',
+                                    color: 'white',
+                                    fontSize: 13,
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {formatAction(actionKey)}
+                            </button>
+                        ))
+                    ) : (
+                        // Fallback buttons if no solver actions
+                        ['Fold', 'Call', 'Raise', 'All-In'].map((label) => (
+                            <button
+                                key={label}
+                                onClick={() => submitAction(label.toLowerCase())}
+                                style={{
+                                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                                    border: 'none',
+                                    borderRadius: 6,
+                                    padding: '12px',
+                                    color: 'white',
+                                    fontSize: 13,
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {label}
+                            </button>
+                        ))
+                    )}
                 </div>
             )}
 
-            {/* Loading State */}
+            {/* Loading overlay */}
             {loading && (
                 <div style={{
                     position: 'absolute',
                     inset: 0,
-                    background: 'rgba(0,0,0,0.8)',
+                    background: 'rgba(0,0,0,0.85)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    zIndex: 300,
+                    zIndex: 400,
                 }}>
                     <motion.div
                         animate={{ rotate: 360 }}
