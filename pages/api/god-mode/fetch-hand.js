@@ -121,9 +121,10 @@ export default async function handler(req, res) {
         // 3. Query solved_spots_gold based on game config
         if (engineType === 'PIO') {
             // Build query for solved_spots_gold
+            // Table columns: id, scenario_hash, game_type, stack_depth, street, strategy_matrix, created_at
             let query = supabase.from('solved_spots_gold').select('*');
 
-            // Filter by game_type (Cash, MTT, Spin)
+            // Filter by game_type (Cash, MTT_ChipEV, hu_cash, etc.)
             if (config.game_type) {
                 query = query.eq('game_type', config.game_type);
             }
@@ -135,19 +136,9 @@ export default async function handler(req, res) {
                 query = query.gte('stack_depth', depth - range).lte('stack_depth', depth + range);
             }
 
-            // Filter by street
+            // Filter by street (case-insensitive check)
             if (config.street) {
-                query = query.eq('street', config.street);
-            }
-
-            // Filter by position
-            if (config.position) {
-                query = query.ilike('scenario_hash', `%${config.position}%`);
-            }
-
-            // Filter by mode (ChipEV, ICM, PKO)
-            if (config.mode) {
-                query = query.eq('mode', config.mode);
+                query = query.ilike('street', config.street);
             }
 
             // Limit results
@@ -188,10 +179,15 @@ export default async function handler(req, res) {
 
                         const heroStrategy = strategyMatrix[heroHandKey];
 
-                        // Parse board cards (stored as array or string)
-                        const boardCards = Array.isArray(scenario.board_cards)
-                            ? scenario.board_cards.join('')
-                            : scenario.board_cards || '';
+                        // Extract board from scenario_hash if present
+                        // Format might be: "AsKd2h_BTN_vs_BB_100bb_Cash_Flop" or similar
+                        let boardCards = '';
+                        if (scenario.scenario_hash) {
+                            const hashParts = scenario.scenario_hash.split('_');
+                            if (hashParts[0] && /^[AKQJT98765432][shdc]/.test(hashParts[0])) {
+                                boardCards = hashParts[0];
+                            }
+                        }
 
                         // Apply suit rotation for isomorphism
                         const hand = {
@@ -200,20 +196,19 @@ export default async function handler(req, res) {
                             scenario_hash: scenario.scenario_hash,
                             hero_hand: rotateSuits(heroHandKey, rotation),
                             board: rotateSuits(boardCards, rotation),
-                            pot_size: scenario.macro_metrics?.pot_size || config.pot_size || 100,
+                            pot_size: config.pot_size || 100,
                             hero_stack: scenario.stack_depth || config.stack_depth || 100,
                             villain_stack: scenario.stack_depth || config.stack_depth || 100,
-                            hero_position: config.hero_position || 'BTN',
+                            hero_position: config.hero_position || 'SB',
                             villain_position: config.villain_position || 'BB',
                             street: scenario.street || 'Flop',
-                            action_history: scenario.action_history || [],
+                            action_history: [],
                             solver_node: {
-                                actions: heroStrategy?.actions || {},
+                                actions: heroStrategy?.actions || heroStrategy || {},
                                 best_action: heroStrategy?.best_action,
                                 max_ev: heroStrategy?.max_ev,
                                 is_mixed: heroStrategy?.is_mixed
-                            },
-                            macro_metrics: scenario.macro_metrics
+                            }
                         };
 
                         return res.status(200).json({
