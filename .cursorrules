@@ -1,207 +1,63 @@
-# ANTI GRAVITY 2.0 SYSTEM RULES
+# Smarter.Poker Coding Standards
 
-## 🧠 MEMORY FIRST
-Before answering ANY prompt, you MUST:
-1. Read `.memory/active_context.md` to understand current session state
-2. Read `.memory/project_mission.md` to understand project goals and constraints
-3. Update these files if plans change during the session
+## Code Architecture
 
-**Why:** Prevents context loss between sessions and ensures continuity.
-
----
-
-## 🔗 CHAIN OF THOUGHT
-Do not just write code. Explain your "Mental Sandbox" first:
-
-**Template:**
-```
-I am analyzing [file/component/feature]...
-I see a potential conflict with [rule/pattern/constraint]...
-I will execute [strategy/approach] because [reasoning]...
-```
-
-**Why:** Makes decision-making transparent and catches errors before execution.
-
----
-
-## 🔥 SCORCHED EARTH PROTOCOL
-
-### Rule 1: No External Scripts for UI Logic
+### Self-Contained Components
 - All game logic must be React-native (state-driven)
 - No `<script>` tags for gameplay or core functionality
-- External libraries OK for utilities (charts, maps), but not for core business logic
+- Components must work independently with explicit state management (props, context, or Zustand)
 
-### Rule 2: Self-Contained Components
-- Components must work independently
-- No hidden dependencies on global scripts
-- All state management explicit (props, context, or Zustand)
-
-### Rule 3: No 404s — Mock Assets First
-- If an image is missing, auto-generate a CSS/SVG fallback
+### No 404s - Fallbacks Required
+- If an image is missing, use a CSS/SVG fallback
 - Never ship broken UI due to missing resources
-- Fallbacks should be visually acceptable, not just error messages
 
-**Why:** Ensures reliability and prevents cascading failures.
-
----
-
-## 🎯 PROJECT ISOLATION
-
-### Workspace Verification
-Before making ANY code changes, verify you are in the correct workspace:
-
-**Triggers:**
-- User mentions "Mapping" or "Venues" → Verify in `hub-vanguard` workspace
-- User mentions "Solver" or "Training" → Verify correct orb context
-- User mentions "Social" or "Feed" → Verify Orb #1 context
-
-**Rule:** Do not pollute one feature area with another's code.
-
-**Why:** Prevents cross-contamination and maintains clean separation of concerns.
+### Supabase Client
+- Always import from `@/lib/supabaseClient` (singleton pattern)
+- Never create new client instances in components
 
 ---
 
-## 🏗️ ARCHITECTURAL STANDARDS
+## Security Rules
 
-### Visual Design
-- **Glassmorphism:** `backdrop-filter: blur(10px)` for all major containers
-- **Neon Accents:** Cyan (#00d4ff), Purple (#a855f7), Gold (#fbbf24)
-- **Video Game Feel:** Smooth animations, micro-interactions, personality
-
-### Code Patterns
-- **Singleton Supabase Client:** Always import from `@/lib/supabaseClient`
-- **RLS Enforcement:** All tables must have Row Level Security policies
-- **No Sensitive Data in Client:** API keys stay server-side only
-
-### Responsive Design
-- **Pattern A (Content Zoom):** For content-heavy pages
-- **Pattern B (Spatial Viewport):** For immersive experiences
-- **Pattern C (Fixed Aspect):** For game boards and video players
-
-**Reference:** See `.memory/system_patterns.md` for detailed specifications.
-
----
-
-## 🚀 DEPLOYMENT LAW
-
-### Rule: All Sessions Must Conclude with Deployment
-**Standard Workflow:**
-```bash
-/auto-publish
-```
-
-**Manual Alternative:**
-```bash
-git add .
-git commit -m "feat: [description]"
-git push origin main
-```
-
-**Why:** Ensures production parity and prevents "works on my machine" issues.
-
----
-
-## 🔐 SECURITY RULES
-
-### 1. No Service Role Keys in Client Code
+### No Service Role Keys in Client Code
 ```javascript
-// ✅ CORRECT (server-side only)
-const supabase = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY);
-
-// ❌ FORBIDDEN (client-side)
+// Server-side only (API routes)
 const supabase = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY);
 ```
 
-### 2. RLS Policies Required
-Every Supabase table MUST have:
-- Public read policy (if applicable)
-- Authenticated write policy
-- God mode override policy (for admin features)
+### RLS Policies Required
+Every Supabase table must have Row Level Security policies.
 
-### 3. Input Validation
+### Input Validation
 - Sanitize all user inputs before database operations
-- Use parameterized queries (Supabase handles this by default)
 - Validate file uploads (type, size, content)
 
 ---
 
-## 📊 DATA PATTERNS
+## Visual Standards
 
-### Batch Execution Protocol
+### Glassmorphism
+```css
+backdrop-filter: blur(10px);
+background: rgba(255, 255, 255, 0.1);
+```
+
+### Color Palette
+- Cyan: #00d4ff (primary)
+- Purple: #a855f7 (secondary)
+- Gold: #fbbf24 (premium)
+
+---
+
+## Data Patterns
+
+### Batch Operations
 When inserting large datasets:
-1. Split into batches: 30 → 15 → 3 rows
-2. Add 5-10 second delays between batches
-3. Verify each batch via API before proceeding
-4. Log all successes/failures
-
-**Why:** Prevents Supabase connection timeouts on bulk operations.
+1. Split into batches (30 → 15 → 3 rows)
+2. Add delays between batches
+3. Verify each batch before proceeding
 
 ---
 
-## 🧪 VERIFICATION CHECKLIST
-
-Before marking ANY feature "complete":
-- [ ] Works on mobile (iOS Safari, Android Chrome)
-- [ ] Works on desktop (Chrome, Safari, Firefox)
-- [ ] No console errors
-- [ ] Loading states implemented
-- [ ] Error states handled gracefully
-- [ ] Accessibility: keyboard navigation works
-- [ ] Performance: smooth 60fps, no jank
-- [ ] Production deployed and verified
-
----
-
-## 🎮 ORBS & FEATURES
-
-### Orb #4 (Training) — Production Stable
-- 100 games live
-- React-native game logic (no external scripts)
-- 4x4 grid mapping for range construction
-
-### Orb #9 (Poker Near Me) — In Progress
-- GPS search with radius filtering
-- Venue and tournament series discovery
-- **Current Blocker:** Supabase infrastructure overload
-
-### Orb #1 (Social) — Dormant
-- Link preview system production-verified
-- Awaiting next activation phase
-
-**Reference:** See `.memory/project_mission.md` for full orb manifest.
-
----
-
-## 🚨 CRITICAL REMINDERS
-
-1. **Read Memory Files First** — Before every session
-2. **Update Memory Files** — When plans change
-3. **Explain Before Executing** — Chain of thought mandatory
-4. **Verify Workspace** — Before making changes
-5. **Deploy at End** — Every session concludes with deployment
-
-**Failure to follow these rules will result in context loss, code pollution, and production issues.**
-
----
-
-## 📝 AGENT BEHAVIOR
-
-### On Session Start
-1. Read `.memory/active_context.md`
-2. Read `.memory/project_mission.md`
-3. Acknowledge current state in first response
-
-### During Session
-1. Explain reasoning before code changes
-2. Update memory files if plans change
-3. Verify workspace context before edits
-
-### On Session End
-1. Update `.memory/active_context.md` with progress
-2. Deploy changes to production
-3. Document any new blockers or issues
-
----
-
-**VERSION:** Anti Gravity 2.0  
-**LAST UPDATED:** 2026-01-19
+## Documentation
+See `docs/architecture/` for detailed guidelines.
