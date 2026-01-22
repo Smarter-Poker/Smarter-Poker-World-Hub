@@ -20,6 +20,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const https = require('https');
 const http = require('http');
+const zlib = require('zlib');
 
 require('dotenv').config({ path: '.env.local' });
 
@@ -411,9 +412,20 @@ class PipelineOrchestrator {
 
             const request = protocol.get(url, {
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (compatible; SmarterPoker/1.0)',
-                    'Accept': 'text/html,application/xhtml+xml',
-                    'Accept-Language': 'en-US,en;q=0.9'
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                    'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                    'Sec-Ch-Ua-Mobile': '?0',
+                    'Sec-Ch-Ua-Platform': '"macOS"',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-User': '?1',
+                    'Upgrade-Insecure-Requests': '1'
                 }
             }, (response) => {
                 // Handle redirects
@@ -430,9 +442,21 @@ class PipelineOrchestrator {
                     return;
                 }
 
+                // Handle compressed responses
+                let stream = response;
+                const encoding = response.headers['content-encoding'];
+                if (encoding === 'gzip') {
+                    stream = response.pipe(zlib.createGunzip());
+                } else if (encoding === 'deflate') {
+                    stream = response.pipe(zlib.createInflate());
+                } else if (encoding === 'br') {
+                    stream = response.pipe(zlib.createBrotliDecompress());
+                }
+
                 let data = '';
-                response.on('data', chunk => data += chunk);
-                response.on('end', () => resolve(data));
+                stream.on('data', chunk => data += chunk);
+                stream.on('end', () => resolve(data));
+                stream.on('error', (err) => reject(err));
             });
 
             request.on('error', async (error) => {
