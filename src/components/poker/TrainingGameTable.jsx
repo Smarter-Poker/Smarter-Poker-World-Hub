@@ -139,33 +139,35 @@ function PlayerSeat({ seat, stack, isDealer = false }) {
                 />
             </motion.div>
 
-            {/* SINGLE BADGE — Name + BB in one box */}
+            {/* SINGLE BADGE — Name + BB in ONE unified box */}
             <div style={{
                 background: 'linear-gradient(180deg, #f0c040 0%, #c4960a 100%)',
                 border: '2px solid #8b6914',
-                borderRadius: 5,
-                padding: '4px 10px',
+                borderRadius: 4,
+                padding: '3px 8px 4px 8px',
                 marginTop: -6,
                 textAlign: 'center',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                minWidth: 60,
+                minWidth: 55,
             }}>
-                <div style={{
-                    fontSize: 10,
+                <span style={{
+                    display: 'block',
+                    fontSize: 9,
                     fontWeight: 'bold',
                     color: '#000',
-                    lineHeight: 1.2,
+                    lineHeight: 1.3,
                 }}>
                     {seat.name}
-                </div>
-                <div style={{
-                    fontSize: 12,
+                </span>
+                <span style={{
+                    display: 'block',
+                    fontSize: 11,
                     fontWeight: 'bold',
-                    color: '#1a1a00',
-                    lineHeight: 1.2,
+                    color: '#000',
+                    lineHeight: 1.1,
                 }}>
                     {stack} BB
-                </div>
+                </span>
             </div>
 
             {/* Dealer button */}
@@ -314,7 +316,7 @@ export default function TrainingGameTable({
                     <div style={{
                         position: 'absolute',
                         inset: 0,
-                        borderRadius: '45% / 50%', // Vertical oval
+                        borderRadius: 9999,
                         background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 50%, #050505 100%)',
                         boxShadow: `
               0 20px 60px rgba(0,0,0,0.9),
@@ -326,7 +328,7 @@ export default function TrainingGameTable({
                         <div style={{
                             position: 'absolute',
                             inset: 8,
-                            borderRadius: '45% / 50%',
+                            borderRadius: 9999,
                             background: 'linear-gradient(180deg, #f0d050 0%, #d4a000 30%, #a07800 70%, #705000 100%)',
                             boxShadow: 'inset 0 2px 4px rgba(255,255,180,0.5), inset 0 -2px 4px rgba(0,0,0,0.4)',
                         }}>
@@ -334,14 +336,14 @@ export default function TrainingGameTable({
                             <div style={{
                                 position: 'absolute',
                                 inset: 7,
-                                borderRadius: '45% / 50%',
+                                borderRadius: 9999,
                                 background: 'linear-gradient(180deg, #151515 0%, #0a0a0a 100%)',
                             }}>
                                 {/* Inner gold rail */}
                                 <div style={{
                                     position: 'absolute',
                                     inset: 5,
-                                    borderRadius: '45% / 50%',
+                                    borderRadius: 9999,
                                     background: 'linear-gradient(180deg, #ffe070 0%, #e8b810 30%, #b08000 70%, #785500 100%)',
                                     boxShadow: 'inset 0 2px 4px rgba(255,255,180,0.5), inset 0 -2px 4px rgba(0,0,0,0.4)',
                                 }}>
@@ -349,14 +351,14 @@ export default function TrainingGameTable({
                                     <div style={{
                                         position: 'absolute',
                                         inset: 5,
-                                        borderRadius: '44% / 49%',
+                                        borderRadius: 9999,
                                         background: '#0a0a0a',
                                     }}>
                                         {/* Inner glow line */}
                                         <div style={{
                                             position: 'absolute',
                                             inset: 3,
-                                            borderRadius: '44% / 49%',
+                                            borderRadius: 9999,
                                             border: '2px solid rgba(180,140,50,0.3)',
                                             background: 'transparent',
                                         }}>
@@ -364,7 +366,7 @@ export default function TrainingGameTable({
                                             <div style={{
                                                 position: 'absolute',
                                                 inset: 0,
-                                                borderRadius: '44% / 49%',
+                                                borderRadius: 9999,
                                                 background: `radial-gradient(
                           ellipse at 50% 40%,
                           #151515 0%,

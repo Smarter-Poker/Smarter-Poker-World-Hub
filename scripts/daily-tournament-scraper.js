@@ -12,6 +12,11 @@ const { createClient } = require('@supabase/supabase-js');
 
 // Tour-specific scraper configurations
 const TOUR_SCRAPERS = {
+    // === MAJOR TOURS ===
+    'WSOP': {
+        baseUrl: 'https://www.wsop.com/',
+        checkInterval: 7,
+    },
     'WSOP Circuit': {
         baseUrl: 'https://www.wsop.com/tournaments/',
         urlPattern: (seriesName) => {
@@ -21,7 +26,11 @@ const TOUR_SCRAPERS = {
                 .replace(/[^a-z0-9-]/g, '');
             return `https://www.wsop.com/tournaments/${slug}/`;
         },
-        checkInterval: 7, // days between checks
+        checkInterval: 7,
+    },
+    'WPT': {
+        baseUrl: 'https://www.worldpokertour.com/schedule/',
+        checkInterval: 7,
     },
     'WPT Main Tour': {
         baseUrl: 'https://www.worldpokertour.com/schedule/',
@@ -31,16 +40,72 @@ const TOUR_SCRAPERS = {
         baseUrl: 'https://www.worldpokertour.com/schedule/',
         checkInterval: 7,
     },
-    'RunGood Poker Series': {
-        baseUrl: 'https://rungood.com/schedule/',
-        checkInterval: 14, // RGPS releases schedules later
+    'PokerGO Tour': {
+        baseUrl: 'https://www.pgt.com/schedule/',
+        checkInterval: 7,
     },
+
+    // === REGIONAL TOURS ===
     'MSPT': {
         baseUrl: 'https://msptpoker.com/schedule/',
         checkInterval: 7,
     },
-    'Venetian Poker Room': {
+    'RunGood Poker Series': {
+        baseUrl: 'https://rungood.com/schedule/',
+        checkInterval: 14,
+    },
+    'RGPS': {
+        baseUrl: 'https://rungood.com/schedule/',
+        checkInterval: 14,
+    },
+
+    // === VEGAS VENUES ===
+    'Wynn': {
+        baseUrl: 'https://www.wynnlasvegas.com/casino/poker',
+        checkInterval: 7,
+    },
+    'Venetian': {
         baseUrl: 'https://www.venetianlasvegas.com/casino/poker.html',
+        checkInterval: 14,
+    },
+    'Venetian DeepStack': {
+        baseUrl: 'https://www.venetianlasvegas.com/casino/poker.html',
+        checkInterval: 14,
+    },
+
+    // === EAST COAST ===
+    'Borgata Poker': {
+        baseUrl: 'https://www.borgata.com/casino/poker',
+        checkInterval: 7,
+    },
+    'Borgata': {
+        baseUrl: 'https://www.borgata.com/casino/poker',
+        checkInterval: 7,
+    },
+
+    // === FLORIDA ===
+    'SHRP': {
+        baseUrl: 'https://www.seminolehardrockpokeropen.com/',
+        checkInterval: 7,
+    },
+    'Seminole': {
+        baseUrl: 'https://www.seminolehardrockpokeropen.com/',
+        checkInterval: 7,
+    },
+    'bestbet': {
+        baseUrl: 'https://www.bestbetjax.com/poker/tournaments',
+        checkInterval: 14,
+    },
+
+    // === CALIFORNIA ===
+    'LAPC': {
+        baseUrl: 'https://www.commercecasino.com/poker',
+        checkInterval: 7,
+    },
+
+    // === ARIZONA ===
+    'Regional': {
+        baseUrl: null, // Varies by venue
         checkInterval: 14,
     },
 };
