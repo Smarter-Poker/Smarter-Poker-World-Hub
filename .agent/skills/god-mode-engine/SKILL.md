@@ -25,6 +25,8 @@ Complete implementation of the Smarter.Poker "God Mode" training system.
 | **MentalGym** | `src/components/training/MentalGym.tsx` | 520 |
 | **GameArena** | `src/components/training/GameArena.tsx` | 950 |
 | **RoundSummary** | `src/components/training/RoundSummary.tsx` | 980 |
+| **Card** | `src/components/training/Card.tsx` | 320 |
+| **Chip** | `src/components/training/Chip.tsx` | 350 |
 
 ---
 
@@ -268,6 +270,7 @@ interface BlunderData {
 | `MENTALGYM_REFERENCE.md` | Mental game scenarios |
 | `GAMEARENA_REFERENCE.md` | HUD wrapper & game loop |
 | `ROUNDSUMMARY_REFERENCE.md` | Victory/defeat modal |
+| `GRAPHICS_REFERENCE.md` | Card & Chip components |
 
 ---
 
@@ -345,6 +348,77 @@ onLevelComplete → router.push with query params for toast
 
 ---
 
+## Step 12: Graphics Engine (Cards & Chips)
+
+### Card.tsx — Visual Playing Cards
+| Feature | Description |
+|---------|-------------|
+| **Suit Colors** | Red for Hearts/Diamonds, Black for Spades/Clubs |
+| **Suit Symbols** | Corner + center display of rank and suit |
+| **Card Back** | Blue patterned back with SP logo |
+| **Animations** | `flip`, `slide`, `deal` entrance effects |
+| **Sizes** | `small` (45x63), `medium` (60x84), `large` (80x112) |
+
+```tsx
+// Basic usage
+<Card rank="A" suit="h" />
+
+// With animation
+<Card rank="K" suit="s" animate="deal" delay={0.2} />
+
+// Parse string format
+const cards = parseCards("AhKd");
+<CardGroup cards={cards} animate="slide" />
+```
+
+### Chip.tsx — Poker Chips
+| Feature | Description |
+|---------|-------------|
+| **Denominations** | 1=White, 5=Red, 25=Green, 100=Black, 500=Purple, 1K=Orange |
+| **Stacking** | Auto-stack effect for large amounts |
+| **3D Effects** | Radial gradients, shadows, edge notches |
+| **Animations** | Spring-based entrance and hover effects |
+
+```tsx
+// Single chip
+<Chip amount={100} size="medium" />
+
+// Stacked chips
+<ChipStack amount={5000} maxChips={5} />
+
+// Pot display
+<PotDisplay amount={1250} label="POT" />
+
+// Bet indicator
+<BetIndicator amount={300} position="bottom" />
+```
+
+### Chip Color Guide
+| Value | Color | Hex |
+|-------|-------|-----|
+| 1 | White | #FFFFFF |
+| 5 | Red | #E53935 |
+| 25 | Green | #43A047 |
+| 100 | Black | #212121 |
+| 500 | Purple | #7B1FA2 |
+| 1000 | Orange | #FF8F00 |
+| 5000 | Pink | #F06292 |
+| 10000 | Gold | #FFD700 |
+
+### Card Utilities
+```typescript
+// Parse single card "Ah" → { rank: "A", suit: "h" }
+parseCardString("Ah")
+
+// Parse multiple "AhKd" → [{ rank: "A", suit: "h" }, { rank: "K", suit: "d" }]
+parseCards("AhKd")
+
+// Also handles spaced format
+parseCards("Ah Kd Qc")
+```
+
+---
+
 ## Deployment Checklist
 
 - [x] Step 1: Database schema
@@ -358,4 +432,5 @@ onLevelComplete → router.push with query params for toast
 - [x] **Step 9: Game HUD (GameArena wrapper)**
 - [x] **Step 10: Victory Screen (RoundSummary)**
 - [x] **Step 11: Navigation Wiring (Next.js Routing)**
-- [ ] Step 12: Production deploy
+- [x] **Step 12: Graphics Engine (Card & Chip components)**
+- [ ] Step 13: Production deploy
