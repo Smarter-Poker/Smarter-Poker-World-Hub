@@ -71,21 +71,25 @@ const SIZES = {
 // ============================================================================
 
 const animations = {
-    none: {},
+    none: {
+        initial: {},
+        animate: {},
+        transition: { duration: 0 },
+    },
     flip: {
         initial: { rotateY: 180, opacity: 0 },
         animate: { rotateY: 0, opacity: 1 },
-        transition: { duration: 0.4, ease: 'easeOut' },
+        transition: { duration: 0.4, ease: 'easeOut' as const },
     },
     slide: {
         initial: { x: -100, opacity: 0 },
         animate: { x: 0, opacity: 1 },
-        transition: { duration: 0.3, ease: 'easeOut' },
+        transition: { duration: 0.3, ease: 'easeOut' as const },
     },
     deal: {
         initial: { y: -50, opacity: 0, scale: 0.8 },
         animate: { y: 0, opacity: 1, scale: 1 },
-        transition: { duration: 0.3, ease: 'easeOut' },
+        transition: { duration: 0.3, ease: 'easeOut' as const },
     },
 };
 
