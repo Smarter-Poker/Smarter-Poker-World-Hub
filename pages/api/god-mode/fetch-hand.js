@@ -241,6 +241,38 @@ export default async function handler(req, res) {
                         // Convert hand notation (e.g., "A2s" -> "Ah2h", "AKo" -> "AhKs")
                         const heroHandCards = convertHandNotation(heroHandKey);
 
+                        // Build question prompt
+                        const heroPos = config.hero_position || 'SB';
+                        const villainPos = config.villain_position || 'BB';
+                        const stackBB = scenario.stack_depth || config.stack_depth || 100;
+                        const potBB = config.pot_size || 6;
+                        const streetName = scenario.street || 'Flop';
+
+                        let questionPrompt = `You are the ${heroPos} ${stackBB}bb deep heads up vs the ${villainPos}.`;
+                        if (boardCards) {
+                            questionPrompt += ` The board is ${boardCards.match(/.{2}/g)?.join(' ') || boardCards}. `;
+                        }
+                        questionPrompt += ` Pot is ${potBB} BB. What is your action?`;
+
+                        // Format available actions for UI display
+                        const uiActions = availableActions.map(a => {
+                            // Convert solver actions like "b16", "b45", "c", "f" to readable format
+                            if (a === 'f' || a === 'fold') return 'fold';
+                            if (a === 'c' || a === 'check' || a === 'call') {
+                                // Check if there's a bet to call (simplification)
+                                return config.facing_bet ? 'call' : 'check';
+                            }
+                            if (a.startsWith('b')) {
+                                const size = parseInt(a.slice(1)) || 50;
+                                return `bet_${size}`;
+                            }
+                            if (a.startsWith('r')) {
+                                const size = parseInt(a.slice(1)) || 100;
+                                return `raise_${size}`;
+                            }
+                            return a;
+                        });
+
                         // Apply suit rotation for isomorphism
                         const hand = {
                             fileId,
@@ -248,13 +280,16 @@ export default async function handler(req, res) {
                             scenario_hash: scenario.scenario_hash,
                             hero_hand: rotateSuits(heroHandCards, rotation),
                             board: rotateSuits(boardCards, rotation),
-                            pot_size: config.pot_size || 100,
-                            hero_stack: scenario.stack_depth || config.stack_depth || 100,
-                            villain_stack: scenario.stack_depth || config.stack_depth || 100,
-                            hero_position: config.hero_position || 'SB',
-                            villain_position: config.villain_position || 'BB',
-                            street: scenario.street || 'Flop',
+                            pot: potBB,
+                            pot_size: potBB,
+                            hero_stack: stackBB,
+                            villain_stack: stackBB,
+                            hero_position: heroPos,
+                            villain_position: villainPos,
+                            street: streetName,
                             action_history: [],
+                            available_actions: uiActions.length > 0 ? uiActions : ['fold', 'check', 'bet_50', 'bet_100'],
+                            question_prompt: questionPrompt,
                             solver_node: {
                                 actions: handActions,
                                 best_action: bestAction,
