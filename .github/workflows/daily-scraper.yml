@@ -16,6 +16,7 @@ on:
           - full
           - test
           - setup-only
+          - sync-urls-only
       state:
         description: 'Filter by state (optional, e.g., TX, NV, FL)'
         required: false
@@ -39,6 +40,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Sync Verified URLs to Database
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.mode != 'setup-only' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🔄 Syncing verified PokerAtlas URLs to database..."
+          node scripts/sync-verified-urls.js
+
+      - name: Skip Scraping (URL Sync Only)
+        if: ${{ github.event.inputs.mode == 'sync-urls-only' }}
+        run: echo "✅ URL sync complete. Skipping scraping as requested."
+
       - name: Run Full Pipeline (Scheduled)
         if: ${{ github.event_name == 'schedule' }}
         env:
@@ -47,7 +61,7 @@ jobs:
         run: |
           echo "🎰 Running full venue tournament scraping pipeline..."
           echo "📅 Triggered: $(date -u)"
-          node scripts/run-full-pipeline.js
+          node scripts/run-full-pipeline.js --scrape-only
 
       - name: Run Pipeline (Manual - Full)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full' }}
@@ -56,7 +70,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           echo "🎰 Running full pipeline (manual trigger)..."
-          node scripts/run-full-pipeline.js ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
+          node scripts/run-full-pipeline.js --scrape-only ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
 
       - name: Run Pipeline (Manual - Test)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'test' }}
@@ -65,7 +79,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           echo "🧪 Running test scrape (10 venues)..."
-          node scripts/run-full-pipeline.js --test ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
+          node scripts/run-full-pipeline.js --test --scrape-only ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
 
       - name: Run Pipeline (Manual - Setup Only)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'setup-only' }}
