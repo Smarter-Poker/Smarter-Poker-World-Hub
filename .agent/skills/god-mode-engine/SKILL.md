@@ -9,149 +9,143 @@ The complete implementation guide for the Smarter.Poker "God Mode" training syst
 
 ## Quick Reference
 
-| Component | Location |
-|-----------|----------|
-| Master Spec | `/god_mode_architecture.md` |
-| Business Rules | `/GOD_MODE_SPECS.md` |
-| Database Schema | `/database/migrations/god_mode_engine.sql` |
-| **Python Seeder** | `/scripts/seed_games.py` |
-| Seed Data SQL | `/database/migrations/seed_game_registry_v2.sql` |
-| **Engine Core** | `/src/engine/engine_core.py` |
-| Game Session UI | `/src/components/training/GameSession.tsx` |
-| Fetch Hand API | `/pages/api/god-mode/fetch-hand.js` |
-| Submit Action API | `/pages/api/god-mode/submit-action.js` |
+| Component | Location | Lines |
+|-----------|----------|-------|
+| Database Schema | `/database/migrations/god_mode_engine.sql` | 322 |
+| **Python Seeder** | `/scripts/seed_games.py` | 350 |
+| Seed Data SQL | `/database/migrations/seed_game_registry_v2.sql` | 117 |
+| **Engine Core** | `/src/engine/engine_core.py` | 733 |
+| **Game Session UI** | `/src/components/training/GameSession.tsx` | 900+ |
+| Fetch Hand API | `/pages/api/god-mode/fetch-hand.js` | — |
+| Submit Action API | `/pages/api/god-mode/submit-action.js` | — |
+
+---
+
+## ARCHITECTURE OVERVIEW
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    GameSession.tsx                          │
+│         (Director Mode, Health Bar, Bet Slider)             │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ API Calls
+           ┌──────────▼──────────┐
+           │    API Routes       │
+           │ fetch-hand.js       │
+           │ submit-action.js    │
+           └──────────┬──────────┘
+                      │
+           ┌──────────▼──────────┐
+           │  engine_core.py     │
+           │  (GameEngine)       │
+           └──────────┬──────────┘
+                      │ Routes by engine_type
+      ┌───────────────┼───────────────┐
+      ▼               ▼               ▼
+┌─────────┐     ┌─────────┐     ┌─────────┐
+│   PIO   │     │  CHART  │     │SCENARIO │
+│  (60)   │     │  (19)   │     │  (21)   │
+└────┬────┘     └────┬────┘     └────┬────┘
+     │               │               │
+     ▼               ▼               ▼
+solved_spots    static JSON    hardcoded
+   _gold          charts        scripts
+```
 
 ---
 
 ## ENGINE CORE (engine_core.py)
 
-### Location
-`/src/engine/engine_core.py` — 733 lines
-
 ### GameEngine Class
-
 ```python
-from src.engine.engine_core import GameEngine
-
 engine = GameEngine(supabase_client)
 
-# Fetch next hand (routes to PIO/CHART/SCENARIO)
-hand = await engine.fetch_next_hand(user_id, game_id, current_level)
+# Fetch hand (routes to PIO/CHART/SCENARIO)
+hand = await engine.fetch_next_hand(user_id, game_id, level)
 
-# Resolve villain action with weighted RNG
+# Resolve villain action
 villain = engine.resolve_villain_action(solver_node)
 
-# Calculate HP damage from user action
+# Calculate HP damage
 result = engine.calculate_hp_loss("CALL", solver_node)
 ```
 
-### Key Methods
-
-| Method | Input | Output |
-|--------|-------|--------|
-| `fetch_next_hand()` | user_id, game_id, level | HandResult / ChartInstruction / ScenarioInstruction |
-| `_rotate_suits()` | hand_json, suit_map | Transformed hand with variant_hash |
-| `resolve_villain_action()` | solver_node | VillainAction (action, sizing, next_node) |
-| `calculate_hp_loss()` | user_action, solver_node | HPResult (damage 0-25, feedback) |
-
 ### Suit Isomorphism (The Magic Trick)
-
-24x content multiplication from finite solver files:
 ```python
-# 4! = 24 possible suit permutations
-suit_map = {"s": "h", "h": "d", "d": "c", "c": "s"}
-variant_hash = "c=s,d=c,h=d,s=h"
-
-# Same hand appears visually different
-"AhKs" → "AdKh"  # Rotation 1
-"AhKs" → "AcKd"  # Rotation 2
+# 24x content from finite files
+"AhKs" → "AdKh"  # rotation_key=1
+"AhKs" → "AcKd"  # rotation_key=2
 ```
 
 ### Indifference Rule
+≥40% solver frequency OR EV within 0.05 = **CORRECT**
 
-Actions with **≥40% solver frequency** OR **EV within 0.05 of max** = CORRECT (0 damage)
+---
 
-### HP Damage Scaling
+## FRONTEND (GameSession.tsx)
 
-| EV Loss % | HP Damage |
-|-----------|-----------|
-| 0% | 0 |
-| 1-5% | 1-5 |
-| 6-25% | 6-15 |
-| 25%+ | 16-25 (max) |
+### Game Phases
+1. `LOADING` — Fetching hand
+2. `DIRECTOR_INTRO` — Typewriter animation
+3. `USER_TURN` — Controls unlocked
+4. `VILLAIN_THINKING` — 1.5s delay
+5. `SHOWING_RESULT` — Correct/incorrect
+6. `SESSION_COMPLETE` — All 20 hands done
+
+### Key Components
+- **Director Mode**: Typewriter text with chip sounds
+- **Health Bar**: Screen shake on damage (framer-motion)
+- **Bet Slider**: Snaps to solver nodes [0,25,33,50,66,75,100,150,200]
+- **Action Buttons**: FOLD / CHECK/CALL / BET
 
 ---
 
 ## GAME SEEDER (seed_games.py)
 
-### Location
-`/scripts/seed_games.py`
-
-### Commands
 ```bash
-python3 scripts/seed_games.py --stats      # Preview distribution
-python3 scripts/seed_games.py --dry-run    # Preview without inserting
-python3 scripts/seed_games.py --output X   # Generate SQL file
-python3 scripts/seed_games.py              # Execute upsert
+python3 scripts/seed_games.py --stats      # Preview
+python3 scripts/seed_games.py --dry-run    # Test
+python3 scripts/seed_games.py              # Execute
 ```
 
-### Engine Assignment Keywords
-
-| Engine | Keywords | Count |
-|--------|----------|-------|
-| CHART | push/fold, bubble, satellite, icm, preflop, bounty | 19 |
-| SCENARIO | mental, tilt, zen, focus, discipline, ego, fear | 21 |
-| PIO | Everything else (C-Bet, Cash, Postflop) | 60 |
-
----
-
-## DATABASE TABLES
-
-| Table | Purpose | RLS |
-|-------|---------|-----|
-| `game_registry` | 100 training games | Public read |
-| `god_mode_user_session` | Level/health tracking | User-owned |
-| `god_mode_hand_history` | Hand logs + variant_hash | User-owned |
-| `god_mode_leaderboard` | Competitive rankings | Public read |
+### Engine Distribution
+| Engine | Count | Keywords |
+|--------|-------|----------|
+| PIO | 60 | Default (postflop) |
+| CHART | 19 | push/fold, icm, bubble |
+| SCENARIO | 21 | mental, tilt, zen |
 
 ---
 
-## The 3-Engine Architecture
+## DATABASE
 
-### ENGINE A: PIO (60 Games)
-- **Source**: `solved_spots_gold` table
-- **Feature**: Suit isomorphism (24x content)
-- **Tracking**: `(file_id + variant_hash)` prevents duplicates
-
-### ENGINE B: CHART (19 Games)
-- **Source**: Static JSON charts
-- **Use Cases**: Push/fold, bubble, ICM, preflop
-
-### ENGINE C: SCENARIO (21 Games)
-- **Source**: Hardcoded scripts
-- **Feature**: Rigged RNG for psychology testing
+| Table | Purpose |
+|-------|---------|
+| `game_registry` | 100 games with engine routing |
+| `god_mode_user_session` | Level/health per user |
+| `god_mode_hand_history` | Tracks seen hands (file_id + variant_hash) |
+| `god_mode_leaderboard` | Rankings |
 
 ---
 
-## Gamification Rules
+## GAMIFICATION RULES
 
 | Rule | Value |
 |------|-------|
-| Starting Health | 100 chips |
-| Hands per Round | 20 |
-| Level 1 Threshold | 85% |
-| Level 10 Threshold | 100% |
-| Max Damage/Hand | 25 chips |
+| Starting HP | 100 |
+| Hands/Round | 20 |
+| Level 1 Pass | 85% |
+| Level 10 Pass | 100% |
+| Max Damage | 25 |
 
 ---
 
-## Deployment Checklist
+## DEPLOYMENT CHECKLIST
 
-- [x] Database schema created
-- [x] Python seeder script
-- [x] 100 games seeded (PIO=60, CHART=19, SCENARIO=21)
-- [x] RLS policies enabled
-- [x] **Engine core backend (engine_core.py)**
-- [ ] Frontend component (GameSession.tsx)
-- [ ] API routes (fetch-hand.js, submit-action.js)
-- [ ] Production deployment
+- [x] Database schema
+- [x] Game seeder (100 games)
+- [x] Engine core backend
+- [x] Frontend component
+- [ ] API routes
+- [ ] FastAPI server
+- [ ] Production deploy
