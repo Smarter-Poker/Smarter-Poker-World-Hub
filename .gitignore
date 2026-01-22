@@ -31,3 +31,4 @@ src/content-engine/node_modules
 
 # Agent credentials (sensitive)
 .agent/skills/platform-credentials/
+__pycache__/
