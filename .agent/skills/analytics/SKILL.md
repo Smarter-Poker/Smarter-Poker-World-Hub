@@ -5,157 +5,173 @@ description: User behavior tracking, event logging, and analytics dashboards
 
 # Analytics & Tracking Skill
 
-## Overview
-Track user behavior, game metrics, and business KPIs for data-driven decisions.
+## Analytics Providers
 
-## Event Types
-| Category | Events |
-|----------|--------|
-| Auth | sign_up, sign_in, sign_out |
-| Navigation | page_view, tab_change, modal_open |
-| Social | post_create, like, comment, follow |
-| Training | game_start, game_complete, answer_submit |
-| Economy | diamond_purchase, diamond_spend, xp_gain |
-| Gameplay | hand_played, action_taken, session_start |
+### Vercel Analytics (Recommended)
+```bash
+npm install @vercel/analytics
+```
 
-## Event Logging
+```jsx
+// app/layout.js or _app.js
+import { Analytics } from '@vercel/analytics/react';
+
+export default function Layout({ children }) {
+  return (
+    <>
+      {children}
+      <Analytics />
+    </>
+  );
+}
+```
+
+### PostHog (Self-hostable)
+```bash
+npm install posthog-js
+```
+
 ```javascript
-// lib/analytics.js
-class Analytics {
-  static async track(userId, event, properties = {}) {
-    await supabase.from('analytics_events').insert({
-      user_id: userId,
-      event_name: event,
-      properties,
-      timestamp: new Date(),
-      session_id: getSessionId(),
-      device_info: getDeviceInfo()
-    });
-    
-    // Also send to external analytics (Mixpanel, Amplitude, etc.)
-    if (typeof window !== 'undefined' && window.mixpanel) {
-      window.mixpanel.track(event, { ...properties, user_id: userId });
-    }
-  }
-  
-  static async pageView(userId, page, referrer = null) {
-    await this.track(userId, 'page_view', { page, referrer });
-  }
-  
-  static async gameEvent(userId, gameId, eventType, data) {
-    await this.track(userId, `game_${eventType}`, { game_id: gameId, ...data });
-  }
+import posthog from 'posthog-js';
+
+// Initialize
+if (typeof window !== 'undefined') {
+  posthog.init('YOUR_API_KEY', {
+    api_host: 'https://app.posthog.com'
+  });
 }
 
-export default Analytics;
+// Track events
+posthog.capture('game_started', {
+  game_type: 'gto_trainer',
+  difficulty: 'advanced'
+});
+
+// Identify users
+posthog.identify(userId, {
+  email: user.email,
+  plan: user.plan
+});
+```
+
+### Google Analytics 4
+```jsx
+import Script from 'next/script';
+
+export default function Layout({ children }) {
+  return (
+    <>
+      <Script src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX" />
+      <Script id="google-analytics">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-XXXXXXX');
+        `}
+      </Script>
+      {children}
+    </>
+  );
+}
+```
+
+## Custom Event Tracking
+
+### Event Logger
+```javascript
+// lib/analytics.js
+export const analytics = {
+  track: (event, properties = {}) => {
+    // PostHog
+    if (typeof window !== 'undefined' && window.posthog) {
+      window.posthog.capture(event, properties);
+    }
+    
+    // Supabase (custom logging)
+    logEvent(event, properties);
+  },
+  
+  page: (url) => {
+    if (typeof window !== 'undefined' && window.posthog) {
+      window.posthog.capture('$pageview', { url });
+    }
+  },
+  
+  identify: (userId, traits = {}) => {
+    if (typeof window !== 'undefined' && window.posthog) {
+      window.posthog.identify(userId, traits);
+    }
+  }
+};
+
+async function logEvent(event, properties) {
+  await supabase.from('analytics_events').insert({
+    event,
+    properties,
+    user_id: getCurrentUserId(),
+    timestamp: new Date().toISOString(),
+    session_id: getSessionId()
+  });
+}
+```
+
+### React Hook
+```javascript
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { analytics } from '@/lib/analytics';
+
+export function usePageTracking() {
+  const router = useRouter();
+  
+  useEffect(() => {
+    const handleRouteChange = (url) => analytics.page(url);
+    router.events.on('routeChangeComplete', handleRouteChange);
+    return () => router.events.off('routeChangeComplete', handleRouteChange);
+  }, [router.events]);
+}
+```
+
+## Key Events to Track
+
+### Game Events
+```javascript
+analytics.track('game_started', { game_id, game_type, difficulty });
+analytics.track('game_completed', { game_id, score, duration, correct_percentage });
+analytics.track('level_up', { new_level, xp_earned });
+analytics.track('achievement_unlocked', { achievement_id, achievement_name });
+```
+
+### Commerce Events
+```javascript
+analytics.track('store_viewed', {});
+analytics.track('item_added_to_cart', { item_id, item_name, price });
+analytics.track('checkout_started', { total_amount, items_count });
+analytics.track('purchase_completed', { order_id, total_amount, payment_method });
+```
+
+### Engagement Events
+```javascript
+analytics.track('feature_used', { feature_name });
+analytics.track('share_clicked', { content_type, platform });
+analytics.track('referral_sent', { referral_code });
 ```
 
 ## Database Schema
 ```sql
 CREATE TABLE analytics_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID,
-  event_name TEXT NOT NULL,
-  properties JSONB DEFAULT '{}',
+  event TEXT NOT NULL,
+  properties JSONB,
+  user_id UUID REFERENCES auth.users,
   session_id TEXT,
-  device_info JSONB,
-  timestamp TIMESTAMPTZ DEFAULT NOW()
+  timestamp TIMESTAMPTZ DEFAULT NOW(),
+  user_agent TEXT,
+  ip_address INET
 );
 
-CREATE INDEX idx_analytics_user ON analytics_events(user_id, timestamp DESC);
-CREATE INDEX idx_analytics_event ON analytics_events(event_name, timestamp DESC);
-
--- Aggregated metrics table (updated by cron)
-CREATE TABLE daily_metrics (
-  date DATE PRIMARY KEY,
-  dau INTEGER DEFAULT 0, -- Daily Active Users
-  new_signups INTEGER DEFAULT 0,
-  games_played INTEGER DEFAULT 0,
-  total_xp_awarded INTEGER DEFAULT 0,
-  revenue DECIMAL DEFAULT 0
-);
-```
-
-## Key Metrics Queries
-```javascript
-// Daily Active Users
-async function getDAU(date) {
-  const { count } = await supabase
-    .from('analytics_events')
-    .select('user_id', { count: 'exact', head: true })
-    .gte('timestamp', `${date}T00:00:00Z`)
-    .lt('timestamp', `${date}T23:59:59Z`);
-  return count;
-}
-
-// Retention (Day 1, 7, 30)
-async function getRetention(cohortDate, daysAfter) {
-  const { data } = await supabase.rpc('calculate_retention', {
-    cohort_date: cohortDate,
-    days_after: daysAfter
-  });
-  return data;
-}
-
-// Funnel Analysis
-async function getFunnel(steps, startDate, endDate) {
-  const result = [];
-  for (const step of steps) {
-    const { count } = await supabase
-      .from('analytics_events')
-      .select('user_id', { count: 'exact', head: true })
-      .eq('event_name', step)
-      .gte('timestamp', startDate)
-      .lte('timestamp', endDate);
-    result.push({ step, count });
-  }
-  return result;
-}
-```
-
-## React Hook
-```javascript
-function useAnalytics() {
-  const { session } = useAuth();
-  
-  const track = useCallback((event, properties) => {
-    if (session?.user) {
-      Analytics.track(session.user.id, event, properties);
-    }
-  }, [session]);
-  
-  const pageView = useCallback((page) => {
-    if (session?.user) {
-      Analytics.pageView(session.user.id, page, document.referrer);
-    }
-  }, [session]);
-  
-  return { track, pageView };
-}
-
-// Usage
-function TrainingGame() {
-  const { track } = useAnalytics();
-  
-  const handleGameComplete = (score) => {
-    track('game_complete', { game_id: 'preflop_trainer', score });
-  };
-}
-```
-
-## Admin Dashboard
-```jsx
-function AnalyticsDashboard() {
-  return (
-    <div className="analytics-dashboard">
-      <MetricCard title="DAU" value={dau} change={dauChange} />
-      <MetricCard title="New Users" value={signups} />
-      <MetricCard title="Revenue" value={`$${revenue}`} />
-      
-      <LineChart data={dauHistory} title="DAU Trend" />
-      <FunnelChart data={onboardingFunnel} title="Onboarding Funnel" />
-      <RetentionChart data={retentionCohorts} title="Retention" />
-    </div>
-  );
-}
+CREATE INDEX idx_events_timestamp ON analytics_events(timestamp);
+CREATE INDEX idx_events_user ON analytics_events(user_id);
+CREATE INDEX idx_events_event ON analytics_events(event);
 ```

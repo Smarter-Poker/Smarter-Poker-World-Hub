@@ -200,255 +200,248 @@ export default function TrainingGameTable({
                 </div>
             </div>
 
-            {/* TABLE AREA */}
+            {/* TABLE AREA — 100% GOLDEN TEMPLATE CLONE */}
             <div style={{ flex: 1, position: 'relative', padding: '0 4px', minHeight: 0 }}>
 
-                {/* EXTREMELY NARROW container for true stadium shape */}
+                {/* SUPER NARROW for true vertical stadium - MATCHING GOLDEN REFERENCE */}
                 <div style={{
                     position: 'absolute',
-                    top: '1%',
-                    left: '25%',   /* VERY NARROW */
-                    right: '25%',
-                    bottom: '1%',
+                    top: '0%',
+                    left: '30%',   /* EXTREMELY NARROW to match reference */
+                    right: '30%',
+                    bottom: '0%',
                 }}>
 
-                    {/* OUTER DARK FRAME */}
+                    {/* LAYER 1: OUTER DARK MATTE PADDED RAIL (thick dark frame) */}
                     <div style={{
                         position: 'absolute',
                         inset: 0,
                         borderRadius: 9999,
-                        background: 'linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%)',
-                        boxShadow: '0 8px 30px rgba(0,0,0,0.9)',
+                        background: 'linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 30%, #0d0d0d 70%, #1a1a1a 100%)',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.95), inset 0 2px 4px rgba(255,255,255,0.05)',
                     }}>
 
-                        {/* OUTER GOLD RAIL — BRIGHT GOLD */}
+                        {/* LAYER 2: OUTER GOLD ACCENT LINE - Bright metallic gold */}
                         <div style={{
                             position: 'absolute',
-                            inset: 5,
+                            inset: 12,
                             borderRadius: 9999,
-                            background: 'linear-gradient(180deg, #FFD700 0%, #FFA500 30%, #CC8800 60%, #8B6914 100%)',
-                            boxShadow: 'inset 0 3px 6px rgba(255,255,150,0.5)',
+                            background: 'linear-gradient(135deg, #FFE066 0%, #FFD700 15%, #FFA500 40%, #CC8800 60%, #996600 80%, #FFD700 95%, #FFE066 100%)',
+                            boxShadow: 'inset 0 1px 2px rgba(255,255,200,0.8), inset 0 -1px 2px rgba(0,0,0,0.4), 0 0 8px rgba(255,200,0,0.3)',
                         }}>
 
-                            {/* BLACK GAP */}
+                            {/* LAYER 3: INNER DARK PADDED SECTION */}
                             <div style={{
                                 position: 'absolute',
                                 inset: 6,
                                 borderRadius: 9999,
-                                background: '#080808',
+                                background: 'linear-gradient(180deg, #262626 0%, #1a1a1a 30%, #0f0f0f 70%, #1a1a1a 100%)',
+                                boxShadow: 'inset 0 3px 8px rgba(0,0,0,0.6)',
                             }}>
 
-                                {/* INNER GOLD RAIL — BRIGHT GOLD */}
+                                {/* LAYER 4: INNER GOLD ACCENT LINE - Second gold ring */}
                                 <div style={{
                                     position: 'absolute',
-                                    inset: 4,
+                                    inset: 10,
                                     borderRadius: 9999,
-                                    background: 'linear-gradient(180deg, #FFD700 0%, #FFA500 30%, #CC8800 60%, #8B6914 100%)',
-                                    boxShadow: 'inset 0 2px 4px rgba(255,255,150,0.4)',
+                                    background: 'linear-gradient(135deg, #FFE066 0%, #FFD700 15%, #FFA500 40%, #CC8800 60%, #996600 80%, #FFD700 95%, #FFE066 100%)',
+                                    boxShadow: 'inset 0 1px 2px rgba(255,255,200,0.7), inset 0 -1px 2px rgba(0,0,0,0.3), 0 0 6px rgba(255,200,0,0.25)',
                                 }}>
 
-                                    {/* DARK EDGE */}
+                                    {/* LAYER 5: FINAL DARK FRAME before felt */}
                                     <div style={{
                                         position: 'absolute',
                                         inset: 5,
                                         borderRadius: 9999,
-                                        background: '#0a0a0a',
+                                        background: 'linear-gradient(180deg, #222 0%, #111 50%, #1a1a1a 100%)',
+                                        boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.7)',
                                     }}>
 
-                                        {/* *** BRIGHT WHITE EDGE GLOW *** — THE KEY FEATURE */}
+                                        {/* LAYER 6: DARK FELT SURFACE */}
                                         <div style={{
                                             position: 'absolute',
-                                            inset: 3,
+                                            inset: 4,
                                             borderRadius: 9999,
-                                            background: 'linear-gradient(180deg, #aaa 0%, #888 20%, #666 40%, #444 60%, #555 80%, #777 100%)',
-                                            boxShadow: 'inset 0 0 30px 10px rgba(255,255,255,0.2)',
+                                            background: 'radial-gradient(ellipse at 50% 40%, #1a1a1a 0%, #0f0f0f 30%, #080808 60%, #050505 100%)',
+                                            boxShadow: 'inset 0 0 50px rgba(0,0,0,0.9)',
                                         }}>
 
-                                            {/* DARK FELT CENTER */}
+                                            {/* POT */}
                                             <div style={{
                                                 position: 'absolute',
-                                                inset: 10,
-                                                borderRadius: 9999,
-                                                background: 'radial-gradient(ellipse at 50% 50%, #080808 0%, #0a0a0a 40%, #0d0d0d 70%, #111 100%)',
-                                                boxShadow: 'inset 0 0 60px rgba(0,0,0,0.95)',
+                                                top: '12%',
+                                                left: '50%',
+                                                transform: 'translateX(-50%)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 3,
+                                                background: 'rgba(15,15,15,0.95)',
+                                                borderRadius: 8,
+                                                padding: '2px 6px',
+                                                border: '1px solid #333',
                                             }}>
+                                                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#222', border: '1px solid #444' }} />
+                                                <span style={{ color: '#fff', fontSize: 8, fontWeight: 'bold' }}>POT {pot}</span>
+                                            </div>
 
-                                                {/* POT */}
+                                            {/* Game Title */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '45%',
+                                                left: '50%',
+                                                transform: 'translate(-50%, -50%)',
+                                                textAlign: 'center',
+                                            }}>
+                                                <div style={{ fontSize: 12, fontFamily: 'Georgia, serif', fontStyle: 'italic', color: '#222' }}>
+                                                    ICM Fundamentals
+                                                </div>
+                                                <div style={{ fontSize: 9, color: '#8b6914', marginTop: 2 }}>
+                                                    Smarter.Poker
+                                                </div>
+                                            </div>
+
+                                            {/* Community Cards */}
+                                            {communityCards.length > 0 && (
                                                 <div style={{
                                                     position: 'absolute',
-                                                    top: '12%',
+                                                    top: '25%',
                                                     left: '50%',
                                                     transform: 'translateX(-50%)',
                                                     display: 'flex',
-                                                    alignItems: 'center',
                                                     gap: 3,
-                                                    background: 'rgba(15,15,15,0.95)',
-                                                    borderRadius: 8,
-                                                    padding: '2px 6px',
-                                                    border: '1px solid #333',
                                                 }}>
-                                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#222', border: '1px solid #444' }} />
-                                                    <span style={{ color: '#fff', fontSize: 8, fontWeight: 'bold' }}>POT {pot}</span>
+                                                    {communityCards.map((card, i) => <Card key={i} card={card} />)}
                                                 </div>
+                                            )}
 
-                                                {/* Game Title */}
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    top: '45%',
-                                                    left: '50%',
-                                                    transform: 'translate(-50%, -50%)',
-                                                    textAlign: 'center',
-                                                }}>
-                                                    <div style={{ fontSize: 12, fontFamily: 'Georgia, serif', fontStyle: 'italic', color: '#222' }}>
-                                                        ICM Fundamentals
-                                                    </div>
-                                                    <div style={{ fontSize: 9, color: '#8b6914', marginTop: 2 }}>
-                                                        Smarter.Poker
-                                                    </div>
-                                                </div>
-
-                                                {/* Community Cards */}
-                                                {communityCards.length > 0 && (
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        top: '25%',
-                                                        left: '50%',
-                                                        transform: 'translateX(-50%)',
-                                                        display: 'flex',
-                                                        gap: 3,
-                                                    }}>
-                                                        {communityCards.map((card, i) => <Card key={i} card={card} />)}
-                                                    </div>
-                                                )}
-
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    {/* PLAYER SEATS */}
-                    {SEATS.map((seat, i) => (
-                        <PlayerSeat key={seat.id} seat={seat} stack={DEFAULT_STACKS[i]} />
-                    ))}
-
-                    {/* HERO CARDS */}
-                    <div style={{
-                        position: 'absolute',
-                        left: '50%',
-                        bottom: '15%',
-                        transform: 'translateX(-50%)',
-                        display: 'flex',
-                        zIndex: 150,
-                    }}>
-                        {heroCards.map((card, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ y: 20, opacity: 0, rotate: i === 0 ? -10 : 10 }}
-                                animate={{ y: 0, opacity: 1, rotate: i === 0 ? -6 : 6 }}
-                                transition={{ delay: 0.2 + i * 0.1 }}
-                                style={{ marginLeft: i > 0 ? -8 : 0 }}
-                            >
-                                <Card card={card} />
-                            </motion.div>
-                        ))}
-                    </div>
-
-                    {/* DEALER BUTTON */}
-                    <div style={{
-                        position: 'absolute',
-                        left: '50%',
-                        bottom: '24%',
-                        transform: 'translateX(-50%)',
-                        width: 18,
-                        height: 18,
-                        borderRadius: '50%',
-                        background: '#fff',
-                        border: '2px solid #333',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 9,
-                        fontWeight: 'bold',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
-                        zIndex: 200,
-                    }}>
-                        D
-                    </div>
-
                 </div>
 
-                {/* TIMER */}
+                {/* PLAYER SEATS */}
+                {SEATS.map((seat, i) => (
+                    <PlayerSeat key={seat.id} seat={seat} stack={DEFAULT_STACKS[i]} />
+                ))}
+
+                {/* HERO CARDS */}
                 <div style={{
                     position: 'absolute',
-                    left: 8,
-                    bottom: 8,
-                    width: 38,
-                    height: 38,
-                    background: timer > 5 ? '#dc2626' : '#ff0000',
-                    borderRadius: 4,
+                    left: '50%',
+                    bottom: '15%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    zIndex: 150,
+                }}>
+                    {heroCards.map((card, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ y: 20, opacity: 0, rotate: i === 0 ? -10 : 10 }}
+                            animate={{ y: 0, opacity: 1, rotate: i === 0 ? -6 : 6 }}
+                            transition={{ delay: 0.2 + i * 0.1 }}
+                            style={{ marginLeft: i > 0 ? -8 : 0 }}
+                        >
+                            <Card card={card} />
+                        </motion.div>
+                    ))}
+                </div>
+
+                {/* DEALER BUTTON */}
+                <div style={{
+                    position: 'absolute',
+                    left: '50%',
+                    bottom: '24%',
+                    transform: 'translateX(-50%)',
+                    width: 18,
+                    height: 18,
+                    borderRadius: '50%',
+                    background: '#fff',
+                    border: '2px solid #333',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 20,
-                    fontWeight: 'bold',
-                    color: 'white',
-                    boxShadow: timer <= 5 ? '0 0 10px #ff0000' : 'none',
-                }}>
-                    {timer}
-                </div>
-
-                {/* QUESTION COUNTER */}
-                <div style={{
-                    position: 'absolute',
-                    right: 8,
-                    bottom: 8,
-                    background: 'rgba(30,30,40,0.9)',
-                    border: '1px solid #444',
-                    borderRadius: 4,
-                    padding: '4px 6px',
-                    color: '#f0f0f0',
                     fontSize: 9,
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                    zIndex: 200,
                 }}>
-                    Question {questionNumber} of {totalQuestions}
+                    D
                 </div>
 
             </div>
 
-            {/* ACTION BUTTONS */}
+            {/* TIMER */}
             <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 5,
-                padding: '6px 8px',
+                position: 'absolute',
+                left: 8,
+                bottom: 8,
+                width: 38,
+                height: 38,
+                background: timer > 5 ? '#dc2626' : '#ff0000',
+                borderRadius: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 20,
+                fontWeight: 'bold',
+                color: 'white',
+                boxShadow: timer <= 5 ? '0 0 10px #ff0000' : 'none',
             }}>
-                {[
-                    { label: 'Fold', onClick: onFold },
-                    { label: 'Call', onClick: onCall },
-                    { label: 'Raise to 8bb', onClick: onRaise },
-                    { label: 'All-In', onClick: onAllIn },
-                ].map((btn) => (
-                    <button
-                        key={btn.label}
-                        onClick={btn.onClick}
-                        style={{
-                            background: '#1e40af',
-                            border: 'none',
-                            borderRadius: 4,
-                            padding: '9px',
-                            color: 'white',
-                            fontSize: 12,
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                        }}
-                    >
-                        {btn.label}
-                    </button>
-                ))}
+                {timer}
+            </div>
+
+            {/* QUESTION COUNTER */}
+            <div style={{
+                position: 'absolute',
+                right: 8,
+                bottom: 8,
+                background: 'rgba(30,30,40,0.9)',
+                border: '1px solid #444',
+                borderRadius: 4,
+                padding: '4px 6px',
+                color: '#f0f0f0',
+                fontSize: 9,
+            }}>
+                Question {questionNumber} of {totalQuestions}
             </div>
 
         </div>
+
+            {/* ACTION BUTTONS */ }
+    <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 5,
+        padding: '6px 8px',
+    }}>
+        {[
+            { label: 'Fold', onClick: onFold },
+            { label: 'Call', onClick: onCall },
+            { label: 'Raise to 8bb', onClick: onRaise },
+            { label: 'All-In', onClick: onAllIn },
+        ].map((btn) => (
+            <button
+                key={btn.label}
+                onClick={btn.onClick}
+                style={{
+                    background: '#1e40af',
+                    border: 'none',
+                    borderRadius: 4,
+                    padding: '9px',
+                    color: 'white',
+                    fontSize: 12,
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                }}
+            >
+                {btn.label}
+            </button>
+        ))}
+    </div>
+
+        </div >
     );
 }

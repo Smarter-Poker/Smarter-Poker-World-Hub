@@ -5,176 +5,167 @@ description: Invite friends, referral tracking, and reward distribution
 
 # Referral System Skill
 
-## Overview
-Allow users to invite friends and earn rewards for successful referrals.
-
-## Referral Rewards
-| Action | Referrer Gets | Referee Gets |
-|--------|---------------|--------------|
-| Sign up | 100 💎 | 50 💎 |
-| First purchase | 10% of purchase | - |
-| VIP subscription | 500 💎 | 100 💎 bonus |
-
 ## Database Schema
 ```sql
-CREATE TABLE referral_codes (
-  code TEXT PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id),
-  uses_count INTEGER DEFAULT 0,
-  max_uses INTEGER, -- NULL = unlimited
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 CREATE TABLE referrals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  referrer_id UUID REFERENCES auth.users(id),
-  referee_id UUID REFERENCES auth.users(id) UNIQUE,
-  referral_code TEXT REFERENCES referral_codes(code),
-  status TEXT DEFAULT 'pending', -- 'pending', 'completed', 'rewarded'
+  referrer_id UUID REFERENCES auth.users NOT NULL,
+  referred_id UUID REFERENCES auth.users,
+  referral_code TEXT UNIQUE NOT NULL,
+  status TEXT DEFAULT 'pending', -- pending, completed, rewarded
+  reward_amount INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   completed_at TIMESTAMPTZ
 );
 
-CREATE TABLE referral_rewards (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  referral_id UUID REFERENCES referrals(id),
-  user_id UUID REFERENCES auth.users(id),
-  reward_type TEXT, -- 'diamonds', 'vip_days'
-  amount INTEGER,
-  reason TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+CREATE INDEX idx_referrals_code ON referrals(referral_code);
+CREATE INDEX idx_referrals_referrer ON referrals(referrer_id);
+
+-- Generate unique referral code for user
+CREATE OR REPLACE FUNCTION generate_referral_code(user_id UUID)
+RETURNS TEXT AS $$
+DECLARE
+  code TEXT;
+BEGIN
+  -- Use first 8 chars of UUID + random suffix
+  code := UPPER(SUBSTRING(user_id::TEXT, 1, 8)) || SUBSTRING(MD5(RANDOM()::TEXT), 1, 4);
+  RETURN code;
+END;
+$$ LANGUAGE plpgsql;
 ```
 
-## Generate Referral Code
-```javascript
-async function generateReferralCode(userId) {
-  // Check if user already has a code
-  const { data: existing } = await supabase
-    .from('referral_codes')
-    .select('code')
-    .eq('user_id', userId)
-    .single();
-  
-  if (existing) return existing.code;
-  
-  // Generate unique code
-  const code = `REF_${userId.slice(0, 8).toUpperCase()}`;
-  
-  await supabase.from('referral_codes').insert({
-    code,
-    user_id: userId
-  });
-  
-  return code;
-}
-```
+## API Routes
 
-## Apply Referral Code
+### Get/Create Referral Code
 ```javascript
-async function applyReferralCode(newUserId, code) {
-  // Validate code
-  const { data: referralCode } = await supabase
-    .from('referral_codes')
-    .select('*')
-    .eq('code', code)
+// pages/api/referral/code.js
+export default async function handler(req, res) {
+  const { user } = await getUser(req);
+  
+  // Check if user has a code
+  let { data: referral } = await supabase
+    .from('referrals')
+    .select('referral_code')
+    .eq('referrer_id', user.id)
+    .is('referred_id', null)
     .single();
   
-  if (!referralCode) throw new Error('Invalid referral code');
-  if (referralCode.user_id === newUserId) throw new Error('Cannot refer yourself');
-  
-  // Check max uses
-  if (referralCode.max_uses && referralCode.uses_count >= referralCode.max_uses) {
-    throw new Error('Referral code expired');
+  if (!referral) {
+    // Create new referral code
+    const code = generateCode(user.id);
+    const { data } = await supabase
+      .from('referrals')
+      .insert({ referrer_id: user.id, referral_code: code })
+      .select()
+      .single();
+    referral = data;
   }
   
-  // Create referral
-  await supabase.from('referrals').insert({
-    referrer_id: referralCode.user_id,
-    referee_id: newUserId,
-    referral_code: code
-  });
-  
-  // Update uses count
-  await supabase.from('referral_codes')
-    .update({ uses_count: referralCode.uses_count + 1 })
-    .eq('code', code);
-  
-  // Award referee bonus
-  await supabase.rpc('award_diamonds', {
-    p_user_id: newUserId,
-    p_amount: 50,
-    p_source: 'referral_bonus'
+  res.json({
+    code: referral.referral_code,
+    url: `https://smarter.poker/join?ref=${referral.referral_code}`
   });
 }
 ```
 
-## Complete Referral
+### Track Referral on Signup
 ```javascript
-async function completeReferral(refereeId, trigger = 'signup') {
+// In signup handler
+export async function handleSignup(email, password, referralCode) {
+  // Create user
+  const { data: { user } } = await supabase.auth.signUp({ email, password });
+  
+  // Process referral if code provided
+  if (referralCode) {
+    await supabase
+      .from('referrals')
+      .update({
+        referred_id: user.id,
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      })
+      .eq('referral_code', referralCode)
+      .is('referred_id', null);
+    
+    // Award referral bonus to referrer
+    await awardReferralBonus(referralCode);
+  }
+  
+  return user;
+}
+
+async function awardReferralBonus(code) {
   const { data: referral } = await supabase
     .from('referrals')
-    .select('*')
-    .eq('referee_id', refereeId)
-    .eq('status', 'pending')
+    .select('referrer_id')
+    .eq('referral_code', code)
     .single();
   
-  if (!referral) return;
+  if (referral) {
+    await supabase.rpc('add_diamonds', {
+      user_id: referral.referrer_id,
+      amount: 100 // Referral bonus
+    });
+    
+    await supabase
+      .from('referrals')
+      .update({ status: 'rewarded', reward_amount: 100 })
+      .eq('referral_code', code);
+  }
+}
+```
+
+## React Components
+
+### Share Referral
+```jsx
+function ReferralShare() {
+  const [referral, setReferral] = useState(null);
   
-  // Update referral status
-  await supabase.from('referrals')
-    .update({ status: 'completed', completed_at: new Date() })
-    .eq('id', referral.id);
+  useEffect(() => {
+    fetch('/api/referral/code')
+      .then(r => r.json())
+      .then(setReferral);
+  }, []);
   
-  // Award referrer
-  await supabase.rpc('award_diamonds', {
-    p_user_id: referral.referrer_id,
-    p_amount: 100,
-    p_source: `referral_reward:${refereeId}`
-  });
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(referral.url);
+    toast.success('Link copied!');
+  };
   
-  // Log reward
-  await supabase.from('referral_rewards').insert({
-    referral_id: referral.id,
-    user_id: referral.referrer_id,
-    reward_type: 'diamonds',
-    amount: 100,
-    reason: trigger
-  });
-  
-  // Notify referrer
-  await createNotification(
-    referral.referrer_id,
-    'REFERRAL_SUCCESS',
-    'Referral Complete!',
-    'Your friend joined and you earned 100 diamonds!'
+  return (
+    <div className="referral-card">
+      <h3>Invite Friends, Earn Diamonds! 💎</h3>
+      <p>Get 100 diamonds for every friend who joins</p>
+      
+      <div className="share-section">
+        <input value={referral?.url} readOnly />
+        <button onClick={copyToClipboard}>Copy Link</button>
+      </div>
+      
+      <div className="share-buttons">
+        <ShareButton platform="twitter" url={referral?.url} />
+        <ShareButton platform="facebook" url={referral?.url} />
+        <ShareButton platform="whatsapp" url={referral?.url} />
+      </div>
+      
+      <QRCode value={referral?.url} size={150} />
+    </div>
   );
 }
 ```
 
-## Referral Stats
-```javascript
-async function getReferralStats(userId) {
-  const { data: referrals } = await supabase
-    .from('referrals')
-    .select('status')
-    .eq('referrer_id', userId);
+### Referral Stats
+```jsx
+function ReferralStats({ userId }) {
+  const { data } = useSWR(`/api/referral/stats?userId=${userId}`);
   
-  const { data: rewards } = await supabase
-    .from('referral_rewards')
-    .select('amount')
-    .eq('user_id', userId);
-  
-  return {
-    totalReferrals: referrals.length,
-    completedReferrals: referrals.filter(r => r.status === 'completed').length,
-    totalEarned: rewards.reduce((sum, r) => sum + r.amount, 0)
-  };
+  return (
+    <div>
+      <Stat label="Total Invites Sent" value={data?.totalSent} />
+      <Stat label="Successful Referrals" value={data?.completed} />
+      <Stat label="Diamonds Earned" value={data?.totalRewards} />
+    </div>
+  );
 }
 ```
-
-## Components
-- `ReferralCard.jsx` - Share referral code
-- `InviteFriends.jsx` - Social share buttons
-- `ReferralHistory.jsx` - List of referrals
-- `ReferralRewards.jsx` - Earnings display
