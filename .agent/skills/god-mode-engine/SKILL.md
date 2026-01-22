@@ -18,6 +18,9 @@ Complete implementation of the Smarter.Poker "God Mode" training system.
 | API Server | `server.py` | 500+ |
 | **GameCard** | `src/components/training/GameCard.jsx` | 295 |
 | Training Page | `pages/hub/training.js` | 1108 |
+| **LevelSelector** | `src/components/training/LevelSelector.tsx` | 697 |
+| Play Page | `pages/hub/training/play/[gameId].js` | 85 |
+| Arena Page | `pages/hub/training/arena/[gameId].js` | 120 |
 
 ---
 
@@ -72,6 +75,38 @@ python3 scripts/seed_games.py --stats
 
 ---
 
+## Step 7: Level Select Screen
+
+### Route Flow
+```
+/hub/training         → Training Hub (100 games)
+     ↓ click game
+/hub/training/play/[gameId]  → Level Selector (10 levels)
+     ↓ click level
+/hub/training/arena/[gameId] → Game Session (20 hands)
+```
+
+### LevelSelector Features
+| Feature | Description |
+|---------|-------------|
+| **Vertical Level Map** | Levels 1-10 with connection lines |
+| **Lock Logic** | Level 1 always open, others need 85%+ on previous |
+| **High Scores** | Shows best % with color coding |
+| **Play States** | PLAY / RETRY / REPLAY buttons |
+| **Passing Grades** | Scales from 85% (L1) to 100% (L10) |
+
+### API Integration
+```javascript
+// Fetch progress
+GET /api/training/progress?userId=X&gameId=Y
+
+// Start session
+POST /api/session/start
+Body: { user_id, game_id, level }
+```
+
+---
+
 ## Skill Files
 
 | File | Purpose |
@@ -88,10 +123,11 @@ python3 scripts/seed_games.py --stats
 
 ## Deployment Checklist
 
-- [x] Database schema
-- [x] Game seeder (100 games)
-- [x] Engine core backend
-- [x] Frontend component
-- [x] FastAPI server
-- [x] **Training Hub enhancements**
-- [ ] Production deploy
+- [x] Step 1: Database schema
+- [x] Step 2: Game seeder (100 games)
+- [x] Step 3: Engine core backend
+- [x] Step 4: GameSession component
+- [x] Step 5: FastAPI server
+- [x] Step 6: Training Hub enhancements
+- [x] **Step 7: Level Select screen**
+- [ ] Step 8: Production deploy
