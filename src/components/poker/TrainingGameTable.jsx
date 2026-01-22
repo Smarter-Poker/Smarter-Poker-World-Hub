@@ -215,12 +215,13 @@ export default function TrainingGameTable({
             {/* TABLE AREA */}
             <div style={{ flex: 1, position: 'relative', padding: '0 8px', minHeight: 0 }}>
 
+                {/* Table container - NARROW to create STADIUM shape */}
                 <div style={{
                     position: 'absolute',
-                    top: '5%',
-                    left: '12%',
-                    right: '12%',
-                    bottom: '5%',
+                    top: '3%',
+                    left: '18%',   /* More margin = narrower = stadium shape */
+                    right: '18%',
+                    bottom: '3%',
                 }}>
 
                     {/* OUTER DARK FRAME */}
