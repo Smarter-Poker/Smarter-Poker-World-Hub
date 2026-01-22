@@ -12,8 +12,10 @@ The complete implementation guide for the Smarter.Poker "God Mode" training syst
 | Component | Location |
 |-----------|----------|
 | Master Spec | `/god_mode_architecture.md` |
+| Business Rules | `/GOD_MODE_SPECS.md` |
 | Database Schema | `/database/migrations/god_mode_engine.sql` |
-| Game Seeder | `/scripts/seed_games.py` |
+| Seed Data (100 Games) | `/database/migrations/seed_game_registry.sql` |
+| Game Seeder Script | `/scripts/seed_games.py` |
 | Engine Core | `/src/engine/engine_core.py` |
 | Game Session UI | `/src/components/training/GameSession.tsx` |
 | Fetch Hand API | `/pages/api/god-mode/fetch-hand.js` |
@@ -21,94 +23,86 @@ The complete implementation guide for the Smarter.Poker "God Mode" training syst
 
 ---
 
-## STEP 1: Database Schema
+## DATABASE DEPLOYMENT (Browser Automation)
+
+### Automated via Supabase SQL Editor
+
+The database migrations can be executed automatically using browser subagent:
+
+```javascript
+// 1. Copy SQL to clipboard
+cat /database/migrations/god_mode_engine.sql | pbcopy
+
+// 2. Use browser_subagent to:
+//    - Navigate to Supabase SQL Editor
+//    - Use Monaco API: window.monaco.editor.getModels()[0].setValue(sql)
+//    - Click Run button
+//    - Verify with SELECT COUNT(*) query
+```
 
 ### Tables Created
 
-```sql
--- game_registry: 100 Game Titles with engine routing
-CREATE TABLE game_registry (
-    id UUID PRIMARY KEY,
-    title TEXT NOT NULL UNIQUE,
-    slug TEXT NOT NULL UNIQUE,
-    engine_type TEXT CHECK (engine_type IN ('PIO', 'CHART', 'SCENARIO')),
-    config JSONB NOT NULL DEFAULT '{}',
-    max_level INTEGER DEFAULT 10,
-    hands_per_round INTEGER DEFAULT 20
-);
+| Table | Purpose | RLS Policy |
+|-------|---------|------------|
+| `game_registry` | 100 training games | Public read |
+| `god_mode_user_session` | Level/health tracking | User-owned |
+| `god_mode_hand_history` | Hand logs + variant_hash | User-owned |
+| `god_mode_leaderboard` | Competitive rankings | Public read |
 
--- god_mode_user_session: Level progression and health bar
-CREATE TABLE god_mode_user_session (
-    user_id UUID REFERENCES auth.users(id),
-    game_id UUID REFERENCES game_registry(id),
-    current_level INTEGER DEFAULT 1,
-    health_chips INTEGER DEFAULT 100,
-    UNIQUE(user_id, game_id)
-);
+### Verified Engine Distribution
 
--- god_mode_hand_history: Tracks every hand with variant_hash
-CREATE TABLE god_mode_hand_history (
-    source_file_id TEXT NOT NULL,
-    variant_hash TEXT NOT NULL,  -- Suit rotation (0-3)
-    UNIQUE(user_id, source_file_id, variant_hash)  -- Prevents duplicate visuals
-);
-```
-
-### Run Migration
-
-```bash
-# Via Supabase Dashboard SQL Editor:
-# Copy contents of /database/migrations/god_mode_engine.sql
-```
+| Engine | Count | Purpose |
+|--------|-------|---------|
+| **PIO** | 56 | Postflop solver (suit isomorphism) |
+| **CHART** | 20 | Preflop/ICM static charts |
+| **SCENARIO** | 24 | Mental game "rigged" psychology |
+| **Total** | **100** | |
 
 ---
 
-## STEP 2: Game Seeding
+## The 3-Engine Architecture
 
-### Engine Auto-Assignment Rules
+### ENGINE A: PIO (Postflop)
 
-| Category | Engine | Logic |
-|----------|--------|-------|
-| Push/Fold, ICM, Bubble, Satellite | `CHART` | Static preflop charts |
-| Psychology, Tilt, Mental | `SCENARIO` | Rigged RNG scenarios |
-| Postflop, Cash, Advanced | `PIO` | Solver queries |
+- **Source:** `solved_spots_gold` table (PioSolver files)
+- **Isomorphism:** Randomly rotate suits for visual uniqueness
+- **CRITICAL:** Track `(file_id + variant_hash)` to prevent duplicate questions
 
-### Run Seeder
+### ENGINE B: CHART (Preflop/ICM)
 
-```bash
-# View engine distribution
-python3 scripts/seed_games.py --stats
+- **Source:** Static JSON charts (`/data/charts`)
+- **Logic:** Compare user input to ranges, no solver calls
+- **Use Cases:** Push/fold, bubble play, satellites
 
-# Generate SQL
-python3 scripts/seed_games.py --output database/migrations/seed_game_registry.sql
+### ENGINE C: SCENARIO (Mental Game)
 
-# Result: PIO=56, CHART=20, SCENARIO=24 games
-```
+- **Source:** Hardcoded scripts (`/data/scenarios`)
+- **Logic:** Rigged RNG to test psychology
+- **Use Cases:** Bad beat response, tilt control
 
 ---
 
-## STEP 3: Engine Core (Python)
+## Core Features
 
-### Suit Isomorphism ("Suit Spinner")
+### 1. Suit Isomorphism ("Suit Spinner")
 
 ```python
 from engine_core import GameEngine
 
-# Rotate suits so same hand looks different
-original = "AhKs"
-rotated = GameEngine.rotate_suits(original, rotation_key=1)
-# Result: "AdKh"
-
-# 4 possible rotations per hand = 4x content multiplier
+# Rotate suits so same hand looks different visually
 SUIT_ROTATIONS = {
     0: {'s':'s', 'h':'h', 'd':'d', 'c':'c'},  # Identity
     1: {'s':'h', 'h':'d', 'd':'c', 'c':'s'},  # +1
     2: {'s':'d', 'h':'c', 'd':'s', 'c':'h'},  # +2
     3: {'s':'c', 'h':'s', 'd':'h', 'c':'d'},  # +3
 }
+
+original = "AhKs"
+rotated = GameEngine.rotate_suits(original, rotation_key=1)
+# Result: "AdKh"
 ```
 
-### Active Villain (Weighted RNG)
+### 2. Active Villain (Weighted RNG)
 
 ```python
 solver_node = {
@@ -123,7 +117,7 @@ villain_action = GameEngine.resolve_villain_action(solver_node)
 # Randomly selects action weighted by frequency
 ```
 
-### Damage Calculation
+### 3. Damage Calculation
 
 ```python
 result = GameEngine.calculate_damage(
@@ -135,35 +129,21 @@ result = GameEngine.calculate_damage(
 
 # result.is_correct = False
 # result.ev_loss = 12.5
-# result.chip_penalty = 6  # Health bar damage
+# result.chip_penalty = 6  # Health bar damage (0-25 range)
 
 # INDIFFERENCE RULE: Actions with ≥40% frequency are accepted as correct
 ```
 
 ---
 
-## STEP 4: Frontend Components
+## Frontend Components
 
 ### GameSession.tsx Features
 
-1. **Director Animation**
-   - Typewriter effect shows action history
-   - "Hero raises... Villain calls..." before table renders
-
-2. **Health Bar**
-   - Visual HP bar (0-100)
-   - Screen shake on damage
-   - Color transitions: Green → Yellow → Orange → Red
-
-3. **Bet Slider with Snapping**
-   - User drags to 53%, visually shows 53%
-   - Snaps to nearest solver node (50%) on submit
-   - Nodes: 0%, 25%, 33%, 50%, 66%, 75%, 100%, 150%, 200%
-
-4. **Feedback Overlay**
-   - Shows correct/incorrect result
-   - Displays EV loss and chip penalty
-   - Mixed strategy indicator for indifference
+1. **Director Animation** - Typewriter effect: "Hero raises... Villain calls..."
+2. **Health Bar** - Visual HP (0-100) with screen shake on damage
+3. **Bet Slider** - Snaps to solver nodes (25%, 33%, 50%, 66%, 75%, 100%, 150%, 200%)
+4. **Feedback Overlay** - Shows EV loss, chip penalty, mixed strategy indicator
 
 ### API Endpoints
 
@@ -171,44 +151,24 @@ result = GameEngine.calculate_damage(
 // Fetch next hand with suit isomorphism
 POST /api/god-mode/fetch-hand
 Body: { gameId, userId }
-Response: { hand: HandState, game: GameConfig }
 
 // Submit action and get damage result
 POST /api/god-mode/submit-action
 Body: { gameId, userId, action, sizing, fileId, variantHash }
-Response: { isCorrect, evLoss, chipPenalty, feedback }
 ```
-
----
-
-## The 3-Engine Architecture
-
-### ENGINE A: PIO (Postflop)
-
-- **Source:** `solved_spots_gold` table (PioSolver files)
-- **Isomorphism:** Randomly rotate suits for visual uniqueness
-- **Active Villain:** Weighted RNG for opponent actions
-
-### ENGINE B: CHART (Preflop/ICM)
-
-- **Source:** Static JSON charts
-- **Logic:** Compare user input to ranges, no solver calls
-- **Use Cases:** Push/fold, bubble play, satellites
-
-### ENGINE C: SCENARIO (Mental Game)
-
-- **Source:** Hardcoded scripts
-- **Logic:** Rigged RNG to test psychology
-- **Use Cases:** Bad beat response, tilt control
 
 ---
 
 ## Gamification Rules
 
-1. **Health Bar:** Start with 100 chips. Blunders reduce based on EV loss.
-2. **Progression:** 20 hands per round. Pass threshold to unlock next level.
-3. **Thresholds:** Level 1 = 85%, Level 10 = 100%
-4. **Indifference:** Mixed strategies (≥40% freq) are both correct.
+| Rule | Value |
+|------|-------|
+| Starting Health | 100 chips |
+| Hands per Round | 20 |
+| Level 1 Threshold | 85% accuracy |
+| Level 10 Threshold | 100% accuracy |
+| Indifference | ≥40% freq = correct |
+| Max Damage per Hand | 25 chips |
 
 ---
 
@@ -233,15 +193,12 @@ function TrainingPage() {
 
 ---
 
-## Files Reference
+## Deployment Checklist
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `god_mode_architecture.md` | 100 | Master spec document |
-| `god_mode_engine.sql` | 320 | Full database schema |
-| `seed_games.py` | 350 | Python seeder with auto-assign |
-| `seed_game_registry.sql` | 118 | Generated SQL for 100 games |
-| `engine_core.py` | 500+ | Core Python engine |
-| `GameSession.tsx` | 700+ | React game component |
-| `fetch-hand.js` | 250 | API: fetch hand with isomorphism |
-| `submit-action.js` | 200 | API: evaluate action & damage |
+- [x] Database schema created (`god_mode_engine.sql`)
+- [x] 100 games seeded (PIO=56, CHART=20, SCENARIO=24)
+- [x] RLS policies enabled on all tables
+- [x] Backend engine core (`engine_core.py`)
+- [x] Frontend component (`GameSession.tsx`)
+- [x] API routes (`fetch-hand.js`, `submit-action.js`)
+- [x] Production deployment to `smarter.poker`
