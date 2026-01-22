@@ -1,7 +1,8 @@
 /**
- * Training Arena Page — Game Session
- * ===================================
- * The actual gameplay screen where users play 20 hands per session.
+ * Training Arena Page — Game HUD Container
+ * =========================================
+ * The main gameplay screen with HUD wrapper.
+ * Contains health bar, hand counter, engine rendering, and modals.
  * Receives gameId, level, and session from URL params.
  */
 
@@ -11,9 +12,9 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { getGameById } from '../../../../src/data/TRAINING_LIBRARY';
 
-// Dynamic import GameSession to avoid SSR issues with framer-motion
-const GameSession = dynamic(
-    () => import('../../../../src/components/training/GameSession'),
+// Dynamic import GameArena to avoid SSR issues with framer-motion
+const GameArena = dynamic(
+    () => import('../../../../src/components/training/GameArena'),
     { ssr: false }
 );
 
@@ -24,6 +25,9 @@ export default function TrainingArenaPage() {
     const [userId, setUserId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [gameName, setGameName] = useState('Training Session');
+
+    // Parse level as number (default to 1)
+    const currentLevel = parseInt(level as string, 10) || 1;
 
     // Fetch current user and game data
     useEffect(() => {
@@ -58,20 +62,27 @@ export default function TrainingArenaPage() {
         }
     }, [gameId, router]);
 
-    // Handle session complete
-    const handleSessionComplete = (stats) => {
-        console.log('Session complete:', stats);
+    // Handle level complete (passed)
+    const handleLevelComplete = (stats) => {
+        console.log('Level complete:', stats);
 
-        // Navigate back to level selector with results
+        // Navigate back to level selector with success
         router.push({
             pathname: `/hub/training/play/${gameId}`,
             query: {
                 completed: 'true',
-                level: level,
-                score: stats.accuracy,
-                passed: stats.passed ? '1' : '0',
+                level: currentLevel,
+                score: Math.round(stats.accuracy),
+                passed: '1',
+                xp: stats.xpEarned,
             },
         });
+    };
+
+    // Handle level failed (HP reached 0)
+    const handleLevelFailed = () => {
+        console.log('Level failed');
+        // Stats will be shown in the modal, user chooses retry or exit
     };
 
     // Handle exit (back to level selector)
@@ -103,7 +114,7 @@ export default function TrainingArenaPage() {
                         Loading {gameName}...
                     </p>
                     <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginTop: 8 }}>
-                        Level {level || 1}
+                        Level {currentLevel}
                     </p>
                 </div>
                 <style jsx>{`
@@ -119,16 +130,19 @@ export default function TrainingArenaPage() {
     return (
         <>
             <Head>
-                <title>{gameName} - Level {level || 1} | Smarter Poker</title>
-                <meta name="description" content={`Playing ${gameName} Level ${level || 1}`} />
+                <title>{gameName} - Level {currentLevel} | Smarter Poker</title>
+                <meta name="description" content={`Playing ${gameName} Level ${currentLevel}`} />
             </Head>
 
-            <GameSession
+            <GameArena
                 userId={userId}
                 gameId={gameId}
                 gameName={gameName}
-                onSessionComplete={handleSessionComplete}
+                level={currentLevel}
+                sessionId={sessionId}
                 onExit={handleExit}
+                onLevelComplete={handleLevelComplete}
+                onLevelFailed={handleLevelFailed}
             />
         </>
     );

@@ -23,6 +23,7 @@ Complete implementation of the Smarter.Poker "God Mode" training system.
 | Arena Page | `pages/hub/training/arena/[gameId].js` | 120 |
 | **ChartGrid** | `src/components/training/ChartGrid.tsx` | 580 |
 | **MentalGym** | `src/components/training/MentalGym.tsx` | 520 |
+| **GameArena** | `src/components/training/GameArena.tsx` | 850 |
 
 ---
 
@@ -141,6 +142,53 @@ if (engineType === 'SCENARIO') → MentalGym component
 
 ---
 
+## Step 9: Game HUD (The Container)
+
+### GameArena.tsx — HUD Wrapper
+| Feature | Description |
+|---------|-------------|
+| **Health Bar** | Visual HP with color transition (Green→Yellow→Red) |
+| **Damage Animation** | Shake + floating "-X" indicator |
+| **Hand Counter** | "Hand: X/20" with live accuracy % |
+| **XP Display** | Running total with "+XP" animation |
+| **Quit Button** | Confirm dialog before exit |
+| **Level Failed Modal** | Shows on HP=0 with retry/exit options |
+| **Session Complete Modal** | Shows pass/fail with stats |
+
+### Engine Routing
+```tsx
+<GameArena>
+  {engineType === 'PIO' && <PIOEngine />}
+  {engineType === 'CHART' && <ChartGrid />}
+  {engineType === 'SCENARIO' && <MentalGym />}
+</GameArena>
+```
+
+### State Flow
+```
+User Action → API Submit → Result
+                ↓
+    ┌─────────────────────────┐
+    │  isCorrect?             │
+    │  ├─ Yes: +XP, next hand │
+    │  └─ No: -HP, shake      │
+    │                         │
+    │  HP <= 0? → Failed Modal│
+    │  Hand 20? → Complete    │
+    └─────────────────────────┘
+```
+
+### Passing Grades by Level
+| Level | Pass % |
+|-------|--------|
+| 1 | 85% |
+| 2 | 87% |
+| 3 | 89% |
+| ... | ... |
+| 10 | 100% |
+
+---
+
 ## Skill Files
 
 | File | Purpose |
@@ -154,6 +202,7 @@ if (engineType === 'SCENARIO') → MentalGym component
 | `DATABASE_DEPLOYMENT.md` | Browser automation |
 | `CHARTGRID_REFERENCE.md` | Push/fold chart UI |
 | `MENTALGYM_REFERENCE.md` | Mental game scenarios |
+| `GAMEARENA_REFERENCE.md` | HUD wrapper & game loop |
 
 ---
 
@@ -166,5 +215,6 @@ if (engineType === 'SCENARIO') → MentalGym component
 - [x] Step 5: FastAPI server
 - [x] Step 6: Training Hub enhancements
 - [x] Step 7: Level Select screen
-- [x] **Step 8: Missing Engines (ChartGrid & MentalGym)**
-- [ ] Step 9: Production deploy
+- [x] Step 8: Missing Engines (ChartGrid & MentalGym)
+- [x] **Step 9: Game HUD (GameArena wrapper)**
+- [ ] Step 10: Production deploy
