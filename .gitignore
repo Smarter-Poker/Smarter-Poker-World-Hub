@@ -28,3 +28,6 @@ dist-ssr
 node_modules
 node_modules
 src/content-engine/node_modules
+
+# Credentials (keep secure)
+.agent/skills/credentials/
