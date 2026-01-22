@@ -26,7 +26,7 @@ require('dotenv').config({ path: '.env.local' });
 // Configuration
 const CONFIG = {
     baseUrl: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     rateLimitMs: 2000,  // 2 seconds between requests
     maxRetries: 3,

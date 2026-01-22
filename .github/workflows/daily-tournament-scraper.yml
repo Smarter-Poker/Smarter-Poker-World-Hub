@@ -1,9 +1,10 @@
-name: Daily Tournament Scraper
+name: Venue Tournament Scraper
 
 on:
   schedule:
-    # Run daily at 4am UTC (11pm EST, 10pm CST, 9pm PST)
-    - cron: '0 4 * * *'
+    # Run every 3 days at 4am UTC (11pm EST, 10pm CST, 9pm PST)
+    # Day 1, 4, 7, 10, 13, 16, 19, 22, 25, 28 of each month
+    - cron: '0 4 */3 * *'
 
   workflow_dispatch:
     # Allow manual triggering from GitHub Actions UI
