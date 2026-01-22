@@ -185,11 +185,19 @@ export const TRAINING_LIBRARY = [
 ];
 
 // Helper functions
+
+// Convert a name to a slug (e.g., "Blind vs Blind" -> "blind-vs-blind")
+const toSlug = (name) => name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
 export const getGamesByCategory = (category) =>
     TRAINING_LIBRARY.filter(g => g.category === category);
 
 export const getGameById = (id) =>
     TRAINING_LIBRARY.find(g => g.id === id);
+
+// Find game by slug (e.g., "blind-vs-blind")
+export const getGameBySlug = (slug) =>
+    TRAINING_LIBRARY.find(g => toSlug(g.name) === slug || g.id === slug);
 
 export const getGamesByTag = (tag) =>
     TRAINING_LIBRARY.filter(g => g.tags?.includes(tag));

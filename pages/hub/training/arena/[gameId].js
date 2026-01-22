@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
-import { getGameById } from '../../../../src/data/TRAINING_LIBRARY';
+import { getGameById, getGameBySlug } from '../../../../src/data/TRAINING_LIBRARY';
 
 // Dynamic import GameSession to avoid SSR issues with framer-motion
 const GameSession = dynamic(
@@ -42,8 +42,8 @@ export default function TrainingArenaPage() {
                     setUserId(anonId);
                 }
 
-                // Get game info
-                const gameData = getGameById(gameId);
+                // Get game info (try by ID first, then by slug)
+                const gameData = getGameById(gameId) || getGameBySlug(gameId);
                 if (gameData) {
                     setGame(gameData);
                 } else {
