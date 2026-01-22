@@ -271,6 +271,80 @@ interface BlunderData {
 
 ---
 
+## Step 11: Navigation Wiring (Next.js Routing)
+
+### Route Architecture (File-Based)
+```
+/pages/hub/training.js          → Training Hub (100 games)
+/pages/hub/training/play/[gameId].js   → Level Selector (10 levels)
+/pages/hub/training/arena/[gameId].js  → Game Arena (20 hands)
+```
+
+### Navigation Flow
+```
+┌─────────────────────┐
+│   Training Hub      │  /hub/training
+│   (100 Game Cards)  │
+└─────────┬───────────┘
+          │ click game → intro splash
+          ▼
+┌─────────────────────┐
+│   Level Selector    │  /hub/training/play/{gameId}
+│   (10 Level Map)    │
+└─────────┬───────────┘
+          │ click level → API start session
+          ▼
+┌─────────────────────┐
+│   Game Arena        │  /hub/training/arena/{gameId}?level=X&session=Y
+│   (20 Hand Session) │
+└─────────────────────┘
+```
+
+### Key Navigation Functions
+
+**Training Hub → Level Selector:**
+```javascript
+// pages/hub/training.js
+const handleGameClick = (game) => {
+    setPendingGame(game);
+    setShowIntro(true);  // Show intro splash
+};
+
+const handleIntroComplete = () => {
+    router.push(`/hub/training/play/${pendingGame.id}`);
+};
+```
+
+**Level Selector → Game Arena:**
+```javascript
+// LevelSelector.tsx
+const handlePlayLevel = async (level: number) => {
+    // 1. Start session via API
+    const session = await fetch('/api/session/start', {
+        method: 'POST',
+        body: JSON.stringify({ user_id, game_id, level }),
+    });
+
+    // 2. Navigate to arena with params
+    router.push(`/hub/training/arena/${gameId}?level=${level}&session=${session.session_id}`);
+};
+```
+
+**Game Arena → Back:**
+```javascript
+// GameArena exits
+onExit → router.push(`/hub/training/play/${gameId}`);
+onLevelComplete → router.push with query params for toast
+```
+
+### Query Parameters
+| Route | Params | Description |
+|-------|--------|-------------|
+| `/play/[gameId]` | `completed`, `level`, `score`, `passed`, `xp` | After completing a level |
+| `/arena/[gameId]` | `level`, `session` | Starting a game session |
+
+---
+
 ## Deployment Checklist
 
 - [x] Step 1: Database schema
@@ -283,4 +357,5 @@ interface BlunderData {
 - [x] Step 8: Missing Engines (ChartGrid & MentalGym)
 - [x] **Step 9: Game HUD (GameArena wrapper)**
 - [x] **Step 10: Victory Screen (RoundSummary)**
-- [ ] Step 11: Production deploy
+- [x] **Step 11: Navigation Wiring (Next.js Routing)**
+- [ ] Step 12: Production deploy
