@@ -1,49 +1,45 @@
 /**
- * 🎮 TRAINING GAME TABLE — Vertical Oval Design
+ * 🎮 TRAINING GAME TABLE — EXACT CLONE of Reference
  * 
- * EXACT clone of reference:
- * - VERTICAL (portrait) oval table, taller than wide
- * - Single gold badge per player (name + BB in ONE box)
- * - Large avatars outside table
- * - Header with back button, title, XP/diamonds
- * - Question box at top
- * - Timer bottom-left, question counter bottom-right
- * - 2x2 action buttons at bottom
+ * TRUE OVAL (ellipse) table shape with:
+ * - Double gold rails
+ * - Large avatars positioned around the oval perimeter
+ * - Single gold badge per player (name + BB)
+ * - Hero at bottom center with cards
+ * - Training game header and action buttons
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SEAT POSITIONS for VERTICAL OVAL (9-max)
-// Positions are % of table container
+// SEAT POSITIONS — Around the TRUE OVAL perimeter
+// Positions are % of table container, following elliptical curve
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SEATS = [
     // Hero at bottom center
-    { id: 'hero', x: 50, y: 88, isHero: true, name: 'Hero' },
-    // Villain 1 - bottom left
-    { id: 'v1', x: 18, y: 78, name: 'Villain 1' },
-    // Villain 2 - left lower
-    { id: 'v2', x: 8, y: 58, name: 'Villain 2' },
-    // Villain 3 - left upper
-    { id: 'v3', x: 10, y: 38, name: 'Villain 3' },
-    // Villain 4 - top left
-    { id: 'v4', x: 25, y: 18, name: 'Villain 4' },
-    // Villain 5 - top right
-    { id: 'v5', x: 75, y: 18, name: 'Villain 5' },
-    // Villain 6 - right upper
-    { id: 'v6', x: 90, y: 38, name: 'Villain 6' },
-    // Villain 7 - right lower
-    { id: 'v7', x: 92, y: 58, name: 'Villain 7' },
-    // Villain 8 - bottom right
-    { id: 'v8', x: 82, y: 78, name: 'Villain 8' },
+    { id: 'hero', x: 50, y: 93, isHero: true, name: 'Hero' },
+    // Bottom left - Viking (Villain 1)
+    { id: 'v1', x: 20, y: 82, name: 'Villain 1' },
+    // Left lower - Wizard (Villain 2)
+    { id: 'v2', x: 6, y: 55, name: 'Villain 2' },
+    // Left upper - Ninja (Villain 3)
+    { id: 'v3', x: 12, y: 30, name: 'Villain 3' },
+    // Top left - Wolf (Villain 4)
+    { id: 'v4', x: 30, y: 12, name: 'Villain 4' },
+    // Top right - Spartan (Villain 5)
+    { id: 'v5', x: 70, y: 12, name: 'Villain 5' },
+    // Right upper - Pharaoh (Villain 6)
+    { id: 'v6', x: 88, y: 30, name: 'Villain 6' },
+    // Right lower - Cowboy (Villain 7)
+    { id: 'v7', x: 94, y: 55, name: 'Villain 7' },
+    // Bottom right - Pirate (Villain 8)
+    { id: 'v8', x: 80, y: 82, name: 'Villain 8' },
 ];
 
-// Default stacks
 const DEFAULT_STACKS = [45, 32, 28, 55, 41, 38, 62, 29, 51];
 
-// Avatar images
 const AVATARS = {
     hero: '/avatars/table/free_fox.png',
     v1: '/avatars/table/vip_viking_warrior.png',
@@ -57,11 +53,9 @@ const AVATARS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CARD COMPONENT — Uses custom 52-card deck from /cards/
-// File format: {suit}_{rank}.png (e.g., hearts_a.png, spades_k.png)
+// CARD COMPONENT — Custom 52-card deck
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Map card notation to file names
 const SUIT_MAP = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
 const RANK_MAP = {
     'A': 'a', '2': '2', '3': '3', '4': '4', '5': '5',
@@ -71,49 +65,32 @@ const RANK_MAP = {
 
 function Card({ card, style = {} }) {
     if (!card) return null;
-
-    const rank = card[0]; // A, 2-9, T, J, Q, K
-    const suit = card[1]; // s, h, d, c
-
-    // Build image path: /cards/{suit}_{rank}.png
-    const suitName = SUIT_MAP[suit];
-    const rankName = RANK_MAP[rank] || rank.toLowerCase();
+    const suitName = SUIT_MAP[card[1]];
+    const rankName = RANK_MAP[card[0]] || card[0].toLowerCase();
     const imagePath = `/cards/${suitName}_${rankName}.png`;
 
     return (
         <div style={{
-            width: 55,
-            height: 77,
+            width: 52,
+            height: 72,
             background: '#fff',
-            borderRadius: 6,
-            boxShadow: '0 3px 12px rgba(0,0,0,0.35)',
+            borderRadius: 5,
+            boxShadow: '0 3px 10px rgba(0,0,0,0.4)',
             overflow: 'hidden',
-            border: '1px solid #ddd',
+            border: '1px solid #ccc',
             ...style
         }}>
-            <img
-                src={imagePath}
-                alt={`${rank}${suit}`}
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                }}
-                onError={(e) => {
-                    // Fallback to text if image fails
-                    e.target.style.display = 'none';
-                }}
-            />
+            <img src={imagePath} alt={card} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PLAYER SEAT — Single box badge with name + BB
+// PLAYER SEAT — Avatar + Single Gold Badge
 // ═══════════════════════════════════════════════════════════════════════════
 
-function PlayerSeat({ seat, stack, isDealer = false }) {
-    const avatarSize = seat.isHero ? 75 : 65;
+function PlayerSeat({ seat, stack }) {
+    const size = seat.isHero ? 70 : 60;
 
     return (
         <div style={{
@@ -130,88 +107,46 @@ function PlayerSeat({ seat, stack, isDealer = false }) {
             <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ duration: 0.3 }}
-                style={{ width: avatarSize, height: avatarSize * 1.15 }}
+                style={{ width: size, height: size * 1.1 }}
             >
                 <img
                     src={AVATARS[seat.id]}
                     alt={seat.name}
-                    style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain',
-                    }}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     onError={(e) => { e.target.src = '/avatars/default.png'; }}
                 />
             </motion.div>
 
-            {/* SINGLE BADGE — Name + BB in ONE unified box */}
+            {/* SINGLE Gold Badge */}
             <div style={{
-                background: 'linear-gradient(180deg, #f0c040 0%, #c4960a 100%)',
+                background: 'linear-gradient(180deg, #f0c040 0%, #c49808 100%)',
                 border: '2px solid #8b6914',
                 borderRadius: 4,
-                padding: '3px 8px 4px 8px',
-                marginTop: -6,
+                padding: '2px 8px 3px',
+                marginTop: -5,
                 textAlign: 'center',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                minWidth: 55,
+                boxShadow: '0 2px 5px rgba(0,0,0,0.4)',
+                minWidth: 52,
             }}>
-                <span style={{
-                    display: 'block',
-                    fontSize: 9,
-                    fontWeight: 'bold',
-                    color: '#000',
-                    lineHeight: 1.3,
-                }}>
+                <span style={{ display: 'block', fontSize: 9, fontWeight: 'bold', color: '#000', lineHeight: 1.2 }}>
                     {seat.name}
                 </span>
-                <span style={{
-                    display: 'block',
-                    fontSize: 11,
-                    fontWeight: 'bold',
-                    color: '#000',
-                    lineHeight: 1.1,
-                }}>
+                <span style={{ display: 'block', fontSize: 11, fontWeight: 'bold', color: '#000', lineHeight: 1.1 }}>
                     {stack} BB
                 </span>
             </div>
-
-            {/* Dealer button */}
-            {isDealer && (
-                <div style={{
-                    position: 'absolute',
-                    bottom: seat.isHero ? 55 : 45,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 22,
-                    height: 22,
-                    borderRadius: '50%',
-                    background: '#fff',
-                    border: '2px solid #333',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 11,
-                    fontWeight: 'bold',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                    zIndex: 200,
-                }}>
-                    D
-                </div>
-            )}
         </div>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
+// MAIN TABLE COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function TrainingGameTable({
     heroCards = ['Ah', 'Kh'],
     communityCards = [],
     pot = 0,
-    dealerPosition = 0,
     timer = 15,
     questionNumber = 1,
     totalQuestions = 20,
@@ -238,40 +173,29 @@ export default function TrainingGameTable({
 
             {/* ═══════════════════════════════════════════════════════════════════
           HEADER
-          ═══════════════════════════════════════════════════════════════════ */}
+      ═══════════════════════════════════════════════════════════════════ */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '10px 16px',
-                background: '#080810',
+                padding: '8px 12px',
             }}>
-                <button
-                    onClick={onBack}
-                    style={{
-                        background: '#0891b2',
-                        border: 'none',
-                        borderRadius: 16,
-                        padding: '6px 14px',
-                        color: 'white',
-                        fontSize: 11,
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                    }}
-                >
+                <button onClick={onBack} style={{
+                    background: '#0891b2',
+                    border: 'none',
+                    borderRadius: 14,
+                    padding: '5px 12px',
+                    color: 'white',
+                    fontSize: 10,
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                }}>
                     ← Back to Training
                 </button>
-
-                <div style={{
-                    fontSize: 14,
-                    fontWeight: 'bold',
-                    color: '#22d3ee',
-                    letterSpacing: 1,
-                }}>
+                <div style={{ fontSize: 13, fontWeight: 'bold', color: '#22d3ee', letterSpacing: 1 }}>
                     {gameTitle}
                 </div>
-
-                <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 'bold' }}>
+                <div style={{ display: 'flex', gap: 10, fontSize: 10, fontWeight: 'bold' }}>
                     <span style={{ color: '#22d3ee' }}>⚡ {xp.toLocaleString()} XP</span>
                     <span style={{ color: '#ef4444' }}>💎 {diamonds}</span>
                 </div>
@@ -279,177 +203,148 @@ export default function TrainingGameTable({
 
             {/* ═══════════════════════════════════════════════════════════════════
           QUESTION BOX
-          ═══════════════════════════════════════════════════════════════════ */}
-            <div style={{ padding: '0 16px 10px' }}>
+      ═══════════════════════════════════════════════════════════════════ */}
+            <div style={{ padding: '0 12px 8px' }}>
                 <div style={{
                     background: '#0f172a',
                     border: '2px solid rgba(34, 211, 238, 0.5)',
-                    borderRadius: 12,
-                    padding: '12px 16px',
+                    borderRadius: 10,
+                    padding: '10px 14px',
                     textAlign: 'center',
-                    boxShadow: '0 0 20px rgba(34, 211, 238, 0.15)',
+                    boxShadow: '0 0 15px rgba(34, 211, 238, 0.15)',
                 }}>
-                    <p style={{
-                        margin: 0,
-                        fontSize: 13,
-                        fontWeight: '600',
-                        color: '#e0f2fe',
-                        lineHeight: 1.4,
-                    }}>
+                    <p style={{ margin: 0, fontSize: 12, fontWeight: '600', color: '#e0f2fe', lineHeight: 1.4 }}>
                         {questionText}
                     </p>
                 </div>
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════
-          TABLE AREA (flex-1 to fill remaining space)
-          ═══════════════════════════════════════════════════════════════════ */}
-            <div style={{
-                flex: 1,
-                position: 'relative',
-                padding: '0 10px',
-                minHeight: 0,
-            }}>
-                {/* VERTICAL OVAL TABLE */}
+          TABLE AREA — TRUE OVAL (ellipse) shape
+      ═══════════════════════════════════════════════════════════════════ */}
+            <div style={{ flex: 1, position: 'relative', padding: '0 8px', minHeight: 0 }}>
+
+                {/* Table container */}
                 <div style={{
                     position: 'absolute',
-                    top: '8%',
-                    left: '15%',
-                    right: '15%',
-                    bottom: '8%',
+                    top: '5%',
+                    left: '10%',
+                    right: '10%',
+                    bottom: '5%',
                 }}>
-                    {/* Outer dark frame */}
+
+                    {/* OUTER DARK FRAME */}
                     <div style={{
                         position: 'absolute',
                         inset: 0,
-                        borderRadius: 9999,
-                        background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 50%, #050505 100%)',
-                        boxShadow: `
-              0 20px 60px rgba(0,0,0,0.9),
-              inset 0 -6px 15px rgba(0,0,0,0.5),
-              inset 0 6px 15px rgba(40,40,40,0.2)
-            `,
+                        borderRadius: '50%', // TRUE ELLIPSE
+                        background: 'linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%)',
+                        boxShadow: '0 15px 50px rgba(0,0,0,0.9), inset 0 -4px 12px rgba(0,0,0,0.5)',
                     }}>
-                        {/* Outer gold rail */}
+
+                        {/* OUTER GOLD RAIL */}
                         <div style={{
                             position: 'absolute',
-                            inset: 8,
-                            borderRadius: 9999,
-                            background: 'linear-gradient(180deg, #f0d050 0%, #d4a000 30%, #a07800 70%, #705000 100%)',
-                            boxShadow: 'inset 0 2px 4px rgba(255,255,180,0.5), inset 0 -2px 4px rgba(0,0,0,0.4)',
+                            inset: 6,
+                            borderRadius: '50%',
+                            background: 'linear-gradient(180deg, #d4a000 0%, #8b6914 50%, #6b4f0a 100%)',
+                            boxShadow: 'inset 0 2px 3px rgba(255,220,100,0.4)',
                         }}>
-                            {/* Black gap */}
+
+                            {/* BLACK GAP */}
                             <div style={{
                                 position: 'absolute',
-                                inset: 7,
-                                borderRadius: 9999,
-                                background: 'linear-gradient(180deg, #151515 0%, #0a0a0a 100%)',
+                                inset: 6,
+                                borderRadius: '50%',
+                                background: '#0a0a0a',
                             }}>
-                                {/* Inner gold rail */}
+
+                                {/* INNER GOLD RAIL */}
                                 <div style={{
                                     position: 'absolute',
-                                    inset: 5,
-                                    borderRadius: 9999,
-                                    background: 'linear-gradient(180deg, #ffe070 0%, #e8b810 30%, #b08000 70%, #785500 100%)',
-                                    boxShadow: 'inset 0 2px 4px rgba(255,255,180,0.5), inset 0 -2px 4px rgba(0,0,0,0.4)',
+                                    inset: 4,
+                                    borderRadius: '50%',
+                                    background: 'linear-gradient(180deg, #d4a000 0%, #8b6914 50%, #6b4f0a 100%)',
+                                    boxShadow: 'inset 0 2px 3px rgba(255,220,100,0.4)',
                                 }}>
-                                    {/* Dark edge */}
+
+                                    {/* INNER DARK EDGE */}
                                     <div style={{
                                         position: 'absolute',
                                         inset: 5,
-                                        borderRadius: 9999,
-                                        background: '#0a0a0a',
+                                        borderRadius: '50%',
+                                        background: '#080808',
                                     }}>
-                                        {/* Inner glow line */}
+
+                                        {/* FELT SURFACE */}
                                         <div style={{
                                             position: 'absolute',
-                                            inset: 3,
-                                            borderRadius: 9999,
-                                            border: '2px solid rgba(180,140,50,0.3)',
-                                            background: 'transparent',
+                                            inset: 2,
+                                            borderRadius: '50%',
+                                            background: 'radial-gradient(ellipse at 50% 35%, #161616 0%, #0e0e0e 40%, #080808 100%)',
+                                            boxShadow: 'inset 0 0 60px rgba(0,0,0,0.8)',
                                         }}>
-                                            {/* Felt */}
+
+                                            {/* POT Display */}
                                             <div style={{
                                                 position: 'absolute',
-                                                inset: 0,
-                                                borderRadius: 9999,
-                                                background: `radial-gradient(
-                          ellipse at 50% 40%,
-                          #151515 0%,
-                          #101010 30%,
-                          #0a0a0a 60%,
-                          #050505 100%
-                        )`,
-                                                boxShadow: 'inset 0 0 80px rgba(0,0,0,0.8)',
+                                                top: '18%',
+                                                left: '50%',
+                                                transform: 'translateX(-50%)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 4,
+                                                background: 'rgba(20,20,20,0.95)',
+                                                borderRadius: 10,
+                                                padding: '3px 8px',
+                                                border: '1px solid #333',
                                             }}>
-                                                {/* POT display */}
+                                                <div style={{
+                                                    width: 12,
+                                                    height: 12,
+                                                    borderRadius: '50%',
+                                                    background: '#222',
+                                                    border: '2px solid #444',
+                                                }} />
+                                                <span style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>POT {pot}</span>
+                                            </div>
+
+                                            {/* Game Title */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '48%',
+                                                left: '50%',
+                                                transform: 'translate(-50%, -50%)',
+                                                textAlign: 'center',
+                                            }}>
+                                                <div style={{
+                                                    fontSize: 16,
+                                                    fontFamily: 'Georgia, serif',
+                                                    fontStyle: 'italic',
+                                                    color: '#3a3a3a',
+                                                    letterSpacing: 1,
+                                                }}>
+                                                    ICM Fundamentals
+                                                </div>
+                                                <div style={{ fontSize: 11, color: '#c4960a', marginTop: 3 }}>
+                                                    Smarter.Poker
+                                                </div>
+                                            </div>
+
+                                            {/* Community Cards */}
+                                            {communityCards.length > 0 && (
                                                 <div style={{
                                                     position: 'absolute',
-                                                    top: '22%',
+                                                    top: '32%',
                                                     left: '50%',
                                                     transform: 'translateX(-50%)',
                                                     display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 5,
-                                                    background: 'rgba(25,25,25,0.95)',
-                                                    borderRadius: 12,
-                                                    padding: '4px 10px',
-                                                    border: '1px solid #3a3a3a',
+                                                    gap: 4,
                                                 }}>
-                                                    <div style={{
-                                                        width: 14,
-                                                        height: 14,
-                                                        borderRadius: '50%',
-                                                        background: '#333',
-                                                        border: '2px solid #555',
-                                                    }} />
-                                                    <span style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>
-                                                        POT {pot}
-                                                    </span>
+                                                    {communityCards.map((card, i) => <Card key={i} card={card} />)}
                                                 </div>
+                                            )}
 
-                                                {/* Game title in center */}
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    top: '50%',
-                                                    left: '50%',
-                                                    transform: 'translate(-50%, -50%)',
-                                                    textAlign: 'center',
-                                                }}>
-                                                    <div style={{
-                                                        fontSize: 18,
-                                                        fontFamily: 'Georgia, serif',
-                                                        fontStyle: 'italic',
-                                                        color: '#444',
-                                                        letterSpacing: 1,
-                                                    }}>
-                                                        ICM Fundamentals
-                                                    </div>
-                                                    <div style={{
-                                                        fontSize: 12,
-                                                        color: '#c4960a',
-                                                        marginTop: 4,
-                                                    }}>
-                                                        Smarter.Poker
-                                                    </div>
-                                                </div>
-
-                                                {/* Community cards */}
-                                                {communityCards.length > 0 && (
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        top: '35%',
-                                                        left: '50%',
-                                                        transform: 'translateX(-50%)',
-                                                        display: 'flex',
-                                                        gap: 4,
-                                                    }}>
-                                                        {communityCards.map((card, i) => (
-                                                            <Card key={i} card={card} />
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -459,19 +354,14 @@ export default function TrainingGameTable({
 
                     {/* PLAYER SEATS */}
                     {SEATS.map((seat, i) => (
-                        <PlayerSeat
-                            key={seat.id}
-                            seat={seat}
-                            stack={DEFAULT_STACKS[i]}
-                            isDealer={dealerPosition === i && seat.isHero}
-                        />
+                        <PlayerSeat key={seat.id} seat={seat} stack={DEFAULT_STACKS[i]} />
                     ))}
 
                     {/* HERO CARDS */}
                     <div style={{
                         position: 'absolute',
                         left: '50%',
-                        bottom: '18%',
+                        bottom: '14%',
                         transform: 'translateX(-50%)',
                         display: 'flex',
                         zIndex: 150,
@@ -479,10 +369,10 @@ export default function TrainingGameTable({
                         {heroCards.map((card, i) => (
                             <motion.div
                                 key={i}
-                                initial={{ y: 30, opacity: 0, rotate: i === 0 ? -12 : 12 }}
-                                animate={{ y: 0, opacity: 1, rotate: i === 0 ? -8 : 8 }}
+                                initial={{ y: 20, opacity: 0, rotate: i === 0 ? -10 : 10 }}
+                                animate={{ y: 0, opacity: 1, rotate: i === 0 ? -6 : 6 }}
                                 transition={{ delay: 0.2 + i * 0.1 }}
-                                style={{ marginLeft: i > 0 ? -12 : 0 }}
+                                style={{ marginLeft: i > 0 ? -10 : 0 }}
                             >
                                 <Card card={card} />
                             </motion.div>
@@ -493,120 +383,97 @@ export default function TrainingGameTable({
                     <div style={{
                         position: 'absolute',
                         left: '50%',
-                        bottom: '28%',
+                        bottom: '24%',
                         transform: 'translateX(-50%)',
-                        width: 24,
-                        height: 24,
+                        width: 22,
+                        height: 22,
                         borderRadius: '50%',
                         background: '#fff',
                         border: '2px solid #333',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: 'bold',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
                         zIndex: 200,
                     }}>
                         D
                     </div>
+
                 </div>
 
-                {/* TIMER (bottom left) */}
+                {/* TIMER */}
                 <div style={{
                     position: 'absolute',
-                    left: 16,
-                    bottom: 16,
-                    width: 50,
-                    height: 50,
+                    left: 12,
+                    bottom: 12,
+                    width: 45,
+                    height: 45,
                     background: timer > 5 ? '#dc2626' : '#ff0000',
-                    borderRadius: 6,
+                    borderRadius: 5,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 26,
+                    fontSize: 24,
                     fontWeight: 'bold',
                     color: 'white',
-                    boxShadow: timer <= 5 ? '0 0 15px #ff0000' : 'none',
+                    boxShadow: timer <= 5 ? '0 0 12px #ff0000' : 'none',
                 }}>
                     {timer}
                 </div>
 
-                {/* QUESTION COUNTER (bottom right) */}
+                {/* QUESTION COUNTER */}
                 <div style={{
                     position: 'absolute',
-                    right: 16,
-                    bottom: 16,
+                    right: 12,
+                    bottom: 12,
                     background: 'rgba(30,30,40,0.9)',
                     border: '1px solid #444',
-                    borderRadius: 6,
-                    padding: '8px 12px',
+                    borderRadius: 5,
+                    padding: '6px 10px',
                     color: '#f0f0f0',
-                    fontSize: 12,
+                    fontSize: 11,
                 }}>
                     Question {questionNumber} of {totalQuestions}
                 </div>
+
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════
-          ACTION BUTTONS (2x2 grid)
-          ═══════════════════════════════════════════════════════════════════ */}
+          ACTION BUTTONS — 2x2 grid
+      ═══════════════════════════════════════════════════════════════════ */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: 10,
-                padding: '12px 16px',
-                background: '#080810',
+                gap: 8,
+                padding: '10px 12px',
             }}>
-                <button onClick={onFold} style={{
-                    background: '#1e40af',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '14px',
-                    color: 'white',
-                    fontSize: 15,
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                }}>
-                    Fold
-                </button>
-                <button onClick={onCall} style={{
-                    background: '#1e40af',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '14px',
-                    color: 'white',
-                    fontSize: 15,
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                }}>
-                    Call
-                </button>
-                <button onClick={onRaise} style={{
-                    background: '#1e40af',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '14px',
-                    color: 'white',
-                    fontSize: 15,
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                }}>
-                    Raise to 8bb
-                </button>
-                <button onClick={onAllIn} style={{
-                    background: '#1e40af',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '14px',
-                    color: 'white',
-                    fontSize: 15,
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                }}>
-                    All-In
-                </button>
+                {[
+                    { label: 'Fold', onClick: onFold },
+                    { label: 'Call', onClick: onCall },
+                    { label: 'Raise to 8bb', onClick: onRaise },
+                    { label: 'All-In', onClick: onAllIn },
+                ].map((btn) => (
+                    <button
+                        key={btn.label}
+                        onClick={btn.onClick}
+                        style={{
+                            background: '#1e40af',
+                            border: 'none',
+                            borderRadius: 6,
+                            padding: '12px',
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        {btn.label}
+                    </button>
+                ))}
             </div>
+
         </div>
     );
 }

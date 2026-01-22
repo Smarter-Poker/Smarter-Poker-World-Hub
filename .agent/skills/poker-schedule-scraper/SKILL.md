@@ -206,20 +206,98 @@ INSERT INTO poker_events (
 ) ON CONFLICT (event_uid) DO NOTHING;
 ```
 
-## Canonical Tour List (2026)
-1. **WSOP** - Summer Las Vegas (May-Jul), WSOPE Prague (Mar-Apr)
-2. **WSOPC** - ~18 US stops, 24 ring events each
-3. **WPT** - ~15 Main Tour + Prime stops
-4. **MSPT** - 24 regional stops
-5. **RGPS** - 13+ regional stops
-6. **PokerGO Tour** - High roller series (Aria)
-7. **Wynn** - Millions, Summer/Fall Classic
-8. **Venetian** - DeepStack series (5-6 per year)
-9. **Borgata** - Winter/Spring/Fall Poker Open
-10. **Seminole Hard Rock** - Hollywood + Tampa series
-11. **LAPC** - Commerce Casino (Jan-Mar)
-12. **bestbet** - Jacksonville/St. Augustine series
-13. **Talking Stick** - Arizona State Championship
+## 🎯 THE 55 CANONICAL TOURNAMENT SERIES (Master Checklist)
+**CRITICAL: Complete ALL 55 series before moving to venue-level scraping.**
+
+### Tier 1: National/Major (7 Series)
+| # | Series | Tour | Status |
+|---|--------|------|--------|
+| 1 | WSOP (Summer Series) | WSOP | ✅ Series dates confirmed (May 26 - Jul 15) |
+| 2 | WSOP Circuit | WSOP | ✅ 18 stops, 7 w/events uploaded |
+| 3 | WSOP Online (U.S.) | WSOP | 🚫 N/A - Online excluded |
+| 4 | WPT Main Tour | WPT | ✅ Lucky Hearts complete |
+| 5 | WPT Prime | WPT | ✅ Jan-Apr mapped |
+| 6 | PokerStars NAPT | PokerStars | ❌ NOT SCRAPED |
+| 7 | PokerGO Tour (PGT) | PokerGO | ✅ Jan-Mar mapped |
+
+### Tier 2: Large Regional (10 Series)
+| # | Series | Tour | Status |
+|---|--------|------|--------|
+| 8 | MSPT | MSPT | ✅ 42 series, 120+ events COMPLETE |
+| 9 | RGPS | RunGood | ⚠️ 13 stops mapped, needs events |
+| 10 | SHRPO (Hollywood) | Seminole | ✅ Jul/Aug mapped |
+| 11 | Seminole Showdown | Seminole | ✅ Apr confirmed |
+| 12 | Seminole Classic | Seminole | ✅ Escalator X complete |
+| 13 | Borgata Winter Poker Open | Borgata | ✅ Jan 2026 complete |
+| 14 | Borgata Spring Poker Open | Borgata | ⚠️ Apr/May mapped, needs events |
+| 15 | Bar Poker Open (BPO) | BPO | ❌ NOT SCRAPED |
+| 16 | WPT Lucky Hearts (LHPO) | WPT | ✅ 58 events complete |
+| 17 | Maryland Live Open (MAPO) | Maryland Live | ❌ NOT SCRAPED |
+| 18 | Parx Big Stax | Parx Casino | ❌ NOT SCRAPED |
+
+### Tier 3: Las Vegas Majors (9 Series)
+| # | Series | Venue | Status |
+|---|--------|-------|--------|
+| 19 | Wynn Millions | Wynn | ✅ Feb/Mar mapped ($7M GTD) |
+| 20 | Wynn Summer Classic | Wynn | ⚠️ May/Jul series only |
+| 21 | Venetian DeepStack (NYE) | Venetian | ✅ Complete |
+| 22 | Venetian DeepStack (Spring) | Venetian | ✅ Complete |
+| 23 | ARIA Poker Classic | ARIA | ❌ NOT SCRAPED |
+| 24 | U.S. Poker Open | PokerGO | ❌ NOT SCRAPED |
+| 25 | Poker Masters | PokerGO | ❌ NOT SCRAPED |
+| 26 | Super High Roller Bowl | PokerGO | ❌ NOT SCRAPED |
+| 27 | PokerGO Cup | PokerGO | ✅ Mar 1-15 mapped |
+
+### Tier 4: State Recurring (25 Series)
+| # | Series | State | Status |
+|---|--------|-------|--------|
+| 28 | L.A. Poker Classic (LAPC) | CA | ✅ 68 events complete |
+| 29 | Bay 101 Shooting Star | CA | ❌ NOT SCRAPED |
+| 30 | Gardens Poker Championship | CA | ❌ NOT SCRAPED |
+| 31 | Bicycle Casino Series | CA | ❌ NOT SCRAPED |
+| 32 | Thunder Valley Circuit | CA | ⚠️ WSOPC stop only |
+| 33 | TCH Trailblazer | TX | ✅ Houston/Dallas/Austin mapped |
+| 34 | TCH Poker Championship | TX | ⚠️ Big One only |
+| 35 | Champions Club Series | TX | ❌ NOT SCRAPED |
+| 36 | Texas Poker Open | TX | ❌ NOT SCRAPED |
+| 37 | Bestbet Blizzard | FL | ✅ Feb complete |
+| 38 | Bestbet Poker Series | FL | ⚠️ Winter StAC only |
+| 39 | Arizona State Championship | AZ | ✅ Aug 14-20 mapped |
+| 40 | MSPT Diamond (Talking Stick) | AZ | ✅ Jan complete |
+| 41 | FireKeepers Series | MI | ❌ NOT SCRAPED |
+| 42 | Running Aces Series | MN | ❌ NOT SCRAPED |
+| 43 | Potawatomi Poker Classic | WI | ⚠️ MSPT stop only |
+| 44 | Turning Stone Series | NY | ❌ NOT SCRAPED |
+| 45 | Mohegan Sun Series | CT | ❌ NOT SCRAPED |
+| 46 | Beau Rivage Heater | MS | ❌ NOT SCRAPED |
+| 47 | Cherokee Poker Series | NC | ⚠️ WSOPC stop only |
+
+### Tier 5: Brand-Based (4 Series)
+| # | Series | Brand | Status |
+|---|--------|-------|--------|
+| 48 | Caesars Poker Series | Caesars | ❌ NOT SCRAPED |
+| 49 | MGM Poker Series | MGM | ❌ NOT SCRAPED |
+| 50 | Hard Rock Poker Series | Hard Rock | ❌ NOT SCRAPED |
+| 51 | Horseshoe Poker Series | Horseshoe | ⚠️ WSOPC only |
+
+### Additional Canonical (4 Series)
+| # | Series | Tour | Status |
+|---|--------|------|--------|
+| 52 | WSOP Europe | WSOP | ✅ Prague Mar 31-Apr 12 |
+| 53 | WPT World Championship | WPT | ⚠️ Dec TBD |
+| 54 | Roughrider Poker Tour | Regional | ❌ NOT SCRAPED |
+| 55 | Free Poker Network (FPN) | Amateur | ❌ NOT SCRAPED |
+
+---
+
+## 📊 SCRAPE STATUS SUMMARY
+| Status | Count | Series |
+|--------|-------|--------|
+| ✅ Complete | 22 | WSOP, WSOPC, WPT, MSPT, Seminole, Borgata Winter, Venetian, LAPC, etc. |
+| ⚠️ Partial | 11 | RGPS, Wynn Summer, Cherokee, Potawatomi, etc. |
+| ❌ NOT SCRAPED | **22** | See list below |
+
+---
 
 ## Priority Scraping Order
 ```
