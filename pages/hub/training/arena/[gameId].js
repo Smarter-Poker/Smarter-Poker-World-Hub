@@ -204,7 +204,7 @@ export default function TrainingArenaPage() {
                 .action-bar { flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 16px 20px; background: rgba(10,14,23,0.98); border-top: 1px solid rgba(255,255,255,0.1); }
                 .action-btn { padding: 14px; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: transform 0.1s; }
                 .action-btn:active { transform: scale(0.97); }
-                .fold { background: linear-gradient(180deg, #374151 0%, #1f2937 100%); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
+                .fold { background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%); color: #fff; box-shadow: 0 3px 8px rgba(30,95,168,0.4); }
                 .call, .raise, .allin { background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%); color: #fff; box-shadow: 0 3px 8px rgba(30,95,168,0.4); }
             `}</style>
         </>
