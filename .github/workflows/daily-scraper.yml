@@ -18,6 +18,7 @@ on:
           - setup-only
           - sync-urls-only
           - verify-venues
+          - scrape-directory
       state:
         description: 'Filter by state (optional, e.g., TX, NV, FL)'
         required: false
@@ -118,6 +119,15 @@ jobs:
         run: |
           echo "🔍 Running venue verification (checking multiple sources)..."
           node scripts/verify-all-venues.js 100
+
+      - name: Scrape PokerAtlas Directory
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'scrape-directory' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🗺️ Scraping PokerAtlas directory to get accurate venue URLs..."
+          node scripts/scrape-pokeratlas-directory.js
 
       - name: Upload scraper logs
         if: always()
