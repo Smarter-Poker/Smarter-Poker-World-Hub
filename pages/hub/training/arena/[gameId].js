@@ -29,17 +29,17 @@ const VILLAIN_AVATARS = [
     '/avatars/free/owl.png',
 ];
 
-// Seat positions (percentage-based within the table wrapper)
+// Seat positions - FIXED to stay on table rail (ORIGINAL positions)
 const SEAT_POSITIONS = {
-    hero: { left: '50%', bottom: '8%', transform: 'translateX(-50%)' },
-    seat1: { right: '8%', bottom: '18%' },
-    seat2: { right: '3%', top: '42%', transform: 'translateY(-50%)' },
-    seat3: { right: '5%', top: '22%' },
-    seat4: { right: '22%', top: '5%' },
-    seat5: { left: '22%', top: '5%' },
-    seat6: { left: '5%', top: '22%' },
-    seat7: { left: '3%', top: '42%', transform: 'translateY(-50%)' },
-    seat8: { left: '8%', bottom: '18%' },
+    hero: { left: '50%', bottom: '2%', transform: 'translateX(-50%)' },
+    seat1: { left: '78%', bottom: '20%', transform: 'translateX(-50%)' },
+    seat2: { left: '85%', top: '48%', transform: 'translate(-50%, -50%)' },
+    seat3: { left: '78%', top: '20%', transform: 'translateX(-50%)' },
+    seat4: { left: '62%', top: '6%', transform: 'translateX(-50%)' },
+    seat5: { left: '38%', top: '6%', transform: 'translateX(-50%)' },
+    seat6: { left: '22%', top: '20%', transform: 'translateX(-50%)' },
+    seat7: { left: '15%', top: '48%', transform: 'translate(-50%, -50%)' },
+    seat8: { left: '22%', bottom: '20%', transform: 'translateX(-50%)' },
 };
 
 const SUITS = {
@@ -64,27 +64,79 @@ function parseCards(cardString) {
 // ============== COMPONENTS ==============
 
 function ArenaHeader({ diamonds = 0, xp = 0, level = 1, onBack, onSettings }) {
+    const headerStyle = {
+        flexShrink: 0,
+        height: 56,
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: '0 16px',
+        gap: 12,
+        background: 'rgba(10, 14, 23, 0.98)',
+        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        width: '100%',
+    };
+    const backBtnStyle = {
+        padding: '8px 14px',
+        background: 'rgba(255,255,255,0.1)',
+        border: '1px solid rgba(255,255,255,0.2)',
+        borderRadius: 8,
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+    };
+    const brandStyle = { fontSize: 16, fontWeight: 700, color: '#fff' };
+    const statsStyle = { display: 'flex', alignItems: 'center', gap: 12, marginLeft: 'auto' };
+    const statStyle = {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '6px 12px',
+        background: 'rgba(0,150,200,0.2)',
+        border: '1px solid rgba(0,200,255,0.3)',
+        borderRadius: 20,
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#fff',
+    };
+    const plusBtnStyle = {
+        width: 20, height: 20, borderRadius: '50%', background: '#22c55e',
+        border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, lineHeight: 1, padding: 0,
+    };
+    const iconsStyle = { display: 'flex', gap: 8, marginLeft: 12 };
+    const iconCircleStyle = {
+        width: 36, height: 36, borderRadius: '50%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 16, cursor: 'pointer', border: 'none', fontFamily: 'inherit',
+        background: 'linear-gradient(135deg, #2d7ad4 0%, #1e5fa8 100%)',
+    };
+    const settingsStyle = { ...iconCircleStyle, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' };
+
     return (
-        <div className="arena-header">
-            <button className="back-btn" onClick={onBack}>← Back</button>
-            <span className="brand">Smarter.Poker</span>
-            <div className="header-stats">
-                <div className="stat diamond">
-                    <span className="icon">💎</span>
+        <div style={headerStyle}>
+            <button style={backBtnStyle} onClick={onBack}>← Back</button>
+            <span style={brandStyle}>Smarter.Poker</span>
+            <div style={statsStyle}>
+                <div style={statStyle}>
+                    <span>💎</span>
                     <span>{diamonds}</span>
-                    <button className="plus-btn">+</button>
+                    <button style={plusBtnStyle}>+</button>
                 </div>
-                <div className="stat xp">
+                <div style={statStyle}>
                     <span>XP {xp}</span>
-                    <span className="sep">•</span>
+                    <span style={{ opacity: 0.5 }}>•</span>
                     <span>LV {level}</span>
                 </div>
             </div>
-            <div className="header-icons">
-                <div className="icon-circle blue">👤</div>
-                <div className="icon-circle blue">✉️</div>
-                <div className="icon-circle blue">🔔</div>
-                <button className="icon-circle settings" onClick={onSettings}>⚙️</button>
+            <div style={iconsStyle}>
+                <div style={iconCircleStyle}>👤</div>
+                <div style={iconCircleStyle}>✉️</div>
+                <div style={iconCircleStyle}>🔔</div>
+                <button style={settingsStyle} onClick={onSettings}>⚙️</button>
             </div>
         </div>
     );
@@ -225,7 +277,7 @@ export default function TrainingArenaPage() {
                     .loading-screen {
                         position: fixed;
                         inset: 0;
-                        background: linear-gradient(180deg, #0a0e17 0%, #050810 100%);
+                        background: linear-gradient(180deg, #0a0e17 0%, #0a0e17 100%);
                         display: flex;
                         flex-direction: column;
                         align-items: center;
@@ -318,16 +370,16 @@ export default function TrainingArenaPage() {
                                     </div>
                                 ))}
                             </div>
+                        </div>
 
-                            {/* Timer */}
-                            <div className="timer">
-                                <span>{timer}</span>
-                            </div>
+                        {/* Timer - positioned outside table-wrapper, at bottom of table-area */}
+                        <div className="timer">
+                            <span>{timer}</span>
+                        </div>
 
-                            {/* Question Counter */}
-                            <div className="q-counter">
-                                <span>Question {handNumber} of {totalHands}</span>
-                            </div>
+                        {/* Question Counter - positioned outside table-wrapper, at bottom of table-area */}
+                        <div className="q-counter">
+                            <span>Question {handNumber} of {totalHands}</span>
                         </div>
                     </div>
 
@@ -347,7 +399,7 @@ export default function TrainingArenaPage() {
                     height: 100%; 
                     overflow: hidden; 
                     font-family: 'Inter', sans-serif; 
-                    background: #050810; 
+                    background: #0a0e17; 
                 }
             `}</style>
 
@@ -359,7 +411,7 @@ export default function TrainingArenaPage() {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    background: #050810;
+                    background: #0a0e17;
                     overflow: hidden;
                 }
                 
@@ -370,7 +422,7 @@ export default function TrainingArenaPage() {
                     transform-origin: center center;
                     display: flex;
                     flex-direction: column;
-                    background: linear-gradient(180deg, #0a0e17 0%, #050810 100%);
+                    background: #0a0e17;
                     color: #fff;
                     overflow: hidden;
                 }
@@ -484,6 +536,7 @@ export default function TrainingArenaPage() {
                     justify-content: center;
                     padding: 12px;
                     min-height: 0;
+                    position: relative;
                 }
                 .table-wrapper {
                     position: relative;
@@ -572,35 +625,35 @@ export default function TrainingArenaPage() {
                     z-index: 25;
                 }
                 
-                /* Timer */
+                /* Timer - now relative to table-area */
                 .timer {
                     position: absolute;
-                    bottom: 8%;
-                    left: 8%;
-                    width: 44px;
-                    height: 44px;
+                    bottom: 16px;
+                    left: 20px;
+                    width: 52px;
+                    height: 52px;
                     background: rgba(0,0,0,0.95);
-                    border: 2px solid #dc2626;
-                    border-radius: 8px;
+                    border: 3px solid #dc2626;
+                    border-radius: 10px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    z-index: 25;
+                    z-index: 30;
                 }
-                .timer span { font-size: 20px; font-weight: 800; color: #dc2626; }
+                .timer span { font-size: 24px; font-weight: 800; color: #dc2626; }
                 
-                /* Question Counter */
+                /* Question Counter - now relative to table-area */
                 .q-counter {
                     position: absolute;
-                    bottom: 9%;
-                    right: 8%;
-                    padding: 8px 12px;
-                    background: rgba(37,99,235,0.25);
-                    border: 1px solid #3b82f6;
-                    border-radius: 6px;
-                    z-index: 25;
+                    bottom: 20px;
+                    right: 20px;
+                    padding: 10px 16px;
+                    background: rgba(0,0,0,0.8);
+                    border: 1px solid rgba(255,255,255,0.3);
+                    border-radius: 8px;
+                    z-index: 30;
                 }
-                .q-counter span { font-size: 11px; color: #60a5fa; font-weight: 600; }
+                .q-counter span { font-size: 13px; color: #fff; font-weight: 600; }
                 
                 /* ========== PLAYER SEATS ========== */
                 :global(.player-seat) {
