@@ -356,7 +356,6 @@ export function ReelsFeedCarousel() {
                     *,
                     profiles:author_id (id, username, avatar_url, full_name)
                 `)
-                .eq('is_public', true)
                 .order('created_at', { ascending: false })
                 .limit(20);
 
