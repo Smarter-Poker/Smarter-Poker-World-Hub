@@ -139,44 +139,8 @@ const NEWS_SOURCES = [
     }
 ];
 
-// Google News RSS for poker searches
-const GOOGLE_NEWS_SOURCES = [
-    {
-        name: 'Google News - Poker',
-        rss: 'https://news.google.com/rss/search?q=poker+news+today&hl=en-US&gl=US&ceid=US:en',
-        icon: '🔍',
-        priority: 10,
-        category: 'news'
-    },
-    {
-        name: 'Google News - WSOP',
-        rss: 'https://news.google.com/rss/search?q=WSOP+World+Series+of+Poker&hl=en-US&gl=US&ceid=US:en',
-        icon: '🏆',
-        priority: 11,
-        category: 'tournament'
-    },
-    {
-        name: 'Google News - Online Poker',
-        rss: 'https://news.google.com/rss/search?q=online+poker&hl=en-US&gl=US&ceid=US:en',
-        icon: '💻',
-        priority: 12,
-        category: 'online'
-    },
-    {
-        name: 'Google News - MSPT',
-        rss: 'https://news.google.com/rss/search?q=MSPT+Mid-States+Poker+Tour&hl=en-US&gl=US&ceid=US:en',
-        icon: '🎰',
-        priority: 7,
-        category: 'tournament'
-    },
-    {
-        name: 'Google News - MSPT Poker',
-        rss: 'https://news.google.com/rss/search?q="MSPT"+poker+tournament&hl=en-US&gl=US&ceid=US:en',
-        icon: '🎰',
-        priority: 8,
-        category: 'tournament'
-    }
-];
+// Google News disabled - doesn't provide images in RSS and redirect extraction is unreliable
+const GOOGLE_NEWS_SOURCES = [];
 
 // YouTube RSS for poker channels
 const VIDEO_SOURCES = [
