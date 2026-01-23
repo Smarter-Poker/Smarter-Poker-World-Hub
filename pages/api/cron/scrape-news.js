@@ -151,19 +151,13 @@ function generateSyntheticNews() {
 // Create social post from news article
 async function createSocialPost(article) {
     try {
-        // Get system account ID
-        const { data: systemUser } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('username', 'smarter_poker')
-            .single();
-
-        if (!systemUser) return;
+        // Use system account UUID directly
+        const SYSTEM_UUID = '00000000-0000-0000-0000-000000000001';
 
         const postContent = `📰 ${article.title}\n\n${article.excerpt}\n\n#PokerNews #SmarterPoker`;
 
         await supabase.from('social_posts').insert({
-            author_id: systemUser.id,
+            author_id: SYSTEM_UUID,
             content: postContent,
             content_type: 'article',
             media_urls: article.image_url ? [article.image_url] : [],

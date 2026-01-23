@@ -29,25 +29,24 @@ function timeAgo(d) {
 
 // Individual Reel Card in the carousel
 function ReelCard({ reel, onClick }) {
-    const [isPlaying, setIsPlaying] = useState(false);
-    const videoRef = useRef(null);
+    const [isHovered, setIsHovered] = useState(false);
 
-    const handleMouseEnter = () => {
-        setIsPlaying(true);
-        videoRef.current?.play();
-    };
+    // Check if it's a YouTube URL (can't play directly)
+    const isYouTube = reel.video_url?.includes('youtube.com') || reel.video_url?.includes('youtu.be');
 
-    const handleMouseLeave = () => {
-        setIsPlaying(false);
-        videoRef.current?.pause();
-        if (videoRef.current) videoRef.current.currentTime = 0;
+    const handleClick = () => {
+        if (isYouTube && reel.video_url) {
+            window.open(reel.video_url, '_blank');
+        } else if (onClick) {
+            onClick();
+        }
     };
 
     return (
         <div
-            onClick={onClick}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+            onClick={handleClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
             style={{
                 width: 140,
                 height: 250,
@@ -58,40 +57,53 @@ function ReelCard({ reel, onClick }) {
                 flexShrink: 0,
                 background: '#000',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                transform: isHovered ? 'scale(1.02)' : 'scale(1)',
+                transition: 'transform 0.2s',
             }}
         >
-            {/* Video */}
-            <video
-                ref={videoRef}
-                src={reel.video_url}
-                muted
-                loop
-                playsInline
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                }}
-            />
+            {/* Thumbnail image for YouTube, video for direct URLs */}
+            {isYouTube ? (
+                <img
+                    src={reel.thumbnail_url || '/default-reel-thumb.jpg'}
+                    alt={reel.caption || 'Reel'}
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                    }}
+                />
+            ) : (
+                <video
+                    src={reel.video_url}
+                    muted
+                    loop
+                    playsInline
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                    }}
+                />
+            )}
 
             {/* Play indicator */}
-            {!isPlaying && (
-                <div style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: 48,
-                    height: 48,
-                    borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}>
-                    <span style={{ fontSize: 24, color: 'white', marginLeft: 4 }}>▶</span>
-                </div>
-            )}
+            <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                background: isYouTube ? 'rgba(255,0,0,0.8)' : 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: isHovered ? 1 : 0.8,
+                transition: 'opacity 0.2s',
+            }}>
+                <span style={{ fontSize: 24, color: 'white', marginLeft: 4 }}>▶</span>
+            </div>
 
             {/* Gradient overlay */}
             <div style={{
