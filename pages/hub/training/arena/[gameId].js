@@ -28,7 +28,7 @@ const VILLAIN_AVATARS = [
 
 // Seat positions - FIXED to stay on table rail
 const SEAT_POSITIONS = {
-    hero:  { left: '50%', bottom: '2%', transform: 'translateX(-50%)' },
+    hero: { left: '50%', bottom: '2%', transform: 'translateX(-50%)' },
     seat1: { left: '78%', bottom: '20%', transform: 'translateX(-50%)' },
     seat2: { left: '85%', top: '48%', transform: 'translate(-50%, -50%)' },
     seat3: { left: '78%', top: '20%', transform: 'translateX(-50%)' },
@@ -64,8 +64,10 @@ function PlayerSeat({ avatar, name, stack, position, isHero = false }) {
         <div style={{ position: 'absolute', ...position, display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 15 }}>
             <img src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=128&q=75`} alt={name}
                 style={{ width: size, height: size, objectFit: 'contain', filter: 'drop-shadow(2px 3px 5px rgba(0,0,0,0.8))' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 8px',
-                background: 'linear-gradient(180deg, #d4a020 0%, #8b6914 100%)', borderRadius: 4, marginTop: -8, minWidth: 50 }}>
+            <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 8px',
+                background: 'linear-gradient(180deg, #d4a020 0%, #8b6914 100%)', borderRadius: 4, marginTop: -8, minWidth: 50
+            }}>
                 <span style={{ fontSize: 8, fontWeight: 600, color: '#1a1d24' }}>{name}</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#1a1d24' }}>{stack} BB</span>
             </div>
@@ -77,8 +79,10 @@ function Card({ rank, suit, isRed, size = 'normal' }) {
     const width = size === 'hero' ? 32 : 28;
     const height = size === 'hero' ? 46 : 40;
     return (
-        <div style={{ width, height, borderRadius: 4, background: 'linear-gradient(180deg, #fff 0%, #f0f0f0 100%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
+        <div style={{
+            width, height, borderRadius: 4, background: 'linear-gradient(180deg, #fff 0%, #f0f0f0 100%)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
+        }}>
             <span style={{ fontSize: size === 'hero' ? 16 : 13, fontWeight: 800, color: isRed ? '#dc2626' : '#1a1d24', lineHeight: 1 }}>{rank}</span>
             <span style={{ fontSize: size === 'hero' ? 12 : 9, color: isRed ? '#dc2626' : '#1a1d24', lineHeight: 1 }}>{suit}</span>
         </div>
@@ -130,8 +134,10 @@ export default function TrainingArenaPage() {
     const handleAction = (action) => { setHandNumber(prev => Math.min(prev + 1, totalHands)); setTimer(15); };
 
     if (loading) return (
-        <div style={{ position: 'fixed', inset: 0, background: 'linear-gradient(180deg, #0a0e17 0%, #050810 100%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'Inter, sans-serif', gap: 16 }}>
+        <div style={{
+            position: 'fixed', inset: 0, background: 'linear-gradient(180deg, #0a0e17 0%, #050810 100%)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'Inter, sans-serif', gap: 16
+        }}>
             <div style={{ fontSize: 48 }}>🎰</div><p>Loading arena...</p>
         </div>
     );
@@ -148,7 +154,7 @@ export default function TrainingArenaPage() {
                 <div className="question-bar"><p>{question}</p></div>
                 <div className="table-area">
                     <div className="table-wrapper">
-                        <img src="/images/training/table-vertical.jpg" alt="Poker Table" className="table-img" />
+                        <img src="/training-ui/table-vertical.png" alt="Poker Table" className="table-img" />
                         <div className="pot"><span className="pot-icon">●</span><span className="pot-label">POT</span><span className="pot-value">{pot}</span></div>
                         {board.length > 0 && <div className="board">{board.map((card, i) => <Card key={i} {...card} />)}</div>}
                         <div className="felt-title"><span className="felt-name">{gameName}</span><span className="felt-sub">Smarter.Poker</span></div>
