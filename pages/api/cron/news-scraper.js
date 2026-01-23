@@ -63,7 +63,7 @@ const NEWS_SOURCES = [
         name: 'MSPT',
         type: 'scrape',
         url: 'https://msptpoker.com/pages/Magazine.aspx',
-        baseUrl: 'https://msptpoker.com/pages',
+        baseUrl: 'https://msptpoker.com',
         icon: '🎰',
         category: 'tournament'
     },
@@ -511,38 +511,52 @@ async function scrapePokerfuse(html, source) {
     const articles = [];
     const seen = new Set();
 
-    // Pokerfuse uses /latest-news/YYYY/M/slug/ format - look for article links with titles
-    const matches = html.matchAll(/href=["']((?:https?:\/\/pokerfuse\.com)?\/latest-news\/\d{4}\/\d{1,2}\/[^"']+)["'][^>]*>([^<]+)/gi);
+    // Pokerfuse uses /latest-news/YYYY/M/slug/ format - try multiple patterns
+    const patterns = [
+        // Direct link with title text
+        /href=["']((?:https?:\/\/pokerfuse\.com)?\/latest-news\/\d{4}\/\d{1,2}\/[^"']+)["'][^>]*>([^<]+)/gi,
+        // Headlines in h2/h3 with links
+        /<h[23][^>]*>\s*<a[^>]+href=["']((?:https?:\/\/pokerfuse\.com)?\/latest-news\/\d{4}\/\d{1,2}\/[^"']+)["'][^>]*>([^<]+)/gi,
+        // Article cards with title in nested element
+        /<a[^>]+href=["']((?:https?:\/\/pokerfuse\.com)?\/latest-news\/\d{4}\/\d{1,2}\/[^"']+)["'][^>]*>[\s\S]*?<[^>]*>([^<]{15,})/gi,
+        // Also try /the-rail/ and /live-poker/ sections
+        /href=["']((?:https?:\/\/pokerfuse\.com)?\/(?:the-rail|live-poker)\/\d{4}\/\d{1,2}\/[^"']+)["'][^>]*>([^<]+)/gi
+    ];
 
-    for (const match of matches) {
+    for (const pattern of patterns) {
         if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+        const matches = html.matchAll(pattern);
 
-        let url = match[1];
-        const title = cleanText(match[2]);
+        for (const match of matches) {
+            if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
 
-        // Skip navigation links and short titles
-        if (!title || title.length < 15 || seen.has(url)) continue;
-        if (title.toLowerCase().includes('read more') || title.toLowerCase().includes('continue')) continue;
+            let url = match[1];
+            const title = cleanText(match[2]);
 
-        if (!url.startsWith('http')) {
-            url = source.baseUrl + url;
-        }
+            // Skip navigation links and short titles
+            if (!title || title.length < 15 || seen.has(url)) continue;
+            if (title.toLowerCase().includes('read more') || title.toLowerCase().includes('continue')) continue;
 
-        seen.add(url);
-        console.log(`   Checking Pokerfuse: ${title.substring(0, 40)}...`);
+            if (!url.startsWith('http')) {
+                url = source.baseUrl + url;
+            }
 
-        const articleHtml = await fetchPage(url);
-        let image = extractArticleImage(articleHtml, url);
+            seen.add(url);
+            console.log(`   Checking Pokerfuse: ${title.substring(0, 40)}...`);
 
-        // Use source fallback if no image found
-        if (!image) {
-            image = SOURCE_FALLBACK_IMAGES[source.name];
-            console.log(`   Using fallback image for Pokerfuse: ${title.substring(0, 30)}...`);
-        }
+            const articleHtml = await fetchPage(url);
+            let image = extractArticleImage(articleHtml, url);
 
-        // Save articles with images (including fallbacks)
-        if (image) {
-            articles.push({ url, title, image, source });
+            // Use source fallback if no image found
+            if (!image) {
+                image = SOURCE_FALLBACK_IMAGES[source.name];
+                console.log(`   Using fallback image for Pokerfuse: ${title.substring(0, 30)}...`);
+            }
+
+            // Save articles with images (including fallbacks)
+            if (image) {
+                articles.push({ url, title, image, source });
+            }
         }
     }
 
