@@ -90,15 +90,28 @@ function formatViews(num) {
     return num.toString();
 }
 
+// Fallback images for different categories
+const FALLBACK_IMAGES = {
+    tournament: 'https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=400&q=80',
+    strategy: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=400&q=80',
+    industry: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80',
+    news: 'https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=400&q=80',
+    online: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400&q=80'
+};
+
 // News Box Component - Dedicated display box for each story
 function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, isRead }) {
     const categoryColors = {
         tournament: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', icon: '🏆' },
         strategy: { bg: 'rgba(124, 58, 237, 0.15)', color: '#a78bfa', icon: '📚' },
         industry: { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', icon: '💼' },
-        news: { bg: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', icon: '📰' }
+        news: { bg: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', icon: '📰' },
+        online: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', icon: '💻' }
     };
     const catStyle = categoryColors[article.category] || categoryColors.news;
+
+    // Get image with fallback
+    const imageUrl = article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news;
 
     return (
         <motion.div
@@ -126,9 +139,9 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 </div>
             )}
 
-            {/* Image */}
+            {/* Image with fallback */}
             <div className="box-image">
-                <img src={article.image_url} alt={article.title} loading="lazy" />
+                <img src={imageUrl} alt={article.title} loading="lazy" />
                 <div className="box-overlay" />
             </div>
 
@@ -169,6 +182,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     transition: all 0.3s ease;
                     display: flex;
                     flex-direction: column;
+                    height: 340px;
                 }
 
                 .news-box:hover {
@@ -237,8 +251,10 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 .box-image {
                     position: relative;
                     width: 100%;
-                    height: 160px;
+                    height: 180px;
+                    min-height: 180px;
                     overflow: hidden;
+                    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
                 }
 
                 .box-image img {
@@ -503,6 +519,7 @@ function MSPTBox({ msptNews, onOpenMSPT }) {
             <style jsx>{`
                 .mspt-box {
                     border: 1px solid rgba(220, 38, 38, 0.4) !important;
+                    height: 340px !important;
                 }
 
                 .mspt-box:hover {
@@ -1412,11 +1429,15 @@ export default function NewsHub() {
                         margin-bottom: 20px;
                     }
 
-                    /* News Grid - 8 boxes */
+                    /* News Grid - 8 uniform boxes in 2x4 format */
                     .news-grid {
                         display: grid;
                         grid-template-columns: repeat(2, 1fr);
-                        gap: 20px;
+                        gap: 16px;
+                    }
+
+                    .news-grid > * {
+                        height: 340px;
                     }
 
                     @media (max-width: 768px) {
