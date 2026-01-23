@@ -9,7 +9,7 @@
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-require('dotenv-flow').config();
+require('dotenv').config({ path: '.env.local' });
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const { createClient } = require('@supabase/supabase-js');
