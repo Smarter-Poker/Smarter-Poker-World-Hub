@@ -3,19 +3,23 @@
  * UNIVERSAL HEADER COMPONENT — Hub-Style Dark Theme
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * Matches the Hub page header style:
+ * CRITICAL: This is the GLOBAL STANDARD header for ALL smarter.poker pages.
+ * DO NOT MODIFY without running /social-feed-protection workflow.
+ * 
+ * Features:
  * - Dark background with neon blue accents
  * - "Smarter.Poker" in white text 
- * - Diamond wallet with +
- * - XP display with level
- * - Neon orb icons for profile, messages, notifications, search, settings
+ * - Diamond wallet with + (REAL balance from user_diamond_balance)
+ * - XP display with level (REAL data from profiles.xp_total)
+ * - Profile picture (REAL avatar from profiles.avatar_url)
+ * - Neon orb icons for profile, messages, notifications, settings
  * - Return to Hub button (for major pages) or Back button (for nested pages)
  */
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { getAuthUser, queryProfiles, queryDiamondBalance } from '../../lib/authUtils';
+import { supabase } from '../../lib/supabase';
 
 // Dark theme colors matching hub
 const C = {
@@ -75,18 +79,32 @@ export default function UniversalHeader({
     const router = useRouter();
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState({ xp: 0, diamonds: 0, level: 1 });
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const loadUser = async () => {
-            const authUser = getAuthUser();
-            if (authUser) {
-                setUser(authUser);
-                try {
+            try {
+                // Use Supabase client directly for reliable auth
+                const { data: { user: authUser } } = await supabase.auth.getUser();
+
+                if (authUser) {
+                    setUser(authUser);
+
                     // Fetch profile data (XP, avatar, name)
-                    const profile = await queryProfiles(authUser.id, 'username,full_name,avatar_url,xp_total');
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('username, full_name, avatar_url, xp_total')
+                        .eq('id', authUser.id)
+                        .single();
 
                     // Fetch diamond balance from user_diamond_balance table
-                    const diamondBalance = await queryDiamondBalance(authUser.id);
+                    const { data: diamondData } = await supabase
+                        .from('user_diamond_balance')
+                        .select('balance')
+                        .eq('user_id', authUser.id)
+                        .single();
+
+                    const diamondBalance = diamondData?.balance || 0;
 
                     if (profile) {
                         const xpTotal = profile.xp_total || 0;
@@ -98,11 +116,17 @@ export default function UniversalHeader({
                             diamonds: diamondBalance,
                             level
                         });
-                        setUser(prev => ({ ...prev, avatar: profile.avatar_url, name: profile.full_name || profile.username }));
+                        setUser(prev => ({
+                            ...prev,
+                            avatar: profile.avatar_url,
+                            name: profile.full_name || profile.username
+                        }));
                     }
-                } catch (e) {
-                    console.error('[Header] Profile fetch error:', e);
                 }
+            } catch (e) {
+                console.error('[UniversalHeader] Data fetch error:', e);
+            } finally {
+                setIsLoading(false);
             }
         };
         loadUser();
