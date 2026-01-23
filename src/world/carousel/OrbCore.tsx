@@ -159,18 +159,21 @@ export function OrbCore({ color, label, gradient, active, imageUrl, description 
             </Text>
 
             {/* ═══════════════════════════════════════════════════════════════
-                CARD DESCRIPTION - Neon glow positioned BELOW the card
+                CARD DESCRIPTION - Neon glow positioned BELOW the card (2 lines max)
                 ═══════════════════════════════════════════════════════════════ */}
             {description && (
                 <Text
-                    position={[0, -(cardHeight / 2) - 0.02, 0.02]}
-                    fontSize={0.05}
+                    position={[0, -(cardHeight / 2) - 0.03, 0.02]}
+                    fontSize={0.04}
                     color="#ffffff"
                     anchorX="center"
                     anchorY="top"
-                    outlineWidth={0.002}
+                    textAlign="center"
+                    maxWidth={cardWidth}
+                    lineHeight={1.3}
+                    outlineWidth={0.001}
                     outlineColor="#00d4ff"
-                    letterSpacing={0.03}
+                    letterSpacing={0.02}
                 >
                     {description}
                 </Text>

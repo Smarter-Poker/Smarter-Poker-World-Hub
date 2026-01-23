@@ -270,22 +270,23 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════
-                CARD DESCRIPTION - Neon glow positioned BELOW the card
+                CARD DESCRIPTION - Neon glow positioned BELOW the card (2 lines)
                 ═══════════════════════════════════════════════════════════════ */}
             {orb.description && (
                 <div
                     style={{
-                        marginTop: 4,
-                        fontSize: 9,
+                        marginTop: 6,
+                        fontSize: 8,
                         fontWeight: 600,
                         color: '#ffffff',
                         textAlign: 'center',
-                        letterSpacing: 0.5,
+                        letterSpacing: 0.3,
+                        lineHeight: 1.4,
                         textShadow: '0 0 8px rgba(0, 212, 255, 0.5), 0 0 4px rgba(0, 212, 255, 0.3)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
+                        whiteSpace: 'normal',
+                        wordWrap: 'break-word',
                         maxWidth: '100%',
+                        padding: '0 2px',
                     }}
                 >
                     {orb.description}
