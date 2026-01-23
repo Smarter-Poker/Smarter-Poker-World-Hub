@@ -54,7 +54,7 @@ async function ensureSystemAccountExists() {
             .insert({
                 id: SYSTEM_UUID,
                 username: 'smarter.poker',
-                display_name: 'Smarter.Poker',
+                full_name: 'Smarter.Poker',
                 avatar_url: '/images/smarter-poker-logo.png',
                 bio: 'Official Smarter.Poker News & Updates'
             })
