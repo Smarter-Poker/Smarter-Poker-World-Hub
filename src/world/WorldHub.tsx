@@ -221,60 +221,19 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                         boxShadow: `0 0 20px rgba(0, 180, 255, 0.3), 0 20px 40px rgba(0, 0, 0, 0.5)`,
                     }}
                 >
-                    {/* Card image - Holographic floating effect inside frame */}
+                    {/* Card image - Static for footer cards */}
                     <div
                         style={{
-                            position: 'relative',
                             width: '100%',
                             height: '100%',
-                            overflow: 'hidden',
+                            backgroundImage: orb.imageUrl
+                                ? `url('${orb.imageUrl}')`
+                                : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
                             borderRadius: 6,
                         }}
-                    >
-                        {/* The actual image with 3D floating animation */}
-                        <div
-                            className="holo-inner-image"
-                            style={{
-                                width: '110%',
-                                height: '110%',
-                                position: 'absolute',
-                                top: '-5%',
-                                left: '-5%',
-                                backgroundImage: orb.imageUrl
-                                    ? `url('${orb.imageUrl}')`
-                                    : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                                backgroundSize: 'cover',
-                                backgroundPosition: 'center',
-                                animation: `holoFloat${index} ${6 + index * 0.5}s ease-in-out infinite`,
-                                transformStyle: 'preserve-3d',
-                            }}
-                        />
-                        {/* Sweeping light beam overlay */}
-                        <div
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: '-100%',
-                                width: '50%',
-                                height: '100%',
-                                background: 'linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.15), transparent)',
-                                animation: `lightSweep ${4 + index * 0.3}s ease-in-out infinite`,
-                                pointerEvents: 'none',
-                            }}
-                        />
-                        {/* Pulsing glow overlay */}
-                        <div
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                background: `radial-gradient(ellipse at 50% 30%, rgba(0, 212, 255, ${0.05 + edgeOpacity * 0.1}), transparent 60%)`,
-                                pointerEvents: 'none',
-                            }}
-                        />
-                    </div>
+                    />
 
                     {/* ═══════════════════════════════════════════════════════════════
                         INNER WHITE BORDER FRAME - Clean sharp line (matching mockup)
