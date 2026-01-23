@@ -161,9 +161,9 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
             <style jsx>{`
                 .news-box {
                     position: relative;
-                    background: linear-gradient(145deg, rgba(20, 20, 35, 0.9), rgba(15, 15, 25, 0.95));
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    border-radius: 16px;
+                    background: linear-gradient(145deg, rgba(20, 20, 35, 0.95), rgba(15, 15, 25, 0.98));
+                    border: 1px solid rgba(255, 255, 255, 0.3);
+                    border-radius: 10px;
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.3s ease;
@@ -172,8 +172,8 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 }
 
                 .news-box:hover {
-                    border-color: rgba(0, 212, 255, 0.4);
-                    box-shadow: 0 8px 32px rgba(0, 212, 255, 0.15);
+                    border-color: rgba(0, 212, 255, 0.7);
+                    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
                 }
 
                 .news-box.read {
