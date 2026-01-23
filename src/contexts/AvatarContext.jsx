@@ -75,14 +75,39 @@ export function AvatarProvider({ children }) {
     useEffect(() => {
         // Listen for auth changes - this includes INITIAL_SESSION event
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('[AvatarContext] Auth event:', event);
+            console.log('[AvatarContext] Auth event:', event, session?.user?.email || 'no session');
 
             // INITIAL_SESSION fires when Supabase restores session from localStorage
-            // This is the ONLY reliable signal that auth initialization is complete
             if (event === 'INITIAL_SESSION') {
+                // If we have a session, FORCE REFRESH to renew potentially expired tokens
+                if (session?.user) {
+                    console.log('[AvatarContext] Session found, forcing refresh to renew tokens...');
+                    try {
+                        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+                        if (refreshError) {
+                            console.error('[AvatarContext] Session refresh failed:', refreshError.message);
+                            // Session is invalid, clear it
+                            setUser(null);
+                        } else if (refreshData?.session?.user) {
+                            console.log('[AvatarContext] Session refreshed successfully');
+                            setUser(refreshData.session.user);
+                            await fetchVipStatus(refreshData.session.user.id);
+                        } else {
+                            setUser(null);
+                        }
+                    } catch (err) {
+                        console.error('[AvatarContext] Refresh exception:', err);
+                        setUser(null);
+                    }
+                } else {
+                    // No session at all
+                    setUser(null);
+                }
                 setInitializing(false);
+                return; // Don't process further for INITIAL_SESSION
             }
 
+            // For other events (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, etc.)
             setUser(session?.user ?? null);
             if (session?.user) {
                 await fetchVipStatus(session.user.id);
@@ -91,10 +116,13 @@ export function AvatarProvider({ children }) {
 
         // Fallback timeout: if INITIAL_SESSION never fires (edge case), mark as initialized after 3s
         const fallbackTimeout = setTimeout(() => {
-            if (initializing) {
-                console.warn('[AvatarContext] Fallback: marking initialized after timeout');
-                setInitializing(false);
-            }
+            setInitializing(prev => {
+                if (prev) {
+                    console.warn('[AvatarContext] Fallback: marking initialized after timeout');
+                    return false;
+                }
+                return prev;
+            });
         }, 3000);
 
         return () => {
