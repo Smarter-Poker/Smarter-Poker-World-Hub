@@ -145,7 +145,7 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                 CARD TITLE LABEL - Positioned below the card
                 ═══════════════════════════════════════════════════════════════ */}
             <Text
-                position={[0, -(cardHeight / 2) - 0.12, 0.02]}
+                position={[0, -(cardHeight / 2) - 0.02, 0.02]}
                 fontSize={0.08}
                 color="#ffffff"
                 anchorX="center"

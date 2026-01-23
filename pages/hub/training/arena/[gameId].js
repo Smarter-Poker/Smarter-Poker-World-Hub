@@ -205,7 +205,7 @@ export default function TrainingArenaPage() {
                 :global(*) { box-sizing: border-box; margin: 0; padding: 0; }
                 :global(html, body) { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: #050810; }
                 .arena-viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #050810; overflow: hidden; }
-                .arena-root { width: 390px; height: 844px; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; transform-origin: center center; }
+                .arena-root { width: 390px; height: 844px; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; transform-origin: center center; overflow: hidden; contain: layout size style; }
                 .question-bar { flex-shrink: 0; padding: 10px 16px; background: rgba(0,80,160,0.2); border-bottom: 1px solid rgba(0,150,255,0.25); }
                 .question-bar p { font-size: 12px; font-weight: 500; color: #00d4ff; text-align: center; line-height: 1.4; }
                 .table-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 25px 8px; overflow: hidden; }
