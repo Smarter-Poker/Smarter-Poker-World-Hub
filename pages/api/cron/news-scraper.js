@@ -473,21 +473,28 @@ async function fetchVideosFromYouTube() {
  * Save article to poker_news table
  */
 async function saveArticle(article) {
+    // Generate slug from title
+    const slug = article.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .slice(0, 100);
+
     const { data, error } = await supabase
         .from('poker_news')
         .insert({
             title: article.title,
-            summary: article.summary,
+            slug: `${slug}-${Date.now()}`,
+            content: article.summary || '',
             excerpt: article.summary ? article.summary.slice(0, 150) : '',
-            source_name: article.source,
-            source_url: article.link,
-            source_icon: article.icon,
             image_url: article.imageUrl,
             category: article.category,
-            tags: [article.category, article.source.toLowerCase().replace(/\s+/g, '-')],
-            published_at: article.pubDate,
-            scraped_at: new Date().toISOString(),
-            view_count: 0
+            source_url: article.link,
+            author_name: article.source,
+            is_published: true,
+            is_featured: false,
+            views: 0,
+            published_at: article.pubDate
         })
         .select()
         .single();
