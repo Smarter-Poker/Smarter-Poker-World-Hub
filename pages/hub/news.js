@@ -566,6 +566,76 @@ function MSPTBox({ msptNews, onOpenMSPT }) {
     );
 }
 
+// Placeholder Box for sources without articles yet
+function SourcePlaceholderBox({ sourceName, sourceUrl, index }) {
+    const sourceInfo = {
+        'PokerNews': { icon: '🃏', color: '#00d4ff', url: 'https://www.pokernews.com' },
+        'MSPT': { icon: '🎰', color: '#dc2626', url: 'https://msptpoker.com' },
+        'CardPlayer': { icon: '♠️', color: '#22c55e', url: 'https://www.cardplayer.com' },
+        'WSOP': { icon: '🏆', color: '#fbbf24', url: 'https://www.wsop.com' },
+        'Poker.org': { icon: '♦️', color: '#8b5cf6', url: 'https://www.poker.org' },
+        'Pokerfuse': { icon: '🔥', color: '#f97316', url: 'https://pokerfuse.com' }
+    };
+
+    const info = sourceInfo[sourceName] || { icon: '📰', color: '#00d4ff', url: '#' };
+
+    return (
+        <motion.div
+            className="news-box placeholder-box"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            whileHover={{ scale: 1.02, y: -4 }}
+            onClick={() => window.open(sourceUrl || info.url, '_blank')}
+        >
+            <div className="box-image">
+                <div className="placeholder-content">
+                    <span className="placeholder-icon">{info.icon}</span>
+                    <span className="placeholder-name">{sourceName}</span>
+                </div>
+                <div className="box-overlay" />
+            </div>
+            <div className="box-content">
+                <h3 className="box-title">Latest from {sourceName}</h3>
+                <p className="box-excerpt">Loading news from {sourceName}... Check back soon for the latest updates.</p>
+                <div className="box-meta">
+                    <span className="source" style={{ color: info.color }}>{sourceName}</span>
+                    <span className="separator">•</span>
+                    <span className="time">Visit Site →</span>
+                </div>
+            </div>
+
+            <style jsx>{`
+                .placeholder-box {
+                    border-color: ${info.color}40 !important;
+                }
+                .placeholder-box:hover {
+                    border-color: ${info.color}80 !important;
+                }
+                .placeholder-content {
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    background: linear-gradient(135deg, #1a1a2e 0%, ${info.color}20 50%, #16213e 100%);
+                }
+                .placeholder-icon {
+                    font-size: 48px;
+                    margin-bottom: 8px;
+                }
+                .placeholder-name {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: ${info.color};
+                    letter-spacing: 1px;
+                }
+            `}</style>
+        </motion.div>
+    );
+}
+
 export default function NewsHub() {
     const router = useRouter();
 
@@ -1012,7 +1082,7 @@ export default function NewsHub() {
                                     ) : (
                                         <div className="news-grid">
                                             {/* Box 1: PokerNews */}
-                                            {pokerNewsArticles[0] && (
+                                            {pokerNewsArticles[0] ? (
                                                 <NewsBox
                                                     key={pokerNewsArticles[0].id}
                                                     article={pokerNewsArticles[0]}
@@ -1023,6 +1093,8 @@ export default function NewsHub() {
                                                     onShare={setShareArticle}
                                                     isRead={readArticles.includes(pokerNewsArticles[0].id)}
                                                 />
+                                            ) : (
+                                                <SourcePlaceholderBox sourceName="PokerNews" index={0} />
                                             )}
 
                                             {/* Box 2: MSPT */}
@@ -1038,18 +1110,11 @@ export default function NewsHub() {
                                                     isRead={readArticles.includes(msptArticles[0].id)}
                                                 />
                                             ) : (
-                                                <MSPTBox
-                                                    msptNews={msptNews}
-                                                    onOpenMSPT={(item) => {
-                                                        if (item.source_url) {
-                                                            window.open(item.source_url, '_blank');
-                                                        }
-                                                    }}
-                                                />
+                                                <SourcePlaceholderBox sourceName="MSPT" index={1} />
                                             )}
 
                                             {/* Box 3: CardPlayer */}
-                                            {cardPlayerArticles[0] && (
+                                            {cardPlayerArticles[0] ? (
                                                 <NewsBox
                                                     key={cardPlayerArticles[0].id}
                                                     article={cardPlayerArticles[0]}
@@ -1060,10 +1125,12 @@ export default function NewsHub() {
                                                     onShare={setShareArticle}
                                                     isRead={readArticles.includes(cardPlayerArticles[0].id)}
                                                 />
+                                            ) : (
+                                                <SourcePlaceholderBox sourceName="CardPlayer" index={2} />
                                             )}
 
                                             {/* Box 4: WSOP */}
-                                            {wsopArticles[0] && (
+                                            {wsopArticles[0] ? (
                                                 <NewsBox
                                                     key={wsopArticles[0].id}
                                                     article={wsopArticles[0]}
@@ -1074,10 +1141,12 @@ export default function NewsHub() {
                                                     onShare={setShareArticle}
                                                     isRead={readArticles.includes(wsopArticles[0].id)}
                                                 />
+                                            ) : (
+                                                <SourcePlaceholderBox sourceName="WSOP" index={3} />
                                             )}
 
                                             {/* Box 5: Poker.org */}
-                                            {pokerOrgArticles[0] && (
+                                            {pokerOrgArticles[0] ? (
                                                 <NewsBox
                                                     key={pokerOrgArticles[0].id}
                                                     article={pokerOrgArticles[0]}
@@ -1088,10 +1157,12 @@ export default function NewsHub() {
                                                     onShare={setShareArticle}
                                                     isRead={readArticles.includes(pokerOrgArticles[0].id)}
                                                 />
+                                            ) : (
+                                                <SourcePlaceholderBox sourceName="Poker.org" index={4} />
                                             )}
 
                                             {/* Box 6: Pokerfuse */}
-                                            {pokerfuseArticles[0] && (
+                                            {pokerfuseArticles[0] ? (
                                                 <NewsBox
                                                     key={pokerfuseArticles[0].id}
                                                     article={pokerfuseArticles[0]}
@@ -1102,6 +1173,8 @@ export default function NewsHub() {
                                                     onShare={setShareArticle}
                                                     isRead={readArticles.includes(pokerfuseArticles[0].id)}
                                                 />
+                                            ) : (
+                                                <SourcePlaceholderBox sourceName="Pokerfuse" index={5} />
                                             )}
                                         </div>
                                     )}
