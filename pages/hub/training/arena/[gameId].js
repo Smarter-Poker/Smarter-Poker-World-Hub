@@ -28,7 +28,7 @@ const VILLAIN_AVATARS = [
 
 // Seat positions - FIXED to stay on table rail
 const SEAT_POSITIONS = {
-    hero: { left: '50%', bottom: '2%', transform: 'translateX(-50%)' },
+    hero:  { left: '50%', bottom: '2%', transform: 'translateX(-50%)' },
     seat1: { left: '78%', bottom: '20%', transform: 'translateX(-50%)' },
     seat2: { left: '85%', top: '48%', transform: 'translate(-50%, -50%)' },
     seat3: { left: '78%', top: '20%', transform: 'translateX(-50%)' },
@@ -64,10 +64,8 @@ function PlayerSeat({ avatar, name, stack, position, isHero = false }) {
         <div style={{ position: 'absolute', ...position, display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 15 }}>
             <img src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=128&q=75`} alt={name}
                 style={{ width: size, height: size, objectFit: 'contain', filter: 'drop-shadow(2px 3px 5px rgba(0,0,0,0.8))' }} />
-            <div style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 8px',
-                background: 'linear-gradient(180deg, #d4a020 0%, #8b6914 100%)', borderRadius: 4, marginTop: -8, minWidth: 50
-            }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 8px',
+                background: 'linear-gradient(180deg, #d4a020 0%, #8b6914 100%)', borderRadius: 4, marginTop: -8, minWidth: 50 }}>
                 <span style={{ fontSize: 8, fontWeight: 600, color: '#1a1d24' }}>{name}</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#1a1d24' }}>{stack} BB</span>
             </div>
@@ -79,10 +77,8 @@ function Card({ rank, suit, isRed, size = 'normal' }) {
     const width = size === 'hero' ? 32 : 28;
     const height = size === 'hero' ? 46 : 40;
     return (
-        <div style={{
-            width, height, borderRadius: 4, background: 'linear-gradient(180deg, #fff 0%, #f0f0f0 100%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
-        }}>
+        <div style={{ width, height, borderRadius: 4, background: 'linear-gradient(180deg, #fff 0%, #f0f0f0 100%)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
             <span style={{ fontSize: size === 'hero' ? 16 : 13, fontWeight: 800, color: isRed ? '#dc2626' : '#1a1d24', lineHeight: 1 }}>{rank}</span>
             <span style={{ fontSize: size === 'hero' ? 12 : 9, color: isRed ? '#dc2626' : '#1a1d24', lineHeight: 1 }}>{suit}</span>
         </div>
@@ -134,10 +130,8 @@ export default function TrainingArenaPage() {
     const handleAction = (action) => { setHandNumber(prev => Math.min(prev + 1, totalHands)); setTimer(15); };
 
     if (loading) return (
-        <div style={{
-            position: 'fixed', inset: 0, background: 'linear-gradient(180deg, #0a0e17 0%, #050810 100%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'Inter, sans-serif', gap: 16
-        }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'linear-gradient(180deg, #0a0e17 0%, #050810 100%)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'Inter, sans-serif', gap: 16 }}>
             <div style={{ fontSize: 48 }}>🎰</div><p>Loading arena...</p>
         </div>
     );
@@ -186,7 +180,7 @@ export default function TrainingArenaPage() {
             </div>
             <style jsx>{`
                 :global(*) { box-sizing: border-box; margin: 0; padding: 0; }
-                :global(html, body) { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: #050810; }
+                :global(html, body) { height: 100%; overflow: visible; font-family: 'Inter', sans-serif; background: #050810; }
                 .arena-root { position: fixed; inset: 0; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; }
                 .question-bar { flex-shrink: 0; padding: 10px 16px; background: rgba(0,80,160,0.2); border-bottom: 1px solid rgba(0,150,255,0.25); }
                 .question-bar p { font-size: 12px; font-weight: 500; color: #00d4ff; text-align: center; line-height: 1.4; }
@@ -196,6 +190,16 @@ export default function TrainingArenaPage() {
                     background: linear-gradient(180deg, #0a0e17 0%, #050810 100%);
                     border-radius: 30px;
                     overflow: hidden; }
+                
+                /* Vignette overlay to mask black corners of table image */
+                .table-wrapper::before {
+                    content: '';
+                    position: absolute;
+                    inset: -10px;
+                    background: radial-gradient(ellipse 75% 80% at center, transparent 35%, #0a0e17 60%, #050810 85%);
+                    pointer-events: none;
+                    z-index: 15;
+                }
                 .table-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; border-radius: 20px; }
                 .pot { position: absolute; top: 16%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; padding: 4px 12px; background: rgba(0,0,0,0.85); border-radius: 14px; border: 1px solid rgba(255,255,255,0.2); z-index: 20; }
                 .pot-icon { color: #d4a020; font-size: 10px; }
