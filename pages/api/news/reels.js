@@ -27,34 +27,18 @@ export default async function handler(req, res) {
     try {
         const { limit = 20, featured, sort = 'recent' } = req.query;
 
+        // First fetch reels without join to avoid schema cache issues
         let query = supabase
             .from('social_reels')
-            .select(`
-                id,
-                video_url,
-                caption,
-                thumbnail_url,
-                duration_seconds,
-                view_count,
-                like_count,
-                created_at,
-                author_id,
-                profiles!social_reels_author_id_fkey (
-                    username,
-                    full_name,
-                    avatar_url
-                )
-            `)
+            .select('*')
             .eq('is_public', true);
 
         // Sorting options
         if (sort === 'popular') {
             query = query.order('view_count', { ascending: false });
         } else if (sort === 'random') {
-            // For random, we'll fetch more and shuffle client-side
             query = query.order('created_at', { ascending: false });
         } else {
-            // Default: recent
             query = query.order('created_at', { ascending: false });
         }
 
@@ -71,13 +55,35 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, data: FALLBACK_REELS.slice(0, parseInt(limit)) });
         }
 
+        // Fetch profiles separately to avoid schema cache join errors
+        const authorIds = [...new Set(data.map(r => r.author_id).filter(Boolean))];
+        let profilesMap = {};
+
+        if (authorIds.length > 0) {
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, username, full_name, avatar_url')
+                .in('id', authorIds);
+
+            if (profiles) {
+                profilesMap = profiles.reduce((acc, p) => {
+                    acc[p.id] = p;
+                    return acc;
+                }, {});
+            }
+        }
+
         // Transform data to include author info and extract title from caption
-        let result = data.map(reel => ({
-            ...reel,
-            title: reel.caption?.split('\n')[0]?.replace(/^🎬\s*/, '') || 'Poker Reel',
-            channel_name: reel.profiles?.full_name || reel.profiles?.username || 'Smarter.Poker',
-            author: reel.profiles
-        }));
+        let result = data.map(reel => {
+            const profile = profilesMap[reel.author_id];
+            return {
+                ...reel,
+                title: reel.caption?.split('\n')[0]?.replace(/^🎬\s*/, '') || 'Poker Reel',
+                channel_name: profile?.full_name || profile?.username || 'Smarter.Poker',
+                profiles: profile,
+                author: profile
+            };
+        });
 
         // Shuffle if random sort requested
         if (sort === 'random') {

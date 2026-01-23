@@ -503,6 +503,25 @@ function VideoCard({ video, onClick }) {
     );
 }
 
+// YouTube URL helpers for Reels
+function getYouTubeVideoId(url) {
+    if (!url) return null;
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+    if (shortsMatch) return shortsMatch[1];
+    const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+    if (watchMatch) return watchMatch[1];
+    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+    if (shortMatch) return shortMatch[1];
+    return null;
+}
+
+function getReelThumbnail(reel) {
+    if (reel.thumbnail_url) return reel.thumbnail_url;
+    const videoId = getYouTubeVideoId(reel.video_url);
+    if (videoId) return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    return FALLBACK_IMAGES.news;
+}
+
 // Reel Card Component - Vertical Video for Social Reels
 function ReelCard({ reel, onClick }) {
     const openReel = () => {
@@ -511,6 +530,12 @@ function ReelCard({ reel, onClick }) {
         }
     };
 
+    // Get display values with proper fallbacks
+    const thumbnailUrl = getReelThumbnail(reel);
+    const displayTitle = reel.title || reel.caption?.split('\n')[0]?.replace(/^🎬\s*/, '') || 'Poker Reel';
+    const channelName = reel.channel_name || reel.profiles?.full_name || reel.profiles?.username || 'Smarter.Poker';
+    const isYouTube = reel.video_url?.includes('youtube.com') || reel.video_url?.includes('youtu.be');
+
     return (
         <motion.div
             className="reel-card"
@@ -518,14 +543,19 @@ function ReelCard({ reel, onClick }) {
             onClick={openReel}
         >
             <div className="reel-thumbnail">
-                <img src={reel.thumbnail_url} alt={reel.title} loading="lazy" />
+                <img
+                    src={thumbnailUrl}
+                    alt={displayTitle}
+                    loading="lazy"
+                    onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
+                />
                 <div className="reel-overlay">
-                    <Play size={32} fill="#fff" />
+                    <Play size={32} fill="#fff" color={isYouTube ? '#ff0000' : '#fff'} />
                 </div>
-                <div className="reel-channel">{reel.channel_name}</div>
+                <div className="reel-channel">{channelName}</div>
             </div>
             <div className="reel-info">
-                <h4>{reel.title}</h4>
+                <h4>{displayTitle}</h4>
                 <div className="reel-meta">
                     <span>{formatViews(reel.view_count || 0)} views</span>
                 </div>
@@ -2466,7 +2496,18 @@ export default function NewsHub() {
                         }
 
                         .section-tabs {
-                            display: none;
+                            display: flex;
+                            width: 100%;
+                            justify-content: center;
+                            order: 10;
+                            margin-top: 8px;
+                        }
+
+                        .section-tab {
+                            flex: 1;
+                            justify-content: center;
+                            padding: 10px 8px;
+                            font-size: 12px;
                         }
                     }
                 `}</style>
