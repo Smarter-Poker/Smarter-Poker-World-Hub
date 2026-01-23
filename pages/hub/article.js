@@ -148,7 +148,7 @@ export default function ArticlePage() {
                     <h1>{article.title}</h1>
 
                     <div className="meta">
-                        <span><User size={14} /> {article.author_name || 'Smarter.Poker'}</span>
+                        <span><User size={14} /> {article.source_name || 'Smarter.Poker'}</span>
                         <span><Calendar size={14} /> {formatDate(article.published_at)}</span>
                         <span><Clock size={14} /> {article.read_time || 3} min read</span>
                         <span><Eye size={14} /> {(article.views || 0).toLocaleString()} views</span>

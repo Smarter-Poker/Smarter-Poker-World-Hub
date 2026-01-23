@@ -490,7 +490,7 @@ async function saveArticle(article) {
             image_url: article.imageUrl,
             category: article.category,
             source_url: article.link,
-            author_name: article.source,
+            source_name: article.source || 'Smarter.Poker',
             is_published: true,
             is_featured: false,
             views: 0,
