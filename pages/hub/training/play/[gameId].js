@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import LevelSelector from '../../../../src/components/training/LevelSelector';
+import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 
 export default function TrainingPlayPage() {
     const router = useRouter();
@@ -72,6 +73,7 @@ export default function TrainingPlayPage() {
                 `}</style>
             </Head>
             <div className="training-play-page">
+                <UniversalHeader pageDepth={2} />
                 <LevelSelector
                     userId={userId}
                     gameId={gameId}

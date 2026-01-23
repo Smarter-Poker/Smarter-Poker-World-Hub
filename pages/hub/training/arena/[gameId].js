@@ -203,7 +203,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
     }, [dragging, dragStart]);
 
     return (
-        <div className="player-seat" style={{ position: 'absolute', ...initialPosition }}>
+        <div className="player-seat" style={{ position: 'absolute', zIndex: 10000, pointerEvents: 'all', ...initialPosition }}>
             {/* Avatar - Draggable */}
             <img
                 src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=256&q=90`}
@@ -220,6 +220,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
                     top: avatarPos.y,
                     zIndex: 10,
                     userSelect: 'none',
+                    pointerEvents: 'all',
                 }}
             />
             {/* Gold Badge - Draggable with higher z-index */}
@@ -233,6 +234,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
                     zIndex: 500, // LAYER 1 - Above avatars
                     cursor: 'grab',
                     userSelect: 'none',
+                    pointerEvents: 'all',
                 }}
             >
                 <span className="player-name">{name}</span>
@@ -243,12 +245,26 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
 }
 
 function Card({ rank, suit, isRed, size = 'normal' }) {
-    const width = size === 'hero' ? 38 : 30;
-    const height = size === 'hero' ? 54 : 42;
+    // Hero cards: 50x70 to match reference image
+    const width = size === 'hero' ? 50 : 30;
+    const height = size === 'hero' ? 70 : 42;
+    const fontSize = size === 'hero' ? 28 : 15;
+    const suitSize = size === 'hero' ? 20 : 11;
     return (
-        <div className="card" style={{ width, height }}>
-            <span className="card-rank" style={{ color: isRed ? '#dc2626' : '#1a1d24' }}>{rank}</span>
-            <span className="card-suit" style={{ color: isRed ? '#dc2626' : '#1a1d24' }}>{suit}</span>
+        <div className="card" style={{
+            width,
+            height,
+            borderRadius: size === 'hero' ? 8 : 5,
+            background: 'linear-gradient(180deg, #fff 0%, #f5f5f5 100%)',
+            boxShadow: size === 'hero' ? '0 4px 12px rgba(0,0,0,0.5)' : '0 3px 8px rgba(0,0,0,0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '4px 0',
+        }}>
+            <span style={{ fontSize, fontWeight: 800, lineHeight: 1, color: isRed ? '#dc2626' : '#1a1d24' }}>{rank}</span>
+            <span style={{ fontSize: suitSize, lineHeight: 1, color: isRed ? '#dc2626' : '#1a1d24' }}>{suit}</span>
         </div>
     );
 }
@@ -294,9 +310,12 @@ function DraggableHeroCards({ cards }) {
             className="hero-cards"
             onMouseDown={handleMouseDown}
             style={{
+                display: 'flex',
                 transform: `translate(${pos.x}px, ${pos.y}px)`,
                 cursor: 'grab',
                 userSelect: 'none',
+                pointerEvents: 'all',
+                zIndex: 10000,
             }}
         >
             {cards.map((card, i) => (
@@ -573,7 +592,7 @@ export default function TrainingArenaPage() {
                     align-items: center;
                     justify-content: center;
                     background: #070707;
-                    overflow: hidden;
+                    overflow: visible;
                 }
                 
                 /* Scaled canvas - the locked 862x1024 design */
@@ -585,7 +604,7 @@ export default function TrainingArenaPage() {
                     flex-direction: column;
                     background: #070707;
                     color: #fff;
-                    overflow: hidden;
+                    overflow: visible;
                 }
                 
                 /* ========== HEADER ========== */
@@ -698,6 +717,7 @@ export default function TrainingArenaPage() {
                     padding: 12px;
                     min-height: 0;
                     position: relative;
+                    overflow: visible;
                 }
                 .table-wrapper {
                     position: relative;
@@ -705,6 +725,10 @@ export default function TrainingArenaPage() {
                     max-width: 500px;
                     aspect-ratio: 3 / 4;
                     overflow: visible;
+                }
+                :global(.player-seat) {
+                    z-index: 10000;
+                    pointer-events: all !important;
                 }
                 .table-img {
                     position: absolute;

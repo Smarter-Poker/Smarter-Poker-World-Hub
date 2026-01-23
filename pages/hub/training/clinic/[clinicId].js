@@ -15,6 +15,7 @@ import { getClinicById, getRemediationXPMultiplier } from '../../../../src/data/
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import feedback, { EFFECT_STYLES, screenEffects } from '../../../../src/engine/HapticsFeedback';
 import { WorldNavHeader } from '../../../../src/components/navigation/WorldNavHeader';
+import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 
 // Constants
 const TIME_PER_QUESTION = 21;
