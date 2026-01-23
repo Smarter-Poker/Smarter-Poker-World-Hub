@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAuthUser, queryProfiles, queryDiamondBalance } from '../../../../src/lib/authUtils';
+import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 
 // Design canvas dimensions (locked)
 const DESIGN_WIDTH = 862;
@@ -491,14 +492,8 @@ export default function TrainingArenaPage() {
                     className="scaled-canvas"
                     style={{ transform: `scale(${scale})` }}
                 >
-                    {/* Header */}
-                    <ArenaHeader
-                        diamonds={userDiamonds}
-                        xp={userXP}
-                        level={userLevel}
-                        onBack={handleBack}
-                        onSettings={handleSettings}
-                    />
+                    {/* Standard Hub Header - DO NOT MODIFY */}
+                    <UniversalHeader pageDepth={2} />
 
                     {/* Question Bar */}
                     <div className="question-bar">
