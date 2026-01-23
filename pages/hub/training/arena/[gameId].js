@@ -12,6 +12,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAuthUser, queryProfiles, queryDiamondBalance } from '../../../../src/lib/authUtils';
 
 // Design canvas dimensions (locked)
 const DESIGN_WIDTH = 862;
@@ -152,17 +153,88 @@ function ArenaHeader({ diamonds = 0, xp = 0, level = 1, onBack, onSettings }) {
     );
 }
 
-function PlayerSeat({ avatar, name, stack, position, isHero = false }) {
-    // Larger sizes to match reference: 100px hero, 90px villains
-    const size = isHero ? 100 : 90;
+// Draggable Player Seat Component - Avatar and Badge can be dragged independently
+function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isHero = false, onPositionChange }) {
+    const size = 136;
+    const [avatarPos, setAvatarPos] = useState({ x: 0, y: 0 });
+    const [badgePos, setBadgePos] = useState({ x: 0, y: 20 }); // Badge starts 20px below avatar center
+    const [dragging, setDragging] = useState(null); // 'avatar' | 'badge' | null
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+    const handleMouseDown = (e, type) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragging(type);
+        const pos = type === 'avatar' ? avatarPos : badgePos;
+        setDragStart({ x: e.clientX - pos.x, y: e.clientY - pos.y });
+    };
+
+    const handleMouseMove = (e) => {
+        if (!dragging) return;
+        const newX = e.clientX - dragStart.x;
+        const newY = e.clientY - dragStart.y;
+        if (dragging === 'avatar') {
+            setAvatarPos({ x: newX, y: newY });
+        } else {
+            setBadgePos({ x: newX, y: newY });
+        }
+    };
+
+    const handleMouseUp = () => {
+        if (dragging) {
+            // Log final positions to console for locking later
+            console.log(`🎯 ${seatId} POSITIONS:`, {
+                avatar: avatarPos,
+                badge: badgePos
+            });
+        }
+        setDragging(null);
+    };
+
+    useEffect(() => {
+        if (dragging) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            return () => {
+                window.removeEventListener('mousemove', handleMouseMove);
+                window.removeEventListener('mouseup', handleMouseUp);
+            };
+        }
+    }, [dragging, dragStart]);
+
     return (
-        <div className="player-seat" style={{ position: 'absolute', ...position }}>
+        <div className="player-seat" style={{ position: 'absolute', ...initialPosition }}>
+            {/* Avatar - Draggable */}
             <img
                 src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=256&q=90`}
                 alt={name}
-                style={{ width: size, height: size, objectFit: 'contain', filter: 'drop-shadow(2px 3px 6px rgba(0,0,0,0.9))' }}
+                onMouseDown={(e) => handleMouseDown(e, 'avatar')}
+                style={{
+                    width: size,
+                    height: size,
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(2px 3px 6px rgba(0,0,0,0.9))',
+                    cursor: 'grab',
+                    position: 'relative',
+                    left: avatarPos.x,
+                    top: avatarPos.y,
+                    zIndex: 10,
+                    userSelect: 'none',
+                }}
             />
-            <div className="player-badge">
+            {/* Gold Badge - Draggable with higher z-index */}
+            <div
+                className="player-badge"
+                onMouseDown={(e) => handleMouseDown(e, 'badge')}
+                style={{
+                    position: 'relative',
+                    left: badgePos.x,
+                    top: badgePos.y,
+                    zIndex: 500, // LAYER 1 - Above avatars
+                    cursor: 'grab',
+                    userSelect: 'none',
+                }}
+            >
                 <span className="player-name">{name}</span>
                 <span className="player-stack">{stack} BB</span>
             </div>
@@ -177,6 +249,61 @@ function Card({ rank, suit, isRed, size = 'normal' }) {
         <div className="card" style={{ width, height }}>
             <span className="card-rank" style={{ color: isRed ? '#dc2626' : '#1a1d24' }}>{rank}</span>
             <span className="card-suit" style={{ color: isRed ? '#dc2626' : '#1a1d24' }}>{suit}</span>
+        </div>
+    );
+}
+
+// Draggable Hero Cards Component
+function DraggableHeroCards({ cards }) {
+    const [pos, setPos] = useState({ x: 0, y: 0 });
+    const [dragging, setDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+    const handleMouseDown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragging(true);
+        setDragStart({ x: e.clientX - pos.x, y: e.clientY - pos.y });
+    };
+
+    const handleMouseMove = (e) => {
+        if (!dragging) return;
+        setPos({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    };
+
+    const handleMouseUp = () => {
+        if (dragging) {
+            console.log('🎯 HERO CARDS POSITION:', pos);
+        }
+        setDragging(false);
+    };
+
+    useEffect(() => {
+        if (dragging) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            return () => {
+                window.removeEventListener('mousemove', handleMouseMove);
+                window.removeEventListener('mouseup', handleMouseUp);
+            };
+        }
+    }, [dragging, dragStart]);
+
+    return (
+        <div
+            className="hero-cards"
+            onMouseDown={handleMouseDown}
+            style={{
+                transform: `translate(${pos.x}px, ${pos.y}px)`,
+                cursor: 'grab',
+                userSelect: 'none',
+            }}
+        >
+            {cards.map((card, i) => (
+                <div key={i} style={{ transform: i === 0 ? 'rotate(-6deg)' : 'rotate(6deg)', marginLeft: i > 0 ? -10 : 0, zIndex: i + 1 }}>
+                    <Card {...card} size="hero" />
+                </div>
+            ))}
         </div>
     );
 }
@@ -203,10 +330,37 @@ export default function TrainingArenaPage() {
     const [villainStacks] = useState([32, 28, 55, 41, 38, 62, 29, 51]);
     const [question, setQuestion] = useState("You Are On The Button. The Player To Your Right Bets 2.5 BB. What Is Your Best Move?");
 
-    // User stats (would come from auth/context in production)
-    const [userDiamonds] = useState(0);
-    const [userXP] = useState(0);
-    const [userLevel] = useState(1);
+    // User stats - fetched from Supabase
+    const [userDiamonds, setUserDiamonds] = useState(0);
+    const [userXP, setUserXP] = useState(0);
+    const [userLevel, setUserLevel] = useState(1);
+
+    // Load real user data on mount
+    useEffect(() => {
+        const loadUserStats = async () => {
+            const authUser = getAuthUser();
+            if (authUser) {
+                try {
+                    // Fetch profile for XP
+                    const profile = await queryProfiles(authUser.id, 'xp_total');
+                    // Fetch diamond balance
+                    const diamondBalance = await queryDiamondBalance(authUser.id);
+
+                    if (profile) {
+                        const xpTotal = profile.xp_total || 0;
+                        // Level formula: Level 55 at 700k XP
+                        const level = Math.max(1, Math.floor(Math.sqrt(xpTotal / 231)));
+                        setUserXP(xpTotal);
+                        setUserLevel(level);
+                    }
+                    setUserDiamonds(diamondBalance);
+                } catch (e) {
+                    console.error('[TrainingArena] User stats fetch error:', e);
+                }
+            }
+        };
+        loadUserStats();
+    }, []);
 
     // Calculate scale on mount and resize
     const calculateScale = useCallback(() => {
@@ -360,27 +514,23 @@ export default function TrainingArenaPage() {
                             {/* Dealer Button */}
                             <div className="dealer-btn">D</div>
 
-                            {/* Villain Seats */}
-                            <PlayerSeat avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} position={SEAT_POSITIONS.seat1} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} position={SEAT_POSITIONS.seat2} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} position={SEAT_POSITIONS.seat3} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} position={SEAT_POSITIONS.seat4} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} position={SEAT_POSITIONS.seat5} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} position={SEAT_POSITIONS.seat6} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} position={SEAT_POSITIONS.seat7} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} position={SEAT_POSITIONS.seat8} />
 
-                            {/* Hero Seat */}
-                            <PlayerSeat avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} position={SEAT_POSITIONS.hero} isHero={true} />
+                            {/* Villain Seats - DRAGGABLE */}
+                            <DraggablePlayerSeat seatId="seat1" avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} />
+                            <DraggablePlayerSeat seatId="seat2" avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} />
+                            <DraggablePlayerSeat seatId="seat3" avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} />
+                            <DraggablePlayerSeat seatId="seat4" avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} />
+                            <DraggablePlayerSeat seatId="seat5" avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} />
+                            <DraggablePlayerSeat seatId="seat6" avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} />
+                            <DraggablePlayerSeat seatId="seat7" avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} />
+                            <DraggablePlayerSeat seatId="seat8" avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} />
 
-                            {/* Hero Cards */}
-                            <div className="hero-cards">
-                                {heroCards.map((card, i) => (
-                                    <div key={i} style={{ transform: i === 0 ? 'rotate(-6deg)' : 'rotate(6deg)', marginLeft: i > 0 ? -10 : 0, zIndex: i + 1 }}>
-                                        <Card {...card} size="hero" />
-                                    </div>
-                                ))}
-                            </div>
+                            {/* Hero Seat - DRAGGABLE */}
+                            <DraggablePlayerSeat seatId="hero" avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} />
+
+
+                            {/* Hero Cards - DRAGGABLE */}
+                            <DraggableHeroCards cards={heroCards} />
                         </div>
 
                         {/* Timer - positioned outside table-wrapper, at bottom of table-area */}
@@ -554,6 +704,7 @@ export default function TrainingArenaPage() {
                     width: 100%;
                     max-width: 500px;
                     aspect-ratio: 3 / 4;
+                    overflow: visible;
                 }
                 .table-img {
                     position: absolute;
@@ -677,14 +828,16 @@ export default function TrainingArenaPage() {
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    padding: 3px 10px;
-                    background: linear-gradient(180deg, #d4a020 0%, #8b6914 100%);
+                    padding: 4px 15px;
+                    background: #0a0a0a;
+                    border: 2px solid #d4a020;
                     border-radius: 5px;
                     margin-top: -10px;
-                    min-width: 55px;
+                    min-width: 82px;
+                    z-index: 200;
                 }
-                :global(.player-name) { font-size: 9px; font-weight: 600; color: #1a1d24; }
-                :global(.player-stack) { font-size: 12px; font-weight: 700; color: #1a1d24; }
+                :global(.player-name) { font-size: 18px; font-weight: 600; color: #d4a020; }
+                :global(.player-stack) { font-size: 14px; font-weight: 700; color: #d4a020; }
                 
                 /* ========== CARDS ========== */
                 :global(.card) {

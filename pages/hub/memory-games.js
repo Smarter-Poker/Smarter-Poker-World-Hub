@@ -1262,8 +1262,8 @@ export default function MemoryGamesPage() {
     const [comboName, setComboName] = useState(null);
     const [multiplier, setMultiplier] = useState(1);
 
-    // Economy state
-    const [diamondBalance, setDiamondBalance] = useState(100);
+    // Economy state - fetched from Supabase
+    const [diamondBalance, setDiamondBalance] = useState(0);
     const [isVIP, setIsVIP] = useState(false);
     const [lastReward, setLastReward] = useState(null);
 
@@ -1275,10 +1275,23 @@ export default function MemoryGamesPage() {
     const [screenShake, setScreenShake] = useState(false);
     const [showComboPopup, setShowComboPopup] = useState(false);
 
-    // Initialize effects CSS and load balance
+    // Initialize effects CSS and load real user balance from Supabase
     useEffect(() => {
         EffectsEngine.initCSS();
-        setDiamondBalance(DiamondEngine.getBalance());
+        // Fetch real diamond balance from Supabase
+        const loadUserBalance = async () => {
+            try {
+                const { getAuthUser, queryDiamondBalance } = await import('../../src/lib/authUtils');
+                const authUser = getAuthUser();
+                if (authUser) {
+                    const balance = await queryDiamondBalance(authUser.id);
+                    setDiamondBalance(balance);
+                }
+            } catch (e) {
+                console.error('[MemoryGames] Failed to fetch diamond balance:', e);
+            }
+        };
+        loadUserBalance();
         setIsVIP(DiamondEngine.isVIP());
     }, []);
 

@@ -66,28 +66,32 @@ const CATEGORIES = [
 
 function TrainingHeader({ gamesPlayed = 0 }) {
     const router = useRouter();
-    const [diamonds, setDiamonds] = useState(300);
-    const [xp, setXp] = useState(50);
+    const [diamonds, setDiamonds] = useState(0);
+    const [xp, setXp] = useState(0);
+    const [level, setLevel] = useState(1);
     const [avatarUrl, setAvatarUrl] = useState(null);
 
-    // Fetch user profile data
+    // Fetch user profile data using authUtils
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                // Use the shared singleton for global auth
-                const { supabase } = await import('../../src/lib/supabase');
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('avatar_url, diamonds, xp')
-                        .eq('id', user.id)
-                        .maybeSingle();
+                const { getAuthUser, queryProfiles, queryDiamondBalance } = await import('../../src/lib/authUtils');
+                const authUser = getAuthUser();
+                if (authUser) {
+                    // Fetch profile for XP and avatar
+                    const profile = await queryProfiles(authUser.id, 'avatar_url,xp_total');
+                    // Fetch diamond balance from user_diamond_balance table
+                    const diamondBalance = await queryDiamondBalance(authUser.id);
+
                     if (profile) {
                         setAvatarUrl(profile.avatar_url);
-                        if (profile.diamonds) setDiamonds(profile.diamonds);
-                        if (profile.xp) setXp(profile.xp);
+                        const xpTotal = profile.xp_total || 0;
+                        setXp(xpTotal);
+                        // Level formula: Level 55 at 700k XP
+                        const calculatedLevel = Math.max(1, Math.floor(Math.sqrt(xpTotal / 231)));
+                        setLevel(calculatedLevel);
                     }
+                    setDiamonds(diamondBalance);
                 }
             } catch (e) {
                 console.error('Failed to fetch profile:', e);
