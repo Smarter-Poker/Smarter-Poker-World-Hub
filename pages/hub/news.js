@@ -503,11 +503,11 @@ function VideoCard({ video, onClick }) {
     );
 }
 
-// Reel Card Component - Vertical Video for YouTube Shorts
+// Reel Card Component - Vertical Video for Social Reels
 function ReelCard({ reel, onClick }) {
     const openReel = () => {
-        if (reel.youtube_id) {
-            window.open(`https://www.youtube.com/shorts/${reel.youtube_id}`, '_blank');
+        if (reel.video_url) {
+            window.open(reel.video_url, '_blank');
         }
     };
 

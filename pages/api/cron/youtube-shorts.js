@@ -3,7 +3,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Scrapes poker Shorts from top YouTube channels
- * Saves to poker_reels table for the Reels feature
+ * Posts to social_reels table as SmarterPokerOfficial account
  *
  * Channels:
  * - PokerGO, Doug Polk, Jonathan Little, Upswing Poker
@@ -20,9 +20,12 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
+// SmarterPokerOfficial system account UUID
+const SYSTEM_ACCOUNT_UUID = '00000000-0000-0000-0000-000000000001';
+
 const CONFIG = {
-    MAX_REELS_PER_CHANNEL: 10,
-    MAX_TOTAL_REELS: 50,
+    MAX_REELS_PER_CHANNEL: 5,
+    MAX_TOTAL_REELS: 30,
     REQUEST_TIMEOUT: 15000,
     REQUEST_DELAY: 1000
 };
@@ -136,14 +139,12 @@ async function scrapeChannelShorts(channel) {
 
         shorts.push({
             youtube_id: videoId,
+            video_url: `https://www.youtube.com/shorts/${videoId}`,
             title: title.substring(0, 200),
-            thumbnail_url: `https://i.ytimg.com/vi/${videoId}/oar2.jpg`, // Shorts thumbnail
+            thumbnail_url: `https://i.ytimg.com/vi/${videoId}/oar2.jpg`,
             channel_name: channel.name,
-            channel_id: channel.handle,
-            description: title,
-            duration_seconds: 60, // Shorts are max 60 seconds
-            view_count: viewCount,
-            published_at: new Date().toISOString() // We don't have exact date from scraping
+            duration_seconds: 60,
+            view_count: viewCount
         });
     }
 
@@ -154,31 +155,38 @@ async function saveReels(reels) {
     let saved = 0;
     let skipped = 0;
 
+    // Get existing video URLs to avoid duplicates
+    const { data: existingReels } = await supabase
+        .from('social_reels')
+        .select('video_url')
+        .eq('author_id', SYSTEM_ACCOUNT_UUID);
+
+    const existingUrls = new Set(existingReels?.map(r => r.video_url) || []);
+
     for (const reel of reels) {
+        // Skip if already exists
+        if (existingUrls.has(reel.video_url)) {
+            skipped++;
+            continue;
+        }
+
         const { data, error } = await supabase
-            .from('poker_reels')
-            .upsert({
-                youtube_id: reel.youtube_id,
-                title: reel.title,
+            .from('social_reels')
+            .insert({
+                author_id: SYSTEM_ACCOUNT_UUID,
+                video_url: reel.video_url,
+                caption: `🎬 ${reel.title}\n\n📺 From: ${reel.channel_name}\n#poker #pokershorts`,
                 thumbnail_url: reel.thumbnail_url,
-                channel_name: reel.channel_name,
-                channel_id: reel.channel_id,
-                description: reel.description,
                 duration_seconds: reel.duration_seconds,
                 view_count: reel.view_count,
-                published_at: reel.published_at,
-                scraped_at: new Date().toISOString()
-            }, {
-                onConflict: 'youtube_id',
-                ignoreDuplicates: false // Update view counts
+                is_public: true
             })
             .select()
             .single();
 
         if (data && !error) {
             saved++;
-        } else if (error?.code === '23505') {
-            skipped++;
+            existingUrls.add(reel.video_url); // Track newly added
         } else if (error) {
             console.error(`   Error saving reel:`, error.message);
         }
@@ -195,6 +203,23 @@ export default async function handler(req, res) {
     console.log(`⏰ Started at: ${new Date().toISOString()}`);
 
     try {
+        // Verify system account exists
+        const { data: systemAccount, error: accountError } = await supabase
+            .from('profiles')
+            .select('id, username')
+            .eq('id', SYSTEM_ACCOUNT_UUID)
+            .single();
+
+        if (accountError || !systemAccount) {
+            console.error('❌ System account not found!');
+            return res.status(500).json({
+                success: false,
+                error: 'System account not found. Run /api/system/setup-account first.'
+            });
+        }
+
+        console.log(`✅ Posting as: ${systemAccount.username}`);
+
         const allReels = [];
 
         for (const channel of POKER_CHANNELS) {
@@ -217,13 +242,14 @@ export default async function handler(req, res) {
         console.log('\n═'.repeat(70));
         console.log(`📊 SUMMARY`);
         console.log(`   Found: ${allReels.length}`);
-        console.log(`   Saved/Updated: ${saved}`);
-        console.log(`   Skipped: ${skipped}`);
+        console.log(`   Saved: ${saved}`);
+        console.log(`   Skipped (duplicates): ${skipped}`);
         console.log('═'.repeat(70));
 
         return res.status(200).json({
             success: true,
             timestamp: new Date().toISOString(),
+            account: systemAccount.username,
             channels_scraped: POKER_CHANNELS.length,
             found: allReels.length,
             saved,
