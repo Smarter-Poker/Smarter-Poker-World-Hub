@@ -221,7 +221,7 @@ class VenueTournamentScraper {
                     pokeratlas_url: url,
                     pokeratlas_slug: slug,
                     last_scraped: new Date().toISOString(),
-                    scrape_status: tournaments.length > 0 ? 'complete' : 'no_data'
+                    scrape_status: tournaments.length > 0 ? 'complete' : 'no_tournaments'
                 })
                 .eq('id', venue.id);
 
