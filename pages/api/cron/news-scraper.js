@@ -51,15 +51,16 @@ const NEWS_SOURCES = [
         name: 'MSPT',
         type: 'scrape',
         url: 'https://msptpoker.com/pages/Magazine.aspx',
-        baseUrl: 'https://msptpoker.com',
+        baseUrl: 'https://msptpoker.com/pages',
         icon: '🎰',
         category: 'tournament'
     },
     {
         box: 3,
         name: 'CardPlayer',
-        type: 'rss',
-        url: 'https://www.cardplayer.com/rss/news.xml',
+        type: 'scrape',
+        url: 'https://www.cardplayer.com/poker-news',
+        baseUrl: 'https://www.cardplayer.com',
         icon: '♠️',
         category: 'news'
     },
@@ -75,8 +76,9 @@ const NEWS_SOURCES = [
     {
         box: 5,
         name: 'Poker.org',
-        type: 'rss',
-        url: 'https://www.poker.org/feed/',
+        type: 'scrape',
+        url: 'https://www.poker.org/',
+        baseUrl: 'https://www.poker.org',
         icon: '♦️',
         category: 'news'
     },
@@ -215,35 +217,32 @@ async function scrapeMSPT(html, source) {
     const articles = [];
     const seen = new Set();
 
-    // Look for article links - MSPT has various formats
-    const patterns = [
-        /href=["']([^"']*(?:magazine|article|news|story)[^"']*)["'][^>]*>([^<]+)/gi,
-        /href=["']([^"']+\.aspx[^"']*)["'][^>]*>([^<]{15,})/gi
-    ];
+    // MSPT uses ../Magazine/title~ID.aspx format
+    const matches = html.matchAll(/href=["'](?:\.\.\/)?(?:\.\/)?([^"']*Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi);
 
-    for (const pattern of patterns) {
-        const matches = html.matchAll(pattern);
-        for (const match of matches) {
-            if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+    for (const match of matches) {
+        if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
 
-            let url = match[1];
-            const title = cleanText(match[2]);
+        let url = match[1];
+        const title = cleanText(match[2]);
 
-            if (!title || title.length < 15 || seen.has(url)) continue;
-            if (url.includes('javascript:') || url.includes('#')) continue;
+        if (!title || title.length < 10 || seen.has(url)) continue;
+        if (url.includes('javascript:') || url.includes('#')) continue;
 
-            if (!url.startsWith('http')) {
-                url = source.baseUrl + (url.startsWith('/') ? '' : '/') + url;
-            }
+        // Build full URL - MSPT uses relative paths from /pages/
+        if (!url.startsWith('http')) {
+            url = url.replace(/^\.\.\//, '').replace(/^\.\//, '');
+            url = source.baseUrl + '/' + url;
+        }
 
-            seen.add(url);
+        seen.add(url);
+        console.log(`   Checking MSPT: ${title.substring(0, 40)}...`);
 
-            const articleHtml = await fetchPage(url);
-            const image = extractOgImage(articleHtml);
+        const articleHtml = await fetchPage(url);
+        const image = extractOgImage(articleHtml);
 
-            if (image) {
-                articles.push({ url, title, image, source });
-            }
+        if (image) {
+            articles.push({ url, title, image, source });
         }
     }
 
@@ -286,8 +285,43 @@ async function scrapePokerfuse(html, source) {
     const articles = [];
     const seen = new Set();
 
-    // Pokerfuse uses /latest-news/YYYY/M/slug/ format
+    // Pokerfuse uses /latest-news/YYYY/M/slug/ format - look for article links with titles
     const matches = html.matchAll(/href=["']((?:https?:\/\/pokerfuse\.com)?\/latest-news\/\d{4}\/\d{1,2}\/[^"']+)["'][^>]*>([^<]+)/gi);
+
+    for (const match of matches) {
+        if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+
+        let url = match[1];
+        const title = cleanText(match[2]);
+
+        // Skip navigation links and short titles
+        if (!title || title.length < 15 || seen.has(url)) continue;
+        if (title.toLowerCase().includes('read more') || title.toLowerCase().includes('continue')) continue;
+
+        if (!url.startsWith('http')) {
+            url = source.baseUrl + url;
+        }
+
+        seen.add(url);
+        console.log(`   Checking Pokerfuse: ${title.substring(0, 40)}...`);
+
+        const articleHtml = await fetchPage(url);
+        const image = extractOgImage(articleHtml);
+
+        if (image) {
+            articles.push({ url, title, image, source });
+        }
+    }
+
+    return articles;
+}
+
+async function scrapeCardPlayer(html, source) {
+    const articles = [];
+    const seen = new Set();
+
+    // CardPlayer news links - /poker-news/XXXXX/title format
+    const matches = html.matchAll(/href=["']((?:https?:\/\/www\.cardplayer\.com)?\/poker-news\/\d+\/[^"']+)["'][^>]*>([^<]+)/gi);
 
     for (const match of matches) {
         if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
@@ -302,12 +336,55 @@ async function scrapePokerfuse(html, source) {
         }
 
         seen.add(url);
+        console.log(`   Checking CardPlayer: ${title.substring(0, 40)}...`);
 
         const articleHtml = await fetchPage(url);
         const image = extractOgImage(articleHtml);
 
         if (image) {
             articles.push({ url, title, image, source });
+        }
+    }
+
+    return articles;
+}
+
+async function scrapePokerOrg(html, source) {
+    const articles = [];
+    const seen = new Set();
+
+    // Poker.org article links - various patterns
+    const patterns = [
+        /href=["']((?:https?:\/\/www\.poker\.org)?\/[^"']*(?:news|article|story)[^"']*)["'][^>]*>([^<]+)/gi,
+        /href=["'](https?:\/\/www\.poker\.org\/[^"']+)["'][^>]*>([^<]{20,})/gi
+    ];
+
+    for (const pattern of patterns) {
+        const matches = html.matchAll(pattern);
+        for (const match of matches) {
+            if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+
+            let url = match[1];
+            const title = cleanText(match[2]);
+
+            if (!title || title.length < 15 || seen.has(url)) continue;
+            if (url.includes('#') || url.includes('javascript:')) continue;
+            // Skip navigation/category links
+            if (url.match(/\/(category|tag|author|page)\//i)) continue;
+
+            if (!url.startsWith('http')) {
+                url = source.baseUrl + url;
+            }
+
+            seen.add(url);
+            console.log(`   Checking Poker.org: ${title.substring(0, 40)}...`);
+
+            const articleHtml = await fetchPage(url);
+            const image = extractOgImage(articleHtml);
+
+            if (image) {
+                articles.push({ url, title, image, source });
+            }
         }
     }
 
@@ -336,6 +413,8 @@ async function scrapeSource(source) {
             case 'MSPT': articles = await scrapeMSPT(html, source); break;
             case 'WSOP': articles = await scrapeWSOP(html, source); break;
             case 'Pokerfuse': articles = await scrapePokerfuse(html, source); break;
+            case 'CardPlayer': articles = await scrapeCardPlayer(html, source); break;
+            case 'Poker.org': articles = await scrapePokerOrg(html, source); break;
         }
     }
 
