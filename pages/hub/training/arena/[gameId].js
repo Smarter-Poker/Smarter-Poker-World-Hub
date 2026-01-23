@@ -29,17 +29,27 @@ const VILLAIN_AVATARS = [
     '/avatars/free/owl.png',
 ];
 
-// Seat positions - FIXED to stay on table rail (ORIGINAL positions)
+// Seat positions - EXACT match to reference image
+// Positions are relative to the table-wrapper container
 const SEAT_POSITIONS = {
-    hero: { left: '50%', bottom: '2%', transform: 'translateX(-50%)' },
-    seat1: { left: '78%', bottom: '20%', transform: 'translateX(-50%)' },
-    seat2: { left: '85%', top: '48%', transform: 'translate(-50%, -50%)' },
-    seat3: { left: '78%', top: '20%', transform: 'translateX(-50%)' },
-    seat4: { left: '62%', top: '6%', transform: 'translateX(-50%)' },
-    seat5: { left: '38%', top: '6%', transform: 'translateX(-50%)' },
-    seat6: { left: '22%', top: '20%', transform: 'translateX(-50%)' },
-    seat7: { left: '15%', top: '48%', transform: 'translate(-50%, -50%)' },
-    seat8: { left: '22%', bottom: '20%', transform: 'translateX(-50%)' },
+    // Bottom center - Hero
+    hero: { left: '50%', bottom: '3%', transform: 'translateX(-50%)' },
+    // Bottom left - Villain 1 (viking)
+    seat1: { left: '15%', bottom: '22%', transform: 'translateX(-50%)' },
+    // Middle left - Villain 2 (wizard)
+    seat2: { left: '3%', top: '50%', transform: 'translateY(-50%)' },
+    // Upper left - Villain 3 (ninja)
+    seat3: { left: '8%', top: '28%' },
+    // Top left - Villain 4 (wolf)
+    seat4: { left: '28%', top: '8%', transform: 'translateX(-50%)' },
+    // Top right - Villain 5 (spartan)
+    seat5: { left: '72%', top: '8%', transform: 'translateX(-50%)' },
+    // Upper right - Villain 6 (pharaoh)
+    seat6: { right: '8%', top: '28%' },
+    // Middle right - Villain 7 (pirate)
+    seat7: { right: '3%', top: '50%', transform: 'translateY(-50%)' },
+    // Bottom right - Villain 8 (cowboy)
+    seat8: { right: '15%', bottom: '22%', transform: 'translateX(50%)' },
 };
 
 const SUITS = {
@@ -143,13 +153,14 @@ function ArenaHeader({ diamonds = 0, xp = 0, level = 1, onBack, onSettings }) {
 }
 
 function PlayerSeat({ avatar, name, stack, position, isHero = false }) {
-    const size = isHero ? 80 : 65;
+    // Larger sizes to match reference: 100px hero, 90px villains
+    const size = isHero ? 100 : 90;
     return (
         <div className="player-seat" style={{ position: 'absolute', ...position }}>
             <img
-                src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=128&q=75`}
+                src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=256&q=90`}
                 alt={name}
-                style={{ width: size, height: size, objectFit: 'contain', filter: 'drop-shadow(2px 3px 5px rgba(0,0,0,0.8))' }}
+                style={{ width: size, height: size, objectFit: 'contain', filter: 'drop-shadow(2px 3px 6px rgba(0,0,0,0.9))' }}
             />
             <div className="player-badge">
                 <span className="player-name">{name}</span>

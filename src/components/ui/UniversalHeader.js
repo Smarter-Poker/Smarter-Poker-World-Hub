@@ -15,7 +15,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { getAuthUser, queryProfiles } from '../../lib/authUtils';
+import { getAuthUser, queryProfiles, queryDiamondBalance } from '../../lib/authUtils';
 
 // Dark theme colors matching hub
 const C = {
@@ -82,13 +82,20 @@ export default function UniversalHeader({
             if (authUser) {
                 setUser(authUser);
                 try {
-                    const profile = await queryProfiles(authUser.id, 'username,full_name,avatar_url,xp_total,diamond_balance');
+                    // Fetch profile data (XP, avatar, name)
+                    const profile = await queryProfiles(authUser.id, 'username,full_name,avatar_url,xp_total');
+
+                    // Fetch diamond balance from user_diamond_balance table
+                    const diamondBalance = await queryDiamondBalance(authUser.id);
+
                     if (profile) {
-                        const xp = profile.xp_total || 0;
-                        const level = Math.floor(xp / 100) + 1;
+                        const xpTotal = profile.xp_total || 0;
+                        // Level formula: Level 55 at 700k XP → level = floor(sqrt(xp / 231))
+                        const level = Math.max(1, Math.floor(Math.sqrt(xpTotal / 231)));
+
                         setStats({
-                            xp: xp % 100,
-                            diamonds: profile.diamond_balance || 0,
+                            xp: xpTotal,
+                            diamonds: diamondBalance,
                             level
                         });
                         setUser(prev => ({ ...prev, avatar: profile.avatar_url, name: profile.full_name || profile.username }));
@@ -192,7 +199,7 @@ export default function UniversalHeader({
                     borderRadius: 20
                 }}>
                     <span style={{ color: C.gold, fontWeight: 700, fontSize: 14 }}>XP</span>
-                    <span style={{ color: C.white, fontWeight: 600, fontSize: 14 }}>{stats.xp}</span>
+                    <span style={{ color: C.white, fontWeight: 600, fontSize: 14 }}>{stats.xp.toLocaleString()}</span>
                     <span style={{ color: C.textSec, fontSize: 12 }}>•</span>
                     <span style={{ color: C.cyan, fontWeight: 700, fontSize: 14 }}>LV {stats.level}</span>
                 </div>
