@@ -147,8 +147,37 @@ export default function TrainingArenaPage() {
         <>
             <Head>
                 <title>{gameName} — Training Arena | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                <meta name="viewport" content="width=800, user-scalable=no" />
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+                <style>{`
+                    /* SMARTER.POKER 800px DESIGN - Same pattern as training page */
+                    .arena-page {
+                        width: 800px;
+                        max-width: 800px;
+                        margin: 0 auto;
+                        overflow-x: hidden;
+                    }
+                    /* Mobile phones (390-450px) - zoom to ~50% */
+                    @media (max-width: 500px) {
+                        .arena-page { zoom: 0.5; }
+                    }
+                    /* Large phones / small tablets (501-700px) */
+                    @media (min-width: 501px) and (max-width: 700px) {
+                        .arena-page { zoom: 0.75; }
+                    }
+                    /* Tablets (701-900px) */
+                    @media (min-width: 701px) and (max-width: 900px) {
+                        .arena-page { zoom: 0.95; }
+                    }
+                    /* Desktop (901px+) - native size or slight scale up */
+                    @media (min-width: 901px) {
+                        .arena-page { zoom: 1.2; }
+                    }
+                    /* Large desktop (1400px+) - cap at 1.5x */
+                    @media (min-width: 1400px) {
+                        .arena-page { zoom: 1.5; }
+                    }
+                `}</style>
             </Head>
             <div className="arena-page">
                 <UniversalHeader pageDepth={2} />
@@ -187,12 +216,12 @@ export default function TrainingArenaPage() {
             </div>
             <style jsx>{`
                 :global(*) { box-sizing: border-box; margin: 0; padding: 0; }
-                :global(html, body) { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: #050810; }
-                .arena-page { position: fixed; inset: 0; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; }
-                .question-bar { flex-shrink: 0; padding: 12px 24px; background: rgba(0,80,160,0.2); border-bottom: 1px solid rgba(0,150,255,0.25); }
-                .question-bar p { font-size: 16px; font-weight: 500; color: #00d4ff; text-align: center; line-height: 1.4; }
-                .table-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; overflow: hidden; }
-                .table-wrapper { position: relative; width: 100%; max-width: 500px; aspect-ratio: 3 / 4; }
+                :global(html, body) { min-height: 100%; font-family: 'Inter', sans-serif; background: #050810; }
+                .arena-page { min-height: 100vh; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; padding-bottom: 20px; }
+                .question-bar { padding: 16px 24px; background: rgba(0,80,160,0.2); border-bottom: 1px solid rgba(0,150,255,0.25); }
+                .question-bar p { font-size: 18px; font-weight: 500; color: #00d4ff; text-align: center; line-height: 1.4; }
+                .table-area { display: flex; justify-content: center; padding: 24px 20px; }
+                .table-wrapper { position: relative; width: 500px; height: 667px; }
                 .table-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; border-radius: 20px; mix-blend-mode: normal !important; z-index: 1; }
                 .pot { position: absolute; top: 16%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; padding: 4px 12px; background: rgba(0,0,0,0.85); border-radius: 14px; border: 1px solid rgba(255,255,255,0.2); z-index: 20; }
                 .pot-icon { color: #d4a020; font-size: 10px; }
@@ -208,8 +237,8 @@ export default function TrainingArenaPage() {
                 .timer span { font-size: 22px; font-weight: 800; color: #dc2626; }
                 .q-counter { position: absolute; bottom: 6%; right: 5%; padding: 8px 12px; background: rgba(37,99,235,0.2); border: 1px solid #3b82f6; border-radius: 6px; z-index: 25; }
                 .q-counter span { font-size: 11px; color: #60a5fa; font-weight: 500; }
-                .action-bar { flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 24px 24px; background: rgba(10,14,23,0.98); border-top: 1px solid rgba(255,255,255,0.1); max-width: 600px; margin: 0 auto; width: 100%; }
-                .action-btn { padding: 14px 20px; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; transition: transform 0.1s; }
+                .action-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 150px 24px; background: rgba(10,14,23,0.98); border-top: 1px solid rgba(255,255,255,0.1); }
+                .action-btn { padding: 16px 24px; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; transition: transform 0.1s; }
                 .action-btn:active { transform: scale(0.97); }
                 .fold { background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%); color: #fff; box-shadow: 0 3px 8px rgba(30,95,168,0.4); }
                 .call, .raise, .allin { background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%); color: #fff; box-shadow: 0 3px 8px rgba(30,95,168,0.4); }
