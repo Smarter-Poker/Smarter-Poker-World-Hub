@@ -1090,11 +1090,27 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
             </div>
             {post.content && (
                 <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>
-                    {post.content.split(/(@\w+)/g).map((part, i) =>
-                        part.startsWith('@') ?
-                            <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>{part}</span> :
-                            part
-                    )}
+                    {(() => {
+                        // For link-type posts, strip URLs from displayed content (Facebook-style)
+                        let displayContent = post.content;
+                        if (post.contentType === 'link' || post.contentType === 'video') {
+                            // Remove URLs from content - they'll be shown as clickable preview cards
+                            displayContent = displayContent
+                                .replace(/https?:\/\/[^\s]+/gi, '')  // Remove http/https URLs
+                                .replace(/🔗\s*/g, '')                // Remove link emoji prefix
+                                .trim();
+                        }
+
+                        // If content is empty after stripping URL, don't render this block
+                        if (!displayContent) return null;
+
+                        // Render with @mention highlighting
+                        return displayContent.split(/(@\w+)/g).map((part, i) =>
+                            part.startsWith('@') ?
+                                <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>{part}</span> :
+                                part
+                        );
+                    })()}
                 </div>
             )}
             {/* Media Grid - supports up to 10 images/videos */}
