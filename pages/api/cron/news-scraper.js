@@ -269,13 +269,28 @@ function extractImage(item) {
     // Try enclosure
     if (item.enclosure?.url) return item.enclosure.url;
 
-    // Try media:content
-    if (item['media:content']?.$?.url) return item['media:content'].$.url;
-    if (item['media:content']?.url) return item['media:content'].url;
+    // Try media:content (can be array or object)
+    if (item['media:content']) {
+        const media = Array.isArray(item['media:content']) ? item['media:content'][0] : item['media:content'];
+        if (media?.$?.url) return media.$.url;
+        if (media?.url) return media.url;
+    }
 
-    // Try media:thumbnail
-    if (item['media:thumbnail']?.$?.url) return item['media:thumbnail'].$.url;
-    if (item['media:thumbnail']?.url) return item['media:thumbnail'].url;
+    // Try media:thumbnail (can be array or object)
+    if (item['media:thumbnail']) {
+        const thumb = Array.isArray(item['media:thumbnail']) ? item['media:thumbnail'][0] : item['media:thumbnail'];
+        if (thumb?.$?.url) return thumb.$.url;
+        if (thumb?.url) return thumb.url;
+    }
+
+    // Try media:group > media:content
+    if (item['media:group']?.['media:content']) {
+        const media = Array.isArray(item['media:group']['media:content'])
+            ? item['media:group']['media:content'][0]
+            : item['media:group']['media:content'];
+        if (media?.$?.url) return media.$.url;
+        if (media?.url) return media.url;
+    }
 
     // Try content:encoded for embedded images
     if (item['content:encoded']) {
@@ -289,15 +304,79 @@ function extractImage(item) {
         if (imgMatch) return imgMatch[1];
     }
 
+    // Try content for embedded images
+    if (item.content) {
+        const imgMatch = item.content.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (imgMatch) return imgMatch[1];
+    }
+
     return null;
 }
 
 /**
- * Get image for article - ALWAYS returns an image (uses default if none found)
+ * Fetch og:image from article URL
  */
-function getArticleImage(item, category) {
+async function fetchOgImage(url) {
+    if (!url) return null;
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+        const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; SmarterPokerBot/1.0)',
+                'Accept': 'text/html'
+            }
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) return null;
+
+        const html = await response.text();
+
+        // Try og:image
+        let match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+        if (!match) {
+            match = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+        }
+
+        // Try twitter:image
+        if (!match) {
+            match = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+            if (!match) {
+                match = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+            }
+        }
+
+        if (match && match[1]) {
+            // Make sure it's a valid image URL
+            const imageUrl = match[1];
+            if (imageUrl.startsWith('http') && !imageUrl.includes('logo') && !imageUrl.includes('icon')) {
+                return imageUrl;
+            }
+        }
+
+        return null;
+    } catch (error) {
+        // Timeout or fetch error - just return null
+        return null;
+    }
+}
+
+/**
+ * Get image for article - tries RSS, then og:image, then defaults
+ */
+async function getArticleImage(item, category) {
+    // First try RSS extraction
     const extractedImage = extractImage(item);
     if (extractedImage) return extractedImage;
+
+    // Then try fetching og:image from the article URL
+    const ogImage = await fetchOgImage(item.link);
+    if (ogImage) return ogImage;
 
     // Return category-specific default image
     return DEFAULT_CATEGORY_IMAGES[category] || DEFAULT_CATEGORY_IMAGES.news;
@@ -412,11 +491,18 @@ async function fetchNewsFromRSS() {
             console.log(`📰 Fetching: ${source.name}...`);
             const feed = await rssParser.parseURL(source.rss);
 
-            const articles = (feed.items || []).slice(0, 10).map(item => {
+            // Process items and fetch images (with concurrency limit)
+            const items = (feed.items || []).slice(0, 10);
+            const articles = [];
+
+            for (const item of items) {
                 const summary = cleanHtml(item.contentSnippet || item.content || item.description || '');
                 const category = source.category || categorizeArticle(item.title, summary);
 
-                return {
+                // Fetch image - tries RSS first, then og:image, then default
+                const imageUrl = await getArticleImage(item, category);
+
+                articles.push({
                     title: cleanHtml(item.title || ''),
                     link: item.link,
                     pubDate: new Date(item.pubDate || item.isoDate || Date.now()),
@@ -425,10 +511,10 @@ async function fetchNewsFromRSS() {
                     priority: source.priority,
                     summary: summary.slice(0, CONFIG.MAX_SUMMARY_LENGTH),
                     category: category,
-                    imageUrl: getArticleImage(item, category), // ALWAYS has an image
+                    imageUrl: imageUrl, // Real image from article
                     slug: generateSlug(item.title || '')
-                };
-            });
+                });
+            }
 
             allArticles.push(...articles);
             console.log(`   ✓ Found ${articles.length} articles`);
