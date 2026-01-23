@@ -52,7 +52,7 @@ const NEWS_SOURCES = [
         box: 1,
         name: 'PokerNews',
         type: 'hybrid',  // Try RSS first, then scrape
-        url: 'https://www.pokernews.com/news.rss',
+        url: 'https://www.pokernews.com/rss.php',
         scrapeUrl: 'https://www.pokernews.com/news/',
         baseUrl: 'https://www.pokernews.com',
         icon: '🃏',
