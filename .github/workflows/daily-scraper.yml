@@ -88,6 +88,9 @@ jobs:
           echo ""
           echo "📍 Source 3: CardPlayer"
           node scripts/scrape-cardplayer.js || echo "⚠️ CardPlayer scraper had errors (non-fatal)"
+          echo ""
+          echo "📍 Source 4: Hendon Mob"
+          node scripts/scrape-hendonmob.js 50 || echo "⚠️ Hendon Mob scraper had errors (non-fatal)"
 
       - name: Run Pipeline (Manual - Test)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'test' }}
