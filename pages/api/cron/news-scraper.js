@@ -314,22 +314,105 @@ function extractImage(item) {
 }
 
 /**
- * Fetch og:image from article URL - follows redirects to get real article
+ * Extract the REAL destination URL from a Google News redirect page
+ */
+async function extractRealUrlFromGoogleNews(googleUrl) {
+    if (!googleUrl || !googleUrl.includes('news.google.com')) {
+        return googleUrl; // Not a Google News URL, return as-is
+    }
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(googleUrl, {
+            signal: controller.signal,
+            redirect: 'manual', // Don't auto-follow, we want to inspect
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html'
+            }
+        });
+
+        clearTimeout(timeout);
+
+        // Check for HTTP redirect
+        if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get('location');
+            if (location && !location.includes('google.com')) {
+                return location;
+            }
+        }
+
+        const html = await response.text();
+
+        // Try to find the real URL in various places:
+
+        // 1. Meta refresh redirect
+        let match = html.match(/<meta[^>]+http-equiv=["']refresh["'][^>]+content=["'][^"']*url=([^"'>\s]+)/i);
+        if (match && match[1] && !match[1].includes('google.com')) {
+            return decodeURIComponent(match[1]);
+        }
+
+        // 2. JavaScript redirect patterns
+        match = html.match(/window\.location\s*=\s*["']([^"']+)["']/i);
+        if (match && match[1] && !match[1].includes('google.com')) {
+            return match[1];
+        }
+
+        // 3. data-url attribute (Google sometimes uses this)
+        match = html.match(/data-url=["']([^"']+)["']/i);
+        if (match && match[1] && !match[1].includes('google.com')) {
+            return decodeURIComponent(match[1]);
+        }
+
+        // 4. href in article link
+        match = html.match(/<a[^>]+href=["'](https?:\/\/(?!news\.google\.com)[^"']+)["'][^>]*>/i);
+        if (match && match[1]) {
+            return match[1];
+        }
+
+        // 5. Look for jslog with URL
+        match = html.match(/jslog="[^"]*url:([^;,"]+)/i);
+        if (match && match[1] && match[1].startsWith('http')) {
+            return decodeURIComponent(match[1]);
+        }
+
+        return null; // Couldn't extract real URL
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * Fetch og:image from the ACTUAL article page (not Google's redirect)
  */
 async function fetchOgImage(url) {
     if (!url) return null;
 
     try {
+        // If it's a Google News URL, first get the REAL article URL
+        let actualUrl = url;
+        if (url.includes('news.google.com')) {
+            const realUrl = await extractRealUrlFromGoogleNews(url);
+            if (realUrl) {
+                actualUrl = realUrl;
+                console.log(`   → Resolved Google News to: ${actualUrl.substring(0, 60)}...`);
+            } else {
+                console.log(`   → Could not resolve Google News URL`);
+                return null;
+            }
+        }
+
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 8000);
 
-        // Follow redirects to get to the actual article (important for Google News)
-        const response = await fetch(url, {
+        const response = await fetch(actualUrl, {
             signal: controller.signal,
             redirect: 'follow',
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept': 'text/html,application/xhtml+xml',
                 'Accept-Language': 'en-US,en;q=0.5'
             }
         });
@@ -340,7 +423,7 @@ async function fetchOgImage(url) {
 
         const html = await response.text();
 
-        // Try og:image first
+        // Extract og:image from the REAL article page
         let match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
         if (!match) {
             match = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
@@ -354,31 +437,21 @@ async function fetchOgImage(url) {
             }
         }
 
-        // Try twitter:image:src
-        if (!match) {
-            match = html.match(/<meta[^>]+name=["']twitter:image:src["'][^>]+content=["']([^"']+)["']/i);
-        }
-
         if (match && match[1]) {
-            let imageUrl = match[1];
+            let imageUrl = match[1].replace(/&amp;/g, '&');
 
-            // Decode HTML entities
-            imageUrl = imageUrl.replace(/&amp;/g, '&');
-
-            // Skip Google's generic thumbnails - they're not the real article images
-            if (imageUrl.includes('lh3.googleusercontent.com') ||
-                imageUrl.includes('google.com/images') ||
-                imageUrl.includes('gstatic.com')) {
+            // Skip any Google CDN images
+            if (imageUrl.includes('googleusercontent.com') ||
+                imageUrl.includes('gstatic.com') ||
+                imageUrl.includes('google.com')) {
                 return null;
             }
 
-            // Skip logos, icons, favicons
-            if (imageUrl.includes('logo') || imageUrl.includes('icon') ||
-                imageUrl.includes('favicon') || imageUrl.includes('avatar')) {
+            // Skip logos/icons
+            if (imageUrl.includes('logo') || imageUrl.includes('icon') || imageUrl.includes('favicon')) {
                 return null;
             }
 
-            // Must be a valid http URL
             if (imageUrl.startsWith('http')) {
                 return imageUrl;
             }
