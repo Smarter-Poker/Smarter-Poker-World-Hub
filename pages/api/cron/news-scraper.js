@@ -34,6 +34,13 @@ const CONFIG = {
     REQUEST_TIMEOUT: 10000
 };
 
+// Fallback images by category
+const FALLBACK_IMAGES = {
+    tournament: 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=400',
+    news: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=400',
+    industry: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=400'
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // THE 6 NEWS SOURCES
 // ═══════════════════════════════════════════════════════════════════════════
@@ -193,11 +200,11 @@ async function scrapeRSS(source) {
                 image = extractOgImage(articleHtml);
             }
 
-            if (image && item.link) {
+            if (item.link) {
                 articles.push({
                     url: item.link,
                     title,
-                    image,
+                    image: image || FALLBACK_IMAGES[source.category] || FALLBACK_IMAGES.news,
                     source
                 });
             }
@@ -241,9 +248,13 @@ async function scrapeMSPT(html, source) {
         const articleHtml = await fetchPage(url);
         const image = extractOgImage(articleHtml);
 
-        if (image) {
-            articles.push({ url, title, image, source });
-        }
+        // Save article with image or fallback
+        articles.push({
+            url,
+            title,
+            image: image || FALLBACK_IMAGES[source.category] || FALLBACK_IMAGES.news,
+            source
+        });
     }
 
     return articles;
@@ -269,13 +280,18 @@ async function scrapeWSOP(html, source) {
         }
 
         seen.add(url);
+        console.log(`   Checking WSOP: ${title.substring(0, 40)}...`);
 
         const articleHtml = await fetchPage(url);
         const image = extractOgImage(articleHtml);
 
-        if (image) {
-            articles.push({ url, title, image, source });
-        }
+        // Save article with image or fallback
+        articles.push({
+            url,
+            title,
+            image: image || FALLBACK_IMAGES[source.category] || FALLBACK_IMAGES.news,
+            source
+        });
     }
 
     return articles;
@@ -308,9 +324,13 @@ async function scrapePokerfuse(html, source) {
         const articleHtml = await fetchPage(url);
         const image = extractOgImage(articleHtml);
 
-        if (image) {
-            articles.push({ url, title, image, source });
-        }
+        // Save article with image or fallback
+        articles.push({
+            url,
+            title,
+            image: image || FALLBACK_IMAGES[source.category] || FALLBACK_IMAGES.news,
+            source
+        });
     }
 
     return articles;
@@ -341,9 +361,13 @@ async function scrapeCardPlayer(html, source) {
         const articleHtml = await fetchPage(url);
         const image = extractOgImage(articleHtml);
 
-        if (image) {
-            articles.push({ url, title, image, source });
-        }
+        // Save article with image or fallback
+        articles.push({
+            url,
+            title,
+            image: image || FALLBACK_IMAGES[source.category] || FALLBACK_IMAGES.news,
+            source
+        });
     }
 
     return articles;
@@ -382,9 +406,13 @@ async function scrapePokerOrg(html, source) {
             const articleHtml = await fetchPage(url);
             const image = extractOgImage(articleHtml);
 
-            if (image) {
-                articles.push({ url, title, image, source });
-            }
+            // Save article with image or fallback
+            articles.push({
+                url,
+                title,
+                image: image || FALLBACK_IMAGES[source.category] || FALLBACK_IMAGES.news,
+                source
+            });
         }
     }
 
@@ -418,7 +446,7 @@ async function scrapeSource(source) {
         }
     }
 
-    console.log(`   ✓ Found ${articles.length} articles with images`);
+    console.log(`   ✓ Found ${articles.length} articles`);
     return articles;
 }
 
