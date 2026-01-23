@@ -126,14 +126,10 @@ async function main() {
 
         // Require minimum confidence score
         if (bestMatch && bestScore >= 60) {
-            // Check if already set
-            if (bestMatch.pokeratlas_url && bestMatch.pokeratlas_slug) {
-                console.log(`⏭️  ${verified.name} -> Already configured`);
-                alreadySet++;
-                continue;
-            }
+            // Check if URLs already set
+            const urlsAlreadySet = bestMatch.pokeratlas_url && bestMatch.pokeratlas_slug;
 
-            // Update database
+            // Always update to ensure scrape_status is 'ready'
             const { error: updateError } = await supabase
                 .from('poker_venues')
                 .update({
@@ -144,6 +140,12 @@ async function main() {
                     scrape_status: 'ready'
                 })
                 .eq('id', bestMatch.id);
+
+            if (urlsAlreadySet && !updateError) {
+                console.log(`⏭️  ${verified.name} -> Confirmed ready`);
+                alreadySet++;
+                continue;
+            }
 
             if (updateError) {
                 console.log(`❌ Error updating ${verified.name}: ${updateError.message}`);
