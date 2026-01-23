@@ -150,7 +150,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
 
                 {/* Meta */}
                 <div className="box-meta">
-                    <span className="source">{article.source_name || 'Smarter.Poker'}</span>
+                    <span className="source">{article.source_name || article.author_name || 'Smarter.Poker'}</span>
                     <span className="separator">•</span>
                     <span className="time">{timeAgo(article.published_at)}</span>
                     <span className="separator">•</span>
@@ -1009,7 +1009,7 @@ export default function NewsHub() {
                                                     <div className="list-content">
                                                         <h4>{article.title}</h4>
                                                         <div className="list-meta">
-                                                            <span>{article.source_name}</span>
+                                                            <span>{article.source_name || article.author_name || 'Source'}</span>
                                                             <span>•</span>
                                                             <span>{timeAgo(article.published_at)}</span>
                                                         </div>
