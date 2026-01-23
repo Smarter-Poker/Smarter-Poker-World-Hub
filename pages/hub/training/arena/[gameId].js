@@ -187,8 +187,9 @@ export default function TrainingArenaPage() {
                 .table-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 25px 8px; overflow: hidden;
                     background: transparent; }
                 .table-wrapper { position: relative; aspect-ratio: 3 / 4; max-height: 70vh; max-width: calc(70vh * 0.75); width: 100%; margin: 0 auto;
-                    background: #0a0e17;
-                    border-radius: 25px; }
+                    background: linear-gradient(180deg, #0a0e17 0%, #050810 100%);
+                    border-radius: 30px;
+                    overflow: hidden; }
                 .table-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; border-radius: 20px; }
                 .pot { position: absolute; top: 16%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; padding: 4px 12px; background: rgba(0,0,0,0.85); border-radius: 14px; border: 1px solid rgba(255,255,255,0.2); z-index: 20; }
                 .pot-icon { color: #d4a020; font-size: 10px; }
