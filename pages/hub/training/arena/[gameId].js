@@ -46,12 +46,12 @@ const SEAT_POSITIONS = {
     seat4: { left: '28%', top: '8%', transform: 'translateX(-50%)' },
     // Top right - Villain 5 (spartan) - Using left position
     seat5: { left: '72%', top: '8%', transform: 'translateX(-50%)' },
-    // Upper right - Villain 6 (pharaoh) - Convert right:8% → left:~82%
-    seat6: { left: '82%', top: '28%' },
-    // Middle right - Villain 7 (pirate) - Convert right:3% → left:~87%
-    seat7: { left: '87%', top: '50%', transform: 'translateY(-50%)' },
-    // Bottom right - Villain 8 (cowboy) - Convert right:15% → left:~75%
-    seat8: { left: '75%', bottom: '22%' },
+    // Upper right - Villain 6 (pharaoh) - Use right positioning with transform
+    seat6: { right: '2%', top: '28%', transform: 'translateX(0)' },
+    // Middle right - Villain 7 (pirate) - Use right positioning
+    seat7: { right: '-5%', top: '50%', transform: 'translateY(-50%)' },
+    // Bottom right - Villain 8 (cowboy) - Use right positioning
+    seat8: { right: '8%', bottom: '22%', transform: 'translateX(0)' },
 };
 
 const SUITS = {
@@ -211,8 +211,12 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
                 alt={name}
                 onMouseDown={(e) => handleMouseDown(e, 'avatar')}
                 style={{
-                    width: size,
-                    height: size,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    minWidth: `${size}px`,
+                    minHeight: `${size}px`,
+                    maxWidth: `${size}px`,
+                    maxHeight: `${size}px`,
                     objectFit: 'contain',
                     filter: 'drop-shadow(2px 3px 6px rgba(0,0,0,0.9))',
                     cursor: 'grab',
@@ -222,6 +226,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
                     zIndex: 10,
                     userSelect: 'none',
                     pointerEvents: 'all',
+                    flexShrink: 0,
                 }}
             />
             {/* Gold Badge - Draggable with higher z-index */}
@@ -314,6 +319,9 @@ function DraggableHeroCards({ cards }) {
             className="hero-cards"
             onMouseDown={handleMouseDown}
             style={{
+                position: 'absolute',
+                top: '12%',
+                left: '18%',
                 display: 'flex',
                 transform: `translate(${pos.x}px, ${pos.y}px)`,
                 cursor: 'grab',
