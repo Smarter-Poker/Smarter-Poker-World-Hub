@@ -1,6 +1,6 @@
 /**
- * Reels API - Get Poker Shorts/Reels
- * Auto-scraped from YouTube poker channels
+ * Reels API - Get Poker Reels from Social Feed
+ * Pulls from social_reels table (same as social media feed)
  */
 import { createClient } from '@supabase/supabase-js';
 
@@ -11,12 +11,12 @@ const supabase = createClient(
 
 // Fallback data when DB unavailable
 const FALLBACK_REELS = [
-    { id: 1, title: "INSANE River Bluff at WSOP", youtube_id: "dQw4w9WgXcQ", thumbnail_url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/oar2.jpg", channel_name: "PokerGO", view_count: 1250000 },
-    { id: 2, title: "Phil Hellmuth LOSES IT", youtube_id: "dQw4w9WgXcQ", thumbnail_url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/oar2.jpg", channel_name: "Poker Clips", view_count: 890000 },
-    { id: 3, title: "When You Flop the NUTS", youtube_id: "dQw4w9WgXcQ", thumbnail_url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/oar2.jpg", channel_name: "Doug Polk Poker", view_count: 654000 },
-    { id: 4, title: "Pocket Aces vs Kings - $100K Pot", youtube_id: "dQw4w9WgXcQ", thumbnail_url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/oar2.jpg", channel_name: "Hustler Casino Live", view_count: 2100000 },
-    { id: 5, title: "GTO Play That SHOCKED Everyone", youtube_id: "dQw4w9WgXcQ", thumbnail_url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/oar2.jpg", channel_name: "Upswing Poker", view_count: 432000 },
-    { id: 6, title: "HUGE Cooler at High Stakes", youtube_id: "dQw4w9WgXcQ", thumbnail_url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/oar2.jpg", channel_name: "PokerStars", view_count: 780000 }
+    { id: 1, caption: "INSANE River Bluff at WSOP", video_url: "https://www.youtube.com/shorts/dQw4w9WgXcQ", thumbnail_url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/oar2.jpg", view_count: 1250000 },
+    { id: 2, caption: "Phil Hellmuth LOSES IT", video_url: "https://www.youtube.com/shorts/dQw4w9WgXcQ", thumbnail_url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/oar2.jpg", view_count: 890000 },
+    { id: 3, caption: "When You Flop the NUTS", video_url: "https://www.youtube.com/shorts/dQw4w9WgXcQ", thumbnail_url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/oar2.jpg", view_count: 654000 },
+    { id: 4, caption: "Pocket Aces vs Kings - $100K Pot", video_url: "https://www.youtube.com/shorts/dQw4w9WgXcQ", thumbnail_url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/oar2.jpg", view_count: 2100000 },
+    { id: 5, caption: "GTO Play That SHOCKED Everyone", video_url: "https://www.youtube.com/shorts/dQw4w9WgXcQ", thumbnail_url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/oar2.jpg", view_count: 432000 },
+    { id: 6, caption: "HUGE Cooler at High Stakes", video_url: "https://www.youtube.com/shorts/dQw4w9WgXcQ", thumbnail_url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/oar2.jpg", view_count: 780000 }
 ];
 
 export default async function handler(req, res) {
@@ -25,31 +25,37 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { limit = 20, channel, featured, sort = 'recent' } = req.query;
+        const { limit = 20, featured, sort = 'recent' } = req.query;
 
         let query = supabase
-            .from('poker_reels')
-            .select('*');
+            .from('social_reels')
+            .select(`
+                id,
+                video_url,
+                caption,
+                thumbnail_url,
+                duration_seconds,
+                view_count,
+                like_count,
+                created_at,
+                author_id,
+                profiles!social_reels_author_id_fkey (
+                    username,
+                    full_name,
+                    avatar_url
+                )
+            `)
+            .eq('is_public', true);
 
         // Sorting options
         if (sort === 'popular') {
             query = query.order('view_count', { ascending: false });
         } else if (sort === 'random') {
             // For random, we'll fetch more and shuffle client-side
-            query = query.order('scraped_at', { ascending: false });
+            query = query.order('created_at', { ascending: false });
         } else {
             // Default: recent
-            query = query.order('scraped_at', { ascending: false });
-        }
-
-        // Filter by channel if specified
-        if (channel) {
-            query = query.ilike('channel_name', `%${channel}%`);
-        }
-
-        // Filter featured reels if specified
-        if (featured === 'true') {
-            query = query.eq('is_featured', true);
+            query = query.order('created_at', { ascending: false });
         }
 
         query = query.limit(parseInt(limit));
@@ -65,10 +71,17 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, data: FALLBACK_REELS.slice(0, parseInt(limit)) });
         }
 
+        // Transform data to include author info and extract title from caption
+        let result = data.map(reel => ({
+            ...reel,
+            title: reel.caption?.split('\n')[0]?.replace(/^🎬\s*/, '') || 'Poker Reel',
+            channel_name: reel.profiles?.full_name || reel.profiles?.username || 'Smarter.Poker',
+            author: reel.profiles
+        }));
+
         // Shuffle if random sort requested
-        let result = data;
         if (sort === 'random') {
-            result = data.sort(() => Math.random() - 0.5);
+            result = result.sort(() => Math.random() - 0.5);
         }
 
         return res.status(200).json({ success: true, data: result });
