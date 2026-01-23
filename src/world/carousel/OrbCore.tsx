@@ -140,6 +140,22 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                     />
                 );
             })()}
+
+            {/* ═══════════════════════════════════════════════════════════════
+                CARD TITLE LABEL - Positioned below the card
+                ═══════════════════════════════════════════════════════════════ */}
+            <Text
+                position={[0, -(cardHeight / 2) - 0.12, 0.02]}
+                fontSize={0.08}
+                color="#ffffff"
+                anchorX="center"
+                anchorY="top"
+                font="/fonts/Orbitron-Bold.ttf"
+                outlineWidth={0.003}
+                outlineColor="#00d4ff"
+            >
+                {label}
+            </Text>
         </group>
     );
 }
