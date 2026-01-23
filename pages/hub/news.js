@@ -159,12 +159,6 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
 
             {/* Content */}
             <div className="box-content">
-                {/* Category Badge */}
-                <div className="box-category" style={{ background: catStyle.bg, color: catStyle.color }}>
-                    <span>{catStyle.icon}</span>
-                    <span>{article.category}</span>
-                </div>
-
                 {/* Title */}
                 <h3 className="box-title">{article.title}</h3>
 
@@ -536,12 +530,6 @@ function MSPTBox({ msptNews, onOpenMSPT }) {
 
             {/* Content */}
             <div className="box-content">
-                {/* MSPT Badge */}
-                <div className="box-category mspt-category">
-                    <span>🎰</span>
-                    <span>MSPT</span>
-                </div>
-
                 {/* Title */}
                 <h3 className="box-title">{featured?.title || "MSPT News & Updates"}</h3>
 
@@ -604,6 +592,7 @@ export default function NewsHub() {
     const [shareArticle, setShareArticle] = useState(null);
     const [lastUpdate, setLastUpdate] = useState(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [showAllStories, setShowAllStories] = useState(false);
 
     // Load persisted state
     useEffect(() => {
@@ -1042,49 +1031,68 @@ export default function NewsHub() {
                                         </div>
                                     )}
 
-                                    {/* More Stories Link */}
-                                    {filteredNews.length > 8 && (
-                                        <div className="more-stories">
+                                    {/* More Stories Button - Clickable */}
+                                    {filteredNews.length > 8 && !showAllStories && (
+                                        <motion.button
+                                            className="more-stories"
+                                            onClick={() => setShowAllStories(true)}
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                        >
                                             <span>{filteredNews.length - 8} more stories available</span>
                                             <ChevronDown size={16} />
-                                        </div>
+                                        </motion.button>
                                     )}
                                 </section>
 
-                                {/* Additional Stories (if more than 8) */}
-                                {filteredNews.length > 8 && (
-                                    <section className="more-section">
-                                        <h2 className="section-title">
-                                            <Newspaper size={18} /> More Stories
-                                        </h2>
-                                        <div className="news-list">
-                                            {filteredNews.slice(8).map((article) => (
-                                                <motion.div
-                                                    key={article.id}
-                                                    className="news-list-item"
-                                                    whileHover={{ x: 4 }}
-                                                    onClick={() => openArticle(article)}
+                                {/* Additional Stories (shown when expanded) */}
+                                <AnimatePresence>
+                                    {filteredNews.length > 8 && showAllStories && (
+                                        <motion.section
+                                            className="more-section"
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                        >
+                                            <h2 className="section-title">
+                                                <Newspaper size={18} /> More Stories
+                                                <button
+                                                    className="collapse-btn"
+                                                    onClick={() => setShowAllStories(false)}
                                                 >
-                                                    <img
-                                                        src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
-                                                        alt=""
-                                                        className="list-thumb"
-                                                        onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
-                                                    />
-                                                    <div className="list-content">
-                                                        <h4>{article.title}</h4>
-                                                        <div className="list-meta">
-                                                            <span>{article.source_name || article.author_name || 'Source'}</span>
-                                                            <span>•</span>
-                                                            <span>{timeAgo(article.published_at)}</span>
+                                                    Collapse
+                                                </button>
+                                            </h2>
+                                            <div className="news-list">
+                                                {filteredNews.slice(8).map((article) => (
+                                                    <motion.div
+                                                        key={article.id}
+                                                        className="news-list-item"
+                                                        whileHover={{ x: 4 }}
+                                                        onClick={() => openArticle(article)}
+                                                    >
+                                                        <img
+                                                            src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
+                                                            alt=""
+                                                            className="list-thumb"
+                                                            onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
+                                                        />
+                                                        <div className="list-content">
+                                                            <h4>{article.title}</h4>
+                                                            <div className="list-meta">
+                                                                <span>{article.source_name || article.author_name || 'Source'}</span>
+                                                                <span>•</span>
+                                                                <span>{timeAgo(article.published_at)}</span>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <ChevronRight size={16} className="list-arrow" />
-                                                </motion.div>
-                                            ))}
-                                        </div>
-                                    </section>
-                                )}
+                                                        <ChevronRight size={16} className="list-arrow" />
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        </motion.section>
+                                    )}
+                                </AnimatePresence>
                             </>
                         ) : (
                             /* Videos Section */
@@ -1483,15 +1491,25 @@ export default function NewsHub() {
                         margin-bottom: 20px;
                     }
 
-                    /* News Grid - 8 uniform boxes in 2x4 format */
+                    /* News Grid - 6 uniform boxes in 2x3 format */
                     .news-grid {
                         display: grid;
                         grid-template-columns: repeat(2, 1fr);
                         gap: 16px;
                     }
 
+                    /* Force ALL boxes to same size */
                     .news-grid > * {
-                        height: 340px;
+                        height: 340px !important;
+                        min-height: 340px !important;
+                        max-height: 340px !important;
+                    }
+
+                    .news-grid .news-box,
+                    .news-grid .mspt-box {
+                        height: 340px !important;
+                        min-height: 340px !important;
+                        max-height: 340px !important;
                     }
 
                     @media (max-width: 768px) {
@@ -1525,14 +1543,42 @@ export default function NewsHub() {
                         align-items: center;
                         justify-content: center;
                         gap: 6px;
+                        width: 100%;
                         margin-top: 20px;
-                        padding: 12px;
-                        background: rgba(255, 255, 255, 0.03);
-                        border: 1px solid rgba(255, 255, 255, 0.06);
-                        border-radius: 8px;
-                        font-size: 13px;
-                        color: rgba(255, 255, 255, 0.5);
+                        padding: 14px 20px;
+                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(139, 92, 246, 0.1));
+                        border: 1px solid rgba(0, 212, 255, 0.3);
+                        border-radius: 10px;
+                        font-size: 14px;
+                        font-weight: 500;
+                        color: rgba(255, 255, 255, 0.8);
                         cursor: pointer;
+                        transition: all 0.3s ease;
+                    }
+
+                    .more-stories:hover {
+                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(139, 92, 246, 0.2));
+                        border-color: rgba(0, 212, 255, 0.5);
+                        color: #fff;
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+                    }
+
+                    .collapse-btn {
+                        margin-left: auto;
+                        padding: 4px 12px;
+                        background: rgba(255, 255, 255, 0.1);
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        color: rgba(255, 255, 255, 0.6);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+
+                    .collapse-btn:hover {
+                        background: rgba(255, 255, 255, 0.2);
+                        color: #fff;
                     }
 
                     /* More Stories List */
