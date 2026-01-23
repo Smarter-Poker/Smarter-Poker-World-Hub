@@ -41,8 +41,10 @@ const NEWS_SOURCES = [
     {
         box: 1,
         name: 'PokerNews',
-        type: 'rss',
+        type: 'hybrid',  // Try RSS first, then scrape
         url: 'https://www.pokernews.com/news.rss',
+        scrapeUrl: 'https://www.pokernews.com/news/',
+        baseUrl: 'https://www.pokernews.com',
         icon: '🃏',
         category: 'news'
     },
@@ -137,7 +139,41 @@ function cleanText(text) {
 function extractArticleImage(html, baseUrl = '') {
     if (!html) return null;
 
-    // 1. Try og:image meta tag
+    // Helper to extract image URL from various attributes
+    function getImageFromTag(imgTag) {
+        // Try srcset first (usually has high-res images)
+        let match = imgTag.match(/srcset=["']([^"']+)["']/i);
+        if (match) {
+            // Get the largest image from srcset (last one or the one with largest w descriptor)
+            const srcset = match[1].split(',').map(s => s.trim());
+            const lastSrc = srcset[srcset.length - 1].split(' ')[0];
+            if (lastSrc && !lastSrc.includes('data:')) return lastSrc;
+        }
+
+        // Try data-src (lazy loading)
+        match = imgTag.match(/data-src=["']([^"']+)["']/i);
+        if (match?.[1] && !match[1].includes('data:')) return match[1];
+
+        // Try data-lazy-src
+        match = imgTag.match(/data-lazy-src=["']([^"']+)["']/i);
+        if (match?.[1] && !match[1].includes('data:')) return match[1];
+
+        // Try data-original
+        match = imgTag.match(/data-original=["']([^"']+)["']/i);
+        if (match?.[1] && !match[1].includes('data:')) return match[1];
+
+        // Try data-lazy
+        match = imgTag.match(/data-lazy=["']([^"']+)["']/i);
+        if (match?.[1] && !match[1].includes('data:')) return match[1];
+
+        // Try regular src last
+        match = imgTag.match(/src=["']([^"']+)["']/i);
+        if (match?.[1] && !match[1].includes('data:')) return match[1];
+
+        return null;
+    }
+
+    // 1. Try og:image meta tag (most reliable)
     let match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
     if (!match) match = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
     if (match?.[1]) return match[1].replace(/&amp;/g, '&');
@@ -147,59 +183,83 @@ function extractArticleImage(html, baseUrl = '') {
     if (!match) match = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
     if (match?.[1]) return match[1].replace(/&amp;/g, '&');
 
-    // 3. Try JSON-LD structured data
-    const jsonLdMatch = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i);
-    if (jsonLdMatch) {
+    // 3. Try JSON-LD structured data (all scripts, not just first)
+    const jsonLdMatches = html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+    for (const jsonLdMatch of jsonLdMatches) {
         try {
             const jsonData = JSON.parse(jsonLdMatch[1]);
-            if (jsonData.image) {
-                if (typeof jsonData.image === 'string') return jsonData.image;
-                if (jsonData.image.url) return jsonData.image.url;
-                if (Array.isArray(jsonData.image) && jsonData.image[0]) {
-                    return typeof jsonData.image[0] === 'string' ? jsonData.image[0] : jsonData.image[0].url;
+            // Handle both single objects and arrays
+            const items = Array.isArray(jsonData) ? jsonData : [jsonData];
+            for (const item of items) {
+                if (item.image) {
+                    if (typeof item.image === 'string') return item.image;
+                    if (item.image.url) return item.image.url;
+                    if (Array.isArray(item.image) && item.image[0]) {
+                        return typeof item.image[0] === 'string' ? item.image[0] : item.image[0].url;
+                    }
                 }
+                // Also check thumbnailUrl
+                if (item.thumbnailUrl) return item.thumbnailUrl;
             }
         } catch (e) { /* ignore JSON parse errors */ }
     }
 
-    // 4. Try featured image classes (common patterns)
+    // 4. Try featured image classes with lazy-loading support
     const featuredPatterns = [
-        /<img[^>]+class=["'][^"']*(?:featured|hero|article-image|post-image|entry-image|main-image|wp-post-image)[^"']*["'][^>]+src=["']([^"']+)["']/i,
-        /<img[^>]+src=["']([^"']+)["'][^>]+class=["'][^"']*(?:featured|hero|article-image|post-image|entry-image|main-image|wp-post-image)[^"']*["']/i,
-        /<figure[^>]*class=["'][^"']*featured[^"']*["'][^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["']/i
+        /<img[^>]+class=["'][^"']*(?:featured|hero|article-image|post-image|entry-image|main-image|wp-post-image|attachment-full|size-full|post-thumbnail)[^"']*["'][^>]*>/gi,
+        /<figure[^>]*class=["'][^"']*(?:featured|hero|post-thumbnail|wp-block-image)[^"']*["'][^>]*>[\s\S]*?<img[^>]*>/gi
     ];
     for (const pattern of featuredPatterns) {
-        match = html.match(pattern);
-        if (match?.[1]) return resolveUrl(match[1], baseUrl);
+        const matches = html.matchAll(pattern);
+        for (const imgMatch of matches) {
+            const imgUrl = getImageFromTag(imgMatch[0]);
+            if (imgUrl) return resolveUrl(imgUrl, baseUrl);
+        }
     }
 
-    // 5. Try first large image in article/main content area
+    // 5. Try first large image in article/main content area with lazy-loading support
     const contentAreas = [
         /<article[^>]*>([\s\S]*?)<\/article>/i,
         /<main[^>]*>([\s\S]*?)<\/main>/i,
-        /<div[^>]+class=["'][^"']*(?:content|article|post|entry)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i
+        /<div[^>]+class=["'][^"']*(?:content|article|post|entry|story|news)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+        /<div[^>]+id=["'][^"']*(?:content|article|post|entry|story|main)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i
     ];
     for (const areaPattern of contentAreas) {
         const contentMatch = html.match(areaPattern);
         if (contentMatch) {
-            // Find first img in this area
-            const imgMatch = contentMatch[1].match(/<img[^>]+src=["']([^"']+)["']/i);
-            if (imgMatch?.[1] && !imgMatch[1].includes('icon') && !imgMatch[1].includes('logo') && !imgMatch[1].includes('avatar')) {
-                return resolveUrl(imgMatch[1], baseUrl);
+            // Find all images in this area
+            const imgMatches = contentMatch[1].matchAll(/<img[^>]+>/gi);
+            for (const imgTag of imgMatches) {
+                const imgUrl = getImageFromTag(imgTag[0]);
+                if (imgUrl && !imgUrl.includes('icon') && !imgUrl.includes('logo') && !imgUrl.includes('avatar')) {
+                    return resolveUrl(imgUrl, baseUrl);
+                }
             }
         }
     }
 
-    // 6. Fallback: first reasonable image on the page (not icons/logos/avatars)
-    const allImages = html.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi);
+    // 6. Try picture elements (often used for responsive images)
+    const pictureMatch = html.match(/<picture[^>]*>[\s\S]*?<source[^>]+srcset=["']([^"']+)["']/i);
+    if (pictureMatch?.[1]) {
+        const srcset = pictureMatch[1].split(',')[0].split(' ')[0];
+        if (srcset) return resolveUrl(srcset, baseUrl);
+    }
+
+    // 7. Fallback: first reasonable image on the page with lazy-loading support
+    const allImages = html.matchAll(/<img[^>]+>/gi);
     for (const img of allImages) {
-        const src = img[1];
+        const imgUrl = getImageFromTag(img[0]);
+        if (!imgUrl) continue;
+
         // Skip small images, icons, logos, tracking pixels
-        if (src.includes('icon') || src.includes('logo') || src.includes('avatar') ||
-            src.includes('pixel') || src.includes('tracking') || src.includes('badge') ||
-            src.includes('1x1') || src.includes('spacer') || src.includes('blank') ||
-            src.endsWith('.gif') || src.includes('data:image')) continue;
-        return resolveUrl(src, baseUrl);
+        if (imgUrl.includes('icon') || imgUrl.includes('logo') || imgUrl.includes('avatar') ||
+            imgUrl.includes('pixel') || imgUrl.includes('tracking') || imgUrl.includes('badge') ||
+            imgUrl.includes('1x1') || imgUrl.includes('spacer') || imgUrl.includes('blank') ||
+            imgUrl.includes('spinner') || imgUrl.includes('loading') ||
+            imgUrl.endsWith('.gif') || imgUrl.includes('data:image') ||
+            imgUrl.includes('gravatar') || imgUrl.includes('emoji')) continue;
+
+        return resolveUrl(imgUrl, baseUrl);
     }
 
     return null;
@@ -223,20 +283,64 @@ function extractOgImage(html, baseUrl) {
 }
 
 function extractRssImage(item) {
-    // Try enclosure
+    // Try enclosure (most common for podcasts/media RSS)
     if (item.enclosure?.url) return item.enclosure.url;
+    if (item.enclosure?.$?.url) return item.enclosure.$.url;
 
-    // Try media:content
+    // Try media:content (multiple formats)
     if (item['media:content']?.$?.url) return item['media:content'].$.url;
     if (item['media:content']?.url) return item['media:content'].url;
+    if (Array.isArray(item['media:content'])) {
+        for (const media of item['media:content']) {
+            if (media?.$?.url) return media.$.url;
+            if (media?.url) return media.url;
+        }
+    }
 
-    // Try media:thumbnail
+    // Try media:thumbnail (multiple formats)
     if (item['media:thumbnail']?.$?.url) return item['media:thumbnail'].$.url;
+    if (item['media:thumbnail']?.url) return item['media:thumbnail'].url;
+    if (Array.isArray(item['media:thumbnail'])) {
+        for (const thumb of item['media:thumbnail']) {
+            if (thumb?.$?.url) return thumb.$.url;
+            if (thumb?.url) return thumb.url;
+        }
+    }
 
-    // Try content:encoded for img tags
+    // Try media:group > media:content
+    if (item['media:group']?.['media:content']?.$?.url) {
+        return item['media:group']['media:content'].$.url;
+    }
+
+    // Try itunes:image
+    if (item['itunes:image']?.$?.href) return item['itunes:image'].$.href;
+
+    // Try image tag directly
+    if (item.image?.url) return item.image.url;
+    if (item.image) return item.image;
+
+    // Try content:encoded for img tags (with lazy-loading support)
     if (item['content:encoded']) {
-        const imgMatch = item['content:encoded'].match(/<img[^>]+src=["']([^"']+)["']/i);
+        // Try data-src first (lazy loading)
+        let imgMatch = item['content:encoded'].match(/<img[^>]+data-src=["']([^"']+)["']/i);
         if (imgMatch) return imgMatch[1];
+        // Try regular src
+        imgMatch = item['content:encoded'].match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (imgMatch && !imgMatch[1].includes('data:')) return imgMatch[1];
+    }
+
+    // Try description for img tags
+    if (item.description) {
+        let imgMatch = item.description.match(/<img[^>]+data-src=["']([^"']+)["']/i);
+        if (imgMatch) return imgMatch[1];
+        imgMatch = item.description.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (imgMatch && !imgMatch[1].includes('data:')) return imgMatch[1];
+    }
+
+    // Try summary
+    if (item.summary) {
+        const imgMatch = item.summary.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (imgMatch && !imgMatch[1].includes('data:')) return imgMatch[1];
     }
 
     return null;
@@ -326,30 +430,49 @@ async function scrapeWSOP(html, source) {
     const articles = [];
     const seen = new Set();
 
-    // WSOP news links
-    const matches = html.matchAll(/href=["']((?:https?:\/\/www\.wsop\.com)?\/news\/[^"']+)["'][^>]*>([^<]+)/gi);
+    // WSOP has multiple URL formats - try several patterns
+    const patterns = [
+        // /news/YYYY/MM/title or /news/title format
+        /href=["']((?:https?:\/\/www\.wsop\.com)?\/news\/[^"']+)["'][^>]*>([^<]+)/gi,
+        // /article/title format
+        /href=["']((?:https?:\/\/www\.wsop\.com)?\/article\/[^"']+)["'][^>]*>([^<]+)/gi,
+        // Headlines with h2/h3 containing links
+        /<h[23][^>]*>\s*<a[^>]+href=["']((?:https?:\/\/www\.wsop\.com)?\/[^"']+)["'][^>]*>([^<]+)/gi,
+        // Look for card/article containers with links
+        /<div[^>]*class=["'][^"']*(?:card|article|news-item|post)[^"']*["'][^>]*>[\s\S]*?<a[^>]+href=["']((?:https?:\/\/www\.wsop\.com)?\/[^"']+)["'][^>]*>[\s\S]*?<[^>]*>([^<]{15,})/gi
+    ];
 
-    for (const match of matches) {
+    for (const pattern of patterns) {
         if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+        const matches = html.matchAll(pattern);
 
-        let url = match[1];
-        const title = cleanText(match[2]);
+        for (const match of matches) {
+            if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
 
-        if (!title || title.length < 15 || seen.has(url)) continue;
+            let url = match[1];
+            const title = cleanText(match[2]);
 
-        if (!url.startsWith('http')) {
-            url = source.baseUrl + url;
-        }
+            if (!title || title.length < 15 || seen.has(url)) continue;
+            // Skip non-article links
+            if (url.includes('/category/') || url.includes('/tag/') || url.includes('/author/')) continue;
+            if (url.includes('#') || url.includes('javascript:')) continue;
+            // Skip player profiles and schedule pages
+            if (url.includes('/players/') || url.includes('/schedule/') || url.includes('/circuit/')) continue;
 
-        seen.add(url);
-        console.log(`   Checking WSOP: ${title.substring(0, 40)}...`);
+            if (!url.startsWith('http')) {
+                url = source.baseUrl + url;
+            }
 
-        const articleHtml = await fetchPage(url);
-        const image = extractArticleImage(articleHtml, url);
+            seen.add(url);
+            console.log(`   Checking WSOP: ${title.substring(0, 40)}...`);
 
-        // Only save articles with real images
-        if (image) {
-            articles.push({ url, title, image, source });
+            const articleHtml = await fetchPage(url);
+            const image = extractArticleImage(articleHtml, url);
+
+            // Only save articles with real images
+            if (image) {
+                articles.push({ url, title, image, source });
+            }
         }
     }
 
@@ -396,30 +519,47 @@ async function scrapeCardPlayer(html, source) {
     const articles = [];
     const seen = new Set();
 
-    // CardPlayer news links - /poker-news/XXXXX/title format
-    const matches = html.matchAll(/href=["']((?:https?:\/\/www\.cardplayer\.com)?\/poker-news\/\d+\/[^"']+)["'][^>]*>([^<]+)/gi);
+    // CardPlayer has multiple URL formats - try several patterns
+    const patterns = [
+        // /poker-news/XXXXX/title format
+        /href=["']((?:https?:\/\/www\.cardplayer\.com)?\/poker-news\/\d+\/[^"']+)["'][^>]*>([^<]+)/gi,
+        // /poker-news/title format (without number)
+        /href=["']((?:https?:\/\/www\.cardplayer\.com)?\/poker-news\/[^"'\/]+)["'][^>]*>([^<]+)/gi,
+        // Any link with good title inside news containers
+        /<a[^>]+href=["']((?:https?:\/\/www\.cardplayer\.com)?\/[^"']+)["'][^>]*>\s*<[^>]*>\s*([^<]{20,})/gi,
+        // Headlines - look for h2/h3 with links
+        /<h[23][^>]*>\s*<a[^>]+href=["']((?:https?:\/\/www\.cardplayer\.com)?\/[^"']+)["'][^>]*>([^<]+)/gi
+    ];
 
-    for (const match of matches) {
+    for (const pattern of patterns) {
         if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+        const matches = html.matchAll(pattern);
 
-        let url = match[1];
-        const title = cleanText(match[2]);
+        for (const match of matches) {
+            if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
 
-        if (!title || title.length < 15 || seen.has(url)) continue;
+            let url = match[1];
+            const title = cleanText(match[2]);
 
-        if (!url.startsWith('http')) {
-            url = source.baseUrl + url;
-        }
+            if (!title || title.length < 15 || seen.has(url)) continue;
+            // Skip non-article links
+            if (url.includes('/category/') || url.includes('/tag/') || url.includes('/author/')) continue;
+            if (url.includes('#') || url.includes('javascript:')) continue;
 
-        seen.add(url);
-        console.log(`   Checking CardPlayer: ${title.substring(0, 40)}...`);
+            if (!url.startsWith('http')) {
+                url = source.baseUrl + url;
+            }
 
-        const articleHtml = await fetchPage(url);
-        const image = extractArticleImage(articleHtml, url);
+            seen.add(url);
+            console.log(`   Checking CardPlayer: ${title.substring(0, 40)}...`);
 
-        // Only save articles with real images
-        if (image) {
-            articles.push({ url, title, image, source });
+            const articleHtml = await fetchPage(url);
+            const image = extractArticleImage(articleHtml, url);
+
+            // Only save articles with real images
+            if (image) {
+                articles.push({ url, title, image, source });
+            }
         }
     }
 
@@ -473,6 +613,53 @@ async function scrapePokerOrg(html, source) {
 // MAIN SCRAPER
 // ═══════════════════════════════════════════════════════════════════════════
 
+// PokerNews scraper fallback
+async function scrapePokerNews(html, source) {
+    const articles = [];
+    const seen = new Set();
+
+    // PokerNews URL patterns
+    const patterns = [
+        // /news/YYYY/MM/title format
+        /href=["']((?:https?:\/\/www\.pokernews\.com)?\/news\/\d{4}\/\d{1,2}\/[^"']+)["'][^>]*>([^<]+)/gi,
+        // Headlines in h2/h3
+        /<h[23][^>]*>\s*<a[^>]+href=["']((?:https?:\/\/www\.pokernews\.com)?\/news\/[^"']+)["'][^>]*>([^<]+)/gi,
+        // Article cards
+        /<article[^>]*>[\s\S]*?<a[^>]+href=["']((?:https?:\/\/www\.pokernews\.com)?\/news\/[^"']+)["'][^>]*>[\s\S]*?<[^>]*>([^<]{15,})/gi
+    ];
+
+    for (const pattern of patterns) {
+        if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+        const matches = html.matchAll(pattern);
+
+        for (const match of matches) {
+            if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+
+            let url = match[1];
+            const title = cleanText(match[2]);
+
+            if (!title || title.length < 15 || seen.has(url)) continue;
+            if (url.includes('#') || url.includes('javascript:')) continue;
+
+            if (!url.startsWith('http')) {
+                url = source.baseUrl + url;
+            }
+
+            seen.add(url);
+            console.log(`   Checking PokerNews: ${title.substring(0, 40)}...`);
+
+            const articleHtml = await fetchPage(url);
+            const image = extractArticleImage(articleHtml, url);
+
+            if (image) {
+                articles.push({ url, title, image, source });
+            }
+        }
+    }
+
+    return articles;
+}
+
 async function scrapeSource(source) {
     console.log(`📰 Scraping: ${source.name} (${source.type})...`);
 
@@ -480,6 +667,19 @@ async function scrapeSource(source) {
 
     if (source.type === 'rss') {
         articles = await scrapeRSS(source);
+    } else if (source.type === 'hybrid') {
+        // Try RSS first
+        articles = await scrapeRSS(source);
+        // If RSS fails or returns no articles, try scraping
+        if (articles.length === 0 && source.scrapeUrl) {
+            console.log(`   RSS returned 0, trying scrape fallback...`);
+            const html = await fetchPage(source.scrapeUrl);
+            if (html) {
+                switch (source.name) {
+                    case 'PokerNews': articles = await scrapePokerNews(html, source); break;
+                }
+            }
+        }
     } else {
         const html = await fetchPage(source.url);
         if (!html) {
