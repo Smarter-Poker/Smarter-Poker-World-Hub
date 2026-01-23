@@ -102,7 +102,7 @@ export default async function handler(req, res) {
         const { data: articles, error: fetchError } = await supabase
             .from('poker_news')
             .select('id, title, source_url, image_url, category')
-            .order('created_at', { ascending: false })
+            .order('published_at', { ascending: false })
             .limit(50); // Process most recent 50
 
         if (fetchError) throw fetchError;
