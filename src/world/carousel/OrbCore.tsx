@@ -17,6 +17,7 @@ interface OrbCoreProps {
     gradient?: [string, string];
     active: boolean;
     imageUrl?: string;
+    description?: string;
 }
 
 // Holographic color palette (cyan/blue/green/white only)
@@ -29,7 +30,7 @@ const HOLO_COLORS = [
     '#ffffff', // Pure White
 ];
 
-export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCoreProps) {
+export function OrbCore({ color, label, gradient, active, imageUrl, description }: OrbCoreProps) {
     const groupRef = useRef<THREE.Group>(null);
 
     // Random holographic parameters for each card - truly independent floating
@@ -142,20 +143,38 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
             })()}
 
             {/* ═══════════════════════════════════════════════════════════════
-                CARD TITLE LABEL - Positioned below the card
+                CARD TITLE - Neon glow positioned ABOVE the card
                 ═══════════════════════════════════════════════════════════════ */}
             <Text
-                position={[0, -(cardHeight / 2) - 0.02, 0.02]}
-                fontSize={0.08}
-                color="#ffffff"
+                position={[0, (cardHeight / 2) + 0.02, 0.02]}
+                fontSize={0.07}
+                color="#00ffff"
                 anchorX="center"
-                anchorY="top"
-                outlineWidth={0.003}
+                anchorY="bottom"
+                outlineWidth={0.004}
                 outlineColor="#00d4ff"
-                letterSpacing={0.05}
+                letterSpacing={0.08}
             >
                 {label.toUpperCase()}
             </Text>
+
+            {/* ═══════════════════════════════════════════════════════════════
+                CARD DESCRIPTION - Neon glow positioned BELOW the card
+                ═══════════════════════════════════════════════════════════════ */}
+            {description && (
+                <Text
+                    position={[0, -(cardHeight / 2) - 0.02, 0.02]}
+                    fontSize={0.05}
+                    color="#ffffff"
+                    anchorX="center"
+                    anchorY="top"
+                    outlineWidth={0.002}
+                    outlineColor="#00d4ff"
+                    letterSpacing={0.03}
+                >
+                    {description}
+                </Text>
+            )}
         </group>
     );
 }

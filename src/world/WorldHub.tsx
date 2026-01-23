@@ -246,26 +246,51 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════
-                CARD TITLE LABEL - Positioned below the card
+                CARD TITLE - Neon glow positioned ABOVE the card
                 ═══════════════════════════════════════════════════════════════ */}
             <div
                 style={{
-                    marginTop: 4,
-                    fontSize: 11,
+                    position: 'absolute',
+                    top: -20,
+                    left: 0,
+                    right: 0,
+                    fontSize: 10,
                     fontWeight: 700,
-                    color: '#ffffff',
+                    color: '#00ffff',
                     textAlign: 'center',
                     textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    textShadow: '0 0 8px rgba(0, 212, 255, 0.6), 0 0 4px rgba(0, 212, 255, 0.4)',
+                    letterSpacing: 1.5,
+                    textShadow: '0 0 10px #00ffff, 0 0 20px #00d4ff, 0 0 4px rgba(0, 212, 255, 0.8)',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    maxWidth: '100%',
                 }}
             >
                 {orb.label}
             </div>
+
+            {/* ═══════════════════════════════════════════════════════════════
+                CARD DESCRIPTION - Neon glow positioned BELOW the card
+                ═══════════════════════════════════════════════════════════════ */}
+            {orb.description && (
+                <div
+                    style={{
+                        marginTop: 4,
+                        fontSize: 9,
+                        fontWeight: 600,
+                        color: '#ffffff',
+                        textAlign: 'center',
+                        letterSpacing: 0.5,
+                        textShadow: '0 0 8px rgba(0, 212, 255, 0.5), 0 0 4px rgba(0, 212, 255, 0.3)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '100%',
+                    }}
+                >
+                    {orb.description}
+                </div>
+            )}
         </div>
     );
 }
