@@ -54,12 +54,9 @@ async function ensureSystemAccountExists() {
             .insert({
                 id: SYSTEM_UUID,
                 username: 'smarter.poker',
-                full_name: 'Smarter.Poker',
+                display_name: 'Smarter.Poker',
                 avatar_url: '/images/smarter-poker-logo.png',
-                bio: 'Official Smarter.Poker News & Updates - Automated poker news, strategy tips, and tournament coverage.',
-                is_verified: true,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                bio: 'Official Smarter.Poker News & Updates'
             })
             .select()
             .single();
@@ -480,16 +477,17 @@ async function saveArticle(article) {
         .from('poker_news')
         .insert({
             title: article.title,
-            slug: article.slug,
-            content: article.summary,
-            excerpt: article.summary.slice(0, 150),
-            author_name: article.source,
+            summary: article.summary,
+            excerpt: article.summary ? article.summary.slice(0, 150) : '',
+            source_name: article.source,
             source_url: article.link,
+            source_icon: article.icon,
             image_url: article.imageUrl,
             category: article.category,
+            tags: [article.category, article.source.toLowerCase().replace(/\s+/g, '-')],
             published_at: article.pubDate,
-            is_published: true,
-            views: 0
+            scraped_at: new Date().toISOString(),
+            view_count: 0
         })
         .select()
         .single();
