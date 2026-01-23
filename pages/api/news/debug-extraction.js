@@ -10,6 +10,13 @@ const rssParser = new Parser({
 });
 
 function extractImage(item) {
+    // Try to find img in content:encoded
+    let contentEncodedImg = null;
+    if (item['content:encoded']) {
+        const imgMatch = item['content:encoded'].match(/<img[^>]+src=["']([^"']+)["']/i);
+        contentEncodedImg = imgMatch ? imgMatch[1] : 'NO_MATCH';
+    }
+
     const results = {
         hasEnclosure: !!item.enclosure,
         enclosureUrl: item.enclosure?.url,
@@ -21,6 +28,8 @@ function extractImage(item) {
         descriptionHasImg: item.description?.includes('<img'),
         contentHasImg: item.content?.includes('<img'),
         contentEncodedHasImg: item['content:encoded']?.includes('<img'),
+        contentEncodedImgExtract: contentEncodedImg,
+        contentEncodedSample: item['content:encoded']?.substring(0, 500),
         extractedUrl: null
     };
 
