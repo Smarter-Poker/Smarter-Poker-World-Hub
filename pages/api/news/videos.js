@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { limit = 10, featured, channel } = req.query;
+        const { limit = 20, featured, channel } = req.query;
 
         let query = supabase
             .from('poker_videos')
