@@ -105,17 +105,18 @@ export default function TrainingArenaPage() {
     const [question, setQuestion] = useState("You Are On The Button. The Player To Your Right Bets 2.5 BB. What Is Your Best Move?");
     const [tableScale, setTableScale] = useState(1);
 
-    // Calculate scale once on mount - locks the layout
+    // Calculate scale once on mount - locks the ENTIRE page layout
     useEffect(() => {
         const calculateScale = () => {
-            const availableWidth = window.innerWidth - 16;
-            const availableHeight = window.innerHeight - 200;
-            const scaleX = availableWidth / 600;
-            const scaleY = availableHeight / 800;
-            setTableScale(Math.min(scaleX, scaleY, 1)); // Cap at 1x (never upscale)
+            // Design canvas: 390x844 (standard mobile viewport)
+            const designWidth = 390;
+            const designHeight = 844;
+            const scaleX = window.innerWidth / designWidth;
+            const scaleY = window.innerHeight / designHeight;
+            setTableScale(Math.min(scaleX, scaleY)); // Scale to fit
         };
         calculateScale();
-        // No resize listener - scale is locked on load
+        // No resize listener - scale is locked on initial load
     }, []);
 
     useEffect(() => {
@@ -163,54 +164,52 @@ export default function TrainingArenaPage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
             </Head>
-            <div className="arena-root">
-                <UniversalHeader pageDepth={2} />
-                <div className="question-bar"><p>{question}</p></div>
-                <div className="table-area">
-                    <div className="table-wrapper" style={{ transform: `scale(${tableScale})` }}>
-                        <img src="/images/training/table-vertical.jpg" alt="Poker Table" className="table-img" />
-                        <div className="pot"><span className="pot-icon">●</span><span className="pot-label">POT</span><span className="pot-value">{pot}</span></div>
-                        {board.length > 0 && <div className="board">{board.map((card, i) => <Card key={i} {...card} />)}</div>}
-                        <div className="felt-title"><span className="felt-name">{gameName}</span><span className="felt-sub">Smarter.Poker</span></div>
-                        <div className="dealer-btn">D</div>
-                        <PlayerSeat avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} position={SEAT_POSITIONS.seat1} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} position={SEAT_POSITIONS.seat2} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} position={SEAT_POSITIONS.seat3} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} position={SEAT_POSITIONS.seat4} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} position={SEAT_POSITIONS.seat5} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} position={SEAT_POSITIONS.seat6} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} position={SEAT_POSITIONS.seat7} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} position={SEAT_POSITIONS.seat8} />
-                        <PlayerSeat avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} position={SEAT_POSITIONS.hero} isHero={true} />
-                        <div className="hero-cards">{heroCards.map((card, i) => (
-                            <div key={i} style={{ transform: i === 0 ? 'rotate(-6deg)' : 'rotate(6deg)', marginLeft: i > 0 ? -8 : 0, zIndex: i + 1 }}>
-                                <Card {...card} size="hero" />
-                            </div>
-                        ))}</div>
-                        <div className="timer"><span>{timer}</span></div>
-                        <div className="q-counter"><span>Question {handNumber} of {totalHands}</span></div>
+            <div className="arena-viewport">
+                <div className="arena-root" style={{ transform: `scale(${tableScale})` }}>
+                    <UniversalHeader pageDepth={2} />
+                    <div className="question-bar"><p>{question}</p></div>
+                    <div className="table-area">
+                        <div className="table-wrapper">
+                            <img src="/images/training/table-vertical.jpg" alt="Poker Table" className="table-img" />
+                            <div className="pot"><span className="pot-icon">●</span><span className="pot-label">POT</span><span className="pot-value">{pot}</span></div>
+                            {board.length > 0 && <div className="board">{board.map((card, i) => <Card key={i} {...card} />)}</div>}
+                            <div className="felt-title"><span className="felt-name">{gameName}</span><span className="felt-sub">Smarter.Poker</span></div>
+                            <div className="dealer-btn">D</div>
+                            <PlayerSeat avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} position={SEAT_POSITIONS.seat1} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} position={SEAT_POSITIONS.seat2} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} position={SEAT_POSITIONS.seat3} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} position={SEAT_POSITIONS.seat4} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} position={SEAT_POSITIONS.seat5} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} position={SEAT_POSITIONS.seat6} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} position={SEAT_POSITIONS.seat7} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} position={SEAT_POSITIONS.seat8} />
+                            <PlayerSeat avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} position={SEAT_POSITIONS.hero} isHero={true} />
+                            <div className="hero-cards">{heroCards.map((card, i) => (
+                                <div key={i} style={{ transform: i === 0 ? 'rotate(-6deg)' : 'rotate(6deg)', marginLeft: i > 0 ? -8 : 0, zIndex: i + 1 }}>
+                                    <Card {...card} size="hero" />
+                                </div>
+                            ))}</div>
+                            <div className="timer"><span>{timer}</span></div>
+                            <div className="q-counter"><span>Question {handNumber} of {totalHands}</span></div>
+                        </div>
                     </div>
-                </div>
-                <div className="action-bar">
-                    <button className="action-btn fold" onClick={() => handleAction('FOLD')}>Fold</button>
-                    <button className="action-btn call" onClick={() => handleAction('CALL')}>Call</button>
-                    <button className="action-btn raise" onClick={() => handleAction('RAISE')}>Raise to 8bb</button>
-                    <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>All-In</button>
+                    <div className="action-bar">
+                        <button className="action-btn fold" onClick={() => handleAction('FOLD')}>Fold</button>
+                        <button className="action-btn call" onClick={() => handleAction('CALL')}>Call</button>
+                        <button className="action-btn raise" onClick={() => handleAction('RAISE')}>Raise to 8bb</button>
+                        <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>All-In</button>
+                    </div>
                 </div>
             </div>
             <style jsx>{`
                 :global(*) { box-sizing: border-box; margin: 0; padding: 0; }
                 :global(html, body) { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: #050810; }
-                .arena-root { position: fixed; inset: 0; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; }
+                .arena-viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #050810; overflow: hidden; }
+                .arena-root { width: 390px; height: 844px; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; transform-origin: center center; }
                 .question-bar { flex-shrink: 0; padding: 10px 16px; background: rgba(0,80,160,0.2); border-bottom: 1px solid rgba(0,150,255,0.25); }
                 .question-bar p { font-size: 12px; font-weight: 500; color: #00d4ff; text-align: center; line-height: 1.4; }
                 .table-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 25px 8px; overflow: hidden; }
-                .table-wrapper { 
-                    position: relative; 
-                    width: 600px; 
-                    height: 800px; 
-                    transform-origin: center center;
-                }
+                .table-wrapper { position: relative; width: 100%; height: 100%; max-width: 374px; max-height: 500px; }
                 .table-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; border-radius: 20px; mix-blend-mode: normal !important; z-index: 1; background: #1a1a1a; }
                 .pot { position: absolute; top: 16%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; padding: 4px 12px; background: rgba(0,0,0,0.85); border-radius: 14px; border: 1px solid rgba(255,255,255,0.2); z-index: 20; }
                 .pot-icon { color: #d4a020; font-size: 10px; }
