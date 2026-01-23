@@ -2,6 +2,10 @@
   "framework": "nextjs",
   "crons": [
     {
+      "path": "/api/cron/news-scraper",
+      "schedule": "0 */2 * * *"
+    },
+    {
       "path": "/api/cron/scrape-news",
       "schedule": "0 * * * *"
     }

@@ -1,0 +1,803 @@
+/**
+ * 📰 SMARTER.POKER NEWS SCRAPER - Enhanced 2-Hour Automated System
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Features:
+ * - Scrapes from multiple RSS sources
+ * - Google News search for "Poker News Today"
+ * - YouTube video scraping for latest poker content
+ * - Deduplication to prevent repeating stories
+ * - Auto-posts to News page AND Social Feed
+ * - Posts via official Smarter.Poker account
+ *
+ * SCHEDULE: Runs every 2 hours via Vercel cron
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+import { createClient } from '@supabase/supabase-js';
+import Parser from 'rss-parser';
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const rssParser = new Parser({
+    customFields: {
+        item: ['media:content', 'media:thumbnail', 'content:encoded', 'enclosure']
+    }
+});
+
+// Official Smarter.Poker System Account UUID
+const SYSTEM_UUID = '00000000-0000-0000-0000-000000000001';
+
+const CONFIG = {
+    DEDUP_HOURS: 48, // Don't post same story within 48 hours
+    MAX_ARTICLES_PER_RUN: 5, // Max new articles per 2-hour cycle
+    MAX_VIDEOS_PER_RUN: 3, // Max new videos per 2-hour cycle
+    MAX_SUMMARY_LENGTH: 300,
+    TITLE_SIMILARITY_THRESHOLD: 0.7 // Fuzzy matching threshold
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEWS SOURCES - RSS Feeds
+// ═══════════════════════════════════════════════════════════════════════════
+const NEWS_SOURCES = [
+    {
+        name: 'PokerNews',
+        rss: 'https://www.pokernews.com/news.rss',
+        icon: '🃏',
+        priority: 1,
+        category: 'news'
+    },
+    {
+        name: 'CardPlayer',
+        rss: 'https://www.cardplayer.com/poker-news/rss',
+        icon: '♠️',
+        priority: 2,
+        category: 'news'
+    },
+    {
+        name: 'PokerListings',
+        rss: 'https://www.pokerlistings.com/feed',
+        icon: '🎰',
+        priority: 3,
+        category: 'news'
+    },
+    {
+        name: 'Poker.org',
+        rss: 'https://www.poker.org/feed/',
+        icon: '♦️',
+        priority: 4,
+        category: 'news'
+    },
+    {
+        name: 'Upswing Poker',
+        rss: 'https://upswingpoker.com/feed/',
+        icon: '📈',
+        priority: 5,
+        category: 'strategy'
+    },
+    {
+        name: 'PocketFives',
+        rss: 'https://www.pocketfives.com/feed/',
+        icon: '🎯',
+        priority: 6,
+        category: 'online'
+    }
+];
+
+// Google News RSS for poker searches
+const GOOGLE_NEWS_SOURCES = [
+    {
+        name: 'Google News - Poker',
+        rss: 'https://news.google.com/rss/search?q=poker+news+today&hl=en-US&gl=US&ceid=US:en',
+        icon: '🔍',
+        priority: 10,
+        category: 'news'
+    },
+    {
+        name: 'Google News - WSOP',
+        rss: 'https://news.google.com/rss/search?q=WSOP+World+Series+of+Poker&hl=en-US&gl=US&ceid=US:en',
+        icon: '🏆',
+        priority: 11,
+        category: 'tournament'
+    },
+    {
+        name: 'Google News - Online Poker',
+        rss: 'https://news.google.com/rss/search?q=online+poker&hl=en-US&gl=US&ceid=US:en',
+        icon: '💻',
+        priority: 12,
+        category: 'online'
+    },
+    {
+        name: 'Google News - MSPT',
+        rss: 'https://news.google.com/rss/search?q=MSPT+Mid-States+Poker+Tour&hl=en-US&gl=US&ceid=US:en',
+        icon: '🎰',
+        priority: 7,
+        category: 'tournament'
+    },
+    {
+        name: 'Google News - MSPT Poker',
+        rss: 'https://news.google.com/rss/search?q="MSPT"+poker+tournament&hl=en-US&gl=US&ceid=US:en',
+        icon: '🎰',
+        priority: 8,
+        category: 'tournament'
+    }
+];
+
+// YouTube RSS for poker channels
+const VIDEO_SOURCES = [
+    {
+        name: 'PokerGO',
+        rss: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCrpQ3EYR2y3PXbmrNdLhPxA',
+        channel: 'PokerGO'
+    },
+    {
+        name: 'Jonathan Little',
+        rss: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCIDBMjKOIEoOnyX8XVOUHZA',
+        channel: 'Jonathan Little - Poker Coaching'
+    },
+    {
+        name: 'Doug Polk Poker',
+        rss: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCq_zG1PCJAW18IzBz7Y2w0A',
+        channel: 'Doug Polk Poker'
+    },
+    {
+        name: 'Daniel Negreanu',
+        rss: 'https://www.youtube.com/feeds/videos.xml?channel_id=UC2JZWJS0j8b4GK8DxnXefpg',
+        channel: 'Daniel Negreanu'
+    },
+    {
+        name: 'Upswing Poker',
+        rss: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCqKR2vWBjcLZNf9QV_8lbHg',
+        channel: 'Upswing Poker'
+    },
+    {
+        name: 'Poker Bunny',
+        rss: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCsWMXoDfVAyxfYkdKJvn0Gg',
+        channel: 'Poker Bunny'
+    }
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calculate similarity between two strings (for deduplication)
+ */
+function stringSimilarity(str1, str2) {
+    const s1 = str1.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const s2 = str2.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    if (s1 === s2) return 1;
+    if (s1.length < 2 || s2.length < 2) return 0;
+
+    const bigrams = new Map();
+    for (let i = 0; i < s1.length - 1; i++) {
+        const bigram = s1.substring(i, i + 2);
+        bigrams.set(bigram, (bigrams.get(bigram) || 0) + 1);
+    }
+
+    let intersectionSize = 0;
+    for (let i = 0; i < s2.length - 1; i++) {
+        const bigram = s2.substring(i, i + 2);
+        const count = bigrams.get(bigram) || 0;
+        if (count > 0) {
+            bigrams.set(bigram, count - 1);
+            intersectionSize++;
+        }
+    }
+
+    return (2.0 * intersectionSize) / (s1.length + s2.length - 2);
+}
+
+/**
+ * Clean HTML and extract plain text
+ */
+function cleanHtml(text) {
+    if (!text) return '';
+    return text
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Extract image from RSS item
+ */
+function extractImage(item) {
+    // Try enclosure
+    if (item.enclosure?.url) return item.enclosure.url;
+
+    // Try media:content
+    if (item['media:content']?.$?.url) return item['media:content'].$.url;
+    if (item['media:content']?.url) return item['media:content'].url;
+
+    // Try media:thumbnail
+    if (item['media:thumbnail']?.$?.url) return item['media:thumbnail'].$.url;
+    if (item['media:thumbnail']?.url) return item['media:thumbnail'].url;
+
+    // Try content:encoded for embedded images
+    if (item['content:encoded']) {
+        const imgMatch = item['content:encoded'].match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (imgMatch) return imgMatch[1];
+    }
+
+    // Try description for embedded images
+    if (item.description) {
+        const imgMatch = item.description.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (imgMatch) return imgMatch[1];
+    }
+
+    return null;
+}
+
+/**
+ * Categorize article based on title/content
+ */
+function categorizeArticle(title, content = '') {
+    const text = `${title} ${content}`.toLowerCase();
+
+    if (text.match(/wsop|wpt|ept|tournament|final table|bracelet|main event/)) {
+        return 'tournament';
+    }
+    if (text.match(/strategy|gto|tips|how to|learn|training|coach/)) {
+        return 'strategy';
+    }
+    if (text.match(/casino|poker room|legislation|law|online poker|regulation/)) {
+        return 'industry';
+    }
+    return 'news';
+}
+
+/**
+ * Generate URL-safe slug from title
+ */
+function generateSlug(title) {
+    return title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .substring(0, 100);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEDUPLICATION CHECK
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Check if article is duplicate (by URL or similar title)
+ */
+async function isDuplicate(article, existingArticles) {
+    // Check URL match
+    for (const existing of existingArticles) {
+        if (existing.source_url === article.link) {
+            return { isDupe: true, reason: 'exact_url' };
+        }
+
+        // Check title similarity
+        const similarity = stringSimilarity(existing.title, article.title);
+        if (similarity >= CONFIG.TITLE_SIMILARITY_THRESHOLD) {
+            return { isDupe: true, reason: 'similar_title', similarity };
+        }
+    }
+
+    return { isDupe: false };
+}
+
+/**
+ * Get recently posted articles from database for dedup check
+ */
+async function getRecentArticles() {
+    const cutoff = new Date(Date.now() - CONFIG.DEDUP_HOURS * 60 * 60 * 1000);
+
+    const { data, error } = await supabase
+        .from('poker_news')
+        .select('id, title, source_url, published_at')
+        .gte('scraped_at', cutoff.toISOString())
+        .order('scraped_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching recent articles:', error.message);
+        return [];
+    }
+
+    return data || [];
+}
+
+/**
+ * Get recently posted videos for dedup check
+ */
+async function getRecentVideos() {
+    const cutoff = new Date(Date.now() - CONFIG.DEDUP_HOURS * 60 * 60 * 1000);
+
+    const { data, error } = await supabase
+        .from('poker_videos')
+        .select('id, title, youtube_id, scraped_at')
+        .gte('scraped_at', cutoff.toISOString())
+        .order('scraped_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching recent videos:', error.message);
+        return [];
+    }
+
+    return data || [];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEWS FETCHING
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fetch articles from RSS sources
+ */
+async function fetchNewsFromRSS() {
+    const allArticles = [];
+    const allSources = [...NEWS_SOURCES, ...GOOGLE_NEWS_SOURCES];
+
+    for (const source of allSources) {
+        try {
+            console.log(`📰 Fetching: ${source.name}...`);
+            const feed = await rssParser.parseURL(source.rss);
+
+            const articles = (feed.items || []).slice(0, 10).map(item => {
+                const summary = cleanHtml(item.contentSnippet || item.content || item.description || '');
+
+                return {
+                    title: cleanHtml(item.title || ''),
+                    link: item.link,
+                    pubDate: new Date(item.pubDate || item.isoDate || Date.now()),
+                    source: source.name,
+                    icon: source.icon,
+                    priority: source.priority,
+                    summary: summary.slice(0, CONFIG.MAX_SUMMARY_LENGTH),
+                    category: source.category || categorizeArticle(item.title, summary),
+                    imageUrl: extractImage(item),
+                    slug: generateSlug(item.title || '')
+                };
+            });
+
+            allArticles.push(...articles);
+            console.log(`   ✓ Found ${articles.length} articles`);
+        } catch (error) {
+            console.error(`   ✗ Error: ${error.message}`);
+        }
+    }
+
+    // Sort by date (newest first), then by priority
+    return allArticles.sort((a, b) => {
+        const dateDiff = b.pubDate - a.pubDate;
+        if (Math.abs(dateDiff) < 3600000) { // Within 1 hour, use priority
+            return a.priority - b.priority;
+        }
+        return dateDiff;
+    });
+}
+
+/**
+ * Fetch videos from YouTube RSS
+ */
+async function fetchVideosFromYouTube() {
+    const allVideos = [];
+
+    for (const source of VIDEO_SOURCES) {
+        try {
+            console.log(`🎬 Fetching: ${source.name}...`);
+            const feed = await rssParser.parseURL(source.rss);
+
+            const videos = (feed.items || []).slice(0, 5).map(item => {
+                // Extract video ID from YouTube URL
+                const videoId = item.id?.replace('yt:video:', '') ||
+                    item.link?.match(/v=([^&]+)/)?.[1] ||
+                    item.link?.split('/').pop();
+
+                return {
+                    title: cleanHtml(item.title || ''),
+                    youtube_id: videoId,
+                    link: item.link,
+                    pubDate: new Date(item.pubDate || item.isoDate || Date.now()),
+                    channel: source.channel,
+                    thumbnail_url: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                    description: cleanHtml(item.contentSnippet || item.content || '').slice(0, 200)
+                };
+            });
+
+            allVideos.push(...videos);
+            console.log(`   ✓ Found ${videos.length} videos`);
+        } catch (error) {
+            console.error(`   ✗ Error: ${error.message}`);
+        }
+    }
+
+    // Sort by date (newest first)
+    return allVideos.sort((a, b) => b.pubDate - a.pubDate);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DATABASE OPERATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Save article to poker_news table
+ */
+async function saveArticle(article) {
+    const { data, error } = await supabase
+        .from('poker_news')
+        .insert({
+            title: article.title,
+            slug: article.slug,
+            summary: article.summary,
+            excerpt: article.summary.slice(0, 150),
+            source_name: article.source,
+            source_url: article.link,
+            source_icon: article.icon,
+            image_url: article.imageUrl,
+            category: article.category,
+            tags: [article.category, article.source.toLowerCase().replace(/\s+/g, '-')],
+            published_at: article.pubDate,
+            scraped_at: new Date().toISOString(),
+            views: 0
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error(`   ✗ DB Error: ${error.message}`);
+        return null;
+    }
+
+    return data;
+}
+
+/**
+ * Save video to poker_videos table
+ */
+async function saveVideo(video) {
+    const { data, error } = await supabase
+        .from('poker_videos')
+        .insert({
+            title: video.title,
+            youtube_id: video.youtube_id,
+            channel: video.channel,
+            thumbnail_url: video.thumbnail_url,
+            description: video.description,
+            published_at: video.pubDate,
+            scraped_at: new Date().toISOString(),
+            views: 0,
+            duration: '00:00' // Will be updated when video is viewed
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error(`   ✗ DB Error: ${error.message}`);
+        return null;
+    }
+
+    return data;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SOCIAL FEED POSTING
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Post article to Social Feed as Smarter.Poker account
+ */
+async function postToSocialFeed(article, newsId) {
+    const categoryEmojis = {
+        tournament: '🏆',
+        strategy: '📚',
+        industry: '💼',
+        news: '📰',
+        online: '💻'
+    };
+
+    const emoji = categoryEmojis[article.category] || '📰';
+    const viewerUrl = `/hub/article?id=${newsId}`;
+
+    const postContent = `${emoji} **${article.title}**
+
+${article.summary}
+
+📖 Read more on Smarter.Poker`;
+
+    try {
+        // Prepare media URLs
+        const mediaUrls = article.imageUrl ? [article.imageUrl] : [];
+
+        // Try RPC function first
+        const { data: post, error: rpcError } = await supabase
+            .rpc('fn_create_social_post', {
+                p_author_id: SYSTEM_UUID,
+                p_content: postContent,
+                p_content_type: 'news',
+                p_media_urls: mediaUrls,
+                p_visibility: 'public',
+                p_achievement_data: {
+                    article_url: article.link,
+                    article_source: article.source,
+                    article_title: article.title,
+                    viewer_url: viewerUrl,
+                    news_id: newsId
+                }
+            });
+
+        if (rpcError) {
+            // Fallback to direct insert
+            const { data: directPost, error: directError } = await supabase
+                .from('social_posts')
+                .insert({
+                    author_id: SYSTEM_UUID,
+                    content: postContent,
+                    content_type: 'news',
+                    media_urls: mediaUrls,
+                    visibility: 'public',
+                    achievement_data: {
+                        article_url: article.link,
+                        article_source: article.source,
+                        article_title: article.title,
+                        viewer_url: viewerUrl,
+                        news_id: newsId
+                    },
+                    created_at: new Date().toISOString()
+                })
+                .select()
+                .single();
+
+            if (directError) throw directError;
+
+            // Link social post to news record
+            await supabase
+                .from('poker_news')
+                .update({ social_post_id: directPost.id })
+                .eq('id', newsId);
+
+            return directPost;
+        }
+
+        // Link social post to news record
+        if (post?.id) {
+            await supabase
+                .from('poker_news')
+                .update({ social_post_id: post.id })
+                .eq('id', newsId);
+        }
+
+        return post;
+    } catch (error) {
+        console.error(`   ✗ Social post error: ${error.message}`);
+        return null;
+    }
+}
+
+/**
+ * Post video to Social Feed as Smarter.Poker account
+ */
+async function postVideoToSocialFeed(video, videoId) {
+    const postContent = `🎬 **New Poker Video**
+
+${video.title}
+
+📺 Watch on YouTube: ${video.link}
+
+#poker #pokervideo #${video.channel.replace(/\s+/g, '')}`;
+
+    try {
+        const mediaUrls = [video.thumbnail_url];
+
+        const { data: post, error } = await supabase
+            .from('social_posts')
+            .insert({
+                author_id: SYSTEM_UUID,
+                content: postContent,
+                content_type: 'video',
+                media_urls: mediaUrls,
+                visibility: 'public',
+                achievement_data: {
+                    video_url: video.link,
+                    youtube_id: video.youtube_id,
+                    channel: video.channel,
+                    video_id: videoId
+                },
+                created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        // Link social post to video record
+        if (post?.id) {
+            await supabase
+                .from('poker_videos')
+                .update({ social_post_id: post.id })
+                .eq('id', videoId);
+        }
+
+        return post;
+    } catch (error) {
+        console.error(`   ✗ Video social post error: ${error.message}`);
+        return null;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ═══════════════════════════════════════════════════════════════════════════
+
+export default async function handler(req, res) {
+    console.log('\n');
+    console.log('═'.repeat(70));
+    console.log('📰 SMARTER.POKER NEWS SCRAPER - 2-Hour Automated Update');
+    console.log('═'.repeat(70));
+    console.log(`⏰ Started at: ${new Date().toISOString()}`);
+    console.log('');
+
+    if (!SUPABASE_URL) {
+        return res.status(500).json({ error: 'Missing Supabase URL' });
+    }
+
+    const results = {
+        articles: { fetched: 0, saved: 0, posted: 0, skipped: 0 },
+        videos: { fetched: 0, saved: 0, posted: 0, skipped: 0 },
+        errors: []
+    };
+
+    try {
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 1: Fetch existing data for deduplication
+        // ─────────────────────────────────────────────────────────────────────
+        console.log('📋 Phase 1: Loading existing articles for deduplication...');
+        const existingArticles = await getRecentArticles();
+        const existingVideos = await getRecentVideos();
+        console.log(`   Found ${existingArticles.length} recent articles, ${existingVideos.length} recent videos\n`);
+
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 2: Fetch new articles from RSS
+        // ─────────────────────────────────────────────────────────────────────
+        console.log('📰 Phase 2: Fetching news from RSS feeds...');
+        const fetchedArticles = await fetchNewsFromRSS();
+        results.articles.fetched = fetchedArticles.length;
+        console.log(`\n   Total: ${fetchedArticles.length} articles fetched\n`);
+
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 3: Process articles (dedupe, save, post)
+        // ─────────────────────────────────────────────────────────────────────
+        console.log('💾 Phase 3: Processing and saving articles...');
+        let savedCount = 0;
+
+        for (const article of fetchedArticles) {
+            if (savedCount >= CONFIG.MAX_ARTICLES_PER_RUN) {
+                console.log(`   ⏸️  Max articles (${CONFIG.MAX_ARTICLES_PER_RUN}) reached for this run`);
+                break;
+            }
+
+            // Check for duplicates
+            const { isDupe, reason, similarity } = await isDuplicate(article, existingArticles);
+            if (isDupe) {
+                results.articles.skipped++;
+                continue;
+            }
+
+            // Save to database
+            const savedArticle = await saveArticle(article);
+            if (!savedArticle) {
+                results.errors.push(`Failed to save: ${article.title}`);
+                continue;
+            }
+
+            results.articles.saved++;
+            savedCount++;
+            console.log(`   ✓ Saved: ${article.title.substring(0, 50)}...`);
+
+            // Post to Social Feed
+            const socialPost = await postToSocialFeed(article, savedArticle.id);
+            if (socialPost) {
+                results.articles.posted++;
+                console.log(`   📱 Posted to Social Feed`);
+            }
+
+            // Add to existing articles for future dedup checks in this run
+            existingArticles.push({
+                id: savedArticle.id,
+                title: article.title,
+                source_url: article.link
+            });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 4: Fetch videos from YouTube
+        // ─────────────────────────────────────────────────────────────────────
+        console.log('\n🎬 Phase 4: Fetching videos from YouTube...');
+        const fetchedVideos = await fetchVideosFromYouTube();
+        results.videos.fetched = fetchedVideos.length;
+        console.log(`\n   Total: ${fetchedVideos.length} videos fetched\n`);
+
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 5: Process videos (dedupe, save, post)
+        // ─────────────────────────────────────────────────────────────────────
+        console.log('💾 Phase 5: Processing and saving videos...');
+        let savedVideoCount = 0;
+
+        for (const video of fetchedVideos) {
+            if (savedVideoCount >= CONFIG.MAX_VIDEOS_PER_RUN) {
+                console.log(`   ⏸️  Max videos (${CONFIG.MAX_VIDEOS_PER_RUN}) reached for this run`);
+                break;
+            }
+
+            // Check for duplicate by youtube_id
+            const isDupe = existingVideos.some(v => v.youtube_id === video.youtube_id);
+            if (isDupe) {
+                results.videos.skipped++;
+                continue;
+            }
+
+            // Save to database
+            const savedVideo = await saveVideo(video);
+            if (!savedVideo) {
+                results.errors.push(`Failed to save video: ${video.title}`);
+                continue;
+            }
+
+            results.videos.saved++;
+            savedVideoCount++;
+            console.log(`   ✓ Saved: ${video.title.substring(0, 50)}...`);
+
+            // Post to Social Feed (only every 3rd video to avoid spam)
+            if (savedVideoCount % 3 === 1) {
+                const socialPost = await postVideoToSocialFeed(video, savedVideo.id);
+                if (socialPost) {
+                    results.videos.posted++;
+                    console.log(`   📱 Posted to Social Feed`);
+                }
+            }
+
+            // Add to existing videos for future dedup checks
+            existingVideos.push({
+                id: savedVideo.id,
+                youtube_id: video.youtube_id
+            });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // SUMMARY
+        // ─────────────────────────────────────────────────────────────────────
+        console.log('\n');
+        console.log('═'.repeat(70));
+        console.log('📊 SCRAPER SUMMARY');
+        console.log('═'.repeat(70));
+        console.log(`📰 Articles: ${results.articles.saved} saved, ${results.articles.posted} posted to feed, ${results.articles.skipped} skipped (dupes)`);
+        console.log(`🎬 Videos:   ${results.videos.saved} saved, ${results.videos.posted} posted to feed, ${results.videos.skipped} skipped (dupes)`);
+        if (results.errors.length > 0) {
+            console.log(`⚠️  Errors:   ${results.errors.length}`);
+        }
+        console.log(`⏰ Completed: ${new Date().toISOString()}`);
+        console.log('═'.repeat(70));
+
+        return res.status(200).json({
+            success: true,
+            timestamp: new Date().toISOString(),
+            results,
+            message: `Processed ${results.articles.saved} articles and ${results.videos.saved} videos`
+        });
+
+    } catch (error) {
+        console.error('❌ Scraper error:', error);
+        results.errors.push(error.message);
+
+        return res.status(500).json({
+            success: false,
+            error: error.message,
+            results
+        });
+    }
+}
