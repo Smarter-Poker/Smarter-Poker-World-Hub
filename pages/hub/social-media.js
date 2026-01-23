@@ -41,6 +41,17 @@ const timeAgo = (d) => {
     return `${Math.floor(s / 86400)}d`;
 };
 
+// Decode HTML entities in text (for link preview titles/descriptions)
+const decodeHtmlEntities = (text) => {
+    if (!text) return text;
+    const entities = {
+        '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"',
+        '&#039;': "'", '&#39;': "'", '&apos;': "'", '&#x27;': "'",
+        '&nbsp;': ' ', '&#8217;': "'", '&#8216;': "'", '&#8220;': '"', '&#8221;': '"'
+    };
+    return text.replace(/&[#\w]+;/g, match => entities[match] || match);
+};
+
 function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
     const router = useRouter();
     const handleClick = onClick || (linkTo ? () => router.push(linkTo) : null);
@@ -353,17 +364,12 @@ function LinkPreviewCard({ url }) {
                 background: C.bg,
                 margin: '0 12px 12px'
             }}>
-                {/* Link Preview Image - real thumbnail or gradient fallback */}
+                {/* Link Preview Image - full width, proper aspect ratio */}
                 <div style={{
-                    minHeight: 180,
-                    maxHeight: 400,
+                    width: '100%',
+                    aspectRatio: '16/9',
                     position: 'relative',
                     background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: 48,
                     overflow: 'hidden'
                 }}>
                     {metadata?.image ? (
@@ -372,13 +378,14 @@ function LinkPreviewCard({ url }) {
                             alt={metadata.title || 'Link preview'}
                             style={{
                                 width: '100%',
-                                height: 'auto',
-                                maxHeight: 400,
-                                objectFit: 'contain',
-                                display: 'block'
+                                height: '100%',
+                                objectFit: 'cover',
+                                objectPosition: 'center center'
                             }}
                         />
-                    ) : '🔗'}
+                    ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'white', fontSize: 48 }}>🔗</div>
+                    )}
                 </div>
                 {/* Link Info */}
                 <div style={{ padding: '12px 16px', background: C.card }}>
@@ -386,7 +393,7 @@ function LinkPreviewCard({ url }) {
                         {metadata?.siteName || new URL(url).hostname.replace('www.', '')}
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>
-                        {metadata?.title || 'View Article'}
+                        {decodeHtmlEntities(metadata?.title) || 'View Article'}
                     </div>
                     {metadata?.description && (
                         <div style={{
@@ -399,7 +406,7 @@ function LinkPreviewCard({ url }) {
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical'
                         }}>
-                            {metadata.description}
+                            {decodeHtmlEntities(metadata.description)}
                         </div>
                     )}
                     <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>
