@@ -166,7 +166,14 @@ export default function TrainingArenaPage() {
             </Head>
             <div className="arena-viewport">
                 <div className="arena-root" style={{ transform: `scale(${tableScale})` }}>
-                    <UniversalHeader pageDepth={2} />
+                    <div className="arena-header">
+                        <button className="back-btn" onClick={() => router.back()}>← Back</button>
+                        <span className="arena-title">Smarter.Poker</span>
+                        <div className="header-stats">
+                            <span className="xp-badge">💎 0</span>
+                            <span className="level-badge">LV 1</span>
+                        </div>
+                    </div>
                     <div className="question-bar"><p>{question}</p></div>
                     <div className="table-area">
                         <div className="table-wrapper">
@@ -206,6 +213,12 @@ export default function TrainingArenaPage() {
                 :global(html, body) { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: #050810; }
                 .arena-viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #050810; overflow: hidden; }
                 .arena-root { width: 390px; height: 844px; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; transform-origin: center center; overflow: hidden; contain: layout size style; }
+                .arena-header { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: rgba(10,20,40,0.95); border-bottom: 1px solid rgba(255,255,255,0.1); }
+                .back-btn { background: none; border: none; color: #fff; font-size: 11px; font-weight: 600; cursor: pointer; padding: 4px 8px; font-family: inherit; }
+                .arena-title { font-size: 12px; font-weight: 700; color: #fff; }
+                .header-stats { display: flex; gap: 8px; align-items: center; }
+                .xp-badge { font-size: 10px; color: #00d4ff; font-weight: 600; }
+                .level-badge { font-size: 9px; padding: 2px 6px; background: rgba(0,150,255,0.2); border-radius: 4px; color: #60a5fa; font-weight: 600; }
                 .question-bar { flex-shrink: 0; padding: 10px 16px; background: rgba(0,80,160,0.2); border-bottom: 1px solid rgba(0,150,255,0.25); }
                 .question-bar p { font-size: 12px; font-weight: 500; color: #00d4ff; text-align: center; line-height: 1.4; }
                 .table-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 25px 8px; overflow: hidden; }
@@ -225,8 +238,8 @@ export default function TrainingArenaPage() {
                 .timer span { font-size: 20px; font-weight: 800; color: #dc2626; }
                 .q-counter { position: absolute; bottom: 6%; right: 5%; padding: 6px 10px; background: rgba(37,99,235,0.2); border: 1px solid #3b82f6; border-radius: 6px; z-index: 25; }
                 .q-counter span { font-size: 10px; color: #60a5fa; font-weight: 500; }
-                .action-bar { flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 16px 20px; background: rgba(10,14,23,0.98); border-top: 1px solid rgba(255,255,255,0.1); }
-                .action-btn { padding: 14px; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: transform 0.1s; }
+                .action-bar { flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px 12px 16px; background: rgba(10,14,23,0.98); border-top: 1px solid rgba(255,255,255,0.1); }
+                .action-btn { padding: 10px; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; transition: transform 0.1s; }
                 .action-btn:active { transform: scale(0.97); }
                 .fold { background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%); color: #fff; box-shadow: 0 3px 8px rgba(30,95,168,0.4); }
                 .call, .raise, .allin { background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%); color: #fff; box-shadow: 0 3px 8px rgba(30,95,168,0.4); }
