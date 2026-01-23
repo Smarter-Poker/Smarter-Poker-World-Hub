@@ -776,7 +776,7 @@ export default function NewsHub() {
 
     const fetchVideos = async () => {
         try {
-            const res = await fetch('/api/news/videos?limit=8');
+            const res = await fetch('/api/news/videos?limit=20');
             const { success, data } = await res.json();
             setVideos(success && data?.length ? data : FALLBACK_VIDEOS);
         } catch (e) {
