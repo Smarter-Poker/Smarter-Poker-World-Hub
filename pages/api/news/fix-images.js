@@ -24,20 +24,31 @@ export default async function handler(req, res) {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
     try {
-        // Get all articles with null or empty image_url
+        // Get all articles with null, empty, or bad placeholder images
         const { data: articles, error: fetchError } = await supabase
             .from('poker_news')
-            .select('id, category, image_url')
-            .or('image_url.is.null,image_url.eq.');
+            .select('id, category, image_url');
+
+        // Filter to only articles needing image fixes
+        const articlesToFix = (articles || []).filter(a => {
+            if (!a.image_url) return true; // null or empty
+            if (a.image_url.includes('googleusercontent.com')) return true; // Google placeholders
+            if (a.image_url.includes('unsplash.com/photo-1511193311914')) return true; // Old broken unsplash
+            if (a.image_url.includes('unsplash.com/photo-1511193311915')) return true;
+            if (a.image_url.includes('unsplash.com/photo-1511193311916')) return true;
+            if (a.image_url.includes('unsplash.com/photo-1511193311917')) return true;
+            if (a.image_url.includes('unsplash.com/photo-1511193311918')) return true;
+            return false;
+        });
 
         if (fetchError) throw fetchError;
 
-        console.log(`Found ${articles?.length || 0} articles with missing images`);
+        console.log(`Found ${articlesToFix.length} articles needing image fixes`);
 
         let updated = 0;
         const errors = [];
 
-        for (const article of (articles || [])) {
+        for (const article of articlesToFix) {
             const imageUrl = DEFAULT_CATEGORY_IMAGES[article.category] || DEFAULT_CATEGORY_IMAGES.news;
 
             const { error: updateError } = await supabase
@@ -54,7 +65,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             success: true,
-            found: articles?.length || 0,
+            found: articlesToFix.length,
             updated,
             errors: errors.length > 0 ? errors : undefined
         });
