@@ -771,25 +771,25 @@ async function scrapeSource(source) {
 // DATABASE OPERATIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-// System account UUID - established for all automated posting
-const SYSTEM_ACCOUNT_UUID = '00000000-0000-0000-0000-000000000001';
+// Official news poster account
+const NEWS_POSTER_UUID = '2d1cd6c3-5700-4af9-a271-d4863fdab20d';
 
-// Get the system account for posting news to social feed
+// Get the news poster account for posting to social feed
 async function getNewsPosterId() {
-    // Verify the system account exists
-    const { data: systemAccount, error } = await supabase
+    // Verify the account exists
+    const { data: account, error } = await supabase
         .from('profiles')
         .select('id, username')
-        .eq('id', SYSTEM_ACCOUNT_UUID)
+        .eq('id', NEWS_POSTER_UUID)
         .single();
 
-    if (systemAccount) {
-        console.log(`   📢 Using system account: ${systemAccount.username}`);
-        return systemAccount.id;
+    if (account) {
+        console.log(`   📢 Using news poster: ${account.username}`);
+        return account.id;
     }
 
-    // System account doesn't exist - log warning but continue scraping
-    console.warn('⚠️ System account not found! Run: node scripts/setup-system-account.js');
+    // Account doesn't exist - log warning but continue scraping
+    console.warn('⚠️ News poster account not found!');
     console.warn('   Social feed posts will be skipped.');
     return null;
 }
