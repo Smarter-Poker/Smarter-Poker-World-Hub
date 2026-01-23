@@ -426,7 +426,77 @@ async function scrapeSource(source) {
 // DATABASE OPERATIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-async function saveArticle(article) {
+// Get the official SmarterPokerOfficial account for posting
+async function getNewsPosterId() {
+    // Try to find existing SmarterPokerOfficial account (Daniel@smarter.poker)
+    const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .or('username.eq.SmarterPokerOfficial,email.eq.Daniel@smarter.poker')
+        .single();
+
+    if (existing) return existing.id;
+
+    // Create the official account if doesn't exist
+    const { data: created, error } = await supabase
+        .from('profiles')
+        .insert({
+            username: 'SmarterPokerOfficial',
+            full_name: 'Smarter Poker',
+            avatar_url: 'https://smarter.poker/images/logo-icon.png',
+            level: 99,
+            is_verified: true
+        })
+        .select('id')
+        .single();
+
+    if (error) {
+        console.error('Failed to create news poster:', error.message);
+        return null;
+    }
+    return created?.id;
+}
+
+// Post article to social feed
+async function postToSocialFeed(article, newsPosterId) {
+    if (!newsPosterId) return;
+
+    // Check if already posted (by source_url in content)
+    const { data: existing } = await supabase
+        .from('social_posts')
+        .select('id')
+        .like('content', `%${article.url}%`)
+        .single();
+
+    if (existing) return; // Already posted
+
+    const sourceIcon = article.source.icon || '📰';
+    const postContent = `${sourceIcon} **${article.title}**\n\nvia ${article.source.name}\n🔗 ${article.url}`;
+
+    const { error } = await supabase
+        .from('social_posts')
+        .insert({
+            author_id: newsPosterId,
+            content: postContent,
+            content_type: 'link',
+            media_urls: article.image ? [article.image] : [],
+            visibility: 'public',
+            metadata: {
+                news_source: article.source.name,
+                news_box: article.source.box,
+                article_url: article.url,
+                article_image: article.image
+            }
+        });
+
+    if (error) {
+        console.error(`   ✗ Social post error: ${error.message}`);
+    } else {
+        console.log(`   📢 Posted to social feed`);
+    }
+}
+
+async function saveArticle(article, newsPosterId) {
     const slug = article.title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
@@ -459,6 +529,11 @@ async function saveArticle(article) {
     if (error && !error.message.includes('duplicate')) {
         console.error(`   ✗ DB Error: ${error.message}`);
         return null;
+    }
+
+    // If article was saved (not duplicate), post to social feed
+    if (data) {
+        await postToSocialFeed(article, newsPosterId);
     }
 
     return data;
@@ -502,13 +577,17 @@ export default async function handler(req, res) {
     };
 
     try {
+        // Get news poster account for social feed
+        const newsPosterId = await getNewsPosterId();
+        console.log(`📢 News poster ID: ${newsPosterId || 'NOT FOUND'}`);
+
         for (const source of NEWS_SOURCES) {
             try {
                 const articles = await scrapeSource(source);
                 results.sources[source.name] = { found: articles.length, saved: 0 };
 
                 for (const article of articles) {
-                    const saved = await saveArticle(article);
+                    const saved = await saveArticle(article, newsPosterId);
                     if (saved) {
                         results.sources[source.name].saved++;
                         results.totalSaved++;
