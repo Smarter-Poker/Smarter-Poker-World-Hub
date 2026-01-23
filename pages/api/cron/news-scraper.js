@@ -134,21 +134,92 @@ function cleanText(text) {
         .trim();
 }
 
-function extractOgImage(html) {
+function extractArticleImage(html, baseUrl = '') {
     if (!html) return null;
 
-    // Try og:image
+    // 1. Try og:image meta tag
     let match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
     if (!match) match = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    if (match?.[1]) return match[1].replace(/&amp;/g, '&');
 
-    // Try twitter:image
-    if (!match) match = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+    // 2. Try twitter:image meta tag
+    match = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
     if (!match) match = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+    if (match?.[1]) return match[1].replace(/&amp;/g, '&');
 
-    if (match && match[1]) {
-        return match[1].replace(/&amp;/g, '&');
+    // 3. Try JSON-LD structured data
+    const jsonLdMatch = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i);
+    if (jsonLdMatch) {
+        try {
+            const jsonData = JSON.parse(jsonLdMatch[1]);
+            if (jsonData.image) {
+                if (typeof jsonData.image === 'string') return jsonData.image;
+                if (jsonData.image.url) return jsonData.image.url;
+                if (Array.isArray(jsonData.image) && jsonData.image[0]) {
+                    return typeof jsonData.image[0] === 'string' ? jsonData.image[0] : jsonData.image[0].url;
+                }
+            }
+        } catch (e) { /* ignore JSON parse errors */ }
     }
+
+    // 4. Try featured image classes (common patterns)
+    const featuredPatterns = [
+        /<img[^>]+class=["'][^"']*(?:featured|hero|article-image|post-image|entry-image|main-image|wp-post-image)[^"']*["'][^>]+src=["']([^"']+)["']/i,
+        /<img[^>]+src=["']([^"']+)["'][^>]+class=["'][^"']*(?:featured|hero|article-image|post-image|entry-image|main-image|wp-post-image)[^"']*["']/i,
+        /<figure[^>]*class=["'][^"']*featured[^"']*["'][^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["']/i
+    ];
+    for (const pattern of featuredPatterns) {
+        match = html.match(pattern);
+        if (match?.[1]) return resolveUrl(match[1], baseUrl);
+    }
+
+    // 5. Try first large image in article/main content area
+    const contentAreas = [
+        /<article[^>]*>([\s\S]*?)<\/article>/i,
+        /<main[^>]*>([\s\S]*?)<\/main>/i,
+        /<div[^>]+class=["'][^"']*(?:content|article|post|entry)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i
+    ];
+    for (const areaPattern of contentAreas) {
+        const contentMatch = html.match(areaPattern);
+        if (contentMatch) {
+            // Find first img in this area
+            const imgMatch = contentMatch[1].match(/<img[^>]+src=["']([^"']+)["']/i);
+            if (imgMatch?.[1] && !imgMatch[1].includes('icon') && !imgMatch[1].includes('logo') && !imgMatch[1].includes('avatar')) {
+                return resolveUrl(imgMatch[1], baseUrl);
+            }
+        }
+    }
+
+    // 6. Fallback: first reasonable image on the page (not icons/logos/avatars)
+    const allImages = html.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi);
+    for (const img of allImages) {
+        const src = img[1];
+        // Skip small images, icons, logos, tracking pixels
+        if (src.includes('icon') || src.includes('logo') || src.includes('avatar') ||
+            src.includes('pixel') || src.includes('tracking') || src.includes('badge') ||
+            src.includes('1x1') || src.includes('spacer') || src.includes('blank') ||
+            src.endsWith('.gif') || src.includes('data:image')) continue;
+        return resolveUrl(src, baseUrl);
+    }
+
     return null;
+}
+
+// Helper to resolve relative URLs
+function resolveUrl(url, baseUrl) {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('//')) return 'https:' + url;
+    if (url.startsWith('/') && baseUrl) {
+        const base = new URL(baseUrl);
+        return base.origin + url;
+    }
+    return url;
+}
+
+// Keep old function name for compatibility
+function extractOgImage(html, baseUrl) {
+    return extractArticleImage(html, baseUrl);
 }
 
 function extractRssImage(item) {
@@ -190,9 +261,10 @@ async function scrapeRSS(source) {
             // If no image in RSS, fetch from article page
             if (!image && item.link) {
                 const articleHtml = await fetchPage(item.link);
-                image = extractOgImage(articleHtml);
+                image = extractArticleImage(articleHtml, item.link);
             }
 
+            // Only save articles that have real images
             if (image && item.link) {
                 articles.push({
                     url: item.link,
@@ -239,8 +311,9 @@ async function scrapeMSPT(html, source) {
         console.log(`   Checking MSPT: ${title.substring(0, 40)}...`);
 
         const articleHtml = await fetchPage(url);
-        const image = extractOgImage(articleHtml);
+        const image = extractArticleImage(articleHtml, url);
 
+        // Only save articles with real images
         if (image) {
             articles.push({ url, title, image, source });
         }
@@ -269,10 +342,12 @@ async function scrapeWSOP(html, source) {
         }
 
         seen.add(url);
+        console.log(`   Checking WSOP: ${title.substring(0, 40)}...`);
 
         const articleHtml = await fetchPage(url);
-        const image = extractOgImage(articleHtml);
+        const image = extractArticleImage(articleHtml, url);
 
+        // Only save articles with real images
         if (image) {
             articles.push({ url, title, image, source });
         }
@@ -306,8 +381,9 @@ async function scrapePokerfuse(html, source) {
         console.log(`   Checking Pokerfuse: ${title.substring(0, 40)}...`);
 
         const articleHtml = await fetchPage(url);
-        const image = extractOgImage(articleHtml);
+        const image = extractArticleImage(articleHtml, url);
 
+        // Only save articles with real images
         if (image) {
             articles.push({ url, title, image, source });
         }
@@ -339,8 +415,9 @@ async function scrapeCardPlayer(html, source) {
         console.log(`   Checking CardPlayer: ${title.substring(0, 40)}...`);
 
         const articleHtml = await fetchPage(url);
-        const image = extractOgImage(articleHtml);
+        const image = extractArticleImage(articleHtml, url);
 
+        // Only save articles with real images
         if (image) {
             articles.push({ url, title, image, source });
         }
@@ -380,8 +457,9 @@ async function scrapePokerOrg(html, source) {
             console.log(`   Checking Poker.org: ${title.substring(0, 40)}...`);
 
             const articleHtml = await fetchPage(url);
-            const image = extractOgImage(articleHtml);
+            const image = extractArticleImage(articleHtml, url);
 
+            // Only save articles with real images
             if (image) {
                 articles.push({ url, title, image, source });
             }
