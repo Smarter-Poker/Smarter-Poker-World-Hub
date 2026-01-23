@@ -154,7 +154,7 @@ export default function TrainingArenaPage() {
                 <div className="question-bar"><p>{question}</p></div>
                 <div className="table-area">
                     <div className="table-wrapper">
-                        <img src="/training-ui/table-vertical.png" alt="Poker Table" className="table-img" />
+                        <img src="/images/training/table-vertical.jpg" alt="Poker Table" className="table-img" />
                         <div className="pot"><span className="pot-icon">●</span><span className="pot-label">POT</span><span className="pot-value">{pot}</span></div>
                         {board.length > 0 && <div className="board">{board.map((card, i) => <Card key={i} {...card} />)}</div>}
                         <div className="felt-title"><span className="felt-name">{gameName}</span><span className="felt-sub">Smarter.Poker</span></div>
