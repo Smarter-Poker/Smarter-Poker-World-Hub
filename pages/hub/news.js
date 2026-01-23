@@ -884,9 +884,13 @@ export default function NewsHub() {
         }
     };
 
-    // Video navigation
+    // Video navigation - supports YouTube and direct URLs
     const openVideo = (video) => {
-        window.open(`https://www.youtube.com/watch?v=${video.youtube_id}`, '_blank');
+        if (video.youtube_id) {
+            window.open(`https://www.youtube.com/watch?v=${video.youtube_id}`, '_blank');
+        } else if (video.url) {
+            window.open(video.url, '_blank');
+        }
     };
 
     // Filter news
@@ -993,17 +997,17 @@ export default function NewsHub() {
                 {/* Category Tabs (for News section) */}
                 {activeSection === 'news' && (
                     <div className="category-bar">
-                        {['all', 'tournament', 'strategy', 'industry'].map(tab => (
+                        {['all', 'tournament', 'news', 'industry'].map(tab => (
                             <button
                                 key={tab}
                                 className={`category-tab ${activeTab === tab ? 'active' : ''}`}
                                 onClick={() => setActiveTab(tab)}
                             >
                                 {tab === 'tournament' && '🏆'}
-                                {tab === 'strategy' && '📚'}
+                                {tab === 'news' && '📰'}
                                 {tab === 'industry' && '💼'}
-                                {tab === 'all' && '📰'}
-                                <span>{tab === 'all' ? 'All News' : tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+                                {tab === 'all' && '🃏'}
+                                <span>{tab === 'all' ? 'All News' : tab === 'news' ? 'General' : tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
                             </button>
                         ))}
 
