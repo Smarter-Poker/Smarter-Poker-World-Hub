@@ -23,6 +23,9 @@ export function AvatarProvider({ children }) {
     const [avatar, setAvatar] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isVip, setIsVip] = useState(false);
+    // CRITICAL: Track auth initialization to prevent race condition
+    // This stays true until INITIAL_SESSION event fires from Supabase
+    const [initializing, setInitializing] = useState(true);
 
     // Fetch VIP status directly from database (not cached session)
     async function fetchVipStatus(userId) {
@@ -68,26 +71,36 @@ export function AvatarProvider({ children }) {
         }
     }
 
-    // Load user on mount
+    // Load user on mount - WAIT for INITIAL_SESSION before concluding user is null
     useEffect(() => {
-        const fetchUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
-            if (user) {
-                await fetchVipStatus(user.id);
-            }
-        };
-        fetchUser();
+        // Listen for auth changes - this includes INITIAL_SESSION event
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('[AvatarContext] Auth event:', event);
 
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            // INITIAL_SESSION fires when Supabase restores session from localStorage
+            // This is the ONLY reliable signal that auth initialization is complete
+            if (event === 'INITIAL_SESSION') {
+                setInitializing(false);
+            }
+
             setUser(session?.user ?? null);
             if (session?.user) {
                 await fetchVipStatus(session.user.id);
             }
         });
 
-        return () => subscription.unsubscribe();
+        // Fallback timeout: if INITIAL_SESSION never fires (edge case), mark as initialized after 3s
+        const fallbackTimeout = setTimeout(() => {
+            if (initializing) {
+                console.warn('[AvatarContext] Fallback: marking initialized after timeout');
+                setInitializing(false);
+            }
+        }, 3000);
+
+        return () => {
+            subscription.unsubscribe();
+            clearTimeout(fallbackTimeout);
+        };
     }, []);
 
     // Load user's avatar when user changes
@@ -172,6 +185,7 @@ export function AvatarProvider({ children }) {
         loading,
         user,
         isVip,
+        initializing, // CRITICAL: Consumers must check this before showing "not logged in" UI
         selectPresetAvatar,
         createCustomAvatar,
         setActiveAvatar,
