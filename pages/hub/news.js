@@ -3,9 +3,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Features:
- * - 8+ Dedicated News Boxes on the left
+ * - 6 Source-Specific News Boxes (PokerNews, MSPT, CardPlayer, WSOP, Poker.org, Pokerfuse)
  * - Latest Videos tab with auto-scraped content
- * - Breaking news ticker
  * - Category filtering
  * - Trending sidebar
  * - Auto-refreshes from scraper every 2 hours
@@ -827,6 +826,27 @@ export default function NewsHub() {
             article.content?.toLowerCase().includes(searchQuery.toLowerCase());
     });
 
+    // Source-specific articles for each box
+    const pokerNewsArticles = filteredNews.filter(a => a.source_name === 'PokerNews');
+    const cardPlayerArticles = filteredNews.filter(a => a.source_name === 'CardPlayer');
+    const wsopArticles = filteredNews.filter(a => a.source_name === 'WSOP');
+    const pokerOrgArticles = filteredNews.filter(a => a.source_name === 'Poker.org');
+    const pokerfuseArticles = filteredNews.filter(a => a.source_name === 'Pokerfuse');
+    const msptArticles = filteredNews.filter(a => a.source_name === 'MSPT');
+
+    // IDs of featured articles (first from each source)
+    const featuredIds = [
+        pokerNewsArticles[0]?.id,
+        msptArticles[0]?.id,
+        cardPlayerArticles[0]?.id,
+        wsopArticles[0]?.id,
+        pokerOrgArticles[0]?.id,
+        pokerfuseArticles[0]?.id
+    ].filter(Boolean);
+
+    // Remaining stories (not in the 6 featured boxes)
+    const remainingStories = filteredNews.filter(a => !featuredIds.includes(a.id));
+
     // Trending = sorted by views
     const trendingNews = [...news].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
 
@@ -975,7 +995,7 @@ export default function NewsHub() {
                     <main className="main-content">
                         {activeSection === 'news' ? (
                             <>
-                                {/* News Grid - 8 Boxes */}
+                                {/* News Grid - 6 Source-Specific Boxes */}
                                 <section className="news-section">
                                     <h2 className="section-title">
                                         <Flame size={18} /> Today's Top Stories
@@ -991,55 +1011,110 @@ export default function NewsHub() {
                                         </div>
                                     ) : (
                                         <div className="news-grid">
-                                            {/* First News Box */}
-                                            {filteredNews[0] && (
+                                            {/* Box 1: PokerNews */}
+                                            {pokerNewsArticles[0] && (
                                                 <NewsBox
-                                                    key={filteredNews[0].id}
-                                                    article={filteredNews[0]}
+                                                    key={pokerNewsArticles[0].id}
+                                                    article={pokerNewsArticles[0]}
                                                     index={0}
                                                     onOpen={openArticle}
-                                                    isBookmarked={bookmarks.includes(filteredNews[0].id)}
+                                                    isBookmarked={bookmarks.includes(pokerNewsArticles[0].id)}
                                                     onBookmark={toggleBookmark}
                                                     onShare={setShareArticle}
-                                                    isRead={readArticles.includes(filteredNews[0].id)}
+                                                    isRead={readArticles.includes(pokerNewsArticles[0].id)}
                                                 />
                                             )}
 
-                                            {/* MSPT Box - Position 2 (Major Fixture) */}
-                                            <MSPTBox
-                                                msptNews={msptNews}
-                                                onOpenMSPT={(item) => {
-                                                    if (item.source_url) {
-                                                        window.open(item.source_url, '_blank');
-                                                    }
-                                                }}
-                                            />
-
-                                            {/* Remaining News Boxes (positions 3-8) */}
-                                            {filteredNews.slice(1, 7).map((article, i) => (
+                                            {/* Box 2: MSPT */}
+                                            {msptArticles[0] ? (
                                                 <NewsBox
-                                                    key={article.id}
-                                                    article={article}
-                                                    index={i + 2}
+                                                    key={msptArticles[0].id}
+                                                    article={msptArticles[0]}
+                                                    index={1}
                                                     onOpen={openArticle}
-                                                    isBookmarked={bookmarks.includes(article.id)}
+                                                    isBookmarked={bookmarks.includes(msptArticles[0].id)}
                                                     onBookmark={toggleBookmark}
                                                     onShare={setShareArticle}
-                                                    isRead={readArticles.includes(article.id)}
+                                                    isRead={readArticles.includes(msptArticles[0].id)}
                                                 />
-                                            ))}
+                                            ) : (
+                                                <MSPTBox
+                                                    msptNews={msptNews}
+                                                    onOpenMSPT={(item) => {
+                                                        if (item.source_url) {
+                                                            window.open(item.source_url, '_blank');
+                                                        }
+                                                    }}
+                                                />
+                                            )}
+
+                                            {/* Box 3: CardPlayer */}
+                                            {cardPlayerArticles[0] && (
+                                                <NewsBox
+                                                    key={cardPlayerArticles[0].id}
+                                                    article={cardPlayerArticles[0]}
+                                                    index={2}
+                                                    onOpen={openArticle}
+                                                    isBookmarked={bookmarks.includes(cardPlayerArticles[0].id)}
+                                                    onBookmark={toggleBookmark}
+                                                    onShare={setShareArticle}
+                                                    isRead={readArticles.includes(cardPlayerArticles[0].id)}
+                                                />
+                                            )}
+
+                                            {/* Box 4: WSOP */}
+                                            {wsopArticles[0] && (
+                                                <NewsBox
+                                                    key={wsopArticles[0].id}
+                                                    article={wsopArticles[0]}
+                                                    index={3}
+                                                    onOpen={openArticle}
+                                                    isBookmarked={bookmarks.includes(wsopArticles[0].id)}
+                                                    onBookmark={toggleBookmark}
+                                                    onShare={setShareArticle}
+                                                    isRead={readArticles.includes(wsopArticles[0].id)}
+                                                />
+                                            )}
+
+                                            {/* Box 5: Poker.org */}
+                                            {pokerOrgArticles[0] && (
+                                                <NewsBox
+                                                    key={pokerOrgArticles[0].id}
+                                                    article={pokerOrgArticles[0]}
+                                                    index={4}
+                                                    onOpen={openArticle}
+                                                    isBookmarked={bookmarks.includes(pokerOrgArticles[0].id)}
+                                                    onBookmark={toggleBookmark}
+                                                    onShare={setShareArticle}
+                                                    isRead={readArticles.includes(pokerOrgArticles[0].id)}
+                                                />
+                                            )}
+
+                                            {/* Box 6: Pokerfuse */}
+                                            {pokerfuseArticles[0] && (
+                                                <NewsBox
+                                                    key={pokerfuseArticles[0].id}
+                                                    article={pokerfuseArticles[0]}
+                                                    index={5}
+                                                    onOpen={openArticle}
+                                                    isBookmarked={bookmarks.includes(pokerfuseArticles[0].id)}
+                                                    onBookmark={toggleBookmark}
+                                                    onShare={setShareArticle}
+                                                    isRead={readArticles.includes(pokerfuseArticles[0].id)}
+                                                />
+                                            )}
                                         </div>
                                     )}
 
                                     {/* More Stories Button - Clickable */}
-                                    {filteredNews.length > 8 && !showAllStories && (
+                                    {remainingStories.length > 0 && !showAllStories && (
                                         <motion.button
                                             className="more-stories"
                                             onClick={() => setShowAllStories(true)}
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}
                                         >
-                                            <span>{filteredNews.length - 8} more stories available</span>
+                                            <span>{remainingStories.length} more stories available</span>
                                             <ChevronDown size={16} />
                                         </motion.button>
                                     )}
@@ -1047,7 +1122,7 @@ export default function NewsHub() {
 
                                 {/* Additional Stories (shown when expanded) */}
                                 <AnimatePresence>
-                                    {filteredNews.length > 8 && showAllStories && (
+                                    {remainingStories.length > 0 && showAllStories && (
                                         <motion.section
                                             className="more-section"
                                             initial={{ opacity: 0, height: 0 }}
@@ -1065,7 +1140,7 @@ export default function NewsHub() {
                                                 </button>
                                             </h2>
                                             <div className="news-list">
-                                                {filteredNews.slice(8).map((article) => (
+                                                {remainingStories.map((article) => (
                                                     <motion.div
                                                         key={article.id}
                                                         className="news-list-item"
