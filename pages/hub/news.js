@@ -23,7 +23,7 @@ import {
     Zap, Play, Mail, Check, Flame, MapPin, ExternalLink, Loader,
     Bookmark, BookmarkCheck, Share2, Twitter, Facebook, LinkIcon,
     Moon, Sun, Lock, Target, CheckCircle, ChevronDown, Video,
-    Newspaper, Globe, RefreshCw, ChevronRight
+    Newspaper, Globe, RefreshCw, ChevronRight, Film
 } from 'lucide-react';
 
 import PageTransition from '../../src/components/transitions/PageTransition';
@@ -503,6 +503,124 @@ function VideoCard({ video, onClick }) {
     );
 }
 
+// Reel Card Component - Vertical Video for YouTube Shorts
+function ReelCard({ reel, onClick }) {
+    const openReel = () => {
+        if (reel.youtube_id) {
+            window.open(`https://www.youtube.com/shorts/${reel.youtube_id}`, '_blank');
+        }
+    };
+
+    return (
+        <motion.div
+            className="reel-card"
+            whileHover={{ scale: 1.05 }}
+            onClick={openReel}
+        >
+            <div className="reel-thumbnail">
+                <img src={reel.thumbnail_url} alt={reel.title} loading="lazy" />
+                <div className="reel-overlay">
+                    <Play size={32} fill="#fff" />
+                </div>
+                <div className="reel-channel">{reel.channel_name}</div>
+            </div>
+            <div className="reel-info">
+                <h4>{reel.title}</h4>
+                <div className="reel-meta">
+                    <span>{formatViews(reel.view_count || 0)} views</span>
+                </div>
+            </div>
+
+            <style jsx>{`
+                .reel-card {
+                    background: rgba(255, 255, 255, 0.03);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    border-radius: 12px;
+                    overflow: hidden;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                }
+
+                .reel-card:hover {
+                    border-color: rgba(236, 72, 153, 0.4);
+                    box-shadow: 0 4px 20px rgba(236, 72, 153, 0.15);
+                }
+
+                .reel-thumbnail {
+                    position: relative;
+                    aspect-ratio: 9/16;
+                    overflow: hidden;
+                    max-height: 280px;
+                }
+
+                .reel-thumbnail img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    transition: transform 0.3s;
+                }
+
+                .reel-card:hover .reel-thumbnail img {
+                    transform: scale(1.05);
+                }
+
+                .reel-overlay {
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(0, 0, 0, 0.3);
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                }
+
+                .reel-card:hover .reel-overlay {
+                    opacity: 1;
+                }
+
+                .reel-channel {
+                    position: absolute;
+                    bottom: 8px;
+                    left: 8px;
+                    right: 8px;
+                    padding: 4px 8px;
+                    background: rgba(0, 0, 0, 0.75);
+                    backdrop-filter: blur(4px);
+                    border-radius: 6px;
+                    font-size: 10px;
+                    font-weight: 600;
+                    color: #fff;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                .reel-info {
+                    padding: 10px;
+                }
+
+                .reel-info h4 {
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #fff;
+                    margin-bottom: 4px;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                    line-height: 1.3;
+                }
+
+                .reel-meta {
+                    font-size: 10px;
+                    color: rgba(255, 255, 255, 0.5);
+                }
+            `}</style>
+        </motion.div>
+    );
+}
+
 // MSPT Dedicated News Box Component - Major Fixture
 // MSPT Box - Same size as news boxes with MSPT branding
 function MSPTBox({ msptNews, onOpenMSPT }) {
@@ -642,6 +760,7 @@ export default function NewsHub() {
     // Core State
     const [news, setNews] = useState([]);
     const [videos, setVideos] = useState([]);
+    const [reels, setReels] = useState([]);
     const [leaderboard, setLeaderboard] = useState([]);
     const [events, setEvents] = useState([]);
     const [msptNews, setMsptNews] = useState(FALLBACK_MSPT);
@@ -740,6 +859,7 @@ export default function NewsHub() {
         await Promise.all([
             fetchNews(),
             fetchVideos(),
+            fetchReels(),
             fetchLeaderboard(),
             fetchEvents(),
             fetchMSPTNews()
@@ -781,6 +901,16 @@ export default function NewsHub() {
             setVideos(success && data?.length ? data : FALLBACK_VIDEOS);
         } catch (e) {
             setVideos(FALLBACK_VIDEOS);
+        }
+    };
+
+    const fetchReels = async () => {
+        try {
+            const res = await fetch('/api/news/reels?limit=20&sort=recent');
+            const { success, data } = await res.json();
+            setReels(success && data?.length ? data : []);
+        } catch (e) {
+            setReels([]);
         }
     };
 
@@ -955,6 +1085,12 @@ export default function NewsHub() {
                                 onClick={() => setActiveSection('videos')}
                             >
                                 <Video size={16} /> Latest Videos
+                            </button>
+                            <button
+                                className={`section-tab ${activeSection === 'reels' ? 'active' : ''}`}
+                                onClick={() => setActiveSection('reels')}
+                            >
+                                <Film size={16} /> Reels
                             </button>
                         </div>
                     </div>
@@ -1246,7 +1382,7 @@ export default function NewsHub() {
                                     )}
                                 </AnimatePresence>
                             </>
-                        ) : (
+                        ) : activeSection === 'videos' ? (
                             /* Videos Section */
                             <section className="videos-section">
                                 <h2 className="section-title">
@@ -1269,6 +1405,32 @@ export default function NewsHub() {
                                 <Link href="/hub/video-library" className="see-all-videos">
                                     View Full Video Library <ExternalLink size={14} />
                                 </Link>
+                            </section>
+                        ) : (
+                            /* Reels Section */
+                            <section className="reels-section">
+                                <h2 className="section-title">
+                                    <Film size={18} /> Poker Reels
+                                </h2>
+                                <p className="section-desc">
+                                    Short-form poker content from top YouTube channels - updated daily
+                                </p>
+
+                                {reels.length === 0 ? (
+                                    <div className="no-results">
+                                        <Film size={48} />
+                                        <p>No reels available yet. Check back soon!</p>
+                                    </div>
+                                ) : (
+                                    <div className="reels-grid">
+                                        {reels.map(reel => (
+                                            <ReelCard
+                                                key={reel.id || reel.youtube_id}
+                                                reel={reel}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
                             </section>
                         )}
                     </main>
@@ -1820,6 +1982,17 @@ export default function NewsHub() {
 
                     .see-all-videos:hover {
                         background: rgba(255, 0, 0, 0.2);
+                    }
+
+                    /* Reels Section */
+                    .reels-section {
+                        padding-bottom: 24px;
+                    }
+
+                    .reels-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                        gap: 16px;
                     }
 
                     /* Sidebar */
