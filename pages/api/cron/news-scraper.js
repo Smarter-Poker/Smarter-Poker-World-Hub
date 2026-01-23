@@ -82,6 +82,15 @@ const CONFIG = {
     TITLE_SIMILARITY_THRESHOLD: 0.7 // Fuzzy matching threshold
 };
 
+// Default category images - EVERY article MUST have an image
+const DEFAULT_CATEGORY_IMAGES = {
+    tournament: 'https://images.unsplash.com/photo-1609743522653-52354461eb27?w=600&q=80', // Poker chips/tournament
+    strategy: 'https://images.unsplash.com/photo-1529074963764-98f45c47344b?w=600&q=80', // Cards strategy
+    industry: 'https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=600&q=80', // Casino floor
+    news: 'https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=600&q=80', // Poker table
+    online: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=600&q=80' // Computer/online gaming
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // NEWS SOURCES - RSS Feeds
 // ═══════════════════════════════════════════════════════════════════════════
@@ -284,6 +293,17 @@ function extractImage(item) {
 }
 
 /**
+ * Get image for article - ALWAYS returns an image (uses default if none found)
+ */
+function getArticleImage(item, category) {
+    const extractedImage = extractImage(item);
+    if (extractedImage) return extractedImage;
+
+    // Return category-specific default image
+    return DEFAULT_CATEGORY_IMAGES[category] || DEFAULT_CATEGORY_IMAGES.news;
+}
+
+/**
  * Categorize article based on title/content
  */
 function categorizeArticle(title, content = '') {
@@ -394,6 +414,7 @@ async function fetchNewsFromRSS() {
 
             const articles = (feed.items || []).slice(0, 10).map(item => {
                 const summary = cleanHtml(item.contentSnippet || item.content || item.description || '');
+                const category = source.category || categorizeArticle(item.title, summary);
 
                 return {
                     title: cleanHtml(item.title || ''),
@@ -403,8 +424,8 @@ async function fetchNewsFromRSS() {
                     icon: source.icon,
                     priority: source.priority,
                     summary: summary.slice(0, CONFIG.MAX_SUMMARY_LENGTH),
-                    category: source.category || categorizeArticle(item.title, summary),
-                    imageUrl: extractImage(item),
+                    category: category,
+                    imageUrl: getArticleImage(item, category), // ALWAYS has an image
                     slug: generateSlug(item.title || '')
                 };
             });
@@ -471,6 +492,7 @@ async function fetchVideosFromYouTube() {
 
 /**
  * Save article to poker_news table
+ * REQUIRES image_url - will use category default if not provided
  */
 async function saveArticle(article) {
     // Generate slug from title
@@ -480,6 +502,9 @@ async function saveArticle(article) {
         .replace(/(^-|-$)/g, '')
         .slice(0, 100);
 
+    // Ensure image is ALWAYS present
+    const imageUrl = article.imageUrl || DEFAULT_CATEGORY_IMAGES[article.category] || DEFAULT_CATEGORY_IMAGES.news;
+
     const { data, error } = await supabase
         .from('poker_news')
         .insert({
@@ -487,7 +512,7 @@ async function saveArticle(article) {
             slug: `${slug}-${Date.now()}`,
             content: article.summary || '',
             excerpt: article.summary ? article.summary.slice(0, 150) : '',
-            image_url: article.imageUrl,
+            image_url: imageUrl, // ALWAYS has an image
             category: article.category,
             source_url: article.link,
             source_name: article.source || 'Smarter.Poker',
