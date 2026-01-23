@@ -58,6 +58,7 @@ export default function ReelsPage() {
         setLoading(true);
         try {
             // Query video posts from social_posts - this is where horses post clips
+            // NOTE: Not joining profiles directly due to schema cache issue
             const { data, error } = await supabase
                 .from('social_posts')
                 .select(`
@@ -70,8 +71,7 @@ export default function ReelsPage() {
                     comment_count,
                     share_count,
                     metadata,
-                    created_at,
-                    profiles:author_id (id, username, avatar_url, full_name)
+                    created_at
                 `)
                 .eq('content_type', 'video')
                 .eq('visibility', 'public')
@@ -80,7 +80,19 @@ export default function ReelsPage() {
 
             if (error) {
                 console.error('Load reels error:', error);
-            } else if (data) {
+            } else if (data && data.length > 0) {
+                // Get unique author IDs
+                const authorIds = [...new Set(data.map(p => p.author_id))];
+
+                // Fetch profiles separately
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url, full_name')
+                    .in('id', authorIds);
+
+                const profileMap = {};
+                (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
                 // Map social_posts fields to reels format
                 const mappedReels = data
                     .filter(post => post.media_urls && post.media_urls.length > 0)
@@ -95,7 +107,7 @@ export default function ReelsPage() {
                         comment_count: post.comment_count || 0,
                         share_count: post.share_count || 0,
                         created_at: post.created_at,
-                        profiles: post.profiles,
+                        profiles: profileMap[post.author_id] || { username: 'Anonymous', full_name: 'Anonymous User' },
                         source: post.metadata?.source || 'unknown'
                     }));
 
