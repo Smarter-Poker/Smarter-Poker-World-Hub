@@ -24,7 +24,7 @@ import {
     Zap, Play, Mail, Check, Flame, MapPin, ExternalLink, Loader,
     Bookmark, BookmarkCheck, Share2, Twitter, Facebook, LinkIcon,
     Moon, Sun, Lock, Target, CheckCircle, ChevronDown, Video,
-    Newspaper, Globe, RefreshCw, Bell, ChevronRight
+    Newspaper, Globe, RefreshCw, ChevronRight
 } from 'lucide-react';
 
 import PageTransition from '../../src/components/transitions/PageTransition';
@@ -452,234 +452,67 @@ function VideoCard({ video, onClick }) {
 }
 
 // MSPT Dedicated News Box Component - Major Fixture
+// MSPT Box - Same size as news boxes with MSPT branding
 function MSPTBox({ msptNews, onOpenMSPT }) {
+    const featured = msptNews[0];
+
     return (
         <motion.div
-            className="mspt-major-box"
+            className="news-box mspt-box"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
             whileHover={{ scale: 1.02, y: -4 }}
+            onClick={() => featured && onOpenMSPT(featured)}
         >
-            {/* Header */}
-            <div className="mspt-header">
-                <div className="mspt-logo">
-                    <span className="mspt-icon">🎰</span>
-                    <span className="mspt-title">MSPT NEWS</span>
-                </div>
-                <span className="mspt-badge">LIVE UPDATES</span>
+            {/* Image */}
+            <div className="box-image">
+                <img
+                    src={featured?.image_url || "https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400&q=80"}
+                    alt="MSPT News"
+                    loading="lazy"
+                />
+                <div className="box-overlay" />
             </div>
 
-            {/* Featured Story */}
-            {msptNews[0] && (
-                <div className="mspt-featured" onClick={() => onOpenMSPT(msptNews[0])}>
-                    <div className="mspt-featured-content">
-                        <h3>{msptNews[0].title}</h3>
-                        <div className="mspt-featured-meta">
-                            {msptNews[0].prize_pool && (
-                                <span className="prize">{msptNews[0].prize_pool}</span>
-                            )}
-                            <span className="time">{timeAgo(msptNews[0].published_at)}</span>
-                        </div>
-                    </div>
+            {/* Content */}
+            <div className="box-content">
+                {/* MSPT Badge */}
+                <div className="box-category mspt-category">
+                    <span>🎰</span>
+                    <span>MSPT</span>
                 </div>
-            )}
 
-            {/* More Stories */}
-            <div className="mspt-stories">
-                {msptNews.slice(1, 4).map((item, i) => (
-                    <div key={item.id} className="mspt-story" onClick={() => onOpenMSPT(item)}>
-                        <span className="story-num">{i + 2}</span>
-                        <div className="story-content">
-                            <p>{item.title}</p>
-                            <span className="story-time">{timeAgo(item.published_at)}</span>
-                        </div>
-                    </div>
-                ))}
+                {/* Title */}
+                <h3 className="box-title">{featured?.title || "MSPT News & Updates"}</h3>
+
+                {/* Description */}
+                <p className="box-excerpt">
+                    {featured?.prize_pool ? `${featured.prize_pool} - ` : ''}
+                    Latest updates from Mid-States Poker Tour events and tournaments.
+                </p>
+
+                {/* Meta */}
+                <div className="box-meta">
+                    <span className="source">MSPT</span>
+                    <span className="separator">•</span>
+                    <span className="time">{featured ? timeAgo(featured.published_at) : 'Live'}</span>
+                </div>
             </div>
-
-            {/* Footer Link */}
-            <a
-                href="https://msptpoker.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mspt-footer"
-            >
-                View All MSPT Coverage <ExternalLink size={12} />
-            </a>
 
             <style jsx>{`
-                .mspt-major-box {
-                    position: relative;
-                    background: linear-gradient(145deg, rgba(185, 28, 28, 0.2), rgba(15, 15, 25, 0.95));
-                    border: 2px solid rgba(220, 38, 38, 0.5);
-                    border-radius: 16px;
-                    overflow: hidden;
-                    display: flex;
-                    flex-direction: column;
+                .mspt-box {
+                    border: 1px solid rgba(220, 38, 38, 0.4) !important;
                 }
 
-                .mspt-major-box:hover {
-                    border-color: rgba(220, 38, 38, 0.8);
-                    box-shadow: 0 8px 32px rgba(220, 38, 38, 0.25);
+                .mspt-box:hover {
+                    border-color: rgba(220, 38, 38, 0.7) !important;
+                    box-shadow: 0 8px 32px rgba(220, 38, 38, 0.2) !important;
                 }
 
-                .mspt-header {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    padding: 12px 14px;
-                    background: linear-gradient(135deg, #dc2626, #991b1b);
-                }
-
-                .mspt-logo {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                }
-
-                .mspt-icon {
-                    font-size: 18px;
-                }
-
-                .mspt-title {
-                    font-size: 14px;
-                    font-weight: 800;
-                    color: #fff;
-                    letter-spacing: 1px;
-                }
-
-                .mspt-badge {
-                    padding: 3px 8px;
-                    background: rgba(255, 255, 255, 0.2);
-                    border-radius: 4px;
-                    font-size: 9px;
-                    font-weight: 700;
-                    color: #fff;
-                    letter-spacing: 0.5px;
-                    animation: pulse 2s infinite;
-                }
-
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.6; }
-                }
-
-                .mspt-featured {
-                    padding: 14px;
-                    background: rgba(220, 38, 38, 0.1);
-                    cursor: pointer;
-                    transition: background 0.2s;
-                }
-
-                .mspt-featured:hover {
-                    background: rgba(220, 38, 38, 0.2);
-                }
-
-                .mspt-featured h3 {
-                    font-size: 15px;
-                    font-weight: 700;
-                    color: #fff;
-                    line-height: 1.4;
-                    margin-bottom: 8px;
-                }
-
-                .mspt-featured-meta {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    font-size: 11px;
-                }
-
-                .mspt-featured-meta .prize {
-                    padding: 3px 8px;
-                    background: linear-gradient(135deg, #fbbf24, #d97706);
-                    border-radius: 4px;
-                    font-weight: 700;
-                    color: #000;
-                }
-
-                .mspt-featured-meta .time {
-                    color: rgba(255, 255, 255, 0.5);
-                }
-
-                .mspt-stories {
-                    padding: 0 14px;
-                    flex: 1;
-                }
-
-                .mspt-story {
-                    display: flex;
-                    align-items: flex-start;
-                    gap: 10px;
-                    padding: 10px 0;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .mspt-story:hover {
-                    background: rgba(220, 38, 38, 0.1);
-                    margin: 0 -14px;
-                    padding: 10px 14px;
-                }
-
-                .mspt-story:last-child {
-                    border-bottom: none;
-                }
-
-                .story-num {
-                    width: 20px;
-                    height: 20px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: rgba(220, 38, 38, 0.3);
-                    border-radius: 4px;
-                    font-size: 10px;
-                    font-weight: 700;
-                    color: #f87171;
-                    flex-shrink: 0;
-                }
-
-                .story-content {
-                    flex: 1;
-                }
-
-                .story-content p {
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.8);
-                    line-height: 1.4;
-                    margin-bottom: 4px;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 2;
-                    -webkit-box-orient: vertical;
-                    overflow: hidden;
-                }
-
-                .story-time {
-                    font-size: 10px;
-                    color: rgba(255, 255, 255, 0.4);
-                }
-
-                .mspt-footer {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 6px;
-                    padding: 12px;
-                    background: rgba(220, 38, 38, 0.15);
-                    border-top: 1px solid rgba(220, 38, 38, 0.2);
-                    color: #f87171;
-                    font-size: 12px;
-                    font-weight: 600;
-                    text-decoration: none;
-                    transition: all 0.2s;
-                }
-
-                .mspt-footer:hover {
-                    background: rgba(220, 38, 38, 0.25);
-                    color: #fca5a5;
+                .mspt-category {
+                    background: rgba(220, 38, 38, 0.2) !important;
+                    color: #f87171 !important;
                 }
             `}</style>
         </motion.div>
@@ -1093,28 +926,7 @@ export default function NewsHub() {
                     <main className="main-content">
                         {activeSection === 'news' ? (
                             <>
-                                {/* Breaking News Ticker */}
-                                {filteredNews.length > 0 && (
-                                    <div className="breaking-ticker">
-                                        <span className="ticker-label"><Bell size={12} /> BREAKING</span>
-                                        <div className="ticker-content">
-                                            <motion.div
-                                                className="ticker-scroll"
-                                                animate={{ x: [0, -1000] }}
-                                                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                                            >
-                                                {filteredNews.slice(0, 5).map((article, i) => (
-                                                    <span key={article.id} className="ticker-item" onClick={() => openArticle(article)}>
-                                                        {article.title}
-                                                        {i < 4 && <span className="ticker-sep">•</span>}
-                                                    </span>
-                                                ))}
-                                            </motion.div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* News Grid - 8+ Boxes */}
+                                {/* News Grid - 8 Boxes */}
                                 <section className="news-section">
                                     <h2 className="section-title">
                                         <Flame size={18} /> Today's Top Stories
@@ -1573,59 +1385,6 @@ export default function NewsHub() {
                         .sidebar {
                             display: none;
                         }
-                    }
-
-                    /* Breaking Ticker */
-                    .breaking-ticker {
-                        display: flex;
-                        align-items: center;
-                        gap: 12px;
-                        padding: 10px 16px;
-                        background: linear-gradient(90deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
-                        border: 1px solid rgba(239, 68, 68, 0.3);
-                        border-radius: 10px;
-                        margin-bottom: 20px;
-                        overflow: hidden;
-                    }
-
-                    .ticker-label {
-                        display: flex;
-                        align-items: center;
-                        gap: 4px;
-                        padding: 4px 10px;
-                        background: #ef4444;
-                        border-radius: 4px;
-                        font-size: 10px;
-                        font-weight: 700;
-                        color: #fff;
-                        text-transform: uppercase;
-                        white-space: nowrap;
-                    }
-
-                    .ticker-content {
-                        flex: 1;
-                        overflow: hidden;
-                    }
-
-                    .ticker-scroll {
-                        display: flex;
-                        gap: 24px;
-                        white-space: nowrap;
-                    }
-
-                    .ticker-item {
-                        font-size: 13px;
-                        color: rgba(255, 255, 255, 0.8);
-                        cursor: pointer;
-                    }
-
-                    .ticker-item:hover {
-                        color: #00d4ff;
-                    }
-
-                    .ticker-sep {
-                        margin-left: 24px;
-                        color: rgba(255, 255, 255, 0.3);
                     }
 
                     /* News Section */
