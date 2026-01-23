@@ -150,11 +150,11 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                 color="#ffffff"
                 anchorX="center"
                 anchorY="top"
-                font="/fonts/Orbitron-Bold.ttf"
                 outlineWidth={0.003}
                 outlineColor="#00d4ff"
+                letterSpacing={0.05}
             >
-                {label}
+                {label.toUpperCase()}
             </Text>
         </group>
     );
