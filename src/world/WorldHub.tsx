@@ -88,11 +88,9 @@ const HOLO_EDGE_COLORS = [
 ];
 
 function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) {
-    const [edgeOpacity, setEdgeOpacity] = useState(0.3);
-    const [floatY, setFloatY] = useState(0);
     const [hasAnimatedIn, setHasAnimatedIn] = useState(false);
 
-    // Intro animation - stagger each card (faster timing)
+    // Intro animation only - no continuous floating (footer cards are static)
     useEffect(() => {
         if (isIntroComplete && !hasAnimatedIn) {
             const delay = 200 + index * 80; // Faster: 200ms base + 80ms stagger
@@ -104,45 +102,8 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
     // Each card gets a unique edge glow color
     const edgeColor = useMemo(() => HOLO_EDGE_COLORS[index % HOLO_EDGE_COLORS.length], [index]);
 
-    // Animation parameters unique to each card - truly independent
-    const animParams = useMemo(() => ({
-        floatSpeed: 0.25 + (index * 0.08) + Math.random() * 0.15,
-        floatAmplitude: 2 + Math.random() * 3,
-        phase: (index * 1.2) + Math.random() * Math.PI * 2,
-        pulseSpeed: 0.6 + Math.random() * 0.5,
-    }), [index]);
-
-    // Holographic animations with 3D floating rotation
-    const [rotateX, setRotateX] = useState(0);
-    const [rotateY, setRotateY] = useState(0);
-
-    useEffect(() => {
-        let animFrame: number;
-        const startTime = Date.now();
-
-        const animate = () => {
-            const elapsed = (Date.now() - startTime) / 1000;
-
-            // Gentle floating motion
-            const float = Math.sin(elapsed * animParams.floatSpeed + animParams.phase) * animParams.floatAmplitude;
-            setFloatY(float);
-
-            // 3D rotation oscillation - card gently rotates showing edges
-            const rotX = Math.sin(elapsed * 0.4 + animParams.phase) * 8 + 10; // 2-18 degrees (always slightly tilted back)
-            const rotY = Math.sin(elapsed * 0.35 + animParams.phase * 1.3) * 6; // -6 to +6 degrees left/right
-            setRotateX(rotX);
-            setRotateY(rotY);
-
-            // Pulsing edge glow
-            const pulse = (Math.sin(elapsed * animParams.pulseSpeed) + 1) / 2;
-            setEdgeOpacity(0.3 + pulse * 0.4);
-
-            animFrame = requestAnimationFrame(animate);
-        };
-
-        animate();
-        return () => cancelAnimationFrame(animFrame);
-    }, [animParams]);
+    // Static values - footer cards do NOT float (only main carousel floats)
+    const edgeOpacity = 0.5;
 
     return (
         <div
@@ -152,7 +113,7 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                 alignItems: 'center',
                 cursor: 'pointer',
                 transform: hasAnimatedIn
-                    ? `translateY(${floatY}px) perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1)`
+                    ? `translateY(0px) perspective(800px) rotateX(8deg) rotateY(0deg) scale(1)`
                     : `translateY(150px) perspective(800px) rotateX(-20deg) scale(0.5)`,
                 opacity: hasAnimatedIn ? 1 : 0,
                 flex: 1,
@@ -163,10 +124,10 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
             onClick={() => onSelect(orb.id)}
             title={orb.label}
             onMouseEnter={(e) => {
-                e.currentTarget.style.transform = `translateY(${floatY - 12}px) perspective(800px) rotateX(5deg) rotateY(0deg) scale(1.15)`;
+                e.currentTarget.style.transform = `translateY(-8px) perspective(800px) rotateX(5deg) rotateY(0deg) scale(1.1)`;
             }}
             onMouseLeave={(e) => {
-                e.currentTarget.style.transform = `translateY(${floatY}px) perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1)`;
+                e.currentTarget.style.transform = `translateY(0px) perspective(800px) rotateX(8deg) rotateY(0deg) scale(1)`;
             }}
         >
             {/* Holographic pedestal glow */}
@@ -221,27 +182,36 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                         boxShadow: `0 0 20px rgba(0, 180, 255, 0.3), 0 20px 40px rgba(0, 0, 0, 0.5)`,
                     }}
                 >
-                    {/* Card image - Static for footer cards */}
+                    {/* Card image - Static for footer cards (marketplace fills edge-to-edge) */}
                     <div
                         style={{
+                            position: 'absolute',
+                            top: orb.id === 'marketplace' ? 0 : 0,
+                            left: orb.id === 'marketplace' ? 0 : 0,
+                            right: orb.id === 'marketplace' ? 0 : 0,
+                            bottom: orb.id === 'marketplace' ? 0 : 0,
                             width: '100%',
                             height: '100%',
                             backgroundImage: orb.imageUrl
                                 ? `url('${orb.imageUrl}')`
                                 : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                            backgroundSize: 'cover',
+                            backgroundSize: orb.id === 'marketplace' ? '100% 100%' : 'cover',
                             backgroundPosition: 'center',
-                            borderRadius: 6,
+                            borderRadius: orb.id === 'marketplace' ? 6 : 6,
                         }}
                     />
 
                     {/* ═══════════════════════════════════════════════════════════════
-                        INNER WHITE BORDER FRAME - Clean sharp line (matching mockup)
+                        INNER WHITE BORDER FRAME - Hidden for marketplace (full image), shown for others
                         ═══════════════════════════════════════════════════════════════ */}
-                    <div style={{ position: 'absolute', top: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
-                    <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
-                    <div style={{ position: 'absolute', top: 8, bottom: 8, left: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
-                    <div style={{ position: 'absolute', top: 8, bottom: 8, right: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                    {orb.id !== 'marketplace' && (
+                        <>
+                            <div style={{ position: 'absolute', top: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                            <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                            <div style={{ position: 'absolute', top: 8, bottom: 8, left: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                            <div style={{ position: 'absolute', top: 8, bottom: 8, right: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -269,29 +239,7 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                 {orb.label}
             </div>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                CARD DESCRIPTION - Neon glow positioned BELOW the card (2 lines)
-                ═══════════════════════════════════════════════════════════════ */}
-            {orb.description && (
-                <div
-                    style={{
-                        marginTop: 6,
-                        fontSize: 8,
-                        fontWeight: 600,
-                        color: '#ffffff',
-                        textAlign: 'center',
-                        letterSpacing: 0.3,
-                        lineHeight: 1.4,
-                        textShadow: '0 0 8px rgba(0, 212, 255, 0.5), 0 0 4px rgba(0, 212, 255, 0.3)',
-                        whiteSpace: 'normal',
-                        wordWrap: 'break-word',
-                        maxWidth: '100%',
-                        padding: '0 2px',
-                    }}
-                >
-                    {orb.description}
-                </div>
-            )}
+            {/* Card descriptions removed for cleaner look */}
         </div>
     );
 }

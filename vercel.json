@@ -16,6 +16,30 @@
     {
       "path": "/api/cron/youtube-shorts",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/horses-social-likes",
+      "schedule": "5 */2 * * *"
+    },
+    {
+      "path": "/api/cron/horses-social-comments",
+      "schedule": "35 */3 * * *"
+    },
+    {
+      "path": "/api/cron/horses-social-friends",
+      "schedule": "15 */6 * * *"
+    },
+    {
+      "path": "/api/cron/horses-social-replies",
+      "schedule": "45 */4 * * *"
+    },
+    {
+      "path": "/api/cron/horses-clips",
+      "schedule": "10 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-memes",
+      "schedule": "40 */2 * * *"
     }
   ]
 }

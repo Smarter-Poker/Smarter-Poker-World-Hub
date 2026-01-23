@@ -44,14 +44,14 @@ const SEAT_POSITIONS = {
     seat3: { left: '8%', top: '28%' },
     // Top left - Villain 4 (wolf)
     seat4: { left: '28%', top: '8%', transform: 'translateX(-50%)' },
-    // Top right - Villain 5 (spartan)
+    // Top right - Villain 5 (spartan) - Using left position
     seat5: { left: '72%', top: '8%', transform: 'translateX(-50%)' },
-    // Upper right - Villain 6 (pharaoh)
-    seat6: { right: '8%', top: '28%' },
-    // Middle right - Villain 7 (pirate)
-    seat7: { right: '3%', top: '50%', transform: 'translateY(-50%)' },
-    // Bottom right - Villain 8 (cowboy)
-    seat8: { right: '15%', bottom: '22%', transform: 'translateX(50%)' },
+    // Upper right - Villain 6 (pharaoh) - Convert right:8% → left:~82%
+    seat6: { left: '82%', top: '28%' },
+    // Middle right - Villain 7 (pirate) - Convert right:3% → left:~87%
+    seat7: { left: '87%', top: '50%', transform: 'translateY(-50%)' },
+    // Bottom right - Villain 8 (cowboy) - Convert right:15% → left:~75%
+    seat8: { left: '75%', bottom: '22%' },
 };
 
 const SUITS = {
@@ -204,7 +204,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
     }, [dragging, dragStart]);
 
     return (
-        <div className="player-seat" style={{ position: 'absolute', zIndex: 10000, pointerEvents: 'all', ...initialPosition }}>
+        <div className="player-seat" style={{ position: 'absolute', zIndex: 10000, pointerEvents: 'all', overflow: 'visible', minWidth: '100px', ...initialPosition }}>
             {/* Avatar - Draggable */}
             <img
                 src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=256&q=90`}
@@ -236,6 +236,9 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
                     cursor: 'grab',
                     userSelect: 'none',
                     pointerEvents: 'all',
+                    width: 'auto',
+                    minWidth: '82px',
+                    whiteSpace: 'nowrap',
                 }}
             >
                 <span className="player-name">{name}</span>

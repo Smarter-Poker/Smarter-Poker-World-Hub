@@ -39,10 +39,10 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 
 const CONFIG = {
-    HORSES_PER_TRIGGER: 3,
+    HORSES_PER_TRIGGER: 2,  // Smaller batches = more frequent posts throughout day
     VIDEO_CLIP_PROBABILITY: 0.90,  // LAW: 90% video clips
-    MAX_CLIPS_PER_DAY: 50,
-    CLIP_COOLDOWN_HOURS: 48  // Don't repost same clip within 48 hours
+    MAX_CLIPS_PER_DAY: 100,
+    CLIP_COOLDOWN_HOURS: 0  // No cooldown - just stagger posting times
 };
 
 // Track clips used in this session to prevent duplicates within same cron run
@@ -83,7 +83,7 @@ async function getRecentlyPostedClipIds() {
 
 /**
  * Post a video clip for a Horse
- * Simplified version that matches working debug endpoint
+ * Now with proper deduplication to avoid posting same clips
  */
 async function postVideoClip(horse, recentlyUsedClips = new Set()) {
     console.log(`🎬 ${horse.name}: Posting video clip...`);
@@ -95,14 +95,31 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             return null;
         }
 
-        // Get a random clip from the library
-        const clip = getRandomClip();
+        // Get a random clip that hasn't been used recently
+        let clip = null;
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        while (!clip && attempts < maxAttempts) {
+            const candidate = getRandomClip();
+            if (!candidate) break;
+
+            // Check if this clip was recently used (database check) or used this session
+            if (!recentlyUsedClips.has(candidate.id) && !usedClipsThisSession.has(candidate.id)) {
+                clip = candidate;
+                usedClipsThisSession.add(candidate.id);
+            } else {
+                console.log(`   Skipping ${candidate.id} (already used)`);
+            }
+            attempts++;
+        }
+
         if (!clip) {
-            console.error(`   No clips available`);
+            console.error(`   No fresh clips available after ${attempts} attempts`);
             return null;
         }
 
-        console.log(`   Selected clip: ${clip.id}`);
+        console.log(`   Selected clip: ${clip.id} (attempt ${attempts})`);
 
         // Generate caption using template
         const templateCaption = getRandomCaption ? getRandomCaption(clip.category || 'funny') : 'Check out this hand! 🔥';

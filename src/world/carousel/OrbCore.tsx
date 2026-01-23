@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { TextureLoader } from 'three';
 
 interface OrbCoreProps {
+    id?: string;
     color: string;
     label: string;
     gradient?: [string, string];
@@ -30,8 +31,9 @@ const HOLO_COLORS = [
     '#ffffff', // Pure White
 ];
 
-export function OrbCore({ color, label, gradient, active, imageUrl, description }: OrbCoreProps) {
+export function OrbCore({ id, color, label, gradient, active, imageUrl, description }: OrbCoreProps) {
     const groupRef = useRef<THREE.Group>(null);
+    const isMarketplace = id === 'marketplace';
 
     // Random holographic parameters for each card - truly independent floating
     const holoParams = useMemo(() => ({
@@ -72,11 +74,10 @@ export function OrbCore({ color, label, gradient, active, imageUrl, description 
     return (
         <group ref={groupRef}>
             {/* ═══════════════════════════════════════════════════════════════
-                CARD CONTENT AREA - Custom image fills to white inner border
-                Inset matches the white border frame (0.05 from each edge)
+                CARD CONTENT AREA - Marketplace fills full frame, others have inset
                 ═══════════════════════════════════════════════════════════════ */}
             <mesh position={[0, 0, 0.03]}>
-                <planeGeometry args={[cardWidth - 0.10, cardHeight - 0.10]} />
+                <planeGeometry args={isMarketplace ? [cardWidth, cardHeight] : [cardWidth - 0.10, cardHeight - 0.10]} />
                 {texture ? (
                     <meshBasicMaterial map={texture} />
                 ) : (
@@ -113,10 +114,9 @@ export function OrbCore({ color, label, gradient, active, imageUrl, description 
             </mesh>
 
             {/* ═══════════════════════════════════════════════════════════════
-                INNER WHITE BORDER FRAME - Continuous line rectangle
-                Using drei's Line for a proper connected rectangle with no gaps
+                INNER WHITE BORDER FRAME - Hidden for marketplace (full image)
                 ═══════════════════════════════════════════════════════════════ */}
-            {(() => {
+            {!isMarketplace && (() => {
                 const inset = 0.05;
                 const left = -(cardWidth / 2) + inset;
                 const right = (cardWidth / 2) - inset;
