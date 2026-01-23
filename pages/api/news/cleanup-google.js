@@ -9,11 +9,11 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 export default async function handler(req, res) {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Delete articles from Google News sources
+    // Delete articles from Google News sources (by source_name)
     const { data, error } = await supabase
         .from('poker_news')
         .delete()
-        .ilike('source_url', '%news.google.com%')
+        .ilike('source_name', '%Google News%')
         .select('id');
 
     if (error) {
