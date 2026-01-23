@@ -1,18 +1,21 @@
 /**
- * Training Arena Page — Golden Template (Full Screen)
- * ====================================================
- * Fixed avatar positioning using Aspect Ratio Container strategy.
- * All avatars positioned relative to a 3:4 aspect wrapper that
- * exactly matches the table image bounds.
+ * Training Arena Page — Golden Template (Locked Scale)
+ * =====================================================
+ * Design Canvas: 862 × 1024 px
+ * Scaling: Uniform proportional scale based on viewport
+ * Everything scales together — header, table, buttons, ALL of it.
  *
  * Route: /hub/training/arena/[gameId]?level=X&session=Y
  */
 
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
-import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import { supabase } from '../../../../src/lib/supabase';
+
+// Design canvas dimensions (locked)
+const DESIGN_WIDTH = 862;
+const DESIGN_HEIGHT = 1024;
 
 // Villain avatars in seat order (1-8)
 const VILLAIN_AVATARS = [
@@ -26,17 +29,17 @@ const VILLAIN_AVATARS = [
     '/avatars/free/owl.png',
 ];
 
-// Seat positions - FIXED to stay on table rail
+// Seat positions (percentage-based within the table wrapper)
 const SEAT_POSITIONS = {
-    hero: { left: '50%', bottom: '2%', transform: 'translateX(-50%)' },
-    seat1: { left: '78%', bottom: '20%', transform: 'translateX(-50%)' },
-    seat2: { left: '85%', top: '48%', transform: 'translate(-50%, -50%)' },
-    seat3: { left: '78%', top: '20%', transform: 'translateX(-50%)' },
-    seat4: { left: '62%', top: '6%', transform: 'translateX(-50%)' },
-    seat5: { left: '38%', top: '6%', transform: 'translateX(-50%)' },
-    seat6: { left: '22%', top: '20%', transform: 'translateX(-50%)' },
-    seat7: { left: '15%', top: '48%', transform: 'translate(-50%, -50%)' },
-    seat8: { left: '22%', bottom: '20%', transform: 'translateX(-50%)' },
+    hero: { left: '50%', bottom: '8%', transform: 'translateX(-50%)' },
+    seat1: { right: '8%', bottom: '18%' },
+    seat2: { right: '3%', top: '42%', transform: 'translateY(-50%)' },
+    seat3: { right: '5%', top: '22%' },
+    seat4: { right: '22%', top: '5%' },
+    seat5: { left: '22%', top: '5%' },
+    seat6: { left: '5%', top: '22%' },
+    seat7: { left: '3%', top: '42%', transform: 'translateY(-50%)' },
+    seat8: { left: '8%', bottom: '18%' },
 };
 
 const SUITS = {
@@ -58,40 +61,73 @@ function parseCards(cardString) {
     return cards;
 }
 
-function PlayerSeat({ avatar, name, stack, position, isHero = false }) {
-    const size = isHero ? 75 : 60;
+// ============== COMPONENTS ==============
+
+function ArenaHeader({ diamonds = 0, xp = 0, level = 1, onBack, onSettings }) {
     return (
-        <div style={{ position: 'absolute', ...position, display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 15 }}>
-            <img src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=128&q=75`} alt={name}
-                style={{ width: size, height: size, objectFit: 'contain', filter: 'drop-shadow(2px 3px 5px rgba(0,0,0,0.8))' }} />
-            <div style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 8px',
-                background: 'linear-gradient(180deg, #d4a020 0%, #8b6914 100%)', borderRadius: 4, marginTop: -8, minWidth: 50
-            }}>
-                <span style={{ fontSize: 8, fontWeight: 600, color: '#1a1d24' }}>{name}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#1a1d24' }}>{stack} BB</span>
+        <div className="arena-header">
+            <button className="back-btn" onClick={onBack}>← Back</button>
+            <span className="brand">Smarter.Poker</span>
+            <div className="header-stats">
+                <div className="stat diamond">
+                    <span className="icon">💎</span>
+                    <span>{diamonds}</span>
+                    <button className="plus-btn">+</button>
+                </div>
+                <div className="stat xp">
+                    <span>XP {xp}</span>
+                    <span className="sep">•</span>
+                    <span>LV {level}</span>
+                </div>
+            </div>
+            <div className="header-icons">
+                <div className="icon-circle blue">👤</div>
+                <div className="icon-circle blue">✉️</div>
+                <div className="icon-circle blue">🔔</div>
+                <button className="icon-circle settings" onClick={onSettings}>⚙️</button>
+            </div>
+        </div>
+    );
+}
+
+function PlayerSeat({ avatar, name, stack, position, isHero = false }) {
+    const size = isHero ? 80 : 65;
+    return (
+        <div className="player-seat" style={{ position: 'absolute', ...position }}>
+            <img
+                src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=128&q=75`}
+                alt={name}
+                style={{ width: size, height: size, objectFit: 'contain', filter: 'drop-shadow(2px 3px 5px rgba(0,0,0,0.8))' }}
+            />
+            <div className="player-badge">
+                <span className="player-name">{name}</span>
+                <span className="player-stack">{stack} BB</span>
             </div>
         </div>
     );
 }
 
 function Card({ rank, suit, isRed, size = 'normal' }) {
-    const width = size === 'hero' ? 32 : 28;
-    const height = size === 'hero' ? 46 : 40;
+    const width = size === 'hero' ? 38 : 30;
+    const height = size === 'hero' ? 54 : 42;
     return (
-        <div style={{
-            width, height, borderRadius: 4, background: 'linear-gradient(180deg, #fff 0%, #f0f0f0 100%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
-        }}>
-            <span style={{ fontSize: size === 'hero' ? 16 : 13, fontWeight: 800, color: isRed ? '#dc2626' : '#1a1d24', lineHeight: 1 }}>{rank}</span>
-            <span style={{ fontSize: size === 'hero' ? 12 : 9, color: isRed ? '#dc2626' : '#1a1d24', lineHeight: 1 }}>{suit}</span>
+        <div className="card" style={{ width, height }}>
+            <span className="card-rank" style={{ color: isRed ? '#dc2626' : '#1a1d24' }}>{rank}</span>
+            <span className="card-suit" style={{ color: isRed ? '#dc2626' : '#1a1d24' }}>{suit}</span>
         </div>
     );
 }
 
+// ============== MAIN PAGE ==============
+
 export default function TrainingArenaPage() {
     const router = useRouter();
     const { gameId } = router.query;
+
+    // Scale state
+    const [scale, setScale] = useState(1);
+
+    // Game state
     const [loading, setLoading] = useState(true);
     const [gameName, setGameName] = useState('Training Game');
     const [handNumber, setHandNumber] = useState(1);
@@ -104,44 +140,105 @@ export default function TrainingArenaPage() {
     const [villainStacks] = useState([32, 28, 55, 41, 38, 62, 29, 51]);
     const [question, setQuestion] = useState("You Are On The Button. The Player To Your Right Bets 2.5 BB. What Is Your Best Move?");
 
+    // User stats (would come from auth/context in production)
+    const [userDiamonds] = useState(0);
+    const [userXP] = useState(0);
+    const [userLevel] = useState(1);
 
+    // Calculate scale on mount and resize
+    const calculateScale = useCallback(() => {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const scaleX = vw / DESIGN_WIDTH;
+        const scaleY = vh / DESIGN_HEIGHT;
+        setScale(Math.min(scaleX, scaleY));
+    }, []);
+
+    useEffect(() => {
+        calculateScale();
+        window.addEventListener('resize', calculateScale);
+        return () => window.removeEventListener('resize', calculateScale);
+    }, [calculateScale]);
+
+    // Initialize game data
     useEffect(() => {
         const init = async () => {
             try {
                 if (gameId) {
-                    const { data: game } = await supabase.from('game_registry').select('title').eq('slug', gameId).single();
+                    const { data: game } = await supabase
+                        .from('game_registry')
+                        .select('title')
+                        .eq('slug', gameId)
+                        .single();
                     if (game?.title) setGameName(game.title);
-                    const { data: hand } = await supabase.from('god_mode_questions').select('*').eq('game_slug', gameId).limit(1).single();
+
+                    const { data: hand } = await supabase
+                        .from('god_mode_questions')
+                        .select('*')
+                        .eq('game_slug', gameId)
+                        .limit(1)
+                        .single();
                     if (hand) {
                         setHeroCards(parseCards(hand.hero_hand || 'AhKh'));
                         setBoard(parseCards(hand.board || ''));
                         setPot(hand.pot_size || 6);
                         setHeroStack(hand.hero_stack || 45);
                         setQuestion(hand.scenario_text || question);
-                    } else { setHeroCards(parseCards('AhKh')); }
+                    } else {
+                        setHeroCards(parseCards('AhKh'));
+                    }
                 }
-            } catch (e) { console.error(e); setHeroCards(parseCards('AhKh')); }
-            finally { setLoading(false); }
+            } catch (e) {
+                console.error(e);
+                setHeroCards(parseCards('AhKh'));
+            } finally {
+                setLoading(false);
+            }
         };
         init();
     }, [gameId]);
 
+    // Timer countdown
     useEffect(() => {
         if (loading) return;
         const interval = setInterval(() => setTimer(prev => (prev > 0 ? prev - 1 : 15)), 1000);
         return () => clearInterval(interval);
     }, [loading]);
 
-    const handleAction = (action) => { setHandNumber(prev => Math.min(prev + 1, totalHands)); setTimer(15); };
+    // Action handlers
+    const handleAction = (action) => {
+        console.log('Action:', action);
+        setHandNumber(prev => Math.min(prev + 1, totalHands));
+        setTimer(15);
+        // TODO: Submit answer to backend, calculate XP, load next hand
+    };
 
-    if (loading) return (
-        <div style={{
-            position: 'fixed', inset: 0, background: 'linear-gradient(180deg, #0a0e17 0%, #050810 100%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'Inter, sans-serif', gap: 16
-        }}>
-            <div style={{ fontSize: 48 }}>🎰</div><p>Loading arena...</p>
-        </div>
-    );
+    const handleBack = () => router.push('/hub/training');
+    const handleSettings = () => console.log('Settings clicked');
+
+    if (loading) {
+        return (
+            <div className="loading-screen">
+                <div className="loading-icon">🎰</div>
+                <p>Loading arena...</p>
+                <style jsx>{`
+                    .loading-screen {
+                        position: fixed;
+                        inset: 0;
+                        background: linear-gradient(180deg, #0a0e17 0%, #050810 100%);
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        color: #fff;
+                        font-family: 'Inter', sans-serif;
+                        gap: 16px;
+                    }
+                    .loading-icon { font-size: 48px; }
+                `}</style>
+            </div>
+        );
+    }
 
     return (
         <>
@@ -150,69 +247,421 @@ export default function TrainingArenaPage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
             </Head>
-            <div className="arena-page">
-                <UniversalHeader pageDepth={2} />
-                <div className="question-bar"><p>{question}</p></div>
-                <div className="table-area">
-                    <div className="table-wrapper">
-                        <img src="/images/training/table-vertical.jpg" alt="Poker Table" className="table-img" />
-                        <div className="pot"><span className="pot-icon">●</span><span className="pot-label">POT</span><span className="pot-value">{pot}</span></div>
-                        {board.length > 0 && <div className="board">{board.map((card, i) => <Card key={i} {...card} />)}</div>}
-                        <div className="felt-title"><span className="felt-name">{gameName}</span><span className="felt-sub">Smarter.Poker</span></div>
-                        <div className="dealer-btn">D</div>
-                        <PlayerSeat avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} position={SEAT_POSITIONS.seat1} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} position={SEAT_POSITIONS.seat2} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} position={SEAT_POSITIONS.seat3} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} position={SEAT_POSITIONS.seat4} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} position={SEAT_POSITIONS.seat5} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} position={SEAT_POSITIONS.seat6} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} position={SEAT_POSITIONS.seat7} />
-                        <PlayerSeat avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} position={SEAT_POSITIONS.seat8} />
-                        <PlayerSeat avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} position={SEAT_POSITIONS.hero} isHero={true} />
-                        <div className="hero-cards">{heroCards.map((card, i) => (
-                            <div key={i} style={{ transform: i === 0 ? 'rotate(-6deg)' : 'rotate(6deg)', marginLeft: i > 0 ? -8 : 0, zIndex: i + 1 }}>
-                                <Card {...card} size="hero" />
+
+            {/* Viewport container - centers the scaled canvas */}
+            <div className="viewport-container">
+                {/* Scaled canvas - this is the 862x1024 design that scales uniformly */}
+                <div
+                    className="scaled-canvas"
+                    style={{ transform: `scale(${scale})` }}
+                >
+                    {/* Header */}
+                    <ArenaHeader
+                        diamonds={userDiamonds}
+                        xp={userXP}
+                        level={userLevel}
+                        onBack={handleBack}
+                        onSettings={handleSettings}
+                    />
+
+                    {/* Question Bar */}
+                    <div className="question-bar">
+                        <p>{question}</p>
+                    </div>
+
+                    {/* Table Area */}
+                    <div className="table-area">
+                        <div className="table-wrapper">
+                            <img src="/images/training/table-vertical.jpg" alt="Poker Table" className="table-img" />
+
+                            {/* Pot Display */}
+                            <div className="pot">
+                                <span className="pot-icon">●</span>
+                                <span className="pot-label">POT</span>
+                                <span className="pot-value">{pot}</span>
                             </div>
-                        ))}</div>
-                        <div className="timer"><span>{timer}</span></div>
-                        <div className="q-counter"><span>Question {handNumber} of {totalHands}</span></div>
+
+                            {/* Community Board */}
+                            {board.length > 0 && (
+                                <div className="board">
+                                    {board.map((card, i) => <Card key={i} {...card} />)}
+                                </div>
+                            )}
+
+                            {/* Felt Title */}
+                            <div className="felt-title">
+                                <span className="felt-name">{gameName}</span>
+                                <span className="felt-sub">Smarter.Poker</span>
+                            </div>
+
+                            {/* Dealer Button */}
+                            <div className="dealer-btn">D</div>
+
+                            {/* Villain Seats */}
+                            <PlayerSeat avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} position={SEAT_POSITIONS.seat1} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} position={SEAT_POSITIONS.seat2} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} position={SEAT_POSITIONS.seat3} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} position={SEAT_POSITIONS.seat4} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} position={SEAT_POSITIONS.seat5} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} position={SEAT_POSITIONS.seat6} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} position={SEAT_POSITIONS.seat7} />
+                            <PlayerSeat avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} position={SEAT_POSITIONS.seat8} />
+
+                            {/* Hero Seat */}
+                            <PlayerSeat avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} position={SEAT_POSITIONS.hero} isHero={true} />
+
+                            {/* Hero Cards */}
+                            <div className="hero-cards">
+                                {heroCards.map((card, i) => (
+                                    <div key={i} style={{ transform: i === 0 ? 'rotate(-6deg)' : 'rotate(6deg)', marginLeft: i > 0 ? -10 : 0, zIndex: i + 1 }}>
+                                        <Card {...card} size="hero" />
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Timer */}
+                            <div className="timer">
+                                <span>{timer}</span>
+                            </div>
+
+                            {/* Question Counter */}
+                            <div className="q-counter">
+                                <span>Question {handNumber} of {totalHands}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Action Bar */}
+                    <div className="action-bar">
+                        <button className="action-btn fold" onClick={() => handleAction('FOLD')}>Fold</button>
+                        <button className="action-btn call" onClick={() => handleAction('CALL')}>Call</button>
+                        <button className="action-btn raise" onClick={() => handleAction('RAISE')}>Raise to 8bb</button>
+                        <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>All-In</button>
                     </div>
                 </div>
-                <div className="action-bar">
-                    <button className="action-btn fold" onClick={() => handleAction('FOLD')}>Fold</button>
-                    <button className="action-btn call" onClick={() => handleAction('CALL')}>Call</button>
-                    <button className="action-btn raise" onClick={() => handleAction('RAISE')}>Raise to 8bb</button>
-                    <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>All-In</button>
-                </div>
             </div>
+
+            <style jsx global>{`
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                html, body { 
+                    height: 100%; 
+                    overflow: hidden; 
+                    font-family: 'Inter', sans-serif; 
+                    background: #050810; 
+                }
+            `}</style>
+
             <style jsx>{`
-                :global(*) { box-sizing: border-box; margin: 0; padding: 0; }
-                :global(html, body) { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: #050810; }
-                .arena-page { height: 100vh; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; overflow: hidden; }
-                .question-bar { flex-shrink: 0; padding: 10px 20px; background: rgba(0,80,160,0.2); border-bottom: 1px solid rgba(0,150,255,0.25); }
-                .question-bar p { font-size: 14px; font-weight: 500; color: #00d4ff; text-align: center; line-height: 1.3; }
-                .table-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; min-height: 0; }
-                .table-wrapper { position: relative; height: 100%; aspect-ratio: 3 / 4; max-height: 100%; }
-                .table-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 16px; }
-                .pot { position: absolute; top: 16%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; padding: 3px 10px; background: rgba(0,0,0,0.85); border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); z-index: 20; }
-                .pot-icon { color: #d4a020; font-size: 8px; }
-                .pot-label { font-size: 8px; color: rgba(255,255,255,0.7); font-weight: 600; }
-                .pot-value { font-size: 11px; font-weight: 700; }
-                .board { position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%); display: flex; gap: 3px; z-index: 20; }
-                .felt-title { position: absolute; top: 54%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; z-index: 10; }
-                .felt-name { font-size: 12px; font-weight: 700; opacity: 0.9; }
-                .felt-sub { font-size: 8px; color: rgba(255,255,255,0.6); }
-                .dealer-btn { position: absolute; bottom: 22%; left: 43%; width: 20px; height: 20px; background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; color: #1a1d24; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 20; }
-                .hero-cards { position: absolute; bottom: 4%; right: 28%; display: flex; z-index: 25; }
-                .timer { position: absolute; bottom: 5%; left: 5%; width: 40px; height: 40px; background: rgba(0,0,0,0.9); border: 2px solid #dc2626; border-radius: 6px; display: flex; align-items: center; justify-content: center; z-index: 25; }
-                .timer span { font-size: 18px; font-weight: 800; color: #dc2626; }
-                .q-counter { position: absolute; bottom: 6%; right: 5%; padding: 6px 10px; background: rgba(37,99,235,0.2); border: 1px solid #3b82f6; border-radius: 5px; z-index: 25; }
-                .q-counter span { font-size: 9px; color: #60a5fa; font-weight: 500; }
-                .action-bar { flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 20px 16px; background: rgba(10,14,23,0.98); border-top: 1px solid rgba(255,255,255,0.1); }
-                .action-btn { padding: 12px 16px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: transform 0.1s; }
+                /* Viewport container - fills screen, centers content */
+                .viewport-container {
+                    position: fixed;
+                    inset: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #050810;
+                    overflow: hidden;
+                }
+                
+                /* Scaled canvas - the locked 862x1024 design */
+                .scaled-canvas {
+                    width: ${DESIGN_WIDTH}px;
+                    height: ${DESIGN_HEIGHT}px;
+                    transform-origin: center center;
+                    display: flex;
+                    flex-direction: column;
+                    background: linear-gradient(180deg, #0a0e17 0%, #050810 100%);
+                    color: #fff;
+                    overflow: hidden;
+                }
+                
+                /* ========== HEADER ========== */
+                .arena-header {
+                    flex-shrink: 0;
+                    height: 56px;
+                    display: flex;
+                    align-items: center;
+                    padding: 0 16px;
+                    gap: 12px;
+                    background: rgba(10, 14, 23, 0.98);
+                    border-bottom: 1px solid rgba(255,255,255,0.1);
+                }
+                .back-btn {
+                    padding: 8px 14px;
+                    background: rgba(255,255,255,0.1);
+                    border: 1px solid rgba(255,255,255,0.2);
+                    border-radius: 8px;
+                    color: #fff;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    font-family: inherit;
+                }
+                .back-btn:hover { background: rgba(255,255,255,0.15); }
+                .brand {
+                    font-size: 16px;
+                    font-weight: 700;
+                    color: #fff;
+                }
+                .header-stats {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    margin-left: auto;
+                }
+                .stat {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 6px 12px;
+                    background: rgba(0,150,200,0.2);
+                    border: 1px solid rgba(0,200,255,0.3);
+                    border-radius: 20px;
+                    font-size: 13px;
+                    font-weight: 600;
+                }
+                .stat .icon { font-size: 14px; }
+                .stat .sep { opacity: 0.5; }
+                .plus-btn {
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    background: #22c55e;
+                    border: none;
+                    color: #fff;
+                    font-size: 14px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .header-icons {
+                    display: flex;
+                    gap: 8px;
+                    margin-left: 12px;
+                }
+                .icon-circle {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 16px;
+                    cursor: pointer;
+                    border: none;
+                    font-family: inherit;
+                }
+                .icon-circle.blue {
+                    background: linear-gradient(135deg, #2d7ad4 0%, #1e5fa8 100%);
+                }
+                .icon-circle.settings {
+                    background: rgba(255,255,255,0.1);
+                    border: 1px solid rgba(255,255,255,0.2);
+                }
+                
+                /* ========== QUESTION BAR ========== */
+                .question-bar {
+                    flex-shrink: 0;
+                    padding: 12px 20px;
+                    background: rgba(0,80,160,0.25);
+                    border-bottom: 1px solid rgba(0,150,255,0.3);
+                }
+                .question-bar p {
+                    font-size: 15px;
+                    font-weight: 500;
+                    color: #00d4ff;
+                    text-align: center;
+                    line-height: 1.4;
+                }
+                
+                /* ========== TABLE AREA ========== */
+                .table-area {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 12px;
+                    min-height: 0;
+                }
+                .table-wrapper {
+                    position: relative;
+                    width: 100%;
+                    max-width: 500px;
+                    aspect-ratio: 3 / 4;
+                }
+                .table-img {
+                    position: absolute;
+                    inset: 0;
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
+                    border-radius: 16px;
+                }
+                
+                /* Pot */
+                .pot {
+                    position: absolute;
+                    top: 18%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    padding: 4px 12px;
+                    background: rgba(0,0,0,0.9);
+                    border-radius: 14px;
+                    border: 1px solid rgba(255,255,255,0.25);
+                    z-index: 20;
+                }
+                .pot-icon { color: #d4a020; font-size: 10px; }
+                .pot-label { font-size: 9px; color: rgba(255,255,255,0.7); font-weight: 600; }
+                .pot-value { font-size: 13px; font-weight: 700; }
+                
+                /* Board */
+                .board {
+                    position: absolute;
+                    top: 40%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    display: flex;
+                    gap: 4px;
+                    z-index: 20;
+                }
+                
+                /* Felt Title */
+                .felt-title {
+                    position: absolute;
+                    top: 52%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    z-index: 10;
+                }
+                .felt-name { font-size: 14px; font-weight: 700; opacity: 0.9; }
+                .felt-sub { font-size: 10px; color: rgba(255,255,255,0.6); }
+                
+                /* Dealer Button */
+                .dealer-btn {
+                    position: absolute;
+                    bottom: 24%;
+                    left: 44%;
+                    width: 22px;
+                    height: 22px;
+                    background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 10px;
+                    font-weight: 800;
+                    color: #1a1d24;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+                    z-index: 20;
+                }
+                
+                /* Hero Cards */
+                .hero-cards {
+                    position: absolute;
+                    bottom: 10%;
+                    right: 26%;
+                    display: flex;
+                    z-index: 25;
+                }
+                
+                /* Timer */
+                .timer {
+                    position: absolute;
+                    bottom: 8%;
+                    left: 8%;
+                    width: 44px;
+                    height: 44px;
+                    background: rgba(0,0,0,0.95);
+                    border: 2px solid #dc2626;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 25;
+                }
+                .timer span { font-size: 20px; font-weight: 800; color: #dc2626; }
+                
+                /* Question Counter */
+                .q-counter {
+                    position: absolute;
+                    bottom: 9%;
+                    right: 8%;
+                    padding: 8px 12px;
+                    background: rgba(37,99,235,0.25);
+                    border: 1px solid #3b82f6;
+                    border-radius: 6px;
+                    z-index: 25;
+                }
+                .q-counter span { font-size: 11px; color: #60a5fa; font-weight: 600; }
+                
+                /* ========== PLAYER SEATS ========== */
+                :global(.player-seat) {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    z-index: 15;
+                }
+                :global(.player-badge) {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 3px 10px;
+                    background: linear-gradient(180deg, #d4a020 0%, #8b6914 100%);
+                    border-radius: 5px;
+                    margin-top: -10px;
+                    min-width: 55px;
+                }
+                :global(.player-name) { font-size: 9px; font-weight: 600; color: #1a1d24; }
+                :global(.player-stack) { font-size: 12px; font-weight: 700; color: #1a1d24; }
+                
+                /* ========== CARDS ========== */
+                :global(.card) {
+                    border-radius: 5px;
+                    background: linear-gradient(180deg, #fff 0%, #f0f0f0 100%);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+                }
+                :global(.card-rank) { font-size: 15px; font-weight: 800; line-height: 1; }
+                :global(.card-suit) { font-size: 11px; line-height: 1; }
+                
+                /* ========== ACTION BAR ========== */
+                .action-bar {
+                    flex-shrink: 0;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 10px;
+                    padding: 12px 20px 20px;
+                    background: rgba(10,14,23,0.98);
+                    border-top: 1px solid rgba(255,255,255,0.1);
+                }
+                .action-btn {
+                    padding: 14px 20px;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 16px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    font-family: inherit;
+                    transition: transform 0.1s, opacity 0.1s;
+                }
+                .action-btn:hover { opacity: 0.9; }
                 .action-btn:active { transform: scale(0.97); }
-                .fold { background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%); color: #fff; box-shadow: 0 3px 8px rgba(30,95,168,0.4); }
-                .call, .raise, .allin { background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%); color: #fff; box-shadow: 0 3px 8px rgba(30,95,168,0.4); }
+                .fold, .call, .raise, .allin {
+                    background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%);
+                    color: #fff;
+                    box-shadow: 0 4px 12px rgba(30,95,168,0.5);
+                }
             `}</style>
         </>
     );
