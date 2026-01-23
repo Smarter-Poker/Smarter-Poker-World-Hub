@@ -34,6 +34,16 @@ const CONFIG = {
     REQUEST_TIMEOUT: 10000
 };
 
+// Source-specific fallback images (used when no image can be extracted)
+const SOURCE_FALLBACK_IMAGES = {
+    'PokerNews': 'https://www.pokernews.com/img/content/2024/logo-pokernews-og.jpg',
+    'MSPT': 'https://msptpoker.com/images/mspt-logo.png',
+    'CardPlayer': 'https://www.cardplayer.com/assets/images/cp-logo-og.png',
+    'WSOP': 'https://www.wsop.com/images/WSOP-Logo.png',
+    'Poker.org': 'https://www.poker.org/wp-content/uploads/2023/01/poker-org-logo.png',
+    'Pokerfuse': 'https://pokerfuse.com/wp-content/uploads/2020/07/pokerfuse-logo-square.png'
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // THE 6 NEWS SOURCES
 // ═══════════════════════════════════════════════════════════════════════════
@@ -368,7 +378,13 @@ async function scrapeRSS(source) {
                 image = extractArticleImage(articleHtml, item.link);
             }
 
-            // Only save articles that have real images
+            // Use source fallback if no image found
+            if (!image) {
+                image = SOURCE_FALLBACK_IMAGES[source.name];
+                console.log(`   Using fallback image for: ${title.substring(0, 30)}...`);
+            }
+
+            // Save articles with images (including fallbacks)
             if (image && item.link) {
                 articles.push({
                     url: item.link,
@@ -415,9 +431,15 @@ async function scrapeMSPT(html, source) {
         console.log(`   Checking MSPT: ${title.substring(0, 40)}...`);
 
         const articleHtml = await fetchPage(url);
-        const image = extractArticleImage(articleHtml, url);
+        let image = extractArticleImage(articleHtml, url);
 
-        // Only save articles with real images
+        // Use source fallback if no image found
+        if (!image) {
+            image = SOURCE_FALLBACK_IMAGES[source.name];
+            console.log(`   Using fallback image for MSPT: ${title.substring(0, 30)}...`);
+        }
+
+        // Save articles with images (including fallbacks)
         if (image) {
             articles.push({ url, title, image, source });
         }
@@ -467,9 +489,15 @@ async function scrapeWSOP(html, source) {
             console.log(`   Checking WSOP: ${title.substring(0, 40)}...`);
 
             const articleHtml = await fetchPage(url);
-            const image = extractArticleImage(articleHtml, url);
+            let image = extractArticleImage(articleHtml, url);
 
-            // Only save articles with real images
+            // Use source fallback if no image found
+            if (!image) {
+                image = SOURCE_FALLBACK_IMAGES[source.name];
+                console.log(`   Using fallback image for WSOP: ${title.substring(0, 30)}...`);
+            }
+
+            // Save articles with images (including fallbacks)
             if (image) {
                 articles.push({ url, title, image, source });
             }
@@ -504,9 +532,15 @@ async function scrapePokerfuse(html, source) {
         console.log(`   Checking Pokerfuse: ${title.substring(0, 40)}...`);
 
         const articleHtml = await fetchPage(url);
-        const image = extractArticleImage(articleHtml, url);
+        let image = extractArticleImage(articleHtml, url);
 
-        // Only save articles with real images
+        // Use source fallback if no image found
+        if (!image) {
+            image = SOURCE_FALLBACK_IMAGES[source.name];
+            console.log(`   Using fallback image for Pokerfuse: ${title.substring(0, 30)}...`);
+        }
+
+        // Save articles with images (including fallbacks)
         if (image) {
             articles.push({ url, title, image, source });
         }
@@ -554,9 +588,15 @@ async function scrapeCardPlayer(html, source) {
             console.log(`   Checking CardPlayer: ${title.substring(0, 40)}...`);
 
             const articleHtml = await fetchPage(url);
-            const image = extractArticleImage(articleHtml, url);
+            let image = extractArticleImage(articleHtml, url);
 
-            // Only save articles with real images
+            // Use source fallback if no image found
+            if (!image) {
+                image = SOURCE_FALLBACK_IMAGES[source.name];
+                console.log(`   Using fallback image for CardPlayer: ${title.substring(0, 30)}...`);
+            }
+
+            // Save articles with images (including fallbacks)
             if (image) {
                 articles.push({ url, title, image, source });
             }
@@ -597,9 +637,15 @@ async function scrapePokerOrg(html, source) {
             console.log(`   Checking Poker.org: ${title.substring(0, 40)}...`);
 
             const articleHtml = await fetchPage(url);
-            const image = extractArticleImage(articleHtml, url);
+            let image = extractArticleImage(articleHtml, url);
 
-            // Only save articles with real images
+            // Use source fallback if no image found
+            if (!image) {
+                image = SOURCE_FALLBACK_IMAGES[source.name];
+                console.log(`   Using fallback image for Poker.org: ${title.substring(0, 30)}...`);
+            }
+
+            // Save articles with images (including fallbacks)
             if (image) {
                 articles.push({ url, title, image, source });
             }
@@ -649,8 +695,15 @@ async function scrapePokerNews(html, source) {
             console.log(`   Checking PokerNews: ${title.substring(0, 40)}...`);
 
             const articleHtml = await fetchPage(url);
-            const image = extractArticleImage(articleHtml, url);
+            let image = extractArticleImage(articleHtml, url);
 
+            // Use source fallback if no image found
+            if (!image) {
+                image = SOURCE_FALLBACK_IMAGES[source.name];
+                console.log(`   Using fallback image for PokerNews: ${title.substring(0, 30)}...`);
+            }
+
+            // Save articles with images (including fallbacks)
             if (image) {
                 articles.push({ url, title, image, source });
             }
