@@ -177,7 +177,6 @@ async function saveReels(reels) {
                 video_url: reel.video_url,
                 caption: `🎬 ${reel.title}\n\n📺 From: ${reel.channel_name}\n#poker #pokershorts`,
                 thumbnail_url: reel.thumbnail_url,
-                duration_seconds: reel.duration_seconds,
                 view_count: reel.view_count,
                 is_public: true
             })
