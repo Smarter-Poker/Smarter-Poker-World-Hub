@@ -13,6 +13,7 @@ import gsap from 'gsap';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, querySocialPosts, queryProfiles, fetchWithAuth } from '../../src/lib/authUtils';
+import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
 import { StoriesBar, ShareToStoryPrompt } from '../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../src/components/social/ReelsFeedCarousel';
@@ -298,6 +299,7 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function LinkPreviewCard({ url }) {
+    const { openExternal } = useExternalLink();
     const [metadata, setMetadata] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -350,12 +352,16 @@ function LinkPreviewCard({ url }) {
         );
     }
 
+    const handleClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openExternal(url, metadata?.title || 'Article');
+    };
+
     return (
-        <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: 'none', display: 'block' }}
+        <div
+            onClick={handleClick}
+            style={{ textDecoration: 'none', display: 'block', cursor: 'pointer' }}
         >
             <div style={{
                 border: `1px solid ${C.border}`,
@@ -414,7 +420,7 @@ function LinkPreviewCard({ url }) {
                     </div>
                 </div>
             </div>
-        </a>
+        </div>
     );
 }
 
