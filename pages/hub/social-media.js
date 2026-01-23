@@ -13,6 +13,7 @@ import gsap from 'gsap';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, querySocialPosts, queryProfiles, fetchWithAuth } from '../../src/lib/authUtils';
+import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
 import { StoriesBar, ShareToStoryPrompt } from '../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../src/components/social/ReelsFeedCarousel';
@@ -39,6 +40,17 @@ const timeAgo = (d) => {
     if (s < 3600) return `${Math.floor(s / 60)}m`;
     if (s < 86400) return `${Math.floor(s / 3600)}h`;
     return `${Math.floor(s / 86400)}d`;
+};
+
+// Decode HTML entities in text (for link preview titles/descriptions)
+const decodeHtmlEntities = (text) => {
+    if (!text) return text;
+    const entities = {
+        '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"',
+        '&#039;': "'", '&#39;': "'", '&apos;': "'", '&#x27;': "'",
+        '&nbsp;': ' ', '&#8217;': "'", '&#8216;': "'", '&#8220;': '"', '&#8221;': '"'
+    };
+    return text.replace(/&[#\w]+;/g, match => entities[match] || match);
 };
 
 function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
@@ -285,8 +297,15 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔗 LINK PREVIEW CARD - Fetches and displays rich link metadata for feed posts
 // ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ CRITICAL: DO NOT MODIFY without running /social-feed-protection workflow
+// This component has broken 4+ times. Key requirements:
+// - Uses useExternalLink for internal popups (NOT target="_blank")
+// - Image uses aspectRatio: '16/9' and objectFit: 'cover' (full width, no black bars)
+// - decodeHtmlEntities for title/description (fixes &#039; display)
+// ═══════════════════════════════════════════════════════════════════════════
 
 function LinkPreviewCard({ url }) {
+    const { openExternal } = useExternalLink();
     const [metadata, setMetadata] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -339,12 +358,16 @@ function LinkPreviewCard({ url }) {
         );
     }
 
+    const handleClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openExternal(url, metadata?.title || 'Article');
+    };
+
     return (
-        <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: 'none', display: 'block' }}
+        <div
+            onClick={handleClick}
+            style={{ textDecoration: 'none', display: 'block', cursor: 'pointer' }}
         >
             <div style={{
                 border: `1px solid ${C.border}`,
@@ -353,16 +376,12 @@ function LinkPreviewCard({ url }) {
                 background: C.bg,
                 margin: '0 12px 12px'
             }}>
-                {/* Link Preview Image - real thumbnail or gradient fallback */}
+                {/* Link Preview Image - full width, proper aspect ratio */}
                 <div style={{
-                    height: 280,
+                    width: '100%',
+                    aspectRatio: '16/9',
                     position: 'relative',
                     background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: 48,
                     overflow: 'hidden'
                 }}>
                     {metadata?.image ? (
@@ -373,13 +392,12 @@ function LinkPreviewCard({ url }) {
                                 width: '100%',
                                 height: '100%',
                                 objectFit: 'cover',
-                                objectPosition: 'center top',
-                                position: 'absolute',
-                                top: 0,
-                                left: 0
+                                objectPosition: 'center center'
                             }}
                         />
-                    ) : '🔗'}
+                    ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'white', fontSize: 48 }}>🔗</div>
+                    )}
                 </div>
                 {/* Link Info */}
                 <div style={{ padding: '12px 16px', background: C.card }}>
@@ -387,7 +405,7 @@ function LinkPreviewCard({ url }) {
                         {metadata?.siteName || new URL(url).hostname.replace('www.', '')}
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>
-                        {metadata?.title || 'View Article'}
+                        {decodeHtmlEntities(metadata?.title) || 'View Article'}
                     </div>
                     {metadata?.description && (
                         <div style={{
@@ -400,7 +418,7 @@ function LinkPreviewCard({ url }) {
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical'
                         }}>
-                            {metadata.description}
+                            {decodeHtmlEntities(metadata.description)}
                         </div>
                     )}
                     <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>
@@ -408,7 +426,7 @@ function LinkPreviewCard({ url }) {
                     </div>
                 </div>
             </div>
-        </a>
+        </div>
     );
 }
 
@@ -764,6 +782,11 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         inputRef.current?.focus();
     };
 
+    // ⚠️ CRITICAL: handlePost - Core posting functionality
+    // This has broken multiple times. Requires:
+    // - RLS policy "Authenticated users can post" WITH CHECK (true)
+    // - author_id set from user.id
+    // - Run /social-feed-protection workflow after changes
     const handlePost = async () => {
         // Allow posting if there's content, media, OR a link preview
         if (!content.trim() && !media.length && !linkPreview) return;
@@ -1090,11 +1113,27 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
             </div>
             {post.content && (
                 <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>
-                    {post.content.split(/(@\w+)/g).map((part, i) =>
-                        part.startsWith('@') ?
-                            <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>{part}</span> :
-                            part
-                    )}
+                    {(() => {
+                        // For link-type posts, strip URLs from displayed content (Facebook-style)
+                        let displayContent = post.content;
+                        if (post.contentType === 'link' || post.contentType === 'video') {
+                            // Remove URLs from content - they'll be shown as clickable preview cards
+                            displayContent = displayContent
+                                .replace(/https?:\/\/[^\s]+/gi, '')  // Remove http/https URLs
+                                .replace(/🔗\s*/g, '')                // Remove link emoji prefix
+                                .trim();
+                        }
+
+                        // If content is empty after stripping URL, don't render this block
+                        if (!displayContent) return null;
+
+                        // Render with @mention highlighting
+                        return displayContent.split(/(@\w+)/g).map((part, i) =>
+                            part.startsWith('@') ?
+                                <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>{part}</span> :
+                                part
+                        );
+                    })()}
                 </div>
             )}
             {/* Media Grid - supports up to 10 images/videos */}
@@ -1989,24 +2028,12 @@ export default function SocialMediaPage() {
             </div>
 
             <div style={{ minHeight: '100vh', background: '#0a0e1a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', paddingBottom: 70 }}>
-                {/* Hub-Style Header */}
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <button
-                        onClick={() => setSidebarOpen(true)}
-                        style={{
-                            background: 'none', border: 'none', fontSize: 24, cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            width: 50, height: 56, marginLeft: 4, color: 'white'
-                        }}
-                    >☰</button>
-                    <div style={{ flex: 1 }}>
-                        <UniversalHeader
-                            pageDepth={1}
-                            showSearch={true}
-                            onSearchClick={() => setShowGlobalSearch(!showGlobalSearch)}
-                        />
-                    </div>
-                </div>
+                {/* Standard Hub Header - DO NOT MODIFY - see /social-feed-protection workflow */}
+                <UniversalHeader
+                    pageDepth={1}
+                    showSearch={true}
+                    onSearchClick={() => setShowGlobalSearch(!showGlobalSearch)}
+                />
 
                 {/* Global Search Overlay */}
                 {showGlobalSearch && (

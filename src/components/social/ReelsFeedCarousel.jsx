@@ -27,12 +27,39 @@ function timeAgo(d) {
     return `${Math.floor(s / 86400)}d`;
 }
 
+// YouTube URL helpers
+function isYouTubeUrl(url) {
+    if (!url) return false;
+    return url.includes('youtube.com') || url.includes('youtu.be');
+}
+
+function getYouTubeVideoId(url) {
+    if (!url) return null;
+    // Handle YouTube Shorts URLs
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+    if (shortsMatch) return shortsMatch[1];
+    const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+    if (watchMatch) return watchMatch[1];
+    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+    if (shortMatch) return shortMatch[1];
+    const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
+    if (embedMatch) return embedMatch[1];
+    return null;
+}
+
+function getYouTubeThumbnail(url) {
+    const videoId = getYouTubeVideoId(url);
+    if (videoId) return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    return null;
+}
+
 // Individual Reel Card in the carousel
 function ReelCard({ reel, onClick }) {
     const [isHovered, setIsHovered] = useState(false);
+    const videoRef = useRef(null);
 
-    // Check if it's a YouTube URL (can't play directly)
-    const isYouTube = reel.video_url?.includes('youtube.com') || reel.video_url?.includes('youtu.be');
+    const isYouTube = isYouTubeUrl(reel.video_url);
+    const youtubeThumbnail = isYouTube ? (reel.thumbnail_url || getYouTubeThumbnail(reel.video_url)) : null;
 
     const handleClick = () => {
         if (isYouTube && reel.video_url) {
@@ -42,11 +69,24 @@ function ReelCard({ reel, onClick }) {
         }
     };
 
+    const handleMouseEnter = () => {
+        setIsHovered(true);
+        if (!isYouTube && videoRef.current) videoRef.current.play();
+    };
+
+    const handleMouseLeave = () => {
+        setIsHovered(false);
+        if (!isYouTube && videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.currentTime = 0;
+        }
+    };
+
     return (
         <div
             onClick={handleClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
             style={{
                 width: 140,
                 height: 250,
@@ -64,7 +104,7 @@ function ReelCard({ reel, onClick }) {
             {/* Thumbnail image for YouTube, video for direct URLs */}
             {isYouTube ? (
                 <img
-                    src={reel.thumbnail_url || '/default-reel-thumb.jpg'}
+                    src={youtubeThumbnail || '/default-reel-thumb.jpg'}
                     alt={reel.caption || 'Reel'}
                     style={{
                         width: '100%',
@@ -74,6 +114,7 @@ function ReelCard({ reel, onClick }) {
                 />
             ) : (
                 <video
+                    ref={videoRef}
                     src={reel.video_url}
                     muted
                     loop
@@ -257,27 +298,38 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 >→</button>
             )}
 
-            {/* Reel container */}
+            {/* Reel container - FULLSCREEN TikTok-style */}
             <div style={{
-                width: '100%',
-                maxWidth: 400,
-                height: '85vh',
-                borderRadius: 16,
-                overflow: 'hidden',
-                position: 'relative',
+                width: '100vw',
+                height: '100vh',
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
                 background: '#000',
             }}>
-                <video
-                    ref={videoRef}
-                    key={currentReel.id}
-                    src={currentReel.video_url}
-                    autoPlay
-                    loop
-                    muted={muted}
-                    playsInline
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onClick={() => setMuted(prev => !prev)}
-                />
+                {isYouTubeUrl(currentReel.video_url) ? (
+                    <iframe
+                        key={currentReel.id}
+                        src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&rel=0&modestbranding=1&playsinline=1${muted ? '&mute=1' : ''}`}
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    />
+                ) : (
+                    <video
+                        ref={videoRef}
+                        key={currentReel.id}
+                        src={currentReel.video_url}
+                        autoPlay
+                        loop
+                        muted={muted}
+                        playsInline
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onClick={() => setMuted(prev => !prev)}
+                    />
+                )}
 
                 {/* Author overlay */}
                 <div style={{
@@ -368,7 +420,6 @@ export function ReelsFeedCarousel() {
                     *,
                     profiles:author_id (id, username, avatar_url, full_name)
                 `)
-                .eq('is_public', true)
                 .order('created_at', { ascending: false })
                 .limit(20);
 

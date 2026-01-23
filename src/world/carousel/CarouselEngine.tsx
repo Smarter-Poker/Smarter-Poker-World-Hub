@@ -271,6 +271,7 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
                         }}
                     >
                         <OrbCore
+                            id={config.id}
                             color={config.color}
                             label={config.label}
                             gradient={config.gradient}

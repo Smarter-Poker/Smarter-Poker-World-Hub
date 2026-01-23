@@ -410,6 +410,61 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                     </div>
                 )}
 
+                {/* 🔗 LINK BUTTON - Clickable link for stories with URLs */}
+                {(() => {
+                    // Use link_url field if available, fallback to extracting from content
+                    let storyUrl = currentStory.link_url;
+
+                    // Fallback for older stories that have URL in content
+                    if (!storyUrl) {
+                        const urlRegex = /(https?:\/\/[^\s]+)/gi;
+                        const content = currentStory.content || '';
+                        const matches = content.match(urlRegex);
+                        storyUrl = matches?.[0];
+                    }
+
+                    if (storyUrl) {
+                        return (
+                            <a
+                                href={storyUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                    position: 'absolute',
+                                    bottom: 120,
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    background: 'linear-gradient(135deg, #1877F2, #00D4FF)',
+                                    color: 'white',
+                                    padding: '14px 32px',
+                                    borderRadius: 24,
+                                    fontWeight: 700,
+                                    fontSize: 15,
+                                    textDecoration: 'none',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    boxShadow: '0 4px 15px rgba(0,0,0,0.4)',
+                                    zIndex: 100,
+                                    transition: 'transform 0.2s, box-shadow 0.2s',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateX(-50%) scale(1.05)';
+                                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.5)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateX(-50%) scale(1)';
+                                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.4)';
+                                }}
+                            >
+                                🔗 Visit Link
+                            </a>
+                        );
+                    }
+                    return null;
+                })()}
+
                 {/* Navigation touch areas */}
                 <div
                     onClick={goPrev}
@@ -583,6 +638,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 p_media_url: finalMediaUrl || null,
                 p_media_type: finalMediaType,
                 p_background_color: mode === 'text' ? STORY_GRADIENTS[selectedGradient] : null,
+                p_link_url: linkPreview?.url || null,
             });
 
             if (error) throw error;

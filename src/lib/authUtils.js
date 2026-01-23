@@ -130,6 +130,21 @@ export async function queryProfiles(userId, select = '*') {
 }
 
 /**
+ * Query user diamond balance from user_diamond_balance table
+ */
+export async function queryDiamondBalance(userId) {
+    try {
+        const data = await fetchWithAuth(
+            `/rest/v1/user_diamond_balance?user_id=eq.${userId}&select=balance`
+        );
+        return data[0]?.balance || 0;
+    } catch (e) {
+        console.error('[AuthUtils] Diamond balance fetch error:', e);
+        return 0;
+    }
+}
+
+/**
  * Query social posts with pagination
  */
 export async function querySocialPosts(offset = 0, limit = 10) {
@@ -221,6 +236,7 @@ export default {
     getSessionToken,
     fetchWithAuth,
     queryProfiles,
+    queryDiamondBalance,
     querySocialPosts,
     queryTable,
     insertIntoTable,

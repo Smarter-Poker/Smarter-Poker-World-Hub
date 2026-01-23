@@ -288,9 +288,9 @@ function getRandomComment(type = 'general') {
 }
 
 /**
- * Horses comment on recent posts
+ * Horses comment on posts from horses AND real users
  */
-async function commentOnPosts(maxComments = 20) {
+async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
     console.log('\n💬 HORSES COMMENTING ON POSTS...');
 
     // Get all horses
@@ -304,13 +304,19 @@ async function commentOnPosts(maxComments = 20) {
 
     const horseIds = horses.map(h => h.profile_id);
 
-    // Get recent posts from horses
-    const { data: posts } = await supabase
+    // Get recent posts - ALL posts, not just horse posts
+    let postsQuery = supabase
         .from('social_posts')
         .select('id, author_id, content_type, content')
-        .in('author_id', horseIds)
         .order('created_at', { ascending: false })
         .limit(50);
+
+    // If not including real users, filter to just horse posts
+    if (!includeRealUsers) {
+        postsQuery = postsQuery.in('author_id', horseIds);
+    }
+
+    const { data: posts } = await postsQuery;
 
     if (!posts?.length) {
         console.log('   No posts to comment on');
@@ -367,9 +373,9 @@ async function commentOnPosts(maxComments = 20) {
 }
 
 /**
- * Horses like each other's posts
+ * Horses like posts from horses AND real users
  */
-async function likePosts(maxLikes = 30) {
+async function likePosts(maxLikes = 30, includeRealUsers = true) {
     console.log('\n❤️ HORSES LIKING POSTS...');
 
     // Get all horses
@@ -383,13 +389,19 @@ async function likePosts(maxLikes = 30) {
 
     const horseIds = horses.map(h => h.profile_id);
 
-    // Get recent posts
-    const { data: posts } = await supabase
+    // Get recent posts - ALL posts, not just horse posts
+    let postsQuery = supabase
         .from('social_posts')
         .select('id, author_id')
-        .in('author_id', horseIds)
         .order('created_at', { ascending: false })
         .limit(100);
+
+    // If not including real users, filter to just horse posts
+    if (!includeRealUsers) {
+        postsQuery = postsQuery.in('author_id', horseIds);
+    }
+
+    const { data: posts } = await postsQuery;
 
     if (!posts?.length) return { liked: 0 };
 
@@ -441,43 +453,159 @@ async function likePosts(maxLikes = 30) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// REPLY TO COMMENTS ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Horses reply to comments on posts (both horse and real user comments)
+ */
+async function replyToComments(maxReplies = 15) {
+    console.log('\n💬 HORSES REPLYING TO COMMENTS...');
+
+    // Get all horses
+    const { data: horses } = await supabase
+        .from('content_authors')
+        .select('id, name, profile_id, voice')
+        .eq('is_active', true)
+        .not('profile_id', 'is', null);
+
+    if (!horses) return { replied: 0 };
+
+    const horseIds = horses.map(h => h.profile_id);
+
+    // Get recent comments (not from horses) that haven't been replied to
+    const { data: comments } = await supabase
+        .from('social_comments')
+        .select('id, post_id, author_id, content, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+    if (!comments?.length) {
+        console.log('   No comments to reply to');
+        return { replied: 0 };
+    }
+
+    let replied = 0;
+
+    for (const comment of comments) {
+        // Skip if comment is from a horse (reduce horse-to-horse reply spam)
+        if (horseIds.includes(comment.author_id) && Math.random() > 0.3) {
+            continue;
+        }
+
+        // Pick a random horse to reply
+        const replier = horses[Math.floor(Math.random() * horses.length)];
+        if (!replier) continue;
+
+        // Don't reply to own comments
+        if (replier.profile_id === comment.author_id) continue;
+
+        // Check if already replied recently
+        if (horseBus.hasRecentInteraction(replier.profile_id, comment.id, 'reply')) {
+            continue;
+        }
+
+        // Check if this horse already replied to this comment
+        const { data: existingReply } = await supabase
+            .from('social_comments')
+            .select('id')
+            .eq('parent_id', comment.id)
+            .eq('author_id', replier.profile_id)
+            .single();
+
+        if (existingReply) continue;
+
+        // Generate reply based on original comment content
+        let replyText = getRandomComment('general');
+
+        // Sometimes reference the original comment
+        if (Math.random() > 0.6) {
+            const prefixes = ['fr 👆', 'this ^^', '100% agree', 'exactly', 'real talk'];
+            replyText = prefixes[Math.floor(Math.random() * prefixes.length)];
+        }
+
+        // Get post_id for the reply
+        const { error } = await supabase
+            .from('social_comments')
+            .insert({
+                post_id: comment.post_id,
+                author_id: replier.profile_id,
+                content: replyText,
+                parent_id: comment.id
+            });
+
+        if (!error) {
+            console.log(`   ${replier.name} replied: "${replyText}"`);
+            horseBus.recordInteraction(replier.profile_id, comment.id, 'reply');
+            replied++;
+
+            if (replied >= maxReplies) break;
+        }
+
+        await new Promise(r => setTimeout(r, 600)); // Natural pace
+    }
+
+    console.log(`   Replied: ${replied} times`);
+    return { replied };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN SOCIAL INTERACTION LOOP
 // ═══════════════════════════════════════════════════════════════════════════
 
-async function runSocialInteractions() {
+async function runSocialInteractions(options = {}) {
     console.log('\n🐴🐴🐴 HORSE SOCIAL ENGINE 🐴🐴🐴');
     console.log('═'.repeat(60));
 
+    const {
+        includeFriends = true,
+        includeComments = true,
+        includeLikes = true,
+        includeReplies = true,
+        includeRealUsers = true
+    } = options;
+
     try {
+        const results = { success: true };
+
         // 1. Send friend requests
-        const friendResults = await sendFriendRequests(10);
+        if (includeFriends) {
+            const friendResults = await sendFriendRequests(10);
+            const acceptResults = await acceptFriendRequests(15);
+            results.friendsSent = friendResults.sent;
+            results.friendsAccepted = acceptResults.accepted;
+        }
 
-        // 2. Accept pending friend requests
-        const acceptResults = await acceptFriendRequests(15);
+        // 2. Comment on posts
+        if (includeComments) {
+            const commentResults = await commentOnPosts(20, includeRealUsers);
+            results.commented = commentResults.commented;
+        }
 
-        // 3. Comment on posts
-        const commentResults = await commentOnPosts(20);
+        // 3. Like posts
+        if (includeLikes) {
+            const likeResults = await likePosts(30, includeRealUsers);
+            results.liked = likeResults.liked;
+        }
 
-        // 4. Like posts
-        const likeResults = await likePosts(30);
+        // 4. Reply to comments
+        if (includeReplies) {
+            const replyResults = await replyToComments(15);
+            results.replied = replyResults.replied;
+        }
 
         // Summary
         console.log('\n' + '═'.repeat(60));
         console.log('📊 SOCIAL INTERACTION SUMMARY');
         console.log('═'.repeat(60));
-        console.log(`   Friend Requests Sent: ${friendResults.sent}`);
-        console.log(`   Friend Requests Accepted: ${acceptResults.accepted}`);
-        console.log(`   Comments Posted: ${commentResults.commented}`);
-        console.log(`   Posts Liked: ${likeResults.liked}`);
+        console.log(`   Friend Requests Sent: ${results.friendsSent || 0}`);
+        console.log(`   Friend Requests Accepted: ${results.friendsAccepted || 0}`);
+        console.log(`   Comments Posted: ${results.commented || 0}`);
+        console.log(`   Posts Liked: ${results.liked || 0}`);
+        console.log(`   Comment Replies: ${results.replied || 0}`);
         console.log('\n🎉 Horses are socializing!');
 
-        return {
-            success: true,
-            ...friendResults,
-            ...acceptResults,
-            ...commentResults,
-            ...likeResults
-        };
+        return results;
 
     } catch (error) {
         console.error('Social engine error:', error.message);
@@ -486,6 +614,15 @@ async function runSocialInteractions() {
 }
 
 // Run if called directly
-runSocialInteractions();
+if (typeof window === 'undefined' && process.argv[1]?.includes('HorseSocialEngine')) {
+    runSocialInteractions();
+}
 
-export { runSocialInteractions, sendFriendRequests, acceptFriendRequests, commentOnPosts, likePosts };
+export {
+    runSocialInteractions,
+    sendFriendRequests,
+    acceptFriendRequests,
+    commentOnPosts,
+    likePosts,
+    replyToComments
+};

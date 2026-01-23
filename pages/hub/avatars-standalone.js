@@ -13,6 +13,7 @@ import { getAll, getByTier } from '../../src/data/AVATAR_LIBRARY';
 // God-Mode Stack
 import { useAvatarsStandaloneStore } from '../../src/stores/avatarsStandaloneStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 export default function AvatarsStandalone() {
     const [avatars, setAvatars] = useState([]);
@@ -34,6 +35,8 @@ export default function AvatarsStandalone() {
             <Head>
                 <title>Avatar Selection | Smarter Poker</title>
             </Head>
+
+            <UniversalHeader pageDepth={2} />
 
             <div style={{
                 minHeight: '100vh',
