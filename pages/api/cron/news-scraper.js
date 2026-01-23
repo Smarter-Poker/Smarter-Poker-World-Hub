@@ -54,6 +54,7 @@ const NEWS_SOURCES = [
         type: 'hybrid',  // Try RSS first, then scrape
         url: 'https://www.pokernews.com/rss.php',
         scrapeUrl: 'https://www.pokernews.com/news/',
+        videoUrl: 'https://www.pokernews.com/video/most-recent/',  // Fallback to videos
         baseUrl: 'https://www.pokernews.com',
         icon: '🃏',
         category: 'news'
@@ -669,6 +670,52 @@ async function scrapePokerOrg(html, source) {
     return articles;
 }
 
+// PokerNews VIDEO scraper - fallback when no new articles
+async function scrapePokerNewsVideos(html, source) {
+    const articles = [];
+    const seen = new Set();
+
+    // Video URL pattern: /video/title-XXXXX.htm
+    const pattern = /href=["'](\/video\/[^"']+\.htm)["'][^>]*class=["']title["'][^>]*>([^<]+)/gi;
+    const matches = html.matchAll(pattern);
+
+    for (const match of matches) {
+        if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+
+        let url = match[1];
+        let title = cleanText(match[2]);
+
+        if (!title || title.length < 15 || seen.has(url)) continue;
+
+        // Clean up title (remove channel suffixes)
+        title = title.replace(/\s*\|\s*PokerNews.*$/i, '').trim();
+
+        url = source.baseUrl + url;
+        seen.add(url);
+
+        console.log(`   Checking PokerNews Video: ${title.substring(0, 40)}...`);
+
+        const videoHtml = await fetchPage(url);
+        let image = extractArticleImage(videoHtml, url);
+
+        // Use fallback if no image
+        if (!image) {
+            image = SOURCE_FALLBACK_IMAGES[source.name];
+        }
+
+        if (image) {
+            articles.push({
+                url,
+                title: `🎬 ${title}`,  // Mark as video
+                image,
+                source
+            });
+        }
+    }
+
+    return articles;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN SCRAPER
 // ═══════════════════════════════════════════════════════════════════════════
@@ -920,7 +967,7 @@ export default async function handler(req, res) {
 
         for (const source of NEWS_SOURCES) {
             try {
-                const articles = await scrapeSource(source);
+                let articles = await scrapeSource(source);
                 results.sources[source.name] = { found: articles.length, saved: 0 };
 
                 for (const article of articles) {
@@ -929,6 +976,25 @@ export default async function handler(req, res) {
                         results.sources[source.name].saved++;
                         results.totalSaved++;
                         console.log(`   ✓ Saved: ${article.title.substring(0, 50)}...`);
+                    }
+                }
+
+                // PokerNews fallback: try videos if all articles were duplicates
+                if (source.name === 'PokerNews' && source.videoUrl && results.sources[source.name].saved === 0) {
+                    console.log(`   📹 No new articles, trying PokerNews videos...`);
+                    const videoHtml = await fetchPage(source.videoUrl);
+                    if (videoHtml) {
+                        const videoArticles = await scrapePokerNewsVideos(videoHtml, source);
+                        results.sources[source.name].found += videoArticles.length;
+
+                        for (const video of videoArticles) {
+                            const saved = await saveArticle(video, newsPosterId);
+                            if (saved) {
+                                results.sources[source.name].saved++;
+                                results.totalSaved++;
+                                console.log(`   ✓ Saved video: ${video.title.substring(0, 50)}...`);
+                            }
+                        }
                     }
                 }
             } catch (error) {
