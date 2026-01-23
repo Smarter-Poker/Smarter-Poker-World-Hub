@@ -180,7 +180,7 @@ export default function TrainingArenaPage() {
             </div>
             <style jsx>{`
                 :global(*) { box-sizing: border-box; margin: 0; padding: 0; }
-                :global(html, body) { height: 100%; overflow: visible; font-family: 'Inter', sans-serif; background: #050810; }
+                :global(html, body) { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: #050810; }
                 .arena-root { position: fixed; inset: 0; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; }
                 .question-bar { flex-shrink: 0; padding: 10px 16px; background: rgba(0,80,160,0.2); border-bottom: 1px solid rgba(0,150,255,0.25); }
                 .question-bar p { font-size: 12px; font-weight: 500; color: #00d4ff; text-align: center; line-height: 1.4; }
@@ -190,16 +190,6 @@ export default function TrainingArenaPage() {
                     background: linear-gradient(180deg, #0a0e17 0%, #050810 100%);
                     border-radius: 30px;
                     overflow: hidden; }
-                
-                /* Vignette overlay to mask black corners of table image */
-                .table-wrapper::before {
-                    content: '';
-                    position: absolute;
-                    inset: -10px;
-                    background: radial-gradient(ellipse 100% 100% at center, transparent 75%, #0a0e17 92%, #050810 100%);
-                    pointer-events: none;
-                    z-index: 15;
-                }
                 .table-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; border-radius: 20px; }
                 .pot { position: absolute; top: 16%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; padding: 4px 12px; background: rgba(0,0,0,0.85); border-radius: 14px; border: 1px solid rgba(255,255,255,0.2); z-index: 20; }
                 .pot-icon { color: #d4a020; font-size: 10px; }
