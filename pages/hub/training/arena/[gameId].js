@@ -222,7 +222,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
                     filter: 'drop-shadow(2px 3px 6px rgba(0,0,0,0.9))',
                     cursor: dragging === 'avatar' ? 'grabbing' : 'grab',
                     transform: `translate(${avatarPos.x}px, ${avatarPos.y}px)`,
-                    zIndex: 10,
+                    zIndex: 100,
                     userSelect: 'none',
                     pointerEvents: 'all',
                     flexShrink: 0,
@@ -234,7 +234,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
                 onMouseDown={(e) => handleMouseDown(e, 'badge')}
                 style={{
                     transform: `translate(${badgePos.x}px, ${badgePos.y}px)`,
-                    zIndex: 500,
+                    zIndex: 20000,
                     cursor: dragging === 'badge' ? 'grabbing' : 'grab',
                     userSelect: 'none',
                     pointerEvents: 'all',
@@ -243,8 +243,8 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
                     whiteSpace: 'nowrap',
                 }}
             >
-                <span className="player-name">{name}</span>
-                <span className="player-stack">{stack} BB</span>
+                <span className="player-name" style={{ pointerEvents: 'none' }}>{name}</span>
+                <span className="player-stack" style={{ pointerEvents: 'none' }}>{stack} BB</span>
             </div>
         </div>
     );

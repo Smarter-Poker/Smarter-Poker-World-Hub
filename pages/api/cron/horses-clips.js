@@ -39,9 +39,9 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 
 const CONFIG = {
-    HORSES_PER_TRIGGER: 2,  // Smaller batches = more frequent posts throughout day
+    HORSES_PER_TRIGGER: 10,  // Increased from 2 - post 10 clips every hour
     VIDEO_CLIP_PROBABILITY: 0.90,  // LAW: 90% video clips
-    MAX_CLIPS_PER_DAY: 100,
+    MAX_CLIPS_PER_DAY: 200,  // Increased capacity
     CLIP_COOLDOWN_HOURS: 0  // No cooldown - just stagger posting times
 };
 

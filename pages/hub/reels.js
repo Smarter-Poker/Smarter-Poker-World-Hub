@@ -13,7 +13,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for ReactPlayer (SSR compatibility)
-const ReactPlayer = dynamic(() => import('react-player/lazy'), { ssr: false });
+const ReactPlayer = dynamic(() => import('react-player'), { ssr: false });
 
 // God-Mode Stack
 import { useReelsStore } from '../../src/stores/reelsStore';
