@@ -771,8 +771,8 @@ async function scrapeSource(source) {
 // DATABASE OPERATIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Official news poster account (daniel@bekavactrading.com)
-const NEWS_POSTER_UUID = '47965354-0e56-43ef-931c-ddaab82af765';
+// Official news poster account
+const NEWS_POSTER_UUID = '2d1cd6c3-5700-4af9-a271-d4863fdab20d';
 
 // Get the news poster account for posting to social feed
 async function getNewsPosterId() {
