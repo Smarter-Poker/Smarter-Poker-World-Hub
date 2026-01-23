@@ -95,7 +95,6 @@ export default async function handler(req, res) {
                     video_url,
                     caption: `🎬 ${reel.title}\n\n📺 From: ${reel.channel}\n#poker #pokershorts`,
                     thumbnail_url: `https://i.ytimg.com/vi/${reel.youtube_id}/oar2.jpg`,
-                    duration_seconds: 60,
                     view_count: reel.views,
                     is_public: true
                 })
