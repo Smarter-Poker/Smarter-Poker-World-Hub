@@ -30,6 +30,53 @@ const rssParser = new Parser({
 // Official Smarter.Poker System Account UUID
 const SYSTEM_UUID = '00000000-0000-0000-0000-000000000001';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SYSTEM ACCOUNT AUTO-CREATION
+// ═══════════════════════════════════════════════════════════════════════════
+async function ensureSystemAccountExists() {
+    try {
+        // Check if system account exists
+        const { data: existing, error: checkError } = await supabase
+            .from('profiles')
+            .select('id, username')
+            .eq('id', SYSTEM_UUID)
+            .single();
+
+        if (existing) {
+            console.log('✅ System account exists:', existing.username);
+            return true;
+        }
+
+        // Create system account if it doesn't exist
+        console.log('📝 Creating Smarter.Poker system account...');
+        const { data: created, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+                id: SYSTEM_UUID,
+                username: 'smarter.poker',
+                display_name: 'Smarter.Poker',
+                avatar_url: '/images/smarter-poker-logo.png',
+                bio: 'Official Smarter.Poker News & Updates - Automated poker news, strategy tips, and tournament coverage.',
+                is_verified: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (createError) {
+            console.error('❌ Failed to create system account:', createError.message);
+            return false;
+        }
+
+        console.log('✅ System account created successfully:', created.username);
+        return true;
+    } catch (err) {
+        console.error('❌ Error ensuring system account:', err.message);
+        return false;
+    }
+}
+
 const CONFIG = {
     DEDUP_HOURS: 48, // Don't post same story within 48 hours
     MAX_ARTICLES_PER_RUN: 5, // Max new articles per 2-hour cycle
@@ -649,10 +696,22 @@ export default async function handler(req, res) {
     const results = {
         articles: { fetched: 0, saved: 0, posted: 0, skipped: 0 },
         videos: { fetched: 0, saved: 0, posted: 0, skipped: 0 },
-        errors: []
+        errors: [],
+        systemAccount: false
     };
 
     try {
+        // ─────────────────────────────────────────────────────────────────────
+        // PHASE 0: Ensure System Account Exists
+        // ─────────────────────────────────────────────────────────────────────
+        console.log('🔐 Phase 0: Verifying Smarter.Poker system account...');
+        results.systemAccount = await ensureSystemAccountExists();
+        if (!results.systemAccount) {
+            console.log('⚠️  Warning: System account not available - social posts will be skipped\n');
+        } else {
+            console.log('');
+        }
+
         // ─────────────────────────────────────────────────────────────────────
         // PHASE 1: Fetch existing data for deduplication
         // ─────────────────────────────────────────────────────────────────────
