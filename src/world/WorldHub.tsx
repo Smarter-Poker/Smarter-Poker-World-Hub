@@ -112,7 +112,10 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
         pulseSpeed: 0.6 + Math.random() * 0.5,
     }), [index]);
 
-    // Holographic animations
+    // Holographic animations with 3D floating rotation
+    const [rotateX, setRotateX] = useState(0);
+    const [rotateY, setRotateY] = useState(0);
+
     useEffect(() => {
         let animFrame: number;
         const startTime = Date.now();
@@ -123,6 +126,12 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
             // Gentle floating motion
             const float = Math.sin(elapsed * animParams.floatSpeed + animParams.phase) * animParams.floatAmplitude;
             setFloatY(float);
+
+            // 3D rotation oscillation - card gently rotates showing edges
+            const rotX = Math.sin(elapsed * 0.4 + animParams.phase) * 8 + 10; // 2-18 degrees (always slightly tilted back)
+            const rotY = Math.sin(elapsed * 0.35 + animParams.phase * 1.3) * 6; // -6 to +6 degrees left/right
+            setRotateX(rotX);
+            setRotateY(rotY);
 
             // Pulsing edge glow
             const pulse = (Math.sin(elapsed * animParams.pulseSpeed) + 1) / 2;
@@ -143,21 +152,21 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                 alignItems: 'center',
                 cursor: 'pointer',
                 transform: hasAnimatedIn
-                    ? `translateY(${floatY}px) perspective(800px) rotateX(10deg) scale(1)`
+                    ? `translateY(${floatY}px) perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1)`
                     : `translateY(150px) perspective(800px) rotateX(-20deg) scale(0.5)`,
                 opacity: hasAnimatedIn ? 1 : 0,
                 flex: 1,
                 maxWidth: `clamp(140px, 17vw, 186px)`,  // Viewport-scaled card width
-                transition: 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease-out',
+                transition: hasAnimatedIn ? 'none' : 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease-out',
                 transformStyle: 'preserve-3d',
             }}
             onClick={() => onSelect(orb.id)}
             title={orb.label}
             onMouseEnter={(e) => {
-                e.currentTarget.style.transform = `translateY(${floatY - 12}px) perspective(800px) rotateX(0deg) scale(1.15)`;
+                e.currentTarget.style.transform = `translateY(${floatY - 12}px) perspective(800px) rotateX(5deg) rotateY(0deg) scale(1.15)`;
             }}
             onMouseLeave={(e) => {
-                e.currentTarget.style.transform = `translateY(${floatY}px) perspective(800px) rotateX(10deg) scale(1)`;
+                e.currentTarget.style.transform = `translateY(${floatY}px) perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1)`;
             }}
         >
             {/* Holographic pedestal glow */}
