@@ -61,7 +61,15 @@ jobs:
         run: |
           echo "🎰 Running full venue tournament scraping pipeline..."
           echo "📅 Triggered: $(date -u)"
+          echo ""
+          echo "📍 Source 1: PokerAtlas"
           node scripts/run-full-pipeline.js --scrape-only
+          echo ""
+          echo "📍 Source 2: Bravo Poker Live"
+          node scripts/scrape-bravo-poker.js || echo "⚠️ Bravo scraper had errors (non-fatal)"
+          echo ""
+          echo "📍 Source 3: CardPlayer"
+          node scripts/scrape-cardplayer.js || echo "⚠️ CardPlayer scraper had errors (non-fatal)"
 
       - name: Run Pipeline (Manual - Full)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full' }}
@@ -70,7 +78,15 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           echo "🎰 Running full pipeline (manual trigger)..."
+          echo ""
+          echo "📍 Source 1: PokerAtlas"
           node scripts/run-full-pipeline.js --scrape-only ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
+          echo ""
+          echo "📍 Source 2: Bravo Poker Live"
+          node scripts/scrape-bravo-poker.js || echo "⚠️ Bravo scraper had errors (non-fatal)"
+          echo ""
+          echo "📍 Source 3: CardPlayer"
+          node scripts/scrape-cardplayer.js || echo "⚠️ CardPlayer scraper had errors (non-fatal)"
 
       - name: Run Pipeline (Manual - Test)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'test' }}
