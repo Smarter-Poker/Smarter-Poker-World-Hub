@@ -17,6 +17,7 @@ on:
           - test
           - setup-only
           - sync-urls-only
+          - verify-venues
       state:
         description: 'Filter by state (optional, e.g., TX, NV, FL)'
         required: false
@@ -105,6 +106,15 @@ jobs:
         run: |
           echo "📦 Running setup only..."
           node scripts/run-full-pipeline.js --setup-only
+
+      - name: Verify Unverified Venues
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'verify-venues' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🔍 Running venue verification (checking multiple sources)..."
+          node scripts/verify-all-venues.js 100
 
       - name: Upload scraper logs
         if: always()
