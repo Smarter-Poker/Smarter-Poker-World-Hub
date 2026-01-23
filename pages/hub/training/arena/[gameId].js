@@ -28,7 +28,7 @@ const VILLAIN_AVATARS = [
 
 // Seat positions - FIXED to stay on table rail
 const SEAT_POSITIONS = {
-    hero:  { left: '50%', bottom: '2%', transform: 'translateX(-50%)' },
+    hero: { left: '50%', bottom: '2%', transform: 'translateX(-50%)' },
     seat1: { left: '78%', bottom: '20%', transform: 'translateX(-50%)' },
     seat2: { left: '85%', top: '48%', transform: 'translate(-50%, -50%)' },
     seat3: { left: '78%', top: '20%', transform: 'translateX(-50%)' },
@@ -64,8 +64,10 @@ function PlayerSeat({ avatar, name, stack, position, isHero = false }) {
         <div style={{ position: 'absolute', ...position, display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 15 }}>
             <img src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=128&q=75`} alt={name}
                 style={{ width: size, height: size, objectFit: 'contain', filter: 'drop-shadow(2px 3px 5px rgba(0,0,0,0.8))' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 8px',
-                background: 'linear-gradient(180deg, #d4a020 0%, #8b6914 100%)', borderRadius: 4, marginTop: -8, minWidth: 50 }}>
+            <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2px 8px',
+                background: 'linear-gradient(180deg, #d4a020 0%, #8b6914 100%)', borderRadius: 4, marginTop: -8, minWidth: 50
+            }}>
                 <span style={{ fontSize: 8, fontWeight: 600, color: '#1a1d24' }}>{name}</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#1a1d24' }}>{stack} BB</span>
             </div>
@@ -77,8 +79,10 @@ function Card({ rank, suit, isRed, size = 'normal' }) {
     const width = size === 'hero' ? 32 : 28;
     const height = size === 'hero' ? 46 : 40;
     return (
-        <div style={{ width, height, borderRadius: 4, background: 'linear-gradient(180deg, #fff 0%, #f0f0f0 100%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
+        <div style={{
+            width, height, borderRadius: 4, background: 'linear-gradient(180deg, #fff 0%, #f0f0f0 100%)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.5)'
+        }}>
             <span style={{ fontSize: size === 'hero' ? 16 : 13, fontWeight: 800, color: isRed ? '#dc2626' : '#1a1d24', lineHeight: 1 }}>{rank}</span>
             <span style={{ fontSize: size === 'hero' ? 12 : 9, color: isRed ? '#dc2626' : '#1a1d24', lineHeight: 1 }}>{suit}</span>
         </div>
@@ -130,8 +134,10 @@ export default function TrainingArenaPage() {
     const handleAction = (action) => { setHandNumber(prev => Math.min(prev + 1, totalHands)); setTimer(15); };
 
     if (loading) return (
-        <div style={{ position: 'fixed', inset: 0, background: 'linear-gradient(180deg, #0a0e17 0%, #050810 100%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'Inter, sans-serif', gap: 16 }}>
+        <div style={{
+            position: 'fixed', inset: 0, background: 'linear-gradient(180deg, #0a0e17 0%, #050810 100%)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'Inter, sans-serif', gap: 16
+        }}>
             <div style={{ fontSize: 48 }}>🎰</div><p>Loading arena...</p>
         </div>
     );
@@ -186,7 +192,7 @@ export default function TrainingArenaPage() {
                 .question-bar p { font-size: 12px; font-weight: 500; color: #00d4ff; text-align: center; line-height: 1.4; }
                 .table-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px; overflow: hidden; }
                 .table-wrapper { position: relative; aspect-ratio: 3 / 4; max-height: 85vh; max-width: calc(85vh * 0.75); width: 100%; margin: 0 auto; }
-                .table-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; border-radius: 20px; }
+                .table-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; border-radius: 20px; mix-blend-mode: normal !important; z-index: 1; background: #1a1a1a; }
                 .pot { position: absolute; top: 16%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; padding: 4px 12px; background: rgba(0,0,0,0.85); border-radius: 14px; border: 1px solid rgba(255,255,255,0.2); z-index: 20; }
                 .pot-icon { color: #d4a020; font-size: 10px; }
                 .pot-label { font-size: 10px; color: rgba(255,255,255,0.7); font-weight: 600; }
