@@ -37,7 +37,7 @@ const VILLAIN_AVATARS = [
 /**
  * Convert card code (e.g., "Ah", "Ks") to image path
  */
-function getCardImagePath(card: string): string {
+function getCardImagePath(card) {
     if (!card || card === '??' || card.length < 2) {
         return '/cards/optimized/card_back.png';
     }
@@ -45,14 +45,14 @@ function getCardImagePath(card: string): string {
     const rank = card.slice(0, -1).toLowerCase();
     const suit = card.slice(-1).toLowerCase();
 
-    const suitMap: Record<string, string> = {
+    const suitMap = {
         h: 'hearts',
         d: 'diamonds',
         c: 'clubs',
         s: 'spades',
     };
 
-    const rankMap: Record<string, string> = {
+    const rankMap = {
         a: 'a', k: 'k', q: 'q', j: 'j', t: '10',
         '10': '10', '9': '9', '8': '8', '7': '7',
         '6': '6', '5': '5', '4': '4', '3': '3', '2': '2',
@@ -67,7 +67,7 @@ function getCardImagePath(card: string): string {
 /**
  * Parse board string into array of cards
  */
-function parseBoard(board: string): string[] {
+function parseBoard(board) {
     if (!board) return [];
     // Handle formats: "AhKsQd" or "Ah Ks Qd" or "Ah,Ks,Qd"
     const cards = board.match(/[AKQJT98765432][shdc]/gi) || [];
@@ -77,7 +77,7 @@ function parseBoard(board: string): string[] {
 /**
  * Parse hero hand string into array of cards
  */
-function parseHand(hand: string): string[] {
+function parseHand(hand) {
     if (!hand) return ['??', '??'];
     const cards = hand.match(/[AKQJT98765432][shdc]/gi) || [];
     return cards.length >= 2 ? cards.slice(0, 2) : ['??', '??'];
@@ -86,48 +86,48 @@ function parseHand(hand: string): string[] {
 /**
  * Get random villain avatar
  */
-function getRandomAvatar(): string {
+function getRandomAvatar() {
     return VILLAIN_AVATARS[Math.floor(Math.random() * VILLAIN_AVATARS.length)];
 }
 
-// ============================================================================
-// TYPES
-// ============================================================================
+/**
+ * Get fallback hand data
+ */
+function getFallbackHand() {
+    const hands = ['AhKs', 'QdJd', 'TsTs', '9h8h', 'AcQc'];
+    const boards = ['', 'QsJh7c', 'Ac5d3h', 'KdTd4c'];
 
-interface GameSessionProps {
-    userId: string;
-    gameId: string;
-    gameName: string;
-    onSessionComplete?: (stats: any) => void;
-    onExit?: () => void;
-}
-
-interface HandData {
-    hero_hand: string;
-    board: string;
-    pot_size: number;
-    hero_position: string;
-    villain_position: string;
-    hero_stack: number;
-    villain_stack: number;
-    available_actions: string[];
-    question_prompt: string;
-    solver_node: any;
-    fileId?: string;
-    variantHash?: string;
+    return {
+        hero_hand: hands[Math.floor(Math.random() * hands.length)],
+        board: boards[Math.floor(Math.random() * boards.length)],
+        pot_size: 6 + Math.floor(Math.random() * 20),
+        hero_position: 'BB',
+        villain_position: 'SB',
+        hero_stack: 100,
+        villain_stack: 100,
+        available_actions: ['fold', 'check', 'bet_50', 'bet_100'],
+        question_prompt: 'You are in the BB facing a raise. What is your action?',
+        solver_node: {
+            actions: {
+                fold: { frequency: 0.2, ev: 0 },
+                call: { frequency: 0.5, ev: 8 },
+                raise: { frequency: 0.3, ev: 10 },
+            }
+        },
+    };
 }
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
-const GameSession: React.FC<GameSessionProps> = ({
+export default function GameSession({
     userId,
     gameId,
     gameName,
     onSessionComplete,
     onExit,
-}) => {
+}) {
     // Game state
     const [loading, setLoading] = useState(true);
     const [handNumber, setHandNumber] = useState(0);
@@ -137,18 +137,18 @@ const GameSession: React.FC<GameSessionProps> = ({
     const [diamonds, setDiamonds] = useState(0);
 
     // Current hand state
-    const [currentHand, setCurrentHand] = useState<HandData | null>(null);
+    const [currentHand, setCurrentHand] = useState(null);
     const [villainAvatar, setVillainAvatar] = useState(getRandomAvatar());
 
     // UI state
     const [showResult, setShowResult] = useState(false);
-    const [lastResult, setLastResult] = useState<any>(null);
+    const [lastResult, setLastResult] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [damageShake, setDamageShake] = useState(false);
 
     // Timer
     const [timeRemaining, setTimeRemaining] = useState(TIMER_SECONDS);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef(null);
 
     // ========================================================================
     // FETCH NEXT HAND
@@ -174,14 +174,12 @@ const GameSession: React.FC<GameSessionProps> = ({
 
             if (data.error) {
                 console.error('Error fetching hand:', data.error);
-                // Use fallback data
                 setCurrentHand(getFallbackHand());
             } else {
-                // Transform API response
-                const hand: HandData = {
+                const hand = {
                     hero_hand: data.hand?.hero_hand || 'AhKs',
                     board: data.hand?.board || '',
-                    pot_size: data.hand?.pot || 6,
+                    pot_size: data.hand?.pot || data.hand?.pot_size || 6,
                     hero_position: data.hand?.hero_position || 'BB',
                     villain_position: data.hand?.villain_position || 'SB',
                     hero_stack: data.hand?.hero_stack || 100,
@@ -210,7 +208,7 @@ const GameSession: React.FC<GameSessionProps> = ({
     // SUBMIT ACTION
     // ========================================================================
 
-    const submitAction = useCallback(async (action: string) => {
+    const submitAction = useCallback(async (action) => {
         if (isSubmitting || !currentHand) return;
 
         setIsSubmitting(true);
@@ -298,7 +296,6 @@ const GameSession: React.FC<GameSessionProps> = ({
         timerRef.current = setInterval(() => {
             setTimeRemaining(prev => {
                 if (prev <= 1) {
-                    // Time's up - auto-submit fold
                     submitAction('fold');
                     return 0;
                 }
@@ -322,7 +319,7 @@ const GameSession: React.FC<GameSessionProps> = ({
     const timerColor = timeRemaining > 20 ? '#00ff88' : timeRemaining > 10 ? '#ffaa00' : '#ff4444';
 
     // Format actions for display
-    const formatAction = (action: string): string => {
+    const formatAction = (action) => {
         if (action === 'fold') return 'FOLD';
         if (action === 'check') return 'CHECK';
         if (action === 'call') return 'CALL';
@@ -332,7 +329,7 @@ const GameSession: React.FC<GameSessionProps> = ({
         return action.toUpperCase();
     };
 
-    const getActionColor = (action: string): string => {
+    const getActionColor = (action) => {
         if (action === 'fold') return '#dc2626';
         if (action === 'check' || action === 'call') return '#16a34a';
         return '#2563eb';
@@ -529,41 +526,13 @@ const GameSession: React.FC<GameSessionProps> = ({
             `}</style>
         </div>
     );
-};
-
-// ============================================================================
-// FALLBACK DATA
-// ============================================================================
-
-function getFallbackHand(): HandData {
-    const hands = ['AhKs', 'QdJd', 'TsTs', '9h8h', 'AcQc'];
-    const boards = ['', 'QsJh7c', 'Ac5d3h', 'KdTd4c'];
-
-    return {
-        hero_hand: hands[Math.floor(Math.random() * hands.length)],
-        board: boards[Math.floor(Math.random() * boards.length)],
-        pot_size: 6 + Math.floor(Math.random() * 20),
-        hero_position: 'BB',
-        villain_position: 'SB',
-        hero_stack: 100,
-        villain_stack: 100,
-        available_actions: ['fold', 'check', 'bet_50', 'bet_100'],
-        question_prompt: 'You are in the BB facing a raise. What is your action?',
-        solver_node: {
-            actions: {
-                fold: { frequency: 0.2, ev: 0 },
-                call: { frequency: 0.5, ev: 8 },
-                raise: { frequency: 0.3, ev: 10 },
-            }
-        },
-    };
 }
 
 // ============================================================================
 // STYLES
 // ============================================================================
 
-const styles: Record<string, React.CSSProperties> = {
+const styles = {
     container: {
         minHeight: '100vh',
         background: '#080810',
@@ -682,14 +651,7 @@ const styles: Record<string, React.CSSProperties> = {
     tableFelt: {
         width: '100%',
         height: '100%',
-        background: `radial-gradient(
-            ellipse at 50% 50%,
-            #080808 0%,
-            #0c0c0c 30%,
-            #151515 60%,
-            #252525 80%,
-            #1a1a1a 100%
-        )`,
+        background: 'radial-gradient(ellipse at 50% 50%, #0a2818 0%, #0c3a22 30%, #0d4d2a 60%, #105e33 80%, #0f4d2a 100%)',
         borderRadius: 9999,
         boxShadow: 'inset 0 0 80px 30px rgba(255,255,255,0.06)',
         position: 'relative',
@@ -887,5 +849,3 @@ const styles: Record<string, React.CSSProperties> = {
         color: 'rgba(255, 255, 255, 0.6)',
     },
 };
-
-export default GameSession;
