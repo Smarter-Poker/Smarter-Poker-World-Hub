@@ -190,7 +190,7 @@ export default function TrainingArenaPage() {
                 .arena-root { position: fixed; inset: 0; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; }
                 .question-bar { flex-shrink: 0; padding: 10px 16px; background: rgba(0,80,160,0.2); border-bottom: 1px solid rgba(0,150,255,0.25); }
                 .question-bar p { font-size: 12px; font-weight: 500; color: #00d4ff; text-align: center; line-height: 1.4; }
-                .table-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px; overflow: hidden; }
+                .table-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 25px 8px; overflow: hidden; }
                 .table-wrapper { position: relative; aspect-ratio: 3 / 4; max-height: 85vh; max-width: calc(85vh * 0.75); width: 100%; margin: 0 auto; }
                 .table-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; border-radius: 20px; mix-blend-mode: normal !important; z-index: 1; background: #1a1a1a; }
                 .pot { position: absolute; top: 16%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; padding: 4px 12px; background: rgba(0,0,0,0.85); border-radius: 14px; border: 1px solid rgba(255,255,255,0.2); z-index: 20; }
