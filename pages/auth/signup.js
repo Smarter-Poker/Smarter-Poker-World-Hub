@@ -257,7 +257,7 @@ export default function SignUpPage() {
                             city: formData.city,
                             state: formData.state,
                             username: formData.pokerAlias,
-                            xp_total: 50, // Starting XP bonus
+                            xp_total: 100, // Starting XP bonus
                             diamonds: 300, // Starting diamonds bonus (NO PURCHASE NECESSARY)
                             diamond_multiplier: 1.0,
                             streak_days: 0,
