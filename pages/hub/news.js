@@ -92,7 +92,6 @@ function formatViews(num) {
 
 // News Box Component - Dedicated display box for each story
 function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, isRead }) {
-    const isLarge = index === 0;
     const categoryColors = {
         tournament: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', icon: '🏆' },
         strategy: { bg: 'rgba(124, 58, 237, 0.15)', color: '#a78bfa', icon: '📚' },
@@ -103,7 +102,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
 
     return (
         <motion.div
-            className={`news-box ${isLarge ? 'news-box-large' : ''} ${isRead ? 'read' : ''}`}
+            className={`news-box ${isRead ? 'read' : ''}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
@@ -144,9 +143,9 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 {/* Title */}
                 <h3 className="box-title">{article.title}</h3>
 
-                {/* Excerpt - only for large box */}
-                {isLarge && article.content && (
-                    <p className="box-excerpt">{article.content.substring(0, 120)}...</p>
+                {/* Description/Excerpt */}
+                {article.content && (
+                    <p className="box-excerpt">{article.content.substring(0, 100)}...</p>
                 )}
 
                 {/* Meta */}
@@ -183,18 +182,6 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
 
                 .news-box.read:hover {
                     opacity: 1;
-                }
-
-                .news-box-large {
-                    grid-column: span 2;
-                    grid-row: span 2;
-                }
-
-                @media (max-width: 768px) {
-                    .news-box-large {
-                        grid-column: span 1;
-                        grid-row: span 1;
-                    }
                 }
 
                 .box-actions {
@@ -250,12 +237,8 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 .box-image {
                     position: relative;
                     width: 100%;
-                    height: 140px;
+                    height: 160px;
                     overflow: hidden;
-                }
-
-                .news-box-large .box-image {
-                    height: 200px;
                 }
 
                 .box-image img {
@@ -1673,23 +1656,11 @@ export default function NewsHub() {
                     /* News Grid - 8 boxes */
                     .news-grid {
                         display: grid;
-                        grid-template-columns: repeat(4, 1fr);
-                        gap: 16px;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 20px;
                     }
 
-                    @media (max-width: 1200px) {
-                        .news-grid {
-                            grid-template-columns: repeat(3, 1fr);
-                        }
-                    }
-
-                    @media (max-width: 900px) {
-                        .news-grid {
-                            grid-template-columns: repeat(2, 1fr);
-                        }
-                    }
-
-                    @media (max-width: 600px) {
+                    @media (max-width: 768px) {
                         .news-grid {
                             grid-template-columns: 1fr;
                         }
