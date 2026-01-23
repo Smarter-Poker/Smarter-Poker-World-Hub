@@ -297,6 +297,12 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔗 LINK PREVIEW CARD - Fetches and displays rich link metadata for feed posts
 // ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ CRITICAL: DO NOT MODIFY without running /social-feed-protection workflow
+// This component has broken 4+ times. Key requirements:
+// - Uses useExternalLink for internal popups (NOT target="_blank")
+// - Image uses aspectRatio: '16/9' and objectFit: 'cover' (full width, no black bars)
+// - decodeHtmlEntities for title/description (fixes &#039; display)
+// ═══════════════════════════════════════════════════════════════════════════
 
 function LinkPreviewCard({ url }) {
     const { openExternal } = useExternalLink();
@@ -776,6 +782,11 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         inputRef.current?.focus();
     };
 
+    // ⚠️ CRITICAL: handlePost - Core posting functionality
+    // This has broken multiple times. Requires:
+    // - RLS policy "Authenticated users can post" WITH CHECK (true)
+    // - author_id set from user.id
+    // - Run /social-feed-protection workflow after changes
     const handlePost = async () => {
         // Allow posting if there's content, media, OR a link preview
         if (!content.trim() && !media.length && !linkPreview) return;
