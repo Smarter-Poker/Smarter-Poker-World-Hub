@@ -10,6 +10,10 @@ import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for ReactPlayer (SSR compatibility)
+const ReactPlayer = dynamic(() => import('react-player/lazy'), { ssr: false });
 
 // God-Mode Stack
 import { useReelsStore } from '../../src/stores/reelsStore';
@@ -274,22 +278,31 @@ export default function ReelsPage() {
                     position: 'relative',
                     background: '#000',
                 }}>
-                    {/* Video */}
-                    <video
-                        ref={videoRef}
-                        key={currentReel?.id}
-                        src={currentReel?.video_url}
-                        autoPlay
-                        loop
-                        muted={muted}
-                        playsInline
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                        }}
-                        onClick={() => setMuted(prev => !prev)}
-                    />
+                    {/* Video Player - Supports YouTube, Vimeo, and direct video URLs */}
+                    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                        <ReactPlayer
+                            key={currentReel?.id}
+                            url={currentReel?.video_url}
+                            playing={true}
+                            loop={true}
+                            muted={muted}
+                            width="100%"
+                            height="100%"
+                            style={{ position: 'absolute', top: 0, left: 0 }}
+                            config={{
+                                youtube: {
+                                    playerVars: {
+                                        controls: 0,
+                                        modestbranding: 1,
+                                        rel: 0,
+                                        showinfo: 0,
+                                        playsinline: 1
+                                    }
+                                }
+                            }}
+                            onClick={() => setMuted(prev => !prev)}
+                        />
+                    </div>
 
                     {/* Author info overlay */}
                     <div style={{

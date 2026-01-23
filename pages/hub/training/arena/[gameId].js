@@ -33,6 +33,7 @@ const VILLAIN_AVATARS = [
 
 // Seat positions - EXACT match to reference image
 // Positions are relative to the table-wrapper container
+// ALL positions use LEFT/TOP (not right) so drag transforms work correctly
 const SEAT_POSITIONS = {
     // Bottom center - Hero
     hero: { left: '50%', bottom: '3%', transform: 'translateX(-50%)' },
@@ -44,14 +45,14 @@ const SEAT_POSITIONS = {
     seat3: { left: '8%', top: '28%' },
     // Top left - Villain 4 (wolf)
     seat4: { left: '28%', top: '8%', transform: 'translateX(-50%)' },
-    // Top right - Villain 5 (spartan) - Using left position
+    // Top right - Villain 5 (spartan)
     seat5: { left: '72%', top: '8%', transform: 'translateX(-50%)' },
-    // Upper right - Villain 6 (pharaoh) - Use right positioning with transform
-    seat6: { right: '2%', top: '28%', transform: 'translateX(0)' },
-    // Middle right - Villain 7 (pirate) - Use right positioning
-    seat7: { right: '-5%', top: '50%', transform: 'translateY(-50%)' },
-    // Bottom right - Villain 8 (cowboy) - Use right positioning
-    seat8: { right: '8%', bottom: '22%', transform: 'translateX(0)' },
+    // Upper right - Villain 6 (king with glasses) - LEFT-based so drag works
+    seat6: { left: '85%', top: '28%', transform: 'translateX(-50%)' },
+    // Middle right - Villain 7 (young man) - LEFT-based so drag works
+    seat7: { left: '92%', top: '50%', transform: 'translate(-50%, -50%)' },
+    // Bottom right - Villain 8 (owl) - LEFT-based so drag works
+    seat8: { left: '85%', bottom: '22%', transform: 'translateX(-50%)' },
 };
 
 const SUITS = {
