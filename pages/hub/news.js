@@ -1065,7 +1065,12 @@ export default function NewsHub() {
                                                     whileHover={{ x: 4 }}
                                                     onClick={() => openArticle(article)}
                                                 >
-                                                    <img src={article.image_url} alt="" className="list-thumb" />
+                                                    <img
+                                                        src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
+                                                        alt=""
+                                                        className="list-thumb"
+                                                        onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
+                                                    />
                                                     <div className="list-content">
                                                         <h4>{article.title}</h4>
                                                         <div className="list-meta">
@@ -1172,7 +1177,13 @@ export default function NewsHub() {
                                 {trendingNews.map((article, i) => (
                                     <li key={article.id} onClick={() => openArticle(article)}>
                                         <span className="rank">{i + 1}</span>
-                                        <img src={article.image_url} alt="" className="trend-thumb" loading="lazy" />
+                                        <img
+                                            src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
+                                            alt=""
+                                            className="trend-thumb"
+                                            loading="lazy"
+                                            onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
+                                        />
                                         <span className="title">{article.title}</span>
                                     </li>
                                 ))}
