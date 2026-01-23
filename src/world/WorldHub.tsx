@@ -221,19 +221,60 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                         boxShadow: `0 0 20px rgba(0, 180, 255, 0.3), 0 20px 40px rgba(0, 0, 0, 0.5)`,
                     }}
                 >
-                    {/* Card image */}
+                    {/* Card image - Holographic floating effect inside frame */}
                     <div
                         style={{
+                            position: 'relative',
                             width: '100%',
                             height: '100%',
-                            backgroundImage: orb.imageUrl
-                                ? `url('${orb.imageUrl}')`
-                                : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
+                            overflow: 'hidden',
                             borderRadius: 6,
                         }}
-                    />
+                    >
+                        {/* The actual image with 3D floating animation */}
+                        <div
+                            className="holo-inner-image"
+                            style={{
+                                width: '110%',
+                                height: '110%',
+                                position: 'absolute',
+                                top: '-5%',
+                                left: '-5%',
+                                backgroundImage: orb.imageUrl
+                                    ? `url('${orb.imageUrl}')`
+                                    : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                animation: `holoFloat${index} ${6 + index * 0.5}s ease-in-out infinite`,
+                                transformStyle: 'preserve-3d',
+                            }}
+                        />
+                        {/* Sweeping light beam overlay */}
+                        <div
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: '-100%',
+                                width: '50%',
+                                height: '100%',
+                                background: 'linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.15), transparent)',
+                                animation: `lightSweep ${4 + index * 0.3}s ease-in-out infinite`,
+                                pointerEvents: 'none',
+                            }}
+                        />
+                        {/* Pulsing glow overlay */}
+                        <div
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                background: `radial-gradient(ellipse at 50% 30%, rgba(0, 212, 255, ${0.05 + edgeOpacity * 0.1}), transparent 60%)`,
+                                pointerEvents: 'none',
+                            }}
+                        />
+                    </div>
 
                     {/* ═══════════════════════════════════════════════════════════════
                         INNER WHITE BORDER FRAME - Clean sharp line (matching mockup)
@@ -671,7 +712,7 @@ export default function WorldHub() {
                 </Canvas>
 
 
-                {/* Keyframe animations for shine and pedestal effects */}
+                {/* Keyframe animations for shine, pedestal, and holographic inner effects */}
                 <style jsx global>{`
                 @keyframes pedestalPulse {
                     0%, 100% { opacity: 0.6; transform: translateX(-50%) rotateX(75deg) scale(1); }
@@ -681,6 +722,51 @@ export default function WorldHub() {
                     0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
                     50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
                     100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+                }
+                /* Holographic inner image floating - each card gets unique animation */
+                @keyframes holoFloat0 {
+                    0%, 100% { transform: translate(0, 0) rotateX(0deg) rotateY(0deg) scale(1); }
+                    25% { transform: translate(2%, 1%) rotateX(3deg) rotateY(-2deg) scale(1.02); }
+                    50% { transform: translate(-1%, 2%) rotateX(-2deg) rotateY(3deg) scale(1); }
+                    75% { transform: translate(-2%, -1%) rotateX(2deg) rotateY(-1deg) scale(1.01); }
+                }
+                @keyframes holoFloat1 {
+                    0%, 100% { transform: translate(0, 0) rotateX(0deg) rotateY(0deg) scale(1); }
+                    25% { transform: translate(-2%, 2%) rotateX(-3deg) rotateY(2deg) scale(1.01); }
+                    50% { transform: translate(2%, -1%) rotateX(2deg) rotateY(-3deg) scale(1.02); }
+                    75% { transform: translate(1%, 1%) rotateX(-1deg) rotateY(2deg) scale(1); }
+                }
+                @keyframes holoFloat2 {
+                    0%, 100% { transform: translate(0, 0) rotateX(0deg) rotateY(0deg) scale(1); }
+                    25% { transform: translate(1%, -2%) rotateX(2deg) rotateY(3deg) scale(1.02); }
+                    50% { transform: translate(-2%, 1%) rotateX(-3deg) rotateY(-2deg) scale(1); }
+                    75% { transform: translate(2%, 2%) rotateX(1deg) rotateY(-3deg) scale(1.01); }
+                }
+                @keyframes holoFloat3 {
+                    0%, 100% { transform: translate(0, 0) rotateX(0deg) rotateY(0deg) scale(1); }
+                    25% { transform: translate(-1%, 1%) rotateX(-2deg) rotateY(-3deg) scale(1.01); }
+                    50% { transform: translate(2%, 2%) rotateX(3deg) rotateY(2deg) scale(1.02); }
+                    75% { transform: translate(-2%, -2%) rotateX(-1deg) rotateY(1deg) scale(1); }
+                }
+                @keyframes holoFloat4 {
+                    0%, 100% { transform: translate(0, 0) rotateX(0deg) rotateY(0deg) scale(1); }
+                    25% { transform: translate(2%, -1%) rotateX(3deg) rotateY(2deg) scale(1); }
+                    50% { transform: translate(-1%, -2%) rotateX(-2deg) rotateY(-3deg) scale(1.01); }
+                    75% { transform: translate(1%, 2%) rotateX(2deg) rotateY(1deg) scale(1.02); }
+                }
+                @keyframes holoFloat5 {
+                    0%, 100% { transform: translate(0, 0) rotateX(0deg) rotateY(0deg) scale(1); }
+                    25% { transform: translate(-2%, -1%) rotateX(-1deg) rotateY(3deg) scale(1.02); }
+                    50% { transform: translate(1%, 2%) rotateX(2deg) rotateY(-2deg) scale(1); }
+                    75% { transform: translate(2%, -2%) rotateX(-3deg) rotateY(-1deg) scale(1.01); }
+                }
+                /* Light sweep animation */
+                @keyframes lightSweep {
+                    0%, 100% { left: -100%; opacity: 0; }
+                    40% { opacity: 0; }
+                    50% { left: 50%; opacity: 1; }
+                    60% { opacity: 0; }
+                    100% { left: 200%; opacity: 0; }
                 }
                 /* Hide scrollbar for mobile footer */
                 div::-webkit-scrollbar {
