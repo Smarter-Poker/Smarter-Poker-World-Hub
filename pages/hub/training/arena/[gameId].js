@@ -196,7 +196,7 @@ export default function TrainingArenaPage() {
                     content: '';
                     position: absolute;
                     inset: -10px;
-                    background: radial-gradient(ellipse 85% 90% at center, transparent 50%, #0a0e17 80%, #050810 100%);
+                    background: radial-gradient(ellipse 75% 80% at center, transparent 35%, #0a0e17 60%, #050810 85%);
                     pointer-events: none;
                     z-index: 15;
                 }
