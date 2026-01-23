@@ -8,28 +8,34 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Default images to detect (we want to replace these with real images)
+// Default/bad images to detect (we want to replace these with real images)
 const DEFAULT_IMAGE_PATTERNS = [
     'unsplash.com',
     'pexels.com',
-    'placeholder'
+    'placeholder',
+    'lh3.googleusercontent.com',  // Google's generic thumbnails
+    'gstatic.com',
+    'google.com/images'
 ];
 
 /**
- * Fetch og:image from article URL
+ * Fetch og:image from article URL - follows redirects to get real article
  */
 async function fetchOgImage(url) {
     if (!url) return null;
 
     try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
+        const timeout = setTimeout(() => controller.abort(), 10000);
 
+        // Follow redirects to get to the actual article
         const response = await fetch(url, {
             signal: controller.signal,
+            redirect: 'follow',
             headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; SmarterPokerBot/1.0)',
-                'Accept': 'text/html'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5'
             }
         });
 
@@ -39,7 +45,7 @@ async function fetchOgImage(url) {
 
         const html = await response.text();
 
-        // Try og:image
+        // Try og:image first
         let match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
         if (!match) {
             match = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
@@ -53,39 +59,38 @@ async function fetchOgImage(url) {
             }
         }
 
-        // Try first large image in article
+        // Try twitter:image:src
         if (!match) {
-            // Look for article images with reasonable sizes
-            const imgMatches = html.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi);
-            for (const imgMatch of imgMatches) {
-                const src = imgMatch[1];
-                // Skip small images, icons, logos, tracking pixels
-                if (src.includes('logo') || src.includes('icon') || src.includes('avatar') ||
-                    src.includes('1x1') || src.includes('pixel') || src.includes('track') ||
-                    src.includes('ad') || src.includes('banner') || src.length < 20) {
-                    continue;
-                }
-                // Accept if it looks like a content image
-                if (src.startsWith('http') && (src.includes('.jpg') || src.includes('.png') ||
-                    src.includes('.webp') || src.includes('image'))) {
-                    match = [null, src];
-                    break;
-                }
-            }
+            match = html.match(/<meta[^>]+name=["']twitter:image:src["'][^>]+content=["']([^"']+)["']/i);
         }
 
         if (match && match[1]) {
-            const imageUrl = match[1];
-            // Validate it's a real image URL
-            if (imageUrl.startsWith('http') && !imageUrl.includes('logo') &&
-                !imageUrl.includes('icon') && !imageUrl.includes('favicon')) {
+            let imageUrl = match[1];
+
+            // Decode HTML entities
+            imageUrl = imageUrl.replace(/&amp;/g, '&');
+
+            // Skip Google's generic thumbnails
+            if (imageUrl.includes('lh3.googleusercontent.com') ||
+                imageUrl.includes('google.com/images') ||
+                imageUrl.includes('gstatic.com')) {
+                return null;
+            }
+
+            // Skip logos, icons, favicons
+            if (imageUrl.includes('logo') || imageUrl.includes('icon') ||
+                imageUrl.includes('favicon') || imageUrl.includes('avatar')) {
+                return null;
+            }
+
+            if (imageUrl.startsWith('http')) {
                 return imageUrl;
             }
         }
 
         return null;
     } catch (error) {
-        console.log(`   ⚠ Failed to fetch ${url}: ${error.message}`);
+        console.log(`   Failed to fetch: ${error.message}`);
         return null;
     }
 }
