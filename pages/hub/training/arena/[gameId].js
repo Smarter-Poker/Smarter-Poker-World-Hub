@@ -103,6 +103,20 @@ export default function TrainingArenaPage() {
     const [heroStack, setHeroStack] = useState(45);
     const [villainStacks] = useState([32, 28, 55, 41, 38, 62, 29, 51]);
     const [question, setQuestion] = useState("You Are On The Button. The Player To Your Right Bets 2.5 BB. What Is Your Best Move?");
+    const [tableScale, setTableScale] = useState(1);
+
+    // Calculate scale once on mount - locks the layout
+    useEffect(() => {
+        const calculateScale = () => {
+            const availableWidth = window.innerWidth - 16;
+            const availableHeight = window.innerHeight - 200;
+            const scaleX = availableWidth / 600;
+            const scaleY = availableHeight / 800;
+            setTableScale(Math.min(scaleX, scaleY, 1)); // Cap at 1x (never upscale)
+        };
+        calculateScale();
+        // No resize listener - scale is locked on load
+    }, []);
 
     useEffect(() => {
         const init = async () => {
@@ -153,7 +167,7 @@ export default function TrainingArenaPage() {
                 <UniversalHeader pageDepth={2} />
                 <div className="question-bar"><p>{question}</p></div>
                 <div className="table-area">
-                    <div className="table-wrapper">
+                    <div className="table-wrapper" style={{ transform: `scale(${tableScale})` }}>
                         <img src="/images/training/table-vertical.jpg" alt="Poker Table" className="table-img" />
                         <div className="pot"><span className="pot-icon">●</span><span className="pot-label">POT</span><span className="pot-value">{pot}</span></div>
                         {board.length > 0 && <div className="board">{board.map((card, i) => <Card key={i} {...card} />)}</div>}
@@ -196,8 +210,6 @@ export default function TrainingArenaPage() {
                     width: 600px; 
                     height: 800px; 
                     transform-origin: center center;
-                    /* Scale to fit viewport while maintaining 3:4 ratio */
-                    transform: scale(min(calc((100vw - 16px) / 600), calc((100vh - 200px) / 800)));
                 }
                 .table-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; border-radius: 20px; mix-blend-mode: normal !important; z-index: 1; background: #1a1a1a; }
                 .pot { position: absolute; top: 16%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; padding: 4px 12px; background: rgba(0,0,0,0.85); border-radius: 14px; border: 1px solid rgba(255,255,255,0.2); z-index: 20; }
