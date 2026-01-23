@@ -651,6 +651,7 @@ async function saveVideo(video) {
 
 /**
  * Post article to Social Feed as Smarter.Poker account
+ * Includes the source URL so link previews auto-populate
  */
 async function postToSocialFeed(article, newsId) {
     const categoryEmojis = {
@@ -662,13 +663,13 @@ async function postToSocialFeed(article, newsId) {
     };
 
     const emoji = categoryEmojis[article.category] || '📰';
-    const viewerUrl = `/hub/article?id=${newsId}`;
 
+    // Include the actual source URL for link preview auto-population
     const postContent = `${emoji} **${article.title}**
 
 ${article.summary}
 
-📖 Read more on Smarter.Poker`;
+🔗 ${article.link}`;
 
     try {
         // Prepare media URLs
@@ -686,7 +687,6 @@ ${article.summary}
                     article_url: article.link,
                     article_source: article.source,
                     article_title: article.title,
-                    viewer_url: viewerUrl,
                     news_id: newsId
                 }
             });
@@ -705,7 +705,6 @@ ${article.summary}
                         article_url: article.link,
                         article_source: article.source,
                         article_title: article.title,
-                        viewer_url: viewerUrl,
                         news_id: newsId
                     },
                     created_at: new Date().toISOString()
