@@ -2,12 +2,12 @@
  * 📰 SMARTER.POKER NEWS SCRAPER - 6 Box System
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * BOX 1: PokerNews.com
- * BOX 2: MSPT.com
- * BOX 3: CardPlayer.com
- * BOX 4: WSOP.com
- * BOX 5: Poker.org
- * BOX 6: Pokerfuse.com
+ * BOX 1: PokerNews.com (RSS)
+ * BOX 2: MSPT.com (direct scrape)
+ * BOX 3: CardPlayer.com (RSS)
+ * BOX 4: WSOP.com (direct scrape)
+ * BOX 5: Poker.org (RSS)
+ * BOX 6: Pokerfuse.com (direct scrape)
  *
  * SCHEDULE: Runs every 2 hours via Vercel cron
  * RETENTION: 3 days before archive
@@ -16,13 +16,17 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import Parser from 'rss-parser';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Official Smarter.Poker System Account UUID
-const SYSTEM_UUID = '00000000-0000-0000-0000-000000000001';
+const rssParser = new Parser({
+    customFields: {
+        item: ['media:content', 'media:thumbnail', 'content:encoded', 'enclosure']
+    }
+});
 
 const CONFIG = {
     MAX_ARTICLES_PER_SOURCE: 5,
@@ -31,54 +35,57 @@ const CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// THE 6 NEWS SOURCES - Each gets its own box
+// THE 6 NEWS SOURCES
 // ═══════════════════════════════════════════════════════════════════════════
 const NEWS_SOURCES = [
     {
         box: 1,
         name: 'PokerNews',
-        baseUrl: 'https://www.pokernews.com',
-        scrapeUrl: 'https://www.pokernews.com/news/',
+        type: 'rss',
+        url: 'https://www.pokernews.com/news.rss',
         icon: '🃏',
         category: 'news'
     },
     {
         box: 2,
         name: 'MSPT',
+        type: 'scrape',
+        url: 'https://msptpoker.com/pages/Magazine.aspx',
         baseUrl: 'https://msptpoker.com',
-        scrapeUrl: 'https://msptpoker.com/pages/Magazine.aspx',
         icon: '🎰',
         category: 'tournament'
     },
     {
         box: 3,
         name: 'CardPlayer',
-        baseUrl: 'https://www.cardplayer.com',
-        scrapeUrl: 'https://www.cardplayer.com/poker-news',
+        type: 'rss',
+        url: 'https://www.cardplayer.com/rss/news.xml',
         icon: '♠️',
         category: 'news'
     },
     {
         box: 4,
         name: 'WSOP',
+        type: 'scrape',
+        url: 'https://www.wsop.com/news/',
         baseUrl: 'https://www.wsop.com',
-        scrapeUrl: 'https://www.wsop.com/news/',
         icon: '🏆',
         category: 'tournament'
     },
     {
         box: 5,
         name: 'Poker.org',
-        baseUrl: 'https://www.poker.org',
-        scrapeUrl: 'https://www.poker.org/latest-news/',
+        type: 'rss',
+        url: 'https://www.poker.org/feed/',
         icon: '♦️',
         category: 'news'
     },
     {
         box: 6,
         name: 'Pokerfuse',
+        type: 'scrape',
+        url: 'https://pokerfuse.com/',
         baseUrl: 'https://pokerfuse.com',
-        scrapeUrl: 'https://pokerfuse.com/latest-news/',
         icon: '🔥',
         category: 'industry'
     }
@@ -97,7 +104,7 @@ async function fetchPage(url) {
             signal: controller.signal,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5'
             }
         });
@@ -120,104 +127,123 @@ function cleanText(text) {
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'")
+        .replace(/&#x27;/g, "'")
         .replace(/\s+/g, ' ')
         .trim();
 }
 
 function extractOgImage(html) {
+    if (!html) return null;
+
+    // Try og:image
     let match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
-    if (!match) {
-        match = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    if (!match) match = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+
+    // Try twitter:image
+    if (!match) match = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+    if (!match) match = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+
+    if (match && match[1]) {
+        return match[1].replace(/&amp;/g, '&');
     }
-    if (!match) {
-        match = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+    return null;
+}
+
+function extractRssImage(item) {
+    // Try enclosure
+    if (item.enclosure?.url) return item.enclosure.url;
+
+    // Try media:content
+    if (item['media:content']?.$?.url) return item['media:content'].$.url;
+    if (item['media:content']?.url) return item['media:content'].url;
+
+    // Try media:thumbnail
+    if (item['media:thumbnail']?.$?.url) return item['media:thumbnail'].$.url;
+
+    // Try content:encoded for img tags
+    if (item['content:encoded']) {
+        const imgMatch = item['content:encoded'].match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (imgMatch) return imgMatch[1];
     }
-    return match ? match[1].replace(/&amp;/g, '&') : null;
+
+    return null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SOURCE-SPECIFIC SCRAPERS
+// RSS SCRAPER
 // ═══════════════════════════════════════════════════════════════════════════
 
-async function scrapePokerNews(html, source) {
+async function scrapeRSS(source) {
     const articles = [];
 
-    // Match article links from PokerNews news page
-    const articleMatches = html.matchAll(/<a[^>]+href=["'](https?:\/\/www\.pokernews\.com\/news\/[^"']+)["'][^>]*>([^<]+)<\/a>/gi);
-    const seen = new Set();
+    try {
+        const feed = await rssParser.parseURL(source.url);
 
-    for (const match of articleMatches) {
-        if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+        for (const item of (feed.items || []).slice(0, CONFIG.MAX_ARTICLES_PER_SOURCE)) {
+            const title = cleanText(item.title);
+            if (!title || title.length < 10) continue;
 
-        const url = match[1];
-        const title = cleanText(match[2]);
+            let image = extractRssImage(item);
 
-        if (!title || title.length < 10 || seen.has(url)) continue;
-        seen.add(url);
+            // If no image in RSS, fetch from article page
+            if (!image && item.link) {
+                const articleHtml = await fetchPage(item.link);
+                image = extractOgImage(articleHtml);
+            }
 
-        // Fetch the article page to get image
-        const articleHtml = await fetchPage(url);
-        const image = articleHtml ? extractOgImage(articleHtml) : null;
-
-        if (image) {
-            articles.push({ url, title, image, source });
+            if (image && item.link) {
+                articles.push({
+                    url: item.link,
+                    title,
+                    image,
+                    source
+                });
+            }
         }
+    } catch (error) {
+        console.log(`   RSS Error: ${error.message}`);
     }
 
     return articles;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAGE SCRAPERS
+// ═══════════════════════════════════════════════════════════════════════════
 
 async function scrapeMSPT(html, source) {
     const articles = [];
-
-    // MSPT uses a magazine-style layout
-    const articleMatches = html.matchAll(/<a[^>]+href=["']([^"']*(?:news|article|story)[^"']*)["'][^>]*>([^<]*)<\/a>/gi);
     const seen = new Set();
 
-    for (const match of articleMatches) {
-        if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+    // Look for article links - MSPT has various formats
+    const patterns = [
+        /href=["']([^"']*(?:magazine|article|news|story)[^"']*)["'][^>]*>([^<]+)/gi,
+        /href=["']([^"']+\.aspx[^"']*)["'][^>]*>([^<]{15,})/gi
+    ];
 
-        let url = match[1];
-        if (!url.startsWith('http')) {
-            url = source.baseUrl + (url.startsWith('/') ? '' : '/') + url;
-        }
+    for (const pattern of patterns) {
+        const matches = html.matchAll(pattern);
+        for (const match of matches) {
+            if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
 
-        const title = cleanText(match[2]);
-        if (!title || title.length < 10 || seen.has(url)) continue;
-        seen.add(url);
+            let url = match[1];
+            const title = cleanText(match[2]);
 
-        const articleHtml = await fetchPage(url);
-        const image = articleHtml ? extractOgImage(articleHtml) : null;
+            if (!title || title.length < 15 || seen.has(url)) continue;
+            if (url.includes('javascript:') || url.includes('#')) continue;
 
-        if (image) {
-            articles.push({ url, title, image, source });
-        }
-    }
+            if (!url.startsWith('http')) {
+                url = source.baseUrl + (url.startsWith('/') ? '' : '/') + url;
+            }
 
-    return articles;
-}
+            seen.add(url);
 
-async function scrapeCardPlayer(html, source) {
-    const articles = [];
+            const articleHtml = await fetchPage(url);
+            const image = extractOgImage(articleHtml);
 
-    // CardPlayer poker-news articles
-    const articleMatches = html.matchAll(/<a[^>]+href=["'](https?:\/\/www\.cardplayer\.com\/poker-news\/[^"']+)["'][^>]*>([^<]+)<\/a>/gi);
-    const seen = new Set();
-
-    for (const match of articleMatches) {
-        if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
-
-        const url = match[1];
-        const title = cleanText(match[2]);
-
-        if (!title || title.length < 10 || seen.has(url)) continue;
-        seen.add(url);
-
-        const articleHtml = await fetchPage(url);
-        const image = articleHtml ? extractOgImage(articleHtml) : null;
-
-        if (image) {
-            articles.push({ url, title, image, source });
+            if (image) {
+                articles.push({ url, title, image, source });
+            }
         }
     }
 
@@ -226,49 +252,27 @@ async function scrapeCardPlayer(html, source) {
 
 async function scrapeWSOP(html, source) {
     const articles = [];
-
-    // WSOP news articles
-    const articleMatches = html.matchAll(/<a[^>]+href=["'](https?:\/\/www\.wsop\.com\/news\/[^"']+)["'][^>]*>([^<]+)<\/a>/gi);
     const seen = new Set();
 
-    for (const match of articleMatches) {
+    // WSOP news links
+    const matches = html.matchAll(/href=["']((?:https?:\/\/www\.wsop\.com)?\/news\/[^"']+)["'][^>]*>([^<]+)/gi);
+
+    for (const match of matches) {
         if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
 
-        const url = match[1];
+        let url = match[1];
         const title = cleanText(match[2]);
 
-        if (!title || title.length < 10 || seen.has(url)) continue;
-        seen.add(url);
+        if (!title || title.length < 15 || seen.has(url)) continue;
 
-        const articleHtml = await fetchPage(url);
-        const image = articleHtml ? extractOgImage(articleHtml) : null;
-
-        if (image) {
-            articles.push({ url, title, image, source });
+        if (!url.startsWith('http')) {
+            url = source.baseUrl + url;
         }
-    }
 
-    return articles;
-}
-
-async function scrapePokerOrg(html, source) {
-    const articles = [];
-
-    // Poker.org latest news
-    const articleMatches = html.matchAll(/<a[^>]+href=["'](https?:\/\/www\.poker\.org\/latest-news\/[^"']+)["'][^>]*>([^<]+)<\/a>/gi);
-    const seen = new Set();
-
-    for (const match of articleMatches) {
-        if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
-
-        const url = match[1];
-        const title = cleanText(match[2]);
-
-        if (!title || title.length < 10 || seen.has(url)) continue;
         seen.add(url);
 
         const articleHtml = await fetchPage(url);
-        const image = articleHtml ? extractOgImage(articleHtml) : null;
+        const image = extractOgImage(articleHtml);
 
         if (image) {
             articles.push({ url, title, image, source });
@@ -280,22 +284,27 @@ async function scrapePokerOrg(html, source) {
 
 async function scrapePokerfuse(html, source) {
     const articles = [];
-
-    // Pokerfuse latest news
-    const articleMatches = html.matchAll(/<a[^>]+href=["'](https?:\/\/pokerfuse\.com\/latest-news\/[^"']+)["'][^>]*>([^<]+)<\/a>/gi);
     const seen = new Set();
 
-    for (const match of articleMatches) {
+    // Pokerfuse uses /latest-news/YYYY/M/slug/ format
+    const matches = html.matchAll(/href=["']((?:https?:\/\/pokerfuse\.com)?\/latest-news\/\d{4}\/\d{1,2}\/[^"']+)["'][^>]*>([^<]+)/gi);
+
+    for (const match of matches) {
         if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
 
-        const url = match[1];
+        let url = match[1];
         const title = cleanText(match[2]);
 
-        if (!title || title.length < 10 || seen.has(url)) continue;
+        if (!title || title.length < 15 || seen.has(url)) continue;
+
+        if (!url.startsWith('http')) {
+            url = source.baseUrl + url;
+        }
+
         seen.add(url);
 
         const articleHtml = await fetchPage(url);
-        const image = articleHtml ? extractOgImage(articleHtml) : null;
+        const image = extractOgImage(articleHtml);
 
         if (image) {
             articles.push({ url, title, image, source });
@@ -310,23 +319,24 @@ async function scrapePokerfuse(html, source) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function scrapeSource(source) {
-    console.log(`📰 Scraping: ${source.name}...`);
-
-    const html = await fetchPage(source.scrapeUrl);
-    if (!html) {
-        console.log(`   ✗ Failed to fetch ${source.name}`);
-        return [];
-    }
+    console.log(`📰 Scraping: ${source.name} (${source.type})...`);
 
     let articles = [];
 
-    switch (source.box) {
-        case 1: articles = await scrapePokerNews(html, source); break;
-        case 2: articles = await scrapeMSPT(html, source); break;
-        case 3: articles = await scrapeCardPlayer(html, source); break;
-        case 4: articles = await scrapeWSOP(html, source); break;
-        case 5: articles = await scrapePokerOrg(html, source); break;
-        case 6: articles = await scrapePokerfuse(html, source); break;
+    if (source.type === 'rss') {
+        articles = await scrapeRSS(source);
+    } else {
+        const html = await fetchPage(source.url);
+        if (!html) {
+            console.log(`   ✗ Failed to fetch ${source.name}`);
+            return [];
+        }
+
+        switch (source.name) {
+            case 'MSPT': articles = await scrapeMSPT(html, source); break;
+            case 'WSOP': articles = await scrapeWSOP(html, source); break;
+            case 'Pokerfuse': articles = await scrapePokerfuse(html, source); break;
+        }
     }
 
     console.log(`   ✓ Found ${articles.length} articles with images`);
@@ -404,7 +414,6 @@ export default async function handler(req, res) {
     console.log('📰 SMARTER.POKER NEWS SCRAPER - 6 Box System');
     console.log('═'.repeat(70));
     console.log(`⏰ Started at: ${new Date().toISOString()}`);
-    console.log('');
 
     const results = {
         sources: {},
@@ -414,7 +423,6 @@ export default async function handler(req, res) {
     };
 
     try {
-        // Scrape each source
         for (const source of NEWS_SOURCES) {
             try {
                 const articles = await scrapeSource(source);
@@ -434,19 +442,15 @@ export default async function handler(req, res) {
             }
         }
 
-        // Archive old articles (older than 3 days)
         results.archived = await archiveOldArticles();
         console.log(`\n📦 Archived ${results.archived} old articles`);
 
-        console.log('\n');
-        console.log('═'.repeat(70));
-        console.log('📊 SCRAPER SUMMARY');
-        console.log('═'.repeat(70));
+        console.log('\n═'.repeat(70));
+        console.log('📊 SUMMARY');
         for (const [name, stats] of Object.entries(results.sources)) {
-            console.log(`${name}: ${stats.saved}/${stats.found} saved`);
+            console.log(`   ${name}: ${stats.saved}/${stats.found}`);
         }
-        console.log(`Total: ${results.totalSaved} new articles`);
-        console.log(`⏰ Completed: ${new Date().toISOString()}`);
+        console.log(`   Total: ${results.totalSaved} new articles`);
         console.log('═'.repeat(70));
 
         return res.status(200).json({
@@ -457,10 +461,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('❌ Scraper error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-            results
-        });
+        return res.status(500).json({ success: false, error: error.message, results });
     }
 }
