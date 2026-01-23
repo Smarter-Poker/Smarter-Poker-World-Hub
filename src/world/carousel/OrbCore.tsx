@@ -72,10 +72,11 @@ export function OrbCore({ color, label, gradient, active, imageUrl, description 
     return (
         <group ref={groupRef}>
             {/* ═══════════════════════════════════════════════════════════════
-                CARD CONTENT AREA - Custom image with holographic overlay
+                CARD CONTENT AREA - Custom image fills to white inner border
+                Inset matches the white border frame (0.05 from each edge)
                 ═══════════════════════════════════════════════════════════════ */}
             <mesh position={[0, 0, 0.03]}>
-                <planeGeometry args={[cardWidth - 0.02, cardHeight - 0.02]} />
+                <planeGeometry args={[cardWidth - 0.10, cardHeight - 0.10]} />
                 {texture ? (
                     <meshBasicMaterial map={texture} />
                 ) : (

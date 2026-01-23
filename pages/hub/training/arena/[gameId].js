@@ -277,7 +277,7 @@ export default function TrainingArenaPage() {
                     .loading-screen {
                         position: fixed;
                         inset: 0;
-                        background: linear-gradient(180deg, #0a0e17 0%, #0a0e17 100%);
+                        background: #070707;
                         display: flex;
                         flex-direction: column;
                         align-items: center;
@@ -399,7 +399,7 @@ export default function TrainingArenaPage() {
                     height: 100%; 
                     overflow: hidden; 
                     font-family: 'Inter', sans-serif; 
-                    background: #0a0e17; 
+                    background: #070707; 
                 }
             `}</style>
 
@@ -411,7 +411,7 @@ export default function TrainingArenaPage() {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    background: #0a0e17;
+                    background: #070707;
                     overflow: hidden;
                 }
                 
@@ -422,7 +422,7 @@ export default function TrainingArenaPage() {
                     transform-origin: center center;
                     display: flex;
                     flex-direction: column;
-                    background: #0a0e17;
+                    background: #070707;
                     color: #fff;
                     overflow: hidden;
                 }
