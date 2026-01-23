@@ -412,11 +412,16 @@ function StoryViewer({ storyGroup, onClose, userId }) {
 
                 {/* 🔗 LINK BUTTON - Clickable link for stories with URLs */}
                 {(() => {
-                    // Extract URL from story content
-                    const urlRegex = /(https?:\/\/[^\s]+)/gi;
-                    const content = currentStory.content || '';
-                    const matches = content.match(urlRegex);
-                    const storyUrl = matches?.[0];
+                    // Use link_url field if available, fallback to extracting from content
+                    let storyUrl = currentStory.link_url;
+
+                    // Fallback for older stories that have URL in content
+                    if (!storyUrl) {
+                        const urlRegex = /(https?:\/\/[^\s]+)/gi;
+                        const content = currentStory.content || '';
+                        const matches = content.match(urlRegex);
+                        storyUrl = matches?.[0];
+                    }
 
                     if (storyUrl) {
                         return (
@@ -633,6 +638,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 p_media_url: finalMediaUrl || null,
                 p_media_type: finalMediaType,
                 p_background_color: mode === 'text' ? STORY_GRADIENTS[selectedGradient] : null,
+                p_link_url: linkPreview?.url || null,
             });
 
             if (error) throw error;
