@@ -313,10 +313,16 @@ class VenueVerifier {
             update.scrape_url = sourceUrl;
         }
 
-        await supabase
+        const { error } = await supabase
             .from('poker_venues')
             .update(update)
             .eq('id', venueId);
+
+        if (error) {
+            this.log('❌', `Failed to update venue ${venueId}: ${error.message}`);
+        } else {
+            this.log('📝', `Updated venue ${venueId} to status: ${status}`);
+        }
     }
 
     async verifyVenue(venue) {
