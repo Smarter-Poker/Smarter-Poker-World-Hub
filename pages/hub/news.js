@@ -90,13 +90,13 @@ function formatViews(num) {
     return num.toString();
 }
 
-// Fallback images for different categories
+// Fallback images for different categories - using reliable poker images
 const FALLBACK_IMAGES = {
-    tournament: 'https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=400&q=80',
-    strategy: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=400&q=80',
-    industry: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80',
-    news: 'https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=400&q=80',
-    online: 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400&q=80'
+    tournament: 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=400',
+    strategy: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=400',
+    industry: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=400',
+    news: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=400',
+    online: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=400'
 };
 
 // News Box Component - Dedicated display box for each story
@@ -141,7 +141,19 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
 
             {/* Image with fallback */}
             <div className="box-image">
-                <img src={imageUrl} alt={article.title} loading="lazy" />
+                <img
+                    src={imageUrl}
+                    alt={article.title}
+                    loading="lazy"
+                    onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.classList.add('no-image');
+                    }}
+                />
+                <div className="image-placeholder">
+                    <span className="placeholder-icon">{catStyle.icon}</span>
+                    <span className="placeholder-text">{article.category?.toUpperCase() || 'POKER'}</span>
+                </div>
                 <div className="box-overlay" />
             </div>
 
@@ -262,6 +274,8 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     height: 100%;
                     object-fit: cover;
                     transition: transform 0.4s;
+                    position: relative;
+                    z-index: 1;
                 }
 
                 .news-box:hover .box-image img {
@@ -272,6 +286,35 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     position: absolute;
                     inset: 0;
                     background: linear-gradient(to top, rgba(10, 10, 18, 0.9) 0%, transparent 60%);
+                    z-index: 2;
+                }
+
+                .image-placeholder {
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 50%, #16213e 100%);
+                    z-index: 0;
+                }
+
+                .box-image.no-image .image-placeholder {
+                    z-index: 1;
+                }
+
+                .placeholder-icon {
+                    font-size: 48px;
+                    opacity: 0.6;
+                }
+
+                .placeholder-text {
+                    font-size: 12px;
+                    font-weight: 600;
+                    letter-spacing: 2px;
+                    color: rgba(255, 255, 255, 0.4);
+                    margin-top: 8px;
                 }
 
                 .box-content {
