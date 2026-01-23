@@ -771,35 +771,27 @@ async function scrapeSource(source) {
 // DATABASE OPERATIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Get the official SmarterPokerOfficial account for posting
+// System account UUID - established for all automated posting
+const SYSTEM_ACCOUNT_UUID = '00000000-0000-0000-0000-000000000001';
+
+// Get the system account for posting news to social feed
 async function getNewsPosterId() {
-    // Try to find existing SmarterPokerOfficial account (Daniel@smarter.poker)
-    const { data: existing } = await supabase
+    // Verify the system account exists
+    const { data: systemAccount, error } = await supabase
         .from('profiles')
-        .select('id')
-        .or('username.eq.SmarterPokerOfficial,email.eq.Daniel@smarter.poker')
+        .select('id, username')
+        .eq('id', SYSTEM_ACCOUNT_UUID)
         .single();
 
-    if (existing) return existing.id;
-
-    // Create the official account if doesn't exist
-    const { data: created, error } = await supabase
-        .from('profiles')
-        .insert({
-            username: 'SmarterPokerOfficial',
-            full_name: 'Smarter Poker',
-            avatar_url: 'https://smarter.poker/images/logo-icon.png',
-            level: 99,
-            is_verified: true
-        })
-        .select('id')
-        .single();
-
-    if (error) {
-        console.error('Failed to create news poster:', error.message);
-        return null;
+    if (systemAccount) {
+        console.log(`   📢 Using system account: ${systemAccount.username}`);
+        return systemAccount.id;
     }
-    return created?.id;
+
+    // System account doesn't exist - log warning but continue scraping
+    console.warn('⚠️ System account not found! Run: node scripts/setup-system-account.js');
+    console.warn('   Social feed posts will be skipped.');
+    return null;
 }
 
 // Post article to social feed
