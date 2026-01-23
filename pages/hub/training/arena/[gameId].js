@@ -206,7 +206,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
 
     return (
         <div className="player-seat" style={{ position: 'absolute', zIndex: 10000, pointerEvents: 'all', overflow: 'visible', minWidth: '100px', ...initialPosition }}>
-            {/* Avatar - Draggable */}
+            {/* Avatar - Draggable via transform */}
             <img
                 src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=256&q=90`}
                 alt={name}
@@ -220,26 +220,22 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
                     maxHeight: `${size}px`,
                     objectFit: 'contain',
                     filter: 'drop-shadow(2px 3px 6px rgba(0,0,0,0.9))',
-                    cursor: 'grab',
-                    position: 'relative',
-                    left: avatarPos.x,
-                    top: avatarPos.y,
+                    cursor: dragging === 'avatar' ? 'grabbing' : 'grab',
+                    transform: `translate(${avatarPos.x}px, ${avatarPos.y}px)`,
                     zIndex: 10,
                     userSelect: 'none',
                     pointerEvents: 'all',
                     flexShrink: 0,
                 }}
             />
-            {/* Gold Badge - Draggable with higher z-index */}
+            {/* Gold Badge - Draggable via transform */}
             <div
                 className="player-badge"
                 onMouseDown={(e) => handleMouseDown(e, 'badge')}
                 style={{
-                    position: 'relative',
-                    left: badgePos.x,
-                    top: badgePos.y,
-                    zIndex: 500, // LAYER 1 - Above avatars
-                    cursor: 'grab',
+                    transform: `translate(${badgePos.x}px, ${badgePos.y}px)`,
+                    zIndex: 500,
+                    cursor: dragging === 'badge' ? 'grabbing' : 'grab',
                     userSelect: 'none',
                     pointerEvents: 'all',
                     width: 'auto',

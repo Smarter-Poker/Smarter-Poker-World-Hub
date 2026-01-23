@@ -301,14 +301,29 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                // Use localStorage to get user - avoids AbortError from supabase.auth.getUser()
+                // FIXED: Check BOTH storage key formats:
+                // 1. New unified key: 'smarter-poker-auth' (from supabase.ts)
+                // 2. Legacy Supabase keys: 'sb-*-auth-token'
                 let authUser = null;
-                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                if (sbKeys.length > 0) {
+
+                // First, try the new unified storage key
+                const unifiedToken = localStorage.getItem('smarter-poker-auth');
+                if (unifiedToken) {
                     try {
-                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        const tokenData = JSON.parse(unifiedToken);
                         authUser = tokenData?.user || null;
                     } catch (e) { /* ignore parse errors */ }
+                }
+
+                // Fallback: check legacy Supabase keys
+                if (!authUser) {
+                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    if (sbKeys.length > 0) {
+                        try {
+                            const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                            authUser = tokenData?.user || null;
+                        } catch (e) { /* ignore parse errors */ }
+                    }
                 }
 
                 if (authUser) {
