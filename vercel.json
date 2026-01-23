@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/scrape-news",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/pokernews-videos",
+      "schedule": "30 */2 * * *"
     }
   ]
 }
