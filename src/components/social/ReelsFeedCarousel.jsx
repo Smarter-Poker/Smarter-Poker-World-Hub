@@ -27,20 +27,48 @@ function timeAgo(d) {
     return `${Math.floor(s / 86400)}d`;
 }
 
+// YouTube URL helpers
+function isYouTubeUrl(url) {
+    if (!url) return false;
+    return url.includes('youtube.com') || url.includes('youtu.be');
+}
+
+function getYouTubeVideoId(url) {
+    if (!url) return null;
+    const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+    if (watchMatch) return watchMatch[1];
+    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+    if (shortMatch) return shortMatch[1];
+    const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
+    if (embedMatch) return embedMatch[1];
+    return null;
+}
+
+function getYouTubeThumbnail(url) {
+    const videoId = getYouTubeVideoId(url);
+    if (videoId) return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    return null;
+}
+
 // Individual Reel Card in the carousel
 function ReelCard({ reel, onClick }) {
     const [isPlaying, setIsPlaying] = useState(false);
     const videoRef = useRef(null);
 
+    const isYouTube = isYouTubeUrl(reel.video_url);
+    const youtubeThumbnail = isYouTube ? getYouTubeThumbnail(reel.video_url) : null;
+
     const handleMouseEnter = () => {
         setIsPlaying(true);
-        videoRef.current?.play();
+        if (!isYouTube) videoRef.current?.play();
     };
 
     const handleMouseLeave = () => {
         setIsPlaying(false);
-        videoRef.current?.pause();
-        if (videoRef.current) videoRef.current.currentTime = 0;
+        if (!isYouTube) {
+            videoRef.current?.pause();
+            if (videoRef.current) videoRef.current.currentTime = 0;
+        }
     };
 
     return (
@@ -60,19 +88,31 @@ function ReelCard({ reel, onClick }) {
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             }}
         >
-            {/* Video */}
-            <video
-                ref={videoRef}
-                src={reel.video_url}
-                muted
-                loop
-                playsInline
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                }}
-            />
+            {/* Video/Thumbnail - Use YouTube thumbnail or actual video */}
+            {isYouTube ? (
+                <img
+                    src={youtubeThumbnail}
+                    alt="Reel thumbnail"
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                    }}
+                />
+            ) : (
+                <video
+                    ref={videoRef}
+                    src={reel.video_url}
+                    muted
+                    loop
+                    playsInline
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                    }}
+                />
+            )}
 
             {/* Play indicator */}
             {!isPlaying && (
@@ -255,17 +295,27 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 position: 'relative',
                 background: '#000',
             }}>
-                <video
-                    ref={videoRef}
-                    key={currentReel.id}
-                    src={currentReel.video_url}
-                    autoPlay
-                    loop
-                    muted={muted}
-                    playsInline
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onClick={() => setMuted(prev => !prev)}
-                />
+                {isYouTubeUrl(currentReel.video_url) ? (
+                    <iframe
+                        key={currentReel.id}
+                        src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&rel=0&modestbranding=1&playsinline=1${muted ? '&mute=1' : ''}`}
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    />
+                ) : (
+                    <video
+                        ref={videoRef}
+                        key={currentReel.id}
+                        src={currentReel.video_url}
+                        autoPlay
+                        loop
+                        muted={muted}
+                        playsInline
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onClick={() => setMuted(prev => !prev)}
+                    />
+                )}
 
                 {/* Author overlay */}
                 <div style={{
