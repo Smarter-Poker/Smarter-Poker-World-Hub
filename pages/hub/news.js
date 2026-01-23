@@ -63,6 +63,14 @@ const FALLBACK_EVENTS = [
     { id: '3', name: "WPT Championship", event_date: "2025-12-01" }
 ];
 
+// MSPT (Mid-States Poker Tour) Fallback Data
+const FALLBACK_MSPT = [
+    { id: 'mspt1', title: "MSPT Venetian $1,600 Main Event Kicks Off", source_url: "https://msptpoker.com", published_at: new Date().toISOString(), prize_pool: "$2M GTD" },
+    { id: 'mspt2', title: "MSPT Canterbury Park Results - John Smith Wins", source_url: "https://msptpoker.com", published_at: new Date(Date.now() - 86400000).toISOString(), prize_pool: "$350K" },
+    { id: 'mspt3', title: "MSPT 2025 Schedule Announced - 20+ Stops", source_url: "https://msptpoker.com", published_at: new Date(Date.now() - 172800000).toISOString(), prize_pool: null },
+    { id: 'mspt4', title: "MSPT Player of the Year Race Heats Up", source_url: "https://msptpoker.com", published_at: new Date(Date.now() - 259200000).toISOString(), prize_pool: null }
+];
+
 function timeAgo(date) {
     const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
     if (seconds < 60) return 'Just now';
@@ -460,6 +468,241 @@ function VideoCard({ video, onClick }) {
     );
 }
 
+// MSPT Dedicated News Box Component - Major Fixture
+function MSPTBox({ msptNews, onOpenMSPT }) {
+    return (
+        <motion.div
+            className="mspt-major-box"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            whileHover={{ scale: 1.02, y: -4 }}
+        >
+            {/* Header */}
+            <div className="mspt-header">
+                <div className="mspt-logo">
+                    <span className="mspt-icon">🎰</span>
+                    <span className="mspt-title">MSPT NEWS</span>
+                </div>
+                <span className="mspt-badge">LIVE UPDATES</span>
+            </div>
+
+            {/* Featured Story */}
+            {msptNews[0] && (
+                <div className="mspt-featured" onClick={() => onOpenMSPT(msptNews[0])}>
+                    <div className="mspt-featured-content">
+                        <h3>{msptNews[0].title}</h3>
+                        <div className="mspt-featured-meta">
+                            {msptNews[0].prize_pool && (
+                                <span className="prize">{msptNews[0].prize_pool}</span>
+                            )}
+                            <span className="time">{timeAgo(msptNews[0].published_at)}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* More Stories */}
+            <div className="mspt-stories">
+                {msptNews.slice(1, 4).map((item, i) => (
+                    <div key={item.id} className="mspt-story" onClick={() => onOpenMSPT(item)}>
+                        <span className="story-num">{i + 2}</span>
+                        <div className="story-content">
+                            <p>{item.title}</p>
+                            <span className="story-time">{timeAgo(item.published_at)}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Footer Link */}
+            <a
+                href="https://msptpoker.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mspt-footer"
+            >
+                View All MSPT Coverage <ExternalLink size={12} />
+            </a>
+
+            <style jsx>{`
+                .mspt-major-box {
+                    position: relative;
+                    background: linear-gradient(145deg, rgba(185, 28, 28, 0.2), rgba(15, 15, 25, 0.95));
+                    border: 2px solid rgba(220, 38, 38, 0.5);
+                    border-radius: 16px;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .mspt-major-box:hover {
+                    border-color: rgba(220, 38, 38, 0.8);
+                    box-shadow: 0 8px 32px rgba(220, 38, 38, 0.25);
+                }
+
+                .mspt-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 12px 14px;
+                    background: linear-gradient(135deg, #dc2626, #991b1b);
+                }
+
+                .mspt-logo {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .mspt-icon {
+                    font-size: 18px;
+                }
+
+                .mspt-title {
+                    font-size: 14px;
+                    font-weight: 800;
+                    color: #fff;
+                    letter-spacing: 1px;
+                }
+
+                .mspt-badge {
+                    padding: 3px 8px;
+                    background: rgba(255, 255, 255, 0.2);
+                    border-radius: 4px;
+                    font-size: 9px;
+                    font-weight: 700;
+                    color: #fff;
+                    letter-spacing: 0.5px;
+                    animation: pulse 2s infinite;
+                }
+
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.6; }
+                }
+
+                .mspt-featured {
+                    padding: 14px;
+                    background: rgba(220, 38, 38, 0.1);
+                    cursor: pointer;
+                    transition: background 0.2s;
+                }
+
+                .mspt-featured:hover {
+                    background: rgba(220, 38, 38, 0.2);
+                }
+
+                .mspt-featured h3 {
+                    font-size: 15px;
+                    font-weight: 700;
+                    color: #fff;
+                    line-height: 1.4;
+                    margin-bottom: 8px;
+                }
+
+                .mspt-featured-meta {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    font-size: 11px;
+                }
+
+                .mspt-featured-meta .prize {
+                    padding: 3px 8px;
+                    background: linear-gradient(135deg, #fbbf24, #d97706);
+                    border-radius: 4px;
+                    font-weight: 700;
+                    color: #000;
+                }
+
+                .mspt-featured-meta .time {
+                    color: rgba(255, 255, 255, 0.5);
+                }
+
+                .mspt-stories {
+                    padding: 0 14px;
+                    flex: 1;
+                }
+
+                .mspt-story {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 10px;
+                    padding: 10px 0;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .mspt-story:hover {
+                    background: rgba(220, 38, 38, 0.1);
+                    margin: 0 -14px;
+                    padding: 10px 14px;
+                }
+
+                .mspt-story:last-child {
+                    border-bottom: none;
+                }
+
+                .story-num {
+                    width: 20px;
+                    height: 20px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(220, 38, 38, 0.3);
+                    border-radius: 4px;
+                    font-size: 10px;
+                    font-weight: 700;
+                    color: #f87171;
+                    flex-shrink: 0;
+                }
+
+                .story-content {
+                    flex: 1;
+                }
+
+                .story-content p {
+                    font-size: 12px;
+                    color: rgba(255, 255, 255, 0.8);
+                    line-height: 1.4;
+                    margin-bottom: 4px;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                }
+
+                .story-time {
+                    font-size: 10px;
+                    color: rgba(255, 255, 255, 0.4);
+                }
+
+                .mspt-footer {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    padding: 12px;
+                    background: rgba(220, 38, 38, 0.15);
+                    border-top: 1px solid rgba(220, 38, 38, 0.2);
+                    color: #f87171;
+                    font-size: 12px;
+                    font-weight: 600;
+                    text-decoration: none;
+                    transition: all 0.2s;
+                }
+
+                .mspt-footer:hover {
+                    background: rgba(220, 38, 38, 0.25);
+                    color: #fca5a5;
+                }
+            `}</style>
+        </motion.div>
+    );
+}
+
 export default function NewsHub() {
     const router = useRouter();
 
@@ -468,6 +711,7 @@ export default function NewsHub() {
     const [videos, setVideos] = useState([]);
     const [leaderboard, setLeaderboard] = useState([]);
     const [events, setEvents] = useState([]);
+    const [msptNews, setMsptNews] = useState(FALLBACK_MSPT);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('all');
@@ -563,7 +807,8 @@ export default function NewsHub() {
             fetchNews(),
             fetchVideos(),
             fetchLeaderboard(),
-            fetchEvents()
+            fetchEvents(),
+            fetchMSPTNews()
         ]);
         setLoading(false);
         setLastUpdate(new Date());
@@ -622,6 +867,28 @@ export default function NewsHub() {
             setEvents(success && data?.length ? data : FALLBACK_EVENTS);
         } catch (e) {
             setEvents(FALLBACK_EVENTS);
+        }
+    };
+
+    const fetchMSPTNews = async () => {
+        try {
+            // Fetch MSPT-specific news from articles API
+            const res = await fetch('/api/news/articles?search=MSPT&limit=4');
+            const { success, data } = await res.json();
+            if (success && data?.length) {
+                // Transform to MSPT format
+                setMsptNews(data.map(a => ({
+                    id: a.id,
+                    title: a.title,
+                    source_url: a.source_url || '#',
+                    published_at: a.published_at,
+                    prize_pool: null
+                })));
+            } else {
+                setMsptNews(FALLBACK_MSPT);
+            }
+        } catch (e) {
+            setMsptNews(FALLBACK_MSPT);
         }
     };
 
@@ -880,11 +1147,36 @@ export default function NewsHub() {
                                         </div>
                                     ) : (
                                         <div className="news-grid">
-                                            {filteredNews.slice(0, 8).map((article, i) => (
+                                            {/* First News Box */}
+                                            {filteredNews[0] && (
+                                                <NewsBox
+                                                    key={filteredNews[0].id}
+                                                    article={filteredNews[0]}
+                                                    index={0}
+                                                    onOpen={openArticle}
+                                                    isBookmarked={bookmarks.includes(filteredNews[0].id)}
+                                                    onBookmark={toggleBookmark}
+                                                    onShare={setShareArticle}
+                                                    isRead={readArticles.includes(filteredNews[0].id)}
+                                                />
+                                            )}
+
+                                            {/* MSPT Box - Position 2 (Major Fixture) */}
+                                            <MSPTBox
+                                                msptNews={msptNews}
+                                                onOpenMSPT={(item) => {
+                                                    if (item.source_url) {
+                                                        window.open(item.source_url, '_blank');
+                                                    }
+                                                }}
+                                            />
+
+                                            {/* Remaining News Boxes (positions 3-8) */}
+                                            {filteredNews.slice(1, 7).map((article, i) => (
                                                 <NewsBox
                                                     key={article.id}
                                                     article={article}
-                                                    index={i}
+                                                    index={i + 2}
                                                     onOpen={openArticle}
                                                     isBookmarked={bookmarks.includes(article.id)}
                                                     onBookmark={toggleBookmark}
@@ -985,6 +1277,37 @@ export default function NewsHub() {
                                 </form>
                             )}
                             {subscribeError && <p className="error">{subscribeError}</p>}
+                        </div>
+
+                        {/* MSPT News & Updates - Dedicated Box */}
+                        <div className="widget mspt">
+                            <h4><Trophy size={14} /> MSPT News & Updates</h4>
+                            <ul className="mspt-list">
+                                {msptNews.map((item) => (
+                                    <li
+                                        key={item.id}
+                                        onClick={() => item.source_url && window.open(item.source_url, '_blank')}
+                                    >
+                                        <div className="mspt-item">
+                                            <span className="mspt-title">{item.title}</span>
+                                            <div className="mspt-meta">
+                                                <span className="mspt-time">{timeAgo(item.published_at)}</span>
+                                                {item.prize_pool && (
+                                                    <span className="mspt-prize">{item.prize_pool}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                            <a
+                                href="https://msptpoker.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mspt-link"
+                            >
+                                Visit MSPT Official Site <ExternalLink size={12} />
+                            </a>
                         </div>
 
                         {/* Trending */}
@@ -1693,6 +2016,96 @@ export default function NewsHub() {
                         font-size: 12px;
                         font-weight: 600;
                         color: #00d4ff;
+                    }
+
+                    /* MSPT Widget */
+                    .mspt h4 {
+                        background: linear-gradient(135deg, #dc2626, #b91c1c);
+                        margin: -16px -16px 14px -16px;
+                        padding: 12px 16px;
+                        border-radius: 14px 14px 0 0;
+                    }
+
+                    .mspt h4 :global(svg) {
+                        color: #fff;
+                    }
+
+                    .mspt-list {
+                        list-style: none;
+                        padding: 0;
+                        margin: 0;
+                    }
+
+                    .mspt-list li {
+                        padding: 10px 0;
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+
+                    .mspt-list li:hover {
+                        background: rgba(220, 38, 38, 0.1);
+                        margin: 0 -16px;
+                        padding: 10px 16px;
+                    }
+
+                    .mspt-list li:last-child {
+                        border-bottom: none;
+                    }
+
+                    .mspt-item {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                    }
+
+                    .mspt-title {
+                        font-size: 12px;
+                        font-weight: 500;
+                        color: rgba(255, 255, 255, 0.9);
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                    }
+
+                    .mspt-meta {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: 10px;
+                    }
+
+                    .mspt-time {
+                        color: rgba(255, 255, 255, 0.4);
+                    }
+
+                    .mspt-prize {
+                        background: rgba(220, 38, 38, 0.2);
+                        color: #f87171;
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        font-weight: 600;
+                    }
+
+                    .mspt-link {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 6px;
+                        margin-top: 12px;
+                        padding: 10px;
+                        background: rgba(220, 38, 38, 0.15);
+                        border-radius: 8px;
+                        color: #f87171;
+                        font-size: 12px;
+                        font-weight: 600;
+                        text-decoration: none;
+                        transition: all 0.2s;
+                    }
+
+                    .mspt-link:hover {
+                        background: rgba(220, 38, 38, 0.25);
                     }
 
                     /* Events Widget */

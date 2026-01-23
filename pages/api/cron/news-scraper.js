@@ -108,6 +108,20 @@ const GOOGLE_NEWS_SOURCES = [
         icon: '💻',
         priority: 12,
         category: 'online'
+    },
+    {
+        name: 'Google News - MSPT',
+        rss: 'https://news.google.com/rss/search?q=MSPT+Mid-States+Poker+Tour&hl=en-US&gl=US&ceid=US:en',
+        icon: '🎰',
+        priority: 7,
+        category: 'tournament'
+    },
+    {
+        name: 'Google News - MSPT Poker',
+        rss: 'https://news.google.com/rss/search?q="MSPT"+poker+tournament&hl=en-US&gl=US&ceid=US:en',
+        icon: '🎰',
+        priority: 8,
+        category: 'tournament'
     }
 ];
 
