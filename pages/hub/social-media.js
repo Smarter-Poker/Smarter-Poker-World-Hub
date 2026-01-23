@@ -355,7 +355,8 @@ function LinkPreviewCard({ url }) {
             }}>
                 {/* Link Preview Image - real thumbnail or gradient fallback */}
                 <div style={{
-                    height: 280,
+                    minHeight: 180,
+                    maxHeight: 400,
                     position: 'relative',
                     background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
                     display: 'flex',
@@ -371,12 +372,10 @@ function LinkPreviewCard({ url }) {
                             alt={metadata.title || 'Link preview'}
                             style={{
                                 width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                objectPosition: 'center top',
-                                position: 'absolute',
-                                top: 0,
-                                left: 0
+                                height: 'auto',
+                                maxHeight: 400,
+                                objectFit: 'contain',
+                                display: 'block'
                             }}
                         />
                     ) : '🔗'}
