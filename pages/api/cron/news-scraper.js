@@ -34,14 +34,14 @@ const CONFIG = {
     REQUEST_TIMEOUT: 10000
 };
 
-// Source-specific fallback images (used when no image can be extracted)
+// Source-specific fallback images (using reliable Pexels poker images)
 const SOURCE_FALLBACK_IMAGES = {
-    'PokerNews': 'https://www.pokernews.com/img/content/2024/logo-pokernews-og.jpg',
-    'MSPT': 'https://msptpoker.com/images/mspt-logo.png',
-    'CardPlayer': 'https://www.cardplayer.com/assets/images/cp-logo-og.png',
-    'WSOP': 'https://www.wsop.com/images/WSOP-Logo.png',
-    'Poker.org': 'https://www.poker.org/wp-content/uploads/2023/01/poker-org-logo.png',
-    'Pokerfuse': 'https://pokerfuse.com/wp-content/uploads/2020/07/pokerfuse-logo-square.png'
+    'PokerNews': 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'MSPT': 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'CardPlayer': 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'WSOP': 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'Poker.org': 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'Pokerfuse': 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=600'
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
