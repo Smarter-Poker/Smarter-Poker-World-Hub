@@ -83,14 +83,14 @@ export default async function handler(req, res) {
         // Check if exists
         const { data: existing, error: checkError } = await supabase
             .from('profiles')
-            .select('id, username, display_name, is_verified')
+            .select('id, username, full_name, is_verified')
             .eq('id', SYSTEM_UUID)
             .single();
 
         if (existing) {
             console.log('   ✅ System account already exists');
             console.log(`      Username: ${existing.username}`);
-            console.log(`      Display: ${existing.display_name}`);
+            console.log(`      Display: ${existing.full_name}`);
             console.log(`      Verified: ${existing.is_verified}`);
             results.systemAccount.exists = true;
         } else {
@@ -101,7 +101,7 @@ export default async function handler(req, res) {
                 .insert({
                     id: SYSTEM_UUID,
                     username: 'smarter.poker',
-                    display_name: 'Smarter.Poker',
+                    full_name: 'Smarter.Poker',
                     avatar_url: '/images/smarter-poker-logo.png',
                     bio: 'Official Smarter.Poker News & Updates - Automated poker news, strategy tips, and tournament coverage.',
                     is_verified: true,

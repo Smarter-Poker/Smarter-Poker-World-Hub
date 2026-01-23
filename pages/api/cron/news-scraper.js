@@ -54,7 +54,7 @@ async function ensureSystemAccountExists() {
             .insert({
                 id: SYSTEM_UUID,
                 username: 'smarter.poker',
-                display_name: 'Smarter.Poker',
+                full_name: 'Smarter.Poker',
                 avatar_url: '/images/smarter-poker-logo.png',
                 bio: 'Official Smarter.Poker News & Updates - Automated poker news, strategy tips, and tournament coverage.',
                 is_verified: true,
@@ -348,8 +348,8 @@ async function getRecentArticles() {
     const { data, error } = await supabase
         .from('poker_news')
         .select('id, title, source_url, published_at')
-        .gte('scraped_at', cutoff.toISOString())
-        .order('scraped_at', { ascending: false });
+        .gte('created_at', cutoff.toISOString())
+        .order('created_at', { ascending: false });
 
     if (error) {
         console.error('Error fetching recent articles:', error.message);
@@ -367,9 +367,9 @@ async function getRecentVideos() {
 
     const { data, error } = await supabase
         .from('poker_videos')
-        .select('id, title, youtube_id, scraped_at')
-        .gte('scraped_at', cutoff.toISOString())
-        .order('scraped_at', { ascending: false });
+        .select('id, title, youtube_id, created_at')
+        .gte('created_at', cutoff.toISOString())
+        .order('created_at', { ascending: false });
 
     if (error) {
         console.error('Error fetching recent videos:', error.message);
@@ -481,16 +481,14 @@ async function saveArticle(article) {
         .insert({
             title: article.title,
             slug: article.slug,
-            summary: article.summary,
+            content: article.summary,
             excerpt: article.summary.slice(0, 150),
-            source_name: article.source,
+            author_name: article.source,
             source_url: article.link,
-            source_icon: article.icon,
             image_url: article.imageUrl,
             category: article.category,
-            tags: [article.category, article.source.toLowerCase().replace(/\s+/g, '-')],
             published_at: article.pubDate,
-            scraped_at: new Date().toISOString(),
+            is_published: true,
             views: 0
         })
         .select()
@@ -513,13 +511,12 @@ async function saveVideo(video) {
         .insert({
             title: video.title,
             youtube_id: video.youtube_id,
-            channel: video.channel,
             thumbnail_url: video.thumbnail_url,
-            description: video.description,
+            description: `${video.description} | Channel: ${video.channel}`,
             published_at: video.pubDate,
-            scraped_at: new Date().toISOString(),
+            is_published: true,
             views: 0,
-            duration: '00:00' // Will be updated when video is viewed
+            duration: '00:00'
         })
         .select()
         .single();
