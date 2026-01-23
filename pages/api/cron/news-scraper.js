@@ -500,8 +500,8 @@ async function saveArticle(article) {
         .single();
 
     if (error) {
-        console.error(`   ✗ DB Error: ${error.message}`);
-        return null;
+        console.error(`   ✗ Article DB Error: ${error.message} | Code: ${error.code}`);
+        return { error: error.message, code: error.code };
     }
 
     return data;
@@ -751,8 +751,9 @@ export default async function handler(req, res) {
 
             // Save to database
             const savedArticle = await saveArticle(article);
-            if (!savedArticle) {
-                results.errors.push(`Failed to save: ${article.title}`);
+            if (!savedArticle || savedArticle.error) {
+                const errMsg = savedArticle?.error || 'Unknown error';
+                results.errors.push(`Failed to save "${article.title.substring(0, 30)}...": ${errMsg}`);
                 continue;
             }
 
