@@ -103,23 +103,7 @@ export default function TrainingArenaPage() {
     const [heroStack, setHeroStack] = useState(45);
     const [villainStacks] = useState([32, 28, 55, 41, 38, 62, 29, 51]);
     const [question, setQuestion] = useState("You Are On The Button. The Player To Your Right Bets 2.5 BB. What Is Your Best Move?");
-    const [pageScale, setPageScale] = useState(1);
 
-    // Calculate scale for entire page - scales to fill viewport
-    useEffect(() => {
-        const calculateScale = () => {
-            // Design canvas: 1200x800 (desktop 3:2 ratio)
-            const designWidth = 1200;
-            const designHeight = 800;
-            const scaleX = window.innerWidth / designWidth;
-            const scaleY = window.innerHeight / designHeight;
-            // Scale to fit viewport while maintaining aspect ratio
-            setPageScale(Math.min(scaleX, scaleY));
-        };
-        calculateScale();
-        window.addEventListener('resize', calculateScale);
-        return () => window.removeEventListener('resize', calculateScale);
-    }, []);
 
     useEffect(() => {
         const init = async () => {
@@ -166,52 +150,49 @@ export default function TrainingArenaPage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
             </Head>
-            <div className="arena-viewport">
-                <div className="arena-root" style={{ transform: `scale(${pageScale})` }}>
-                    <UniversalHeader pageDepth={2} />
-                    <div className="question-bar"><p>{question}</p></div>
-                    <div className="table-area">
-                        <div className="table-wrapper">
-                            <img src="/images/training/table-vertical.jpg" alt="Poker Table" className="table-img" />
-                            <div className="pot"><span className="pot-icon">●</span><span className="pot-label">POT</span><span className="pot-value">{pot}</span></div>
-                            {board.length > 0 && <div className="board">{board.map((card, i) => <Card key={i} {...card} />)}</div>}
-                            <div className="felt-title"><span className="felt-name">{gameName}</span><span className="felt-sub">Smarter.Poker</span></div>
-                            <div className="dealer-btn">D</div>
-                            <PlayerSeat avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} position={SEAT_POSITIONS.seat1} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} position={SEAT_POSITIONS.seat2} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} position={SEAT_POSITIONS.seat3} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} position={SEAT_POSITIONS.seat4} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} position={SEAT_POSITIONS.seat5} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} position={SEAT_POSITIONS.seat6} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} position={SEAT_POSITIONS.seat7} />
-                            <PlayerSeat avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} position={SEAT_POSITIONS.seat8} />
-                            <PlayerSeat avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} position={SEAT_POSITIONS.hero} isHero={true} />
-                            <div className="hero-cards">{heroCards.map((card, i) => (
-                                <div key={i} style={{ transform: i === 0 ? 'rotate(-6deg)' : 'rotate(6deg)', marginLeft: i > 0 ? -8 : 0, zIndex: i + 1 }}>
-                                    <Card {...card} size="hero" />
-                                </div>
-                            ))}</div>
-                            <div className="timer"><span>{timer}</span></div>
-                            <div className="q-counter"><span>Question {handNumber} of {totalHands}</span></div>
-                        </div>
+            <div className="arena-page">
+                <UniversalHeader pageDepth={2} />
+                <div className="question-bar"><p>{question}</p></div>
+                <div className="table-area">
+                    <div className="table-wrapper">
+                        <img src="/images/training/table-vertical.jpg" alt="Poker Table" className="table-img" />
+                        <div className="pot"><span className="pot-icon">●</span><span className="pot-label">POT</span><span className="pot-value">{pot}</span></div>
+                        {board.length > 0 && <div className="board">{board.map((card, i) => <Card key={i} {...card} />)}</div>}
+                        <div className="felt-title"><span className="felt-name">{gameName}</span><span className="felt-sub">Smarter.Poker</span></div>
+                        <div className="dealer-btn">D</div>
+                        <PlayerSeat avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} position={SEAT_POSITIONS.seat1} />
+                        <PlayerSeat avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} position={SEAT_POSITIONS.seat2} />
+                        <PlayerSeat avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} position={SEAT_POSITIONS.seat3} />
+                        <PlayerSeat avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} position={SEAT_POSITIONS.seat4} />
+                        <PlayerSeat avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} position={SEAT_POSITIONS.seat5} />
+                        <PlayerSeat avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} position={SEAT_POSITIONS.seat6} />
+                        <PlayerSeat avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} position={SEAT_POSITIONS.seat7} />
+                        <PlayerSeat avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} position={SEAT_POSITIONS.seat8} />
+                        <PlayerSeat avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} position={SEAT_POSITIONS.hero} isHero={true} />
+                        <div className="hero-cards">{heroCards.map((card, i) => (
+                            <div key={i} style={{ transform: i === 0 ? 'rotate(-6deg)' : 'rotate(6deg)', marginLeft: i > 0 ? -8 : 0, zIndex: i + 1 }}>
+                                <Card {...card} size="hero" />
+                            </div>
+                        ))}</div>
+                        <div className="timer"><span>{timer}</span></div>
+                        <div className="q-counter"><span>Question {handNumber} of {totalHands}</span></div>
                     </div>
-                    <div className="action-bar">
-                        <button className="action-btn fold" onClick={() => handleAction('FOLD')}>Fold</button>
-                        <button className="action-btn call" onClick={() => handleAction('CALL')}>Call</button>
-                        <button className="action-btn raise" onClick={() => handleAction('RAISE')}>Raise to 8bb</button>
-                        <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>All-In</button>
-                    </div>
+                </div>
+                <div className="action-bar">
+                    <button className="action-btn fold" onClick={() => handleAction('FOLD')}>Fold</button>
+                    <button className="action-btn call" onClick={() => handleAction('CALL')}>Call</button>
+                    <button className="action-btn raise" onClick={() => handleAction('RAISE')}>Raise to 8bb</button>
+                    <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>All-In</button>
                 </div>
             </div>
             <style jsx>{`
                 :global(*) { box-sizing: border-box; margin: 0; padding: 0; }
                 :global(html, body) { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: #050810; }
-                .arena-viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #050810; overflow: hidden; }
-                .arena-root { width: 1200px; height: 800px; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; transform-origin: center center; overflow: hidden; }
-                .question-bar { flex-shrink: 0; padding: 16px 24px; background: rgba(0,80,160,0.2); border-bottom: 1px solid rgba(0,150,255,0.25); }
-                .question-bar p { font-size: 18px; font-weight: 500; color: #00d4ff; text-align: center; line-height: 1.4; }
-                .table-area { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-                .table-wrapper { position: relative; width: 500px; height: 550px; }
+                .arena-page { position: fixed; inset: 0; display: flex; flex-direction: column; background: linear-gradient(180deg, #0a0e17 0%, #050810 100%); color: #fff; }
+                .question-bar { flex-shrink: 0; padding: 12px 24px; background: rgba(0,80,160,0.2); border-bottom: 1px solid rgba(0,150,255,0.25); }
+                .question-bar p { font-size: 16px; font-weight: 500; color: #00d4ff; text-align: center; line-height: 1.4; }
+                .table-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; overflow: hidden; }
+                .table-wrapper { position: relative; width: 100%; max-width: 500px; aspect-ratio: 3 / 4; }
                 .table-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; border-radius: 20px; mix-blend-mode: normal !important; z-index: 1; }
                 .pot { position: absolute; top: 16%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; padding: 4px 12px; background: rgba(0,0,0,0.85); border-radius: 14px; border: 1px solid rgba(255,255,255,0.2); z-index: 20; }
                 .pot-icon { color: #d4a020; font-size: 10px; }
@@ -227,8 +208,8 @@ export default function TrainingArenaPage() {
                 .timer span { font-size: 22px; font-weight: 800; color: #dc2626; }
                 .q-counter { position: absolute; bottom: 6%; right: 5%; padding: 8px 12px; background: rgba(37,99,235,0.2); border: 1px solid #3b82f6; border-radius: 6px; z-index: 25; }
                 .q-counter span { font-size: 11px; color: #60a5fa; font-weight: 500; }
-                .action-bar { flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 300px 24px; background: rgba(10,14,23,0.98); border-top: 1px solid rgba(255,255,255,0.1); }
-                .action-btn { padding: 18px 24px; border: none; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; font-family: inherit; transition: transform 0.1s; }
+                .action-bar { flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 24px 24px; background: rgba(10,14,23,0.98); border-top: 1px solid rgba(255,255,255,0.1); max-width: 600px; margin: 0 auto; width: 100%; }
+                .action-btn { padding: 14px 20px; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; transition: transform 0.1s; }
                 .action-btn:active { transform: scale(0.97); }
                 .fold { background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%); color: #fff; box-shadow: 0 3px 8px rgba(30,95,168,0.4); }
                 .call, .raise, .allin { background: linear-gradient(180deg, #2d7ad4 0%, #1e5fa8 100%); color: #fff; box-shadow: 0 3px 8px rgba(30,95,168,0.4); }
