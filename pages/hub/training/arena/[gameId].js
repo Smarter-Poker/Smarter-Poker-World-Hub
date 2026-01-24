@@ -317,8 +317,8 @@ function Card({ rank, suit, isRed, size = 'normal' }) {
 
 // Draggable Hero Cards Component
 function DraggableHeroCards({ cards }) {
-    // Hardcoded position from user's exact layout
-    const [pos, setPos] = useState({ x: 229, y: 538 });
+    // Position offset (base position is set in style: top: 77%, left: 60%)
+    const [pos, setPos] = useState({ x: 0, y: 0 });
     const [dragging, setDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
@@ -358,8 +358,8 @@ function DraggableHeroCards({ cards }) {
             onMouseDown={handleMouseDown}
             style={{
                 position: 'absolute',
-                top: '12%',
-                left: '18%',
+                top: '77%',
+                left: '60%',
                 display: 'flex',
                 transform: `translate(${pos.x}px, ${pos.y}px)`,
                 cursor: 'grab',

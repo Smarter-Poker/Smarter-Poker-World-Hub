@@ -478,11 +478,38 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
     };
 
     const handleCreate = async () => {
-        if (!text && !mediaUrl) {
-            if (mediaPreview && !mediaUrl) {
+        console.log('[Stories] handleCreate called');
+        console.log('[Stories] userId:', userId);
+        console.log('[Stories] text:', text);
+        console.log('[Stories] mediaUrl:', mediaUrl);
+        console.log('[Stories] mode:', mode);
+
+        // Validate based on mode
+        if (mode === 'select') {
+            setError('Please choose Text or Photo/Video first');
+            return;
+        }
+
+        if (mode === 'preview' && !mediaUrl) {
+            if (uploading) {
                 setError('Still uploading... please wait');
-                return;
+            } else {
+                setError('Please select a photo or video');
             }
+            return;
+        }
+
+        // For text mode, we can post even without text (gradient-only story is valid)
+        // But we need SOMETHING for media mode
+        if (mode !== 'text' && !text && !mediaUrl) {
+            setError('Nothing to post');
+            console.log('[Stories] No content to post, returning');
+            return;
+        }
+
+        if (!userId) {
+            setError('You must be logged in to post a story');
+            console.log('[Stories] No userId!');
             return;
         }
 
@@ -490,6 +517,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
         setError(null);
 
         try {
+            console.log('[Stories] Calling fn_create_story...');
             const { data: storyId, error: createError } = await supabase.rpc('fn_create_story', {
                 p_user_id: userId,
                 p_content: text || null,
@@ -499,7 +527,12 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 p_link_url: null,
             });
 
-            if (createError) throw createError;
+            if (createError) {
+                console.log('[Stories] Create error:', createError);
+                throw createError;
+            }
+
+            console.log('[Stories] ✅ Story created! ID:', storyId);
 
             // Auto-save videos to Reels
             if (mediaType === 'video' && mediaUrl) {
@@ -579,19 +612,19 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                     <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'white' }}>Create Story</h3>
                     <button
                         onClick={handleCreate}
-                        disabled={(!text && !mediaUrl) || creating || uploading}
+                        disabled={mode === 'select' || creating || uploading}
                         style={{
-                            background: (text || mediaUrl) && !creating && !uploading ? C.blue : 'rgba(255,255,255,0.2)',
+                            background: mode !== 'select' && !creating && !uploading ? C.blue : 'rgba(255,255,255,0.2)',
                             color: 'white',
                             border: 'none',
                             borderRadius: 20,
                             padding: '10px 20px',
                             fontWeight: 600,
-                            cursor: (text || mediaUrl) && !creating && !uploading ? 'pointer' : 'not-allowed',
-                            opacity: (text || mediaUrl) && !creating && !uploading ? 1 : 0.5,
+                            cursor: mode !== 'select' && !creating && !uploading ? 'pointer' : 'not-allowed',
+                            opacity: mode !== 'select' && !creating && !uploading ? 1 : 0.5,
                         }}
                     >
-                        {creating ? 'Posting...' : uploading ? 'Uploading...' : 'Share'}
+                        {creating ? 'Posting...' : uploading ? 'Uploading...' : mode === 'select' ? 'Choose Content' : 'Share'}
                     </button>
                 </div>
 
