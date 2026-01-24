@@ -11,6 +11,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
+import { shouldHorseBeActive, isHorseActiveHour, getHorseActivityRate } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
 // ClipLibrary functions - loaded dynamically
 let getRandomClip, getRandomCaption;
@@ -166,15 +167,19 @@ export default async function handler(req, res) {
     await loadClipLibrary();
 
     try {
-        // Get random active horses
-        const { data: horses, error: horseError } = await supabase
+        // Get current time for per-horse scheduling
+        const now = new Date();
+        const currentMinute = now.getMinutes();
+        const currentHour = now.getHours();
+
+        // Get ALL active horses
+        const { data: allHorses, error: horseError } = await supabase
             .from('content_authors')
             .select('*')
             .eq('is_active', true)
-            .not('profile_id', 'is', null)
-            .limit(CONFIG.HORSES_PER_TRIGGER * 2);
+            .not('profile_id', 'is', null);
 
-        if (horseError || !horses?.length) {
+        if (horseError || !allHorses?.length) {
             return res.status(200).json({
                 success: true,
                 message: 'No horses available',
@@ -182,9 +187,30 @@ export default async function handler(req, res) {
             });
         }
 
-        // Shuffle and select
-        const shuffled = horses.sort(() => Math.random() - 0.5);
-        const selectedHorses = shuffled.slice(0, CONFIG.HORSES_PER_TRIGGER);
+        // FILTER: Only horses whose time slot matches current minute AND are awake
+        const activeHorses = allHorses.filter(horse => {
+            const isInSlot = shouldHorseBeActive(horse.profile_id, currentMinute, 3);
+            const isAwake = isHorseActiveHour(horse.profile_id, currentHour);
+            return isInSlot && isAwake;
+        });
+
+        console.log(`⏰ Minute ${currentMinute}, Hour ${currentHour}`);
+        console.log(`🐴 Active horses this slot: ${activeHorses.length}/${allHorses.length}`);
+
+        if (activeHorses.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: 'No horses in their active slot this minute',
+                posted: 0,
+                activeHorses: 0
+            });
+        }
+
+        // Select horses based on activity rate
+        const selectedHorses = activeHorses.filter(horse => {
+            const rate = getHorseActivityRate(horse.profile_id, 'post');
+            return Math.random() < rate;
+        }).slice(0, CONFIG.HORSES_PER_TRIGGER);
 
         const results = [];
 
