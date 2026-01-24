@@ -193,11 +193,20 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
             alignItems: 'center',
             gap: 8,
         }}>
-            {/* Action buttons */}
-            <button style={{
-                width: 36, height: 36, borderRadius: '50%', border: 'none',
-                background: 'transparent', cursor: 'pointer', fontSize: 20, color: C.blue,
-            }}>➕</button>
+            {/* Facebook-style action buttons with SVG icons */}
+            {/* Plus/Add button */}
+            <button
+                style={{
+                    width: 32, height: 32, borderRadius: '50%', border: 'none',
+                    background: C.blue, cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', padding: 0,
+                }}
+                title="More actions"
+            >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 4v16m-8-8h16" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+            </button>
 
             {/* Photo/Video Upload Button */}
             <input
@@ -221,17 +230,40 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
                 style={{
-                    width: 36, height: 36, borderRadius: '50%', border: 'none',
-                    background: 'transparent', cursor: uploading ? 'wait' : 'pointer', fontSize: 20, color: C.blue,
-                    opacity: uploading ? 0.5 : 1,
+                    width: 32, height: 32, borderRadius: '50%', border: 'none',
+                    background: 'transparent', cursor: uploading ? 'wait' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: uploading ? 0.5 : 1, padding: 0,
                 }}
                 title="Send photo or video"
-            >{uploading ? '⏳' : '📷'}</button>
+            >
+                {uploading ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}>
+                        <circle cx="12" cy="12" r="10" stroke={C.blue} strokeWidth="2" fill="none" strokeDasharray="31.4" strokeLinecap="round">
+                            <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite" />
+                        </circle>
+                    </svg>
+                ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}>
+                        <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke={C.blue} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                )}
+            </button>
 
-            <button style={{
-                width: 36, height: 36, borderRadius: '50%', border: 'none',
-                background: 'transparent', cursor: 'pointer', fontSize: 20, color: C.blue,
-            }}>🎁</button>
+            {/* GIF button */}
+            <button
+                style={{
+                    width: 32, height: 32, borderRadius: '50%', border: 'none',
+                    background: 'transparent', cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', padding: 0,
+                }}
+                title="Send GIF"
+            >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="5" width="18" height="14" rx="2" stroke={C.blue} strokeWidth="1.5" />
+                    <text x="12" y="14" textAnchor="middle" fontSize="7" fontWeight="bold" fill={C.blue}>GIF</text>
+                </svg>
+            </button>
 
             {/* Input wrapper */}
             <div style={{
@@ -268,10 +300,20 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
                         border: 'none',
                         background: 'transparent',
                         cursor: 'pointer',
-                        fontSize: 20,
                         padding: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                     }}
-                >😊</button>
+                    title="Choose emoji"
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke={C.blue} strokeWidth="1.5" />
+                        <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke={C.blue} strokeWidth="1.5" strokeLinecap="round" />
+                        <circle cx="9" cy="10" r="1" fill={C.blue} />
+                        <circle cx="15" cy="10" r="1" fill={C.blue} />
+                    </svg>
+                </button>
 
                 {/* Emoji picker */}
                 {showEmoji && (
@@ -303,22 +345,30 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
                 )}
             </div>
 
-            {/* Send button */}
+            {/* Send button - Facebook Messenger style */}
             <button
                 onClick={handleSend}
                 disabled={!text.trim()}
                 style={{
-                    width: 36, height: 36, borderRadius: '50%', border: 'none',
+                    width: 32, height: 32, borderRadius: '50%', border: 'none',
                     background: text.trim() ? C.blue : 'transparent',
                     cursor: text.trim() ? 'pointer' : 'default',
-                    fontSize: 18,
-                    color: text.trim() ? 'white' : C.blue,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    padding: 0,
                 }}
+                title={text.trim() ? "Send message" : "Send like"}
             >
-                {text.trim() ? '➤' : '👍'}
+                {text.trim() ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <path d="M2 21l21-9L2 3v7l15 2-15 2z" fill="white" />
+                    </svg>
+                ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}>
+                        <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" stroke={C.blue} strokeWidth="1.5" fill="none" />
+                    </svg>
+                )}
             </button>
         </div>
     );
@@ -1123,7 +1173,12 @@ export default function MessengerPage() {
 
     // Handle media (photo/video) upload
     const handleMediaUpload = async (file) => {
-        if (!user || !activeConversation || !file) return;
+        if (!user || !activeConversation || !file) {
+            console.log('handleMediaUpload: missing user, conversation, or file');
+            return;
+        }
+
+        console.log('handleMediaUpload: starting upload', { fileName: file.name, fileType: file.type, fileSize: file.size });
 
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');
@@ -1153,30 +1208,36 @@ export default function MessengerPage() {
             profiles: { id: user.id, username: user.user_metadata?.username, avatar_url: user.user_metadata?.avatar_url },
         };
         setMessages(prev => [...prev, tempMessage]);
+        setToast({ type: 'success', message: 'Uploading...' });
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
 
         try {
-            // Upload to Supabase Storage
+            // Upload to Supabase Storage - use user-media bucket which exists
             const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}/${activeConversation.id}/${Date.now()}.${fileExt}`;
-            const bucket = isImage ? 'chat-images' : 'chat-videos';
+            const fileName = `${user.id}/messages/${Date.now()}.${fileExt}`;
+
+            console.log('Uploading to user-media bucket:', fileName);
 
             const { data: uploadData, error: uploadError } = await supabase.storage
-                .from(bucket)
-                .upload(fileName, file);
+                .from('user-media')
+                .upload(fileName, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
 
             if (uploadError) {
-                // Fallback to general bucket if specific doesn't exist
-                const { data: fallbackData, error: fallbackError } = await supabase.storage
-                    .from('user-uploads')
-                    .upload(`messages/${fileName}`, file);
-                if (fallbackError) throw fallbackError;
+                console.error('Upload error:', uploadError);
+                throw uploadError;
             }
+
+            console.log('Upload successful:', uploadData);
 
             // Get public URL
             const { data: urlData } = supabase.storage
-                .from(uploadData ? bucket : 'user-uploads')
-                .getPublicUrl(uploadData ? fileName : `messages/${fileName}`);
+                .from('user-media')
+                .getPublicUrl(fileName);
+
+            console.log('Public URL:', urlData.publicUrl);
 
             // Send message with media URL
             const content = isImage
@@ -1189,7 +1250,12 @@ export default function MessengerPage() {
                 p_content: content,
             });
 
-            if (error) throw error;
+            if (error) {
+                console.error('Send message error:', error);
+                throw error;
+            }
+
+            console.log('Message sent with ID:', data);
 
             // Update message with real data
             setMessages(prev => prev.map(m =>
@@ -1204,7 +1270,7 @@ export default function MessengerPage() {
             setMessages(prev => prev.map(m =>
                 m.id === tempId ? { ...m, status: 'failed' } : m
             ));
-            setToast({ type: 'error', message: 'Failed to send media. Tap to retry.' });
+            setToast({ type: 'error', message: `Upload failed: ${e.message || 'Unknown error'}` });
         }
     };
 
