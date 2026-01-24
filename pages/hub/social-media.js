@@ -361,7 +361,8 @@ function LinkPreviewCard({ url }) {
     const handleClick = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        openExternal(url, metadata?.title || 'Article');
+        // Open article links directly in new tab - modal was showing "Content Unavailable"
+        window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     return (
