@@ -167,9 +167,14 @@ export function StoriesBar({ userId, onCreateStory }) {
     };
 
     const loadStories = async () => {
+        console.log('[Stories] Loading stories for userId:', userId);
         setLoading(true);
         try {
             const { data, error } = await supabase.rpc('fn_get_stories', { p_viewer_id: userId });
+            console.log('[Stories] RPC response:', { data: data?.length || 0, error });
+            if (error) {
+                console.error('[Stories] RPC error:', error);
+            }
             if (data) {
                 const grouped = {};
                 data.forEach(story => {
@@ -179,6 +184,7 @@ export function StoriesBar({ userId, onCreateStory }) {
                         grouped[story.author_id].stories.push(story);
                     }
                 });
+                console.log('[Stories] Grouped stories:', Object.keys(grouped).length);
                 setStories(Object.values(grouped));
             }
         } catch (e) {
