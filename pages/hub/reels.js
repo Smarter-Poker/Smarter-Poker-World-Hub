@@ -453,13 +453,7 @@ export default function ReelsPage() {
                     <span style={{ fontSize: 20, marginTop: 4, color: 'rgba(255,255,255,0.6)' }}>↑</span>
                 </div>
 
-                {/* Counter */}
-                <div style={{
-                    position: 'absolute', bottom: 20, right: 16, zIndex: 100,
-                    color: C.textSec, fontSize: 12,
-                }}>
-                    {currentIndex + 1} / {reels.length}
-                </div>
+
             </div >
         </>
     );
