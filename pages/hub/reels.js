@@ -182,7 +182,7 @@ export default function ReelsPage() {
         return () => window.removeEventListener('keydown', handleKey);
     }, [currentIndex]);
 
-    // Touch/scroll navigation
+    // Touch/scroll/wheel navigation
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
@@ -196,11 +196,23 @@ export default function ReelsPage() {
             if (diff < -50) goPrev();
         };
 
+        // Mouse wheel navigation
+        let wheelTimeout = null;
+        const handleWheel = (e) => {
+            e.preventDefault();
+            if (wheelTimeout) return; // Debounce
+            wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 300);
+            if (e.deltaY > 30) goNext();
+            if (e.deltaY < -30) goPrev();
+        };
+
         container.addEventListener('touchstart', handleTouchStart);
         container.addEventListener('touchend', handleTouchEnd);
+        container.addEventListener('wheel', handleWheel, { passive: false });
         return () => {
             container.removeEventListener('touchstart', handleTouchStart);
             container.removeEventListener('touchend', handleTouchEnd);
+            container.removeEventListener('wheel', handleWheel);
         };
     }, [currentIndex]);
 
@@ -452,11 +464,40 @@ export default function ReelsPage() {
 
                     {/* View count */}
                     <div style={{
-                        position: 'absolute', bottom: 20, left: 16,
+                        position: 'absolute', bottom: 60, left: 16,
                         color: C.textSec, fontSize: 12,
                         display: 'flex', alignItems: 'center', gap: 4,
                     }}>
                         👁 {currentReel?.view_count || 0} views
+                    </div>
+
+                    {/* Navigation buttons */}
+                    <div style={{
+                        position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
+                        display: 'flex', gap: 24,
+                    }}>
+                        <button
+                            onClick={goPrev}
+                            disabled={currentIndex === 0}
+                            style={{
+                                width: 50, height: 50, borderRadius: '50%',
+                                background: currentIndex === 0 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)',
+                                border: 'none', color: 'white', fontSize: 20,
+                                cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                        >▲</button>
+                        <button
+                            onClick={goNext}
+                            disabled={currentIndex === reels.length - 1}
+                            style={{
+                                width: 50, height: 50, borderRadius: '50%',
+                                background: currentIndex === reels.length - 1 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)',
+                                border: 'none', color: 'white', fontSize: 20,
+                                cursor: currentIndex === reels.length - 1 ? 'not-allowed' : 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                        >▼</button>
                     </div>
 
                     {/* Reel counter */}
