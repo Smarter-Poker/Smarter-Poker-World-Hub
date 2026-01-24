@@ -778,6 +778,7 @@ export default function NewsHub() {
 
     // Core State
     const [news, setNews] = useState([]);
+    const [sourceBoxes, setSourceBoxes] = useState([]); // HARDENED: 6 source-specific articles
     const [videos, setVideos] = useState([]);
     const [reels, setReels] = useState([]);
     const [leaderboard, setLeaderboard] = useState([]);
@@ -876,6 +877,7 @@ export default function NewsHub() {
     const fetchAllData = async () => {
         setLoading(true);
         await Promise.all([
+            fetchSourceBoxes(), // HARDENED: Fetch 6 source-specific articles first
             fetchNews(),
             fetchVideos(),
             fetchReels(),
@@ -885,6 +887,19 @@ export default function NewsHub() {
         ]);
         setLoading(false);
         setLastUpdate(new Date());
+    };
+
+    // HARDENED: Fetch exactly 1 article per source box from dedicated API
+    const fetchSourceBoxes = async () => {
+        try {
+            const res = await fetch('/api/news/source-boxes');
+            const { success, data } = await res.json();
+            if (success && data?.length) {
+                setSourceBoxes(data);
+            }
+        } catch (e) {
+            console.error('Failed to fetch source boxes:', e);
+        }
     };
 
     const refreshData = async () => {
@@ -1043,70 +1058,31 @@ export default function NewsHub() {
         }
     };
 
-    // Filter news - EXCLUDE synthetic "Smarter.Poker" articles
+    // ═══════════════════════════════════════════════════════════════════════════
+    // HARDENED: Source boxes come directly from /api/news/source-boxes
+    // No client-side filtering - the API guarantees 1 article per source box
+    // ═══════════════════════════════════════════════════════════════════════════
+    const topArticles = sourceBoxes.length > 0 ? sourceBoxes : FALLBACK_NEWS.slice(0, 6);
+    const topArticleIds = topArticles.map(a => a.id);
+
+    // Filter remaining news for "More Stories" section
     const VALID_SOURCES = ['PokerNews', 'MSPT', 'CardPlayer', 'WSOP', 'Poker.org', 'Pokerfuse'];
-
     const filteredNews = news.filter(article => {
-        // ALWAYS exclude synthetic/fake news from Smarter.Poker
         if (article.source_name === 'Smarter.Poker') return false;
-        // Only include articles from valid sources
         if (!VALID_SOURCES.includes(article.source_name) && !article.source_box) return false;
-        // Apply search filter if present
-        if (!searchQuery) return true;
-        return article.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            article.content?.toLowerCase().includes(searchQuery.toLowerCase());
-    });
-
-    // 6 dedicated source boxes - each box is assigned to a specific source
-    // Box numbers match the source_box field in the database (set by news-scraper.js)
-    const DEDICATED_BOXES = [
-        { box: 1, name: 'PokerNews', url: 'https://www.pokernews.com', category: 'news' },
-        { box: 2, name: 'MSPT', url: 'https://msptpoker.com', category: 'tournament' },
-        { box: 3, name: 'CardPlayer', url: 'https://www.cardplayer.com', category: 'news' },
-        { box: 4, name: 'WSOP', url: 'https://www.wsop.com', category: 'tournament' },
-        { box: 5, name: 'Poker.org', url: 'https://www.poker.org', category: 'news' },
-        { box: 6, name: 'Pokerfuse', url: 'https://pokerfuse.com', category: 'industry' }
-    ];
-
-    // Get the latest article for each box - STRICT filtering
-    const sourceBoxArticles = DEDICATED_BOXES.map((boxConfig) => {
-        // Find articles for this specific box by source_box OR exact source_name match
-        const articlesForBox = filteredNews.filter(a =>
-            a.source_box === boxConfig.box || a.source_name === boxConfig.name
-        );
-
-        // Return the most recent article, or a placeholder if none found
-        if (articlesForBox.length > 0) {
-            return { ...articlesForBox[0], _boxNumber: boxConfig.box };
+        if (searchQuery) {
+            return article.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                article.content?.toLowerCase().includes(searchQuery.toLowerCase());
         }
-
-        // Placeholder for boxes without articles
-        return {
-            id: `placeholder-box-${boxConfig.box}`,
-            title: `Awaiting ${boxConfig.name} News`,
-            content: null,
-            excerpt: null,
-            source_name: boxConfig.name,
-            source_box: boxConfig.box,
-            source_url: boxConfig.url,
-            image_url: FALLBACK_IMAGES[boxConfig.category] || FALLBACK_IMAGES.news,
-            category: boxConfig.category,
-            published_at: new Date().toISOString(),
-            views: 0,
-            isPlaceholder: true,
-            _boxNumber: boxConfig.box
-        };
+        return true;
     });
 
-    // Top articles = source box articles (always 6)
-    const topArticles = sourceBoxArticles;
-    const topArticleIds = topArticles.filter(a => !a.isPlaceholder).map(a => a.id);
-
-    // Remaining stories = all other articles not in the top boxes
+    // Remaining stories = articles not in the top 6 boxes
     const remainingStories = filteredNews.filter(a => !topArticleIds.includes(a.id));
 
     // Trending = sorted by views
-    const trendingNews = [...news].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+    const trendingNews = [...news].filter(a => a.source_name !== 'Smarter.Poker')
+        .sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
 
     return (
         <PageTransition>
