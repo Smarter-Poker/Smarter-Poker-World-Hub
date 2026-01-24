@@ -1576,7 +1576,8 @@ export default function SocialMediaPage() {
                             return {
                                 ...n,
                                 actor_avatar_url: profile?.avatar_url || null,
-                                actor_name: actorName || n.title
+                                actor_name: actorName || n.title,
+                                actor_username: profile?.username || null
                             };
                         });
                         setNotifications(enrichedNotifs);
@@ -2395,6 +2396,12 @@ export default function SocialMediaPage() {
                                 return (
                                     <div
                                         key={n.id}
+                                        onClick={() => {
+                                            setShowNotifications(false);
+                                            if (n.actor_username) {
+                                                router.push(`/hub/user/${n.actor_username}`);
+                                            }
+                                        }}
                                         style={{
                                             padding: 12, borderBottom: `1px solid ${C.border}`,
                                             display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer',
