@@ -1533,6 +1533,23 @@ export default function SocialMediaPage() {
         })();
     }, []);
 
+    // 🔔 AUTO-MARK NOTIFICATIONS AS READ when dropdown opens
+    useEffect(() => {
+        if (showNotifications && notifications.length > 0 && user) {
+            const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+            if (unreadIds.length > 0) {
+                // Mark all as read in database
+                supabase.from('notifications')
+                    .update({ read: true })
+                    .in('id', unreadIds)
+                    .then(() => {
+                        // Update local state
+                        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                    });
+            }
+        }
+    }, [showNotifications]);
+
     const loadFeed = async (offset = 0, append = false) => {
         try {
             if (append) setLoadingMore(true);
@@ -2420,7 +2437,6 @@ export default function SocialMediaPage() {
                         textDecoration: 'none', color: C.textSec, flex: 1, padding: '8px 4px', minWidth: 50, position: 'relative'
                     }}>
                         <span style={{ fontSize: 22 }}>👥</span>
-                        <div style={{ position: 'absolute', top: 4, right: 'calc(50% - 20px)', background: C.red, color: 'white', borderRadius: '50%', width: 16, height: 16, fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, pointerEvents: 'none' }}>1</div>
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Friends</span>
                     </Link>
                     <Link href="/hub/club-arena" style={{
