@@ -1183,8 +1183,43 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                                 />
                             </VideoPostWrapper>
                         ) : post.contentType === 'link' ? (
-                            // LINK: Rich preview card with dynamic metadata
-                            <LinkPreviewCard url={post.mediaUrls[0]} />
+                            // LINK: Extract actual URL from content, or fall back to styled image card
+                            (() => {
+                                const urlMatch = post.content?.match(/https?:\/\/[^\s"'>]+/);
+                                const articleUrl = urlMatch ? urlMatch[0] : null;
+                                if (articleUrl && !articleUrl.includes('unsplash') && !articleUrl.includes('pnimg')) {
+                                    return <LinkPreviewCard url={articleUrl} />;
+                                }
+                                return (
+                                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', margin: '0 12px 12px' }}>
+                                        <div style={{ width: '100%', aspectRatio: '16/9', overflow: 'hidden', background: C.bg }}>
+                                            {post.mediaUrls[0] ? (
+                                                <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)', color: 'white', fontSize: 48 }}>📰</div>
+                                            )}
+                                        </div>
+                                        <div style={{ padding: '12px 16px', background: C.card }}>
+                                            <div style={{ fontSize: 16, fontWeight: 600, color: C.text }}>View Article</div>
+                                            <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>Click to read full article →</div>
+                                        </div>
+                                    </div>
+                                );
+                            })()
+                        ) : post.contentType === 'article' ? (
+                            // ARTICLE: Display thumbnail image with article card styling
+                            <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', margin: '0 12px 12px' }}>
+                                <div style={{ width: '100%', aspectRatio: '16/9', overflow: 'hidden', background: C.bg }}>
+                                    <img src={post.mediaUrls[0]} alt="Article" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </div>
+                                <div style={{ padding: '12px 16px', background: C.card }}>
+                                    <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase', marginBottom: 4 }}>News Article</div>
+                                    <div style={{ fontSize: 16, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>
+                                        {post.content?.split('\n')[0]?.replace(/^[📰🃏♠️♣️♥️♦️🔗\s]+/, '').substring(0, 60) || 'View Article'}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>Click to read full article →</div>
+                                </div>
+                            </div>
                         ) : (
                             <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
                         )
