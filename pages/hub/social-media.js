@@ -1489,7 +1489,13 @@ export default function SocialMediaPage() {
                 }
 
                 if (authUser) {
-                    const { data: p } = await supabase.from('profiles').select('username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
+                    // Check for profile by id OR by owner_id (allows login access to owned profiles)
+                    let { data: p } = await supabase.from('profiles').select('id, username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
+                    // If no profile found by id, check if user owns another profile via owner_id
+                    if (!p) {
+                        const { data: ownedProfile } = await supabase.from('profiles').select('id, username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('owner_id', authUser.id).maybeSingle();
+                        if (ownedProfile) p = ownedProfile;
+                    }
                     // 👑 Check for God Mode
                     if (p?.role === 'god') {
                         setIsGodMode(true);
@@ -1500,7 +1506,7 @@ export default function SocialMediaPage() {
                         ? p.full_name
                         : (p?.username || authUser.email?.split('@')[0] || 'Player');
                     setUser({
-                        id: authUser.id,
+                        id: p?.id || authUser.id, // Use profile ID if owned, else auth ID
                         name: displayName,
                         avatar: p?.avatar_url || null,
                         tier: p?.skill_tier,
