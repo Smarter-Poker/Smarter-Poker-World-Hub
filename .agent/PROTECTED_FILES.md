@@ -1,48 +1,143 @@
 # 🚨 PROTECTED FILES REGISTRY 🚨
 
-## DO NOT MODIFY THESE FILES WITHOUT READING THE CORRESPONDING SKILL FIRST
+## STOP! READ THIS BEFORE MODIFYING ANY SOCIAL MEDIA CODE
 
-This file lists all protected components that have been carefully implemented and tested.
-**Before modifying ANY of these files, you MUST:**
-
-1. Read the corresponding SKILL.md file
-2. Understand the architecture
-3. Run the E2E test BEFORE and AFTER changes
-4. If you break it, you fix it
+This file lists ALL protected components in the Social Hub.
+**Agents MUST follow the `/social-feed-protection` workflow before making ANY changes.**
 
 ---
 
-## Protected Components
+## PROTECTED: Main Social Hub Page
+**File:** `pages/hub/social-media.js` (2600+ lines)
+**Contains:** Posts, likes, comments, shares, notifications, stories, reels, live streams
 
-### In-App Article Reader
+| Feature | Lines (approx) | DO NOT BREAK |
+|---------|---------------|--------------|
+| Article Reader | 1186-1200, 1417, 2509 | articleReader state, onOpenArticle prop |
+| Stories Bar | 2330 | StoriesBar component |
+| Reels Carousel | 2510 | ReelsFeedCarousel |
+| Live Streaming | 2360-2400 | GoLiveModal, LiveStreamCard |
+| PostCard | 1072-1300 | All post types render correctly |
+| Likes | PostCard internal | Like button, count display |
+| Comments | PostCard internal | Comment fetching, display |
+| Notifications | 1520-1600 | NotificationDropdown |
+| Share Modal | 1300-1400 | ShareModal component |
+
+---
+
+## PROTECTED: User Profiles & Authentication
+**Files:**
+- `pages/hub/user/[username].js` - Public profile pages
+- `pages/hub/profile.js` - User's own profile
+- `src/lib/authUtils.js` - Authentication helpers
+- `src/lib/supabaseClient.js` - Database connection
+
+**DO NOT MODIFY:** getAuthUser, session handling, profile fetching
+
+---
+
+## PROTECTED: Posts System
+**Files:**
+- `pages/hub/social-media.js` - Post creation, display
+- `pages/api/social-posts.js` - Post API
+- `src/components/social/CreatePostModal.jsx` - Post creation
+
+**DO NOT MODIFY:** Post types, media handling, content display
+
+---
+
+## PROTECTED: Photos & Videos
+**Files:**
+- `pages/hub/social-media.js` - Media in posts
+- `pages/hub/user/[username].js` - Photos/Videos tabs
+- `src/components/social/MediaGallery.jsx` - Gallery display
+
+**DO NOT MODIFY:** Media URL handling, gallery rendering
+
+---
+
+## PROTECTED: News/Articles
 **Skill:** `.agent/skills/in-app-article-reader/SKILL.md`
 **Test:** `node scripts/test-article-reader.js`
 
-| File | Purpose | DO NOT |
-|------|---------|--------|
-| `pages/api/proxy.js` | Server-side proxy | Change URL rewriting logic |
-| `src/components/social/ArticleReaderModal.jsx` | Full-screen modal | Remove iframe proxy URL |
-| `src/components/social/ArticleCard.jsx` | Article preview | Remove onClick handler |
+**Files:**
+- `pages/api/proxy.js` - Server-side proxy
+- `src/components/social/ArticleCard.jsx` - Preview cards
+- `src/components/social/ArticleReaderModal.jsx` - In-app reader
+- `pages/api/link-preview.js` - OpenGraph fetching
+
+**DO NOT MODIFY:** Proxy URL rewriting, iframe src, onClick handlers
 
 ---
 
-### Social Feed & Stories
-**Skill:** `.agent/skills/social-community/SKILL.md`
+## PROTECTED: Likes System
+**Location:** Inside `pages/hub/social-media.js`
 
-| File | Purpose | DO NOT |
-|------|---------|--------|
-| `pages/hub/social-media.js` | Main feed page | Break articleReader state |
-| `src/components/social/Stories.jsx` | Stories components | Break story rendering |
+**DO NOT MODIFY:** 
+- Like button click handlers
+- Like count display
+- Like API calls
 
 ---
 
-### Authentication
-**Skill:** `.agent/skills/auth-session/SKILL.md`
+## PROTECTED: Comments System
+**Location:** Inside `pages/hub/social-media.js`
 
-| File | Purpose | DO NOT |
-|------|---------|--------|
-| `src/lib/authUtils.js` | Auth helpers | Break getAuthUser |
-| `pages/api/auth/*` | Auth endpoints | Change session logic |
+**DO NOT MODIFY:**
+- Comment fetching
+- Comment display
+- Reply functionality
+- Comment count
+
+---
+
+## PROTECTED: Notifications
+**Files:**
+- `pages/hub/social-media.js` - Notification dropdown
+- `pages/hub/notifications.js` - Full notifications page
+- `pages/api/notifications.js` - Notifications API
+
+**DO NOT MODIFY:** Notification fetching, display, click handlers, profile navigation
+
+---
+
+## PROTECTED: Messages/Messenger
+**Files:**
+- `pages/hub/messenger.js` - Messenger page
+- `src/components/social/ChatWindow.jsx` - Chat UI
+- `pages/api/messages.js` - Messages API
+
+**DO NOT MODIFY:** Message sending, receiving, display
+
+---
+
+## PROTECTED: Stories
+**Files:**
+- `src/components/social/Stories.jsx` - Stories bar
+- `src/components/social/StoryViewer.jsx` - Story viewer
+- `pages/api/stories.js` - Stories API
+
+**DO NOT MODIFY:** Story display, navigation, uploads
+
+---
+
+## PROTECTED: Reels
+**Files:**
+- `src/components/social/ReelsFeedCarousel.jsx` - Feed carousel
+- `pages/hub/reels.js` - Full reels page
+
+**DO NOT MODIFY:** Video playback, navigation, autoplay
+
+---
+
+## PROTECTED: Live Streaming
+**Files:**
+- `src/components/social/GoLiveModal.jsx` - Go live UI
+- `src/components/social/LiveStreamCard.jsx` - Stream display
+- `src/components/social/LiveStreamViewer.jsx` - Viewer
+- `src/services/LiveStreamService.js` - Stream logic
+
+**DO NOT MODIFY:** Stream start/stop, viewer connections
 
 ---
 
@@ -50,21 +145,25 @@ This file lists all protected components that have been carefully implemented an
 
 1. **Search this file** for the file you want to modify
 2. **If listed**, read the skill file first
-3. **Run the test** before making changes
-4. **Run the test again** after making changes
-5. **If test fails**, revert your changes
+3. **Run tests** before making changes
+4. **Run tests again** after making changes
+5. **If tests fail**, REVERT your changes
 
 ---
 
-## Adding New Protected Files
+## This Feature Set Has Been Rebuilt Multiple Times
 
-When you build something important:
-1. Add it to this registry
-2. Create a skill file documenting it
-3. Create an E2E test
-4. Add DO NOT MODIFY comments to the source
+Every time someone modifies social media code without understanding:
+- Article thumbnails break
+- Stories don't display
+- Likes stop working
+- Comments don't load
+- Notifications fail
+- Posts don't render
+
+**PROTECT THIS CODE. FOLLOW THE WORKFLOW.**
 
 ---
 
 ## Last Updated
-- 2026-01-24: Added In-App Article Reader protection
+- 2026-01-24: Expanded to cover ALL social media features

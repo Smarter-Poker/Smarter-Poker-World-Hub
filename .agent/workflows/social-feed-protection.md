@@ -4,97 +4,151 @@ description: MANDATORY workflow before modifying ANY social media files. Prevent
 
 # 🚨 SOCIAL FEED PROTECTION WORKFLOW 🚨
 
-**This workflow MUST be followed before modifying ANY file in the social media system.**
+## THIS IS MANDATORY BEFORE MODIFYING ANY SOCIAL MEDIA CODE
 
-## STOP! Before You Edit
-
-If you are about to modify ANY of these files or components, YOU MUST follow this workflow:
-
-### Protected Files
-- `pages/hub/social-media.js` - Main feed page (2600+ lines)
-- `src/components/social/ArticleCard.jsx` - Article previews
-- `src/components/social/ArticleReaderModal.jsx` - In-app article reader
-- `src/components/social/Stories.jsx` - Stories bar
-- `src/components/social/ReelsFeedCarousel.jsx` - Reels carousel
-- `src/components/social/GoLiveModal.jsx` - Live streaming
-- `src/components/social/LiveStreamCard.jsx` - Live stream display
-- `pages/api/proxy.js` - Server-side proxy for articles
-- `pages/api/link-preview.js` - OpenGraph metadata fetching
+**You MUST follow this workflow before touching ANY of these features:**
+- Users / Profiles
+- Posts (text, photo, video, article, link)
+- Photos / Videos / Media
+- News / Articles
+- Likes
+- Comments
+- Notifications
+- Messages / Messenger
+- Stories
+- Reels
+- Live Streaming
+- Display / Rendering of anything in the social hub
 
 ---
 
-## MANDATORY STEPS
-
-### Step 1: Read the Protected Files Registry
+## STEP 1: Read the Protected Files Registry
+// turbo
 ```bash
 cat .agent/PROTECTED_FILES.md
 ```
 
-### Step 2: Run Verification BEFORE Making Changes
+**If the file you want to modify is listed, you MUST proceed with extreme caution.**
+
+---
+
+## STEP 2: Understand What You're Modifying
+
+Before making ANY change, understand:
+1. What feature does this code power?
+2. What other features depend on it?
+3. What props/state does it use?
+4. What APIs does it call?
+
+---
+
+## STEP 3: Run Tests BEFORE Making Changes
+// turbo
+```bash
+# Article reader test
+node scripts/test-article-reader.js
+```
+// turbo
+```bash
+# Start dev server if not running
+npm run dev
+```
+
+---
+
+## STEP 4: Make Your Changes CAREFULLY
+
+Ask yourself:
+- Am I removing any imports? **DON'T!**
+- Am I removing any state variables? **DON'T!**
+- Am I changing any props? **Document why!**
+- Am I changing any API calls? **Test thoroughly!**
+
+---
+
+## STEP 5: Run Tests AFTER Making Changes
 // turbo
 ```bash
 node scripts/test-article-reader.js
 ```
 
-### Step 3: If modifying social-media.js, understand these critical sections:
-- Lines 1-30: Imports (DO NOT remove any)
-- ArticleReader state (articleReader, setArticleReader)
-- PostCard component (onOpenArticle prop)
-- ArticleCard integration (onClick handler)
+---
 
-### Step 4: Make your changes carefully
+## STEP 6: Test Manually in Browser
 
-### Step 5: Run Verification AFTER Making Changes
-// turbo
-```bash
-node scripts/test-article-reader.js
+Check ALL of these work:
+- [ ] Posts display correctly
+- [ ] Images/videos load
+- [ ] Likes work
+- [ ] Comments work
+- [ ] Article cards show thumbnails
+- [ ] Clicking articles opens in-app modal
+- [ ] Stories bar displays
+- [ ] Notifications work
+- [ ] Profile links work
+
+---
+
+## IF ANYTHING BREAKS
+
+1. **STOP IMMEDIATELY**
+2. **REVERT YOUR CHANGES** - `git checkout -- <file>`
+3. **Read the skill files:**
+   - `.agent/skills/in-app-article-reader/SKILL.md`
+   - `.agent/skills/social-community/SKILL.md`
+4. **Understand what you broke**
+5. **Try again more carefully**
+
+---
+
+## COMMON THINGS THAT BREAK SOCIAL MEDIA
+
+### Article Reader
+| What Breaks | Symptom | Cause |
+|-------------|---------|-------|
+| No thumbnails | Link icon instead of image | Removed ArticleCard |
+| Opens new tab | Leaves smarter.poker | Removed onOpenArticle |
+| Blank modal | Nothing displays | Changed iframe src |
+
+### Posts
+| What Breaks | Symptom | Cause |
+|-------------|---------|-------|
+| No posts | Empty feed | Changed fetch query |
+| Wrong display | Media missing | Broke PostCard |
+| No interactions | Likes/comments fail | Removed handlers |
+
+### Stories
+| What Breaks | Symptom | Cause |
+|-------------|---------|-------|
+| No stories | Bar empty | Changed stories fetch |
+| Can't view | Click does nothing | Broke viewer |
+
+### Notifications
+| What Breaks | Symptom | Cause |
+|-------------|---------|-------|
+| No notifications | Dropdown empty | Changed fetch |
+| Can't click | Links broken | Changed navigation |
+
+---
+
+## FILES THAT MUST NEVER BE CASUALLY MODIFIED
+
+These files are CRITICAL. Small changes have BIG consequences:
+
+```
+pages/hub/social-media.js      # 2600+ lines, ALL social features
+pages/api/proxy.js             # Article reader backbone
+pages/hub/user/[username].js   # Profile pages
+src/lib/authUtils.js           # Auth everywhere depends on this
+src/lib/supabaseClient.js      # Database connection
 ```
 
-### Step 6: Test manually in browser
-// turbo
-```bash
-open http://localhost:3000/hub/social-media
-```
-
 ---
 
-## IF TESTS FAIL AFTER YOUR CHANGES
+## REMEMBER
 
-1. **REVERT IMMEDIATELY** - Your changes broke something
-2. Read the skill file: `.agent/skills/in-app-article-reader/SKILL.md`
-3. Understand what you broke
-4. Try again with more care
+This codebase has been rebuilt MULTIPLE TIMES because of careless modifications.
 
----
+**Every hour spent understanding the code saves 10 hours of debugging.**
 
-## Common Things That Break Social Media
-
-### Article Reader Breaks
-- Removing `ArticleCard` import
-- Removing `ArticleReaderModal` import  
-- Removing `articleReader` state
-- Removing `onOpenArticle` prop from PostCard
-- Changing the iframe src in ArticleReaderModal
-
-### Stories Bar Breaks
-- Removing `StoriesBar` import
-- Changing stories fetch query
-- Breaking story click handlers
-
-### Feed Breaks
-- Removing PostCard component
-- Breaking infinite scroll
-- Changing post fetching logic
-
----
-
-## This Feature Has Been Rebuilt Multiple Times
-
-Every time someone modifies social-media.js without understanding, these features break:
-1. Article thumbnails show link icons instead of images
-2. Articles open in new tabs instead of in-app
-3. Stories don't display
-4. Reels carousel breaks
-5. Posts don't load
-
-**PROTECT THIS CODE.**
+**FOLLOW THIS WORKFLOW. PROTECT THE CODE.**
