@@ -6,7 +6,7 @@
    Dark, premium casino aesthetic with obsidian backgrounds,
    diamond blue accents, gold highlights, and dangerous red for jackpots.
 
-   Version: 2.0.0 - Premium Casino Redesign
+   Version: 2.0.1 - Premium Casino Redesign (Deploy Trigger)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
