@@ -1398,6 +1398,50 @@ export default function NewsHub() {
                                         </motion.section>
                                     )}
                                 </AnimatePresence>
+
+                                {/* Reels Preview Section - Shows on News tab */}
+                                {reels.length > 0 && (
+                                    <section className="reels-preview-section">
+                                        <div className="section-header-row">
+                                            <h2 className="section-title">
+                                                <Film size={18} /> Poker Reels
+                                            </h2>
+                                            <button
+                                                className="see-all-btn"
+                                                onClick={() => setActiveSection('reels')}
+                                            >
+                                                See All →
+                                            </button>
+                                        </div>
+                                        <div className="reels-carousel">
+                                            {reels.slice(0, 6).map(reel => (
+                                                <ReelCard key={reel.id} reel={reel} />
+                                            ))}
+                                        </div>
+                                    </section>
+                                )}
+
+                                {/* Videos Preview Section - Shows on News tab */}
+                                {videos.length > 0 && (
+                                    <section className="videos-preview-section">
+                                        <div className="section-header-row">
+                                            <h2 className="section-title">
+                                                <Play size={18} /> Latest Videos
+                                            </h2>
+                                            <button
+                                                className="see-all-btn"
+                                                onClick={() => setActiveSection('videos')}
+                                            >
+                                                See All →
+                                            </button>
+                                        </div>
+                                        <div className="videos-carousel">
+                                            {videos.slice(0, 4).map(video => (
+                                                <VideoCard key={video.id} video={video} onClick={openVideo} />
+                                            ))}
+                                        </div>
+                                    </section>
+                                )}
                             </>
                         ) : activeSection === 'videos' ? (
                             /* Videos Section */
@@ -1967,6 +2011,80 @@ export default function NewsHub() {
 
                     .list-arrow {
                         color: rgba(255, 255, 255, 0.3);
+                    }
+
+                    /* Reels & Videos Preview Sections (on News tab) */
+                    .reels-preview-section,
+                    .videos-preview-section {
+                        margin-top: 32px;
+                        padding-top: 24px;
+                        border-top: 1px solid rgba(255, 255, 255, 0.1);
+                    }
+
+                    .section-header-row {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-bottom: 16px;
+                    }
+
+                    .section-header-row .section-title {
+                        margin-bottom: 0;
+                    }
+
+                    .see-all-btn {
+                        background: rgba(0, 212, 255, 0.1);
+                        border: 1px solid rgba(0, 212, 255, 0.3);
+                        border-radius: 8px;
+                        padding: 8px 16px;
+                        color: #00d4ff;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+
+                    .see-all-btn:hover {
+                        background: rgba(0, 212, 255, 0.2);
+                    }
+
+                    .reels-carousel {
+                        display: flex;
+                        gap: 16px;
+                        overflow-x: auto;
+                        padding-bottom: 8px;
+                        scrollbar-width: thin;
+                        scrollbar-color: rgba(255,255,255,0.2) transparent;
+                    }
+
+                    .reels-carousel::-webkit-scrollbar {
+                        height: 6px;
+                    }
+
+                    .reels-carousel::-webkit-scrollbar-track {
+                        background: transparent;
+                    }
+
+                    .reels-carousel::-webkit-scrollbar-thumb {
+                        background: rgba(255,255,255,0.2);
+                        border-radius: 3px;
+                    }
+
+                    .reels-carousel .reel-card {
+                        flex-shrink: 0;
+                        width: 160px;
+                    }
+
+                    .videos-carousel {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 16px;
+                    }
+
+                    @media (max-width: 768px) {
+                        .videos-carousel {
+                            grid-template-columns: 1fr;
+                        }
                     }
 
                     /* Videos Section */
