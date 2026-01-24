@@ -260,7 +260,7 @@ export default function SignUpPage() {
                             xp_total: 100, // Starting XP bonus
                             diamonds: 300, // Starting diamonds bonus (NO PURCHASE NECESSARY)
                             diamond_multiplier: 1.0,
-                            streak_days: 0,
+                            streak_count: 0, // Fixed: was streak_days but column is streak_count
                             skill_tier: 'Newcomer',
                             // Restricted Tier flagging for WA, ID, MI, NV, CA
                             access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
