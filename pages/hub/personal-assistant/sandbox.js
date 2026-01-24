@@ -575,10 +575,20 @@ function GTOResultsPanel({ results, isLoading }) {
         <span>Confidence: <span style={{ color: results.confidence === 'High' ? '#22c55e' : '#f59e0b' }}>{results.confidence}</span></span>
       </div>
 
-      {/* Why Not Section */}
-      {results.whyNot && (
+      {/* AI Approximation Disclaimer - Per Masterplan Section V */}
+      {results.source && results.source.includes('AI') && (
+        <div style={resultsStyles.aiDisclaimer}>
+          <span style={resultsStyles.disclaimerIcon}>ⓘ</span>
+          This output is an AI approximation, not solver-verified GTO.
+        </div>
+      )}
+
+      {/* Why Not Section - Dynamic based on alternatives */}
+      {results.whyNot && results.alternatives && results.alternatives.length > 0 && (
         <div style={resultsStyles.whyNot}>
-          <span style={resultsStyles.whyNotLabel}>Why not check more?</span>
+          <span style={resultsStyles.whyNotLabel}>
+            Why not {results.alternatives[0]?.action?.toLowerCase() || 'check'} more?
+          </span>
           <p style={resultsStyles.whyNotText}>{results.whyNot}</p>
         </div>
       )}
@@ -682,6 +692,22 @@ const resultsStyles = {
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 1.5,
     margin: 0,
+  },
+  aiDisclaimer: {
+    marginTop: 12,
+    padding: '10px 14px',
+    background: 'rgba(251, 191, 36, 0.08)',
+    border: '1px solid rgba(251, 191, 36, 0.2)',
+    borderRadius: 8,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  disclaimerIcon: {
+    color: '#fbbf24',
+    fontSize: 14,
   },
 };
 
