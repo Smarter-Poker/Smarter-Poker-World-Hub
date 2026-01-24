@@ -257,11 +257,11 @@ const FULL_VIDEOS = [
     // ═══════════════════════════════════════════════════════════════════
     // DOUG POLK - 5 Premium Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'polk1', videoId: '8J8bN60yP4g', source: 'POLK', type: 'cash', title: 'My HEADS UP Battle vs Daniel Negreanu', views: '4.5M', duration: '55:22' },
-    { id: 'polk2', videoId: 'O9uGvQk00Ew', source: 'POLK', type: 'cash', title: 'Roasting These TERRIBLE Poker Hands', views: '1.8M', duration: '22:18' },
+    { id: 'polk1', videoId: 'fhgYiIyxtSE', source: 'POLK', type: 'cash', title: 'My HEADS UP Battle vs Daniel Negreanu', views: '4.5M', duration: '55:22' },
+    { id: 'polk2', videoId: '4kkx1r3YaAU', source: 'POLK', type: 'cash', title: 'Roasting These TERRIBLE Poker Hands', views: '1.8M', duration: '22:18' },
     { id: 'polk3', videoId: '1RdN2cOf9do', source: 'POLK', type: 'cash', title: 'Playing the BIGGEST Game at the Lodge', views: '2.1M', duration: '48:44' },
     { id: 'polk4', videoId: 'fdY9bxBd_Sw', source: 'POLK', type: 'cash', title: 'I Played $1,000,000 Pot vs Tom Dwan', views: '3.2M', duration: '35:22' },
-    { id: 'polk5', videoId: 'W7rYpGkS1O0', source: 'POLK', type: 'cash', title: 'Analyzing Phil Hellmuths WORST Plays', views: '1.5M', duration: '28:55' },
+    { id: 'polk5', videoId: 'c_CMqUjKYCQ', source: 'POLK', type: 'cash', title: 'Analyzing Phil Hellmuths WORST Plays', views: '1.5M', duration: '28:55' },
 
     // ═══════════════════════════════════════════════════════════════════
     // BART HANSON - 4 Training Episodes (Real YouTube IDs)

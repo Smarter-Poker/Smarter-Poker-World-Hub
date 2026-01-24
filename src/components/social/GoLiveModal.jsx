@@ -45,6 +45,13 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         };
     }, [isOpen]);
 
+    // Rebind stream to video element whenever stage changes (critical for live stage)
+    useEffect(() => {
+        if (streamRef.current && videoRef.current) {
+            videoRef.current.srcObject = streamRef.current;
+        }
+    }, [stage]);
+
     const requestMediaAccess = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
