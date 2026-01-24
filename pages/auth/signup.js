@@ -352,6 +352,18 @@ export default function SignUpPage() {
                     if (profileData && profileData.length > 0) {
                         setAssignedPlayerNumber(profileData[0].player_number);
                     }
+
+                    // CRITICAL: Also create user_diamond_balance record (header reads from this table)
+                    await supabase
+                        .from('user_diamond_balance')
+                        .upsert({
+                            user_id: authData.user.id,
+                            balance: 300, // Starting diamonds bonus
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
+                        }, {
+                            onConflict: 'user_id',
+                        });
                 } catch (rpcErr) {
                     // Fallback to direct insert
                     console.log('Fallback: Direct profile insert');
@@ -393,6 +405,22 @@ export default function SignUpPage() {
 
                     if (insertError) {
                         console.error('Profile insert error:', insertError);
+                    }
+
+                    // CRITICAL: Also create user_diamond_balance record (header reads from this table)
+                    const { error: balanceError } = await supabase
+                        .from('user_diamond_balance')
+                        .upsert({
+                            user_id: authData.user.id,
+                            balance: 300, // Starting diamonds bonus
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
+                        }, {
+                            onConflict: 'user_id',
+                        });
+
+                    if (balanceError) {
+                        console.error('Diamond balance insert error:', balanceError);
                     }
 
                     // Set the assigned player number
