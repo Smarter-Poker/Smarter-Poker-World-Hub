@@ -47,12 +47,12 @@ async function runTest() {
 
         // Step 2: Wait for posts to load
         console.log('2. Waiting for posts to load...');
-        await page.waitForTimeout(5000);
+        await new Promise(r => setTimeout(r, 5000));
 
         // Step 3: Find article card
         console.log('3. Looking for article card...');
         await page.evaluate(() => window.scrollBy(0, 500));
-        await page.waitForTimeout(1000);
+        await new Promise(r => setTimeout(r, 1000));
 
         const articleCard = await page.evaluate(() => {
             // Look for article card by text content
@@ -79,7 +79,7 @@ async function runTest() {
         } else {
             console.log('   ⚠️  No article card found, scrolling more...');
             await page.evaluate(() => window.scrollBy(0, 1000));
-            await page.waitForTimeout(2000);
+            await new Promise(r => setTimeout(r, 2000));
         }
 
         // Step 4: Click article card
@@ -98,7 +98,7 @@ async function runTest() {
                 }
             });
         }
-        await page.waitForTimeout(3000);
+        await new Promise(r => setTimeout(r, 3000));
 
         // Step 5: Check if modal opened
         console.log('5. Checking for modal...');
@@ -152,7 +152,7 @@ async function runTest() {
                 }
             }
         });
-        await page.waitForTimeout(1000);
+        await new Promise(r => setTimeout(r, 1000));
 
         // Step 8: Verify modal closed
         console.log('8. Verifying modal closed...');
