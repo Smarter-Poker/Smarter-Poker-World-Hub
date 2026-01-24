@@ -1119,11 +1119,11 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
     return (
         <div style={{ background: C.card, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2, overflow: 'hidden' }}>
             <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Link href={`/hub/user/${post.author?.name || 'player'}`} style={{ textDecoration: 'none' }}>
+                <Link href={`/hub/user/${post.author?.username || 'player'}`} style={{ textDecoration: 'none' }}>
                     <Avatar src={post.author?.avatar} name={post.author?.name} size={40} />
                 </Link>
                 <div style={{ flex: 1 }}>
-                    <Link href={`/hub/user/${post.author?.name || 'player'}`} style={{ fontWeight: 600, color: C.text, textDecoration: 'none' }}>
+                    <Link href={`/hub/user/${post.author?.username || 'player'}`} style={{ fontWeight: 600, color: C.text, textDecoration: 'none' }}>
                         {post.author?.name || 'Player'}
                     </Link>
                     <div style={{ fontSize: 12, color: C.textSec }}>{post.timeAgo}</div>
@@ -1496,6 +1496,7 @@ export default function SocialMediaPage() {
                     setUser({
                         id: p?.id || authUser.id, // Use profile ID if owned, else auth ID
                         name: displayName,
+                        username: p?.username || null,
                         avatar: p?.avatar_url || null,
                         tier: p?.skill_tier,
                         role: p?.role || 'user',
@@ -1738,6 +1739,7 @@ export default function SocialMediaPage() {
                             if (pref === 'username') return a.username || a.full_name || 'Player';
                             return a.full_name || a.username || 'Player';
                         })(),
+                        username: authorMap[p.author_id]?.username || null,
                         avatar: authorMap[p.author_id]?.avatar_url || null
                     }
                 }));
@@ -1888,7 +1890,7 @@ export default function SocialMediaPage() {
                 id: data.id, authorId: user.id, content, contentType: type,
                 mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
                 timeAgo: 'Just now', isLiked: false, justPosted: true, // Mark as just posted for highlight
-                author: { name: user.name, avatar: user.avatar }
+                author: { name: user.name, username: user.username, avatar: user.avatar }
             }, ...prev]);
 
             // Scroll to top of feed so user sees their new post immediately (Facebook behavior)

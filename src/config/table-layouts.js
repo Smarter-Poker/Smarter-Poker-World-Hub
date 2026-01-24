@@ -6,21 +6,31 @@
  */
 
 // 9-MAX LAYOUT (Full Ring) - Hero + 8 Villains
-// CLEAN DEFAULTS - Ready for scale-corrected DEV MODE alignment
+// PIXEL-PERFECT positions measured from template image
+// Positions are % of table-wrapper container (max-width 500px, aspect 3:4)
 export const LAYOUT_9MAX = {
     name: '9MAX',
     seats: 9,
     heroCardsOffset: { x: 29, y: 117 },
     positions: {
-        "hero": { "left": "50%", "top": "88%", "avatarOffset": { "x": 0, "y": 0 } },
-        "seat1": { "left": "18%", "top": "75%", "avatarOffset": { "x": 0, "y": 0 } },
-        "seat2": { "left": "2%", "top": "55%", "avatarOffset": { "x": 0, "y": 0 } },
-        "seat3": { "left": "2%", "top": "35%", "avatarOffset": { "x": 0, "y": 0 } },
-        "seat4": { "left": "20%", "top": "10%", "avatarOffset": { "x": 0, "y": 0 } },
-        "seat5": { "left": "70%", "top": "10%", "avatarOffset": { "x": 0, "y": 0 } },
-        "seat6": { "left": "92%", "top": "35%", "avatarOffset": { "x": 0, "y": 0 } },
-        "seat7": { "left": "92%", "top": "55%", "avatarOffset": { "x": 0, "y": 0 } },
-        "seat8": { "left": "78%", "top": "75%", "avatarOffset": { "x": 0, "y": 0 } }
+        // Hero at bottom center
+        "hero": { "left": "45%", "top": "82%", "avatarOffset": { "x": 0, "y": -60 } },
+        // V1: bottom-left
+        "seat1": { "left": "18%", "top": "70%", "avatarOffset": { "x": 0, "y": -60 } },
+        // V2: left side lower
+        "seat2": { "left": "5%", "top": "50%", "avatarOffset": { "x": 0, "y": -60 } },
+        // V3: left side upper
+        "seat3": { "left": "5%", "top": "30%", "avatarOffset": { "x": 0, "y": -60 } },
+        // V4: top-left
+        "seat4": { "left": "25%", "top": "12%", "avatarOffset": { "x": 0, "y": -60 } },
+        // V5: top-right
+        "seat5": { "left": "65%", "top": "12%", "avatarOffset": { "x": 0, "y": -60 } },
+        // V6: right side upper
+        "seat6": { "left": "85%", "top": "30%", "avatarOffset": { "x": 0, "y": -60 } },
+        // V7: right side lower
+        "seat7": { "left": "85%", "top": "50%", "avatarOffset": { "x": 0, "y": -60 } },
+        // V8: bottom-right
+        "seat8": { "left": "75%", "top": "68%", "avatarOffset": { "x": 0, "y": -60 } }
     },
     heroCards: { x: 29, y: 117 }
 };
