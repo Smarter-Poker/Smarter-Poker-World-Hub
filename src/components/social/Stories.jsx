@@ -141,7 +141,7 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
 }
 
 // Stories Bar - horizontal scroll of stories at top of feed
-export function StoriesBar({ userId, onCreateStory }) {
+export function StoriesBar({ userId, userAvatar, onCreateStory }) {
     const [stories, setStories] = useState([]);
     const [liveUsers, setLiveUsers] = useState(new Set()); // Track who is live
     const [loading, setLoading] = useState(true);
@@ -206,6 +206,9 @@ export function StoriesBar({ userId, onCreateStory }) {
     const ownStory = stories.find(s => s.is_own);
     const otherStories = stories.filter(s => !s.is_own);
 
+    // For "Your Story" - use story media if exists, otherwise use user's profile avatar
+    const yourStoryAvatar = ownStory?.author_avatar || userAvatar || '/default-avatar.png';
+
     return (
         <>
             <div style={{
@@ -226,7 +229,7 @@ export function StoriesBar({ userId, onCreateStory }) {
                     }}
                 >
                     <StoryAvatar
-                        story={ownStory || { author_avatar: null }}
+                        story={{ author_avatar: yourStoryAvatar }}
                         isOwn={true}
                         hasStory={!!ownStory}
                         onClick={() => ownStory ? handleViewStory(ownStory) : setShowCreate(true)}

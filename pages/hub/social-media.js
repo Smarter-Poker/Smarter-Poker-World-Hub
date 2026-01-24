@@ -2484,7 +2484,7 @@ export default function SocialMediaPage() {
                 {/* Main Feed - 800px Design Canvas */}
                 <main className="social-page-container" style={{ padding: '8px' }}>
                     {/* Stories Bar */}
-                    {user && <StoriesBar userId={user.id} />}
+                    {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
 
                     {/* Post Creator */}
                     {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} />}
