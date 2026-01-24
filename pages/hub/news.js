@@ -1049,27 +1049,31 @@ export default function NewsHub() {
 
     // 6 dedicated source boxes - each box shows the latest article from its specific source
     const DEDICATED_SOURCES = [
-        { name: 'PokerNews', url: 'https://www.pokernews.com' },
-        { name: 'Poker.org', url: 'https://www.poker.org' },
-        { name: 'CardPlayer', url: 'https://www.cardplayer.com' },
-        { name: 'Pokerfuse', url: 'https://pokerfuse.com' },
-        { name: 'WSOP', url: 'https://www.wsop.com' },
-        { name: 'MSPT', url: 'https://msptpoker.com' }
+        { name: 'PokerNews', url: 'https://www.pokernews.com', category: 'tournament' },
+        { name: 'Poker.org', url: 'https://www.poker.org', category: 'industry' },
+        { name: 'CardPlayer', url: 'https://www.cardplayer.com', category: 'news' },
+        { name: 'Pokerfuse', url: 'https://pokerfuse.com', category: 'industry' },
+        { name: 'WSOP', url: 'https://www.wsop.com', category: 'tournament' },
+        { name: 'MSPT', url: 'https://msptpoker.com', category: 'tournament' }
     ];
 
     // Get the latest article from each dedicated source (always show all 6 boxes)
-    const sourceBoxArticles = DEDICATED_SOURCES.map((source, index) => {
+    const sourceBoxArticles = DEDICATED_SOURCES.map((source) => {
         const articlesFromSource = filteredNews.filter(a => a.source_name === source.name);
         // Return the most recent article from this source, or a placeholder if none
-        return articlesFromSource[0] || {
+        if (articlesFromSource.length > 0) {
+            return articlesFromSource[0];
+        }
+        // Create placeholder for sources without articles
+        return {
             id: `placeholder-${source.name}`,
             title: `Latest from ${source.name}`,
             content: `Check back soon for the latest poker news from ${source.name}.`,
             excerpt: `Check back soon for the latest poker news from ${source.name}.`,
             source_name: source.name,
             source_url: source.url,
-            image_url: FALLBACK_IMAGES[['tournament', 'industry', 'news', 'industry', 'tournament', 'tournament'][index]],
-            category: ['tournament', 'industry', 'news', 'industry', 'tournament', 'tournament'][index],
+            image_url: FALLBACK_IMAGES[source.category] || FALLBACK_IMAGES.news,
+            category: source.category,
             published_at: new Date().toISOString(),
             views: 0,
             isPlaceholder: true
@@ -1218,17 +1222,17 @@ export default function NewsHub() {
                                         <Flame size={18} /> Today's Top Stories
                                     </h2>
 
-                                    {filteredNews.length === 0 ? (
+                                    {filteredNews.length === 0 && searchQuery ? (
                                         <div className="no-results">
                                             <Globe size={48} />
-                                            <p>No articles found{searchQuery ? ` for "${searchQuery}"` : ''}</p>
+                                            <p>No articles found for "{searchQuery}"</p>
                                             <button onClick={() => { setSearchQuery(''); setActiveTab('all'); fetchNews(); }}>
                                                 Clear filters
                                             </button>
                                         </div>
                                     ) : (
                                         <div className="news-grid">
-                                            {/* Show 1 article per source - 6 dedicated source boxes */}
+                                            {/* Show 1 article per source - 6 dedicated source boxes (always 6) */}
                                             {topArticles.map((article, index) => (
                                                 <NewsBox
                                                     key={article.id}
