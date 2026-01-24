@@ -1,8 +1,11 @@
 /**
- * REELS PAGE - Simple Full-Screen YouTube Shorts Experience
- * - Full viewport iframe
- * - Swipe up/down to navigate between videos
- * - Tap video for YouTube controls (play/pause/volume)
+ * REELS PAGE - Full-Screen YouTube Shorts Experience
+ * 
+ * SOLUTIONS IMPLEMENTED:
+ * 1. SWIPE: Touch capture zones on left/right edges (40% each) to intercept swipes
+ *    Center 20% left open for YouTube controls
+ * 2. UNMUTE: Tap-to-unmute overlay - tapping reloads iframe with mute=0
+ * 3. WHITE LINE: Slight overscan with overflow:hidden + frameBorder=0
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -29,7 +32,9 @@ export default function ReelsPage() {
     const [reels, setReels] = useState([]);
     const [idx, setIdx] = useState(0);
     const [loading, setLoading] = useState(true);
-    const touchStart = useRef(0);
+    const [muted, setMuted] = useState(true); // Start muted for autoplay
+    const touchStartY = useRef(0);
+    const touchStartTime = useRef(0);
 
     useEffect(() => {
         loadReels();
@@ -63,18 +68,37 @@ export default function ReelsPage() {
 
     const reel = reels[idx];
 
-    // Swipe handlers
+    // Navigate to next/prev reel
+    const goNext = () => {
+        if (idx < reels.length - 1) {
+            setIdx(idx + 1);
+            setMuted(true); // Reset to muted on navigation
+        }
+    };
+
+    const goPrev = () => {
+        if (idx > 0) {
+            setIdx(idx - 1);
+            setMuted(true); // Reset to muted on navigation
+        }
+    };
+
+    // Swipe handlers for touch zones
     const handleTouchStart = (e) => {
-        touchStart.current = e.touches[0].clientY;
+        touchStartY.current = e.touches[0].clientY;
+        touchStartTime.current = Date.now();
     };
 
     const handleTouchEnd = (e) => {
-        const diff = touchStart.current - e.changedTouches[0].clientY;
-        if (Math.abs(diff) > 60) {
-            if (diff > 0 && idx < reels.length - 1) {
-                setIdx(idx + 1); // Swipe up = next
-            } else if (diff < 0 && idx > 0) {
-                setIdx(idx - 1); // Swipe down = prev
+        const deltaY = touchStartY.current - e.changedTouches[0].clientY;
+        const deltaTime = Date.now() - touchStartTime.current;
+
+        // Only trigger if swipe is significant (>60px) and fast enough (<500ms)
+        if (Math.abs(deltaY) > 60 && deltaTime < 500) {
+            if (deltaY > 0) {
+                goNext(); // Swipe up = next
+            } else {
+                goPrev(); // Swipe down = prev
             }
         }
     };
@@ -82,12 +106,34 @@ export default function ReelsPage() {
     // Keyboard navigation
     useEffect(() => {
         const handler = (e) => {
-            if (e.key === 'ArrowDown' && idx < reels.length - 1) setIdx(idx + 1);
-            if (e.key === 'ArrowUp' && idx > 0) setIdx(idx - 1);
+            if (e.key === 'ArrowDown') goNext();
+            if (e.key === 'ArrowUp') goPrev();
         };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
     }, [idx, reels.length]);
+
+    // Mouse wheel navigation
+    useEffect(() => {
+        let wheelTimeout = null;
+        const handler = (e) => {
+            if (wheelTimeout) return; // Debounce
+            if (e.deltaY > 50) {
+                goNext();
+                wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 500);
+            } else if (e.deltaY < -50) {
+                goPrev();
+                wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 500);
+            }
+        };
+        window.addEventListener('wheel', handler, { passive: true });
+        return () => window.removeEventListener('wheel', handler);
+    }, [idx, reels.length]);
+
+    // Handle unmute tap
+    const handleUnmute = () => {
+        setMuted(false);
+    };
 
     if (loading) {
         return (
@@ -118,6 +164,9 @@ export default function ReelsPage() {
         );
     }
 
+    // Build YouTube URL with appropriate mute setting
+    const youtubeUrl = `https://www.youtube.com/embed/${reel?.videoId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${reel?.videoId}&playsinline=1&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
+
     return (
         <>
             <Head>
@@ -125,35 +174,99 @@ export default function ReelsPage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
             </Head>
 
-            <div
-                style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: '#000',
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: '#000',
+                overflow: 'hidden'
+            }}>
+                {/* Video container with slight overscan to hide white edges */}
+                <div style={{
+                    position: 'absolute',
+                    top: -5,
+                    left: -5,
+                    right: -5,
+                    bottom: -5,
                     overflow: 'hidden'
-                }}
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-            >
-                {/* Full-screen YouTube iframe */}
-                {reel && (
-                    <iframe
-                        key={reel.id}
-                        src={`https://www.youtube.com/embed/${reel.videoId}?autoplay=1&mute=1&loop=1&playlist=${reel.videoId}&playsinline=1&controls=1&rel=0&modestbranding=1`}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
+                }}>
+                    {reel && (
+                        <iframe
+                            key={`${reel.id}-${muted}`}
+                            src={youtubeUrl}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                border: 'none'
+                            }}
+                        />
+                    )}
+                </div>
+
+                {/* LEFT TOUCH ZONE - captures swipes on left 40% */}
+                <div
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '40%',
+                        height: '100%',
+                        zIndex: 10,
+                        // Transparent - only captures touch, doesn't block view
+                    }}
+                />
+
+                {/* RIGHT TOUCH ZONE - captures swipes on right 40% */}
+                <div
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        width: '40%',
+                        height: '100%',
+                        zIndex: 10,
+                    }}
+                />
+
+                {/* TAP TO UNMUTE OVERLAY - only shows when muted */}
+                {muted && (
+                    <div
+                        onClick={handleUnmute}
                         style={{
                             position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            border: 'none'
+                            bottom: 100,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 20,
+                            background: 'rgba(0,0,0,0.8)',
+                            color: 'white',
+                            padding: '16px 32px',
+                            borderRadius: 50,
+                            fontSize: 18,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12,
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                            border: '2px solid rgba(255,255,255,0.3)'
                         }}
-                    />
+                    >
+                        <span style={{ fontSize: 24 }}>🔊</span>
+                        Tap to Unmute
+                    </div>
                 )}
 
                 {/* Back button */}
@@ -171,8 +284,7 @@ export default function ReelsPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: 20,
-                    textDecoration: 'none',
-                    pointerEvents: 'auto'
+                    textDecoration: 'none'
                 }}>←</Link>
 
                 {/* Title */}
@@ -185,9 +297,24 @@ export default function ReelsPage() {
                     fontWeight: 700,
                     fontSize: 18,
                     zIndex: 100,
-                    textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                    textShadow: '0 2px 8px rgba(0,0,0,0.9)',
                     pointerEvents: 'none'
                 }}>Reels</div>
+
+                {/* Swipe hint - shows briefly */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: 40,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    color: 'rgba(255,255,255,0.6)',
+                    fontSize: 14,
+                    zIndex: 5,
+                    pointerEvents: 'none',
+                    textShadow: '0 1px 4px rgba(0,0,0,0.8)'
+                }}>
+                    Swipe ↑↓ to navigate
+                </div>
             </div>
         </>
     );
