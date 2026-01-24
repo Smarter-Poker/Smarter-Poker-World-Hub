@@ -259,6 +259,18 @@ export default function SignUpPage() {
                 } catch (rpcErr) {
                     // Fallback to direct insert
                     console.log('Fallback: Direct profile insert');
+
+                    // Get the next player number (max + 1)
+                    const { data: maxData } = await supabase
+                        .from('profiles')
+                        .select('player_number')
+                        .order('player_number', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    const nextPlayerNumber = (maxData?.player_number || 1254) + 1;
+                    console.log('Assigning player number:', nextPlayerNumber);
+
                     const { error: insertError } = await supabase
                         .from('profiles')
                         .upsert({
@@ -269,6 +281,7 @@ export default function SignUpPage() {
                             city: formData.city,
                             state: formData.state,
                             username: formData.pokerAlias,
+                            player_number: nextPlayerNumber, // Auto-assign next player number
                             xp_total: 100, // Starting XP bonus
                             diamonds: 300, // Starting diamonds bonus (NO PURCHASE NECESSARY)
                             diamond_multiplier: 1.0,
@@ -286,16 +299,8 @@ export default function SignUpPage() {
                         console.error('Profile insert error:', insertError);
                     }
 
-                    // Try to get player number
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('player_number')
-                        .eq('id', authData.user.id)
-                        .single();
-
-                    if (profile?.player_number) {
-                        setAssignedPlayerNumber(profile.player_number);
-                    }
+                    // Set the assigned player number
+                    setAssignedPlayerNumber(nextPlayerNumber);
                 }
             }
 
