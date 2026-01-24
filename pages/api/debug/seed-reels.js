@@ -6,7 +6,10 @@
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_KEY = SERVICE_ROLE_KEY || ANON_KEY;
+const USING_SERVICE_ROLE = !!SERVICE_ROLE_KEY;
 
 // Sample poker YouTube Shorts
 const SAMPLE_REELS = [
@@ -32,8 +35,18 @@ export default async function handler(req, res) {
                 success: false,
                 error: 'Missing Supabase environment variables',
                 has_url: !!SUPABASE_URL,
-                has_key: !!SUPABASE_KEY,
-                key_type: SUPABASE_KEY?.substring(0, 10)
+                has_service_role_key: !!SERVICE_ROLE_KEY,
+                has_anon_key: !!ANON_KEY
+            });
+        }
+
+        // Warn if not using service role key (RLS will block inserts)
+        if (!USING_SERVICE_ROLE) {
+            return res.status(500).json({
+                success: false,
+                error: 'SUPABASE_SERVICE_ROLE_KEY not set - RLS will block inserts. Please add this env var in Vercel.',
+                using_key: 'anon_key',
+                hint: 'Go to Vercel > Project Settings > Environment Variables and add SUPABASE_SERVICE_ROLE_KEY'
             });
         }
 
