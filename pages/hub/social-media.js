@@ -1058,43 +1058,43 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                         style={{
                             padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', cursor: media.length >= MAX_MEDIA ? 'not-allowed' : 'pointer',
-                            color: media.length >= MAX_MEDIA ? '#ccc' : '#45BD62', fontSize: 14, fontWeight: 600,
+                            color: media.length >= MAX_MEDIA ? '#ccc' : '#65676B', fontSize: 14, fontWeight: 600,
                             transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >{uploading ? 'Uploading...' : 'Photo/Video'}</button>
-                    <span style={{ color: '#ccc' }}>·</span>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
                     <button
                         onClick={onGoLive}
                         style={{
                             padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', cursor: 'pointer',
-                            color: '#F3425F', fontSize: 14, fontWeight: 600,
+                            color: '#65676B', fontSize: 14, fontWeight: 600,
                             transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >Live Video</button>
-                    <span style={{ color: '#ccc' }}>·</span>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
                     <Link
                         href="/hub/reels"
                         style={{
                             padding: '6px 8px', borderRadius: 6,
                             background: 'transparent', textDecoration: 'none',
-                            color: '#E7549A', fontSize: 14, fontWeight: 600,
+                            color: '#65676B', fontSize: 14, fontWeight: 600,
                             transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >Reels</Link>
-                    <span style={{ color: '#ccc' }}>·</span>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
                     <Link
                         href="/hub/friends"
                         style={{
                             padding: '6px 8px', borderRadius: 6,
                             background: 'transparent', textDecoration: 'none',
-                            color: '#1877F2', fontSize: 14, fontWeight: 600,
+                            color: '#65676B', fontSize: 14, fontWeight: 600,
                             transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
