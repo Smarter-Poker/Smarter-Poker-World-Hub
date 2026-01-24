@@ -110,18 +110,24 @@ const VIP_MEMBERSHIP = {
 };
 
 const VIP_BENEFITS = [
-    { icon: '🎰', title: 'Diamond Arena Access', description: 'Unlimited tournament entries (normally 50-1,000 💎 each)', value: '$500+/mo' },
-    { icon: '🎮', title: 'Diamond Arcade', description: 'All arcade games free (normally 10-20 💎 per play)', value: '$100+/mo' },
+    // GOLD TIER CARD FEATURES
+    { icon: '📊', title: 'Show Stack in BBs', description: 'Display chip stacks in big blinds for better decisions', value: 'Gold' },
+    { icon: '🐰', title: 'Rabbit Hunting', description: 'See what cards would have come after folding', value: 'Gold' },
+    { icon: '🛡️', title: 'Offline Protection', description: 'Protection when disconnected during hands', value: 'Gold' },
+    { icon: '⏱️', title: 'Auto Time Bank', description: 'Automatic time bank activation', value: 'Gold' },
+    { icon: '🕐', title: 'Free Time Bank', description: '+120 seconds of free time bank', value: '+120' },
+    { icon: '🎨', title: 'Available Themes', description: '3 exclusive table themes to choose from', value: '+3' },
+    { icon: '🏠', title: 'Club Creation Limit', description: 'Create up to 3 private clubs', value: '+3' },
+    { icon: '😀', title: 'Free Emojis', description: '1,200 free emojis to use at the tables', value: '+1200' },
+    { icon: '🏷️', title: 'Player Tags', description: '1,000 tags to track and label opponents', value: '+1000' },
+    { icon: '📈', title: 'Leaderboard Boost', description: '6% score boost on all leaderboards', value: '+6%' },
+    // SMARTER.POKER EXCLUSIVES
+    { icon: '🎟️', title: 'Free Roll Entries', description: 'Free entry to all Diamond Arena freeroll tournaments', value: 'Unlimited' },
     { icon: '🧠', title: 'Premium Training', description: 'Full access to all training modules & drills', value: '$50/mo' },
-    { icon: '🎨', title: 'Avatar Engine', description: 'Unlimited custom AI avatar generations', value: '$100+/mo' },
-    { icon: '📊', title: 'Advanced Analytics', description: 'Deep bankroll insights & performance tracking', value: '$30/mo' },
-    { icon: '🤖', title: 'AI Personal Assistant', description: 'Priority AI coaching & hand analysis', value: '$50/mo' },
-    { icon: '🏆', title: 'Exclusive Leaderboards', description: 'VIP-only competitions with bonus prizes', value: 'Exclusive' },
-    { icon: '💬', title: 'Priority Support', description: '24/7 priority customer support', value: 'Priceless' },
+    { icon: '🤖', title: 'AI Personal Assistant', description: 'Priority AI coaching & hand analysis', value: '$100/mo' },
     { icon: '🎁', title: 'Daily Diamond Bonus', description: '+25 💎 free every day ($7.50/mo value)', value: '$7.50/mo' },
-    { icon: '✨', title: 'VIP Badge & Flair', description: 'Exclusive profile badge and cosmetics', value: 'Exclusive' },
+    { icon: '✨', title: 'VIP Badge & Flair', description: 'Exclusive Gold VIP profile badge and cosmetics', value: 'Exclusive' },
     { icon: '🚀', title: '2x XP Boost', description: 'Double XP earnings on all activities', value: '$25/mo' },
-    { icon: '🔓', title: 'Early Access', description: 'First access to new features & games', value: 'Exclusive' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -684,7 +690,7 @@ export default function DiamondStorePage() {
                             <div style={styles.valueComparison}>
                                 <div style={styles.valueBox}>
                                     <div style={styles.valueLabel}>Total Feature Value</div>
-                                    <div style={styles.valueAmount}>$800+/mo</div>
+                                    <div style={styles.valueAmount}>$200+/mo</div>
                                 </div>
                                 <div style={styles.valueDivider}>→</div>
                                 <div style={styles.valueBoxHighlight}>

@@ -38,23 +38,36 @@ const VIP_MEMBERSHIP = {
 };
 ```
 
-### VIP Benefits (Everything Included)
-| Benefit | Description | A La Carte Value |
-|---------|-------------|------------------|
-| Diamond Arena Access | Unlimited tournament entries | $500+/mo |
-| Diamond Arcade | All arcade games free | $100+/mo |
-| Premium Training | Full training access | $50/mo |
-| Avatar Engine | Unlimited AI avatars | $100+/mo |
-| Advanced Analytics | Deep bankroll insights | $30/mo |
-| AI Personal Assistant | Priority AI coaching | $50/mo |
-| Exclusive Leaderboards | VIP-only competitions | Exclusive |
-| Priority Support | 24/7 priority support | Priceless |
-| Daily Diamond Bonus | +25 diamonds daily | $7.50/mo |
-| VIP Badge & Flair | Exclusive cosmetics | Exclusive |
-| 2x XP Boost | Double XP earnings | $25/mo |
-| Early Access | First access to features | Exclusive |
+### VIP Benefits — Gold Tier Card
 
-**Total Feature Value: $800+/mo → VIP Price: $19.99/mo**
+**Club Arena Gold Features:**
+| Benefit | Description | Value |
+|---------|-------------|-------|
+| Show Stack in BBs | Display stacks in big blinds | Gold |
+| Rabbit Hunting | See what cards would have come | Gold |
+| Offline Protection | Protection when disconnected | Gold |
+| Auto Time Bank | Automatic time bank activation | Gold |
+| Free Time Bank | +120 seconds | +120 |
+| Available Themes | 3 exclusive table themes | +3 |
+| Club Creation Limit | Create up to 3 clubs | +3 |
+| Free Emojis | Use at the tables | +1200 |
+| Player Tags | Track opponents | +1000 |
+| Leaderboard Boost | Score boost on leaderboards | +6% |
+
+**Smarter.Poker Exclusives:**
+| Benefit | Description | Value |
+|---------|-------------|-------|
+| Free Roll Entries | Free Diamond Arena freerolls | Unlimited |
+| Premium Training | All training modules | $50/mo |
+| AI Personal Assistant | Priority AI coaching | $100/mo |
+| Daily Diamond Bonus | +25 diamonds daily | $7.50/mo |
+| VIP Badge & Flair | Gold VIP cosmetics | Exclusive |
+| 2x XP Boost | Double XP earnings | $25/mo |
+
+**Note:** Diamond Arena tournaments require diamond buy-ins (freerolls free for VIP).
+Diamond Arcade games require diamonds to play — users gamble against the house.
+
+**Total Feature Value: $200+/mo → VIP Price: $19.99/mo**
 
 ## Merchandise
 ```javascript
