@@ -1527,9 +1527,10 @@ export default function SocialMediaPage() {
                         .order('created_at', { ascending: false })
                         .limit(20);
                     if (notifs && notifs.length > 0) {
-                        // Collect actor IDs from notifications (check actor_id field or metadata.actor_id)
+                        // Collect actor IDs from notifications
+                        // The data is stored in the 'data' JSONB column: data.actor_id (social) or data.sender_id (friend requests)
                         const actorIds = [...new Set(notifs.map(n =>
-                            n.actor_id || n.metadata?.actor_id
+                            n.data?.actor_id || n.data?.sender_id || n.actor_id
                         ).filter(Boolean))];
 
                         // Also parse actor names from notification titles as fallback
@@ -1564,8 +1565,8 @@ export default function SocialMediaPage() {
 
                         // Merge actor profile data into notifications
                         const enrichedNotifs = notifs.map(n => {
-                            // Try actor_id first
-                            const actorId = n.actor_id || n.metadata?.actor_id;
+                            // Get actor ID from the data JSONB column
+                            const actorId = n.data?.actor_id || n.data?.sender_id || n.actor_id;
                             let profile = actorId ? profileById[actorId] : null;
 
                             // Fallback to name matching
@@ -1575,7 +1576,8 @@ export default function SocialMediaPage() {
                                 profile = actorName ? profileByName[actorName.toLowerCase()] : null;
                             }
 
-                            const displayName = n.metadata?.actor_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
+                            // Get display name from data or parse from title
+                            const displayName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
 
                             return {
                                 ...n,
