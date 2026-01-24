@@ -316,6 +316,45 @@ export default function NotificationsPage() {
                                         <div style={{ fontSize: 12, color: n.read ? C.textSec : C.blue, marginTop: 4, fontWeight: n.read ? 400 : 600 }}>
                                             {timeAgo(n.created_at)}
                                         </div>
+
+                                        {/* Accept/Decline buttons for friend requests */}
+                                        {n.type === 'friend_request' && !n.handled && (
+                                            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                                                <button
+                                                    onClick={(e) => handleAcceptFriendRequest(n, e)}
+                                                    style={{
+                                                        padding: '8px 20px',
+                                                        borderRadius: 8,
+                                                        border: 'none',
+                                                        background: C.blue,
+                                                        color: 'white',
+                                                        fontWeight: 600,
+                                                        fontSize: 14,
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    Confirm
+                                                </button>
+                                                <button
+                                                    onClick={(e) => handleDeclineFriendRequest(n, e)}
+                                                    style={{
+                                                        padding: '8px 20px',
+                                                        borderRadius: 8,
+                                                        border: 'none',
+                                                        background: '#E4E6EB',
+                                                        color: C.text,
+                                                        fontWeight: 600,
+                                                        fontSize: 14,
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                    title="They'll become your follower"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                     {!n.read && (
                                         <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 8 }} />
