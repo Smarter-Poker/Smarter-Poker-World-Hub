@@ -36,7 +36,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const CONFIG = {
-    HORSES_PER_TRIGGER: 5,  // 5 horses post stories per cron run
+    HORSES_PER_TRIGGER: 2,  // 2 stories per trigger (runs 4x/hour = 8 stories/hour)
     VIDEO_STORY_PROBABILITY: 0.70,  // 70% video stories
 };
 

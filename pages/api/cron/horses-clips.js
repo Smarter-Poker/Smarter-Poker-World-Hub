@@ -48,7 +48,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 
 const CONFIG = {
-    HORSES_PER_TRIGGER: 10,  // Post 10 clips every hour
+    HORSES_PER_TRIGGER: 3,  // 3 clips per trigger (runs 4x/hour = 12 clips/hour)
     VIDEO_CLIP_PROBABILITY: 0.90,  // LAW: 90% video clips
     MAX_CLIPS_PER_DAY: 200,  // Increased capacity
     CLIP_COOLDOWN_HOURS: 0  // No cooldown - allow re-posting clips
@@ -412,8 +412,8 @@ export default async function handler(req, res) {
         const results = [];
 
         for (const horse of selectedHorses) {
-            // Random delay
-            await new Promise(r => setTimeout(r, Math.random() * 4000 + 2000));
+            // Random delay 5-15 seconds between posts (stay under 60s timeout)
+            await new Promise(r => setTimeout(r, Math.random() * 10000 + 5000));
 
             // 100% VIDEO CLIPS ONLY - no AI generated content
             const result = await postVideoClip(horse, recentlyUsedClips);
