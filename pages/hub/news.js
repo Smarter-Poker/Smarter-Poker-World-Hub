@@ -113,12 +113,8 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
     const imageUrl = article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news;
 
     return (
-        <motion.div
+        <div
             className={`news-box ${isRead ? 'read' : ''}`}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            whileHover={{ scale: 1.02, y: -4 }}
             onClick={() => onOpen(article)}
         >
             {/* Quick Actions */}
@@ -193,6 +189,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 .news-box:hover {
                     border-color: rgba(0, 212, 255, 0.7);
                     box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+                    transform: translateY(-4px);
                 }
 
                 .news-box.read {
@@ -382,16 +379,15 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     gap: 3px;
                 }
             `}</style>
-        </motion.div>
+        </div>
     );
 }
 
 // Video Card Component
 function VideoCard({ video, onClick }) {
     return (
-        <motion.div
+        <div
             className="video-card"
-            whileHover={{ scale: 1.03 }}
             onClick={() => onClick(video)}
         >
             <div className="video-thumbnail">
@@ -499,7 +495,7 @@ function VideoCard({ video, onClick }) {
                     color: rgba(255, 255, 255, 0.7);
                 }
             `}</style>
-        </motion.div>
+        </div>
     );
 }
 
@@ -537,9 +533,8 @@ function ReelCard({ reel, onClick }) {
     const isYouTube = reel.video_url?.includes('youtube.com') || reel.video_url?.includes('youtu.be');
 
     return (
-        <motion.div
+        <div
             className="reel-card"
-            whileHover={{ scale: 1.05 }}
             onClick={openReel}
         >
             <div className="reel-thumbnail">
@@ -647,7 +642,7 @@ function ReelCard({ reel, onClick }) {
                     color: rgba(255, 255, 255, 0.5);
                 }
             `}</style>
-        </motion.div>
+        </div>
     );
 }
 
@@ -657,12 +652,8 @@ function MSPTBox({ msptNews, onOpenMSPT }) {
     const featured = msptNews[0];
 
     return (
-        <motion.div
+        <div
             className="news-box mspt-box"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            whileHover={{ scale: 1.02, y: -4 }}
             onClick={() => featured && onOpenMSPT(featured)}
         >
             {/* Image */}
@@ -710,7 +701,7 @@ function MSPTBox({ msptNews, onOpenMSPT }) {
                     color: #f87171 !important;
                 }
             `}</style>
-        </motion.div>
+        </div>
     );
 }
 
@@ -728,12 +719,8 @@ function SourcePlaceholderBox({ sourceName, sourceUrl, index }) {
     const info = sourceInfo[sourceName] || { icon: '📰', color: '#00d4ff', url: '#' };
 
     return (
-        <motion.div
+        <div
             className="news-box placeholder-box"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            whileHover={{ scale: 1.02, y: -4 }}
             onClick={() => window.open(sourceUrl || info.url, '_blank')}
         >
             <div className="box-image">
@@ -780,7 +767,7 @@ function SourcePlaceholderBox({ sourceName, sourceUrl, index }) {
                     letter-spacing: 1px;
                 }
             `}</style>
-        </motion.div>
+        </div>
     );
 }
 
