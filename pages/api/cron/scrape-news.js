@@ -168,72 +168,7 @@ async function parseRSS(url, category, sourceName) {
     }
 }
 
-// Generate synthetic news when RSS fails
-function generateSyntheticNews() {
-    const templates = [
-        {
-            title: `Major Tournament Series Kicks Off This Weekend`,
-            content: `Poker enthusiasts are gearing up for one of the biggest tournament series of the year. The event is expected to draw thousands of players from around the world.`,
-            category: 'tournament'
-        },
-        {
-            title: `New Strategy Guide: Mastering Position Play`,
-            content: `Understanding position is crucial for winning poker. This comprehensive guide breaks down how to leverage your seat at the table for maximum profit.`,
-            category: 'strategy'
-        },
-        {
-            title: `Industry Update: Online Poker Continues Growth`,
-            content: `The online poker industry sees continued expansion as more players join the virtual felts. New platforms and features are driving engagement.`,
-            category: 'industry'
-        },
-        {
-            title: `Pro Player Shares Insights on Bankroll Management`,
-            content: `Successful poker players know that bankroll management is key to longevity. Learn the strategies the pros use to protect their stacks.`,
-            category: 'strategy'
-        },
-        {
-            title: `Weekend Poker Roundup: Key Highlights`,
-            content: `This weekend saw exciting action across multiple poker formats. From high-stakes cash games to tournament finals, the action never stopped.`,
-            category: 'news'
-        }
-    ];
 
-    const now = new Date();
-    return templates.map((t, i) => ({
-        ...t,
-        slug: generateSlug(t.title + '-' + now.getTime()),
-        excerpt: t.content.substring(0, 150),
-        image_url: `https://images.unsplash.com/photo-${1511193311914 + i}-0346f16efe90?w=800&q=80`,
-        source_url: `https://smarter.poker/hub/news/${now.getTime()}-${i}`,
-        source_name: 'Smarter.Poker',
-        read_time: 3,
-        views: Math.floor(Math.random() * 1000) + 100,
-        author_name: 'Smarter.Poker',
-        is_featured: i === 0,
-        is_published: true,
-        published_at: new Date(now.getTime() - i * 3600000).toISOString()
-    }));
-}
-
-// Create social post from news article
-async function createSocialPost(article) {
-    try {
-        // Use system account UUID directly
-        const SYSTEM_UUID = '00000000-0000-0000-0000-000000000001';
-
-        const postContent = `📰 ${article.title}\n\n${article.excerpt}\n\n#PokerNews #SmarterPoker`;
-
-        await supabase.from('social_posts').insert({
-            author_id: SYSTEM_UUID,
-            content: postContent,
-            content_type: 'article',
-            media_urls: article.image_url ? [article.image_url] : [],
-            visibility: 'public'
-        });
-    } catch (error) {
-        console.error('Failed to create social post:', error);
-    }
-}
 
 export default async function handler(req, res) {
     // Verify cron secret for Vercel Cron jobs
@@ -256,10 +191,16 @@ export default async function handler(req, res) {
             allArticles = [...allArticles, ...articles];
         }
 
-        // Fall back to synthetic news if RSS fails
+        // If no articles found from RSS, just log and return - no fake data
         if (allArticles.length === 0) {
-            console.log('[News Scraper] RSS failed, generating synthetic news...');
-            allArticles = generateSyntheticNews();
+            console.log('[News Scraper] No articles found from RSS feeds');
+            return res.status(200).json({
+                success: true,
+                message: 'No new articles found',
+                scraped: 0,
+                inserted: 0,
+                timestamp: new Date().toISOString()
+            });
         }
 
         // Filter out duplicates by checking existing slugs
@@ -283,11 +224,6 @@ export default async function handler(req, res) {
                 console.error('[News Scraper] Insert error:', error);
             } else {
                 insertedCount = data?.length || 0;
-
-                // Create social posts for new articles
-                for (const article of (data || []).slice(0, 3)) {
-                    await createSocialPost(article);
-                }
             }
         }
 

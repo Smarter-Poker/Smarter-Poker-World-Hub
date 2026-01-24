@@ -1047,12 +1047,22 @@ export default function NewsHub() {
             article.content?.toLowerCase().includes(searchQuery.toLowerCase());
     });
 
-    // Top 6 articles shown in grid
-    const topArticles = filteredNews.slice(0, 6);
+    // 6 dedicated source boxes - each box shows the latest article from its specific source
+    const DEDICATED_SOURCES = ['PokerNews', 'Poker.org', 'CardPlayer', 'Pokerfuse', 'WSOP', 'MSPT'];
+
+    // Get the latest article from each dedicated source
+    const sourceBoxArticles = DEDICATED_SOURCES.map(sourceName => {
+        const articlesFromSource = filteredNews.filter(a => a.source_name === sourceName);
+        // Return the most recent article from this source (already sorted by published_at desc from API)
+        return articlesFromSource[0] || null;
+    }).filter(Boolean); // Remove nulls for sources with no articles
+
+    // Top articles = source box articles (up to 6)
+    const topArticles = sourceBoxArticles;
     const topArticleIds = topArticles.map(a => a.id);
 
-    // Remaining stories (after the top 6)
-    const remainingStories = filteredNews.slice(6);
+    // Remaining stories = all other articles not in the top boxes
+    const remainingStories = filteredNews.filter(a => !topArticleIds.includes(a.id));
 
     // Trending = sorted by views
     const trendingNews = [...news].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
@@ -1199,8 +1209,8 @@ export default function NewsHub() {
                                         </div>
                                     ) : (
                                         <div className="news-grid">
-                                            {/* Show top 6 articles regardless of source */}
-                                            {filteredNews.slice(0, 6).map((article, index) => (
+                                            {/* Show 1 article per source - 6 dedicated source boxes */}
+                                            {topArticles.map((article, index) => (
                                                 <NewsBox
                                                     key={article.id}
                                                     article={article}
