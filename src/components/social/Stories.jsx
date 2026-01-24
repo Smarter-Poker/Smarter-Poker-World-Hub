@@ -11,16 +11,42 @@ const C = {
     border: '#DADDE1', blue: '#1877F2', green: '#42B72A',
 };
 
-// Gradient backgrounds for text-only stories
+// Gradient backgrounds for text-only stories - MANLY DEFAULTS (blues, blacks, golds, greens)
 const STORY_GRADIENTS = [
-    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-    'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-    'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-    'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
-    'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+    // Dark & Bold (Primary defaults)
+    'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)', // Deep navy
+    'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)', // Pure black
+    'linear-gradient(135deg, #0f0f23 0%, #2d1b4e 100%)', // Dark purple/black
+    'linear-gradient(135deg, #1f1c2c 0%, #928DAB 100%)', // Charcoal to steel
+    // Blues
+    'linear-gradient(135deg, #1877F2 0%, #0a5dc2 100%)', // Facebook blue
+    'linear-gradient(135deg, #0052D4 0%, #4364F7 50%, #6FB1FC 100%)', // Ocean blue
+    'linear-gradient(135deg, #141E30 0%, #243B55 100%)', // Midnight blue
+    // Gold & Bronze
+    'linear-gradient(135deg, #D4AF37 0%, #AA8C2C 50%, #6B5B1E 100%)', // Gold
+    'linear-gradient(135deg, #3E2723 0%, #8D6E63 100%)', // Bronze/brown
+    // Greens
+    'linear-gradient(135deg, #134E5E 0%, #71B280 100%)', // Forest green
+    'linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%)', // Dark teal
+    // Reds (power colors)
+    'linear-gradient(135deg, #8B0000 0%, #DC143C 100%)', // Crimson
+    'linear-gradient(135deg, #200122 0%, #6f0000 100%)', // Dark red
+];
+
+// Extended color palette for full picker (light + dark colors)
+const EXTENDED_COLORS = [
+    // Row 1: Dark fundamentals
+    '#000000', '#1a1a1a', '#333333', '#4d4d4d', '#666666', '#808080', '#999999', '#b3b3b3',
+    // Row 2: Blues
+    '#0f3460', '#1877F2', '#00BFFF', '#4169E1', '#1E90FF', '#6495ED', '#87CEEB', '#ADD8E6',
+    // Row 3: Greens
+    '#006400', '#228B22', '#32CD32', '#00FF00', '#2e7d32', '#4CAF50', '#8BC34A', '#CDDC39',
+    // Row 4: Golds/Oranges
+    '#6B5B1E', '#AA8C2C', '#D4AF37', '#FFD700', '#FFA500', '#FF8C00', '#FF6347', '#FF4500',
+    // Row 5: Reds
+    '#200122', '#6f0000', '#8B0000', '#B22222', '#DC143C', '#FF0000', '#FF6B6B', '#FFB3B3',
+    // Row 6: Purples
+    '#1a0033', '#4B0082', '#6A0DAD', '#8B008B', '#9400D3', '#BA55D3', '#DA70D6', '#EE82EE',
 ];
 
 // Story Ring - shows colored ring for unviewed stories
@@ -511,6 +537,8 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
     const [mode, setMode] = useState('text'); // 'text' or 'media' or 'link'
     const [text, setText] = useState('');
     const [selectedGradient, setSelectedGradient] = useState(0);
+    const [customColor, setCustomColor] = useState(null); // For extended color picker
+    const [showExtendedPicker, setShowExtendedPicker] = useState(false);
     const [mediaUrl, setMediaUrl] = useState(null);
     const [mediaType, setMediaType] = useState('image');
     const [uploading, setUploading] = useState(false);
@@ -637,7 +665,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 p_content: storyContent || null,
                 p_media_url: finalMediaUrl || null,
                 p_media_type: finalMediaType,
-                p_background_color: mode === 'text' ? STORY_GRADIENTS[selectedGradient] : null,
+                p_background_color: customColor || (mode === 'text' ? STORY_GRADIENTS[selectedGradient] : null),
                 p_link_url: linkPreview?.url || null,
             });
 
@@ -662,28 +690,44 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
     };
 
     return (
-        <div style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            zIndex: 10000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-        }}>
-            <div style={{
-                width: '100%',
-                maxWidth: 500,
-                background: C.card,
-                borderRadius: 12,
-                overflow: 'hidden',
+        <div
+            onClick={onClose}
+            style={{
+                position: 'fixed',
+                top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.8)',
+                zIndex: 10000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
             }}>
+            <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    width: '100%',
+                    maxWidth: 500,
+                    background: C.card,
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                }}>
                 {/* Header */}
                 <div style={{
                     padding: 16, borderBottom: `1px solid ${C.border}`,
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer' }}>✕</button>
+                    <button onClick={onClose} style={{
+                        background: 'rgba(0,0,0,0.1)',
+                        border: 'none',
+                        fontSize: 20,
+                        cursor: 'pointer',
+                        width: 36,
+                        height: 36,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: C.text,
+                    }}>✕</button>
                     <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Create Story</h3>
                     <button
                         onClick={handleCreate}
@@ -706,9 +750,11 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                 {/* Preview */}
                 <div style={{
                     height: 400,
-                    background: mode === 'link' && linkPreview?.image
-                        ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url(${linkPreview.image})`
-                        : mode === 'text' ? STORY_GRADIENTS[selectedGradient] : '#000',
+                    background: customColor
+                        ? customColor
+                        : mode === 'link' && linkPreview?.image
+                            ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url(${linkPreview.image})`
+                            : mode === 'text' ? STORY_GRADIENTS[selectedGradient] : '#000',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     display: 'flex',
@@ -804,19 +850,66 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                     {mode === 'text' && (
                         <>
                             <p style={{ fontSize: 13, color: C.textSec, marginBottom: 8 }}>Background</p>
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+
+                            {/* Preset Gradients */}
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                                 {STORY_GRADIENTS.map((grad, i) => (
                                     <div
                                         key={i}
-                                        onClick={() => setSelectedGradient(i)}
+                                        onClick={() => { setSelectedGradient(i); setCustomColor(null); }}
                                         style={{
-                                            width: 40, height: 40, borderRadius: 8,
+                                            width: 36, height: 36, borderRadius: 8,
                                             background: grad, cursor: 'pointer',
-                                            border: selectedGradient === i ? '3px solid ' + C.blue : 'none',
+                                            border: !customColor && selectedGradient === i ? '3px solid ' + C.blue : '1px solid rgba(0,0,0,0.1)',
                                         }}
                                     />
                                 ))}
                             </div>
+
+                            {/* Toggle for extended color picker */}
+                            <button
+                                onClick={() => setShowExtendedPicker(!showExtendedPicker)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: C.blue,
+                                    fontSize: 13,
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                    marginBottom: 8,
+                                }}
+                            >
+                                {showExtendedPicker ? '▲ Hide colors' : '▼ More colors'}
+                            </button>
+
+                            {/* Extended Color Picker (HSL-style grid) */}
+                            {showExtendedPicker && (
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(8, 1fr)',
+                                    gap: 4,
+                                    padding: 8,
+                                    background: '#f5f5f5',
+                                    borderRadius: 8,
+                                    marginTop: 4,
+                                }}>
+                                    {EXTENDED_COLORS.map((color, i) => (
+                                        <div
+                                            key={i}
+                                            onClick={() => { setCustomColor(color); }}
+                                            style={{
+                                                width: '100%',
+                                                aspectRatio: '1',
+                                                borderRadius: 4,
+                                                background: color,
+                                                cursor: 'pointer',
+                                                border: customColor === color ? '3px solid ' + C.blue : '1px solid rgba(0,0,0,0.1)',
+                                                boxSizing: 'border-box',
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </>
                     )}
 

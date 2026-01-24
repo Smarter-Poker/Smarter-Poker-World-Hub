@@ -155,7 +155,8 @@ function ArenaHeader({ diamonds = 0, xp = 0, level = 1, onBack, onSettings }) {
 }
 
 // Draggable Player Seat Component - Avatar and Badge can be dragged independently
-function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isHero = false, onPositionChange }) {
+// seatIndex is used to set unique z-index: lower seats rendered first, badges always on top
+function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initialPosition, isHero = false, onPositionChange }) {
     const size = 136;
     const [avatarPos, setAvatarPos] = useState({ x: 0, y: 0 });
     const [badgePos, setBadgePos] = useState({ x: 0, y: 20 }); // Badge starts 20px below avatar center
@@ -204,7 +205,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
     }, [dragging, dragStart]);
 
     return (
-        <div className="player-seat" style={{ position: 'absolute', zIndex: 10000, pointerEvents: 'all', overflow: 'visible', minWidth: '100px', ...initialPosition }}>
+        <div className="player-seat" style={{ position: 'absolute', zIndex: 100 + seatIndex, pointerEvents: 'all', overflow: 'visible', minWidth: '100px', ...initialPosition }}>
             {/* Avatar - Draggable via transform */}
             <img
                 src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=256&q=90`}
@@ -227,13 +228,14 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, initialPosition, isH
                     flexShrink: 0,
                 }}
             />
-            {/* Gold Badge - Draggable via transform */}
+            {/* Gold Badge - Draggable via transform - HIGHEST z-index to always be on top */}
             <div
                 className="player-badge"
                 onMouseDown={(e) => handleMouseDown(e, 'badge')}
                 style={{
+                    position: 'absolute',
                     transform: `translate(${badgePos.x}px, ${badgePos.y}px)`,
-                    zIndex: 20000,
+                    zIndex: 50000,
                     cursor: dragging === 'badge' ? 'grabbing' : 'grab',
                     userSelect: 'none',
                     pointerEvents: 'all',
@@ -536,18 +538,18 @@ export default function TrainingArenaPage() {
                             <div className="dealer-btn">D</div>
 
 
-                            {/* Villain Seats - DRAGGABLE */}
-                            <DraggablePlayerSeat seatId="seat1" avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} />
-                            <DraggablePlayerSeat seatId="seat2" avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} />
-                            <DraggablePlayerSeat seatId="seat3" avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} />
-                            <DraggablePlayerSeat seatId="seat4" avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} />
-                            <DraggablePlayerSeat seatId="seat5" avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} />
-                            <DraggablePlayerSeat seatId="seat6" avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} />
-                            <DraggablePlayerSeat seatId="seat7" avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} />
-                            <DraggablePlayerSeat seatId="seat8" avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} />
+                            {/* Villain Seats - DRAGGABLE with unique seatIndex for z-index layering */}
+                            <DraggablePlayerSeat seatIndex={1} seatId="seat1" avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} />
+                            <DraggablePlayerSeat seatIndex={2} seatId="seat2" avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} />
+                            <DraggablePlayerSeat seatIndex={3} seatId="seat3" avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} />
+                            <DraggablePlayerSeat seatIndex={4} seatId="seat4" avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} />
+                            <DraggablePlayerSeat seatIndex={5} seatId="seat5" avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} />
+                            <DraggablePlayerSeat seatIndex={6} seatId="seat6" avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} />
+                            <DraggablePlayerSeat seatIndex={7} seatId="seat7" avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} />
+                            <DraggablePlayerSeat seatIndex={8} seatId="seat8" avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} />
 
-                            {/* Hero Seat - DRAGGABLE */}
-                            <DraggablePlayerSeat seatId="hero" avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} />
+                            {/* Hero Seat - DRAGGABLE - highest seatIndex */}
+                            <DraggablePlayerSeat seatIndex={9} seatId="hero" avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} />
 
 
                             {/* Hero Cards - DRAGGABLE */}
