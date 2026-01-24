@@ -46,29 +46,41 @@ export default function NotificationsPage() {
                     .order('created_at', { ascending: false })
                     .limit(50);
                 if (data && data.length > 0) {
-                    // Fetch actor profiles for avatars
-                    const actorIds = [...new Set(data.map(n => n.actor_id).filter(Boolean))];
-                    if (actorIds.length > 0) {
+                    // Parse actor names from notification titles (e.g., "Lauren Garcia commented on your post")
+                    const actorNames = [...new Set(data.map(n => {
+                        const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                        return match ? match[1] : null;
+                    }).filter(Boolean))];
+
+                    // Fetch profiles by full_name
+                    let profileMap = {};
+                    if (actorNames.length > 0) {
                         const { data: profiles } = await supabase.from('profiles')
                             .select('id, username, full_name, avatar_url')
-                            .in('id', actorIds);
-                        const profileMap = {};
-                        (profiles || []).forEach(p => { profileMap[p.id] = p; });
-                        // Merge actor data
-                        const enriched = data.map(n => ({
+                            .in('full_name', actorNames);
+                        (profiles || []).forEach(p => {
+                            if (p.full_name) profileMap[p.full_name.toLowerCase()] = p;
+                        });
+                    }
+
+                    // Merge actor data by parsing names from titles
+                    const enriched = data.map(n => {
+                        const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                        const actorName = match ? match[1] : null;
+                        const profile = actorName ? profileMap[actorName.toLowerCase()] : null;
+                        return {
                             ...n,
-                            actor_avatar_url: profileMap[n.actor_id]?.avatar_url || null,
-                            actor_name: profileMap[n.actor_id]?.full_name || profileMap[n.actor_id]?.username || n.title
-                        }));
-                        setNotifications(enriched);
-                        // Auto-mark as read
-                        const unreadIds = data.filter(n => !n.read).map(n => n.id);
-                        if (unreadIds.length > 0) {
-                            await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
-                            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                        }
-                    } else {
-                        setNotifications(data);
+                            actor_avatar_url: profile?.avatar_url || null,
+                            actor_name: actorName || n.title
+                        };
+                    });
+                    setNotifications(enriched);
+
+                    // Auto-mark as read
+                    const unreadIds = data.filter(n => !n.read).map(n => n.id);
+                    if (unreadIds.length > 0) {
+                        await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+                        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
                     }
                 }
             }

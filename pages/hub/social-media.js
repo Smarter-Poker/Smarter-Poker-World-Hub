@@ -1515,24 +1515,35 @@ export default function SocialMediaPage() {
                         .order('created_at', { ascending: false })
                         .limit(20);
                     if (notifs && notifs.length > 0) {
-                        // Get unique actor IDs and fetch their profiles
-                        const actorIds = [...new Set(notifs.map(n => n.actor_id).filter(Boolean))];
-                        if (actorIds.length > 0) {
+                        // Parse actor names from notification titles (e.g., "Lauren Garcia commented on your post")
+                        const actorNames = [...new Set(notifs.map(n => {
+                            const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                            return match ? match[1] : null;
+                        }).filter(Boolean))];
+
+                        // Build profile lookup map by full_name
+                        let profileMap = {};
+                        if (actorNames.length > 0) {
                             const { data: profiles } = await supabase.from('profiles')
                                 .select('id, username, full_name, avatar_url')
-                                .in('id', actorIds);
-                            const profileMap = {};
-                            (profiles || []).forEach(p => { profileMap[p.id] = p; });
-                            // Merge actor profile data into notifications
-                            const enrichedNotifs = notifs.map(n => ({
-                                ...n,
-                                actor_avatar_url: profileMap[n.actor_id]?.avatar_url || null,
-                                actor_name: profileMap[n.actor_id]?.full_name || profileMap[n.actor_id]?.username || n.title
-                            }));
-                            setNotifications(enrichedNotifs);
-                        } else {
-                            setNotifications(notifs);
+                                .in('full_name', actorNames);
+                            (profiles || []).forEach(p => {
+                                if (p.full_name) profileMap[p.full_name.toLowerCase()] = p;
+                            });
                         }
+
+                        // Merge actor profile data into notifications by parsing name from title
+                        const enrichedNotifs = notifs.map(n => {
+                            const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                            const actorName = match ? match[1] : null;
+                            const profile = actorName ? profileMap[actorName.toLowerCase()] : null;
+                            return {
+                                ...n,
+                                actor_avatar_url: profile?.avatar_url || null,
+                                actor_name: actorName || n.title
+                            };
+                        });
+                        setNotifications(enrichedNotifs);
                     }
                 } else {
                     console.log('[Social] No authenticated user found');
