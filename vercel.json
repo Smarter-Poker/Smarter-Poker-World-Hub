@@ -19,11 +19,11 @@
     },
     {
       "path": "/api/cron/horses-social-likes",
-      "schedule": "5 */2 * * *"
+      "schedule": "5 * * * *"
     },
     {
       "path": "/api/cron/horses-social-comments",
-      "schedule": "35 */3 * * *"
+      "schedule": "20 * * * *"
     },
     {
       "path": "/api/cron/horses-social-friends",
@@ -31,7 +31,7 @@
     },
     {
       "path": "/api/cron/horses-social-replies",
-      "schedule": "45 */4 * * *"
+      "schedule": "45 * * * *"
     },
     {
       "path": "/api/cron/horses-clips",
@@ -39,7 +39,11 @@
     },
     {
       "path": "/api/cron/horses-memes",
-      "schedule": "40 */2 * * *"
+      "schedule": "40 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-stories",
+      "schedule": "25 * * * *"
     }
   ]
 }

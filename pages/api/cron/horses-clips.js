@@ -20,16 +20,25 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
-// Dynamic import for ClipLibrary (works on Vercel)
+// ClipLibrary functions - loaded dynamically in handler
 let getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES;
-try {
-    const lib = await import('../../../src/content-engine/pipeline/ClipLibrary.js');
-    getRandomClip = lib.getRandomClip;
-    getRandomCaption = lib.getRandomCaption;
-    markClipUsed = lib.markClipUsed;
-    CLIP_CATEGORIES = lib.CLIP_CATEGORIES;
-} catch (e) {
-    console.error('Failed to load ClipLibrary:', e.message);
+let clipLibraryLoaded = false;
+
+async function loadClipLibrary() {
+    if (clipLibraryLoaded) return true;
+    try {
+        const lib = await import('../../../src/content-engine/pipeline/ClipLibrary.js');
+        getRandomClip = lib.getRandomClip;
+        getRandomCaption = lib.getRandomCaption;
+        markClipUsed = lib.markClipUsed;
+        CLIP_CATEGORIES = lib.CLIP_CATEGORIES;
+        clipLibraryLoaded = true;
+        console.log('✅ ClipLibrary loaded successfully');
+        return true;
+    } catch (e) {
+        console.error('❌ Failed to load ClipLibrary:', e.message);
+        return false;
+    }
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -39,10 +48,10 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 
 const CONFIG = {
-    HORSES_PER_TRIGGER: 10,  // Increased from 2 - post 10 clips every hour
+    HORSES_PER_TRIGGER: 10,  // Post 10 clips every hour
     VIDEO_CLIP_PROBABILITY: 0.90,  // LAW: 90% video clips
     MAX_CLIPS_PER_DAY: 200,  // Increased capacity
-    CLIP_COOLDOWN_HOURS: 0  // No cooldown - just stagger posting times
+    CLIP_COOLDOWN_HOURS: 0  // No cooldown - allow re-posting clips
 };
 
 // Track clips used in this session to prevent duplicates within same cron run
@@ -359,6 +368,12 @@ export default async function handler(req, res) {
 
     if (!SUPABASE_URL || !process.env.OPENAI_API_KEY) {
         return res.status(500).json({ error: 'Missing env vars' });
+    }
+
+    // Load ClipLibrary dynamically
+    const libLoaded = await loadClipLibrary();
+    if (!libLoaded) {
+        return res.status(500).json({ error: 'Failed to load ClipLibrary' });
     }
 
     try {
