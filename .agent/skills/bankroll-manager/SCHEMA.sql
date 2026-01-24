@@ -293,7 +293,33 @@ CREATE INDEX idx_bankroll_alerts_user ON bankroll_alerts(user_id);
 CREATE INDEX idx_bankroll_alerts_unread ON bankroll_alerts(user_id, is_read) WHERE is_read = FALSE;
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- X. LOCATION STATS (Materialized View for Performance)
+-- X. ENTRY REVISIONS VIEW
+-- View for tracking edits to ledger entries (originals remain immutable)
+-- ═══════════════════════════════════════════════════════════════════════════
+CREATE OR REPLACE VIEW bankroll_entry_revisions AS
+SELECT
+    r.id as revision_id,
+    r.original_entry_id,
+    o.category as original_category,
+    o.gross_in as original_gross_in,
+    o.gross_out as original_gross_out,
+    o.net_result as original_net_result,
+    o.entry_date as original_entry_date,
+    o.created_at as original_created_at,
+    r.category as revised_category,
+    r.gross_in as revised_gross_in,
+    r.gross_out as revised_gross_out,
+    r.net_result as revised_net_result,
+    r.entry_date as revised_entry_date,
+    r.revision_reason,
+    r.created_at as revision_created_at,
+    r.user_id
+FROM bankroll_ledger r
+JOIN bankroll_ledger o ON r.original_entry_id = o.id
+WHERE r.is_revision = TRUE;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- XI. LOCATION STATS (Materialized View for Performance)
 -- Pre-computed stats per location
 -- ═══════════════════════════════════════════════════════════════════════════
 CREATE MATERIALIZED VIEW IF NOT EXISTS bankroll_location_stats AS

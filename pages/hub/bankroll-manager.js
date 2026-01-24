@@ -1,436 +1,192 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   BANKROLL MANAGER — Financial Truth Engine for Gamblers
-   Military-grade tracking with immutable ledger and Personal Assistant
-   ═══════════════════════════════════════════════════════════════════════════ */
+/**
+ * BANKROLL MANAGER PAGE
+ * /hub/bankroll-manager — Financial Truth Engine
+ * Military-grade tracking with immutable ledger and Personal Assistant
+ */
 
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CATEGORY ICONS
-// ═══════════════════════════════════════════════════════════════════════════
-const CategoryIcons = {
-  poker_cash: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="10" fill="#22c55e" />
-      <circle cx="12" cy="12" r="6" fill="#16a34a" />
-      <circle cx="12" cy="12" r="2" fill="#22c55e" />
-    </svg>
-  ),
-  poker_mtt: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2L15 8H21L16 12L18 19L12 15L6 19L8 12L3 8H9L12 2Z" fill="#eab308" />
-    </svg>
-  ),
-  casino_table: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <rect x="2" y="6" width="20" height="12" rx="2" fill="#dc2626" />
-      <circle cx="8" cy="12" r="2" fill="#fff" />
-      <circle cx="16" cy="12" r="2" fill="#fff" />
-    </svg>
-  ),
-  slots: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="4" width="18" height="16" rx="2" fill="#f97316" />
-      <rect x="5" y="7" width="4" height="6" fill="#fff" rx="1" />
-      <rect x="10" y="7" width="4" height="6" fill="#fff" rx="1" />
-      <rect x="15" y="7" width="4" height="6" fill="#fff" rx="1" />
-    </svg>
-  ),
-  sports: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="10" fill="#f97316" stroke="#fff" strokeWidth="1" />
-      <path d="M12 2C12 2 8 6 8 12C8 18 12 22 12 22" stroke="#fff" strokeWidth="1.5" />
-      <path d="M12 2C12 2 16 6 16 12C16 18 12 22 12 22" stroke="#fff" strokeWidth="1.5" />
-      <line x1="2" y1="12" x2="22" y2="12" stroke="#fff" strokeWidth="1.5" />
-    </svg>
-  ),
-  expense: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2L4 6V12C4 16 8 20 12 22C16 20 20 16 20 12V6L12 2Z" fill="#6b7280" />
-      <path d="M9 12L11 14L15 10" stroke="#fff" strokeWidth="2" />
-    </svg>
-  ),
-  flight: (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path d="M21 16V14L13 9V3.5C13 2.67 12.33 2 11.5 2C10.67 2 10 2.67 10 3.5V9L2 14V16L10 13.5V19L8 20.5V22L11.5 21L15 22V20.5L13 19V13.5L21 16Z" fill="#6b7280" />
-    </svg>
-  ),
-};
+// Bankroll library
+import { getBankrollStats } from '../../src/lib/bankroll/calculations';
+import { runLeakAnalysis } from '../../src/lib/bankroll/leakDetection';
+import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
+import {
+  fetchLedgerEntries,
+  fetchTrips,
+  fetchBankrollRules,
+  getDateRangeFilter,
+  initializeUserBankroll,
+} from '../../src/lib/bankroll/bankrollSelectors';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MOCK DATA (Replace with Supabase queries)
-// ═══════════════════════════════════════════════════════════════════════════
-const MOCK_STATS = {
-  totalBankroll: 18420,
-  bankrollChange: 520,
-  allInNet: -1580,
-  leakRisk: 'HIGH',
-  travelROI: -760,
-};
+// Bankroll components
+import LedgerTimeline from '../../src/components/bankroll/LedgerTimeline';
+import LogEntryModal from '../../src/components/bankroll/LogEntryModal';
+import LeakAlertPanel from '../../src/components/bankroll/LeakAlertPanel';
+import BankrollRulesCard from '../../src/components/bankroll/BankrollRulesCard';
 
-const MOCK_ENTRIES = [
-  {
-    id: 1,
-    category: 'poker_cash',
-    label: 'Poker Cash',
-    amount: 420,
-    duration: 4.2,
-    location: 'Rivers Casino',
-    date: new Date(),
-    details: null,
-  },
-  {
-    id: 2,
-    category: 'casino_table',
-    label: 'Blackjack',
-    amount: -300,
-    duration: 1.1,
-    location: 'Rivers Casino',
-    date: new Date(Date.now() - 86400000),
-    details: 'Pit Game',
-  },
-  {
-    id: 3,
-    category: 'expense',
-    label: 'Flight Expense',
-    amount: -350,
-    duration: null,
-    location: null,
-    date: new Date(Date.now() - 86400000 * 2),
-    details: 'LAX to PIT',
-  },
-  {
-    id: 4,
-    category: 'sports',
-    label: 'Sports Bet',
-    amount: -200,
-    duration: null,
-    location: null,
-    date: new Date(Date.now() - 86400000 * 3),
-    details: 'MLB Parlay — Lost',
-  },
+const SIDEBAR_SECTIONS = [
+  { id: 'dashboard', label: 'Dashboard', icon: '◎' },
+  { id: 'log-session', label: 'Log Session', icon: '📝' },
+  { id: 'trips', label: 'Trips & Expenses', icon: '✈' },
+  { id: 'leaks', label: 'Leaks', icon: '⚠' },
+  { id: 'reports', label: 'Reports', icon: '📊' },
+  { id: 'settings', label: 'Settings', icon: '⚙' },
 ];
 
-const MOCK_TRIPS = [
-  {
-    id: 1,
-    name: 'Vegas Trip',
-    netResult: -1280,
-    expenses: 725,
-  },
+const CATEGORY_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'poker_cash', label: 'Cash' },
+  { id: 'poker_mtt', label: 'MTT' },
+  { id: 'casino_table', label: 'Table' },
+  { id: 'slots', label: 'Slots' },
+  { id: 'sports', label: 'Sports' },
+  { id: 'expense', label: 'Expenses' },
 ];
 
-const MOCK_ALERTS = [
-  {
-    id: 1,
-    type: 'venue',
-    icon: '◆',
-    color: '#eab308',
-    title: 'Venue Warning',
-    value: '-$4,380',
-    subtitle: 'Lifetime at Rivers Casino',
-  },
-  {
-    id: 2,
-    type: 'leak',
-    icon: '●',
-    color: '#ef4444',
-    title: 'Slots Losses Here:',
-    value: '42%',
-    subtitle: 'of Total Loses',
-  },
-  {
-    id: 3,
-    type: 'risk',
-    icon: '▲',
-    color: '#eab308',
-    title: '5/10 Risk:',
-    value: '-$18/hr',
-    subtitle: 'over 94 hours',
-  },
-];
+const TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year', 'All Time'];
 
-const MOCK_RULES = [
-  { id: 1, label: 'Stop Loss:', value: '$1,000 / day', active: true },
-  { id: 2, label: 'Max Buy-In:', value: '5% of bankroll', active: true },
-];
-
-const MOCK_LOCATIONS = ['Rivers Casino', 'Bellagio', 'Aria', 'Wynn', 'All Locations'];
-const MOCK_TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year', 'All Time'];
-
-// ═══════════════════════════════════════════════════════════════════════════
-// LOG SESSION MODAL
-// ═══════════════════════════════════════════════════════════════════════════
-function LogSessionModal({ isOpen, onClose, onSubmit }) {
-  const [formData, setFormData] = useState({
-    category: 'poker_cash',
-    amount: '',
-    location: '',
-    duration: '',
-    stakes: '',
-    notes: '',
-    date: new Date().toISOString().split('T')[0],
-  });
-
-  const categories = [
-    { value: 'poker_cash', label: 'Poker Cash Game' },
-    { value: 'poker_mtt', label: 'Poker Tournament' },
-    { value: 'casino_table', label: 'Casino Table Game' },
-    { value: 'slots', label: 'Slots' },
-    { value: 'sports', label: 'Sports Bet' },
-    { value: 'expense', label: 'Expense' },
-  ];
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(formData);
-    onClose();
+function StatCard({ title, value, change, suffix, isRisk, isLoading }) {
+  const getRiskColor = (risk) => {
+    if (risk === 'HIGH') return '#ef4444';
+    if (risk === 'MEDIUM') return '#eab308';
+    return '#22c55e';
   };
 
-  if (!isOpen) return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      style={styles.modalOverlay}
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        style={styles.modal}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={styles.modalHeader}>
-          <h2 style={styles.modalTitle}>Log Session</h2>
-          <button onClick={onClose} style={styles.modalClose}>×</button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={styles.modalForm}>
-          <div style={styles.formGroup}>
-            <label style={styles.formLabel}>Category</label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              style={styles.formSelect}
-            >
-              {categories.map((cat) => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div style={styles.formRow}>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Amount ($)</label>
-              <input
-                type="number"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                placeholder="e.g., 420 or -300"
-                style={styles.formInput}
-                required
-              />
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Date</label>
-              <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                style={styles.formInput}
-                required
-              />
-            </div>
-          </div>
-
-          <div style={styles.formRow}>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Location</label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="e.g., Rivers Casino"
-                style={styles.formInput}
-              />
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Duration (hrs)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                placeholder="e.g., 4.2"
-                style={styles.formInput}
-              />
-            </div>
-          </div>
-
-          {(formData.category === 'poker_cash' || formData.category === 'poker_mtt') && (
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Stakes / Buy-in</label>
-              <input
-                type="text"
-                value={formData.stakes}
-                onChange={(e) => setFormData({ ...formData, stakes: e.target.value })}
-                placeholder="e.g., 2/5 NL or $200 MTT"
-                style={styles.formInput}
-              />
-            </div>
-          )}
-
-          <div style={styles.formGroup}>
-            <label style={styles.formLabel}>Notes (optional)</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Any additional details..."
-              style={styles.formTextarea}
-            />
-          </div>
-
-          <div style={styles.modalActions}>
-            <button type="button" onClick={onClose} style={styles.cancelButton}>
-              Cancel
-            </button>
-            <button type="submit" style={styles.submitButton}>
-              Log Entry
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// STAT CARD COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-function StatCard({ title, value, change, changeColor, suffix, isRisk }) {
   return (
     <div style={styles.statCard}>
       <span style={styles.statTitle}>{title}</span>
-      <div style={styles.statValue}>
-        <span style={{ color: isRisk ? (value === 'HIGH' ? '#ef4444' : value === 'MEDIUM' ? '#eab308' : '#22c55e') : '#fff' }}>
-          {value}
-        </span>
-        {isRisk && value === 'HIGH' && <span style={styles.riskDot}>●</span>}
-        {change !== undefined && (
-          <span style={{ ...styles.statChange, color: changeColor || (change >= 0 ? '#22c55e' : '#ef4444') }}>
-            {change >= 0 ? '+' : ''}{typeof change === 'number' ? `$${Math.abs(change).toLocaleString()}` : change}
-            {change < 0 && <span style={styles.downArrow}>▼</span>}
+      {isLoading ? (
+        <div style={styles.statLoading}>—</div>
+      ) : (
+        <div style={styles.statValue}>
+          <span style={{ color: isRisk ? getRiskColor(value) : '#fff' }}>
+            {value}
           </span>
-        )}
-        {suffix && <span style={styles.statSuffix}>{suffix}</span>}
-      </div>
+          {isRisk && value === 'HIGH' && <span style={styles.riskDot}>●</span>}
+          {change !== undefined && change !== null && !isRisk && (
+            <span
+              style={{
+                ...styles.statChange,
+                color: change >= 0 ? '#22c55e' : '#ef4444',
+              }}
+            >
+              {change >= 0 ? '+' : ''}${Math.abs(change).toLocaleString()}
+              {change < 0 && <span style={styles.downArrow}>▼</span>}
+            </span>
+          )}
+          {suffix && <span style={styles.statSuffix}>{suffix}</span>}
+        </div>
+      )}
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ACTIVITY ENTRY COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-function ActivityEntry({ entry }) {
-  const isToday = new Date(entry.date).toDateString() === new Date().toDateString();
-  const dateLabel = isToday ? 'Today:' : new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ':';
-
-  return (
-    <div style={styles.activityEntry}>
-      <div style={styles.entryIcon}>
-        {CategoryIcons[entry.category] || CategoryIcons.expense}
-      </div>
-      <div style={styles.entryContent}>
-        <span style={styles.entryDate}>{dateLabel}</span>
-        <span style={styles.entryLabel}>{entry.label}</span>
-        <span style={{ ...styles.entryAmount, color: entry.amount >= 0 ? '#22c55e' : '#ef4444' }}>
-          {entry.amount >= 0 ? '+' : ''}{entry.amount < 0 ? '-' : ''}${Math.abs(entry.amount).toLocaleString()}
-        </span>
-        {entry.duration && (
-          <span style={styles.entryDuration}>({entry.duration} hrs)</span>
-        )}
-        {entry.location && (
-          <span style={styles.entryLocation}>at {entry.location}</span>
-        )}
-        {entry.details && !entry.location && (
-          <span style={styles.entryDetails}>{entry.details}</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MAIN BANKROLL MANAGER PAGE
-// ═══════════════════════════════════════════════════════════════════════════
 export default function BankrollManagerPage() {
   const router = useRouter();
   const { user } = useAvatar();
+  const userId = user?.id;
 
-  // State
+  // UI State
   const [activeSection, setActiveSection] = useState('dashboard');
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [selectedLocation, setSelectedLocation] = useState('Rivers Casino');
-  const [selectedTimeFilter, setSelectedTimeFilter] = useState('Last 30 Days');
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Filters
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState(null);
+  const [timeFilter, setTimeFilter] = useState('Last 30 Days');
+  const [includeExpenses, setIncludeExpenses] = useState(false);
+
+  // Dropdowns
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
-  const [showLogModal, setShowLogModal] = useState(false);
-  const [entries, setEntries] = useState(MOCK_ENTRIES);
-  const [stats, setStats] = useState(MOCK_STATS);
 
-  // Filter entries based on active filter
-  const filteredEntries = entries.filter((entry) => {
-    if (activeFilter === 'All') return true;
-    if (activeFilter === 'Cash') return entry.category === 'poker_cash';
-    if (activeFilter === 'MTT') return entry.category === 'poker_mtt';
-    if (activeFilter === 'Table') return entry.category === 'casino_table';
-    if (activeFilter === 'Slots') return entry.category === 'slots';
-    if (activeFilter === 'Sports') return entry.category === 'sports';
-    if (activeFilter === 'Expenses') return entry.category === 'expense';
-    return true;
-  });
+  // Data
+  const [stats, setStats] = useState(null);
+  const [entries, setEntries] = useState([]);
+  const [trips, setTrips] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [leakAnalysis, setLeakAnalysis] = useState(null);
 
-  const handleLogSession = (formData) => {
-    const newEntry = {
-      id: Date.now(),
-      category: formData.category,
-      label: formData.category.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
-      amount: parseFloat(formData.amount),
-      duration: formData.duration ? parseFloat(formData.duration) : null,
-      location: formData.location || null,
-      date: new Date(formData.date),
-      details: formData.notes || null,
-    };
-    setEntries([newEntry, ...entries]);
-    // Update stats
-    setStats((prev) => ({
-      ...prev,
-      totalBankroll: prev.totalBankroll + parseFloat(formData.amount),
-      bankrollChange: prev.bankrollChange + parseFloat(formData.amount),
-    }));
+  // Initialize bankroll for new users
+  useEffect(() => {
+    if (userId) {
+      initializeUserBankroll(userId).catch(console.error);
+    }
+  }, [userId]);
+
+  // Load all data
+  const loadData = useCallback(async () => {
+    if (!userId) return;
+
+    setIsLoading(true);
+    try {
+      const dateRange = getDateRangeFilter(timeFilter);
+
+      const [statsData, entriesData, tripsData, locationsData, leakData] = await Promise.all([
+        getBankrollStats(userId, dateRange.startDate, dateRange.endDate, locationFilter),
+        fetchLedgerEntries(userId, {
+          category: categoryFilter,
+          locationId: locationFilter,
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate,
+          includeExpenses: includeExpenses || categoryFilter === 'expense',
+          limit: 50,
+        }),
+        fetchTrips(userId),
+        getUserLocations(userId),
+        runLeakAnalysis(userId, locationFilter),
+      ]);
+
+      setStats(statsData);
+      setEntries(entriesData);
+      setTrips(tripsData);
+      setLocations(locationsData);
+      setLeakAnalysis(leakData);
+    } catch (error) {
+      console.error('Error loading bankroll data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId, categoryFilter, locationFilter, timeFilter, includeExpenses]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleLogSubmit = async () => {
+    setShowLogModal(false);
+    await loadData();
   };
 
-  const sidebarSections = [
-    { id: 'dashboard', label: 'Dashboard', icon: '◎' },
-    { id: 'log-session', label: 'Log Session', icon: '📝' },
-    { id: 'trips', label: 'Trips & Expenses', icon: '✈' },
-    { id: 'leaks', label: 'Leaks', icon: '⚠' },
-    { id: 'reports', label: 'Reports', icon: '📊' },
-    { id: 'settings', label: 'Settings', icon: '⚙' },
-  ];
+  const handleSidebarClick = (sectionId) => {
+    if (sectionId === 'log-session') {
+      setShowLogModal(true);
+    } else {
+      setActiveSection(sectionId);
+    }
+  };
 
-  const filters = ['All', 'Cash', 'MTT', 'Table', 'Slots', 'Sports', 'Expenses'];
+  const selectedLocationName = locationFilter
+    ? locations.find((l) => l.id === locationFilter)?.name || 'Unknown'
+    : 'All Locations';
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClick = () => {
+      setShowLocationDropdown(false);
+      setShowTimeDropdown(false);
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, []);
 
   return (
     <PageTransition>
@@ -450,35 +206,44 @@ export default function BankrollManagerPage() {
       </Head>
 
       <div className="bankroll-page" style={styles.container}>
-        {/* Background Grid */}
         <div style={styles.bgGrid} />
-
-        {/* Universal Header */}
         <UniversalHeader pageDepth={2} />
 
         {/* Top Bar with Filters */}
         <div style={styles.topBar}>
           <div style={styles.topBarLeft}>
             {/* Location Dropdown */}
-            <div style={styles.dropdownContainer}>
+            <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
               <button
                 style={styles.dropdownButton}
-                onClick={() => setShowLocationDropdown(!showLocationDropdown)}
+                onClick={() => {
+                  setShowLocationDropdown(!showLocationDropdown);
+                  setShowTimeDropdown(false);
+                }}
               >
-                {selectedLocation} <span style={styles.dropdownArrow}>▼</span>
+                {selectedLocationName} <span style={styles.dropdownArrow}>▼</span>
               </button>
               {showLocationDropdown && (
                 <div style={styles.dropdownMenu}>
-                  {MOCK_LOCATIONS.map((loc) => (
+                  <button
+                    style={styles.dropdownItem}
+                    onClick={() => {
+                      setLocationFilter(null);
+                      setShowLocationDropdown(false);
+                    }}
+                  >
+                    All Locations
+                  </button>
+                  {locations.map((loc) => (
                     <button
-                      key={loc}
+                      key={loc.id}
                       style={styles.dropdownItem}
                       onClick={() => {
-                        setSelectedLocation(loc);
+                        setLocationFilter(loc.id);
                         setShowLocationDropdown(false);
                       }}
                     >
-                      {loc}
+                      {loc.name}
                     </button>
                   ))}
                 </div>
@@ -486,21 +251,24 @@ export default function BankrollManagerPage() {
             </div>
 
             {/* Time Filter Dropdown */}
-            <div style={styles.dropdownContainer}>
+            <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
               <button
                 style={styles.dropdownButton}
-                onClick={() => setShowTimeDropdown(!showTimeDropdown)}
+                onClick={() => {
+                  setShowTimeDropdown(!showTimeDropdown);
+                  setShowLocationDropdown(false);
+                }}
               >
-                {selectedTimeFilter} <span style={styles.dropdownArrow}>▼</span>
+                {timeFilter} <span style={styles.dropdownArrow}>▼</span>
               </button>
               {showTimeDropdown && (
                 <div style={styles.dropdownMenu}>
-                  {MOCK_TIME_FILTERS.map((tf) => (
+                  {TIME_FILTERS.map((tf) => (
                     <button
                       key={tf}
                       style={styles.dropdownItem}
                       onClick={() => {
-                        setSelectedTimeFilter(tf);
+                        setTimeFilter(tf);
                         setShowTimeDropdown(false);
                       }}
                     >
@@ -514,7 +282,6 @@ export default function BankrollManagerPage() {
 
           <div style={styles.topBarRight}>
             <button style={styles.searchButton}>🔍</button>
-            <div style={styles.profileIcon}>👤</div>
           </div>
         </div>
 
@@ -522,16 +289,10 @@ export default function BankrollManagerPage() {
         <div style={styles.mainLayout}>
           {/* Left Sidebar */}
           <nav style={styles.sidebar}>
-            {sidebarSections.map((section) => (
+            {SIDEBAR_SECTIONS.map((section) => (
               <button
                 key={section.id}
-                onClick={() => {
-                  if (section.id === 'log-session') {
-                    setShowLogModal(true);
-                  } else {
-                    setActiveSection(section.id);
-                  }
-                }}
+                onClick={() => handleSidebarClick(section.id)}
                 style={{
                   ...styles.sidebarItem,
                   ...(activeSection === section.id ? styles.sidebarItemActive : {}),
@@ -549,13 +310,9 @@ export default function BankrollManagerPage() {
             <div style={styles.contentHeader}>
               <h1 style={styles.pageTitle}>Bankroll Manager</h1>
               <div style={styles.headerActions}>
-                <button
-                  style={styles.logButton}
-                  onClick={() => setShowLogModal(true)}
-                >
+                <button style={styles.logButton} onClick={() => setShowLogModal(true)}>
                   + Log
                 </button>
-                <div style={styles.headerAvatar}>👤</div>
               </div>
             </div>
 
@@ -563,24 +320,34 @@ export default function BankrollManagerPage() {
             <div style={styles.statsGrid}>
               <StatCard
                 title="Total Bankroll"
-                value={`$${stats.totalBankroll.toLocaleString()}`}
-                change={stats.bankrollChange}
+                value={stats ? `$${stats.totalBankroll.toLocaleString()}` : '—'}
+                change={stats?.allInNet}
+                isLoading={isLoading}
               />
               <StatCard
                 title="All-In Net"
-                value={`${stats.allInNet < 0 ? '-' : ''}$${Math.abs(stats.allInNet).toLocaleString()}`}
-                change={stats.allInNet}
-                changeColor="#ef4444"
+                value={
+                  stats
+                    ? `${stats.allInNet < 0 ? '-' : ''}$${Math.abs(stats.allInNet).toLocaleString()}`
+                    : '—'
+                }
+                isLoading={isLoading}
               />
               <StatCard
                 title="Leak Risk"
-                value={stats.leakRisk}
+                value={stats?.leakRisk || 'LOW'}
                 isRisk={true}
+                isLoading={isLoading}
               />
               <StatCard
                 title="Travel ROI"
-                value={`${stats.travelROI < 0 ? '-' : ''}$${Math.abs(stats.travelROI).toLocaleString()}`}
+                value={
+                  stats
+                    ? `${stats.travelROI < 0 ? '-' : ''}$${Math.abs(stats.travelROI).toLocaleString()}`
+                    : '—'
+                }
                 suffix="Last Trip"
+                isLoading={isLoading}
               />
             </div>
 
@@ -591,84 +358,73 @@ export default function BankrollManagerPage() {
               {/* Filter Tabs */}
               <div style={styles.filterTabs}>
                 <div style={styles.filterTabsLeft}>
-                  {filters.map((filter) => (
+                  {CATEGORY_FILTERS.map((filter) => (
                     <button
-                      key={filter}
-                      onClick={() => setActiveFilter(filter)}
+                      key={filter.id}
+                      onClick={() => setCategoryFilter(filter.id)}
                       style={{
                         ...styles.filterTab,
-                        ...(activeFilter === filter ? styles.filterTabActive : {}),
+                        ...(categoryFilter === filter.id ? styles.filterTabActive : {}),
                       }}
                     >
-                      {filter}
+                      {filter.label}
                     </button>
                   ))}
                 </div>
-                <button style={styles.filterButton}>
-                  Filter <span style={styles.dropdownArrow}>▼</span>
-                </button>
+                <label style={styles.expenseToggle}>
+                  <input
+                    type="checkbox"
+                    checked={includeExpenses}
+                    onChange={(e) => setIncludeExpenses(e.target.checked)}
+                    style={styles.checkbox}
+                  />
+                  Include Expenses
+                </label>
               </div>
 
-              {/* Activity List */}
-              <div style={styles.activityList}>
-                {filteredEntries.map((entry) => (
-                  <ActivityEntry key={entry.id} entry={entry} />
-                ))}
-              </div>
+              {/* Ledger Timeline */}
+              <LedgerTimeline entries={entries} isLoading={isLoading} />
 
               {/* Trip Expenses Section */}
-              <div style={styles.tripSection}>
-                <h3 style={styles.tripTitle}>Trip Expenses</h3>
-                {MOCK_TRIPS.map((trip) => (
-                  <div key={trip.id} style={styles.tripCard}>
-                    <div style={styles.tripInfo}>
-                      <span style={styles.tripName}>{trip.name}:</span>
-                      <span style={styles.tripNet}>
-                        ~{trip.netResult < 0 ? '-' : ''}${Math.abs(trip.netResult).toLocaleString()}
-                      </span>
-                      <span style={styles.tripExpenses}>Net / ${trip.expenses.toLocaleString()} Expenses</span>
+              {trips.length > 0 && (
+                <div style={styles.tripSection}>
+                  <h3 style={styles.tripTitle}>Trip Expenses</h3>
+                  {trips.slice(0, 3).map((trip) => (
+                    <div key={trip.id} style={styles.tripCard}>
+                      <div style={styles.tripInfo}>
+                        <span style={styles.tripName}>{trip.name}:</span>
+                        <span
+                          style={{
+                            ...styles.tripNet,
+                            color: (trip.totalNet || 0) >= 0 ? '#22c55e' : '#ef4444',
+                          }}
+                        >
+                          {(trip.totalNet || 0) >= 0 ? '+' : '~-'}$
+                          {Math.abs(trip.totalNet || 0).toLocaleString()}
+                        </span>
+                        <span style={styles.tripExpenses}>
+                          Net / ${(trip.totalExpenses || 0).toLocaleString()} Expenses
+                        </span>
+                      </div>
+                      <span style={styles.tripArrow}>›</span>
                     </div>
-                    <span style={styles.tripArrow}>›</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </main>
 
           {/* Right Sidebar - Assistant Panel */}
           <aside style={styles.assistantPanel}>
-            {/* Assistant Alerts */}
-            <div style={styles.alertsSection}>
-              <h3 style={styles.assistantTitle}>Assistant Alerts</h3>
-              {MOCK_ALERTS.map((alert) => (
-                <div key={alert.id} style={styles.alertItem}>
-                  <span style={{ ...styles.alertIcon, color: alert.color }}>{alert.icon}</span>
-                  <div style={styles.alertContent}>
-                    <span style={styles.alertTitle}>{alert.title}</span>
-                    <span style={{ ...styles.alertValue, color: alert.color }}>{alert.value}</span>
-                    <span style={styles.alertSubtitle}>{alert.subtitle}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <LeakAlertPanel
+              leakAnalysis={leakAnalysis}
+              locationId={locationFilter}
+              isLoading={isLoading}
+            />
 
-            {/* Bankroll Rules */}
-            <div style={styles.rulesSection}>
-              <h3 style={styles.assistantTitle}>Bankroll Rules</h3>
-              {MOCK_RULES.map((rule) => (
-                <div key={rule.id} style={styles.ruleItem}>
-                  <span style={styles.ruleIndicator}>○</span>
-                  <span style={styles.ruleLabel}>{rule.label}</span>
-                  <span style={styles.ruleValue}>{rule.value}</span>
-                </div>
-              ))}
-            </div>
+            <BankrollRulesCard userId={userId} />
 
-            {/* Log Today's Session Button */}
-            <button
-              style={styles.logTodayButton}
-              onClick={() => setShowLogModal(true)}
-            >
+            <button style={styles.logTodayButton} onClick={() => setShowLogModal(true)}>
               Log Today's Session
               <span style={styles.logArrow}>›</span>
             </button>
@@ -676,13 +432,15 @@ export default function BankrollManagerPage() {
         </div>
       </div>
 
-      {/* Log Session Modal */}
+      {/* Log Entry Modal */}
       <AnimatePresence>
-        {showLogModal && (
-          <LogSessionModal
-            isOpen={showLogModal}
+        {showLogModal && userId && (
+          <LogEntryModal
+            userId={userId}
+            locations={locations}
+            trips={trips}
             onClose={() => setShowLogModal(false)}
-            onSubmit={handleLogSession}
+            onSubmit={handleLogSubmit}
           />
         )}
       </AnimatePresence>
@@ -690,9 +448,6 @@ export default function BankrollManagerPage() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// STYLES
-// ═══════════════════════════════════════════════════════════════════════════
 const styles = {
   container: {
     minHeight: '100vh',
@@ -713,8 +468,6 @@ const styles = {
     backgroundSize: '60px 60px',
     pointerEvents: 'none',
   },
-
-  // Top Bar
   topBar: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -761,6 +514,8 @@ const styles = {
     padding: 4,
     minWidth: 150,
     zIndex: 100,
+    maxHeight: 300,
+    overflowY: 'auto',
   },
   dropdownItem: {
     display: 'block',
@@ -784,24 +539,10 @@ const styles = {
     fontSize: 16,
     cursor: 'pointer',
   },
-  profileIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: '50%',
-    background: 'rgba(255, 255, 255, 0.1)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 16,
-  },
-
-  // Main Layout
   mainLayout: {
     display: 'flex',
     minHeight: 'calc(100vh - 140px)',
   },
-
-  // Sidebar
   sidebar: {
     width: 160,
     padding: '20px 12px',
@@ -832,12 +573,11 @@ const styles = {
     width: 20,
     textAlign: 'center',
   },
-
-  // Main Content
   mainContent: {
     flex: 1,
     padding: '20px 24px',
     minWidth: 0,
+    overflowY: 'auto',
   },
   contentHeader: {
     display: 'flex',
@@ -868,19 +608,6 @@ const styles = {
     cursor: 'pointer',
     boxShadow: '0 4px 15px rgba(0, 212, 255, 0.3)',
   },
-  headerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: '50%',
-    background: 'rgba(255, 255, 255, 0.1)',
-    border: '2px solid rgba(255, 255, 255, 0.2)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 18,
-  },
-
-  // Stats Grid
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
@@ -907,6 +634,11 @@ const styles = {
     fontWeight: 700,
     color: '#fff',
   },
+  statLoading: {
+    fontSize: 24,
+    fontWeight: 700,
+    color: 'rgba(255, 255, 255, 0.3)',
+  },
   statChange: {
     fontSize: 14,
     fontWeight: 500,
@@ -926,8 +658,6 @@ const styles = {
   downArrow: {
     fontSize: 10,
   },
-
-  // Activity Section
   activitySection: {
     background: 'rgba(255, 255, 255, 0.02)',
     border: '1px solid rgba(255, 255, 255, 0.06)',
@@ -945,10 +675,13 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   filterTabsLeft: {
     display: 'flex',
     gap: 4,
+    flexWrap: 'wrap',
   },
   filterTab: {
     padding: '8px 14px',
@@ -966,77 +699,17 @@ const styles = {
     color: '#000',
     fontWeight: 600,
   },
-  filterButton: {
-    padding: '8px 14px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 6,
-    color: 'rgba(255, 255, 255, 0.6)',
+  expenseToggle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
     fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
     cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
   },
-
-  // Activity List
-  activityList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
+  checkbox: {
+    accentColor: '#00D4FF',
   },
-  activityEntry: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 14,
-    padding: '14px 16px',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 10,
-  },
-  entryIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: '50%',
-    background: 'rgba(255, 255, 255, 0.05)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  entryContent: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    flexWrap: 'wrap',
-  },
-  entryDate: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-  entryLabel: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#fff',
-  },
-  entryAmount: {
-    fontSize: 14,
-    fontWeight: 700,
-  },
-  entryDuration: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-  entryLocation: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-  entryDetails: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-
-  // Trip Section
   tripSection: {
     marginTop: 24,
   },
@@ -1055,6 +728,7 @@ const styles = {
     border: '1px solid rgba(255, 255, 255, 0.06)',
     borderRadius: 10,
     cursor: 'pointer',
+    marginBottom: 8,
   },
   tripInfo: {
     display: 'flex',
@@ -1069,7 +743,6 @@ const styles = {
   tripNet: {
     fontSize: 14,
     fontWeight: 700,
-    color: '#ef4444',
   },
   tripExpenses: {
     fontSize: 13,
@@ -1079,84 +752,12 @@ const styles = {
     fontSize: 20,
     color: 'rgba(255, 255, 255, 0.3)',
   },
-
-  // Assistant Panel (Right Sidebar)
   assistantPanel: {
     width: 220,
     padding: '20px 16px',
     borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
+    overflowY: 'auto',
   },
-  assistantTitle: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 14,
-  },
-  alertsSection: {
-    marginBottom: 24,
-  },
-  alertItem: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: 10,
-    padding: '12px 0',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-  },
-  alertIcon: {
-    fontSize: 14,
-    marginTop: 2,
-  },
-  alertContent: {
-    flex: 1,
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'baseline',
-    gap: 4,
-  },
-  alertTitle: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  alertValue: {
-    fontSize: 13,
-    fontWeight: 700,
-  },
-  alertSubtitle: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
-    width: '100%',
-  },
-
-  // Rules Section
-  rulesSection: {
-    marginBottom: 24,
-    padding: '16px',
-    background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 10,
-  },
-  ruleItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '8px 0',
-  },
-  ruleIndicator: {
-    color: '#00D4FF',
-    fontSize: 10,
-  },
-  ruleLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  ruleValue: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#fff',
-    marginLeft: 'auto',
-  },
-
-  // Log Today Button
   logTodayButton: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -1174,132 +775,5 @@ const styles = {
   },
   logArrow: {
     fontSize: 18,
-  },
-
-  // Modal Styles
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0, 0, 0, 0.8)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    padding: 20,
-  },
-  modal: {
-    width: '100%',
-    maxWidth: 480,
-    background: '#1a2a44',
-    borderRadius: 16,
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '20px 24px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 700,
-    color: '#fff',
-    margin: 0,
-  },
-  modalClose: {
-    width: 32,
-    height: 32,
-    borderRadius: '50%',
-    background: 'rgba(255, 255, 255, 0.1)',
-    border: 'none',
-    color: '#fff',
-    fontSize: 20,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalForm: {
-    padding: 24,
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  formRow: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 16,
-  },
-  formLabel: {
-    display: 'block',
-    fontSize: 13,
-    fontWeight: 500,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 8,
-  },
-  formInput: {
-    width: '100%',
-    padding: '12px 14px',
-    background: 'rgba(0, 0, 0, 0.3)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 14,
-    outline: 'none',
-  },
-  formSelect: {
-    width: '100%',
-    padding: '12px 14px',
-    background: 'rgba(0, 0, 0, 0.3)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 14,
-    outline: 'none',
-    cursor: 'pointer',
-  },
-  formTextarea: {
-    width: '100%',
-    padding: '12px 14px',
-    background: 'rgba(0, 0, 0, 0.3)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 14,
-    outline: 'none',
-    minHeight: 80,
-    resize: 'vertical',
-  },
-  modalActions: {
-    display: 'flex',
-    gap: 12,
-    marginTop: 24,
-  },
-  cancelButton: {
-    flex: 1,
-    padding: '14px',
-    background: 'rgba(255, 255, 255, 0.1)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 500,
-    cursor: 'pointer',
-  },
-  submitButton: {
-    flex: 1,
-    padding: '14px',
-    background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
-    border: 'none',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
   },
 };
