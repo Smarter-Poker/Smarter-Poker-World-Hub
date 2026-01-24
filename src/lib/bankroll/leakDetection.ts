@@ -221,7 +221,7 @@ export async function detectNonPokerLeaks(
       alerts.push({
         id: `category-leak-${category}`,
         type: 'category',
-        severity: category === 'slots' ? Math.min(5, Math.ceil(leakPct / 20)) : Math.ceil(leakPct / 25),
+        severity: (category === 'slots' ? Math.min(5, Math.ceil(leakPct / 20)) : Math.ceil(leakPct / 25)) as 1 | 2 | 3 | 4 | 5,
         title: `${labels[category]} Losses`,
         message: `${labels[category]} represent ${leakPct}% of total losses`,
         value: `-$${Math.abs(Math.round(totalNet)).toLocaleString()}`,
