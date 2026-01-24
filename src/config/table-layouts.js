@@ -6,65 +6,56 @@
  */
 
 // 9-MAX LAYOUT (Full Ring) - Hero + 8 Villains
-// LOCKED POSITIONS - Avatars hug the table rail
+// EXPORTED 2026-01-24 via DEV MODE Template Overlay Tool
 export const LAYOUT_9MAX = {
     name: '9MAX',
     seats: 9,
     heroCardsOffset: { x: 29, y: 117 },
     positions: {
-        // Hero: Bottom center - CORRECT
         "hero": {
             "left": "50%",
-            "top": "76%",
+            "top": "88%",
             "avatarOffset": { "x": -62, "y": 0 }
         },
-        // Villain 1: Bottom left corner - CORRECT
         "seat1": {
             "left": "18%",
-            "top": "66%",
+            "top": "75%",
             "avatarOffset": { "x": -62, "y": 0 }
         },
-        // Villain 2: Left side rail - ADJUSTED to hug rail like V3
         "seat2": {
             "left": "2%",
-            "top": "44%",
-            "avatarOffset": { "x": -62, "y": 0 }
+            "top": "55%",
+            "avatarOffset": { "x": -20, "y": -70 }
         },
-        // Villain 3: Left side, upper - CORRECT (reference)
         "seat3": {
-            "left": "10%",
-            "top": "20%",
-            "avatarOffset": { "x": -62, "y": 0 }
+            "left": "2%",
+            "top": "35%",
+            "avatarOffset": { "x": -24, "y": -78 }
         },
-        // Villain 4: Top left rail - ADJUSTED moved up to rail
         "seat4": {
-            "left": "28%",
-            "top": "2%",
+            "left": "20%",
+            "top": "10%",
             "avatarOffset": { "x": -62, "y": 0 }
         },
-        // Villain 5: Top right rail - ADJUSTED moved up to rail
         "seat5": {
-            "left": "60%",
-            "top": "2%",
+            "left": "70%",
+            "top": "10%",
             "avatarOffset": { "x": -62, "y": 0 }
         },
-        // Villain 6: Right side rail - ADJUSTED to hug rail like V3
         "seat6": {
-            "left": "90%",
-            "top": "20%",
+            "left": "92%",
+            "top": "35%",
             "avatarOffset": { "x": -62, "y": 0 }
         },
-        // Villain 7: Right side rail - ADJUSTED to hug rail
         "seat7": {
-            "left": "94%",
-            "top": "44%",
+            "left": "92%",
+            "top": "55%",
             "avatarOffset": { "x": -62, "y": 0 }
         },
-        // Villain 8: Bottom right corner - CORRECT
         "seat8": {
-            "left": "76%",
-            "top": "66%",
-            "avatarOffset": { "x": -62, "y": 0 }
+            "left": "78%",
+            "top": "75%",
+            "avatarOffset": { "x": -14, "y": -33 }
         }
     },
     heroCards: { x: 29, y: 117 }

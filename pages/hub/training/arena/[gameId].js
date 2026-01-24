@@ -389,6 +389,11 @@ export default function TrainingArenaPage() {
     const [hiddenSeats, setHiddenSeats] = useState(new Set()); // Track deleted/hidden seats
     const [selectedLayoutType, setSelectedLayoutType] = useState('9max'); // For export
 
+    // TEMPLATE OVERLAY - For visual alignment
+    const [showOverlay, setShowOverlay] = useState(false);
+    const [overlayOpacity, setOverlayOpacity] = useState(0.5);
+    const [overlayUrl, setOverlayUrl] = useState('/images/training/template-9max.png'); // Default template
+
     // Load real user data on mount
     useEffect(() => {
         const loadUserStats = async () => {
@@ -616,6 +621,25 @@ export const ${layoutName} = {
                     <div className="table-area">
                         <div className="table-wrapper">
                             <img src="/images/training/table-vertical.jpg" alt="Poker Table" className="table-img" />
+
+                            {/* TEMPLATE OVERLAY - DEV MODE visual alignment tool */}
+                            {devMode && showOverlay && (
+                                <img
+                                    src={overlayUrl}
+                                    alt="Template Overlay"
+                                    className="template-overlay"
+                                    style={{
+                                        position: 'absolute',
+                                        inset: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'contain',
+                                        opacity: overlayOpacity,
+                                        pointerEvents: 'none',
+                                        zIndex: 50,
+                                    }}
+                                />
+                            )}
 
                             {/* Pot Display */}
                             <div className="pot">
@@ -1119,6 +1143,67 @@ export const ${layoutName} = {
                 <div className="export-panel">
                     <h3>📐 Layout Export Tool</h3>
                     <p>Drag elements. Click ✕ on avatars to remove seats. Export when ready.</p>
+
+                    {/* TEMPLATE OVERLAY CONTROLS */}
+                    <div style={{
+                        padding: 12,
+                        background: '#1a1a2a',
+                        border: '1px solid #4444aa',
+                        borderRadius: 8,
+                        marginBottom: 8
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <strong style={{ color: '#8888ff', fontSize: 13 }}>🖼️ Template Overlay</strong>
+                            <button
+                                onClick={() => setShowOverlay(!showOverlay)}
+                                style={{
+                                    padding: '4px 12px',
+                                    background: showOverlay ? '#22c55e' : '#444',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: 4,
+                                    cursor: 'pointer',
+                                    fontSize: 11,
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                {showOverlay ? 'ON' : 'OFF'}
+                            </button>
+                        </div>
+                        {showOverlay && (
+                            <>
+                                <div style={{ marginBottom: 8 }}>
+                                    <label style={{ fontSize: 11, color: '#aaa', display: 'block', marginBottom: 4 }}>Opacity: {Math.round(overlayOpacity * 100)}%</label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        value={overlayOpacity * 100}
+                                        onChange={(e) => setOverlayOpacity(e.target.value / 100)}
+                                        style={{ width: '100%' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: 11, color: '#aaa', display: 'block', marginBottom: 4 }}>Template URL:</label>
+                                    <input
+                                        type="text"
+                                        value={overlayUrl}
+                                        onChange={(e) => setOverlayUrl(e.target.value)}
+                                        placeholder="/images/training/template.png"
+                                        style={{
+                                            width: '100%',
+                                            padding: '6px 8px',
+                                            background: '#222',
+                                            border: '1px solid #444',
+                                            borderRadius: 4,
+                                            color: '#fff',
+                                            fontSize: 11
+                                        }}
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </div>
 
                     {/* Layout Type Selector */}
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>

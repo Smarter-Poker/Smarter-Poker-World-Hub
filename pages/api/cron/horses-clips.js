@@ -22,7 +22,7 @@ import OpenAI from 'openai';
 import { shouldHorseBeActive, isHorseActiveHour, getHorseActivityRate } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
 // ClipLibrary functions - loaded dynamically in handler
-let getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES;
+let getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES, getHorsePreferredSources;
 let clipLibraryLoaded = false;
 
 async function loadClipLibrary() {
@@ -33,6 +33,7 @@ async function loadClipLibrary() {
         getRandomCaption = lib.getRandomCaption;
         markClipUsed = lib.markClipUsed;
         CLIP_CATEGORIES = lib.CLIP_CATEGORIES;
+        getHorsePreferredSources = lib.getHorsePreferredSources;
         clipLibraryLoaded = true;
         console.log('✅ ClipLibrary loaded successfully');
         return true;
@@ -105,13 +106,21 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             return null;
         }
 
-        // Get a random clip that hasn't been used recently
+        // Get this horse's preferred content sources
+        const preferredSources = getHorsePreferredSources ? getHorsePreferredSources(horse.profile_id) : null;
+        if (preferredSources) {
+            console.log(`   ${horse.name} prefers: ${preferredSources.join(', ')}`);
+        }
+
+        // Get a random clip that hasn't been used recently, preferring horse's sources
         let clip = null;
         let attempts = 0;
-        const maxAttempts = 10;
+        const maxAttempts = 15;
 
         while (!clip && attempts < maxAttempts) {
-            const candidate = getRandomClip();
+            // Try to get clip from preferred source first
+            const preferSource = preferredSources ? preferredSources[attempts % preferredSources.length] : null;
+            const candidate = getRandomClip({ preferSource });
             if (!candidate) break;
 
             // Check if this clip was recently used (database check) or used this session
