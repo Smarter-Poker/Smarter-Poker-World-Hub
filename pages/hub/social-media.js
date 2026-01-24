@@ -1050,53 +1050,56 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
             )}
             {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}>⚠️ {error}</div>}
             <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-                <div style={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
                     <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFiles} />
                     <button
                         onClick={() => fileRef.current?.click()}
                         disabled={media.length >= MAX_MEDIA}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 6,
+                            padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', cursor: media.length >= MAX_MEDIA ? 'not-allowed' : 'pointer',
-                            color: media.length >= MAX_MEDIA ? '#ccc' : '#65676B', fontSize: 13, fontWeight: 500,
-                            transition: 'background 0.2s', whiteSpace: 'nowrap'
+                            color: media.length >= MAX_MEDIA ? '#ccc' : '#45BD62', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >{uploading ? '...' : '📷'}</button>
+                    >{uploading ? 'Uploading...' : 'Photo/Video'}</button>
+                    <span style={{ color: '#ccc' }}>·</span>
                     <button
                         onClick={onGoLive}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 6,
+                            padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', cursor: 'pointer',
-                            color: '#65676B', fontSize: 13, fontWeight: 500,
-                            transition: 'background 0.2s', whiteSpace: 'nowrap'
+                            color: '#F3425F', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >🎥</button>
+                    >Live Video</button>
+                    <span style={{ color: '#ccc' }}>·</span>
                     <Link
                         href="/hub/reels"
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 6,
-                            border: 'none', background: 'transparent', textDecoration: 'none',
-                            color: '#65676B', fontSize: 13, fontWeight: 500,
-                            transition: 'background 0.2s', whiteSpace: 'nowrap'
+                            padding: '6px 8px', borderRadius: 6,
+                            background: 'transparent', textDecoration: 'none',
+                            color: '#E7549A', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >📺 Reels</Link>
+                    >Reels</Link>
+                    <span style={{ color: '#ccc' }}>·</span>
                     <Link
-                        href="/hub/lives"
+                        href="/hub/friends"
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 6,
-                            border: 'none', background: 'transparent', textDecoration: 'none',
-                            color: '#FA383E', fontSize: 13, fontWeight: 600,
-                            transition: 'background 0.2s', whiteSpace: 'nowrap'
+                            padding: '6px 8px', borderRadius: 6,
+                            background: 'transparent', textDecoration: 'none',
+                            color: '#1877F2', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >🔴</Link>
+                    >Find Friends</Link>
                 </div>
                 <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1, flexShrink: 0 }}>Post</button>
             </div>
