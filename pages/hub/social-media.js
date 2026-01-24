@@ -1,6 +1,41 @@
 /**
- * SMARTER.POKER SOCIAL HUB - Full Sngine Reconstruction
- * Light Theme + Working Supabase Integration + Go Live Streaming
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  🚨🚨🚨 PROTECTED FILE - READ BEFORE MODIFYING 🚨🚨🚨                      ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║                                                                           ║
+ * ║  THIS FILE CONTAINS MULTIPLE CRITICAL FEATURES THAT BREAK FREQUENTLY.    ║
+ * ║  BEFORE MAKING ANY CHANGES:                                              ║
+ * ║                                                                           ║
+ * ║  1. RUN: /social-feed-protection workflow                                ║
+ * ║  2. READ: .agent/PROTECTED_FILES.md                                      ║
+ * ║  3. TEST BEFORE: node scripts/test-article-reader.js                     ║
+ * ║  4. TEST AFTER: node scripts/test-article-reader.js                      ║
+ * ║                                                                           ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  CRITICAL FEATURES IN THIS FILE - DO NOT BREAK:                          ║
+ * ║                                                                           ║
+ * ║  📰 Article Reader (Lines ~1186-1200, ~1417, ~2509)                       ║
+ * ║     - ArticleCard with onClick → opens ArticleReaderModal                 ║
+ * ║     - articleReader state {open, url, title}                             ║
+ * ║     - onOpenArticle prop passed to PostCard                              ║
+ * ║                                                                           ║
+ * ║  📖 Stories Bar (Line ~2330)                                              ║
+ * ║     - StoriesBar component with stories fetch                            ║
+ * ║                                                                           ║
+ * ║  🎬 Reels Carousel (Lines ~2510)                                          ║
+ * ║     - ReelsFeedCarousel inserted after every 3 posts                     ║
+ * ║                                                                           ║
+ * ║  🔴 Live Streaming (Lines ~2360-2400)                                     ║
+ * ║     - GoLiveModal, LiveStreamCard, LiveStreamViewer                      ║
+ * ║                                                                           ║
+ * ║  📋 PostCard Component (Lines ~1072-1300)                                 ║
+ * ║     - Renders all post types correctly                                   ║
+ * ║     - onOpenArticle prop for article clicks                              ║
+ * ║                                                                           ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  SMARTER.POKER SOCIAL HUB                                                ║
+ * ║  Light Theme + Working Supabase Integration + Go Live Streaming          ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
 import Head from 'next/head';
@@ -21,6 +56,8 @@ import { GoLiveModal } from '../../src/components/social/GoLiveModal';
 import { LiveStreamCard } from '../../src/components/social/LiveStreamCard';
 import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../src/services/LiveStreamService';
+import ArticleCard, { ArticleCardFromPost, getPostMediaType } from '../../src/components/social/ArticleCard';
+import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 
 // God-Mode Stack
@@ -1013,53 +1050,56 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
             )}
             {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}>⚠️ {error}</div>}
             <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-                <div style={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
                     <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFiles} />
                     <button
                         onClick={() => fileRef.current?.click()}
                         disabled={media.length >= MAX_MEDIA}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 6,
+                            padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', cursor: media.length >= MAX_MEDIA ? 'not-allowed' : 'pointer',
-                            color: media.length >= MAX_MEDIA ? '#ccc' : '#65676B', fontSize: 13, fontWeight: 500,
-                            transition: 'background 0.2s', whiteSpace: 'nowrap'
+                            color: media.length >= MAX_MEDIA ? '#ccc' : '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >{uploading ? '...' : '📷'}</button>
+                    >{uploading ? 'Uploading...' : 'Photo/Video'}</button>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
                     <button
                         onClick={onGoLive}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 6,
+                            padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', cursor: 'pointer',
-                            color: '#65676B', fontSize: 13, fontWeight: 500,
-                            transition: 'background 0.2s', whiteSpace: 'nowrap'
+                            color: '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >🎥</button>
+                    >Go Live</button>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
                     <Link
                         href="/hub/reels"
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 6,
-                            border: 'none', background: 'transparent', textDecoration: 'none',
-                            color: '#65676B', fontSize: 13, fontWeight: 500,
-                            transition: 'background 0.2s', whiteSpace: 'nowrap'
+                            padding: '6px 8px', borderRadius: 6,
+                            background: 'transparent', textDecoration: 'none',
+                            color: '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >📺 Reels</Link>
+                    >Reels</Link>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
                     <Link
-                        href="/hub/lives"
+                        href="/hub/friends"
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 6,
-                            border: 'none', background: 'transparent', textDecoration: 'none',
-                            color: '#FA383E', fontSize: 13, fontWeight: 600,
-                            transition: 'background 0.2s', whiteSpace: 'nowrap'
+                            padding: '6px 8px', borderRadius: 6,
+                            background: 'transparent', textDecoration: 'none',
+                            color: '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >🔴</Link>
+                    >Find Friends</Link>
                 </div>
                 <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1, flexShrink: 0 }}>Post</button>
             </div>
@@ -1067,7 +1107,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
     );
 }
 
-function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onComment }) {
+function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onComment, onOpenArticle }) {
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
@@ -1182,9 +1222,20 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                                     preload="metadata"
                                 />
                             </VideoPostWrapper>
-                        ) : post.contentType === 'link' ? (
-                            // LINK: Rich preview card with dynamic metadata
-                            <LinkPreviewCard url={post.mediaUrls[0]} />
+                        ) : (post.contentType === 'link' || post.contentType === 'article') ? (
+                            // LINK/ARTICLE: Use centralized ArticleCard component
+                            <ArticleCard
+                                url={post.link_url || (() => {
+                                    const match = post.content?.match(/https?:\/\/[^\s"'<>]+/);
+                                    return match ? match[0] : null;
+                                })()}
+                                title={post.link_title}
+                                description={post.link_description}
+                                image={post.link_image || post.mediaUrls?.[0]}
+                                siteName={post.link_site_name}
+                                fallbackContent={post.content}
+                                onClick={onOpenArticle}
+                            />
                         ) : (
                             <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
                         )
@@ -1403,6 +1454,9 @@ export default function SocialMediaPage() {
     const globalSearchTimeout = useRef(null);
     const lastScrollY = useRef(0);
 
+    // Article Reader Modal State
+    const [articleReader, setArticleReader] = useState({ open: false, url: null, title: null });
+
     // ♾️ INFINITE SCROLL STATE
     const [feedOffset, setFeedOffset] = useState(0);
     const [hasMorePosts, setHasMorePosts] = useState(true);
@@ -1516,32 +1570,63 @@ export default function SocialMediaPage() {
                         .order('created_at', { ascending: false })
                         .limit(20);
                     if (notifs && notifs.length > 0) {
-                        // Parse actor names from notification titles (e.g., "Lauren Garcia commented on your post")
+                        // Collect actor IDs from notifications
+                        // The data is stored in the 'data' JSONB column: data.actor_id (social) or data.sender_id (friend requests)
+                        const actorIds = [...new Set(notifs.map(n =>
+                            n.data?.actor_id || n.data?.sender_id || n.actor_id
+                        ).filter(Boolean))];
+
+                        // Also parse actor names from notification titles as fallback
                         const actorNames = [...new Set(notifs.map(n => {
                             const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
                             return match ? match[1] : null;
                         }).filter(Boolean))];
 
-                        // Build profile lookup map by full_name
-                        let profileMap = {};
-                        if (actorNames.length > 0) {
-                            const { data: profiles } = await supabase.from('profiles')
+                        // Build profile lookup maps
+                        let profileById = {};
+                        let profileByName = {};
+
+                        // Lookup by actor_id if available
+                        if (actorIds.length > 0) {
+                            const { data: profilesById } = await supabase.from('profiles')
                                 .select('id, username, full_name, avatar_url')
-                                .in('full_name', actorNames);
-                            (profiles || []).forEach(p => {
-                                if (p.full_name) profileMap[p.full_name.toLowerCase()] = p;
+                                .in('id', actorIds);
+                            (profilesById || []).forEach(p => {
+                                profileById[p.id] = p;
                             });
                         }
 
-                        // Merge actor profile data into notifications by parsing name from title
+                        // Lookup by full_name as fallback
+                        if (actorNames.length > 0) {
+                            const { data: profilesByName } = await supabase.from('profiles')
+                                .select('id, username, full_name, avatar_url')
+                                .in('full_name', actorNames);
+                            (profilesByName || []).forEach(p => {
+                                if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
+                            });
+                        }
+
+                        // Merge actor profile data into notifications
                         const enrichedNotifs = notifs.map(n => {
-                            const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                            const actorName = match ? match[1] : null;
-                            const profile = actorName ? profileMap[actorName.toLowerCase()] : null;
+                            // Get actor ID from the data JSONB column
+                            const actorId = n.data?.actor_id || n.data?.sender_id || n.actor_id;
+                            let profile = actorId ? profileById[actorId] : null;
+
+                            // Fallback to name matching
+                            if (!profile) {
+                                const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                                const actorName = match ? match[1] : null;
+                                profile = actorName ? profileByName[actorName.toLowerCase()] : null;
+                            }
+
+                            // Get display name from data or parse from title
+                            const displayName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
+
                             return {
                                 ...n,
-                                actor_avatar_url: profile?.avatar_url || null,
-                                actor_name: actorName || n.title
+                                actor_avatar_url: profile?.avatar_url || n.metadata?.actor_avatar || null,
+                                actor_name: profile?.full_name || displayName,
+                                actor_username: profile?.username || null
                             };
                         });
                         setNotifications(enrichedNotifs);
@@ -2360,6 +2445,12 @@ export default function SocialMediaPage() {
                                 return (
                                     <div
                                         key={n.id}
+                                        onClick={() => {
+                                            setShowNotifications(false);
+                                            if (n.actor_username) {
+                                                router.push(`/hub/user/${n.actor_username}`);
+                                            }
+                                        }}
                                         style={{
                                             padding: 12, borderBottom: `1px solid ${C.border}`,
                                             display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer',
@@ -2453,7 +2544,15 @@ export default function SocialMediaPage() {
                             {/* Render posts with Reels carousel inserted after every 3 posts */}
                             {posts.map((p, index) => (
                                 <>
-                                    <PostCard key={p.id} post={{ ...p, isGodMode }} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />
+                                    <PostCard
+                                        key={p.id}
+                                        post={{ ...p, isGodMode }}
+                                        currentUserId={user?.id}
+                                        currentUserName={user?.name}
+                                        onLike={handleLike}
+                                        onDelete={handleDelete}
+                                        onOpenArticle={(url) => setArticleReader({ open: true, url, title: p.link_title || null })}
+                                    />
                                     {/* Insert Reels carousel after 3rd post */}
                                     {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
                                 </>
@@ -2586,6 +2685,15 @@ export default function SocialMediaPage() {
                     />
                 )}
             </div>
+
+            {/* In-App Article Reader Modal */}
+            {articleReader.open && (
+                <ArticleReaderModal
+                    url={articleReader.url}
+                    title={articleReader.title}
+                    onClose={() => setArticleReader({ open: false, url: null, title: null })}
+                />
+            )}
         </PageTransition>
     );
 }

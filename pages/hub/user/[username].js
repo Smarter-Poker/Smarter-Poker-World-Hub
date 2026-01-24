@@ -14,6 +14,7 @@ import { supabase } from '../../../src/lib/supabase';
 // Components
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import ArticleCard from '../../../src/components/social/ArticleCard';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -91,36 +92,45 @@ function FriendAvatar({ friend, currentUserFriends = [] }) {
     );
 }
 
-// Poker Resume Badge
-function PokerResumeBadge({ hendonData }) {
-    if (!hendonData?.hendon_url) return null;
-    const hasData = hendonData.hendon_total_cashes || hendonData.hendon_total_earnings;
+// Poker Resume Badge - Always shows, with placeholder if no HendonMob linked
+function PokerResumeBadge({ hendonData, isOwnProfile = false }) {
+    const hasHendon = hendonData?.hendon_url;
+    const hasData = hendonData?.hendon_total_cashes || hendonData?.hendon_total_earnings;
 
     return (
         <div style={{
-            background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d0d2e 100%)',
-            borderRadius: 12, padding: 20, color: 'white', marginTop: 16,
-            border: '1px solid rgba(255, 215, 0, 0.3)',
+            background: hasHendon
+                ? 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d0d2e 100%)'
+                : 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)',
+            borderRadius: 12, padding: 20, color: 'white', marginBottom: 16,
+            border: hasHendon ? '1px solid rgba(255, 215, 0, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
         }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{
                         width: 40, height: 40, borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                        background: hasHendon ? 'linear-gradient(135deg, #FFD700, #FFA500)' : 'rgba(255,255,255,0.1)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20
-                    }}>🏆</div>
+                    }}>{hasHendon ? '🏆' : '🎯'}</div>
                     <div>
                         <div style={{ fontWeight: 700, fontSize: 16 }}>POKER RESUME</div>
                         <div style={{ fontSize: 11, opacity: 0.6 }}>Tournament Career Statistics</div>
                     </div>
                 </div>
-                <div style={{
-                    background: 'rgba(255, 215, 0, 0.15)', border: '1px solid rgba(255, 215, 0, 0.4)',
-                    padding: '3px 10px', borderRadius: 16, fontSize: 10, fontWeight: 600, color: C.gold
-                }}>✓ VERIFIED</div>
+                {hasHendon ? (
+                    <div style={{
+                        background: 'rgba(255, 215, 0, 0.15)', border: '1px solid rgba(255, 215, 0, 0.4)',
+                        padding: '3px 10px', borderRadius: 16, fontSize: 10, fontWeight: 600, color: C.gold
+                    }}>✓ VERIFIED</div>
+                ) : (
+                    <div style={{
+                        background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)',
+                        padding: '3px 10px', borderRadius: 16, fontSize: 10, fontWeight: 600, color: '#888'
+                    }}>NOT LINKED</div>
+                )}
             </div>
-            {hasData ? (
+            {hasHendon && hasData ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                     <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
                         <div style={{ fontSize: 24, fontWeight: 800, color: C.gold }}>{hendonData.hendon_total_cashes?.toLocaleString() || '—'}</div>
@@ -135,10 +145,20 @@ function PokerResumeBadge({ hendonData }) {
                         <div style={{ fontSize: 10, opacity: 0.6, textTransform: 'uppercase' }}>Best Finish</div>
                     </div>
                 </div>
-            ) : (
+            ) : hasHendon ? (
                 <div style={{ textAlign: 'center', padding: 16, opacity: 0.6 }}>Stats pending sync...</div>
+            ) : (
+                <div style={{ textAlign: 'center', padding: 20 }}>
+                    <div style={{ fontSize: 14, color: '#888', marginBottom: 8 }}>Resume not added yet</div>
+                    <div style={{ fontSize: 12, opacity: 0.5 }}>
+                        {isOwnProfile
+                            ? 'Link your HendonMob profile in settings to display your tournament stats'
+                            : 'This player hasn\'t linked their HendonMob profile yet'
+                        }
+                    </div>
+                </div>
             )}
-            {hendonData.hendon_url && (
+            {hendonData?.hendon_url && (
                 <a href={hendonData.hendon_url} target="_blank" rel="noopener noreferrer"
                     style={{ display: 'block', textAlign: 'center', marginTop: 12, color: C.gold, fontSize: 12, textDecoration: 'none' }}>
                     View Full Resume on HendonMob →
@@ -150,6 +170,8 @@ function PokerResumeBadge({ hendonData }) {
 
 // Post Card Component
 function PostCard({ post, author }) {
+    const isArticleOrLink = post.content_type === 'article' || post.content_type === 'link';
+
     return (
         <div style={{ background: C.card, borderRadius: 12, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             <div style={{ padding: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -162,7 +184,20 @@ function PostCard({ post, author }) {
             {post.content && (
                 <div style={{ padding: '0 12px 12px', fontSize: 15, color: C.text, lineHeight: 1.4 }}>{post.content}</div>
             )}
-            {post.media_urls?.length > 0 && (
+            {isArticleOrLink ? (
+                // Use centralized ArticleCard for article/link posts
+                <ArticleCard
+                    url={post.link_url || (() => {
+                        const match = post.content?.match(/https?:\/\/[^\s"'<>]+/);
+                        return match ? match[0] : null;
+                    })()}
+                    title={post.link_title}
+                    description={post.link_description}
+                    image={post.link_image || post.media_urls?.[0]}
+                    siteName={post.link_site_name}
+                    fallbackContent={post.content}
+                />
+            ) : post.media_urls?.length > 0 && (
                 <div>
                     {post.media_urls.length === 1 ? (
                         post.content_type === 'video' ? (
@@ -209,6 +244,7 @@ export default function UserProfilePage() {
     const [currentUserFriends, setCurrentUserFriends] = useState([]);
     const [posts, setPosts] = useState([]);
     const [photos, setPhotos] = useState([]);
+    const [videos, setVideos] = useState([]);
     const [reels, setReels] = useState([]);
 
     // Tab state
@@ -313,16 +349,35 @@ export default function UserProfilePage() {
                     .limit(20);
                 if (userPosts) setPosts(userPosts);
 
-                // Fetch photos (posts with media)
+                // Fetch photos (posts with image media)
                 const { data: userPhotos } = await supabase
                     .from('social_posts')
-                    .select('id, media_urls, content, created_at')
+                    .select('id, media_urls, content, created_at, content_type')
                     .eq('author_id', data.id)
-                    .eq('content_type', 'image')
+                    .not('media_urls', 'is', null)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+                // Filter to only posts with image URLs (not videos)
+                if (userPhotos) {
+                    const photoList = userPhotos.filter(p =>
+                        p.content_type === 'image' ||
+                        (p.media_urls && p.media_urls.some(url =>
+                            url && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp') || !url.includes('video'))
+                        ))
+                    );
+                    setPhotos(photoList);
+                }
+
+                // Fetch video posts
+                const { data: userVideos } = await supabase
+                    .from('social_posts')
+                    .select('id, media_urls, content, created_at, content_type')
+                    .eq('author_id', data.id)
+                    .eq('content_type', 'video')
                     .not('media_urls', 'is', null)
                     .order('created_at', { ascending: false })
                     .limit(30);
-                if (userPhotos) setPhotos(userPhotos);
+                if (userVideos) setVideos(userVideos);
 
                 // Fetch reels
                 const { data: userReels } = await supabase
@@ -503,12 +558,12 @@ export default function UserProfilePage() {
                     </div>
                 </div>
 
-                {/* TABS - All | Photos | Reels */}
+                {/* TABS - All | Photos | Videos | Reels */}
                 <div style={{
                     display: 'flex', borderBottom: `1px solid ${C.border}`,
                     marginTop: 16, background: C.card, padding: '0 16px'
                 }}>
-                    {['all', 'photos', 'reels'].map(tab => (
+                    {['all', 'photos', 'videos', 'reels'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -528,6 +583,9 @@ export default function UserProfilePage() {
                     {/* ALL TAB */}
                     {activeTab === 'all' && (
                         <>
+                            {/* Poker Resume - At Top */}
+                            <PokerResumeBadge hendonData={profile} isOwnProfile={isOwnProfile} />
+
                             {/* Personal Details Card */}
                             <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                                 <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Personal details</h3>
@@ -589,9 +647,6 @@ export default function UserProfilePage() {
                                 </div>
                             )}
 
-                            {/* Poker Resume */}
-                            <PokerResumeBadge hendonData={profile} />
-
                             {/* All Posts Section */}
                             <div style={{ marginTop: 16 }}>
                                 <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>All posts</h3>
@@ -644,6 +699,33 @@ export default function UserProfilePage() {
                                 <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
                                     <div style={{ fontSize: 32, marginBottom: 12 }}>📷</div>
                                     <p>No photos yet</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* VIDEOS TAB */}
+                    {activeTab === 'videos' && (
+                        <div>
+                            <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Videos</h3>
+                            {videos.length > 0 ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                                    {videos.map(video => (
+                                        video.media_urls?.map((url, i) => (
+                                            <div key={`${video.id}-${i}`} style={{ aspectRatio: '16/9', overflow: 'hidden', borderRadius: 8, background: '#000' }}>
+                                                <video
+                                                    src={url}
+                                                    controls
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                            </div>
+                                        ))
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
+                                    <div style={{ fontSize: 32, marginBottom: 12 }}>🎥</div>
+                                    <p>No videos yet</p>
                                 </div>
                             )}
                         </div>

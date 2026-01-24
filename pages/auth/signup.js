@@ -72,6 +72,15 @@ export default function SignUpPage() {
     const [verificationCode, setVerificationCode] = useState('');
     const [verifying, setVerifying] = useState(false);
 
+    // SMS Phone Verification State
+    const [phoneVerified, setPhoneVerified] = useState(false);
+    const [phoneSendingOtp, setPhoneSendingOtp] = useState(false);
+    const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+    const [phoneOtp, setPhoneOtp] = useState('');
+    const [phoneVerifying, setPhoneVerifying] = useState(false);
+    const [phoneError, setPhoneError] = useState('');
+    const [phoneOtpCooldown, setPhoneOtpCooldown] = useState(0);
+
     // Animated glow effect
     useEffect(() => {
         let frame;
@@ -85,11 +94,18 @@ export default function SignUpPage() {
         return () => cancelAnimationFrame(frame);
     }, []);
 
-    // Check alias availability with debounce
+    // Check alias availability with debounce (3-20 characters allowed)
     useEffect(() => {
+        // Must be 3-20 characters
         if (formData.pokerAlias.length < 3) {
             setAliasAvailable(null);
             setAliasError('');
+            return;
+        }
+
+        if (formData.pokerAlias.length > 20) {
+            setAliasAvailable(false);
+            setAliasError('Alias must be 20 characters or less');
             return;
         }
 
@@ -132,6 +148,93 @@ export default function SignUpPage() {
         return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
     };
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // SMS PHONE VERIFICATION FUNCTIONS
+    // ─────────────────────────────────────────────────────────────────────────
+    const sendPhoneOtp = async () => {
+        const cleanPhone = formData.phone.replace(/\D/g, '');
+        if (cleanPhone.length !== 10) {
+            setPhoneError('Please enter a valid 10-digit phone number');
+            return;
+        }
+
+        setPhoneSendingOtp(true);
+        setPhoneError('');
+
+        try {
+            const res = await fetch('/api/sms/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: cleanPhone }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Failed to send code');
+            }
+
+            setPhoneOtpSent(true);
+            // Start 60-second cooldown
+            setPhoneOtpCooldown(60);
+            const interval = setInterval(() => {
+                setPhoneOtpCooldown(prev => {
+                    if (prev <= 1) {
+                        clearInterval(interval);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        } catch (err) {
+            setPhoneError(err.message);
+        } finally {
+            setPhoneSendingOtp(false);
+        }
+    };
+
+    const verifyPhoneOtp = async () => {
+        if (phoneOtp.length !== 6) {
+            setPhoneError('Please enter the 6-digit code');
+            return;
+        }
+
+        setPhoneVerifying(true);
+        setPhoneError('');
+
+        try {
+            const cleanPhone = formData.phone.replace(/\D/g, '');
+            const res = await fetch('/api/sms/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: cleanPhone, code: phoneOtp }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Verification failed');
+            }
+
+            setPhoneVerified(true);
+            setPhoneError('');
+        } catch (err) {
+            setPhoneError(err.message);
+        } finally {
+            setPhoneVerifying(false);
+        }
+    };
+
+    // Reset phone verification if phone number changes
+    useEffect(() => {
+        if (phoneVerified || phoneOtpSent) {
+            setPhoneVerified(false);
+            setPhoneOtpSent(false);
+            setPhoneOtp('');
+            setPhoneError('');
+        }
+    }, [formData.phone]);
+
     // Validate email format
     const isValidEmail = (email) => {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -152,6 +255,11 @@ export default function SignUpPage() {
 
         if (formData.pokerAlias.length < 3) {
             setError('Poker alias must be at least 3 characters');
+            return;
+        }
+
+        if (formData.pokerAlias.length > 20) {
+            setError('Poker alias must be 20 characters or less');
             return;
         }
 
@@ -247,6 +355,18 @@ export default function SignUpPage() {
                 } catch (rpcErr) {
                     // Fallback to direct insert
                     console.log('Fallback: Direct profile insert');
+
+                    // Get the next player number (max + 1)
+                    const { data: maxData } = await supabase
+                        .from('profiles')
+                        .select('player_number')
+                        .order('player_number', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    const nextPlayerNumber = (maxData?.player_number || 1254) + 1;
+                    console.log('Assigning player number:', nextPlayerNumber);
+
                     const { error: insertError } = await supabase
                         .from('profiles')
                         .upsert({
@@ -257,6 +377,7 @@ export default function SignUpPage() {
                             city: formData.city,
                             state: formData.state,
                             username: formData.pokerAlias,
+                            player_number: nextPlayerNumber, // Auto-assign next player number
                             xp_total: 100, // Starting XP bonus
                             diamonds: 300, // Starting diamonds bonus (NO PURCHASE NECESSARY)
                             diamond_multiplier: 1.0,
@@ -274,16 +395,8 @@ export default function SignUpPage() {
                         console.error('Profile insert error:', insertError);
                     }
 
-                    // Try to get player number
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('player_number')
-                        .eq('id', authData.user.id)
-                        .single();
-
-                    if (profile?.player_number) {
-                        setAssignedPlayerNumber(profile.player_number);
-                    }
+                    // Set the assigned player number
+                    setAssignedPlayerNumber(nextPlayerNumber);
                 }
             }
 
@@ -596,21 +709,98 @@ export default function SignUpPage() {
                                 )}
                             </div>
 
-                            {/* Phone Number */}
+                            {/* Phone Number with SMS Verification */}
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Phone Number</label>
-                                <div style={styles.phoneInput}>
-                                    <span style={styles.phonePrefix}>+1</span>
-                                    <input
-                                        type="tel"
-                                        value={formatPhone(formData.phone)}
-                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                        placeholder="(555) 123-4567"
-                                        style={styles.input}
-                                        maxLength={14}
-                                        required
-                                    />
+                                <label style={styles.label}>
+                                    Phone Number
+                                    {phoneVerified && <span style={{ color: '#00ff66', marginLeft: '8px' }}>✓ Verified</span>}
+                                </label>
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                    <div style={{ ...styles.phoneInput, flex: 1 }}>
+                                        <span style={styles.phonePrefix}>+1</span>
+                                        <input
+                                            type="tel"
+                                            value={formatPhone(formData.phone)}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            placeholder="(555) 123-4567"
+                                            style={{
+                                                ...styles.input,
+                                                borderColor: phoneVerified ? '#00ff66' : 'rgba(0, 212, 255, 0.3)',
+                                            }}
+                                            maxLength={14}
+                                            required
+                                            disabled={phoneVerified}
+                                        />
+                                    </div>
+                                    {!phoneVerified && (
+                                        <button
+                                            type="button"
+                                            onClick={sendPhoneOtp}
+                                            disabled={phoneSendingOtp || phoneOtpCooldown > 0 || formData.phone.replace(/\D/g, '').length !== 10}
+                                            style={{
+                                                padding: '12px 16px',
+                                                background: phoneOtpCooldown > 0 ? 'rgba(100, 100, 100, 0.5)' : 'linear-gradient(135deg, #00d4ff, #0099cc)',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                color: '#fff',
+                                                fontWeight: '600',
+                                                fontSize: '13px',
+                                                cursor: phoneSendingOtp || phoneOtpCooldown > 0 ? 'not-allowed' : 'pointer',
+                                                whiteSpace: 'nowrap',
+                                                opacity: formData.phone.replace(/\D/g, '').length !== 10 ? 0.5 : 1,
+                                            }}
+                                        >
+                                            {phoneSendingOtp ? 'Sending...' : phoneOtpCooldown > 0 ? `Resend (${phoneOtpCooldown}s)` : phoneOtpSent ? 'Resend Code' : 'Send Code'}
+                                        </button>
+                                    )}
                                 </div>
+
+                                {/* OTP Input - appears after sending code */}
+                                {phoneOtpSent && !phoneVerified && (
+                                    <div style={{ marginTop: '12px' }}>
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                            <input
+                                                type="text"
+                                                value={phoneOtp}
+                                                onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                placeholder="Enter 6-digit code"
+                                                style={{
+                                                    ...styles.inputSingle,
+                                                    flex: 1,
+                                                    letterSpacing: '4px',
+                                                    textAlign: 'center',
+                                                    fontSize: '18px',
+                                                }}
+                                                maxLength={6}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={verifyPhoneOtp}
+                                                disabled={phoneVerifying || phoneOtp.length !== 6}
+                                                style={{
+                                                    padding: '12px 20px',
+                                                    background: phoneOtp.length === 6 ? 'linear-gradient(135deg, #00ff66, #00cc52)' : 'rgba(100, 100, 100, 0.5)',
+                                                    border: 'none',
+                                                    borderRadius: '8px',
+                                                    color: '#fff',
+                                                    fontWeight: '600',
+                                                    fontSize: '13px',
+                                                    cursor: phoneOtp.length === 6 ? 'pointer' : 'not-allowed',
+                                                }}
+                                            >
+                                                {phoneVerifying ? 'Verifying...' : 'Verify'}
+                                            </button>
+                                        </div>
+                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '8px' }}>
+                                            Check your phone for the verification code from Smarter.Poker
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Phone Error Message */}
+                                {phoneError && (
+                                    <span style={{ color: '#ff4d4d', fontSize: '12px', marginTop: '6px', display: 'block' }}>{phoneError}</span>
+                                )}
                             </div>
 
                             {/* RESTRICTED STATE NOTICE */}
@@ -648,9 +838,9 @@ export default function SignUpPage() {
                                 type="submit"
                                 style={{
                                     ...styles.submitButton,
-                                    opacity: loading || aliasAvailable === false || !ageConfirmed ? 0.7 : 1,
+                                    opacity: loading || aliasAvailable === false || !ageConfirmed || !phoneVerified ? 0.7 : 1,
                                 }}
-                                disabled={loading || aliasAvailable === false || !ageConfirmed}
+                                disabled={loading || aliasAvailable === false || !ageConfirmed || !phoneVerified}
                             >
                                 {loading ? 'Creating Account...' : 'Create Account'}
                             </button>

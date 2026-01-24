@@ -1,7 +1,27 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   LIVE STREAM SERVICE — WebRTC Peer-to-Peer Streaming
-   Handles broadcaster and viewer connections with Supabase signaling
-   ═══════════════════════════════════════════════════════════════════════════ */
+/**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  🚨 PROTECTED FILE - DO NOT MODIFY WITHOUT TESTING 🚨                     ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  WORKFLOW: /social-feed-protection                                       ║
+ * ║  REGISTRY: .agent/PROTECTED_FILES.md                                     ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  LIVE STREAM SERVICE — WebRTC Peer-to-Peer Streaming                     ║
+ * ║  Handles broadcaster and viewer connections with Supabase signaling       ║
+ * ║                                                                           ║
+ * ║  CRITICAL FUNCTIONALITY:                                                  ║
+ * ║  - startBroadcast() → Creates stream, subscribes to signaling            ║
+ * ║  - endBroadcast() → Ends stream, closes peer connections                 ║
+ * ║  - joinStream() → Viewer joins, creates WebRTC offer                     ║
+ * ║  - leaveStream() → Viewer leaves, cleanup                                ║
+ * ║  - WebRTC signaling via Supabase realtime                                ║
+ * ║                                                                           ║
+ * ║  DO NOT BREAK:                                                            ║
+ * ║  - ICE_SERVERS configuration                                             ║
+ * ║  - peerConnections Map                                                   ║
+ * ║  - signaling channel subscription                                         ║
+ * ║  - Stream status updates (live → ended)                                  ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
 
 import { supabase } from '../lib/supabase';
 

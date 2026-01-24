@@ -1,7 +1,28 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   GO LIVE MODAL — Facebook/TikTok-style Live Streaming Interface
-   Camera preview, stream settings, broadcast controls, and recording
-   ═══════════════════════════════════════════════════════════════════════════ */
+/**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  🚨 PROTECTED FILE - DO NOT MODIFY WITHOUT TESTING 🚨                     ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  WORKFLOW: /social-feed-protection                                       ║
+ * ║  REGISTRY: .agent/PROTECTED_FILES.md                                     ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  GO LIVE MODAL — Facebook/TikTok-style Live Streaming Interface          ║
+ * ║                                                                           ║
+ * ║  FUNCTIONALITY:                                                           ║
+ * ║  - Camera/microphone permission handling                                  ║
+ * ║  - Live video preview before broadcast                                    ║
+ * ║  - MediaRecorder for recording streams                                    ║
+ * ║  - Integration with LiveStreamService                                     ║
+ * ║  - EndStreamModal for post-stream options                                 ║
+ * ║                                                                           ║
+ * ║  STAGES: setup → preview → live → ended                                  ║
+ * ║                                                                           ║
+ * ║  DO NOT BREAK:                                                            ║
+ * ║  - videoRef binding to camera stream                                     ║
+ * ║  - mediaRecorderRef for recording                                        ║
+ * ║  - liveStreamService integration                                          ║
+ * ║  - Stage transitions (preview → live → ended)                            ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
 
 import { useState, useRef, useEffect } from 'react';
 import { liveStreamService } from '../../services/LiveStreamService';

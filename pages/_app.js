@@ -17,8 +17,8 @@ import { UnreadProvider } from '../src/hooks/useUnreadCount';
 import { SoundEngine } from '../src/audio/SoundEngine';
 import { AvatarProvider } from '../src/contexts/AvatarContext';
 import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
+import { OneSignalProvider } from '../src/contexts/OneSignalContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
-import { PushNotificationProvider } from '../src/components/captain/shared/PushNotificationProvider';
 
 // Dynamic import to avoid SSR issues with celebration animations
 const CelebrationManager = dynamic(
@@ -193,13 +193,13 @@ export default function App({ Component, pageProps }) {
         <UnreadProvider>
           <AvatarProvider>
             <ExternalLinkProvider>
-              <NavigationGuard>
-                <PushNotificationProvider>
+              <OneSignalProvider>
+                <NavigationGuard>
                   <Component {...pageProps} />
                   <CelebrationManager />
                   <ToastContainer />
-                </PushNotificationProvider>
-              </NavigationGuard>
+                </NavigationGuard>
+              </OneSignalProvider>
             </ExternalLinkProvider>
           </AvatarProvider>
         </UnreadProvider>

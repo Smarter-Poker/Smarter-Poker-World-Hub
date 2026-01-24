@@ -20,6 +20,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
+import PushNotificationBell from '../notifications/PushNotificationBell';
 
 // Dark theme colors matching hub
 const C = {
@@ -331,6 +332,9 @@ export default function UniversalHeader({
 
                 {/* Notifications */}
                 <OrbButton href="/hub/notifications" icon="🔔" badge={notificationCount} />
+
+                {/* Push Notification Bell */}
+                <PushNotificationBell />
 
                 {/* Search */}
                 {showSearch && (
