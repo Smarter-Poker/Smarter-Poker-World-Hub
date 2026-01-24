@@ -476,12 +476,19 @@ export default async function handler(req, res) {
             });
         }
 
-        // FILTER: All active horses can post - 24/7 operation
-        // Previously filtered by slot time and sleep schedule, now simplified for constant activity
-        const activeHorses = allHorses.filter(horse => horse.profile_id);
+        // FILTER: Only horses who are "awake" during their 12-hour active window
+        // Each horse has a unique sleep schedule based on their profile_id hash
+        const activeHorses = allHorses.filter(horse => {
+            if (!horse.profile_id) return false;
+            const isAwake = isHorseActiveHour(horse.profile_id, currentHour);
+            if (!isAwake) {
+                console.log(`   💤 ${horse.name} is sleeping (not in active hours)`);
+            }
+            return isAwake;
+        });
 
         console.log(`⏰ Minute ${currentMinute}, Hour ${currentHour}`);
-        console.log(`🐴 Active horses this slot: ${activeHorses.length}/${allHorses.length}`);
+        console.log(`🐴 Awake horses this hour: ${activeHorses.length}/${allHorses.length}`);
 
         if (activeHorses.length === 0) {
             return res.status(200).json({
