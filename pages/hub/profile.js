@@ -78,10 +78,14 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
                     value={value || ''}
                     onChange={e => onChange(e.target.value)}
                     placeholder={placeholder}
+                    spellCheck={false}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
                     style={{
                         width: '100%', padding: 12, borderRadius: 8, border: `1px solid ${C.border}`,
                         fontSize: 15, resize: 'vertical', minHeight: 80, boxSizing: 'border-box',
-                        fontFamily: 'inherit'
+                        fontFamily: 'inherit', color: '#000000', background: '#ffffff'
                     }}
                 />
             ) : (
@@ -90,9 +94,13 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
                     value={value || ''}
                     onChange={e => onChange(e.target.value)}
                     placeholder={placeholder}
+                    spellCheck={false}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
                     style={{
                         width: '100%', padding: 12, borderRadius: 8, border: `1px solid ${C.border}`,
-                        fontSize: 15, boxSizing: 'border-box'
+                        fontSize: 15, boxSizing: 'border-box', color: '#000000', background: '#ffffff'
                     }}
                 />
             )}
@@ -242,6 +250,9 @@ export default function ProfilePage() {
     const isRefreshing = useProfileStore((s) => s.isRefreshing);
     const setIsRefreshing = useProfileStore((s) => s.setIsRefreshing);
 
+    // Ref for cover photo upload
+    const coverPhotoRef = useRef(null);
+
     // Local state (keep for data/session)
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -265,6 +276,7 @@ export default function ProfilePage() {
         home_casino: '',
         birth_year: '',
         avatar_url: '',
+        cover_photo_url: '', // Cover photo for profile
         card_back_preference: 'white', // Default to white deck
         // HendonMob scraped data
         hendon_total_cashes: null,
@@ -408,6 +420,43 @@ export default function ProfilePage() {
         }
     };
 
+    const handleCoverPhotoUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+
+        setMessage('Uploading cover photo...');
+
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${user.id}/cover.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, file, { upsert: true });
+
+        if (uploadError) {
+            setMessage('Error uploading cover photo: ' + uploadError.message);
+            console.error('Upload error:', uploadError);
+            return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+
+        // Auto-save to database immediately
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ cover_photo_url: publicUrl, updated_at: new Date().toISOString() })
+            .eq('id', user.id);
+
+        if (updateError) {
+            setMessage('Error saving cover photo: ' + updateError.message);
+            console.error('Save error:', updateError);
+            return;
+        }
+
+        setProfile(prev => ({ ...prev, cover_photo_url: publicUrl }));
+        setMessage('✓ Cover photo saved!');
+    };
+
     const handleSave = async () => {
         if (!user) return;
         setSaving(true);
@@ -433,6 +482,7 @@ export default function ProfilePage() {
                 home_casino: profile.home_casino,
                 birth_year: profile.birth_year,
                 avatar_url: profile.avatar_url,
+                cover_photo_url: profile.cover_photo_url,
                 card_back_preference: profile.card_back_preference,
                 updated_at: new Date().toISOString(),
             })
@@ -495,33 +545,63 @@ export default function ProfilePage() {
                 {/* Header - Universal Header with Back navigation (nested page) */}
                 <UniversalHeader pageDepth={2} />
 
-                {/* Cover Photo Area */}
-                <div style={{
-                    height: 200,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    position: 'relative'
-                }}>
+                {/* Cover Photo Area - Clickable to upload */}
+                <div
+                    onClick={() => coverPhotoRef.current?.click()}
+                    style={{
+                        height: 200,
+                        background: profile.cover_photo_url
+                            ? `url(${profile.cover_photo_url}) center/cover no-repeat`
+                            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        position: 'relative',
+                        cursor: 'pointer'
+                    }}
+                >
+                    <input
+                        ref={coverPhotoRef}
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={handleCoverPhotoUpload}
+                    />
+                    {/* Camera icon overlay for cover photo */}
+                    <div style={{
+                        position: 'absolute',
+                        bottom: 12,
+                        right: 12,
+                        background: 'rgba(0,0,0,0.6)',
+                        color: 'white',
+                        padding: '8px 16px',
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6
+                    }}>
+                        📷 {profile.cover_photo_url ? 'Change Cover' : 'Add Cover Photo'}
+                    </div>
                     <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)' }}>
-                        <Avatar src={avatar?.imageUrl || profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
+                        <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
                         <button
-                            onClick={() => router.push('/hub/avatars')}
+                            onClick={(e) => { e.stopPropagation(); router.push('/hub/avatars'); }}
                             style={{
                                 position: 'absolute', bottom: -8, left: -8, background: 'linear-gradient(135deg, #00f5ff, #0099ff)', color: '#0a0e27',
                                 border: 'none', borderRadius: 20, padding: '6px 12px', fontSize: 11,
                                 fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,245,255,0.4)'
                             }}
                         >
-                            🎨 Avatar
+                            Avatar
                         </button>
                         <button
-                            onClick={() => setLibraryOpen(true)}
+                            onClick={(e) => { e.stopPropagation(); setLibraryOpen(true); }}
                             style={{
                                 position: 'absolute', bottom: -8, right: -8, background: C.blue, color: 'white',
                                 border: 'none', borderRadius: 20, padding: '6px 12px', fontSize: 11,
                                 fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                             }}
                         >
-                            📸 Library
+                            Library
                         </button>
                     </div>
                 </div>

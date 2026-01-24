@@ -124,48 +124,36 @@ function ArenaHeader({ diamonds = 0, xp = 0, level = 1, onBack, onSettings }) {
     );
 }
 
-// Draggable Player Seat Component - Avatar and Badge can be dragged independently
-// seatIndex is used to set unique z-index: lower seats rendered first, badges always on top
+// Draggable Player Seat - Avatar and Badge are ONE unified element
+// They move together as a single unit, not separately
 function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initialPosition, isHero = false, onPositionChange, devMode = false, onDelete }) {
-    const size = 109; // Avatar display size (circular bust image)
+    const AVATAR_SIZE = 100; // Standardized size for ALL avatars
 
-    const avatarInitial = initialPosition?.avatarOffset || { x: 0, y: 0 };
-    const [avatarPos, setAvatarPos] = useState(avatarInitial);
-
-    // Badge positioned below the circular avatar, centered
-    // Badge offset: centered horizontally under avatar, just below avatar bottom
-    const badgeRelativeOffset = { x: 5, y: size - 5 }; // Position badge at bottom of avatar
-
-    const [dragging, setDragging] = useState(null);
+    const posInitial = initialPosition?.avatarOffset || { x: 0, y: 0 };
+    const [pos, setPos] = useState(posInitial);
+    const [dragging, setDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-    const handleMouseDown = (e, type) => {
+    const handleMouseDown = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        // Only avatar is draggable - badge follows avatar automatically
-        if (type === 'avatar') {
-            setDragging('avatar');
-            setDragStart({ x: e.clientX - avatarPos.x, y: e.clientY - avatarPos.y });
-        }
+        setDragging(true);
+        setDragStart({ x: e.clientX - pos.x, y: e.clientY - pos.y });
     };
 
     const handleMouseMove = (e) => {
         if (!dragging) return;
-        const newX = e.clientX - dragStart.x;
-        const newY = e.clientY - dragStart.y;
-        setAvatarPos({ x: newX, y: newY });
+        setPos({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
     };
 
     const handleMouseUp = () => {
         if (dragging) {
-            // Log position for locking later
-            console.log(`🎯 ${seatId} POSITION:`, { avatar: avatarPos });
-            // Report to parent for export
+            console.log(`🎯 ${seatId} POSITION:`, pos);
             if (onPositionChange) {
-                onPositionChange(`${seatId}-avatar`, avatarPos);
+                onPositionChange(`${seatId}-avatar`, pos);
             }
         }
-        setDragging(null);
+        setDragging(false);
     };
 
     useEffect(() => {
@@ -179,58 +167,38 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
         }
     }, [dragging, dragStart]);
 
-    // Compute badge position relative to avatar (pre-attached badge in image)
-    const badgePos = {
-        x: avatarPos.x + badgeRelativeOffset.x,
-        y: avatarPos.y + badgeRelativeOffset.y
-    };
-
     return (
-        <div className="player-seat" style={{
-            position: 'absolute',
-            zIndex: dragging ? 99999 : (100 + seatIndex),
-            pointerEvents: 'none', // Container doesn't capture clicks
-            overflow: 'visible',
-            width: '1px', // Minimal container size
-            height: '1px',
-            ...initialPosition
-        }}>
-            {/* Avatar - Draggable via transform */}
+        <div
+            className="player-seat-unified"
+            onMouseDown={handleMouseDown}
+            style={{
+                position: 'absolute',
+                zIndex: dragging ? 99999 : (100 + seatIndex),
+                cursor: dragging ? 'grabbing' : 'grab',
+                transform: `translate(${pos.x}px, ${pos.y}px)`,
+                userSelect: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                ...initialPosition
+            }}
+        >
+            {/* Avatar Image */}
             <img
                 src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=256&q=90`}
                 alt={name}
-                onMouseDown={(e) => handleMouseDown(e, 'avatar')}
+                draggable={false}
                 style={{
-                    width: `${size}px`,
-                    height: `${size}px`,
-                    minWidth: `${size}px`,
-                    minHeight: `${size}px`,
-                    maxWidth: `${size}px`,
-                    maxHeight: `${size}px`,
-                    objectFit: 'contain',
+                    width: AVATAR_SIZE,
+                    height: AVATAR_SIZE,
+                    objectFit: 'cover',
+                    borderRadius: '50%',
                     filter: 'drop-shadow(2px 3px 6px rgba(0,0,0,0.9))',
-                    cursor: dragging === 'avatar' ? 'grabbing' : 'grab',
-                    transform: `translate(${avatarPos.x}px, ${avatarPos.y}px)`,
-                    zIndex: dragging === 'avatar' ? 99999 : 100,
-                    userSelect: 'none',
-                    pointerEvents: 'all', // Only avatar captures clicks
-                    flexShrink: 0,
-                    position: 'relative',
-                }}
-            />
-            {/* Badge with gold border and black background */}
-            <div
-                className="player-badge"
-                style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    transform: `translate(${badgePos.x}px, ${badgePos.y}px)`,
-                    zIndex: 50000,
-                    userSelect: 'none',
                     pointerEvents: 'none',
                 }}
-            >
+            />
+            {/* Badge - Attached directly below avatar */}
+            <div className="player-badge" style={{ marginTop: -8, pointerEvents: 'none' }}>
                 <span className="player-name">{name}</span>
                 <span className="player-stack">{stack} BB</span>
             </div>
@@ -240,21 +208,20 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
                     onClick={(e) => { e.stopPropagation(); onDelete(seatId); }}
                     style={{
                         position: 'absolute',
-                        top: avatarPos.y - 10,
-                        left: avatarPos.x + size - 15,
-                        width: 24,
-                        height: 24,
+                        top: -8,
+                        right: -8,
+                        width: 22,
+                        height: 22,
                         borderRadius: '50%',
                         background: '#dc2626',
                         border: '2px solid #fff',
                         color: '#fff',
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: 'bold',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        pointerEvents: 'all',
                         zIndex: 999999,
                         boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
                     }}
