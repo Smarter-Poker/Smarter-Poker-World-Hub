@@ -33,18 +33,40 @@ const CONFIG = {
 
 // Top poker YouTube channels with their channel handles/IDs
 const POKER_CHANNELS = [
+    // Major Poker Media
     { name: 'PokerGO', handle: '@PokerGO' },
-    { name: 'Doug Polk Poker', handle: '@DougPolkVlogs' },
-    { name: 'Jonathan Little', handle: '@JonathanLittlePoker' },
-    { name: 'Upswing Poker', handle: '@UpswingPoker' },
-    { name: 'Daniel Negreanu', handle: '@DNegs' },
     { name: 'WSOP', handle: '@WSOP' },
     { name: 'PokerStars', handle: '@PokerStars' },
-    { name: 'Hustler Casino Live', handle: '@HustlerCasinoLive' },
-    { name: 'Poker Bunny', handle: '@pokerbunny' },
+    { name: 'WPT', handle: '@WPT' },
+    { name: 'PokerNews', handle: '@PokerNews' },
+    { name: '888poker', handle: '@888aborrajartista' },
+
+    // Popular Vloggers & Pros
+    { name: 'Doug Polk Poker', handle: '@DougPolkVlogs' },
     { name: 'Brad Owen', handle: '@TheBradOwenShow' },
+    { name: 'Andrew Neeme', handle: '@AndrewNeeme' },
+    { name: 'Rampage Poker', handle: '@RampagePoker' },
     { name: 'Mariano', handle: '@maraborern' },
-    { name: 'Rampage Poker', handle: '@RampagePoker' }
+    { name: 'Wolfgang Poker', handle: '@WolfgangPoker' },
+    { name: 'Jaman Burton', handle: '@JamanBurton' },
+
+    // Training & Strategy
+    { name: 'Jonathan Little', handle: '@JonathanLittlePoker' },
+    { name: 'Upswing Poker', handle: '@UpswingPoker' },
+    { name: 'PokerCoaching', handle: '@pokercoaching' },
+    { name: 'Solve For Why', handle: '@SolveForWhyAcademy' },
+    { name: 'Run It Once', handle: '@RunItOnce' },
+
+    // High Stakes & Live
+    { name: 'Hustler Casino Live', handle: '@HustlerCasinoLive' },
+    { name: 'Live at the Bike', handle: '@liveatthebike' },
+    { name: 'Poker Bunny', handle: '@pokerbunny' },
+
+    // Pro Players
+    { name: 'Daniel Negreanu', handle: '@DNegs' },
+    { name: 'Phil Hellmuth', handle: '@PhilHellmuth' },
+    { name: 'Lex Veldhuis', handle: '@LexVeldhuis' },
+    { name: 'Matt Berkey', handle: '@SolvingPokerLive' }
 ];
 
 async function delay(ms) {
