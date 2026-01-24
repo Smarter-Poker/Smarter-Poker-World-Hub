@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import { useLeaks, useAssistantStats } from '../../../src/hooks/useAssistant';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MOCK DATA
@@ -526,17 +527,33 @@ export default function LeakFinderPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [selectedLeak, setSelectedLeak] = useState(null);
-  const [activeLeaks, setActiveLeaks] = useState(MOCK_LEAKS);
-  const [pastLeaks, setPastLeaks] = useState(PAST_LEAKS);
-  const [stats, setStats] = useState(MOCK_STATS);
+
+  // Use real hooks for data
+  const { leaks: fetchedLeaks, isLoading: leaksLoading } = useLeaks();
+  const { stats: fetchedStats, isLoading: statsLoading } = useAssistantStats();
+
+  // Separate active and past leaks
+  const activeLeaks = fetchedLeaks.filter(l => l.status !== 'resolved');
+  const pastLeaks = fetchedLeaks.filter(l => l.status === 'resolved');
+
+  // Use fetched stats or defaults
+  const stats = {
+    sessionsReviewed: fetchedStats.sessionsReviewed || 0,
+    handsAnalyzed: fetchedStats.handsAnalyzed || 0,
+    leaksFound: activeLeaks.length,
+    avgEvLoss: fetchedStats.avgEvLoss || -0.07,
+  };
 
   useEffect(() => {
     setMounted(true);
-    // Auto-select first leak
-    if (MOCK_LEAKS.length > 0) {
-      setSelectedLeak(MOCK_LEAKS[0]);
-    }
   }, []);
+
+  // Auto-select first leak when data loads
+  useEffect(() => {
+    if (activeLeaks.length > 0 && !selectedLeak) {
+      setSelectedLeak(activeLeaks[0]);
+    }
+  }, [activeLeaks, selectedLeak]);
 
   const handlePracticeSandbox = () => {
     router.push('/hub/personal-assistant/sandbox');

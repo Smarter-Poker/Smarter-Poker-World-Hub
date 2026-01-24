@@ -14,6 +14,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import { useSandboxAnalysis, useArchetypes } from '../../../src/hooks/useAssistant';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -717,9 +718,8 @@ export default function VirtualSandboxPage() {
   // Bet sizing
   const [betSizing, setBetSizing] = useState('standard');
 
-  // Analysis state
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [results, setResults] = useState(null);
+  // Use the real analysis hook
+  const { analyze, isAnalyzing, results, error: analysisError } = useSandboxAnalysis();
 
   useEffect(() => {
     setMounted(true);
@@ -745,25 +745,22 @@ export default function VirtualSandboxPage() {
     ));
   };
 
-  // Run analysis
+  // Run analysis using real API
   const runAnalysis = async () => {
-    setIsAnalyzing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    setResults({
-      primaryAction: 'Bet 33% Pot',
-      primaryFrequency: 70,
-      alternatives: [
-        { action: 'Check', frequency: 20 },
-        { action: 'Bet 75% Pot', frequency: 10 },
-      ],
-      context: `Cash Game - ${heroStack} BB - ${heroPosition} vs TAG & LAG`,
-      source: 'Solver-Verified (Pio)',
-      confidence: 'High',
-      whyNot: 'C-betting here maximizes fold equity against the Calling Station. Checking allows villain to realize equity with marginal hands.',
+    await analyze({
+      heroHand: { card1: heroCard1, card2: heroCard2 },
+      heroPosition,
+      heroStack,
+      gameType,
+      villains,
+      board: {
+        flop: boardFlop.filter(Boolean),
+        turn: boardTurn,
+        river: boardRiver,
+      },
+      betSizing,
+      potSize: 22, // TODO: Calculate from action
     });
-    setIsAnalyzing(false);
   };
 
   if (!mounted) {

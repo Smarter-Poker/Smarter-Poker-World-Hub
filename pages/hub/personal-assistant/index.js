@@ -18,6 +18,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import { useAssistantStats, useRecentSessions } from '../../../src/hooks/useAssistant';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STRATEGY HUB — Main Landing Page
@@ -27,43 +28,15 @@ export default function PersonalAssistantPage() {
   const router = useRouter();
   const { user } = useAvatar();
   const [mounted, setMounted] = useState(false);
-  const [stats, setStats] = useState({
-    sessionsReviewed: 0,
-    handsAnalyzed: 0,
-    leaksFound: 0,
-    sandboxSessions: 0,
-  });
-  const [recentSessions, setRecentSessions] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Use real hooks for data
+  const { stats, isLoading: statsLoading } = useAssistantStats();
+  const { sessions: recentSessions, isLoading: sessionsLoading } = useRecentSessions(5);
+
+  const isLoading = statsLoading || sessionsLoading;
 
   useEffect(() => {
     setMounted(true);
-    // Simulate loading stats (replace with real API call later)
-    setTimeout(() => {
-      setStats({
-        sessionsReviewed: 73,
-        handsAnalyzed: 12580,
-        leaksFound: 3,
-        sandboxSessions: 24,
-      });
-      setRecentSessions([
-        {
-          id: 1,
-          title: 'MP vs BTN Single Raised Pot',
-          stack: '100BB',
-          evLoss: -0.14,
-          type: 'sandbox',
-        },
-        {
-          id: 2,
-          title: 'Post-Session Leak Analysis',
-          date: 'Yesterday',
-          evLoss: -0.11,
-          type: 'leak',
-        },
-      ]);
-      setIsLoading(false);
-    }, 500);
   }, []);
 
   if (!mounted) {
