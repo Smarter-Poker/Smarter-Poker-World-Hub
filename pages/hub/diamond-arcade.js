@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    DIAMOND ARCADE — Premium Casino-Style Skill Gaming
 
-   Version: 3.0.0 - Complete redesign matching premium mockup
+   Version: 3.1.0 - Casino background image + enhanced styling
 
    Features:
    - Rich casino floor background with warm amber lighting
@@ -34,34 +34,59 @@ import {
 
 const GAME_CARD_STYLES = {
     'hand-snap': {
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-        overlay: 'radial-gradient(circle at 30% 30%, rgba(251, 191, 36, 0.3) 0%, transparent 50%)',
+        background: 'linear-gradient(145deg, #0a1628 0%, #0d2847 30%, #1a4a7a 60%, #0d2847 100%)',
+        overlay: `
+            radial-gradient(circle at 50% 40%, rgba(251, 191, 36, 0.5) 0%, transparent 40%),
+            radial-gradient(circle at 30% 60%, rgba(59, 130, 246, 0.3) 0%, transparent 30%),
+            radial-gradient(circle at 70% 30%, rgba(251, 191, 36, 0.2) 0%, transparent 25%)
+        `,
         icon: '⚡',
         accentColor: '#fbbf24',
+        boxShadow: 'inset 0 0 60px rgba(251, 191, 36, 0.2), 0 0 30px rgba(251, 191, 36, 0.3)',
     },
     'ev-or-fold': {
-        background: 'linear-gradient(135deg, #2d1810 0%, #4a1c1c 50%, #722f37 100%)',
-        overlay: 'radial-gradient(circle at 70% 40%, rgba(239, 68, 68, 0.4) 0%, transparent 60%)',
+        background: 'linear-gradient(145deg, #1a0505 0%, #3d1515 30%, #5c2020 50%, #8b2525 70%, #3d1515 100%)',
+        overlay: `
+            radial-gradient(circle at 60% 40%, rgba(239, 68, 68, 0.4) 0%, transparent 45%),
+            radial-gradient(circle at 30% 70%, rgba(251, 191, 36, 0.2) 0%, transparent 30%),
+            radial-gradient(ellipse at 50% 80%, rgba(0,0,0,0.5) 0%, transparent 50%)
+        `,
         icon: '🃏',
         accentColor: '#ef4444',
+        boxShadow: 'inset 0 0 60px rgba(239, 68, 68, 0.2), 0 0 30px rgba(239, 68, 68, 0.3)',
     },
     'board-nuts': {
-        background: 'linear-gradient(135deg, #0d3320 0%, #145a32 50%, #1e8449 100%)',
-        overlay: 'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.3) 0%, transparent 60%)',
+        background: 'linear-gradient(145deg, #052e16 0%, #0a4d28 30%, #166534 50%, #15803d 70%, #0a4d28 100%)',
+        overlay: `
+            radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 70% 30%, rgba(251, 191, 36, 0.15) 0%, transparent 30%),
+            radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.4) 0%, transparent 40%)
+        `,
         icon: '🎯',
         accentColor: '#22c55e',
+        boxShadow: 'inset 0 0 60px rgba(34, 197, 94, 0.2), 0 0 30px rgba(34, 197, 94, 0.3)',
     },
     'the-gauntlet': {
-        background: 'linear-gradient(135deg, #1a0a0a 0%, #3d0c0c 50%, #5c1010 100%)',
-        overlay: 'radial-gradient(circle at 50% 30%, rgba(220, 38, 38, 0.5) 0%, transparent 50%)',
+        background: 'linear-gradient(145deg, #0a0000 0%, #2d0a0a 20%, #4a0f0f 40%, #6b1414 60%, #2d0a0a 100%)',
+        overlay: `
+            radial-gradient(circle at 50% 35%, rgba(220, 38, 38, 0.5) 0%, transparent 40%),
+            radial-gradient(circle at 30% 80%, rgba(251, 191, 36, 0.15) 0%, transparent 30%),
+            radial-gradient(circle at 70% 80%, rgba(251, 191, 36, 0.15) 0%, transparent 30%),
+            radial-gradient(ellipse at 50% 100%, rgba(220, 38, 38, 0.3) 0%, transparent 50%)
+        `,
         icon: '💀',
         accentColor: '#dc2626',
+        boxShadow: 'inset 0 0 80px rgba(220, 38, 38, 0.3), 0 0 40px rgba(220, 38, 38, 0.4)',
     },
     'chip-math': {
-        background: 'linear-gradient(135deg, #0c1929 0%, #1e3a5f 50%, #2563eb 100%)',
-        overlay: 'radial-gradient(circle at 40% 60%, rgba(59, 130, 246, 0.4) 0%, transparent 50%)',
+        background: 'linear-gradient(145deg, #0c1929 0%, #1e3a5f 30%, #2563eb 50%, #1e3a5f 100%)',
+        overlay: `
+            radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.4) 0%, transparent 50%),
+            radial-gradient(circle at 30% 30%, rgba(251, 191, 36, 0.2) 0%, transparent 30%)
+        `,
         icon: '🔢',
         accentColor: '#3b82f6',
+        boxShadow: 'inset 0 0 60px rgba(59, 130, 246, 0.2), 0 0 30px rgba(59, 130, 246, 0.3)',
     },
 };
 
@@ -364,8 +389,9 @@ export default function DiamondArcade() {
                                                 style={{
                                                     ...styles.gameCard,
                                                     background: cardStyle.background,
+                                                    boxShadow: cardStyle.boxShadow,
                                                 }}
-                                                whileHover={{ scale: 1.05, y: -5 }}
+                                                whileHover={{ scale: 1.05, y: -8 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={() => startGame(game.id)}
                                             >
@@ -375,10 +401,12 @@ export default function DiamondArcade() {
                                                     <div style={styles.gameName}>{game.name.toUpperCase()}</div>
                                                 </div>
                                                 <div style={styles.gameCardFooter}>
-                                                    <span style={styles.gamePrice}>{game.entryFee} 💎</span>
-                                                    <span style={{ ...styles.gameBadge, background: game.badgeColor }}>{game.badge}</span>
+                                                    <div style={styles.priceAndBadge}>
+                                                        <span style={styles.gamePrice}>{game.entryFee} 💎💎</span>
+                                                        <span style={{ ...styles.gameBadge, background: game.badgeColor }}>{game.badge}</span>
+                                                    </div>
                                                 </div>
-                                                <div style={{ ...styles.gameCardBorder, borderColor: cardStyle.accentColor }} />
+                                                <div style={{ ...styles.gameCardGlow, background: `radial-gradient(ellipse at center, ${cardStyle.accentColor}33 0%, transparent 70%)` }} />
                                             </motion.div>
                                         );
                                     })}
@@ -615,14 +643,17 @@ const styles = {
         overflow: 'hidden',
     },
 
-    // Casino Background Layers
+    // Casino Background - Using actual casino floor image
     casinoBgBase: {
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'linear-gradient(180deg, #0a0a0f 0%, #12121a 50%, #1a1a25 100%)',
+        backgroundImage: 'url(/images/arcade/casino-bg.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center bottom',
+        backgroundRepeat: 'no-repeat',
         zIndex: -4,
     },
     casinoBgOverlay: {
@@ -631,11 +662,7 @@ const styles = {
         left: 0,
         right: 0,
         bottom: 0,
-        background: `
-            radial-gradient(ellipse at 20% 80%, rgba(139, 69, 19, 0.15) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 20%, rgba(184, 134, 11, 0.1) 0%, transparent 50%),
-            radial-gradient(ellipse at 50% 50%, rgba(255, 165, 0, 0.05) 0%, transparent 70%)
-        `,
+        background: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)',
         zIndex: -3,
     },
     casinoBgVignette: {
@@ -644,7 +671,7 @@ const styles = {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 100%)',
+        background: 'radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.5) 100%)',
         zIndex: -2,
     },
     casinoBgLights: {
@@ -654,10 +681,9 @@ const styles = {
         right: 0,
         bottom: 0,
         background: `
-            radial-gradient(circle at 10% 90%, rgba(251, 191, 36, 0.08) 0%, transparent 20%),
-            radial-gradient(circle at 90% 90%, rgba(251, 191, 36, 0.08) 0%, transparent 20%),
-            radial-gradient(circle at 30% 70%, rgba(251, 191, 36, 0.05) 0%, transparent 15%),
-            radial-gradient(circle at 70% 80%, rgba(251, 191, 36, 0.05) 0%, transparent 15%)
+            radial-gradient(circle at 10% 90%, rgba(251, 191, 36, 0.15) 0%, transparent 25%),
+            radial-gradient(circle at 90% 90%, rgba(251, 191, 36, 0.15) 0%, transparent 25%),
+            radial-gradient(circle at 50% 100%, rgba(218, 165, 32, 0.1) 0%, transparent 30%)
         `,
         zIndex: -1,
     },
@@ -668,40 +694,45 @@ const styles = {
         zIndex: 1,
     },
 
-    // Header Banner
+    // Header Banner - Ornate gold frame
     headerBanner: {
-        background: 'linear-gradient(180deg, rgba(30, 20, 10, 0.95) 0%, rgba(20, 15, 5, 0.9) 100%)',
-        border: '2px solid',
-        borderImage: 'linear-gradient(90deg, #8B4513, #DAA520, #FFD700, #DAA520, #8B4513) 1',
-        borderRadius: '8px',
-        padding: '15px 25px',
+        background: 'linear-gradient(180deg, rgba(20, 15, 5, 0.98) 0%, rgba(15, 10, 2, 0.95) 100%)',
+        borderTop: '4px solid',
+        borderBottom: '4px solid',
+        borderLeft: '2px solid',
+        borderRight: '2px solid',
+        borderImage: 'linear-gradient(90deg, #5c3a0a, #8B4513, #DAA520, #FFD700, #DAA520, #8B4513, #5c3a0a) 1',
+        padding: '18px 30px',
         marginBottom: '20px',
         position: 'relative',
+        boxShadow: '0 0 40px rgba(218, 165, 32, 0.3), inset 0 0 30px rgba(0,0,0,0.5)',
     },
     headerBannerInner: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '15px',
+        gap: '20px',
     },
     headerDecorLeft: {
-        color: '#DAA520',
-        fontSize: '20px',
+        color: '#FFD700',
+        fontSize: '24px',
+        textShadow: '0 0 15px rgba(255, 215, 0, 0.8)',
     },
     headerDecorRight: {
-        color: '#DAA520',
-        fontSize: '20px',
+        color: '#FFD700',
+        fontSize: '24px',
+        textShadow: '0 0 15px rgba(255, 215, 0, 0.8)',
     },
     arcadeTitle: {
         fontFamily: "'Cinzel', serif",
-        fontSize: '32px',
-        fontWeight: 800,
-        background: 'linear-gradient(180deg, #FFD700 0%, #FFA500 50%, #DAA520 100%)',
+        fontSize: '36px',
+        fontWeight: 900,
+        background: 'linear-gradient(180deg, #FFD700 0%, #FFC107 30%, #FF9800 60%, #DAA520 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
-        textShadow: '0 0 30px rgba(255, 215, 0, 0.5)',
+        textShadow: '0 0 40px rgba(255, 215, 0, 0.7)',
         margin: 0,
-        letterSpacing: '3px',
+        letterSpacing: '4px',
     },
     headerStats: {
         display: 'flex',
@@ -721,23 +752,25 @@ const styles = {
         fontWeight: 600,
     },
 
-    // Jackpot Section
+    // Jackpot Section - Premium styling
     jackpotSection: {
         marginBottom: '25px',
     },
     jackpotBorder: {
-        background: 'linear-gradient(135deg, #8B4513 0%, #DAA520 25%, #FFD700 50%, #DAA520 75%, #8B4513 100%)',
+        background: 'linear-gradient(135deg, #5c3a0a 0%, #8B4513 15%, #DAA520 30%, #FFD700 50%, #DAA520 70%, #8B4513 85%, #5c3a0a 100%)',
         borderRadius: '12px',
-        padding: '3px',
+        padding: '4px',
         animation: 'border-glow 3s ease-in-out infinite',
+        boxShadow: '0 0 30px rgba(218, 165, 32, 0.4)',
     },
     jackpotInner: {
-        background: 'linear-gradient(180deg, #0a1628 0%, #0d1f3c 50%, #0a1628 100%)',
+        background: 'linear-gradient(180deg, #050d1a 0%, #0a1a30 30%, #0d2040 50%, #0a1a30 70%, #050d1a 100%)',
         borderRadius: '10px',
-        padding: '25px',
+        padding: '30px',
         textAlign: 'center',
         position: 'relative',
         overflow: 'hidden',
+        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.5)',
     },
     jackpotLabel: {
         display: 'flex',
@@ -758,33 +791,35 @@ const styles = {
     },
     diamondContainer: {
         position: 'relative',
-        height: '120px',
-        marginBottom: '15px',
+        height: '140px',
+        marginBottom: '20px',
     },
     mainDiamond: {
         position: 'absolute',
         left: '50%',
         top: '50%',
         transform: 'translate(-50%, -50%)',
-        fontSize: '80px',
-        filter: 'drop-shadow(0 0 30px rgba(59, 130, 246, 0.8))',
+        fontSize: '100px',
+        filter: 'drop-shadow(0 0 40px rgba(59, 130, 246, 1)) drop-shadow(0 0 80px rgba(59, 130, 246, 0.5))',
         animation: 'pulse-glow 2s ease-in-out infinite',
     },
     shard: {
         position: 'absolute',
-        fontSize: '16px',
-        color: '#60a5fa',
+        fontSize: '20px',
+        color: '#93c5fd',
+        textShadow: '0 0 10px rgba(147, 197, 253, 0.8)',
         animation: 'shard-float 2s ease-in-out infinite',
     },
     jackpotAmount: {
         fontFamily: "'Orbitron', sans-serif",
-        fontSize: '48px',
+        fontSize: '56px',
         fontWeight: 900,
-        background: 'linear-gradient(180deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%)',
+        background: 'linear-gradient(180deg, #93c5fd 0%, #60a5fa 30%, #3b82f6 60%, #2563eb 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
-        textShadow: '0 0 40px rgba(59, 130, 246, 0.6)',
-        marginBottom: '10px',
+        textShadow: '0 0 60px rgba(59, 130, 246, 0.8)',
+        marginBottom: '12px',
+        letterSpacing: '2px',
     },
     jackpotTimer: {
         color: '#9ca3af',
@@ -871,38 +906,41 @@ const styles = {
         bottom: 0,
         left: 0,
         right: 0,
-        padding: '10px',
-        background: 'linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        padding: '12px',
+        background: 'linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)',
         zIndex: 3,
+    },
+    priceAndBadge: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
     },
     gamePrice: {
         fontFamily: "'Orbitron', sans-serif",
-        fontSize: '14px',
+        fontSize: '15px',
         fontWeight: 700,
         color: '#fbbf24',
+        textShadow: '0 0 10px rgba(251, 191, 36, 0.5)',
     },
     gameBadge: {
-        padding: '3px 8px',
+        padding: '4px 10px',
         borderRadius: '4px',
-        fontSize: '10px',
+        fontSize: '11px',
         fontWeight: 700,
         color: '#fff',
         fontFamily: "'Orbitron', sans-serif",
         textTransform: 'uppercase',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
     },
-    gameCardBorder: {
+    gameCardGlow: {
         position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        border: '2px solid transparent',
-        borderRadius: '12px',
+        top: '-50%',
+        left: '-50%',
+        right: '-50%',
+        bottom: '-50%',
         pointerEvents: 'none',
-        zIndex: 4,
+        zIndex: 0,
+        opacity: 0.5,
     },
 
     // Daily Challenge
