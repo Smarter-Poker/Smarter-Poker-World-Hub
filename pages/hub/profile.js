@@ -48,7 +48,7 @@ function Avatar({ src, size = 120, onUpload }) {
     };
 
     return (
-        <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>
+        <div style={{ position: 'relative', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}>
             <img
                 src={src || '/default-avatar.png'}
                 alt="Profile"
@@ -598,7 +598,7 @@ export default function ProfilePage() {
                 birth_year: profile.birth_year,
                 avatar_url: profile.avatar_url,
                 cover_photo_url: profile.cover_photo_url,
-                card_back_preference: profile.card_back_preference,
+                // card_back_preference: profile.card_back_preference, // TODO: Run migration first
                 updated_at: new Date().toISOString(),
             })
             .eq('id', user.id);
