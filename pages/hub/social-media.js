@@ -1191,7 +1191,10 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                                     return <LinkPreviewCard url={articleUrl} />;
                                 }
                                 return (
-                                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', margin: '0 12px 12px' }}>
+                                    <div
+                                        onClick={() => articleUrl && window.open(articleUrl, '_blank', 'noopener,noreferrer')}
+                                        style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', margin: '0 12px 12px', cursor: articleUrl ? 'pointer' : 'default' }}
+                                    >
                                         <div style={{ width: '100%', aspectRatio: '16/9', overflow: 'hidden', background: C.bg }}>
                                             {post.mediaUrls[0] ? (
                                                 <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1208,7 +1211,16 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                             })()
                         ) : post.contentType === 'article' ? (
                             // ARTICLE: Display thumbnail image with article card styling
-                            <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', margin: '0 12px 12px' }}>
+                            <div
+                                onClick={() => {
+                                    // Try to extract URL from content for opening
+                                    const urlMatch = post.content?.match(/https?:\/\/[^\s"'>]+/);
+                                    if (urlMatch) {
+                                        window.open(urlMatch[0], '_blank', 'noopener,noreferrer');
+                                    }
+                                }}
+                                style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', margin: '0 12px 12px', cursor: 'pointer' }}
+                            >
                                 <div style={{ width: '100%', aspectRatio: '16/9', overflow: 'hidden', background: C.bg }}>
                                     <img src={post.mediaUrls[0]} alt="Article" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 </div>
