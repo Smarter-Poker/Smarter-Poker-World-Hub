@@ -266,6 +266,16 @@ export default function CaptainLogin() {
                 Back
               </button>
             </div>
+
+            {/* Login Button */}
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={verifying || pin.length < 4}
+              className="w-full mt-4 h-14 rounded-xl bg-[#1877F2] text-white text-lg font-semibold hover:bg-[#1664d9] active:bg-[#1558c2] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {verifying ? 'Verifying...' : 'Login'}
+            </button>
           </div>
 
           {/* Loading indicator */}
