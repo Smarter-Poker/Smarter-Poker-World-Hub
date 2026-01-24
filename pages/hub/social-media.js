@@ -1527,32 +1527,60 @@ export default function SocialMediaPage() {
                         .order('created_at', { ascending: false })
                         .limit(20);
                     if (notifs && notifs.length > 0) {
-                        // Parse actor names from notification titles (e.g., "Lauren Garcia commented on your post")
+                        // Collect actor IDs from notifications (check actor_id field or metadata.actor_id)
+                        const actorIds = [...new Set(notifs.map(n =>
+                            n.actor_id || n.metadata?.actor_id
+                        ).filter(Boolean))];
+
+                        // Also parse actor names from notification titles as fallback
                         const actorNames = [...new Set(notifs.map(n => {
                             const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
                             return match ? match[1] : null;
                         }).filter(Boolean))];
 
-                        // Build profile lookup map by full_name
-                        let profileMap = {};
-                        if (actorNames.length > 0) {
-                            const { data: profiles } = await supabase.from('profiles')
+                        // Build profile lookup maps
+                        let profileById = {};
+                        let profileByName = {};
+
+                        // Lookup by actor_id if available
+                        if (actorIds.length > 0) {
+                            const { data: profilesById } = await supabase.from('profiles')
                                 .select('id, username, full_name, avatar_url')
-                                .in('full_name', actorNames);
-                            (profiles || []).forEach(p => {
-                                if (p.full_name) profileMap[p.full_name.toLowerCase()] = p;
+                                .in('id', actorIds);
+                            (profilesById || []).forEach(p => {
+                                profileById[p.id] = p;
                             });
                         }
 
-                        // Merge actor profile data into notifications by parsing name from title
+                        // Lookup by full_name as fallback
+                        if (actorNames.length > 0) {
+                            const { data: profilesByName } = await supabase.from('profiles')
+                                .select('id, username, full_name, avatar_url')
+                                .in('full_name', actorNames);
+                            (profilesByName || []).forEach(p => {
+                                if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
+                            });
+                        }
+
+                        // Merge actor profile data into notifications
                         const enrichedNotifs = notifs.map(n => {
-                            const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                            const actorName = match ? match[1] : null;
-                            const profile = actorName ? profileMap[actorName.toLowerCase()] : null;
+                            // Try actor_id first
+                            const actorId = n.actor_id || n.metadata?.actor_id;
+                            let profile = actorId ? profileById[actorId] : null;
+
+                            // Fallback to name matching
+                            if (!profile) {
+                                const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                                const actorName = match ? match[1] : null;
+                                profile = actorName ? profileByName[actorName.toLowerCase()] : null;
+                            }
+
+                            const displayName = n.metadata?.actor_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
+
                             return {
                                 ...n,
-                                actor_avatar_url: profile?.avatar_url || null,
-                                actor_name: actorName || n.title,
+                                actor_avatar_url: profile?.avatar_url || n.metadata?.actor_avatar || null,
+                                actor_name: profile?.full_name || displayName,
                                 actor_username: profile?.username || null
                             };
                         });
