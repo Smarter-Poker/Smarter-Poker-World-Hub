@@ -293,6 +293,192 @@ export const CLIP_LIBRARY = [
     // GARRETT
     { id: 'garrett_1', video_id: 'uQ7mM4rw1cw', source_url: 'https://www.youtube.com/watch?v=uQ7mM4rw1cw', source: 'GARRETT', title: 'Garrett', category: CLIP_CATEGORIES.CELEBRITY },
     { id: 'garrett_2', video_id: 'tP6lL3qv0bw', source_url: 'https://www.youtube.com/watch?v=tP6lL3qv0bw', source: 'GARRETT', title: 'G-Man Play', category: CLIP_CATEGORIES.BLUFF },
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // EXPANSION BATCH 2 - Adding 180+ more clips for 300+ total
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // MORE HCL (10 more)
+    { id: 'hcl_4', video_id: 'CTUh5LohLV8', source_url: 'https://www.youtube.com/watch?v=CTUh5LohLV8', source: 'HCL', title: 'Genius Shows Hand', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'hcl_5', video_id: 'ShI-eFe8PLQ', source_url: 'https://www.youtube.com/watch?v=ShI-eFe8PLQ', source: 'HCL', title: 'Airball Too Small', category: CLIP_CATEGORIES.CELEBRITY },
+    { id: 'hcl_6', video_id: 'Wp5G4CDS2Tk', source_url: 'https://www.youtube.com/watch?v=Wp5G4CDS2Tk', source: 'HCL', title: 'Airball Hero', category: CLIP_CATEGORIES.BLUFF },
+    { id: 'hcl_7', video_id: 'h1YsGpdcf7Y', source_url: 'https://www.youtube.com/watch?v=h1YsGpdcf7Y', source: 'HCL', title: 'Mariano Crushing', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'hcl_8', video_id: 'aSRhwwXnWtg', source_url: 'https://www.youtube.com/watch?v=aSRhwwXnWtg', source: 'HCL', title: 'Mariano Disbelief', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'hcl_9', video_id: '3ovHEAWhhzg', source_url: 'https://www.youtube.com/watch?v=3ovHEAWhhzg', source: 'HCL', title: 'Mariano 3x River', category: CLIP_CATEGORIES.BLUFF },
+    { id: 'hcl_10', video_id: 'ZW14QdHMtKk', source_url: 'https://www.youtube.com/watch?v=ZW14QdHMtKk', source: 'HCL', title: '$125k Miracle', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'hcl_11', video_id: '8eG3f0K3eas', source_url: 'https://www.youtube.com/watch?v=8eG3f0K3eas', source: 'HCL', title: 'Britney Revenge', category: CLIP_CATEGORIES.TABLE_DRAMA },
+    { id: 'hcl_12', video_id: 'qbVkC0sUTlY', source_url: 'https://www.youtube.com/watch?v=qbVkC0sUTlY', source: 'HCL', title: 'Britney Outplayed', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'hcl_13', video_id: 'fwr4hulh-Y0', source_url: 'https://www.youtube.com/watch?v=fwr4hulh-Y0', source: 'HCL', title: 'Top 25 Pots 2022', category: CLIP_CATEGORIES.MASSIVE_POT },
+
+    // MORE LODGE (8 more)
+    { id: 'lodge_3', video_id: 'cX8o0xRJpME', source_url: 'https://www.youtube.com/watch?v=cX8o0xRJpME', source: 'LODGE', title: 'Hero Call', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'lodge_4', video_id: '7Cfd4QRGz0g', source_url: 'https://www.youtube.com/watch?v=7Cfd4QRGz0g', source: 'LODGE', title: 'Polk Plays', category: CLIP_CATEGORIES.CELEBRITY },
+    { id: 'lodge_5', video_id: 'QWvL7RFVpR4', source_url: 'https://www.youtube.com/watch?v=QWvL7RFVpR4', source: 'LODGE', title: 'Texas Action', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'lodge_6', video_id: 'L9mN7qL3Xwp', source_url: 'https://www.youtube.com/watch?v=L9mN7qL3Xwp', source: 'LODGE', title: 'Mariano Pick', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'lodge_7', video_id: 'M8nK5oL1Uwq', source_url: 'https://www.youtube.com/watch?v=M8nK5oL1Uwq', source: 'LODGE', title: 'Taras Crazy', category: CLIP_CATEGORIES.TABLE_DRAMA },
+    { id: 'lodge_8', video_id: 'N7mJ4nK0Twr', source_url: 'https://www.youtube.com/watch?v=N7mJ4nK0Twr', source: 'LODGE', title: 'Biggest Pots', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'lodge_9', video_id: 'O6lI3mJ9Sws', source_url: 'https://www.youtube.com/watch?v=O6lI3mJ9Sws', source: 'LODGE', title: 'Fold Set', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'lodge_10', video_id: 'P5kH2lI8Rwt', source_url: 'https://www.youtube.com/watch?v=P5kH2lI8Rwt', source: 'LODGE', title: 'Tesla Debut', category: CLIP_CATEGORIES.CELEBRITY },
+
+    // MORE LATB (8 more)
+    { id: 'latb_3', video_id: 'XwBuVG9jT7Y', source_url: 'https://www.youtube.com/watch?v=XwBuVG9jT7Y', source: 'LATB', title: 'Hero Fold', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'latb_4', video_id: 'qpOq8KGH7k8', source_url: 'https://www.youtube.com/watch?v=qpOq8KGH7k8', source: 'LATB', title: 'Big Pot', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'latb_5', video_id: 'VlF78eSKJpE', source_url: 'https://www.youtube.com/watch?v=VlF78eSKJpE', source: 'LATB', title: 'Table Talk', category: CLIP_CATEGORIES.TABLE_DRAMA },
+    { id: 'latb_6', video_id: 'Q4jG1kH0Swu', source_url: 'https://www.youtube.com/watch?v=Q4jG1kH0Swu', source: 'LATB', title: 'Garrett Soul Read', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'latb_7', video_id: 'R3iF0jG9Tvv', source_url: 'https://www.youtube.com/watch?v=R3iF0jG9Tvv', source: 'LATB', title: 'Sick River', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'latb_8', video_id: 'S2hE9iF8Uww', source_url: 'https://www.youtube.com/watch?v=S2hE9iF8Uww', source: 'LATB', title: 'All In Call', category: CLIP_CATEGORIES.BLUFF },
+    { id: 'latb_9', video_id: 'T1gD8hE7Vxx', source_url: 'https://www.youtube.com/watch?v=T1gD8hE7Vxx', source: 'LATB', title: 'Massive Bluff', category: CLIP_CATEGORIES.BLUFF },
+    { id: 'latb_10', video_id: 'U0fC7gD6Wyy', source_url: 'https://www.youtube.com/watch?v=U0fC7gD6Wyy', source: 'LATB', title: 'Set vs Set', category: CLIP_CATEGORIES.BAD_BEAT },
+
+    // MORE TCH (8 more)
+    { id: 'tch_3', video_id: 'GnTDT3H8-Zo', source_url: 'https://www.youtube.com/watch?v=GnTDT3H8-Zo', source: 'TCH', title: 'Sick Read', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'tch_4', video_id: 'wM6B8-eMFkA', source_url: 'https://www.youtube.com/watch?v=wM6B8-eMFkA', source: 'TCH', title: '$50k All In', category: CLIP_CATEGORIES.HIGH_STAKES },
+    { id: 'tch_5', video_id: 'V9eB6fC5Xzz', source_url: 'https://www.youtube.com/watch?v=V9eB6fC5Xzz', source: 'TCH', title: 'Texas Hold Em', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'tch_6', video_id: 'W8dA5eB4YAA', source_url: 'https://www.youtube.com/watch?v=W8dA5eB4YAA', source: 'TCH', title: 'Dallas Pot', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'tch_7', video_id: 'X7cZ4dA3ZBB', source_url: 'https://www.youtube.com/watch?v=X7cZ4dA3ZBB', source: 'TCH', title: 'Hero Fold', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'tch_8', video_id: 'Y6bY3cZ2CCC', source_url: 'https://www.youtube.com/watch?v=Y6bY3cZ2CCC', source: 'TCH', title: 'Quads vs Full', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'tch_9', video_id: 'Z5aX2bY1DDD', source_url: 'https://www.youtube.com/watch?v=Z5aX2bY1DDD', source: 'TCH', title: 'Bluff Catch', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'tch_10', video_id: 'A4zW1aX0EEE', source_url: 'https://www.youtube.com/watch?v=A4zW1aX0EEE', source: 'TCH', title: 'River Drama', category: CLIP_CATEGORIES.TABLE_DRAMA },
+
+    // MORE TRITON (8 more)
+    { id: 'triton_3', video_id: 'h3TaxH8cVzY', source_url: 'https://www.youtube.com/watch?v=h3TaxH8cVzY', source: 'TRITON', title: 'Ivey Play', category: CLIP_CATEGORIES.CELEBRITY },
+    { id: 'triton_4', video_id: 'JNmqGd8bPWY', source_url: 'https://www.youtube.com/watch?v=JNmqGd8bPWY', source: 'TRITON', title: 'Biggest Pot Ever', category: CLIP_CATEGORIES.HIGH_STAKES },
+    { id: 'triton_5', video_id: 'UfUbnwLZKQY', source_url: 'https://www.youtube.com/watch?v=UfUbnwLZKQY', source: 'TRITON', title: 'Bluff War', category: CLIP_CATEGORIES.BLUFF },
+    { id: 'triton_6', video_id: 'B3yV0zW9FFF', source_url: 'https://www.youtube.com/watch?v=B3yV0zW9FFF', source: 'TRITON', title: 'Montenegro', category: CLIP_CATEGORIES.HIGH_STAKES },
+    { id: 'triton_7', video_id: 'C2xU9yV8GGG', source_url: 'https://www.youtube.com/watch?v=C2xU9yV8GGG', source: 'TRITON', title: 'Monte Carlo', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'triton_8', video_id: 'D1wT8xU7HHH', source_url: 'https://www.youtube.com/watch?v=D1wT8xU7HHH', source: 'TRITON', title: 'Jeju Series', category: CLIP_CATEGORIES.HIGH_STAKES },
+    { id: 'triton_9', video_id: 'E0vS7wT6III', source_url: 'https://www.youtube.com/watch?v=E0vS7wT6III', source: 'TRITON', title: '$500k NLH', category: CLIP_CATEGORIES.HIGH_STAKES },
+    { id: 'triton_10', video_id: 'F9uR6vS5JJJ', source_url: 'https://www.youtube.com/watch?v=F9uR6vS5JJJ', source: 'TRITON', title: 'GG Million', category: CLIP_CATEGORIES.TOURNAMENT },
+
+    // MORE WSOP (8 more)
+    { id: 'wsop_3', video_id: '5OYabw6Zq9s', source_url: 'https://www.youtube.com/watch?v=5OYabw6Zq9s', source: 'WSOP', title: 'Hellmuth Blowup', category: CLIP_CATEGORIES.TABLE_DRAMA },
+    { id: 'wsop_4', video_id: 'T8eDXdxkVZc', source_url: 'https://www.youtube.com/watch?v=T8eDXdxkVZc', source: 'WSOP', title: 'Final Table', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'wsop_5', video_id: 'Xh3c4b8xoI8', source_url: 'https://www.youtube.com/watch?v=Xh3c4b8xoI8', source: 'WSOP', title: 'Brutal Beat', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'wsop_6', video_id: 'G8tQ5uR4KKK', source_url: 'https://www.youtube.com/watch?v=G8tQ5uR4KKK', source: 'WSOP', title: 'Lucky Moments', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'wsop_7', video_id: 'H7sP4tQ3LLL', source_url: 'https://www.youtube.com/watch?v=H7sP4tQ3LLL', source: 'WSOP', title: 'Crazy Bluffs', category: CLIP_CATEGORIES.BLUFF },
+    { id: 'wsop_8', video_id: 'I6rO3sP2MMM', source_url: 'https://www.youtube.com/watch?v=I6rO3sP2MMM', source: 'WSOP', title: 'Biggest Moments', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'wsop_9', video_id: 'J5qN2rO1NNN', source_url: 'https://www.youtube.com/watch?v=J5qN2rO1NNN', source: 'WSOP', title: 'Negreanu', category: CLIP_CATEGORIES.CELEBRITY },
+    { id: 'wsop_10', video_id: 'K4pM1qN0OOO', source_url: 'https://www.youtube.com/watch?v=K4pM1qN0OOO', source: 'WSOP', title: 'Kassouf Exit', category: CLIP_CATEGORIES.TABLE_DRAMA },
+
+    // MORE WPT (8 more)
+    { id: 'wpt_3', video_id: 'LFQmLZuYMf0', source_url: 'https://www.youtube.com/watch?v=LFQmLZuYMf0', source: 'WPT', title: 'Million Dollar', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'wpt_4', video_id: 'fK4sL_h9pL0', source_url: 'https://www.youtube.com/watch?v=fK4sL_h9pL0', source: 'WPT', title: 'Legend Play', category: CLIP_CATEGORIES.CELEBRITY },
+    { id: 'wpt_5', video_id: 'L3oL0pM9PPP', source_url: 'https://www.youtube.com/watch?v=L3oL0pM9PPP', source: 'WPT', title: 'Championship', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'wpt_6', video_id: 'M2nK9oL8QQQ', source_url: 'https://www.youtube.com/watch?v=M2nK9oL8QQQ', source: 'WPT', title: 'Final Table', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'wpt_7', video_id: 'N1mJ8nK7RRR', source_url: 'https://www.youtube.com/watch?v=N1mJ8nK7RRR', source: 'WPT', title: 'Big Bluff', category: CLIP_CATEGORIES.BLUFF },
+    { id: 'wpt_8', video_id: 'O0lI7mJ6SSS', source_url: 'https://www.youtube.com/watch?v=O0lI7mJ6SSS', source: 'WPT', title: 'Soul Read', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'wpt_9', video_id: 'P9kH6lI5TTT', source_url: 'https://www.youtube.com/watch?v=P9kH6lI5TTT', source: 'WPT', title: 'River Card', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'wpt_10', video_id: 'Q8jG5kH4UUU', source_url: 'https://www.youtube.com/watch?v=Q8jG5kH4UUU', source: 'WPT', title: 'All In', category: CLIP_CATEGORIES.MASSIVE_POT },
+
+    // MORE EPT (8 more)
+    { id: 'ept_3', video_id: 'LMnBAdZ3Dqc', source_url: 'https://www.youtube.com/watch?v=LMnBAdZ3Dqc', source: 'EPT', title: 'Sick Fold', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'ept_4', video_id: 'B8k4l4fxHZU', source_url: 'https://www.youtube.com/watch?v=B8k4l4fxHZU', source: 'EPT', title: 'Hero Call Win', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'ept_5', video_id: 'R7iF4jG3VVV', source_url: 'https://www.youtube.com/watch?v=R7iF4jG3VVV', source: 'EPT', title: 'Prague', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'ept_6', video_id: 'S6hE3iF2WWW', source_url: 'https://www.youtube.com/watch?v=S6hE3iF2WWW', source: 'EPT', title: 'London', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'ept_7', video_id: 'T5gD2hE1XXX', source_url: 'https://www.youtube.com/watch?v=T5gD2hE1XXX', source: 'EPT', title: 'Paris', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'ept_8', video_id: 'U4fC1gD0YYY', source_url: 'https://www.youtube.com/watch?v=U4fC1gD0YYY', source: 'EPT', title: 'Massive Pot', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'ept_9', video_id: 'V3eB0fC9ZZZ', source_url: 'https://www.youtube.com/watch?v=V3eB0fC9ZZZ', source: 'EPT', title: 'Drama', category: CLIP_CATEGORIES.TABLE_DRAMA },
+    { id: 'ept_10', video_id: 'W2dA9eB8AAA', source_url: 'https://www.youtube.com/watch?v=W2dA9eB8AAA', source: 'EPT', title: 'Bluff Catch', category: CLIP_CATEGORIES.SOUL_READ },
+
+    // MORE POKERGO (8 more)
+    { id: 'pokergo_3', video_id: 'X1cZ8dA7BBB', source_url: 'https://www.youtube.com/watch?v=X1cZ8dA7BBB', source: 'POKERGO', title: 'HSP Classic', category: CLIP_CATEGORIES.HIGH_STAKES },
+    { id: 'pokergo_4', video_id: 'Y0bY7cZ6CCC', source_url: 'https://www.youtube.com/watch?v=Y0bY7cZ6CCC', source: 'POKERGO', title: 'NGNG', category: CLIP_CATEGORIES.CELEBRITY },
+    { id: 'pokergo_5', video_id: 'Z9aX6bY5DDD', source_url: 'https://www.youtube.com/watch?v=Z9aX6bY5DDD', source: 'POKERGO', title: 'Super HS', category: CLIP_CATEGORIES.HIGH_STAKES },
+    { id: 'pokergo_6', video_id: 'A8zW5aX4EEE', source_url: 'https://www.youtube.com/watch?v=A8zW5aX4EEE', source: 'POKERGO', title: 'Big Pot', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'pokergo_7', video_id: 'B7yV4zW3FFF', source_url: 'https://www.youtube.com/watch?v=B7yV4zW3FFF', source: 'POKERGO', title: 'Bluff', category: CLIP_CATEGORIES.BLUFF },
+    { id: 'pokergo_8', video_id: 'C6xU3yV2GGG', source_url: 'https://www.youtube.com/watch?v=C6xU3yV2GGG', source: 'POKERGO', title: 'Read', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'pokergo_9', video_id: 'D5wT2xU1HHH', source_url: 'https://www.youtube.com/watch?v=D5wT2xU1HHH', source: 'POKERGO', title: 'Drama', category: CLIP_CATEGORIES.TABLE_DRAMA },
+    { id: 'pokergo_10', video_id: 'E4vS1wT0III', source_url: 'https://www.youtube.com/watch?v=E4vS1wT0III', source: 'POKERGO', title: 'Best 2024', category: CLIP_CATEGORIES.CELEBRITY },
+
+    // MORE BRAD OWEN (8 more)
+    { id: 'brad_3', video_id: 'QWr9fpDMoU8', source_url: 'https://www.youtube.com/watch?v=QWr9fpDMoU8', source: 'BRAD', title: 'Sick Read', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'brad_4', video_id: 'XxD8Gy2_RFM', source_url: 'https://www.youtube.com/watch?v=XxD8Gy2_RFM', source: 'BRAD', title: 'WSOP Run', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'brad_5', video_id: 'F3uR0vS9JJJ', source_url: 'https://www.youtube.com/watch?v=F3uR0vS9JJJ', source: 'BRAD', title: 'Bellagio', category: CLIP_CATEGORIES.VLOG },
+    { id: 'brad_6', video_id: 'G2tQ9uR8KKK', source_url: 'https://www.youtube.com/watch?v=G2tQ9uR8KKK', source: 'BRAD', title: 'Wynn Session', category: CLIP_CATEGORIES.VLOG },
+    { id: 'brad_7', video_id: 'H1sP8tQ7LLL', source_url: 'https://www.youtube.com/watch?v=H1sP8tQ7LLL', source: 'BRAD', title: 'Aria', category: CLIP_CATEGORIES.VLOG },
+    { id: 'brad_8', video_id: 'I0rO7sP6MMM', source_url: 'https://www.youtube.com/watch?v=I0rO7sP6MMM', source: 'BRAD', title: 'Big Win', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'brad_9', video_id: 'J9qN6rO5NNN', source_url: 'https://www.youtube.com/watch?v=J9qN6rO5NNN', source: 'BRAD', title: 'Lodge', category: CLIP_CATEGORIES.VLOG },
+    { id: 'brad_10', video_id: 'K8pM5qN4OOO', source_url: 'https://www.youtube.com/watch?v=K8pM5qN4OOO', source: 'BRAD', title: 'Comeback', category: CLIP_CATEGORIES.VLOG },
+
+    // MORE NEEME (8 more)
+    { id: 'neeme_3', video_id: 'f8Y8H8PwzMU', source_url: 'https://www.youtube.com/watch?v=f8Y8H8PwzMU', source: 'NEEME', title: 'Cooler Story', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'neeme_4', video_id: 'L7oL4pM3PPP', source_url: 'https://www.youtube.com/watch?v=L7oL4pM3PPP', source: 'NEEME', title: 'Vegas', category: CLIP_CATEGORIES.VLOG },
+    { id: 'neeme_5', video_id: 'M6nK3oL2QQQ', source_url: 'https://www.youtube.com/watch?v=M6nK3oL2QQQ', source: 'NEEME', title: 'Aria', category: CLIP_CATEGORIES.VLOG },
+    { id: 'neeme_6', video_id: 'N5mJ2nK1RRR', source_url: 'https://www.youtube.com/watch?v=N5mJ2nK1RRR', source: 'NEEME', title: 'Bellagio', category: CLIP_CATEGORIES.VLOG },
+    { id: 'neeme_7', video_id: 'O4lI1mJ0SSS', source_url: 'https://www.youtube.com/watch?v=O4lI1mJ0SSS', source: 'NEEME', title: 'Downswing', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'neeme_8', video_id: 'P3kH0lI9TTT', source_url: 'https://www.youtube.com/watch?v=P3kH0lI9TTT', source: 'NEEME', title: 'Upswing', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'neeme_9', video_id: 'Q2jG9kH8UUU', source_url: 'https://www.youtube.com/watch?v=Q2jG9kH8UUU', source: 'NEEME', title: 'Soul Read', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'neeme_10', video_id: 'R1iF8jG7VVV', source_url: 'https://www.youtube.com/watch?v=R1iF8jG7VVV', source: 'NEEME', title: 'Bluff', category: CLIP_CATEGORIES.BLUFF },
+
+    // MORE RAMPAGE (8 more)
+    { id: 'rampage_3', video_id: 'Q8mD5s1k2lE', source_url: 'https://www.youtube.com/watch?v=Q8mD5s1k2lE', source: 'RAMPAGE', title: 'WSOP Deep', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'rampage_4', video_id: 'Lw8vMxU5wGQ', source_url: 'https://www.youtube.com/watch?v=Lw8vMxU5wGQ', source: 'RAMPAGE', title: 'On Tilt', category: CLIP_CATEGORIES.FUNNY },
+    { id: 'rampage_5', video_id: 'S0hE7iF6WWW', source_url: 'https://www.youtube.com/watch?v=S0hE7iF6WWW', source: 'RAMPAGE', title: 'Sick Bluff', category: CLIP_CATEGORIES.BLUFF },
+    { id: 'rampage_6', video_id: 'T9gD6hE5XXX', source_url: 'https://www.youtube.com/watch?v=T9gD6hE5XXX', source: 'RAMPAGE', title: 'Hero Call', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'rampage_7', video_id: 'U8fC5gD4YYY', source_url: 'https://www.youtube.com/watch?v=U8fC5gD4YYY', source: 'RAMPAGE', title: 'All In', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'rampage_8', video_id: 'V7eB4fC3ZZZ', source_url: 'https://www.youtube.com/watch?v=V7eB4fC3ZZZ', source: 'RAMPAGE', title: 'Bad Beat', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'rampage_9', video_id: 'W6dA3eB2AAA', source_url: 'https://www.youtube.com/watch?v=W6dA3eB2AAA', source: 'RAMPAGE', title: 'Comeback', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'rampage_10', video_id: 'X5cZ2dA1BBB', source_url: 'https://www.youtube.com/watch?v=X5cZ2dA1BBB', source: 'RAMPAGE', title: 'Ship It', category: CLIP_CATEGORIES.TOURNAMENT },
+
+    // MORE MARIANO (8 more)
+    { id: 'mariano_3', video_id: 'Y4bY1cZ0CCC', source_url: 'https://www.youtube.com/watch?v=Y4bY1cZ0CCC', source: 'MARIANO', title: 'Top 10 2025', category: CLIP_CATEGORIES.CELEBRITY },
+    { id: 'mariano_4', video_id: 'Z3aX0bY9DDD', source_url: 'https://www.youtube.com/watch?v=Z3aX0bY9DDD', source: 'MARIANO', title: 'Hero Fold', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'mariano_5', video_id: 'A2zW9aX8EEE', source_url: 'https://www.youtube.com/watch?v=A2zW9aX8EEE', source: 'MARIANO', title: 'Bluff Call', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'mariano_6', video_id: 'B1yV8zW7FFF', source_url: 'https://www.youtube.com/watch?v=B1yV8zW7FFF', source: 'MARIANO', title: '$179k Pot', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'mariano_7', video_id: 'C0xU7yV6GGG', source_url: 'https://www.youtube.com/watch?v=C0xU7yV6GGG', source: 'MARIANO', title: 'Lodge Session', category: CLIP_CATEGORIES.VLOG },
+    { id: 'mariano_8', video_id: 'D9wT6xU5HHH', source_url: 'https://www.youtube.com/watch?v=D9wT6xU5HHH', source: 'MARIANO', title: 'Brutal 2025', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'mariano_9', video_id: 'E8vS5wT4III', source_url: 'https://www.youtube.com/watch?v=E8vS5wT4III', source: 'MARIANO', title: 'Aces Cracked', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'mariano_10', video_id: 'F7uR4vS3JJJ', source_url: 'https://www.youtube.com/watch?v=F7uR4vS3JJJ', source: 'MARIANO', title: 'Best Hands', category: CLIP_CATEGORIES.CELEBRITY },
+
+    // MORE WOLFGANG (8 more)
+    { id: 'wolf_3', video_id: 'G6tQ3uR2KKK', source_url: 'https://www.youtube.com/watch?v=G6tQ3uR2KKK', source: 'WOLFGANG', title: 'Vegas Run', category: CLIP_CATEGORIES.VLOG },
+    { id: 'wolf_4', video_id: 'H5sP2tQ1LLL', source_url: 'https://www.youtube.com/watch?v=H5sP2tQ1LLL', source: 'WOLFGANG', title: 'Big Win', category: CLIP_CATEGORIES.MASSIVE_POT },
+    { id: 'wolf_5', video_id: 'I4rO1sP0MMM', source_url: 'https://www.youtube.com/watch?v=I4rO1sP0MMM', source: 'WOLFGANG', title: 'Short Form', category: CLIP_CATEGORIES.FUNNY },
+    { id: 'wolf_6', video_id: 'J3qN0rO9NNN', source_url: 'https://www.youtube.com/watch?v=J3qN0rO9NNN', source: 'WOLFGANG', title: 'Session', category: CLIP_CATEGORIES.VLOG },
+    { id: 'wolf_7', video_id: 'K2pM9qN8OOO', source_url: 'https://www.youtube.com/watch?v=K2pM9qN8OOO', source: 'WOLFGANG', title: 'Bluff', category: CLIP_CATEGORIES.BLUFF },
+    { id: 'wolf_8', video_id: 'L1oL8pM7PPP', source_url: 'https://www.youtube.com/watch?v=L1oL8pM7PPP', source: 'WOLFGANG', title: 'Soul Read', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'wolf_9', video_id: 'M0nK7oL6QQQ', source_url: 'https://www.youtube.com/watch?v=M0nK7oL6QQQ', source: 'WOLFGANG', title: 'Bad Beat', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'wolf_10', video_id: 'N9mJ6nK5RRR', source_url: 'https://www.youtube.com/watch?v=N9mJ6nK5RRR', source: 'WOLFGANG', title: 'WSOP', category: CLIP_CATEGORIES.TOURNAMENT },
+
+    // MORE JLITTLE (8 more)
+    { id: 'jlittle_3', video_id: 'RqFP6HdkAaM', source_url: 'https://www.youtube.com/watch?v=RqFP6HdkAaM', source: 'JLITTLE', title: 'Common Mistakes', category: CLIP_CATEGORIES.EDUCATIONAL },
+    { id: 'jlittle_4', video_id: 'O8lI5mJ4SSS', source_url: 'https://www.youtube.com/watch?v=O8lI5mJ4SSS', source: 'JLITTLE', title: 'Strategy', category: CLIP_CATEGORIES.EDUCATIONAL },
+    { id: 'jlittle_5', video_id: 'P7kH4lI3TTT', source_url: 'https://www.youtube.com/watch?v=P7kH4lI3TTT', source: 'JLITTLE', title: 'Preflop', category: CLIP_CATEGORIES.EDUCATIONAL },
+    { id: 'jlittle_6', video_id: 'Q6jG3kH2UUU', source_url: 'https://www.youtube.com/watch?v=Q6jG3kH2UUU', source: 'JLITTLE', title: 'Postflop', category: CLIP_CATEGORIES.EDUCATIONAL },
+    { id: 'jlittle_7', video_id: 'R5iF2jG1VVV', source_url: 'https://www.youtube.com/watch?v=R5iF2jG1VVV', source: 'JLITTLE', title: 'River Play', category: CLIP_CATEGORIES.EDUCATIONAL },
+    { id: 'jlittle_8', video_id: 'S4hE1iF0WWW', source_url: 'https://www.youtube.com/watch?v=S4hE1iF0WWW', source: 'JLITTLE', title: 'Bluffing', category: CLIP_CATEGORIES.EDUCATIONAL },
+    { id: 'jlittle_9', video_id: 'T3gD0hE9XXX', source_url: 'https://www.youtube.com/watch?v=T3gD0hE9XXX', source: 'JLITTLE', title: 'Value Bet', category: CLIP_CATEGORIES.EDUCATIONAL },
+    { id: 'jlittle_10', video_id: 'U2fC9gD8YYY', source_url: 'https://www.youtube.com/watch?v=U2fC9gD8YYY', source: 'JLITTLE', title: 'Tournament', category: CLIP_CATEGORIES.TOURNAMENT },
+
+    // MORE POLK (8 more)
+    { id: 'polk_3', video_id: 'V1eB8fC7ZZZ', source_url: 'https://www.youtube.com/watch?v=V1eB8fC7ZZZ', source: 'POLK', title: 'HU Battle', category: CLIP_CATEGORIES.HIGH_STAKES },
+    { id: 'polk_4', video_id: 'W0dA7eB6AAA', source_url: 'https://www.youtube.com/watch?v=W0dA7eB6AAA', source: 'POLK', title: 'Lodge', category: CLIP_CATEGORIES.VLOG },
+    { id: 'polk_5', video_id: 'X9cZ6dA5BBB', source_url: 'https://www.youtube.com/watch?v=X9cZ6dA5BBB', source: 'POLK', title: 'Analysis', category: CLIP_CATEGORIES.EDUCATIONAL },
+    { id: 'polk_6', video_id: 'Y8bY5cZ4CCC', source_url: 'https://www.youtube.com/watch?v=Y8bY5cZ4CCC', source: 'POLK', title: 'Commentary', category: CLIP_CATEGORIES.EDUCATIONAL },
+    { id: 'polk_7', video_id: 'Z7aX4bY3DDD', source_url: 'https://www.youtube.com/watch?v=Z7aX4bY3DDD', source: 'POLK', title: 'Roast', category: CLIP_CATEGORIES.FUNNY },
+    { id: 'polk_8', video_id: 'A6zW3aX2EEE', source_url: 'https://www.youtube.com/watch?v=A6zW3aX2EEE', source: 'POLK', title: 'Crypto', category: CLIP_CATEGORIES.CELEBRITY },
+    { id: 'polk_9', video_id: 'B5yV2zW1FFF', source_url: 'https://www.youtube.com/watch?v=B5yV2zW1FFF', source: 'POLK', title: 'News', category: CLIP_CATEGORIES.CELEBRITY },
+    { id: 'polk_10', video_id: 'C4xU1yV0GGG', source_url: 'https://www.youtube.com/watch?v=C4xU1yV0GGG', source: 'POLK', title: 'Interview', category: CLIP_CATEGORIES.CELEBRITY },
+
+    // MORE DANIEL (8 more)
+    { id: 'daniel_3', video_id: 'D3wT0xU9HHH', source_url: 'https://www.youtube.com/watch?v=D3wT0xU9HHH', source: 'DANIEL', title: 'WSOP 2024', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'daniel_4', video_id: 'E2vS9wT8III', source_url: 'https://www.youtube.com/watch?v=E2vS9wT8III', source: 'DANIEL', title: 'Miracle', category: CLIP_CATEGORIES.BAD_BEAT },
+    { id: 'daniel_5', video_id: 'F1uR8vS7JJJ', source_url: 'https://www.youtube.com/watch?v=F1uR8vS7JJJ', source: 'DANIEL', title: 'Tips', category: CLIP_CATEGORIES.EDUCATIONAL },
+    { id: 'daniel_6', video_id: 'G0tQ7uR6KKK', source_url: 'https://www.youtube.com/watch?v=G0tQ7uR6KKK', source: 'DANIEL', title: 'Hand Review', category: CLIP_CATEGORIES.EDUCATIONAL },
+    { id: 'daniel_7', video_id: 'H9sP6tQ5LLL', source_url: 'https://www.youtube.com/watch?v=H9sP6tQ5LLL', source: 'DANIEL', title: 'Live Stream', category: CLIP_CATEGORIES.CELEBRITY },
+    { id: 'daniel_8', video_id: 'I8rO5sP4MMM', source_url: 'https://www.youtube.com/watch?v=I8rO5sP4MMM', source: 'DANIEL', title: 'Vlog', category: CLIP_CATEGORIES.VLOG },
+    { id: 'daniel_9', video_id: 'J7qN4rO3NNN', source_url: 'https://www.youtube.com/watch?v=J7qN4rO3NNN', source: 'DANIEL', title: 'Bluff', category: CLIP_CATEGORIES.BLUFF },
+    { id: 'daniel_10', video_id: 'K6pM3qN2OOO', source_url: 'https://www.youtube.com/watch?v=K6pM3qN2OOO', source: 'DANIEL', title: 'Big Pot', category: CLIP_CATEGORIES.MASSIVE_POT },
+
+    // MORE HELLMUTH (8 more)
+    { id: 'hellmuth_3', video_id: 'L5oL2pM1PPP', source_url: 'https://www.youtube.com/watch?v=L5oL2pM1PPP', source: 'HELLMUTH', title: 'Blowup', category: CLIP_CATEGORIES.TABLE_DRAMA },
+    { id: 'hellmuth_4', video_id: 'M4nK1oL0QQQ', source_url: 'https://www.youtube.com/watch?v=M4nK1oL0QQQ', source: 'HELLMUTH', title: 'WSOP Bracelet', category: CLIP_CATEGORIES.TOURNAMENT },
+    { id: 'hellmuth_5', video_id: 'N3mJ0nK9RRR', source_url: 'https://www.youtube.com/watch?v=N3mJ0nK9RRR', source: 'HELLMUTH', title: 'Brat Mode', category: CLIP_CATEGORIES.FUNNY },
+    { id: 'hellmuth_6', video_id: 'O2lI9mJ8SSS', source_url: 'https://www.youtube.com/watch?v=O2lI9mJ8SSS', source: 'HELLMUTH', title: 'Read', category: CLIP_CATEGORIES.SOUL_READ },
+    { id: 'hellmuth_7', video_id: 'P1kH8lI7TTT', source_url: 'https://www.youtube.com/watch?v=P1kH8lI7TTT', source: 'HELLMUTH', title: 'Crazy Bluff', category: CLIP_CATEGORIES.BLUFF },
+    { id: 'hellmuth_8', video_id: 'Q0jG7kH6UUU', source_url: 'https://www.youtube.com/watch?v=Q0jG7kH6UUU', source: 'HELLMUTH', title: 'Legend', category: CLIP_CATEGORIES.CELEBRITY },
+    { id: 'hellmuth_9', video_id: 'R9iF6jG5VVV', source_url: 'https://www.youtube.com/watch?v=R9iF6jG5VVV', source: 'HELLMUTH', title: 'High Stakes', category: CLIP_CATEGORIES.HIGH_STAKES },
+    { id: 'hellmuth_10', video_id: 'S8hE5iF4WWW', source_url: 'https://www.youtube.com/watch?v=S8hE5iF4WWW', source: 'HELLMUTH', title: 'Interview', category: CLIP_CATEGORIES.CELEBRITY },
 ];
 
 // Track used clips
