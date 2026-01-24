@@ -2,9 +2,9 @@
  * REELS PAGE - Full-Screen TikTok-Style Video Experience
  * 
  * CRITICAL FIXES:
- * 1. WHITE LINE/BLUE GLOW: Large overscan (40px) + clip-path to hide YouTube letterboxing
- * 2. SWIPE: Document-level touch handlers that work even over iframes
- * 3. UNMUTE: Videos MUST start muted (browser policy) - big unmute button
+ * 1. WHITE LINE/BLUE GLOW: EXTREME overscan (80px) + BLACK EDGE COVERS
+ * 2. SWIPE: Document-level touch handlers + tap zones
+ * 3. UNMUTE: Big centered unmute button
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -33,7 +33,6 @@ export default function ReelsPage() {
     const [loading, setLoading] = useState(true);
     const [muted, setMuted] = useState(true);
 
-    // Touch tracking refs
     const touchStartY = useRef(0);
     const touchStartTime = useRef(0);
     const isNavigating = useRef(false);
@@ -68,7 +67,6 @@ export default function ReelsPage() {
         setLoading(false);
     };
 
-    // Navigation with debounce to prevent double-triggers
     const goNext = useCallback(() => {
         if (isNavigating.current) return;
         if (idx < reels.length - 1) {
@@ -89,7 +87,7 @@ export default function ReelsPage() {
         }
     }, [idx]);
 
-    // DOCUMENT-LEVEL touch handlers (work even over iframes)
+    // Document-level touch handlers
     useEffect(() => {
         const handleTouchStart = (e) => {
             touchStartY.current = e.touches[0].clientY;
@@ -100,18 +98,13 @@ export default function ReelsPage() {
             const deltaY = touchStartY.current - e.changedTouches[0].clientY;
             const deltaTime = Date.now() - touchStartTime.current;
 
-            // Swipe detection: >80px movement in <400ms
             if (Math.abs(deltaY) > 80 && deltaTime < 400) {
                 e.preventDefault();
-                if (deltaY > 0) {
-                    goNext();
-                } else {
-                    goPrev();
-                }
+                if (deltaY > 0) goNext();
+                else goPrev();
             }
         };
 
-        // Use capture phase to intercept before iframe
         document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
         document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
 
@@ -131,18 +124,15 @@ export default function ReelsPage() {
         return () => window.removeEventListener('keydown', handler);
     }, [goNext, goPrev]);
 
-    // Mouse wheel navigation (for desktop)
+    // Mouse wheel navigation
     useEffect(() => {
         let wheelCooldown = false;
         const handler = (e) => {
             if (wheelCooldown) return;
             if (Math.abs(e.deltaY) > 50) {
                 wheelCooldown = true;
-                if (e.deltaY > 0) {
-                    goNext();
-                } else {
-                    goPrev();
-                }
+                if (e.deltaY > 0) goNext();
+                else goPrev();
                 setTimeout(() => { wheelCooldown = false; }, 500);
             }
         };
@@ -183,8 +173,8 @@ export default function ReelsPage() {
 
     const youtubeUrl = `https://www.youtube.com/embed/${reel?.videoId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${reel?.videoId}&playsinline=1&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
 
-    // Overscan amount to hide YouTube's letterbox glow
-    const OVERSCAN = 40;
+    // EXTREME overscan to hide YouTube's ambient glow
+    const OVERSCAN = 80;
 
     return (
         <>
@@ -193,7 +183,7 @@ export default function ReelsPage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
             </Head>
 
-            {/* Main container - full screen, black background */}
+            {/* Main container */}
             <div style={{
                 position: 'fixed',
                 top: 0,
@@ -202,20 +192,19 @@ export default function ReelsPage() {
                 bottom: 0,
                 background: '#000',
                 overflow: 'hidden',
-                touchAction: 'none' // Disable browser handling of touch gestures
+                touchAction: 'none'
             }}>
 
-                {/* VIDEO CONTAINER - uses clip-path to physically cut off edges */}
+                {/* VIDEO CONTAINER with clip-path */}
                 <div style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    clipPath: 'inset(0)', // This clips any overflow from the iframe
+                    clipPath: 'inset(0)',
                     overflow: 'hidden'
                 }}>
-                    {/* IFRAME with overscan - extends beyond visible area */}
                     {reel && (
                         <iframe
                             key={`${reel.id}-${muted}`}
@@ -230,28 +219,62 @@ export default function ReelsPage() {
                                 width: `calc(100% + ${OVERSCAN * 2}px)`,
                                 height: `calc(100% + ${OVERSCAN * 2}px)`,
                                 border: 'none',
-                                pointerEvents: 'auto' // Allow interaction with YouTube controls
+                                pointerEvents: 'auto'
                             }}
                         />
                     )}
                 </div>
 
-                {/* INVISIBLE SWIPE OVERLAY - covers entire screen to capture gestures */}
-                {/* This is ABOVE the iframe to capture touch events */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        zIndex: 5,
-                        // Touch events pass through to document handlers
-                        pointerEvents: 'none'
-                    }}
-                />
+                {/* BLACK EDGE COVERS - Physically cover any glow that leaks through */}
+                {/* LEFT COVER */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: 60,
+                    height: '100%',
+                    background: 'linear-gradient(to right, #000 0%, #000 70%, transparent 100%)',
+                    zIndex: 8,
+                    pointerEvents: 'none'
+                }} />
 
-                {/* LEFT TAP ZONE - for prev video */}
+                {/* RIGHT COVER */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: 60,
+                    height: '100%',
+                    background: 'linear-gradient(to left, #000 0%, #000 70%, transparent 100%)',
+                    zIndex: 8,
+                    pointerEvents: 'none'
+                }} />
+
+                {/* TOP COVER */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: 60,
+                    background: 'linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%)',
+                    zIndex: 8,
+                    pointerEvents: 'none'
+                }} />
+
+                {/* BOTTOM COVER */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '100%',
+                    height: 60,
+                    background: 'linear-gradient(to top, #000 0%, #000 70%, transparent 100%)',
+                    zIndex: 8,
+                    pointerEvents: 'none'
+                }} />
+
+                {/* LEFT TAP ZONE */}
                 <div
                     onClick={() => goPrev()}
                     style={{
@@ -265,7 +288,7 @@ export default function ReelsPage() {
                     }}
                 />
 
-                {/* RIGHT TAP ZONE - for next video */}
+                {/* RIGHT TAP ZONE */}
                 <div
                     onClick={() => goNext()}
                     style={{
@@ -279,7 +302,7 @@ export default function ReelsPage() {
                     }}
                 />
 
-                {/* UNMUTE BUTTON - Very prominent, centered */}
+                {/* UNMUTE BUTTON */}
                 {muted && (
                     <div
                         onClick={() => setMuted(false)}
@@ -289,7 +312,7 @@ export default function ReelsPage() {
                             left: '50%',
                             transform: 'translate(-50%, -50%)',
                             zIndex: 50,
-                            background: 'rgba(0,0,0,0.85)',
+                            background: 'rgba(0,0,0,0.9)',
                             color: 'white',
                             padding: '20px 40px',
                             borderRadius: 100,
@@ -299,9 +322,8 @@ export default function ReelsPage() {
                             display: 'flex',
                             alignItems: 'center',
                             gap: 16,
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-                            border: '3px solid rgba(255,255,255,0.4)',
-                            backdropFilter: 'blur(10px)'
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
+                            border: '3px solid rgba(255,255,255,0.5)'
                         }}
                     >
                         <span style={{ fontSize: 32 }}>🔊</span>
@@ -318,7 +340,7 @@ export default function ReelsPage() {
                     width: 44,
                     height: 44,
                     borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.8)',
+                    background: 'rgba(0,0,0,0.9)',
                     color: 'white',
                     display: 'flex',
                     alignItems: 'center',
@@ -348,9 +370,9 @@ export default function ReelsPage() {
                     bottom: 20,
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    color: 'rgba(255,255,255,0.5)',
+                    color: 'rgba(255,255,255,0.6)',
                     fontSize: 13,
-                    zIndex: 10,
+                    zIndex: 100,
                     pointerEvents: 'none',
                     textShadow: '0 1px 4px rgba(0,0,0,0.8)'
                 }}>
@@ -362,9 +384,9 @@ export default function ReelsPage() {
                     position: 'absolute',
                     bottom: 20,
                     right: 20,
-                    color: 'rgba(255,255,255,0.5)',
+                    color: 'rgba(255,255,255,0.6)',
                     fontSize: 12,
-                    zIndex: 10,
+                    zIndex: 100,
                     pointerEvents: 'none'
                 }}>
                     {idx + 1} / {reels.length}
