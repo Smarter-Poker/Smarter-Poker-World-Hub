@@ -1408,7 +1408,6 @@ export default function SocialMediaPage() {
     const [loadingMore, setLoadingMore] = useState(false);
     const [feedCycle, setFeedCycle] = useState(0); // Track how many times we've looped
     const [seenPostIds, setSeenPostIds] = useState(new Set()); // Track seen posts for variety
-    const loadMoreRef = useRef(null);
     const POSTS_PER_PAGE = 20;
     const MAX_FEED_CYCLES = 10; // Maximum loops before truly ending (shows tons of content)
 
@@ -1780,17 +1779,27 @@ export default function SocialMediaPage() {
         await loadFeed(newOffset, true);
     };
 
-    // ♾️ INFINITE SCROLL: IntersectionObserver for triggering load
-    // Note: loadMoreRef is inside a conditional (posts.length > 0), so we need to re-attach
-    // the observer when posts are loaded and the ref becomes available
-    useEffect(() => {
-        if (!loadMoreRef.current) {
-            console.log('[Social] IntersectionObserver skipped - loadMoreRef not yet available (waiting for posts)');
+    // ♾️ INFINITE SCROLL: Store observer in ref to avoid recreating
+    const observerRef = useRef(null);
+
+    // ♾️ INFINITE SCROLL: Callback ref that attaches observer immediately when element mounts
+    const loadMoreCallbackRef = useCallback((node) => {
+        // Cleanup previous observer if any
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+            observerRef.current = null;
+        }
+
+        // If node is null (unmounting), we're done
+        if (!node) {
+            console.log('[Social] Sentinel unmounted, observer disconnected');
             return;
         }
 
-        console.log('[Social] IntersectionObserver attached to loadMoreRef');
-        const observer = new IntersectionObserver(
+        console.log('[Social] ✅ Sentinel mounted! Attaching IntersectionObserver...');
+
+        // Create and attach new observer
+        observerRef.current = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting) {
                     console.log('[Social] Sentinel visible! Calling loadMorePosts...');
@@ -1800,10 +1809,8 @@ export default function SocialMediaPage() {
             { threshold: 0.1, rootMargin: '200px' }
         );
 
-        observer.observe(loadMoreRef.current);
-
-        return () => observer.disconnect();
-    }, [posts.length]); // Re-run when posts load (makes ref available)
+        observerRef.current.observe(node);
+    }, []); // Empty deps - uses refs for current values
 
     const handlePost = async (content, urls, type, mentions = []) => {
         if (!user?.id) return false;
@@ -2419,7 +2426,7 @@ export default function SocialMediaPage() {
                             ))}
 
                             {/* ♾️ INFINITE SCROLL: Load more trigger */}
-                            <div ref={loadMoreRef} style={{
+                            <div ref={loadMoreCallbackRef} style={{
                                 padding: '20px',
                                 textAlign: 'center',
                                 minHeight: 60
