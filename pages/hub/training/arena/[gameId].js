@@ -31,62 +31,62 @@ const VILLAIN_AVATARS = [
     '/avatars/free/owl.png',
 ];
 
-// Seat positions - SYMMETRICAL PAIRS matching reference exactly
+// EXPORTED LAYOUT - 2026-01-24T02:02:32.086Z (USER'S EXACT POSITIONS)
 const SEAT_POSITIONS = {
-    // Hero - bottom center
-    hero: {
-        left: '50%', top: '78%',
-        avatarOffset: { x: 0, y: 0 },
-        badgeOffset: { x: 0, y: 120 }
+    "hero": {
+        "left": "50%",
+        "top": "78%",
+        "avatarOffset": { "x": 0, "y": 0 },
+        "badgeOffset": { "x": -48, "y": 141 }
     },
-    // V1 - bottom left (mirror of V8)
-    seat1: {
-        left: '18%', top: '64%',
-        avatarOffset: { x: 0, y: 0 },
-        badgeOffset: { x: 0, y: 120 }
+    "seat1": {
+        "left": "18%",
+        "top": "64%",
+        "avatarOffset": { "x": 0, "y": 0 },
+        "badgeOffset": { "x": -38, "y": 150 }
     },
-    // V2 - middle left (mirror of V7)
-    seat2: {
-        left: '13%', top: '46%',
-        avatarOffset: { x: 0, y: 0 },
-        badgeOffset: { x: 0, y: 120 }
+    "seat2": {
+        "left": "13%",
+        "top": "46%",
+        "avatarOffset": { "x": 0, "y": 0 },
+        "badgeOffset": { "x": -61, "y": 114 }
     },
-    // V3 - upper left (mirror of V6)
-    seat3: {
-        left: '15%', top: '26%',
-        avatarOffset: { x: 0, y: 0 },
-        badgeOffset: { x: 0, y: 120 }
+    "seat3": {
+        "left": "15%",
+        "top": "26%",
+        "avatarOffset": { "x": -37, "y": -96 },
+        "badgeOffset": { "x": -72, "y": 66 }
     },
-    // V4 - top left (mirror of V5)
-    seat4: {
-        left: '35%', top: '14%',
-        avatarOffset: { x: 0, y: 0 },
-        badgeOffset: { x: 0, y: 120 }
+    "seat4": {
+        "left": "35%",
+        "top": "14%",
+        "avatarOffset": { "x": -47, "y": -133 },
+        "badgeOffset": { "x": -17, "y": 118 }
     },
-    // V5 - top right (mirror of V4)
-    seat5: {
-        left: '65%', top: '14%',
-        avatarOffset: { x: 0, y: 0 },
-        badgeOffset: { x: 0, y: 120 }
+    "seat5": {
+        "left": "65%",
+        "top": "14%",
+        "avatarOffset": { "x": -69, "y": 73 },
+        "badgeOffset": { "x": 5, "y": -14 }
     },
-    // V6 - upper right (mirror of V3)
-    seat6: {
-        left: '85%', top: '26%',
-        avatarOffset: { x: 0, y: 0 },
-        badgeOffset: { x: 0, y: 120 }
+    "seat6": {
+        "left": "85%",
+        "top": "26%",
+        "avatarOffset": { "x": 115, "y": -49 },
+        "badgeOffset": { "x": -27, "y": 65 }
     },
-    // V7 - middle right (mirror of V2)
-    seat7: {
-        left: '87%', top: '46%',
-        avatarOffset: { x: 0, y: 0 },
-        badgeOffset: { x: 0, y: 120 }
+    "seat7": {
+        "left": "87%",
+        "top": "46%",
+        "avatarOffset": { "x": 60, "y": -1 },
+        "badgeOffset": { "x": -37, "y": 108 }
     },
-    // V8 - bottom right (mirror of V1)
-    seat8: {
-        left: '82%', top: '64%',
-        avatarOffset: { x: 0, y: 0 },
-        badgeOffset: { x: 0, y: 120 }
-    },
+    "seat8": {
+        "left": "82%",
+        "top": "64%",
+        "avatarOffset": { "x": 5, "y": 40 },
+        "badgeOffset": { "x": -41, "y": 138 }
+    }
 };
 
 const SUITS = {
@@ -248,7 +248,15 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
     }, [dragging, dragStart]);
 
     return (
-        <div className="player-seat" style={{ position: 'absolute', zIndex: dragging ? 99999 : (100 + seatIndex), pointerEvents: 'all', overflow: 'visible', minWidth: '100px', ...initialPosition }}>
+        <div className="player-seat" style={{
+            position: 'absolute',
+            zIndex: dragging ? 99999 : (100 + seatIndex),
+            pointerEvents: 'none', // Container doesn't capture clicks
+            overflow: 'visible',
+            width: '1px', // Minimal container size
+            height: '1px',
+            ...initialPosition
+        }}>
             {/* Avatar - Draggable via transform */}
             <img
                 src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=256&q=90`}
@@ -265,10 +273,11 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
                     filter: 'drop-shadow(2px 3px 6px rgba(0,0,0,0.9))',
                     cursor: dragging === 'avatar' ? 'grabbing' : 'grab',
                     transform: `translate(${avatarPos.x}px, ${avatarPos.y}px)`,
-                    zIndex: 100,
+                    zIndex: dragging === 'avatar' ? 99999 : 100,
                     userSelect: 'none',
-                    pointerEvents: 'all',
+                    pointerEvents: 'all', // Only avatar captures clicks
                     flexShrink: 0,
+                    position: 'relative',
                 }}
             />
             {/* Gold Badge - Draggable via transform - HIGHEST z-index to always be on top */}
@@ -277,11 +286,13 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
                 onMouseDown={(e) => handleMouseDown(e, 'badge')}
                 style={{
                     position: 'absolute',
+                    top: 0,
+                    left: 0,
                     transform: `translate(${badgePos.x}px, ${badgePos.y}px)`,
-                    zIndex: 50000,
+                    zIndex: dragging === 'badge' ? 99999 : 50000,
                     cursor: dragging === 'badge' ? 'grabbing' : 'grab',
                     userSelect: 'none',
-                    pointerEvents: 'all',
+                    pointerEvents: 'all', // Only badge captures clicks
                     width: '95px',
                     minWidth: '95px',
                     whiteSpace: 'nowrap',
@@ -321,8 +332,8 @@ function Card({ rank, suit, isRed, size = 'normal' }) {
 
 // Draggable Hero Cards Component
 function DraggableHeroCards({ cards, onPositionChange }) {
-    // Exact offset from user's layout (extracted 2026-01-23)
-    const [pos, setPos] = useState({ x: 20, y: 0 });
+    // User's exported hero cards offset
+    const [pos, setPos] = useState({ x: 29, y: 117 });
     const [dragging, setDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 

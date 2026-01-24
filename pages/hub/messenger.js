@@ -779,6 +779,7 @@ export default function MessengerPage() {
     const [showMessageSearch, setShowMessageSearch] = useState(false);
     const [totalUnreadCount, setTotalUnreadCount] = useState(0);
     const [onlineUsers, setOnlineUsers] = useState(new Set());
+    const [friends, setFriends] = useState([]); // Friends list for quick access
 
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
@@ -808,6 +809,17 @@ export default function MessengerPage() {
 
                     setUser({ ...authUser, ...profile });
                     await loadConversations(authUser.id);
+
+                    // Load friends for quick access
+                    const { data: friendships } = await supabase
+                        .from('friendships')
+                        .select('friend_id, friend:profiles!friendships_friend_id_fkey(id, username, full_name, avatar_url)')
+                        .eq('user_id', authUser.id)
+                        .eq('status', 'accepted');
+
+                    if (friendships) {
+                        setFriends(friendships.map(f => f.friend).filter(Boolean));
+                    }
                 }
             } catch (e) {
                 console.error('Init error:', e);
@@ -1335,32 +1347,73 @@ export default function MessengerPage() {
                         composing={composing}
                     />
 
-                    {/* Conversations */}
+                    {/* Conversations or Friends List */}
                     <div style={{ flex: 1, overflowY: 'auto' }}>
                         {conversations.length === 0 ? (
-                            <div style={{
-                                textAlign: 'center',
-                                padding: 40,
-                            }}>
-                                <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
-                                <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>No conversations yet</div>
-                                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Search for someone to start chatting!</div>
-                                <button
-                                    onClick={() => {
-                                        setComposing(true);
-                                        setTimeout(() => searchInputRef.current?.focus(), 100);
-                                    }}
-                                    style={{
-                                        background: C.blue,
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: 8,
-                                        padding: '12px 24px',
-                                        fontSize: 15,
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                    }}
-                                >✏️ Start New Chat</button>
+                            <div style={{ padding: 16 }}>
+                                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                                    <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
+                                    <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>No conversations yet</div>
+                                    <div style={{ fontSize: 13, color: C.textSec }}>Start chatting with your friends!</div>
+                                </div>
+
+                                {/* Friends List */}
+                                {friends.length > 0 && (
+                                    <>
+                                        <div style={{
+                                            fontSize: 13,
+                                            fontWeight: 600,
+                                            color: C.textSec,
+                                            padding: '12px 0 8px',
+                                            borderTop: `1px solid ${C.border}`,
+                                            marginTop: 8
+                                        }}>Your Friends</div>
+                                        {friends.map(friend => (
+                                            <div
+                                                key={friend.id}
+                                                onClick={() => handleStartConversation(friend)}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 12,
+                                                    padding: '10px 12px',
+                                                    cursor: 'pointer',
+                                                    borderRadius: 8,
+                                                    transition: 'background 0.15s',
+                                                }}
+                                                onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                <Avatar src={friend.avatar_url} name={friend.username || friend.full_name} size={48} />
+                                                <div>
+                                                    <div style={{ fontWeight: 500, color: C.text }}>{friend.full_name || friend.username}</div>
+                                                    <div style={{ fontSize: 13, color: C.textSec }}>Tap to send a message</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
+
+                                {friends.length === 0 && (
+                                    <button
+                                        onClick={() => {
+                                            setComposing(true);
+                                            setTimeout(() => searchInputRef.current?.focus(), 100);
+                                        }}
+                                        style={{
+                                            display: 'block',
+                                            width: '100%',
+                                            padding: '12px 24px',
+                                            background: C.blue,
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: 24,
+                                            fontWeight: 600,
+                                            fontSize: 15,
+                                            cursor: 'pointer',
+                                            marginTop: 16,
+                                        }}>Search for people</button>
+                                )}
                             </div>
                         ) : (
                             conversations.map(conv => (
@@ -1383,7 +1436,7 @@ export default function MessengerPage() {
                     }}>
                         <Link href="/hub/social-media" style={{
                             color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none',
-                        }}>← Back to Social Hub</Link>
+                        }}>Back to Social Hub</Link>
                     </div>
                 </aside>
 
@@ -1396,241 +1449,244 @@ export default function MessengerPage() {
                     flexDirection: 'column',
                     background: C.card,
                 }}>
-                    {activeConversation ? (
-                        <>
-                            {/* Chat Header */}
-                            <div style={{
-                                padding: '10px 16px',
-                                borderBottom: `1px solid ${C.border}`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 12,
-                                background: C.card,
-                            }}>
-                                {isMobile && (
-                                    <button
-                                        onClick={() => setShowSidebar(true)}
-                                        style={{
-                                            background: 'none', border: 'none', cursor: 'pointer',
-                                            fontSize: 20, padding: 4,
-                                        }}
-                                    >←</button>
-                                )}
-
-                                <Link href={`/hub/user/${otherUser?.username}`}>
-                                    <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={40} online />
-                                </Link>
-
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 600, fontSize: 15 }}>{otherUser?.username}</div>
-                                    <div style={{ fontSize: 12, color: C.textSec }}>Active now</div>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    <button
-                                        onClick={() => setShowMessageSearch(!showMessageSearch)}
-                                        style={{
-                                            width: 36, height: 36, borderRadius: '50%',
-                                            background: showMessageSearch ? C.bg : 'transparent',
-                                            border: 'none', cursor: 'pointer', fontSize: 18,
-                                            color: C.blue,
-                                        }}
-                                        title="Search messages"
-                                    >🔍</button>
-                                    <button style={{
-                                        width: 36, height: 36, borderRadius: '50%',
-                                        background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
-                                        color: C.blue,
-                                    }}>📞</button>
-                                    <button style={{
-                                        width: 36, height: 36, borderRadius: '50%',
-                                        background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
-                                        color: C.blue,
-                                    }}>📹</button>
-                                    <button style={{
-                                        width: 36, height: 36, borderRadius: '50%',
-                                        background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
-                                        color: C.blue,
-                                    }}>ℹ️</button>
-                                </div>
-                            </div>
-
-                            {/* Message Search Bar */}
-                            {showMessageSearch && (
+                    {
+                        activeConversation ? (
+                            <>
+                                {/* Chat Header */}
                                 <div style={{
-                                    padding: '8px 16px',
+                                    padding: '10px 16px',
                                     borderBottom: `1px solid ${C.border}`,
-                                    background: C.bg,
-                                    position: 'relative',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 12,
+                                    background: C.card,
                                 }}>
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        background: C.card,
-                                        borderRadius: 20,
-                                        padding: '0 12px',
-                                        border: `1px solid ${C.border}`,
-                                    }}>
-                                        <span style={{ color: C.textSec, marginRight: 8 }}>🔍</span>
-                                        <input
-                                            type="text"
-                                            value={messageSearchQuery}
-                                            onChange={e => {
-                                                setMessageSearchQuery(e.target.value);
-                                                handleMessageSearch(e.target.value);
-                                            }}
-                                            placeholder="Search in this conversation..."
+                                    {isMobile && (
+                                        <button
+                                            onClick={() => setShowSidebar(true)}
                                             style={{
-                                                flex: 1,
-                                                border: 'none',
-                                                background: 'transparent',
-                                                padding: '8px 0',
-                                                fontSize: 14,
-                                                outline: 'none',
+                                                background: 'none', border: 'none', cursor: 'pointer',
+                                                fontSize: 20, padding: 4,
                                             }}
-                                        />
-                                        {messageSearchQuery && (
-                                            <button
-                                                onClick={() => { setMessageSearchQuery(''); setMessageSearchResults([]); }}
-                                                style={{
-                                                    background: 'none', border: 'none', cursor: 'pointer',
-                                                    color: C.textSec, fontSize: 14,
-                                                }}
-                                            >✕</button>
-                                        )}
+                                        >←</button>
+                                    )}
+
+                                    <Link href={`/hub/user/${otherUser?.username}`}>
+                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={40} online />
+                                    </Link>
+
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 15 }}>{otherUser?.username}</div>
+                                        <div style={{ fontSize: 12, color: C.textSec }}>Active now</div>
                                     </div>
 
-                                    {/* Search Results Dropdown */}
-                                    {messageSearchResults.length > 0 && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: '100%',
-                                            left: 16,
-                                            right: 16,
-                                            background: C.card,
-                                            borderRadius: 8,
-                                            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                                            maxHeight: 240,
-                                            overflowY: 'auto',
-                                            zIndex: 100,
-                                        }}>
-                                            <div style={{ padding: '8px 12px', fontSize: 12, color: C.textSec, borderBottom: `1px solid ${C.border}` }}>
-                                                {messageSearchResults.length} result{messageSearchResults.length !== 1 ? 's' : ''}
-                                            </div>
-                                            {messageSearchResults.map(result => (
-                                                <div
-                                                    key={result.id}
-                                                    onClick={() => {
-                                                        // Scroll to message (future: highlight it)
-                                                        const el = document.getElementById(`msg-${result.id}`);
-                                                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                                        setShowMessageSearch(false);
-                                                        setMessageSearchQuery('');
-                                                        setMessageSearchResults([]);
-                                                    }}
-                                                    style={{
-                                                        padding: '10px 12px',
-                                                        borderBottom: `1px solid ${C.border}`,
-                                                        cursor: 'pointer',
-                                                    }}
-                                                    onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
-                                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                                >
-                                                    <div style={{ fontSize: 13, color: C.text, marginBottom: 2 }}>
-                                                        {result.content.slice(0, 80)}{result.content.length > 80 ? '...' : ''}
-                                                    </div>
-                                                    <div style={{ fontSize: 11, color: C.textSec }}>
-                                                        {timeAgo(result.created_at)}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button
+                                            onClick={() => setShowMessageSearch(!showMessageSearch)}
+                                            style={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                background: showMessageSearch ? C.bg : 'transparent',
+                                                border: 'none', cursor: 'pointer', fontSize: 18,
+                                                color: C.blue,
+                                            }}
+                                            title="Search messages"
+                                        >🔍</button>
+                                        <button style={{
+                                            width: 36, height: 36, borderRadius: '50%',
+                                            background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
+                                            color: C.blue,
+                                        }}>📞</button>
+                                        <button style={{
+                                            width: 36, height: 36, borderRadius: '50%',
+                                            background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
+                                            color: C.blue,
+                                        }}>📹</button>
+                                        <button style={{
+                                            width: 36, height: 36, borderRadius: '50%',
+                                            background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
+                                            color: C.blue,
+                                        }}>ℹ️</button>
+                                    </div>
+                                </div >
 
-                            {/* Messages */}
+                                {/* Message Search Bar */}
+                                {
+                                    showMessageSearch && (
+                                        <div style={{
+                                            padding: '8px 16px',
+                                            borderBottom: `1px solid ${C.border}`,
+                                            background: C.bg,
+                                            position: 'relative',
+                                        }}>
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                background: C.card,
+                                                borderRadius: 20,
+                                                padding: '0 12px',
+                                                border: `1px solid ${C.border}`,
+                                            }}>
+                                                <span style={{ color: C.textSec, marginRight: 8 }}>🔍</span>
+                                                <input
+                                                    type="text"
+                                                    value={messageSearchQuery}
+                                                    onChange={e => {
+                                                        setMessageSearchQuery(e.target.value);
+                                                        handleMessageSearch(e.target.value);
+                                                    }}
+                                                    placeholder="Search in this conversation..."
+                                                    style={{
+                                                        flex: 1,
+                                                        border: 'none',
+                                                        background: 'transparent',
+                                                        padding: '8px 0',
+                                                        fontSize: 14,
+                                                        outline: 'none',
+                                                    }}
+                                                />
+                                                {messageSearchQuery && (
+                                                    <button
+                                                        onClick={() => { setMessageSearchQuery(''); setMessageSearchResults([]); }}
+                                                        style={{
+                                                            background: 'none', border: 'none', cursor: 'pointer',
+                                                            color: C.textSec, fontSize: 14,
+                                                        }}
+                                                    >✕</button>
+                                                )}
+                                            </div>
+
+                                            {/* Search Results Dropdown */}
+                                            {messageSearchResults.length > 0 && (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    top: '100%',
+                                                    left: 16,
+                                                    right: 16,
+                                                    background: C.card,
+                                                    borderRadius: 8,
+                                                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                                                    maxHeight: 240,
+                                                    overflowY: 'auto',
+                                                    zIndex: 100,
+                                                }}>
+                                                    <div style={{ padding: '8px 12px', fontSize: 12, color: C.textSec, borderBottom: `1px solid ${C.border}` }}>
+                                                        {messageSearchResults.length} result{messageSearchResults.length !== 1 ? 's' : ''}
+                                                    </div>
+                                                    {messageSearchResults.map(result => (
+                                                        <div
+                                                            key={result.id}
+                                                            onClick={() => {
+                                                                // Scroll to message (future: highlight it)
+                                                                const el = document.getElementById(`msg-${result.id}`);
+                                                                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                                setShowMessageSearch(false);
+                                                                setMessageSearchQuery('');
+                                                                setMessageSearchResults([]);
+                                                            }}
+                                                            style={{
+                                                                padding: '10px 12px',
+                                                                borderBottom: `1px solid ${C.border}`,
+                                                                cursor: 'pointer',
+                                                            }}
+                                                            onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                        >
+                                                            <div style={{ fontSize: 13, color: C.text, marginBottom: 2 }}>
+                                                                {result.content.slice(0, 80)}{result.content.length > 80 ? '...' : ''}
+                                                            </div>
+                                                            <div style={{ fontSize: 11, color: C.textSec }}>
+                                                                {timeAgo(result.created_at)}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                }
+
+                                {/* Messages */}
+                                <div style={{
+                                    flex: 1,
+                                    overflowY: 'auto',
+                                    padding: '16px 0',
+                                }}>
+                                    {/* User info header */}
+                                    <div style={{ textAlign: 'center', marginBottom: 24, padding: '0 20px' }}>
+                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={80} showOnline={false} />
+                                        <div style={{ marginTop: 12, fontWeight: 600, fontSize: 17 }}>{otherUser?.username}</div>
+                                        <div style={{ color: C.textSec, fontSize: 13 }}>Smarter.Poker Member</div>
+                                        <Link href={`/hub/user/${otherUser?.username}`} style={{
+                                            display: 'inline-block',
+                                            marginTop: 12,
+                                            padding: '8px 16px',
+                                            background: C.bg,
+                                            borderRadius: 8,
+                                            color: C.text,
+                                            textDecoration: 'none',
+                                            fontSize: 14,
+                                            fontWeight: 500,
+                                        }}>View Profile</Link>
+                                    </div>
+
+                                    {loadingMessages ? (
+                                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                                            Loading messages...
+                                        </div>
+                                    ) : messages.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                                            <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
+                                            Say hi to start the conversation!
+                                        </div>
+                                    ) : (
+                                        messages.map((msg, i) => {
+                                            const isOwn = msg.sender_id === user.id;
+                                            const prevMsg = messages[i - 1];
+                                            const nextMsg = messages[i + 1];
+                                            const showAvatar = !prevMsg || prevMsg.sender_id !== msg.sender_id;
+                                            const isLastInGroup = !nextMsg || nextMsg.sender_id !== msg.sender_id;
+
+                                            return (
+                                                <MessageBubble
+                                                    key={msg.id}
+                                                    message={msg}
+                                                    isOwn={isOwn}
+                                                    showAvatar={showAvatar}
+                                                    sender={msg.profiles}
+                                                    showTime={isLastInGroup}
+                                                    isLastInGroup={isLastInGroup}
+                                                    onReact={handleReaction}
+                                                    onDelete={handleDeleteMessage}
+                                                    currentUserId={user.id}
+                                                />
+                                            );
+                                        })
+                                    )}
+                                    {/* Typing indicator */}
+                                    {otherTyping && <TypingIndicator name={otherUser?.username} />}
+                                    <div ref={messagesEndRef} />
+                                </div>
+
+                                {/* Message Input */}
+                                <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} />
+                            </>
+                        ) : (
+                            /* No conversation selected */
                             <div style={{
                                 flex: 1,
-                                overflowY: 'auto',
-                                padding: '16px 0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexDirection: 'column',
+                                color: C.textSec,
                             }}>
-                                {/* User info header */}
-                                <div style={{ textAlign: 'center', marginBottom: 24, padding: '0 20px' }}>
-                                    <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={80} showOnline={false} />
-                                    <div style={{ marginTop: 12, fontWeight: 600, fontSize: 17 }}>{otherUser?.username}</div>
-                                    <div style={{ color: C.textSec, fontSize: 13 }}>Smarter.Poker Member</div>
-                                    <Link href={`/hub/user/${otherUser?.username}`} style={{
-                                        display: 'inline-block',
-                                        marginTop: 12,
-                                        padding: '8px 16px',
-                                        background: C.bg,
-                                        borderRadius: 8,
-                                        color: C.text,
-                                        textDecoration: 'none',
-                                        fontSize: 14,
-                                        fontWeight: 500,
-                                    }}>View Profile</Link>
-                                </div>
-
-                                {loadingMessages ? (
-                                    <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                                        Loading messages...
-                                    </div>
-                                ) : messages.length === 0 ? (
-                                    <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                                        <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
-                                        Say hi to start the conversation!
-                                    </div>
-                                ) : (
-                                    messages.map((msg, i) => {
-                                        const isOwn = msg.sender_id === user.id;
-                                        const prevMsg = messages[i - 1];
-                                        const nextMsg = messages[i + 1];
-                                        const showAvatar = !prevMsg || prevMsg.sender_id !== msg.sender_id;
-                                        const isLastInGroup = !nextMsg || nextMsg.sender_id !== msg.sender_id;
-
-                                        return (
-                                            <MessageBubble
-                                                key={msg.id}
-                                                message={msg}
-                                                isOwn={isOwn}
-                                                showAvatar={showAvatar}
-                                                sender={msg.profiles}
-                                                showTime={isLastInGroup}
-                                                isLastInGroup={isLastInGroup}
-                                                onReact={handleReaction}
-                                                onDelete={handleDeleteMessage}
-                                                currentUserId={user.id}
-                                            />
-                                        );
-                                    })
-                                )}
-                                {/* Typing indicator */}
-                                {otherTyping && <TypingIndicator name={otherUser?.username} />}
-                                <div ref={messagesEndRef} />
+                                <div style={{ fontSize: 80, marginBottom: 16 }}>💬</div>
+                                <h2 style={{ margin: 0, color: C.text, fontWeight: 600 }}>Select a conversation</h2>
+                                <p style={{ marginTop: 8, color: C.textSec }}>Choose from your existing chats or search for someone new</p>
                             </div>
-
-                            {/* Message Input */}
-                            <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} />
-                        </>
-                    ) : (
-                        /* No conversation selected */
-                        <div style={{
-                            flex: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexDirection: 'column',
-                            color: C.textSec,
-                        }}>
-                            <div style={{ fontSize: 80, marginBottom: 16 }}>💬</div>
-                            <h2 style={{ margin: 0, color: C.text, fontWeight: 600 }}>Select a conversation</h2>
-                            <p style={{ marginTop: 8, color: C.textSec }}>Choose from your existing chats or search for someone new</p>
-                        </div>
-                    )}
-                </main>
-            </div>
+                        )}
+                </main >
+            </div >
         </>
     );
 }
