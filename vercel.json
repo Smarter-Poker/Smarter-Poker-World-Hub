@@ -19,19 +19,19 @@
     },
     {
       "path": "/api/cron/horses-social-likes",
-      "schedule": "5 * * * *"
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron/horses-social-comments",
-      "schedule": "20 * * * *"
+      "schedule": "2,7,12,17,22,27,32,37,42,47,52,57 * * * *"
     },
     {
       "path": "/api/cron/horses-social-friends",
-      "schedule": "15 */6 * * *"
+      "schedule": "15 */4 * * *"
     },
     {
       "path": "/api/cron/horses-social-replies",
-      "schedule": "45 * * * *"
+      "schedule": "3,8,13,18,23,28,33,38,43,48,53,58 * * * *"
     },
     {
       "path": "/api/cron/horses-clips",

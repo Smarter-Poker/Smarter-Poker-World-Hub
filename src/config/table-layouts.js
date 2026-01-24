@@ -6,59 +6,68 @@
  */
 
 // 9-MAX LAYOUT (Full Ring) - Hero + 8 Villains
-// EXPORTED 2026-01-24T03:30:45.767Z via DEV MODE
+// LOCKED POSITIONS - Matches template exactly
 export const LAYOUT_9MAX = {
     name: '9MAX',
     seats: 9,
-    heroCardsOffset: { "x": 29, "y": 117 },
+    heroCardsOffset: { x: 29, y: 117 },
     positions: {
+        // Hero: Bottom center
         "hero": {
             "left": "50%",
-            "top": "78%",
-            "avatarOffset": { "x": -50, "y": 9 }
+            "top": "76%",
+            "avatarOffset": { "x": -62, "y": 0 }
         },
+        // Villain 1: Bottom left corner
         "seat1": {
-            "left": "20%",
-            "top": "68%",
-            "avatarOffset": { "x": -53, "y": 18 }
+            "left": "18%",
+            "top": "66%",
+            "avatarOffset": { "x": -62, "y": 0 }
         },
+        // Villain 2: Left side, lower
         "seat2": {
-            "left": "8%",
-            "top": "45%",
-            "avatarOffset": { "x": -26, "y": -4 }
+            "left": "6%",
+            "top": "44%",
+            "avatarOffset": { "x": -62, "y": 0 }
         },
+        // Villain 3: Left side, upper
         "seat3": {
             "left": "10%",
-            "top": "22%",
-            "avatarOffset": { "x": -57, "y": -8 }
+            "top": "20%",
+            "avatarOffset": { "x": -62, "y": 0 }
         },
+        // Villain 4: Top left
         "seat4": {
-            "left": "30%",
+            "left": "28%",
             "top": "8%",
-            "avatarOffset": { "x": -55, "y": 0 }
+            "avatarOffset": { "x": -62, "y": 0 }
         },
+        // Villain 5: Top right
         "seat5": {
             "left": "60%",
             "top": "8%",
-            "avatarOffset": { "x": -55, "y": 0 }
+            "avatarOffset": { "x": -62, "y": 0 }
         },
+        // Villain 6: Right side, upper
         "seat6": {
-            "left": "80%",
-            "top": "22%",
-            "avatarOffset": { "x": -8, "y": -10 }
+            "left": "82%",
+            "top": "20%",
+            "avatarOffset": { "x": -62, "y": 0 }
         },
+        // Villain 7: Right side, lower
         "seat7": {
             "left": "88%",
-            "top": "45%",
-            "avatarOffset": { "x": -75, "y": 0 }
+            "top": "44%",
+            "avatarOffset": { "x": -62, "y": 0 }
         },
+        // Villain 8: Bottom right corner
         "seat8": {
-            "left": "82%",
-            "top": "68%",
-            "avatarOffset": { "x": -75, "y": -20 }
+            "left": "76%",
+            "top": "66%",
+            "avatarOffset": { "x": -62, "y": 0 }
         }
     },
-    heroCards: { "x": 29, "y": 117 }
+    heroCards: { x: 29, y: 117 }
 };
 
 // 6-MAX LAYOUT (Short-handed) - Hero + 5 Villains

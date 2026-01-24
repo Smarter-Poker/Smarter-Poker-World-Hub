@@ -70,7 +70,9 @@ function StoryRing({ hasUnviewed, children, size = 64, onClick }) {
 
 // Story Avatar - individual story in the bar
 function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory }) {
+    // Show ring if: other user has unviewed story, OR this is user's own story and they have stories
     const hasUnviewed = !story?.is_viewed && !isOwn;
+    const showRing = hasUnviewed || (isOwn && hasStory);
 
     return (
         <div
@@ -85,7 +87,7 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory }) {
                 position: 'relative',
             }}
         >
-            <StoryRing hasUnviewed={hasUnviewed} size={64}>
+            <StoryRing hasUnviewed={showRing} size={64}>
                 <div style={{ position: 'relative' }}>
                     <img
                         src={story?.author_avatar || '/default-avatar.png'}
