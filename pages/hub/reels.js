@@ -72,18 +72,24 @@ export default function ReelsPage() {
         }
     };
 
-    // Auto-unmute after video loads (if user has previously enabled sound)
+    // Auto-play and auto-unmute after video loads (if user has interacted)
     useEffect(() => {
-        if (userWantsSound && !loading && reels.length > 0) {
-            // Wait for iframe to load, then unmute
+        if (hasInteracted && !loading && reels.length > 0) {
+            // Wait for iframe to load, then force play + unmute if preferred
             const timer = setTimeout(() => {
-                sendYouTubeCommand('unMute');
-                sendYouTubeCommand('setVolume', [100]);
-                setMuted(false);
-            }, 1000); // Give iframe time to initialize YouTube API
+                // FORCE PLAY via YouTube API
+                sendYouTubeCommand('playVideo');
+
+                // Auto-unmute if user has previously enabled sound
+                if (userWantsSound) {
+                    sendYouTubeCommand('unMute');
+                    sendYouTubeCommand('setVolume', [100]);
+                    setMuted(false);
+                }
+            }, 800); // Give iframe time to initialize YouTube API
             return () => clearTimeout(timer);
         }
-    }, [currentIndex, userWantsSound, loading, reels.length]);
+    }, [currentIndex, hasInteracted, userWantsSound, loading, reels.length]);
 
     const handleUnmute = () => {
         sendYouTubeCommand('unMute');
