@@ -39,6 +39,7 @@
     "react-confetti": "^6.4.0",
     "react-dom": "18.3.1",
     "react-hook-form": "^7.71.1",
+    "react-onesignal": "^3.4.6",
     "react-player": "^3.4.0",
     "react-use": "^17.6.0",
     "react-window": "^2.2.5",
