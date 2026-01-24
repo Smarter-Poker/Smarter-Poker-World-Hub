@@ -63,27 +63,27 @@ const SEAT_POSITIONS = {
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Villain 5 - top right
+    // Villain 5 - top right (moved left from 67% to 62%)
     seat5: {
-        left: '67%', top: '10%',
+        left: '62%', top: '10%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Villain 6 - upper right
+    // Villain 6 - upper right (moved left from 86% to 80%)
     seat6: {
-        left: '86%', top: '20%',
+        left: '80%', top: '20%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Villain 7 - middle right
+    // Villain 7 - middle right (moved left from 88% to 82%)
     seat7: {
-        left: '88%', top: '40%',
+        left: '82%', top: '40%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Villain 8 - bottom right
+    // Villain 8 - bottom right (moved left from 82% to 78%)
     seat8: {
-        left: '82%', top: '58%',
+        left: '78%', top: '58%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
