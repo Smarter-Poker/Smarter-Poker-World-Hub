@@ -79,14 +79,7 @@ export default async function handler(req, res) {
     // Find staff member with this PIN at this venue
     const { data: staff, error } = await supabase
       .from('captain_staff')
-      .select(`
-        *,
-        profiles (
-          id,
-          display_name,
-          avatar_url
-        )
-      `)
+      .select('*')
       .eq('venue_id', venue_id)
       .eq('pin_code', pin_code)
       .eq('is_active', true)
@@ -117,8 +110,7 @@ export default async function handler(req, res) {
           id: staff.id,
           role: staff.role,
           user_id: staff.user_id,
-          display_name: staff.profiles?.display_name || 'Staff',
-          avatar_url: staff.profiles?.avatar_url
+          display_name: staff.role.charAt(0).toUpperCase() + staff.role.slice(1)
         },
         permissions
       }
