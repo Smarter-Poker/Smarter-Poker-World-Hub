@@ -628,45 +628,97 @@ export default function ProfilePage() {
                         hidden
                         onChange={handleCoverPhotoUpload}
                     />
-                    {/* Camera icon overlay for cover photo */}
+
+                    {/* Photos and Reels Albums - Bottom Left */}
+                    <div style={{
+                        position: 'absolute',
+                        bottom: 12,
+                        left: 12,
+                        display: 'flex',
+                        gap: 8
+                    }}>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); router.push('/hub/social-media?tab=photos'); }}
+                            style={{
+                                background: 'rgba(0,0,0,0.6)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '8px 16px',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6
+                            }}
+                        >
+                            📷 Photos
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); router.push('/hub/reels'); }}
+                            style={{
+                                background: 'rgba(0,0,0,0.6)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '8px 16px',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6
+                            }}
+                        >
+                            🎬 Reels
+                        </button>
+                    </div>
+
+                    {/* Add Cover Photo + Build Custom Avatar - Bottom Right */}
                     <div style={{
                         position: 'absolute',
                         bottom: 12,
                         right: 12,
-                        background: 'rgba(0,0,0,0.6)',
-                        color: 'white',
-                        padding: '8px 16px',
-                        borderRadius: 8,
-                        fontSize: 13,
-                        fontWeight: 600,
                         display: 'flex',
-                        alignItems: 'center',
-                        gap: 6
+                        flexDirection: 'column',
+                        gap: 8,
+                        alignItems: 'flex-end'
                     }}>
-                        📷 {profile.cover_photo_url ? 'Change Cover' : 'Add Cover Photo'}
-                    </div>
-                    <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)' }}>
-                        <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
+                        <div style={{
+                            background: 'rgba(0,0,0,0.6)',
+                            color: 'white',
+                            padding: '8px 16px',
+                            borderRadius: 8,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6
+                        }}>
+                            📷 {profile.cover_photo_url ? 'Change Cover' : 'Add Cover Photo'}
+                        </div>
                         <button
                             onClick={(e) => { e.stopPropagation(); router.push('/hub/avatars'); }}
                             style={{
-                                position: 'absolute', bottom: -8, left: -8, background: 'linear-gradient(135deg, #00f5ff, #0099ff)', color: '#0a0e27',
-                                border: 'none', borderRadius: 20, padding: '6px 12px', fontSize: 11,
-                                fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,245,255,0.4)'
+                                background: 'linear-gradient(135deg, #00f5ff, #0099ff)',
+                                color: '#0a0e27',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '8px 16px',
+                                fontSize: 13,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(0,245,255,0.4)'
                             }}
                         >
-                            Avatar
+                            Build A Custom Avatar
                         </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setLibraryOpen(true); }}
-                            style={{
-                                position: 'absolute', bottom: -8, right: -8, background: C.blue, color: 'white',
-                                border: 'none', borderRadius: 20, padding: '6px 12px', fontSize: 11,
-                                fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                            }}
-                        >
-                            Library
-                        </button>
+                    </div>
+
+                    {/* Profile Avatar - Center */}
+                    <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)' }}>
+                        <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
                     </div>
                 </div>
 

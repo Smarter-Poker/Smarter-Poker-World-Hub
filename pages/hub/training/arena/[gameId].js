@@ -126,7 +126,8 @@ function ArenaHeader({ diamonds = 0, xp = 0, level = 1, onBack, onSettings }) {
 
 // Draggable Player Seat - Avatar and Badge are ONE unified element
 // They move together as a single unit, not separately
-function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initialPosition, isHero = false, onPositionChange, devMode = false, onDelete }) {
+// SCALE FIX: Accepts scale prop and divides mouse coordinates by scale
+function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initialPosition, isHero = false, onPositionChange, devMode = false, onDelete, scale = 1 }) {
     const AVATAR_SIZE = 125; // Standardized size for ALL avatars
 
     const posInitial = initialPosition?.avatarOffset || { x: 0, y: 0 };
@@ -138,17 +139,23 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
         e.preventDefault();
         e.stopPropagation();
         setDragging(true);
-        setDragStart({ x: e.clientX - pos.x, y: e.clientY - pos.y });
+        // SCALE FIX: Convert screen pixels to design pixels
+        const mouseX = e.clientX / scale;
+        const mouseY = e.clientY / scale;
+        setDragStart({ x: mouseX - pos.x, y: mouseY - pos.y });
     };
 
     const handleMouseMove = (e) => {
         if (!dragging) return;
-        setPos({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+        // SCALE FIX: Convert screen pixels to design pixels
+        const mouseX = e.clientX / scale;
+        const mouseY = e.clientY / scale;
+        setPos({ x: mouseX - dragStart.x, y: mouseY - dragStart.y });
     };
 
     const handleMouseUp = () => {
         if (dragging) {
-            console.log(`🎯 ${seatId} POSITION:`, pos);
+            console.log(`🎯 ${seatId} POSITION (design px):`, pos);
             if (onPositionChange) {
                 onPositionChange(`${seatId}-avatar`, pos);
             }
@@ -165,7 +172,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
                 window.removeEventListener('mouseup', handleMouseUp);
             };
         }
-    }, [dragging, dragStart]);
+    }, [dragging, dragStart, scale]);
 
     return (
         <div
@@ -668,33 +675,33 @@ export const ${layoutName} = {
 
                             {/* Villain Seats - Dynamic based on layout, respects hiddenSeats */}
                             {villainAvatars[0] && SEAT_POSITIONS.seat1 && !hiddenSeats.has('seat1') && (
-                                <DraggablePlayerSeat seatIndex={1} seatId="seat1" avatar={villainAvatars[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
+                                <DraggablePlayerSeat seatIndex={1} seatId="seat1" avatar={villainAvatars[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
                             )}
                             {villainAvatars[1] && SEAT_POSITIONS.seat2 && !hiddenSeats.has('seat2') && (
-                                <DraggablePlayerSeat seatIndex={2} seatId="seat2" avatar={villainAvatars[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
+                                <DraggablePlayerSeat seatIndex={2} seatId="seat2" avatar={villainAvatars[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
                             )}
                             {villainAvatars[2] && SEAT_POSITIONS.seat3 && !hiddenSeats.has('seat3') && (
-                                <DraggablePlayerSeat seatIndex={3} seatId="seat3" avatar={villainAvatars[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
+                                <DraggablePlayerSeat seatIndex={3} seatId="seat3" avatar={villainAvatars[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
                             )}
                             {villainAvatars[3] && SEAT_POSITIONS.seat4 && !hiddenSeats.has('seat4') && (
-                                <DraggablePlayerSeat seatIndex={4} seatId="seat4" avatar={villainAvatars[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
+                                <DraggablePlayerSeat seatIndex={4} seatId="seat4" avatar={villainAvatars[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
                             )}
                             {villainAvatars[4] && SEAT_POSITIONS.seat5 && !hiddenSeats.has('seat5') && (
-                                <DraggablePlayerSeat seatIndex={5} seatId="seat5" avatar={villainAvatars[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
+                                <DraggablePlayerSeat seatIndex={5} seatId="seat5" avatar={villainAvatars[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
                             )}
                             {villainAvatars[5] && SEAT_POSITIONS.seat6 && !hiddenSeats.has('seat6') && (
-                                <DraggablePlayerSeat seatIndex={6} seatId="seat6" avatar={villainAvatars[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
+                                <DraggablePlayerSeat seatIndex={6} seatId="seat6" avatar={villainAvatars[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
                             )}
                             {villainAvatars[6] && SEAT_POSITIONS.seat7 && !hiddenSeats.has('seat7') && (
-                                <DraggablePlayerSeat seatIndex={7} seatId="seat7" avatar={villainAvatars[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
+                                <DraggablePlayerSeat seatIndex={7} seatId="seat7" avatar={villainAvatars[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
                             )}
                             {villainAvatars[7] && SEAT_POSITIONS.seat8 && !hiddenSeats.has('seat8') && (
-                                <DraggablePlayerSeat seatIndex={8} seatId="seat8" avatar={villainAvatars[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
+                                <DraggablePlayerSeat seatIndex={8} seatId="seat8" avatar={villainAvatars[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
                             )}
 
                             {/* Hero Seat - DRAGGABLE - highest seatIndex */}
                             {!hiddenSeats.has('hero') && (
-                                <DraggablePlayerSeat seatIndex={9} seatId="hero" avatar={heroAvatar} name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
+                                <DraggablePlayerSeat seatIndex={9} seatId="hero" avatar={heroAvatar} name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
                             )}
 
 

@@ -6,57 +6,21 @@
  */
 
 // 9-MAX LAYOUT (Full Ring) - Hero + 8 Villains
-// EXPORTED 2026-01-24 via DEV MODE Template Overlay Tool
+// CLEAN DEFAULTS - Ready for scale-corrected DEV MODE alignment
 export const LAYOUT_9MAX = {
     name: '9MAX',
     seats: 9,
     heroCardsOffset: { x: 29, y: 117 },
     positions: {
-        "hero": {
-            "left": "50%",
-            "top": "88%",
-            "avatarOffset": { "x": -62, "y": 0 }
-        },
-        "seat1": {
-            "left": "18%",
-            "top": "75%",
-            "avatarOffset": { "x": -62, "y": 0 }
-        },
-        "seat2": {
-            "left": "2%",
-            "top": "55%",
-            "avatarOffset": { "x": -20, "y": -70 }
-        },
-        "seat3": {
-            "left": "2%",
-            "top": "35%",
-            "avatarOffset": { "x": -24, "y": -78 }
-        },
-        "seat4": {
-            "left": "20%",
-            "top": "10%",
-            "avatarOffset": { "x": -62, "y": 0 }
-        },
-        "seat5": {
-            "left": "70%",
-            "top": "10%",
-            "avatarOffset": { "x": -62, "y": 0 }
-        },
-        "seat6": {
-            "left": "92%",
-            "top": "35%",
-            "avatarOffset": { "x": -62, "y": 0 }
-        },
-        "seat7": {
-            "left": "92%",
-            "top": "55%",
-            "avatarOffset": { "x": -62, "y": 0 }
-        },
-        "seat8": {
-            "left": "78%",
-            "top": "75%",
-            "avatarOffset": { "x": -14, "y": -33 }
-        }
+        "hero": { "left": "50%", "top": "88%", "avatarOffset": { "x": 0, "y": 0 } },
+        "seat1": { "left": "18%", "top": "75%", "avatarOffset": { "x": 0, "y": 0 } },
+        "seat2": { "left": "2%", "top": "55%", "avatarOffset": { "x": 0, "y": 0 } },
+        "seat3": { "left": "2%", "top": "35%", "avatarOffset": { "x": 0, "y": 0 } },
+        "seat4": { "left": "20%", "top": "10%", "avatarOffset": { "x": 0, "y": 0 } },
+        "seat5": { "left": "70%", "top": "10%", "avatarOffset": { "x": 0, "y": 0 } },
+        "seat6": { "left": "92%", "top": "35%", "avatarOffset": { "x": 0, "y": 0 } },
+        "seat7": { "left": "92%", "top": "55%", "avatarOffset": { "x": 0, "y": 0 } },
+        "seat8": { "left": "78%", "top": "75%", "avatarOffset": { "x": 0, "y": 0 } }
     },
     heroCards: { x: 29, y: 117 }
 };
