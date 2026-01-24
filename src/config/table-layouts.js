@@ -11,60 +11,52 @@ export const LAYOUT_9MAX = {
     name: '9-max',
     seats: 9,
     description: 'Full ring table',
+    // Note: avatarOffset is 0,0 - badge auto-positions on pre-attached gold box
     positions: {
         "hero": {
             "left": "50%",
             "top": "78%",
-            "avatarOffset": { "x": 0, "y": 0 },
-            "badgeOffset": { "x": -48, "y": 141 }
+            "avatarOffset": { "x": -55, "y": 0 }
         },
         "seat1": {
-            "left": "18%",
-            "top": "64%",
-            "avatarOffset": { "x": 0, "y": 0 },
-            "badgeOffset": { "x": -38, "y": 150 }
+            "left": "20%",
+            "top": "68%",
+            "avatarOffset": { "x": -55, "y": -20 }
         },
         "seat2": {
-            "left": "13%",
-            "top": "46%",
-            "avatarOffset": { "x": 0, "y": 0 },
-            "badgeOffset": { "x": -61, "y": 114 }
+            "left": "8%",
+            "top": "45%",
+            "avatarOffset": { "x": -20, "y": 0 }
         },
         "seat3": {
-            "left": "15%",
-            "top": "26%",
-            "avatarOffset": { "x": -37, "y": -96 },
-            "badgeOffset": { "x": -72, "y": 66 }
+            "left": "10%",
+            "top": "22%",
+            "avatarOffset": { "x": -20, "y": 0 }
         },
         "seat4": {
-            "left": "35%",
-            "top": "14%",
-            "avatarOffset": { "x": -47, "y": -133 },
-            "badgeOffset": { "x": -17, "y": 118 }
+            "left": "30%",
+            "top": "8%",
+            "avatarOffset": { "x": -55, "y": 0 }
         },
         "seat5": {
-            "left": "65%",
-            "top": "14%",
-            "avatarOffset": { "x": -69, "y": 73 },
-            "badgeOffset": { "x": 5, "y": -14 }
+            "left": "60%",
+            "top": "8%",
+            "avatarOffset": { "x": -55, "y": 0 }
         },
         "seat6": {
-            "left": "85%",
-            "top": "26%",
-            "avatarOffset": { "x": 115, "y": -49 },
-            "badgeOffset": { "x": -27, "y": 65 }
+            "left": "80%",
+            "top": "22%",
+            "avatarOffset": { "x": -55, "y": 0 }
         },
         "seat7": {
-            "left": "87%",
-            "top": "46%",
-            "avatarOffset": { "x": 60, "y": -1 },
-            "badgeOffset": { "x": -37, "y": 108 }
+            "left": "88%",
+            "top": "45%",
+            "avatarOffset": { "x": -75, "y": 0 }
         },
         "seat8": {
             "left": "82%",
-            "top": "64%",
-            "avatarOffset": { "x": 5, "y": 40 },
-            "badgeOffset": { "x": -41, "y": 138 }
+            "top": "68%",
+            "avatarOffset": { "x": -75, "y": -20 }
         }
     },
     heroCards: { "x": 29, "y": 117 }

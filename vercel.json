@@ -38,10 +38,6 @@
       "schedule": "10 * * * *"
     },
     {
-      "path": "/api/cron/horses-memes",
-      "schedule": "40 * * * *"
-    },
-    {
       "path": "/api/cron/horses-stories",
       "schedule": "25 * * * *"
     }

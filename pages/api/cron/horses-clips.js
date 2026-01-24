@@ -139,11 +139,19 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 model: 'gpt-4o',
                 messages: [{
                     role: 'user',
-                    content: `Write 1 short poker clip caption (10 words max): ${templateCaption}`
+                    content: `Write 1 short poker clip caption (10 words max). RULES: NO quotation marks. NO em-dashes (—). NO colons. Just casual text like a real person would post. Reference: ${templateCaption}`
                 }],
                 max_tokens: 30
             });
             caption = response.choices[0].message.content;
+            // Clean up any quotes/dashes that slip through - strip ALL quote variants
+            caption = caption
+                .replace(/[\"""''`]/g, '')  // All quote types
+                .replace(/—/g, ' ')         // Em-dashes to space
+                .replace(/–/g, ' ')         // En-dashes to space  
+                .replace(/:/g, '')          // Colons
+                .replace(/\s+/g, ' ')       // Multiple spaces to single
+                .trim();
         } catch (e) {
             console.log(`   Using template caption (OpenAI error: ${e.message})`);
         }

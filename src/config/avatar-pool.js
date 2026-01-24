@@ -5,37 +5,37 @@
  * Provides seeded shuffling so same game/level always shows same avatars.
  */
 
-// Free avatars (available to all users) - table versions with pre-attached gold badges
+// Free avatars (available to all users) - clean bust images (badge rendered separately)
 export const FREE_AVATARS = [
-    '/avatars/table/free_lion.png',
-    '/avatars/table/free_shark.png',
-    '/avatars/table/free_owl.png',
-    '/avatars/table/free_fox.png',
-    '/avatars/table/free_ninja.png',
-    '/avatars/table/free_pirate.png',
-    '/avatars/table/free_samurai.png',
-    '/avatars/table/free_viking.png',
-    '/avatars/table/free_knight.png',
-    '/avatars/table/free_cowboy.png',
-    '/avatars/table/free_cyborg.png',
-    '/avatars/table/free_detective.png',
+    '/avatars/free/lion.png',
+    '/avatars/free/shark.png',
+    '/avatars/free/owl.png',
+    '/avatars/free/fox.png',
+    '/avatars/free/ninja.png',
+    '/avatars/free/pirate.png',
+    '/avatars/free/samurai.png',
+    '/avatars/free/viking.png',
+    '/avatars/free/knight.png',
+    '/avatars/free/cowboy.png',
+    '/avatars/free/cyborg.png',
+    '/avatars/free/detective.png',
 ];
 
-// VIP avatars (premium users only) - table versions with pre-attached gold badges
+// VIP avatars (premium users only) - clean bust images (badge rendered separately)
 export const VIP_AVATARS = [
-    '/avatars/table/free_rockstar.png',
-    '/avatars/table/free_wizard.png',
-    '/avatars/table/free_chef.png',
-    '/avatars/table/free_geisha.png',
-    '/avatars/table/free_aztec.png',
-    '/avatars/table/free_business.png',
-    '/avatars/table/free_musician.png',
-    '/avatars/table/free_android.png',
-    '/avatars/table/free_penguin.png',
-    '/avatars/table/free_rabbit.png',
-    '/avatars/table/free_shiba.png',
-    '/avatars/table/free_space_captain.png',
-    '/avatars/table/free_teacher.png',
+    '/avatars/free/rockstar.png',
+    '/avatars/free/wizard.png',
+    '/avatars/free/chef.png',
+    '/avatars/free/geisha.png',
+    '/avatars/free/aztec.png',
+    '/avatars/free/business.png',
+    '/avatars/free/musician.png',
+    '/avatars/free/android.png',
+    '/avatars/free/penguin.png',
+    '/avatars/free/rabbit.png',
+    '/avatars/free/shiba.png',
+    '/avatars/free/space_captain.png',
+    '/avatars/free/teacher.png',
 ];
 
 // All avatars combined
@@ -120,8 +120,8 @@ export function getHeroAvatar(userProfile = null) {
         if (stored) return stored;
     }
 
-    // Default hero avatar (table version with pre-attached badge)
-    return '/avatars/table/free_rockstar.png';
+    // Default hero avatar (clean bust image)
+    return '/avatars/free/rockstar.png';
 }
 
 /**

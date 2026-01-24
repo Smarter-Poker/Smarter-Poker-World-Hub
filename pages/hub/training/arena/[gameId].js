@@ -127,49 +127,42 @@ function ArenaHeader({ diamonds = 0, xp = 0, level = 1, onBack, onSettings }) {
 // Draggable Player Seat Component - Avatar and Badge can be dragged independently
 // seatIndex is used to set unique z-index: lower seats rendered first, badges always on top
 function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initialPosition, isHero = false, onPositionChange, devMode = false, onDelete }) {
-    const size = 109; // Avatar display size
-    // Table avatars are 125x170, scaled to 109px width = 148px height
-    // Gold box is at bottom of image - need to position text overlay there
-    const scaledHeight = Math.round(170 * (size / 125)); // ~148px
-    const badgeBoxTop = scaledHeight - 30; // Gold box starts ~30px from bottom
+    const size = 109; // Avatar display size (circular bust image)
 
     const avatarInitial = initialPosition?.avatarOffset || { x: 0, y: 0 };
     const [avatarPos, setAvatarPos] = useState(avatarInitial);
-    // Badge position is computed relative to avatar (locked to gold box in image)
-    const badgeRelativeOffset = { x: 15, y: badgeBoxTop }; // Centered on gold box
-    const [dragging, setDragging] = useState(null); // 'avatar' | 'badge' | null
+
+    // Badge positioned below the circular avatar, centered
+    // Badge offset: centered horizontally under avatar, just below avatar bottom
+    const badgeRelativeOffset = { x: 5, y: size - 5 }; // Position badge at bottom of avatar
+
+    const [dragging, setDragging] = useState(null);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
     const handleMouseDown = (e, type) => {
         e.preventDefault();
         e.stopPropagation();
-        setDragging(type);
-        const pos = type === 'avatar' ? avatarPos : badgePos;
-        setDragStart({ x: e.clientX - pos.x, y: e.clientY - pos.y });
+        // Only avatar is draggable - badge follows avatar automatically
+        if (type === 'avatar') {
+            setDragging('avatar');
+            setDragStart({ x: e.clientX - avatarPos.x, y: e.clientY - avatarPos.y });
+        }
     };
 
     const handleMouseMove = (e) => {
         if (!dragging) return;
         const newX = e.clientX - dragStart.x;
         const newY = e.clientY - dragStart.y;
-        if (dragging === 'avatar') {
-            setAvatarPos({ x: newX, y: newY });
-        } else {
-            setBadgePos({ x: newX, y: newY });
-        }
+        setAvatarPos({ x: newX, y: newY });
     };
 
     const handleMouseUp = () => {
         if (dragging) {
-            // Log final positions to console for locking later
-            console.log(`🎯 ${seatId} POSITIONS:`, {
-                avatar: avatarPos,
-                badge: badgePos
-            });
+            // Log position for locking later
+            console.log(`🎯 ${seatId} POSITION:`, { avatar: avatarPos });
             // Report to parent for export
             if (onPositionChange) {
                 onPositionChange(`${seatId}-avatar`, avatarPos);
-                onPositionChange(`${seatId}-badge`, badgePos);
             }
         }
         setDragging(null);
@@ -185,6 +178,12 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
             };
         }
     }, [dragging, dragStart]);
+
+    // Compute badge position relative to avatar (pre-attached badge in image)
+    const badgePos = {
+        x: avatarPos.x + badgeRelativeOffset.x,
+        y: avatarPos.y + badgeRelativeOffset.y
+    };
 
     return (
         <div className="player-seat" style={{
@@ -219,29 +218,21 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
                     position: 'relative',
                 }}
             />
-            {/* Text overlay for the pre-attached badge box in avatar image */}
+            {/* Badge with gold border and black background */}
             <div
                 className="player-badge"
-                onMouseDown={(e) => handleMouseDown(e, 'badge')}
                 style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     transform: `translate(${badgePos.x}px, ${badgePos.y}px)`,
-                    zIndex: dragging === 'badge' ? 99999 : 50000,
-                    cursor: dragging === 'badge' ? 'grabbing' : 'grab',
+                    zIndex: 50000,
                     userSelect: 'none',
-                    pointerEvents: 'all',
-                    width: '80px', // Match the gold box width in table avatars
-                    height: '28px', // Match the gold box height
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    pointerEvents: 'none',
                 }}
             >
-                <span className="player-name" style={{ pointerEvents: 'none' }}>{name}</span>
-                <span className="player-stack" style={{ pointerEvents: 'none' }}>{stack} BB</span>
+                <span className="player-name">{name}</span>
+                <span className="player-stack">{stack} BB</span>
             </div>
             {/* DEV MODE: Delete button */}
             {devMode && onDelete && (
@@ -1010,21 +1001,32 @@ export const ${layoutName} = {
                     z-index: 15;
                 }
                 :global(.player-badge) {
-                    /* Badge box is pre-attached to avatar image - this is just text overlay */
+                    /* Gold border, black background badge */
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    padding: 2px 8px;
-                    background: transparent;
-                    border: none;
-                    min-width: 70px;
+                    padding: 6px 12px;
+                    background: #0a0a0a;
+                    border: 2px solid #d4a020;
+                    border-radius: 6px;
+                    min-width: 85px;
                     z-index: 200;
-                    /* Text shadow for readability on gold badge background */
-                    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
                 }
-                :global(.player-name) { font-size: 11px; font-weight: 700; color: #d4a020; line-height: 1.2; }
-                :global(.player-stack) { font-size: 10px; font-weight: 600; color: #d4a020; line-height: 1.2; }
+                :global(.player-name) { 
+                    font-size: 14px; 
+                    font-weight: 700; 
+                    color: #d4a020; 
+                    line-height: 1.3;
+                    white-space: nowrap;
+                }
+                :global(.player-stack) { 
+                    font-size: 13px; 
+                    font-weight: 600; 
+                    color: #d4a020; 
+                    line-height: 1.3;
+                    white-space: nowrap;
+                }
                 
                 /* ========== CARDS ========== */
                 :global(.card) {

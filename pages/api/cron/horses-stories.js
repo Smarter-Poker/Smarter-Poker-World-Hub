@@ -116,11 +116,18 @@ async function postTextStory(horse) {
                 model: 'gpt-4o-mini',
                 messages: [{
                     role: 'user',
-                    content: `Write a short, authentic poker story text (max 15 words) based on: "${topic}". Be casual, use emojis sparingly.`
+                    content: `Write a short, authentic poker story text (max 15 words). RULES: NO quotation marks. NO em-dashes. Natural casual text. Topic: ${topic}`
                 }],
                 max_tokens: 40
             });
-            content = response.choices[0].message.content?.replace(/"/g, '') || topic;
+            content = response.choices[0].message.content || topic;
+            // Clean all quote/dash variants
+            content = content
+                .replace(/[\"""''`]/g, '')
+                .replace(/[—–]/g, ' ')
+                .replace(/:/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
         } catch (e) {
             console.log(`   Using default topic (OpenAI error)`);
         }
