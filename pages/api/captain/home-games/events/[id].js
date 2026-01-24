@@ -6,7 +6,7 @@
  * DELETE /api/captain/home-games/events/[id] - Cancel event
  */
 import { createClient } from '@supabase/supabase-js';
-import { awardXP } from '@/lib/captain/xp';
+import { awardXP } from '../../../../../src/lib/captain/xp';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
