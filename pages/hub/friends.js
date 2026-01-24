@@ -96,9 +96,7 @@ function FollowButton({ isFollowing, onFollow, onUnfollow, size = 'normal' }) {
                 color: 'white',
                 boxShadow: '0 4px 15px rgba(236, 72, 153, 0.3)',
             }}
-        >
-            <span style={{ fontSize: size === 'small' ? 10 : 12 }}>👤</span> Follow
-        </button>
+        >Follow</button>
     );
 }
 
@@ -313,7 +311,7 @@ function TabButton({ active, onClick, icon, label, count }) {
                 position: 'relative',
             }}
         >
-            <span>{icon}</span>
+            {icon && <span>{icon}</span>}
             <span>{label}</span>
             {count > 0 && (
                 <span style={{
@@ -337,7 +335,7 @@ function TabButton({ active, onClick, icon, label, count }) {
 export default function FriendsPage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('requests'); // requests, friends, following, followers, discover
+    const [activeTab, setActiveTab] = useState('discover'); // requests, friends, following, followers, discover
 
     // Data states
     const [friends, setFriends] = useState([]);
@@ -421,30 +419,20 @@ export default function FriendsPage() {
             setFollowerIds(new Set(myFollowers.map(f => f.follower_id)));
         }
 
-        // Fetch suggested users (not already friends)
+        // Fetch ALL users for discovery (show everyone)
         const { data: allUsers } = await supabase
             .from('profiles')
             .select('*')
             .neq('id', authUser.id)
-            .limit(20);
+            .order('created_at', { ascending: false })
+            .limit(100);
 
         if (allUsers) {
-            const friendIdSet = new Set(friendships?.map(f => f.friend_id) || []);
-            const pendingIdSet = new Set(outgoingRequests?.map(r => r.friend_id) || []);
-            const incomingIdSet = new Set(incomingRequests?.map(r => r.user_id) || []);
-            setSuggestions(allUsers.filter(u =>
-                !friendIdSet.has(u.id) && !pendingIdSet.has(u.id) && !incomingIdSet.has(u.id)
-            ));
+            setSuggestions(allUsers);
         }
 
-        // Auto-select best tab
-        if (incomingRequests?.length > 0) {
-            setActiveTab('requests');
-        } else if (friendships?.length > 0) {
-            setActiveTab('friends');
-        } else {
-            setActiveTab('discover');
-        }
+        // Keep discover as default - user came here to find friends
+        setActiveTab('discover');
 
         setLoading(false);
     };
@@ -900,39 +888,39 @@ export default function FriendsPage() {
                     borderBottom: `1px solid ${C.border}`,
                 }}>
                     <TabButton
+                        active={activeTab === 'discover'}
+                        onClick={() => setActiveTab('discover')}
+                        icon=""
+                        label="Discover"
+                        count={suggestions.length}
+                    />
+                    <TabButton
                         active={activeTab === 'requests'}
                         onClick={() => setActiveTab('requests')}
-                        icon="🔔"
+                        icon=""
                         label="Requests"
                         count={friendRequests.length}
                     />
                     <TabButton
                         active={activeTab === 'friends'}
                         onClick={() => setActiveTab('friends')}
-                        icon="👥"
+                        icon=""
                         label="Friends"
                         count={friends.length}
                     />
                     <TabButton
                         active={activeTab === 'following'}
                         onClick={() => setActiveTab('following')}
-                        icon="💜"
+                        icon=""
                         label="Following"
                         count={following.length}
                     />
                     <TabButton
                         active={activeTab === 'followers'}
                         onClick={() => setActiveTab('followers')}
-                        icon="⭐"
+                        icon=""
                         label="Followers"
                         count={followers.length}
-                    />
-                    <TabButton
-                        active={activeTab === 'discover'}
-                        onClick={() => setActiveTab('discover')}
-                        icon="✨"
-                        label="Discover"
-                        count={0}
                     />
                 </div>
 
