@@ -31,59 +31,60 @@ const VILLAIN_AVATARS = [
     '/avatars/free/owl.png',
 ];
 
-// Seat positions - EXACT from user's reference screenshot (2026-01-23)
+// Seat positions - PIXEL-MEASURED from user's reference image
+// Reference image: ~394px wide, positions calculated as percentages
 const SEAT_POSITIONS = {
-    // Hero - bottom center
+    // Hero - bottom center (195/394 = 49.5%, rounded to 50%)
     hero: {
-        left: '50%', top: '76%',
+        left: '50%', top: '78%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Villain 1 - bottom left
+    // V1 - bottom left (85/394 = 21.5%)
     seat1: {
-        left: '18%', top: '58%',
+        left: '22%', top: '65%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Villain 2 - middle left
+    // V2 - middle left (55/394 = 14%)
     seat2: {
-        left: '12%', top: '40%',
+        left: '14%', top: '48%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Villain 3 - upper left
+    // V3 - upper left (70/394 = 18%)
     seat3: {
-        left: '14%', top: '20%',
+        left: '18%', top: '25%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Villain 4 - top left
+    // V4 - top left (165/394 = 42%)
     seat4: {
-        left: '33%', top: '10%',
+        left: '42%', top: '13%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Villain 5 - top right (moved left from 67% to 62%)
+    // V5 - top right (290/394 = 74%)
     seat5: {
-        left: '62%', top: '10%',
+        left: '74%', top: '13%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Villain 6 - upper right (moved left from 86% to 80%)
+    // V6 - upper right (320/394 = 81%)
     seat6: {
-        left: '80%', top: '20%',
+        left: '81%', top: '25%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Villain 7 - middle right (moved left from 88% to 82%)
+    // V7 - middle right (325/394 = 82%)
     seat7: {
-        left: '82%', top: '40%',
+        left: '82%', top: '48%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Villain 8 - bottom right (moved left from 82% to 78%)
+    // V8 - bottom right (305/394 = 77%)
     seat8: {
-        left: '78%', top: '58%',
+        left: '77%', top: '65%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },

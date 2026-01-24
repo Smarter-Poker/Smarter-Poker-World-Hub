@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     console.log('🐴 Starting horses-social-comments cron...');
 
     try {
-        const result = await commentOnPosts(5, true); // 5 comments per run, include real users
+        const result = await commentOnPosts(15, true); // 15 comments per run (Pro plan: 60s timeout)
 
         console.log(`✅ Horses posted ${result.commented} comments`);
 
