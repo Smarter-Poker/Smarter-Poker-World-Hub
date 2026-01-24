@@ -5,6 +5,7 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -30,6 +31,7 @@ const timeAgo = (date) => {
 };
 
 export default function NotificationsPage() {
+    const router = useRouter();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
@@ -46,32 +48,59 @@ export default function NotificationsPage() {
                     .order('created_at', { ascending: false })
                     .limit(50);
                 if (data && data.length > 0) {
-                    // Parse actor names from notification titles (e.g., "Lauren Garcia commented on your post")
+                    // Collect actor IDs from the data JSONB column
+                    const actorIds = [...new Set(data.map(n =>
+                        n.data?.actor_id || n.data?.sender_id || n.actor_id
+                    ).filter(Boolean))];
+
+                    // Also parse actor names from notification titles as fallback
                     const actorNames = [...new Set(data.map(n => {
                         const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
                         return match ? match[1] : null;
                     }).filter(Boolean))];
 
-                    // Fetch profiles by full_name
-                    let profileMap = {};
-                    if (actorNames.length > 0) {
-                        const { data: profiles } = await supabase.from('profiles')
+                    // Fetch profiles by ID first, then by name as fallback
+                    let profileById = {};
+                    let profileByName = {};
+
+                    if (actorIds.length > 0) {
+                        const { data: profilesById } = await supabase.from('profiles')
                             .select('id, username, full_name, avatar_url')
-                            .in('full_name', actorNames);
-                        (profiles || []).forEach(p => {
-                            if (p.full_name) profileMap[p.full_name.toLowerCase()] = p;
+                            .in('id', actorIds);
+                        (profilesById || []).forEach(p => {
+                            profileById[p.id] = p;
                         });
                     }
 
-                    // Merge actor data by parsing names from titles
+                    if (actorNames.length > 0) {
+                        const { data: profilesByName } = await supabase.from('profiles')
+                            .select('id, username, full_name, avatar_url')
+                            .in('full_name', actorNames);
+                        (profilesByName || []).forEach(p => {
+                            if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
+                        });
+                    }
+
+                    // Merge actor data
                     const enriched = data.map(n => {
-                        const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                        const actorName = match ? match[1] : null;
-                        const profile = actorName ? profileMap[actorName.toLowerCase()] : null;
+                        // Get actor ID from the data JSONB column
+                        const actorId = n.data?.actor_id || n.data?.sender_id || n.actor_id;
+                        let profile = actorId ? profileById[actorId] : null;
+
+                        // Fallback to name matching
+                        if (!profile) {
+                            const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                            const actorName = match ? match[1] : null;
+                            profile = actorName ? profileByName[actorName.toLowerCase()] : null;
+                        }
+
+                        const displayName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
+
                         return {
                             ...n,
                             actor_avatar_url: profile?.avatar_url || null,
-                            actor_name: actorName || n.title
+                            actor_name: displayName,
+                            actor_username: profile?.username || null
                         };
                     });
                     setNotifications(enriched);
@@ -164,10 +193,15 @@ export default function NotificationsPage() {
                             return (
                                 <div
                                     key={n.id}
+                                    onClick={() => {
+                                        if (n.actor_username) {
+                                            router.push(`/hub/user/${n.actor_username}`);
+                                        }
+                                    }}
                                     style={{
                                         padding: 16, display: 'flex', gap: 12, alignItems: 'flex-start',
                                         background: n.read ? C.card : 'rgba(24, 119, 242, 0.08)',
-                                        borderBottom: `1px solid ${C.border}`, cursor: 'pointer'
+                                        borderBottom: `1px solid ${C.border}`, cursor: n.actor_username ? 'pointer' : 'default'
                                     }}
                                 >
                                     {/* Facebook-style avatar with action icon */}
