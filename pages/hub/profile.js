@@ -258,6 +258,10 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
 
+    // Social stats and friends
+    const [socialStats, setSocialStats] = useState({ friends: 0, followers: 0, following: 0, posts: 0 });
+    const [friends, setFriends] = useState([]);
+
     // Profile fields
     const [profile, setProfile] = useState({
         full_name: '',
@@ -360,6 +364,66 @@ export default function ProfilePage() {
                                 setProfile(prev => ({ ...prev, ...profileData }));
                                 setOriginalProfile(profileData);
                             }
+                        }
+
+                        // Fetch social stats and friends
+                        const headers = {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`,
+                            'Content-Type': 'application/json'
+                        };
+
+                        // Count friends
+                        const friendsRes = await fetch(
+                            `${supabaseUrl}/rest/v1/friendships?or=(user_id.eq.${authUser.id},friend_id.eq.${authUser.id})&status=eq.accepted&select=user_id,friend_id`,
+                            { headers }
+                        );
+                        const friendsData = friendsRes.ok ? await friendsRes.json() : [];
+
+                        // Count followers
+                        const followersRes = await fetch(
+                            `${supabaseUrl}/rest/v1/follows?following_id=eq.${authUser.id}&select=id`,
+                            { headers }
+                        );
+                        const followersData = followersRes.ok ? await followersRes.json() : [];
+
+                        // Count following
+                        const followingRes = await fetch(
+                            `${supabaseUrl}/rest/v1/follows?follower_id=eq.${authUser.id}&select=id`,
+                            { headers }
+                        );
+                        const followingData = followingRes.ok ? await followingRes.json() : [];
+
+                        // Count posts
+                        const postsRes = await fetch(
+                            `${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&select=id`,
+                            { headers }
+                        );
+                        const postsData = postsRes.ok ? await postsRes.json() : [];
+
+                        setSocialStats({
+                            friends: friendsData.length,
+                            followers: followersData.length,
+                            following: followingData.length,
+                            posts: postsData.length
+                        });
+
+                        // Get friend profiles for display
+                        if (friendsData.length > 0) {
+                            const friendIds = friendsData.map(f => f.user_id === authUser.id ? f.friend_id : f.user_id);
+                            const profilesRes = await fetch(
+                                `${supabaseUrl}/rest/v1/profiles?id=in.(${friendIds.join(',')})&select=id,full_name,username,avatar_url`,
+                                { headers }
+                            );
+                            const friendProfiles = profilesRes.ok ? await profilesRes.json() : [];
+
+                            // Calculate mutual friends for each (simplified - just use random for now since we don't have full network data)
+                            const friendsWithMutual = friendProfiles.map(f => ({
+                                ...f,
+                                mutualCount: 0 // Will be calculated properly with RPC in future
+                            }));
+
+                            setFriends(friendsWithMutual);
                         }
                     } catch (e) {
                         console.error('[Profile] Error fetching profile:', e);
@@ -615,6 +679,88 @@ export default function ProfilePage() {
                             color: message.includes('Error') ? '#c62828' : '#2e7d32'
                         }}>
                             {message}
+                        </div>
+                    )}
+
+                    {/* Social Stats Row */}
+                    <div style={{
+                        background: C.card, borderRadius: 8, padding: 16, marginBottom: 16,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                        display: 'flex', justifyContent: 'space-around', textAlign: 'center'
+                    }}>
+                        <div style={{ cursor: 'pointer' }} onClick={() => router.push('/hub/friends')}>
+                            <div style={{ fontSize: 24, fontWeight: 700, color: C.text }}>{socialStats.friends}</div>
+                            <div style={{ fontSize: 13, color: C.textSec }}>Friends</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: 24, fontWeight: 700, color: C.text }}>{socialStats.followers}</div>
+                            <div style={{ fontSize: 13, color: C.textSec }}>Followers</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: 24, fontWeight: 700, color: C.text }}>{socialStats.following}</div>
+                            <div style={{ fontSize: 13, color: C.textSec }}>Following</div>
+                        </div>
+                        <div style={{ cursor: 'pointer' }} onClick={() => router.push('/hub/social-media')}>
+                            <div style={{ fontSize: 24, fontWeight: 700, color: C.text }}>{socialStats.posts}</div>
+                            <div style={{ fontSize: 13, color: C.textSec }}>Posts</div>
+                        </div>
+                    </div>
+
+                    {/* Friends Section - Facebook Style */}
+                    {friends.length > 0 && (
+                        <div style={{
+                            background: C.card, borderRadius: 8, padding: 16, marginBottom: 16,
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Friends</h3>
+                                <a
+                                    href="/hub/friends"
+                                    style={{ color: C.blue, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}
+                                >
+                                    See all
+                                </a>
+                            </div>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(4, 1fr)',
+                                gap: 12
+                            }}>
+                                {friends.slice(0, 8).map(friend => (
+                                    <a
+                                        key={friend.id}
+                                        href={`/hub/user/${friend.username || friend.id}`}
+                                        style={{
+                                            textDecoration: 'none',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            textAlign: 'center'
+                                        }}
+                                    >
+                                        <img
+                                            src={friend.avatar_url || '/default-avatar.png'}
+                                            alt={friend.full_name || friend.username}
+                                            style={{
+                                                width: 80, height: 80, borderRadius: '50%',
+                                                objectFit: 'cover', marginBottom: 8,
+                                                border: '2px solid #eee'
+                                            }}
+                                        />
+                                        <div style={{
+                                            fontSize: 13, fontWeight: 600, color: C.text,
+                                            maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                                        }}>
+                                            {friend.full_name || friend.username || 'User'}
+                                        </div>
+                                        {friend.mutualCount > 0 && (
+                                            <div style={{ fontSize: 11, color: C.textSec }}>
+                                                {friend.mutualCount} mutual friends
+                                            </div>
+                                        )}
+                                    </a>
+                                ))}
+                            </div>
                         </div>
                     )}
 
