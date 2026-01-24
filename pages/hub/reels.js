@@ -293,24 +293,36 @@ export default function ReelsPage() {
                     Reels
                 </div>
 
-                {videoId ? (
-                    <iframe
-                        ref={iframeRef}
-                        key={currentReel?.id}
-                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
-                        title="Poker Reel"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                        allowFullScreen
-                        style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            border: 'none',
-                        }}
-                    />
-                ) : null}
+                {/* VIDEO WRAPPER with clip-path to hide edge artifacts */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    overflow: 'hidden',
+                    clipPath: 'inset(0)',
+                    background: '#000',
+                }}>
+                    {videoId ? (
+                        <iframe
+                            ref={iframeRef}
+                            key={currentReel?.id}
+                            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
+                            title="Poker Reel"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                            allowFullScreen
+                            style={{
+                                position: 'absolute',
+                                top: -40,
+                                left: -40,
+                                width: 'calc(100% + 80px)',
+                                height: 'calc(100% + 80px)',
+                                border: 'none',
+                            }}
+                        />
+                    ) : null}
+                </div>
 
                 {/* INVISIBLE TAP ZONES - for navigation */}
                 {/* LEFT ZONE - tap for previous */}
