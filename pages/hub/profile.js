@@ -262,6 +262,12 @@ export default function ProfilePage() {
     const [socialStats, setSocialStats] = useState({ friends: 0, followers: 0, following: 0, posts: 0 });
     const [friends, setFriends] = useState([]);
 
+    // Photo and Reels galleries
+    const [photoGalleryOpen, setPhotoGalleryOpen] = useState(false);
+    const [reelsGalleryOpen, setReelsGalleryOpen] = useState(false);
+    const [userPhotos, setUserPhotos] = useState([]);
+    const [userReels, setUserReels] = useState([]);
+
     // Profile fields
     const [profile, setProfile] = useState({
         full_name: '',
@@ -425,6 +431,22 @@ export default function ProfilePage() {
 
                             setFriends(friendsWithMutual);
                         }
+
+                        // Fetch user's photos (posts with images)
+                        const photosRes = await fetch(
+                            `${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&media_url=neq.null&media_type=eq.image&order=created_at.desc&limit=50&select=id,media_url,content,created_at`,
+                            { headers }
+                        );
+                        const photosData = photosRes.ok ? await photosRes.json() : [];
+                        setUserPhotos(photosData);
+
+                        // Fetch user's reels (from video_reels table if exists, otherwise posts with video)
+                        const reelsRes = await fetch(
+                            `${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&media_type=eq.video&order=created_at.desc&limit=50&select=id,media_url,content,created_at,thumbnail_url`,
+                            { headers }
+                        );
+                        const reelsData = reelsRes.ok ? await reelsRes.json() : [];
+                        setUserReels(reelsData);
                     } catch (e) {
                         console.error('[Profile] Error fetching profile:', e);
                     }
@@ -629,23 +651,52 @@ export default function ProfilePage() {
                         onChange={handleCoverPhotoUpload}
                     />
 
-                    {/* Photos and Reels Albums - Bottom Left */}
+                    {/* Add Cover Photo - Bottom Right inside cover */}
                     <div style={{
                         position: 'absolute',
                         bottom: 12,
-                        left: 12,
+                        right: 12,
+                        background: 'rgba(0,0,0,0.6)',
+                        color: 'white',
+                        padding: '8px 16px',
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontWeight: 600,
                         display: 'flex',
-                        gap: 8
+                        alignItems: 'center',
+                        gap: 6
                     }}>
+                        📷 {profile.cover_photo_url ? 'Change Cover' : 'Add Cover Photo'}
+                    </div>
+
+                    {/* Profile Avatar - Center */}
+                    <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)' }}>
+                        <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
+                    </div>
+                </div>
+
+                {/* Action Buttons Row - BELOW cover photo in the black area */}
+                <div style={{
+                    background: C.bg,
+                    padding: '16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    maxWidth: 800,
+                    margin: '0 auto',
+                    marginTop: 70 // Account for avatar overlap
+                }}>
+                    {/* Left side - Photos & Reels */}
+                    <div style={{ display: 'flex', gap: 8 }}>
                         <button
-                            onClick={(e) => { e.stopPropagation(); router.push('/hub/social-media?tab=photos'); }}
+                            onClick={() => setPhotoGalleryOpen(true)}
                             style={{
-                                background: 'rgba(0,0,0,0.6)',
-                                color: 'white',
-                                border: 'none',
+                                background: C.card,
+                                color: C.text,
+                                border: `1px solid ${C.border}`,
                                 borderRadius: 8,
-                                padding: '8px 16px',
-                                fontSize: 13,
+                                padding: '10px 16px',
+                                fontSize: 14,
                                 fontWeight: 600,
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -656,14 +707,14 @@ export default function ProfilePage() {
                             📷 Photos
                         </button>
                         <button
-                            onClick={(e) => { e.stopPropagation(); router.push('/hub/reels'); }}
+                            onClick={() => setReelsGalleryOpen(true)}
                             style={{
-                                background: 'rgba(0,0,0,0.6)',
-                                color: 'white',
-                                border: 'none',
+                                background: C.card,
+                                color: C.text,
+                                border: `1px solid ${C.border}`,
                                 borderRadius: 8,
-                                padding: '8px 16px',
-                                fontSize: 13,
+                                padding: '10px 16px',
+                                fontSize: 14,
                                 fontWeight: 600,
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -675,51 +726,23 @@ export default function ProfilePage() {
                         </button>
                     </div>
 
-                    {/* Add Cover Photo + Build Custom Avatar - Bottom Right */}
-                    <div style={{
-                        position: 'absolute',
-                        bottom: 12,
-                        right: 12,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 8,
-                        alignItems: 'flex-end'
-                    }}>
-                        <div style={{
-                            background: 'rgba(0,0,0,0.6)',
-                            color: 'white',
-                            padding: '8px 16px',
+                    {/* Right side - Build Custom Avatar */}
+                    <button
+                        onClick={() => router.push('/hub/avatars')}
+                        style={{
+                            background: 'linear-gradient(135deg, #00f5ff, #0099ff)',
+                            color: '#0a0e27',
+                            border: 'none',
                             borderRadius: 8,
-                            fontSize: 13,
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6
-                        }}>
-                            📷 {profile.cover_photo_url ? 'Change Cover' : 'Add Cover Photo'}
-                        </div>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); router.push('/hub/avatars'); }}
-                            style={{
-                                background: 'linear-gradient(135deg, #00f5ff, #0099ff)',
-                                color: '#0a0e27',
-                                border: 'none',
-                                borderRadius: 8,
-                                padding: '8px 16px',
-                                fontSize: 13,
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                boxShadow: '0 2px 8px rgba(0,245,255,0.4)'
-                            }}
-                        >
-                            Build A Custom Avatar
-                        </button>
-                    </div>
-
-                    {/* Profile Avatar - Center */}
-                    <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)' }}>
-                        <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
-                    </div>
+                            padding: '10px 16px',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(0,245,255,0.4)'
+                        }}
+                    >
+                        Build A Custom Avatar
+                    </button>
                 </div>
 
                 {/* Main Content */}
@@ -1001,6 +1024,123 @@ export default function ProfilePage() {
                 supabase={supabase}
                 mode="browse"
             />
+
+            {/* Photo Gallery Modal */}
+            {photoGalleryOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.9)', zIndex: 9999,
+                    display: 'flex', flexDirection: 'column'
+                }}>
+                    <div style={{
+                        padding: 16, display: 'flex', justifyContent: 'space-between',
+                        alignItems: 'center', borderBottom: '1px solid #333'
+                    }}>
+                        <h2 style={{ margin: 0, color: 'white', fontSize: 20 }}>📷 My Photos</h2>
+                        <button
+                            onClick={() => setPhotoGalleryOpen(false)}
+                            style={{
+                                background: 'none', border: 'none', color: 'white',
+                                fontSize: 28, cursor: 'pointer'
+                            }}
+                        >×</button>
+                    </div>
+                    <div style={{
+                        flex: 1, overflow: 'auto', padding: 16,
+                        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                        gap: 12
+                    }}>
+                        {userPhotos.length === 0 ? (
+                            <div style={{
+                                gridColumn: '1 / -1', textAlign: 'center', color: '#888',
+                                padding: 60
+                            }}>
+                                <div style={{ fontSize: 48, marginBottom: 16 }}>📷</div>
+                                <div style={{ fontSize: 18 }}>No photos yet</div>
+                                <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
+                                    Photos from your posts will appear here
+                                </div>
+                            </div>
+                        ) : (
+                            userPhotos.map(photo => (
+                                <div key={photo.id} style={{ position: 'relative', paddingBottom: '100%' }}>
+                                    <img
+                                        src={photo.media_url}
+                                        alt={photo.content || 'Photo'}
+                                        style={{
+                                            position: 'absolute', top: 0, left: 0,
+                                            width: '100%', height: '100%',
+                                            objectFit: 'cover', borderRadius: 8
+                                        }}
+                                    />
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Reels Gallery Modal */}
+            {reelsGalleryOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.9)', zIndex: 9999,
+                    display: 'flex', flexDirection: 'column'
+                }}>
+                    <div style={{
+                        padding: 16, display: 'flex', justifyContent: 'space-between',
+                        alignItems: 'center', borderBottom: '1px solid #333'
+                    }}>
+                        <h2 style={{ margin: 0, color: 'white', fontSize: 20 }}>🎬 My Reels</h2>
+                        <button
+                            onClick={() => setReelsGalleryOpen(false)}
+                            style={{
+                                background: 'none', border: 'none', color: 'white',
+                                fontSize: 28, cursor: 'pointer'
+                            }}
+                        >×</button>
+                    </div>
+                    <div style={{
+                        flex: 1, overflow: 'auto', padding: 16,
+                        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                        gap: 12
+                    }}>
+                        {userReels.length === 0 ? (
+                            <div style={{
+                                gridColumn: '1 / -1', textAlign: 'center', color: '#888',
+                                padding: 60
+                            }}>
+                                <div style={{ fontSize: 48, marginBottom: 16 }}>🎬</div>
+                                <div style={{ fontSize: 18 }}>No reels yet</div>
+                                <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
+                                    Videos from your posts will appear here
+                                </div>
+                            </div>
+                        ) : (
+                            userReels.map(reel => (
+                                <div
+                                    key={reel.id}
+                                    style={{
+                                        position: 'relative', paddingBottom: '177%',
+                                        background: '#222', borderRadius: 8, overflow: 'hidden'
+                                    }}
+                                >
+                                    <video
+                                        src={reel.media_url}
+                                        poster={reel.thumbnail_url}
+                                        style={{
+                                            position: 'absolute', top: 0, left: 0,
+                                            width: '100%', height: '100%',
+                                            objectFit: 'cover'
+                                        }}
+                                        controls
+                                    />
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
         </>
     );
 }
