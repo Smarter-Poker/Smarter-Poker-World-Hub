@@ -7,7 +7,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useRouter } from 'next/router';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
 import confetti from 'canvas-confetti';
