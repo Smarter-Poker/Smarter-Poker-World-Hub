@@ -68,6 +68,10 @@
     {
       "path": "/api/cron/scrape-poker-clips",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/generate-trivia",
+      "schedule": "0 0 * * *"
     }
   ]
 }
