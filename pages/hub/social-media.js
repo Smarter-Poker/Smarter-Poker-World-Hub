@@ -1934,41 +1934,36 @@ export default function SocialMediaPage() {
         <PageTransition>
             <Head>
                 <title>Social Hub | Smarter.Poker</title>
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
-                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
-                    html, body { background: ${C.bg} !important; }
+                    /* Facebook-style Responsive Layout - NO ZOOM, proper mobile sizing */
+                    html, body { 
+                        background: ${C.bg} !important; 
+                        margin: 0;
+                        padding: 0;
+                    }
                     
                     .social-page-container {
-                        width: 800px;
-                        max-width: 800px;
+                        width: 100%;
+                        max-width: 680px;
                         margin: 0 auto;
+                        min-height: 100vh;
                         overflow-x: hidden;
                     }
                     
-                    /* Mobile phones (390-450px) - zoom to ~50% */
-                    @media (max-width: 500px) {
-                        .social-page-container { zoom: 0.5; }
+                    /* Mobile-first: Full width on phones, centered on larger screens */
+                    @media (max-width: 680px) {
+                        .social-page-container {
+                            max-width: 100%;
+                            padding: 0;
+                        }
                     }
                     
-                    /* Large phones / small tablets (501-700px) */
-                    @media (min-width: 501px) and (max-width: 700px) {
-                        .social-page-container { zoom: 0.75; }
-                    }
-                    
-                    /* Tablets (701-900px) */
-                    @media (min-width: 701px) and (max-width: 900px) {
-                        .social-page-container { zoom: 0.95; }
-                    }
-                    
-                    /* Desktop (901px+) - slight scale up */
-                    @media (min-width: 901px) {
-                        .social-page-container { zoom: 1.2; }
-                    }
-                    
-                    /* Large desktop (1400px+) - cap at 1.5x */
-                    @media (min-width: 1400px) {
-                        .social-page-container { zoom: 1.5; }
+                    /* Desktop: Centered column with max-width */
+                    @media (min-width: 681px) {
+                        .social-page-container {
+                            padding: 0 16px;
+                        }
                     }
                 `}</style>
             </Head>

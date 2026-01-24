@@ -262,11 +262,13 @@ export default function ProfilePage() {
     const [socialStats, setSocialStats] = useState({ friends: 0, followers: 0, following: 0, posts: 0 });
     const [friends, setFriends] = useState([]);
 
-    // Photo and Reels galleries
+    // Photo, Reels, and Lives galleries
     const [photoGalleryOpen, setPhotoGalleryOpen] = useState(false);
     const [reelsGalleryOpen, setReelsGalleryOpen] = useState(false);
+    const [livesGalleryOpen, setLivesGalleryOpen] = useState(false);
     const [userPhotos, setUserPhotos] = useState([]);
     const [userReels, setUserReels] = useState([]);
+    const [userLives, setUserLives] = useState([]);
 
     // Profile fields
     const [profile, setProfile] = useState({
@@ -466,6 +468,14 @@ export default function ProfilePage() {
                             }))
                         );
                         setUserReels(flatReels);
+
+                        // Fetch user's saved lives (draft streams)
+                        const livesRes = await fetch(
+                            `${supabaseUrl}/rest/v1/live_streams?broadcaster_id=eq.${authUser.id}&status=eq.ended&order=created_at.desc&limit=50&select=id,title,video_url,thumbnail_url,is_draft,is_posted,viewer_count,started_at,ended_at,created_at`,
+                            { headers }
+                        );
+                        const livesData = livesRes.ok ? await livesRes.json() : [];
+                        setUserLives(livesData);
                     } catch (e) {
                         console.error('[Profile] Error fetching profile:', e);
                     }
@@ -742,6 +752,24 @@ export default function ProfilePage() {
                             }}
                         >
                             🎬 Reels
+                        </button>
+                        <button
+                            onClick={() => setLivesGalleryOpen(true)}
+                            style={{
+                                background: C.card,
+                                color: C.text,
+                                border: `1px solid ${C.border}`,
+                                borderRadius: 8,
+                                padding: '10px 16px',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6
+                            }}
+                        >
+                            🔴 Lives
                         </button>
                     </div>
 
@@ -1156,6 +1184,159 @@ export default function ProfilePage() {
                                     />
                                 </div>
                             ))
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Lives Gallery Modal */}
+            {livesGalleryOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.9)', zIndex: 9999,
+                    display: 'flex', flexDirection: 'column'
+                }}>
+                    <div style={{
+                        padding: 16, display: 'flex', justifyContent: 'space-between',
+                        alignItems: 'center', borderBottom: '1px solid #333'
+                    }}>
+                        <h2 style={{ margin: 0, color: 'white', fontSize: 20 }}>🔴 My Lives</h2>
+                        <button
+                            onClick={() => setLivesGalleryOpen(false)}
+                            style={{
+                                background: 'none', border: 'none', color: 'white',
+                                fontSize: 28, cursor: 'pointer'
+                            }}
+                        >×</button>
+                    </div>
+                    <div style={{
+                        flex: 1, overflow: 'auto', padding: 16,
+                        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                        gap: 16
+                    }}>
+                        {userLives.length === 0 ? (
+                            <div style={{
+                                gridColumn: '1 / -1', textAlign: 'center', color: '#888',
+                                padding: 60
+                            }}>
+                                <div style={{ fontSize: 48, marginBottom: 16 }}>🔴</div>
+                                <div style={{ fontSize: 18 }}>No saved lives yet</div>
+                                <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
+                                    When you end a live stream, you can save it here
+                                </div>
+                            </div>
+                        ) : (
+                            userLives.map(live => {
+                                const duration = live.started_at && live.ended_at
+                                    ? Math.round((new Date(live.ended_at) - new Date(live.started_at)) / 1000)
+                                    : 0;
+                                const durationStr = `${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}`;
+                                const dateStr = new Date(live.created_at).toLocaleDateString();
+
+                                return (
+                                    <div
+                                        key={live.id}
+                                        style={{
+                                            background: '#1a1a1a',
+                                            borderRadius: 12,
+                                            overflow: 'hidden'
+                                        }}
+                                    >
+                                        {/* Video Preview */}
+                                        <div style={{ position: 'relative', aspectRatio: '16/9', background: '#000' }}>
+                                            {live.video_url ? (
+                                                <video
+                                                    src={live.video_url}
+                                                    poster={live.thumbnail_url}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    controls
+                                                />
+                                            ) : live.thumbnail_url ? (
+                                                <img
+                                                    src={live.thumbnail_url}
+                                                    alt={live.title}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                            ) : (
+                                                <div style={{
+                                                    width: '100%', height: '100%',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    color: '#666', fontSize: 40
+                                                }}>📺</div>
+                                            )}
+                                            {/* Duration badge */}
+                                            <div style={{
+                                                position: 'absolute', bottom: 8, right: 8,
+                                                background: 'rgba(0,0,0,0.8)', color: 'white',
+                                                padding: '4px 8px', borderRadius: 4, fontSize: 12
+                                            }}>{durationStr}</div>
+                                            {/* Status badge */}
+                                            <div style={{
+                                                position: 'absolute', top: 8, left: 8,
+                                                background: live.is_posted ? '#42B72A' : '#FA383E',
+                                                color: 'white',
+                                                padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600
+                                            }}>{live.is_posted ? 'Posted' : 'Draft'}</div>
+                                        </div>
+                                        {/* Info */}
+                                        <div style={{ padding: 12 }}>
+                                            <div style={{ color: 'white', fontWeight: 600, marginBottom: 4 }}>
+                                                {live.title || 'Live Stream'}
+                                            </div>
+                                            <div style={{ color: '#888', fontSize: 13, marginBottom: 12 }}>
+                                                {dateStr} • {live.viewer_count || 0} viewers
+                                            </div>
+                                            {/* Actions */}
+                                            {!live.is_posted && (
+                                                <div style={{ display: 'flex', gap: 8 }}>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!live.video_url) {
+                                                                alert('No video available to post');
+                                                                return;
+                                                            }
+                                                            // Post to feed
+                                                            const { error } = await supabase.from('social_posts').insert({
+                                                                author_id: user?.id,
+                                                                content: `🔴 ${live.title || 'Live replay'}`,
+                                                                content_type: 'video',
+                                                                media_urls: [live.video_url],
+                                                                visibility: 'public'
+                                                            });
+                                                            if (!error) {
+                                                                await supabase.from('live_streams')
+                                                                    .update({ is_posted: true, is_draft: false })
+                                                                    .eq('id', live.id);
+                                                                setUserLives(prev => prev.map(l =>
+                                                                    l.id === live.id ? { ...l, is_posted: true, is_draft: false } : l
+                                                                ));
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            flex: 1, padding: '10px 16px', borderRadius: 6,
+                                                            background: '#1877F2', color: 'white',
+                                                            border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                                                        }}
+                                                    >📤 Post</button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (confirm('Delete this live stream?')) {
+                                                                await supabase.from('live_streams').delete().eq('id', live.id);
+                                                                setUserLives(prev => prev.filter(l => l.id !== live.id));
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            padding: '10px 16px', borderRadius: 6,
+                                                            background: 'transparent', color: '#FA383E',
+                                                            border: '1px solid #FA383E', fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                                                        }}
+                                                    >🗑️</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
                         )}
                     </div>
                 </div>

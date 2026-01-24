@@ -80,8 +80,53 @@ class LiveStreamService {
         // Subscribe to viewer count changes
         this.subscribeToViewers(stream.id);
 
+        // Notify all followers that user is going live
+        this.notifyFollowers(userId, title || 'Live Stream', stream.id);
+
         console.log('🔴 Broadcast started:', stream.id);
         return { streamId: stream.id, stream };
+    }
+
+    /**
+     * Notify followers when broadcaster goes live
+     * @param {string} userId - Broadcaster's user ID
+     * @param {string} title - Stream title
+     * @param {string} streamId - Stream ID
+     */
+    async notifyFollowers(userId, title, streamId) {
+        try {
+            // Get broadcaster's username for the notification
+            const { data: broadcaster } = await supabase
+                .from('profiles')
+                .select('username')
+                .eq('id', userId)
+                .single();
+
+            const username = broadcaster?.username || 'Someone you follow';
+
+            // Get all followers of this user
+            const { data: followers, error } = await supabase
+                .from('follows')
+                .select('follower_id')
+                .eq('following_id', userId);
+
+            if (error || !followers?.length) return;
+
+            // Create notifications for all followers
+            const notifications = followers.map(f => ({
+                user_id: f.follower_id,
+                type: 'live',
+                title: '🔴 Live Now',
+                message: `${username} is live: ${title}`,
+                link: `/hub/social-media?stream=${streamId}`,
+                read: false
+            }));
+
+            await supabase.from('notifications').insert(notifications);
+            console.log(`📣 Notified ${followers.length} followers about live stream`);
+        } catch (err) {
+            logError('notifyFollowers', err);
+        }
     }
 
     /**
