@@ -1,28 +1,39 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
- * HARDENED PROXY API - In-App Article Reader
- * ═══════════════════════════════════════════════════════════════════════════
- * 
- * PURPOSE: Fetch external pages and serve them through smarter.poker,
- * allowing users to browse external content without leaving the app.
- * 
- * ARCHITECTURE:
- * 1. User clicks ArticleCard → ArticleReaderModal opens
- * 2. Modal loads iframe with src="/api/proxy?url=<encoded_url>"
- * 3. This API fetches the external page, rewrites all URLs, serves content
- * 4. All navigation stays within smarter.poker
- * 
- * HARDENING FEATURES:
- * - Retry logic with exponential backoff (3 attempts)
- * - Timeout handling (10 second limit)
- * - Comprehensive error responses
- * - URL validation and sanitization
- * - Content-type detection
- * - Graceful degradation for blocked sites
- * 
- * DO NOT MODIFY without reading the skill file:
- * .agent/skills/in-app-article-reader/SKILL.md
- * ═══════════════════════════════════════════════════════════════════════════
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  🚨 PROTECTED FILE - DO NOT MODIFY WITHOUT READING SKILL FILE FIRST 🚨   ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║                                                                           ║
+ * ║  BEFORE MAKING ANY CHANGES TO THIS FILE:                                 ║
+ * ║  1. READ: .agent/skills/in-app-article-reader/SKILL.md                   ║
+ * ║  2. RUN TEST FIRST: node scripts/test-article-reader.js                  ║
+ * ║  3. UNDERSTAND why each function exists                                  ║
+ * ║  4. RUN TEST AFTER changes to verify nothing broke                       ║
+ * ║                                                                           ║
+ * ║  IF YOU BREAK THIS, YOU WILL SPEND HOURS REBUILDING IT.                  ║
+ * ║  IT HAS ALREADY BEEN REBUILT MULTIPLE TIMES.                             ║
+ * ║                                                                           ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  HARDENED PROXY API - In-App Article Reader                              ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║                                                                           ║
+ * ║  PURPOSE: Fetch external pages and serve them through smarter.poker,     ║
+ * ║  allowing users to browse external content without leaving the app.      ║
+ * ║                                                                           ║
+ * ║  ARCHITECTURE:                                                            ║
+ * ║  1. User clicks ArticleCard → ArticleReaderModal opens                   ║
+ * ║  2. Modal loads iframe with src="/api/proxy?url=<encoded_url>"           ║
+ * ║  3. This API fetches the external page, rewrites all URLs, serves content║
+ * ║  4. All navigation stays within smarter.poker                            ║
+ * ║                                                                           ║
+ * ║  HARDENING FEATURES:                                                      ║
+ * ║  - Retry logic with exponential backoff (3 attempts)                     ║
+ * ║  - Timeout handling (10 second limit)                                    ║
+ * ║  - Comprehensive error responses                                          ║
+ * ║  - URL validation and sanitization                                       ║
+ * ║  - Content-type detection                                                 ║
+ * ║  - Graceful degradation for blocked sites                                ║
+ * ║                                                                           ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
 // Configuration

@@ -1,11 +1,22 @@
 /**
- * ArticleCard - Centralized component for article/link preview rendering
- * 
- * Provides consistent, robust rendering of article links with:
- * - Pre-fetched metadata support (from DB columns)
- * - Fallback to API-fetched metadata
- * - Graceful error handling
- * - Click-to-open functionality
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  🚨 PROTECTED FILE - DO NOT MODIFY WITHOUT READING SKILL FILE 🚨          ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  SKILL: .agent/skills/in-app-article-reader/SKILL.md                     ║
+ * ║  TEST:  node scripts/test-article-reader.js                              ║
+ * ║  WORKFLOW: /social-feed-protection                                       ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  ArticleCard - Centralized component for article/link preview rendering ║
+ * ║                                                                           ║
+ * ║  Provides consistent, robust rendering of article links with:            ║
+ * ║  - Pre-fetched metadata support (from DB columns)                        ║
+ * ║  - Fallback to API-fetched metadata                                      ║
+ * ║  - Graceful error handling                                               ║
+ * ║  - Click-to-open functionality (onClick prop)                            ║
+ * ║                                                                           ║
+ * ║  CRITICAL: The onClick prop must be passed to enable in-app reading.    ║
+ * ║  If removed, articles will open in new tabs instead of staying in app.  ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
 import { useState, useEffect } from 'react';

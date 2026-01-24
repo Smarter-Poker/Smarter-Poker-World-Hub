@@ -1,8 +1,17 @@
 /**
- * ArticleReaderModal - In-app article viewer
- * 
- * Opens articles inside smarter.poker using an iframe,
- * similar to how videos open in the Reels player
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  🚨 PROTECTED FILE - DO NOT MODIFY WITHOUT READING SKILL FILE 🚨          ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  SKILL: .agent/skills/in-app-article-reader/SKILL.md                     ║
+ * ║  TEST:  node scripts/test-article-reader.js                              ║
+ * ║  WORKFLOW: /social-feed-protection                                       ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  ArticleReaderModal - In-app article viewer                              ║
+ * ║  Opens articles inside smarter.poker using proxied iframe.               ║
+ * ║                                                                           ║
+ * ║  CRITICAL: The iframe src MUST use /api/proxy?url=                       ║
+ * ║  If you change this, articles won't display inside the app.              ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
 import { useState, useEffect } from 'react';

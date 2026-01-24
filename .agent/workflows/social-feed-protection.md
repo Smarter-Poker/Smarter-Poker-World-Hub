@@ -1,82 +1,100 @@
 ---
-description: MANDATORY verification after ANY changes to social feed, RLS policies, or auth systems
+description: MANDATORY workflow before modifying ANY social media files. Prevents breaking working features.
 ---
-# 🛡️ Social Feed Protection Protocol
 
-**THIS IS MANDATORY** - The social feed has broken 4+ times due to unverified changes.
+# 🚨 SOCIAL FEED PROTECTION WORKFLOW 🚨
 
-## When This Applies
+**This workflow MUST be followed before modifying ANY file in the social media system.**
 
-You MUST run verification if you modify:
-- `pages/hub/social-media.js`
-- `pages/hub/reels.js`
-- Any Supabase RLS policies on `social_posts` or `reels`
-- `src/lib/authUtils.js`
-- `src/lib/supabase.js`
-- Any JWT/session handling code
+## STOP! Before You Edit
 
-## Verification Checklist
+If you are about to modify ANY of these files or components, YOU MUST follow this workflow:
 
-Before pushing ANY changes that touch the above files:
+### Protected Files
+- `pages/hub/social-media.js` - Main feed page (2600+ lines)
+- `src/components/social/ArticleCard.jsx` - Article previews
+- `src/components/social/ArticleReaderModal.jsx` - In-app article reader
+- `src/components/social/Stories.jsx` - Stories bar
+- `src/components/social/ReelsFeedCarousel.jsx` - Reels carousel
+- `src/components/social/GoLiveModal.jsx` - Live streaming
+- `src/components/social/LiveStreamCard.jsx` - Live stream display
+- `pages/api/proxy.js` - Server-side proxy for articles
+- `pages/api/link-preview.js` - OpenGraph metadata fetching
 
-// turbo-all
-### 1. Build Verification
+---
+
+## MANDATORY STEPS
+
+### Step 1: Read the Protected Files Registry
 ```bash
-npm run build
-```
-Must complete without errors.
-
-### 2. Posting Test
-1. Navigate to https://smarter.poker/hub/social-media
-2. Log in if needed
-3. Type a test message and click Post
-4. **VERIFY**: Post appears in feed with "Just now" timestamp
-5. **VERIFY**: No "Unable to post" error
-
-### 3. Link Preview Test
-1. Paste a URL (e.g., https://www.pokernews.com/news/)
-2. Wait for preview to load
-3. **VERIFY**: Preview shows image (full width, no black bars)
-4. **VERIFY**: Click preview opens internal popup (NOT new tab)
-
-### 4. Reels Test
-1. Navigate to /hub/reels
-2. Click on a video
-3. **VERIFY**: Opens in fullscreen black-background viewer
-4. **VERIFY**: Video plays
-
-### 5. RLS Policy Check (if you touched Supabase)
-Run in Supabase SQL Editor:
-```sql
-SELECT policyname, cmd FROM pg_policies WHERE tablename = 'social_posts';
+cat .agent/PROTECTED_FILES.md
 ```
 
-Expected policies:
-| policyname | cmd |
-|------------|-----|
-| Authenticated users can post | INSERT |
-| Anyone can view posts | SELECT |
-| Users can update own posts | UPDATE |
-| Users can delete own posts | DELETE |
+### Step 2: Run Verification BEFORE Making Changes
+// turbo
+```bash
+node scripts/test-article-reader.js
+```
 
-## If Something Breaks
+### Step 3: If modifying social-media.js, understand these critical sections:
+- Lines 1-30: Imports (DO NOT remove any)
+- ArticleReader state (articleReader, setArticleReader)
+- PostCard component (onOpenArticle prop)
+- ArticleCard integration (onClick handler)
 
-1. **Posting broken?** Re-run `/supabase/migrations/20260123_social_posts_rls.sql`
-2. **Feed empty?** Check JWT - have user log out and back in
-3. **Link previews broken?** Check `/api/link-preview` endpoint
+### Step 4: Make your changes carefully
 
-## Critical Code Sections
+### Step 5: Run Verification AFTER Making Changes
+// turbo
+```bash
+node scripts/test-article-reader.js
+```
 
-DO NOT MODIFY without understanding consequences:
+### Step 6: Test manually in browser
+// turbo
+```bash
+open http://localhost:3000/hub/social-media
+```
 
-1. **LinkPreviewCard** (lines 300-420 in social-media.js)
-   - Uses `useExternalLink` for internal popups
-   - Image uses `aspectRatio: '16/9'` and `objectFit: 'cover'`
+---
 
-2. **handlePost function** 
-   - Sets `author_id` from authenticated user
-   - Inserts to `social_posts` table
+## IF TESTS FAIL AFTER YOUR CHANGES
 
-3. **RLS INSERT Policy**
-   - MUST be `WITH CHECK (true)` for authenticated
-   - NOT `WITH CHECK (auth.uid() = author_id)` - that breaks inserts!
+1. **REVERT IMMEDIATELY** - Your changes broke something
+2. Read the skill file: `.agent/skills/in-app-article-reader/SKILL.md`
+3. Understand what you broke
+4. Try again with more care
+
+---
+
+## Common Things That Break Social Media
+
+### Article Reader Breaks
+- Removing `ArticleCard` import
+- Removing `ArticleReaderModal` import  
+- Removing `articleReader` state
+- Removing `onOpenArticle` prop from PostCard
+- Changing the iframe src in ArticleReaderModal
+
+### Stories Bar Breaks
+- Removing `StoriesBar` import
+- Changing stories fetch query
+- Breaking story click handlers
+
+### Feed Breaks
+- Removing PostCard component
+- Breaking infinite scroll
+- Changing post fetching logic
+
+---
+
+## This Feature Has Been Rebuilt Multiple Times
+
+Every time someone modifies social-media.js without understanding, these features break:
+1. Article thumbnails show link icons instead of images
+2. Articles open in new tabs instead of in-app
+3. Stories don't display
+4. Reels carousel breaks
+5. Posts don't load
+
+**PROTECT THIS CODE.**

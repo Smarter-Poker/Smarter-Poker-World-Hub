@@ -1,6 +1,41 @@
 /**
- * SMARTER.POKER SOCIAL HUB - Full Sngine Reconstruction
- * Light Theme + Working Supabase Integration + Go Live Streaming
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  🚨🚨🚨 PROTECTED FILE - READ BEFORE MODIFYING 🚨🚨🚨                      ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║                                                                           ║
+ * ║  THIS FILE CONTAINS MULTIPLE CRITICAL FEATURES THAT BREAK FREQUENTLY.    ║
+ * ║  BEFORE MAKING ANY CHANGES:                                              ║
+ * ║                                                                           ║
+ * ║  1. RUN: /social-feed-protection workflow                                ║
+ * ║  2. READ: .agent/PROTECTED_FILES.md                                      ║
+ * ║  3. TEST BEFORE: node scripts/test-article-reader.js                     ║
+ * ║  4. TEST AFTER: node scripts/test-article-reader.js                      ║
+ * ║                                                                           ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  CRITICAL FEATURES IN THIS FILE - DO NOT BREAK:                          ║
+ * ║                                                                           ║
+ * ║  📰 Article Reader (Lines ~1186-1200, ~1417, ~2509)                       ║
+ * ║     - ArticleCard with onClick → opens ArticleReaderModal                 ║
+ * ║     - articleReader state {open, url, title}                             ║
+ * ║     - onOpenArticle prop passed to PostCard                              ║
+ * ║                                                                           ║
+ * ║  📖 Stories Bar (Line ~2330)                                              ║
+ * ║     - StoriesBar component with stories fetch                            ║
+ * ║                                                                           ║
+ * ║  🎬 Reels Carousel (Lines ~2510)                                          ║
+ * ║     - ReelsFeedCarousel inserted after every 3 posts                     ║
+ * ║                                                                           ║
+ * ║  🔴 Live Streaming (Lines ~2360-2400)                                     ║
+ * ║     - GoLiveModal, LiveStreamCard, LiveStreamViewer                      ║
+ * ║                                                                           ║
+ * ║  📋 PostCard Component (Lines ~1072-1300)                                 ║
+ * ║     - Renders all post types correctly                                   ║
+ * ║     - onOpenArticle prop for article clicks                              ║
+ * ║                                                                           ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  SMARTER.POKER SOCIAL HUB                                                ║
+ * ║  Light Theme + Working Supabase Integration + Go Live Streaming          ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
 import Head from 'next/head';
