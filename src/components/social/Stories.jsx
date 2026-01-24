@@ -474,6 +474,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
     const [uploading, setUploading] = useState(false);
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState(null);
+    const [showSuccess, setShowSuccess] = useState(false); // Success toast
     const fileInputRef = useRef(null);
 
     // Handle file selection with IMMEDIATE preview
@@ -591,7 +592,11 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
             // Cleanup local preview
             if (mediaPreview) URL.revokeObjectURL(mediaPreview);
 
-            onCreated();
+            // Show success toast, then close after 2 seconds
+            setShowSuccess(true);
+            setTimeout(() => {
+                onCreated();
+            }, 2000);
         } catch (e) {
             console.error('Create story error:', e);
             setError(`Failed to create story: ${e.message}`);
@@ -682,6 +687,38 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
                         fontSize: 14,
                     }}>
                         {error}
+                    </div>
+                )}
+
+                {/* Success Toast Overlay */}
+                {showSuccess && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.85)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 100,
+                        animation: 'fadeIn 0.3s ease',
+                    }}>
+                        <div style={{
+                            fontSize: 64,
+                            marginBottom: 16,
+                            animation: 'bounceIn 0.5s ease',
+                        }}>✅</div>
+                        <div style={{
+                            color: 'white',
+                            fontSize: 24,
+                            fontWeight: 700,
+                            textAlign: 'center',
+                        }}>Story Posted!</div>
+                        <div style={{
+                            color: 'rgba(255,255,255,0.7)',
+                            fontSize: 14,
+                            marginTop: 8,
+                        }}>Your story is now live for 24 hours</div>
                     </div>
                 )}
 

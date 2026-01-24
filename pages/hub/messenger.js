@@ -91,6 +91,34 @@ function formatDateHeader(timestamp) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 📱 FACEBOOK-STYLE SVG ICONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PhoneIcon = ({ size = 20, color = '#0084FF' }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+    </svg>
+);
+
+const VideoIcon = ({ size = 20, color = '#0084FF' }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+    </svg>
+);
+
+const SearchIcon = ({ size = 20, color = '#0084FF' }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+    </svg>
+);
+
+const InfoIcon = ({ size = 20, color = '#0084FF' }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+    </svg>
+);
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 🖼️ AVATAR COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1574,7 +1602,7 @@ export default function MessengerPage() {
                         borderBottom: '1px solid #333',
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <span style={{ fontSize: 20 }}>{callType === 'video' ? '📹' : '📞'}</span>
+                            {callType === 'video' ? <VideoIcon size={24} color="white" /> : <PhoneIcon size={24} color="white" />}
                             <div>
                                 <div style={{ color: 'white', fontWeight: 600 }}>
                                     {callType === 'video' ? 'Video' : 'Voice'} Call with {activeConversation?.otherUser?.username || 'User'}
@@ -1888,35 +1916,35 @@ export default function MessengerPage() {
                                             style={{
                                                 width: 36, height: 36, borderRadius: '50%',
                                                 background: showMessageSearch ? C.bg : 'transparent',
-                                                border: 'none', cursor: 'pointer', fontSize: 18,
-                                                color: C.blue,
+                                                border: 'none', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             }}
                                             title="Search messages"
-                                        >🔍</button>
+                                        ><SearchIcon size={20} /></button>
                                         <button
                                             onClick={() => startCall('audio')}
                                             title="Voice call"
                                             style={{
                                                 width: 36, height: 36, borderRadius: '50%',
-                                                background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
-                                                color: C.blue,
-                                            }}>📞</button>
+                                                background: 'transparent', border: 'none', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}><PhoneIcon size={20} /></button>
                                         <button
                                             onClick={() => startCall('video')}
                                             title="Video call"
                                             style={{
                                                 width: 36, height: 36, borderRadius: '50%',
-                                                background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
-                                                color: C.blue,
-                                            }}>📹</button>
+                                                background: 'transparent', border: 'none', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}><VideoIcon size={20} /></button>
                                         <button
                                             onClick={() => setShowUserInfo(!showUserInfo)}
                                             title="User info"
                                             style={{
                                                 width: 36, height: 36, borderRadius: '50%',
-                                                background: showUserInfo ? C.bg : 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
-                                                color: C.blue,
-                                            }}>ℹ️</button>
+                                                background: showUserInfo ? C.bg : 'transparent', border: 'none', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}><InfoIcon size={20} /></button>
                                     </div>
                                 </div >
 
