@@ -62,10 +62,10 @@ const ORB_METADATA = {
     },
     'diamond-arcade': {
         title: 'Diamond Arcade',
-        description: 'Fun poker-themed arcade games to earn diamonds and XP',
-        emoji: '🎮',
+        description: 'Risk diamonds. Test skills. Beat the house in fast-paced poker games!',
+        emoji: '🎰',
         color: '#9900ff',
-        features: ['Arcade Games', 'Diamond Rewards', 'XP Bonuses', 'Leaderboards', 'Daily Challenges'],
+        features: ['Speed Games', 'Jackpot Games', 'Daily Rotation', 'Progressive Jackpot', 'Leaderboards'],
     },
     'bankroll-manager': {
         title: 'Bankroll Manager',
@@ -105,6 +105,22 @@ export default function OrbPage() {
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    // Redirect to dedicated pages for completed orbs
+    useEffect(() => {
+        if (!mounted || !orbId) return;
+        const key = Array.isArray(orbId) ? orbId[0] : orbId;
+
+        // Orbs with dedicated pages - redirect to them
+        const dedicatedPages = {
+            'diamond-arcade': '/hub/diamond-arcade',
+            'trivia': '/hub/trivia',
+        };
+
+        if (dedicatedPages[key]) {
+            router.replace(dedicatedPages[key]);
+        }
+    }, [mounted, orbId, router]);
 
     if (!mounted || !orbId) {
         return (
