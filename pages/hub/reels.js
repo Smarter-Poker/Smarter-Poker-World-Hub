@@ -44,6 +44,7 @@ export default function ReelsPage() {
     const [loading, setLoading] = useState(true);
     const [muted, setMuted] = useState(true); // MUST be true for autoplay to work
     const [userWantsSound, setUserWantsSound] = useState(false); // localStorage preference
+    const [hasInteracted, setHasInteracted] = useState(false); // Must tap to start
     const [liked, setLiked] = useState({});
     const containerRef = useRef(null);
     const iframeRef = useRef(null);
@@ -177,6 +178,18 @@ export default function ReelsPage() {
         return () => window.removeEventListener('keydown', handleKey);
     }, [currentIndex, router]);
 
+    // Use refs to avoid stale closures in event handlers
+    const currentIndexRef = useRef(currentIndex);
+    const reelsLengthRef = useRef(reels.length);
+
+    useEffect(() => {
+        currentIndexRef.current = currentIndex;
+    }, [currentIndex]);
+
+    useEffect(() => {
+        reelsLengthRef.current = reels.length;
+    }, [reels.length]);
+
     // DOCUMENT-LEVEL touch capture to intercept BEFORE YouTube iframe gets them
     useEffect(() => {
         const handleTouchStart = (e) => {
@@ -186,10 +199,23 @@ export default function ReelsPage() {
         const handleTouchEnd = (e) => {
             const endY = e.changedTouches[0].clientY;
             const diff = touchStartY.current - endY;
-            if (Math.abs(diff) > 80) {
+            const threshold = 50; // Lower threshold for more responsive swipes
+
+            if (Math.abs(diff) > threshold) {
                 e.preventDefault();
-                if (diff > 0) goNext();  // Swipe up = next
-                else goPrev(); // Swipe down = previous
+                e.stopPropagation();
+
+                if (diff > 0) {
+                    // Swipe up = next
+                    if (currentIndexRef.current < reelsLengthRef.current - 1) {
+                        setCurrentIndex(prev => prev + 1);
+                    }
+                } else {
+                    // Swipe down = previous
+                    if (currentIndexRef.current > 0) {
+                        setCurrentIndex(prev => prev - 1);
+                    }
+                }
             }
         };
 
@@ -198,8 +224,16 @@ export default function ReelsPage() {
         const handleWheel = (e) => {
             if (wheelTimeout) return;
             wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 400);
-            if (e.deltaY > 30) goNext();
-            if (e.deltaY < -30) goPrev();
+            if (e.deltaY > 30) {
+                if (currentIndexRef.current < reelsLengthRef.current - 1) {
+                    setCurrentIndex(prev => prev + 1);
+                }
+            }
+            if (e.deltaY < -30) {
+                if (currentIndexRef.current > 0) {
+                    setCurrentIndex(prev => prev - 1);
+                }
+            }
         };
 
         // CAPTURE phase - intercepts before iframe
@@ -211,7 +245,8 @@ export default function ReelsPage() {
             document.removeEventListener('touchend', handleTouchEnd, { capture: true });
             window.removeEventListener('wheel', handleWheel);
         };
-    }, [currentIndex]);
+    }, []); // Empty deps - uses refs for current values
+
 
     if (loading) {
         return (
@@ -304,7 +339,47 @@ export default function ReelsPage() {
                     clipPath: 'inset(0)',
                     background: '#000',
                 }}>
-                    {videoId ? (
+                    {/* TAP TO START overlay - shows until first tap */}
+                    {!hasInteracted && (
+                        <div
+                            onClick={() => setHasInteracted(true)}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                background: 'rgba(0,0,0,0.7)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 60,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            <div style={{
+                                width: 100,
+                                height: 100,
+                                borderRadius: '50%',
+                                background: 'rgba(255,255,255,0.9)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: 50,
+                                color: '#000',
+                                marginBottom: 16,
+                            }}>
+                                ▶
+                            </div>
+                            <div style={{ color: 'white', fontSize: 18, fontWeight: 600 }}>
+                                Tap to Start
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Only load iframe AFTER user interaction (guarantees autoplay) */}
+                    {hasInteracted && videoId ? (
                         <iframe
                             ref={iframeRef}
                             key={currentReel?.id}
