@@ -377,50 +377,57 @@ export default function SignUpPage() {
                         .single();
 
                     const nextPlayerNumber = (maxData?.player_number || 1254) + 1;
-                    console.log('Assigning player number:', nextPlayerNumber);
+                    console.log('Updating profile for user:', authData.user.id);
 
-                    const { error: insertError } = await supabase
+                    // UPDATE the profile created by the database trigger
+                    // The trigger creates the profile with correct id = auth.user.id
+                    // We just need to add/update the additional fields
+                    const { error: updateError } = await supabase
                         .from('profiles')
-                        .upsert({
-                            id: authData.user.id,
+                        .update({
                             full_name: formData.fullName,
-                            email: formData.email,
                             phone: cleanPhoneFormatted,
                             city: formData.city,
                             state: formData.state,
                             username: formData.pokerAlias,
-                            player_number: nextPlayerNumber, // Auto-assign next player number
+                            player_number: nextPlayerNumber,
                             xp_total: 100, // Starting XP bonus
-                            diamonds: 300, // Starting diamonds bonus (NO PURCHASE NECESSARY)
+                            diamonds: 300, // Starting diamonds bonus
                             diamond_multiplier: 1.0,
-                            streak_count: 0, // Fixed: was streak_days but column is streak_count
+                            streak_count: 0,
                             skill_tier: 'Newcomer',
-                            // Restricted Tier flagging for WA, ID, MI, NV, CA
                             access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
-                            created_at: new Date().toISOString(),
                             last_login: new Date().toISOString(),
-                        }, {
-                            onConflict: 'id',
-                        });
+                        })
+                        .eq('id', authData.user.id);
 
-                    if (insertError) {
-                        console.error('Profile insert error:', insertError);
-                    }
+                    if (updateError) {
+                        console.error('Profile update error:', updateError);
+                        // If update fails (profile doesn't exist yet), try insert as fallback
+                        const { error: insertError } = await supabase
+                            .from('profiles')
+                            .insert({
+                                id: authData.user.id,
+                                full_name: formData.fullName,
+                                email: formData.email,
+                                phone: cleanPhoneFormatted,
+                                city: formData.city,
+                                state: formData.state,
+                                username: formData.pokerAlias,
+                                player_number: nextPlayerNumber,
+                                xp_total: 100,
+                                diamonds: 300,
+                                diamond_multiplier: 1.0,
+                                streak_count: 0,
+                                skill_tier: 'Newcomer',
+                                access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
+                                created_at: new Date().toISOString(),
+                                last_login: new Date().toISOString(),
+                            });
 
-                    // CRITICAL: Also create user_diamond_balance record (header reads from this table)
-                    const { error: balanceError } = await supabase
-                        .from('user_diamond_balance')
-                        .upsert({
-                            user_id: authData.user.id,
-                            balance: 300, // Starting diamonds bonus
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString(),
-                        }, {
-                            onConflict: 'user_id',
-                        });
-
-                    if (balanceError) {
-                        console.error('Diamond balance insert error:', balanceError);
+                        if (insertError) {
+                            console.error('Profile insert fallback error:', insertError);
+                        }
                     }
 
                     // Set the assigned player number

@@ -1,33 +1,32 @@
 -- ════════════════════════════════════════════════════════════════════════════════
--- CRITICAL FIX: Fix or disable broken auth signup trigger
--- This trigger on auth.users is causing "Database error saving new user"
+-- FIX: Update auth trigger to give correct starting values (100 XP, 300 diamonds)
+-- And generate player_number automatically
 -- ════════════════════════════════════════════════════════════════════════════════
 
--- First, let's drop any existing trigger on auth.users that might be failing
--- Common trigger names: on_auth_user_created, handle_new_user_trigger
-
--- Drop if exists (safe operation)
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-DROP TRIGGER IF EXISTS handle_new_user_trigger ON auth.users;
-
--- Create a SAFE handle_new_user function that won't fail
--- Uses EXCEPTION handler so auth still works even if profile creation fails
+-- Create a SAFE handle_new_user function that creates profile correctly
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+    next_player_num INT;
 BEGIN
-    -- Insert minimal profile with only essential columns
+    -- Get the next player number
+    SELECT COALESCE(MAX(player_number), 1254) + 1 INTO next_player_num FROM public.profiles;
+    
+    -- Insert profile with correct starting values
     INSERT INTO public.profiles (
         id,
         full_name,
         email,
         username,
+        player_number,
         streak_count,
         xp_total,
         diamonds,
+        diamond_multiplier,
         skill_tier,
         access_tier,
         created_at,
@@ -37,16 +36,25 @@ BEGIN
         COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'poker_alias', ''),
         COALESCE(NEW.email, ''),
         COALESCE(NEW.raw_user_meta_data->>'poker_alias', ''),
+        next_player_num,
         0,
-        50,
-        300,
+        100,  -- Starting XP bonus (was 50, now matches signup)
+        300,  -- Starting diamonds bonus
+        1.0,
         'Newcomer',
-        'Full_Access',
+        CASE 
+            WHEN NEW.raw_user_meta_data->>'state' IN ('WA', 'ID', 'MI', 'NV', 'CA') THEN 'Restricted_Tier'
+            ELSE 'Full_Access'
+        END,
         NOW(),
         NOW()
     )
     ON CONFLICT (id) DO UPDATE SET
-        last_login = NOW();
+        last_login = NOW(),
+        -- Also update any missing fields
+        player_number = COALESCE(profiles.player_number, EXCLUDED.player_number),
+        xp_total = COALESCE(profiles.xp_total, EXCLUDED.xp_total),
+        diamonds = COALESCE(profiles.diamonds, EXCLUDED.diamonds);
     
     RETURN NEW;
 EXCEPTION
@@ -60,7 +68,7 @@ EXCEPTION
 END;
 $$;
 
--- Recreate the trigger with the safe function
+-- Recreate the trigger
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users

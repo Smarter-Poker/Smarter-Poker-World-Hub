@@ -129,6 +129,93 @@ export default function NotificationsPage() {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     };
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FRIEND REQUEST HANDLERS (Facebook-style: Decline = Auto-Follow)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const handleAcceptFriendRequest = async (notification, e) => {
+        e.stopPropagation(); // Prevent navigation
+        const requesterId = notification.data?.actor_id || notification.actor_id;
+        if (!requesterId || !user) return;
+
+        try {
+            // Find and accept the friend request
+            const { data: request } = await supabase
+                .from('friendships')
+                .select('id')
+                .eq('user_id', requesterId)
+                .eq('friend_id', user.id)
+                .eq('status', 'pending')
+                .single();
+
+            if (request) {
+                // Update request to accepted
+                await supabase.from('friendships').update({ status: 'accepted' }).eq('id', request.id);
+
+                // Create reverse friendship
+                await supabase.from('friendships').insert({
+                    user_id: user.id,
+                    friend_id: requesterId,
+                    status: 'accepted'
+                });
+
+                // Update notification to show accepted
+                await supabase.from('notifications').update({
+                    message: 'is now your friend!',
+                    type: 'friend_accepted'
+                }).eq('id', notification.id);
+
+                // Update local state
+                setNotifications(prev => prev.map(n =>
+                    n.id === notification.id
+                        ? { ...n, message: 'is now your friend!', type: 'friend_accepted', handled: true }
+                        : n
+                ));
+            }
+        } catch (err) {
+            console.error('Error accepting friend request:', err);
+        }
+    };
+
+    const handleDeclineFriendRequest = async (notification, e) => {
+        e.stopPropagation(); // Prevent navigation
+        const requesterId = notification.data?.actor_id || notification.actor_id;
+        if (!requesterId || !user) return;
+
+        try {
+            // Delete the friend request
+            await supabase
+                .from('friendships')
+                .delete()
+                .eq('user_id', requesterId)
+                .eq('friend_id', user.id)
+                .eq('status', 'pending');
+
+            // 🔥 FACEBOOK-STYLE: Auto-convert to follower
+            // The requester now FOLLOWS the person who declined
+            await supabase.from('follows').upsert({
+                follower_id: requesterId,     // Person who sent request
+                following_id: user.id,        // Person who declined (me)
+                source: 'declined_friend_request'
+            }, { onConflict: 'follower_id,following_id' });
+
+            // Update notification
+            await supabase.from('notifications').update({
+                message: 'is now following you',
+                type: 'new_follow'
+            }).eq('id', notification.id);
+
+            // Update local state
+            setNotifications(prev => prev.map(n =>
+                n.id === notification.id
+                    ? { ...n, message: 'is now following you', type: 'new_follow', handled: true }
+                    : n
+            ));
+        } catch (err) {
+            console.error('Error declining friend request:', err);
+        }
+    };
+
     const unreadCount = notifications.filter(n => !n.read).length;
 
     if (loading) {
