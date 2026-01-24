@@ -6,32 +6,31 @@
  */
 
 // 9-MAX LAYOUT (Full Ring) - Hero + 8 Villains
-// Exported 2026-01-24T02:02:32.086Z
+// EXPORTED 2026-01-24T03:30:45.767Z via DEV MODE
 export const LAYOUT_9MAX = {
-    name: '9-max',
+    name: '9MAX',
     seats: 9,
-    description: 'Full ring table',
-    // Note: avatarOffset is 0,0 - badge auto-positions on pre-attached gold box
+    heroCardsOffset: { "x": 29, "y": 117 },
     positions: {
         "hero": {
             "left": "50%",
             "top": "78%",
-            "avatarOffset": { "x": -55, "y": 0 }
+            "avatarOffset": { "x": -50, "y": 9 }
         },
         "seat1": {
             "left": "20%",
             "top": "68%",
-            "avatarOffset": { "x": -55, "y": -20 }
+            "avatarOffset": { "x": -53, "y": 18 }
         },
         "seat2": {
             "left": "8%",
             "top": "45%",
-            "avatarOffset": { "x": -20, "y": 0 }
+            "avatarOffset": { "x": -26, "y": -4 }
         },
         "seat3": {
             "left": "10%",
             "top": "22%",
-            "avatarOffset": { "x": -20, "y": 0 }
+            "avatarOffset": { "x": -57, "y": -8 }
         },
         "seat4": {
             "left": "30%",
@@ -46,7 +45,7 @@ export const LAYOUT_9MAX = {
         "seat6": {
             "left": "80%",
             "top": "22%",
-            "avatarOffset": { "x": -55, "y": 0 }
+            "avatarOffset": { "x": -8, "y": -10 }
         },
         "seat7": {
             "left": "88%",

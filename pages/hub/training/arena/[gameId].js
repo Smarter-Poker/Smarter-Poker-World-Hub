@@ -127,7 +127,7 @@ function ArenaHeader({ diamonds = 0, xp = 0, level = 1, onBack, onSettings }) {
 // Draggable Player Seat - Avatar and Badge are ONE unified element
 // They move together as a single unit, not separately
 function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initialPosition, isHero = false, onPositionChange, devMode = false, onDelete }) {
-    const AVATAR_SIZE = 100; // Standardized size for ALL avatars
+    const AVATAR_SIZE = 125; // Standardized size for ALL avatars
 
     const posInitial = initialPosition?.avatarOffset || { x: 0, y: 0 };
     const [pos, setPos] = useState(posInitial);
@@ -183,7 +183,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
                 ...initialPosition
             }}
         >
-            {/* Avatar Image */}
+            {/* Avatar Image - z-index 1 (behind badge) */}
             <img
                 src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=256&q=90`}
                 alt={name}
@@ -195,10 +195,17 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
                     borderRadius: '50%',
                     filter: 'drop-shadow(2px 3px 6px rgba(0,0,0,0.9))',
                     pointerEvents: 'none',
+                    position: 'relative',
+                    zIndex: 1,
                 }}
             />
-            {/* Badge - Attached directly below avatar */}
-            <div className="player-badge" style={{ marginTop: -8, pointerEvents: 'none' }}>
+            {/* Badge - Overlaps avatar bottom, IN FRONT (z-index 2) */}
+            <div className="player-badge" style={{
+                marginTop: -25,
+                pointerEvents: 'none',
+                position: 'relative',
+                zIndex: 2,
+            }}>
                 <span className="player-name">{name}</span>
                 <span className="player-stack">{stack} BB</span>
             </div>

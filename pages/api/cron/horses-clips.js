@@ -51,7 +51,7 @@ const CONFIG = {
     HORSES_PER_TRIGGER: 3,  // 3 clips per trigger (runs 4x/hour = 12 clips/hour)
     VIDEO_CLIP_PROBABILITY: 0.90,  // LAW: 90% video clips
     MAX_CLIPS_PER_DAY: 200,  // Increased capacity
-    CLIP_COOLDOWN_HOURS: 0  // No cooldown - allow re-posting clips
+    CLIP_COOLDOWN_HOURS: 48  // Don't reuse same clip for 48 hours
 };
 
 // Track clips used in this session to prevent duplicates within same cron run

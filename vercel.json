@@ -64,6 +64,10 @@
     {
       "path": "/api/cron/horses-stories",
       "schedule": "53 * * * *"
+    },
+    {
+      "path": "/api/cron/scrape-poker-clips",
+      "schedule": "0 6 * * *"
     }
   ]
 }
