@@ -9,85 +9,20 @@
  */
 
 import { useRouter } from 'next/router';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAuthUser, queryProfiles, queryDiamondBalance } from '../../../../src/lib/authUtils';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
+import { TABLE_LAYOUTS, getLayoutForGame, LAYOUT_9MAX } from '../../../../src/config/table-layouts';
+import { getVillainAvatars, getHeroAvatar } from '../../../../src/config/avatar-pool';
 
 // Design canvas dimensions (locked)
 const DESIGN_WIDTH = 862;
 const DESIGN_HEIGHT = 1024;
 
-// Villain avatars in seat order (1-8)
-const VILLAIN_AVATARS = [
-    '/avatars/free/lion.png',
-    '/avatars/vip/rock_legend.png',
-    '/avatars/free/shark.png',
-    '/avatars/vip/wolf.png',
-    '/avatars/vip/spartan.png',
-    '/avatars/vip/monarch.png',
-    '/avatars/vip/tech_mogul.png',
-    '/avatars/free/owl.png',
-];
-
-// EXPORTED LAYOUT - 2026-01-24T02:02:32.086Z (USER'S EXACT POSITIONS)
-const SEAT_POSITIONS = {
-    "hero": {
-        "left": "50%",
-        "top": "78%",
-        "avatarOffset": { "x": 0, "y": 0 },
-        "badgeOffset": { "x": -48, "y": 141 }
-    },
-    "seat1": {
-        "left": "18%",
-        "top": "64%",
-        "avatarOffset": { "x": 0, "y": 0 },
-        "badgeOffset": { "x": -38, "y": 150 }
-    },
-    "seat2": {
-        "left": "13%",
-        "top": "46%",
-        "avatarOffset": { "x": 0, "y": 0 },
-        "badgeOffset": { "x": -61, "y": 114 }
-    },
-    "seat3": {
-        "left": "15%",
-        "top": "26%",
-        "avatarOffset": { "x": -37, "y": -96 },
-        "badgeOffset": { "x": -72, "y": 66 }
-    },
-    "seat4": {
-        "left": "35%",
-        "top": "14%",
-        "avatarOffset": { "x": -47, "y": -133 },
-        "badgeOffset": { "x": -17, "y": 118 }
-    },
-    "seat5": {
-        "left": "65%",
-        "top": "14%",
-        "avatarOffset": { "x": -69, "y": 73 },
-        "badgeOffset": { "x": 5, "y": -14 }
-    },
-    "seat6": {
-        "left": "85%",
-        "top": "26%",
-        "avatarOffset": { "x": 115, "y": -49 },
-        "badgeOffset": { "x": -27, "y": 65 }
-    },
-    "seat7": {
-        "left": "87%",
-        "top": "46%",
-        "avatarOffset": { "x": 60, "y": -1 },
-        "badgeOffset": { "x": -37, "y": 108 }
-    },
-    "seat8": {
-        "left": "82%",
-        "top": "64%",
-        "avatarOffset": { "x": 5, "y": 40 },
-        "badgeOffset": { "x": -41, "y": 138 }
-    }
-};
+// NOTE: SEAT_POSITIONS is now loaded dynamically from table-layouts.js
+// based on the game's layoutType configuration
 
 const SUITS = {
     s: { symbol: '♠', color: '#1a1d24' },
@@ -399,10 +334,37 @@ function DraggableHeroCards({ cards, onPositionChange }) {
 
 export default function TrainingArenaPage() {
     const router = useRouter();
-    const { gameId } = router.query;
+    const { gameId, level = 1 } = router.query;
 
     // Scale state
     const [scale, setScale] = useState(1);
+
+    // Game configuration (loaded from API/database)
+    const [gameConfig, setGameConfig] = useState({
+        playerCount: 9,  // Default to 9-max
+        layoutType: '9max',
+    });
+
+    // Dynamic layout based on game config
+    const currentLayout = useMemo(() => {
+        return TABLE_LAYOUTS[gameConfig.layoutType] || LAYOUT_9MAX;
+    }, [gameConfig.layoutType]);
+
+    // Dynamic villain avatars based on gameId + level (seeded shuffle)
+    const villainAvatars = useMemo(() => {
+        if (!gameId) return [];
+        const heroAvatar = getHeroAvatar();
+        const count = (currentLayout.seats || 9) - 1; // Minus hero
+        return getVillainAvatars(gameId, parseInt(level) || 1, count, heroAvatar);
+    }, [gameId, level, currentLayout.seats]);
+
+    // Hero avatar (from user profile or selection)
+    const heroAvatar = useMemo(() => {
+        return getHeroAvatar();
+    }, []);
+
+    // Get seat positions from current layout
+    const SEAT_POSITIONS = currentLayout.positions;
 
     // Game state
     const [loading, setLoading] = useState(true);
@@ -426,6 +388,8 @@ export default function TrainingArenaPage() {
     const [devMode, setDevMode] = useState(false);
     const [exportData, setExportData] = useState('');
     const positionRefs = useState({})[0]; // Store all position updates
+    const [hiddenSeats, setHiddenSeats] = useState(new Set()); // Track deleted/hidden seats
+    const [selectedLayoutType, setSelectedLayoutType] = useState('9max'); // For export
 
     // Load real user data on mount
     useEffect(() => {
@@ -530,32 +494,69 @@ export default function TrainingArenaPage() {
         positionRefs[id] = data;
     }, [positionRefs]);
 
-    // Export all positions as code
+    // Toggle seat visibility (for DEV MODE delete functionality)
+    const toggleSeat = useCallback((seatId) => {
+        setHiddenSeats(prev => {
+            const next = new Set(prev);
+            if (next.has(seatId)) {
+                next.delete(seatId);
+            } else {
+                next.add(seatId);
+            }
+            return next;
+        });
+    }, []);
+
+    // Reset all seats to visible
+    const resetSeats = useCallback(() => {
+        setHiddenSeats(new Set());
+    }, []);
+
+    // Export all positions as code (only visible seats)
     const exportLayout = () => {
+        const layoutTypeMap = {
+            '9max': 'LAYOUT_9MAX',
+            '6max': 'LAYOUT_6MAX',
+            '4handed': 'LAYOUT_4HANDED',
+            '3handed': 'LAYOUT_3HANDED',
+            'headsup': 'LAYOUT_HEADSUP'
+        };
+        const layoutName = layoutTypeMap[selectedLayoutType] || 'LAYOUT_9MAX';
+
+        // Count visible seats
+        const allSeats = ['hero', 'seat1', 'seat2', 'seat3', 'seat4', 'seat5', 'seat6', 'seat7', 'seat8'];
+        const visibleSeats = allSeats.filter(s => !hiddenSeats.has(s));
+
         const output = {
-            SEAT_POSITIONS: {},
-            heroCardsPosition: positionRefs['heroCards'] || { x: 20, y: 0 }
+            positions: {},
+            heroCardsOffset: positionRefs['heroCards'] || { x: 29, y: 117 }
         };
 
-        // Gather seat positions
-        ['hero', 'seat1', 'seat2', 'seat3', 'seat4', 'seat5', 'seat6', 'seat7', 'seat8'].forEach(seatKey => {
+        // Gather seat positions (only visible)
+        visibleSeats.forEach(seatKey => {
             const avatarData = positionRefs[`${seatKey}-avatar`];
             const badgeData = positionRefs[`${seatKey}-badge`];
             const basePos = SEAT_POSITIONS[seatKey];
 
-            output.SEAT_POSITIONS[seatKey] = {
-                left: basePos.left,
-                top: basePos.top,
-                avatarOffset: avatarData || { x: 0, y: 0 },
-                badgeOffset: badgeData || { x: 0, y: 120 }
-            };
+            if (basePos) {
+                output.positions[seatKey] = {
+                    left: basePos.left,
+                    top: basePos.top,
+                    avatarOffset: avatarData || basePos.avatarOffset || { x: 0, y: 0 },
+                    badgeOffset: badgeData || basePos.badgeOffset || { x: 0, y: 120 }
+                };
+            }
         });
 
-        const code = `// EXPORTED LAYOUT - ${new Date().toISOString()}
-const SEAT_POSITIONS = ${JSON.stringify(output.SEAT_POSITIONS, null, 4)};
+        const code = `// EXPORTED ${selectedLayoutType.toUpperCase()} LAYOUT - ${new Date().toISOString()}
+// Visible seats: ${visibleSeats.length} (${visibleSeats.join(', ')})
 
-// Hero Cards Position
-const HERO_CARDS_OFFSET = ${JSON.stringify(output.heroCardsPosition)};`;
+export const ${layoutName} = {
+    name: '${selectedLayoutType.toUpperCase()}',
+    seats: ${visibleSeats.length},
+    heroCardsOffset: ${JSON.stringify(output.heroCardsOffset)},
+    positions: ${JSON.stringify(output.positions, null, 8).replace(/\n/g, '\n    ')}
+};`;
 
         setExportData(code);
     };
@@ -642,18 +643,35 @@ const HERO_CARDS_OFFSET = ${JSON.stringify(output.heroCardsPosition)};`;
                             <div className="dealer-btn">D</div>
 
 
-                            {/* Villain Seats - DRAGGABLE with unique seatIndex for z-index layering */}
-                            <DraggablePlayerSeat seatIndex={1} seatId="seat1" avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} onPositionChange={updatePosition} />
-                            <DraggablePlayerSeat seatIndex={2} seatId="seat2" avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} onPositionChange={updatePosition} />
-                            <DraggablePlayerSeat seatIndex={3} seatId="seat3" avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} onPositionChange={updatePosition} />
-                            <DraggablePlayerSeat seatIndex={4} seatId="seat4" avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} onPositionChange={updatePosition} />
-                            <DraggablePlayerSeat seatIndex={5} seatId="seat5" avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} onPositionChange={updatePosition} />
-                            <DraggablePlayerSeat seatIndex={6} seatId="seat6" avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} onPositionChange={updatePosition} />
-                            <DraggablePlayerSeat seatIndex={7} seatId="seat7" avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} onPositionChange={updatePosition} />
-                            <DraggablePlayerSeat seatIndex={8} seatId="seat8" avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} onPositionChange={updatePosition} />
+
+                            {/* Villain Seats - Dynamic based on layout */}
+                            {villainAvatars[0] && SEAT_POSITIONS.seat1 && (
+                                <DraggablePlayerSeat seatIndex={1} seatId="seat1" avatar={villainAvatars[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} onPositionChange={updatePosition} />
+                            )}
+                            {villainAvatars[1] && SEAT_POSITIONS.seat2 && (
+                                <DraggablePlayerSeat seatIndex={2} seatId="seat2" avatar={villainAvatars[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} onPositionChange={updatePosition} />
+                            )}
+                            {villainAvatars[2] && SEAT_POSITIONS.seat3 && (
+                                <DraggablePlayerSeat seatIndex={3} seatId="seat3" avatar={villainAvatars[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} onPositionChange={updatePosition} />
+                            )}
+                            {villainAvatars[3] && SEAT_POSITIONS.seat4 && (
+                                <DraggablePlayerSeat seatIndex={4} seatId="seat4" avatar={villainAvatars[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} onPositionChange={updatePosition} />
+                            )}
+                            {villainAvatars[4] && SEAT_POSITIONS.seat5 && (
+                                <DraggablePlayerSeat seatIndex={5} seatId="seat5" avatar={villainAvatars[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} onPositionChange={updatePosition} />
+                            )}
+                            {villainAvatars[5] && SEAT_POSITIONS.seat6 && (
+                                <DraggablePlayerSeat seatIndex={6} seatId="seat6" avatar={villainAvatars[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} onPositionChange={updatePosition} />
+                            )}
+                            {villainAvatars[6] && SEAT_POSITIONS.seat7 && (
+                                <DraggablePlayerSeat seatIndex={7} seatId="seat7" avatar={villainAvatars[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} onPositionChange={updatePosition} />
+                            )}
+                            {villainAvatars[7] && SEAT_POSITIONS.seat8 && (
+                                <DraggablePlayerSeat seatIndex={8} seatId="seat8" avatar={villainAvatars[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} onPositionChange={updatePosition} />
+                            )}
 
                             {/* Hero Seat - DRAGGABLE - highest seatIndex */}
-                            <DraggablePlayerSeat seatIndex={9} seatId="hero" avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} onPositionChange={updatePosition} />
+                            <DraggablePlayerSeat seatIndex={9} seatId="hero" avatar={heroAvatar} name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} onPositionChange={updatePosition} />
 
 
                             {/* Hero Cards - DRAGGABLE */}

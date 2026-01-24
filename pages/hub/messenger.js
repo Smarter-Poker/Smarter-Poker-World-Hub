@@ -1303,7 +1303,7 @@ export default function MessengerPage() {
                     flexDirection: 'column',
                     height: '100vh',
                 }}>
-                    {/* Header */}
+                    {/* Header - Facebook Messenger Style */}
                     <div style={{
                         padding: '12px 16px',
                         display: 'flex',
@@ -1311,26 +1311,30 @@ export default function MessengerPage() {
                         justifyContent: 'space-between',
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <Link href="/hub/social-media">
-                                <Avatar src={user.avatar_url} name={user.username} size={40} />
-                            </Link>
-                            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: C.text }}>Chats</h1>
-                        </div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <button
-                                onClick={() => {
-                                    setComposing(true);
-                                    setTimeout(() => searchInputRef.current?.focus(), 100);
-                                }}
-                                title="New Message"
-                                style={{
+                            {/* Back Button */}
+                            <Link href="/hub/social-media" style={{ textDecoration: 'none' }}>
+                                <button style={{
                                     width: 36, height: 36, borderRadius: '50%',
-                                    background: composing ? C.blue : C.bg,
-                                    border: 'none', cursor: 'pointer', fontSize: 16,
-                                    color: composing ? 'white' : C.text,
-                                    transition: 'all 0.2s',
-                                }}>✏️</button>
+                                    background: C.bg, border: 'none', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 18, color: C.text,
+                                }}>←</button>
+                            </Link>
+                            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: C.blue }}>messenger</h1>
                         </div>
+                        <button
+                            onClick={() => {
+                                setComposing(true);
+                                setTimeout(() => searchInputRef.current?.focus(), 100);
+                            }}
+                            title="New Message"
+                            style={{
+                                width: 36, height: 36, borderRadius: '50%',
+                                background: composing ? C.blue : C.bg,
+                                border: 'none', cursor: 'pointer', fontSize: 16,
+                                color: composing ? 'white' : C.text,
+                                transition: 'all 0.2s',
+                            }}>✏️</button>
                     </div>
 
                     {/* Search */}
@@ -1347,73 +1351,144 @@ export default function MessengerPage() {
                         composing={composing}
                     />
 
-                    {/* Conversations or Friends List */}
-                    <div style={{ flex: 1, overflowY: 'auto' }}>
-                        {conversations.length === 0 ? (
-                            <div style={{ padding: 16 }}>
-                                <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                                    <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
-                                    <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>No conversations yet</div>
-                                    <div style={{ fontSize: 13, color: C.textSec }}>Start chatting with your friends!</div>
+                    {/* Stories / Active Friends Row - Facebook Style */}
+                    {friends.length > 0 && (
+                        <div style={{
+                            padding: '12px 0 8px',
+                            borderBottom: `1px solid ${C.border}`,
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                overflowX: 'auto',
+                                gap: 16,
+                                padding: '0 16px',
+                                scrollbarWidth: 'none',
+                            }}>
+                                {/* Create Story */}
+                                <div style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    cursor: 'pointer',
+                                    minWidth: 60,
+                                }}>
+                                    <div style={{
+                                        width: 56, height: 56, borderRadius: '50%',
+                                        border: `2px dashed ${C.textSec}`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 24, color: C.textSec,
+                                    }}>+</div>
+                                    <span style={{ fontSize: 11, color: C.textSec, whiteSpace: 'nowrap' }}>Your story</span>
                                 </div>
 
-                                {/* Friends List */}
-                                {friends.length > 0 && (
-                                    <>
+                                {/* Friends avatars */}
+                                {friends.slice(0, 10).map(friend => (
+                                    <div
+                                        key={friend.id}
+                                        onClick={() => handleStartConversation(friend)}
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: 4,
+                                            cursor: 'pointer',
+                                            minWidth: 60,
+                                        }}
+                                    >
+                                        <div style={{ position: 'relative' }}>
+                                            <div style={{
+                                                width: 56, height: 56, borderRadius: '50%',
+                                                border: `3px solid ${C.blue}`,
+                                                padding: 2,
+                                            }}>
+                                                <Avatar src={friend.avatar_url} name={friend.full_name || friend.username} size={48} showOnline={false} />
+                                            </div>
+                                            {/* Online dot */}
+                                            <div style={{
+                                                position: 'absolute', bottom: 2, right: 2,
+                                                width: 14, height: 14, borderRadius: '50%',
+                                                background: C.green, border: '2px solid white',
+                                            }} />
+                                        </div>
+                                        <span style={{
+                                            fontSize: 11, color: C.text,
+                                            whiteSpace: 'nowrap',
+                                            maxWidth: 60,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis'
+                                        }}>{(friend.full_name || friend.username || '').split(' ')[0]}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Conversations or Friends List */}
+                    <div style={{ flex: 1, overflowY: 'auto' }}>
+                        {/* Show friends as conversation rows when no conversations exist */}
+                        {conversations.length === 0 && friends.length > 0 ? (
+                            friends.map(friend => (
+                                <div
+                                    key={friend.id}
+                                    onClick={() => handleStartConversation(friend)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 12,
+                                        padding: '12px 16px',
+                                        cursor: 'pointer',
+                                        transition: 'background 0.15s',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <div style={{ position: 'relative' }}>
+                                        <Avatar src={friend.avatar_url} name={friend.full_name || friend.username} size={56} showOnline={false} />
+                                        {/* Online indicator */}
+                                        <div style={{
+                                            position: 'absolute', bottom: 2, right: 2,
+                                            width: 14, height: 14, borderRadius: '50%',
+                                            background: C.green, border: '2px solid white',
+                                        }} />
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 15, color: C.text, marginBottom: 2 }}>
+                                            {friend.full_name || friend.username}
+                                        </div>
                                         <div style={{
                                             fontSize: 13,
-                                            fontWeight: 600,
                                             color: C.textSec,
-                                            padding: '12px 0 8px',
-                                            borderTop: `1px solid ${C.border}`,
-                                            marginTop: 8
-                                        }}>Your Friends</div>
-                                        {friends.map(friend => (
-                                            <div
-                                                key={friend.id}
-                                                onClick={() => handleStartConversation(friend)}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 12,
-                                                    padding: '10px 12px',
-                                                    cursor: 'pointer',
-                                                    borderRadius: 8,
-                                                    transition: 'background 0.15s',
-                                                }}
-                                                onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
-                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                            >
-                                                <Avatar src={friend.avatar_url} name={friend.username || friend.full_name} size={48} />
-                                                <div>
-                                                    <div style={{ fontWeight: 500, color: C.text }}>{friend.full_name || friend.username}</div>
-                                                    <div style={{ fontSize: 13, color: C.textSec }}>Tap to send a message</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </>
-                                )}
-
-                                {friends.length === 0 && (
-                                    <button
-                                        onClick={() => {
-                                            setComposing(true);
-                                            setTimeout(() => searchInputRef.current?.focus(), 100);
-                                        }}
-                                        style={{
-                                            display: 'block',
-                                            width: '100%',
-                                            padding: '12px 24px',
-                                            background: C.blue,
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: 24,
-                                            fontWeight: 600,
-                                            fontSize: 15,
-                                            cursor: 'pointer',
-                                            marginTop: 16,
-                                        }}>Search for people</button>
-                                )}
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                        }}>
+                                            Tap to start chatting · Active now
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : conversations.length === 0 ? (
+                            <div style={{ padding: 40, textAlign: 'center' }}>
+                                <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
+                                <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>No conversations yet</div>
+                                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Add friends to start messaging!</div>
+                                <button
+                                    onClick={() => {
+                                        setComposing(true);
+                                        setTimeout(() => searchInputRef.current?.focus(), 100);
+                                    }}
+                                    style={{
+                                        padding: '12px 24px',
+                                        background: C.blue,
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: 24,
+                                        fontWeight: 600,
+                                        fontSize: 15,
+                                        cursor: 'pointer',
+                                        marginTop: 16,
+                                    }}>Search for people</button>
                             </div>
                         ) : (
                             conversations.map(conv => (
