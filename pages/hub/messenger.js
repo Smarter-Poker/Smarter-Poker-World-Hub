@@ -1893,21 +1893,30 @@ export default function MessengerPage() {
                                             }}
                                             title="Search messages"
                                         >🔍</button>
-                                        <button style={{
-                                            width: 36, height: 36, borderRadius: '50%',
-                                            background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
-                                            color: C.blue,
-                                        }}>📞</button>
-                                        <button style={{
-                                            width: 36, height: 36, borderRadius: '50%',
-                                            background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
-                                            color: C.blue,
-                                        }}>📹</button>
-                                        <button style={{
-                                            width: 36, height: 36, borderRadius: '50%',
-                                            background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
-                                            color: C.blue,
-                                        }}>ℹ️</button>
+                                        <button
+                                            onClick={() => startCall('audio')}
+                                            title="Voice call"
+                                            style={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
+                                                color: C.blue,
+                                            }}>📞</button>
+                                        <button
+                                            onClick={() => startCall('video')}
+                                            title="Video call"
+                                            style={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
+                                                color: C.blue,
+                                            }}>📹</button>
+                                        <button
+                                            onClick={() => setShowUserInfo(!showUserInfo)}
+                                            title="User info"
+                                            style={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                background: showUserInfo ? C.bg : 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
+                                                color: C.blue,
+                                            }}>ℹ️</button>
                                     </div>
                                 </div >
 
