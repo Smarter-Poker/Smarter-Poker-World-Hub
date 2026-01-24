@@ -31,60 +31,59 @@ const VILLAIN_AVATARS = [
     '/avatars/free/owl.png',
 ];
 
-// Seat positions - HARDCODED to match user's reference layout exactly
-// Position is the seat container, avatar centered at 0,0, badge 120px below
+// Seat positions - EXACT from user's reference screenshot (2026-01-23)
 const SEAT_POSITIONS = {
-    // Bottom center - Hero (dragon)
+    // Hero - bottom center
     hero: {
         left: '50%', top: '76%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Bottom left - Villain 1 (lion) - on table edge
+    // Villain 1 - bottom left
     seat1: {
-        left: '20%', top: '60%',
+        left: '18%', top: '58%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Middle left - Villain 2 (lion) - on table edge  
+    // Villain 2 - middle left
     seat2: {
-        left: '14%', top: '42%',
+        left: '12%', top: '40%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Upper left - Villain 3 (wizard) - on table edge
+    // Villain 3 - upper left
     seat3: {
-        left: '16%', top: '22%',
+        left: '14%', top: '20%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Top left - Villain 4 (wolf) - above table
+    // Villain 4 - top left
     seat4: {
-        left: '32%', top: '12%',
+        left: '33%', top: '10%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Top right - Villain 5 (spartan) - above table
+    // Villain 5 - top right
     seat5: {
-        left: '68%', top: '12%',
+        left: '67%', top: '10%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Upper right - Villain 6 (king) - on table edge
+    // Villain 6 - upper right
     seat6: {
-        left: '84%', top: '22%',
+        left: '86%', top: '20%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Middle right - Villain 7 (young man) - on table edge
+    // Villain 7 - middle right
     seat7: {
-        left: '86%', top: '42%',
+        left: '88%', top: '40%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // Bottom right - Villain 8 (owl) - on table edge
+    // Villain 8 - bottom right
     seat8: {
-        left: '80%', top: '60%',
+        left: '82%', top: '58%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
@@ -317,8 +316,8 @@ function Card({ rank, suit, isRed, size = 'normal' }) {
 
 // Draggable Hero Cards Component
 function DraggableHeroCards({ cards }) {
-    // Position offset (base position is set in style: top: 77%, left: 60%)
-    const [pos, setPos] = useState({ x: 0, y: 0 });
+    // Exact offset from user's layout (extracted 2026-01-23)
+    const [pos, setPos] = useState({ x: 20, y: 0 });
     const [dragging, setDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 

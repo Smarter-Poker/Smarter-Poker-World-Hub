@@ -17,8 +17,9 @@ import { config } from 'dotenv';
 config({ path: '../../../.env.local' });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Use service role key for reliable writes, fall back to anon key
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AUTHENTIC COMMENT TEMPLATES (100+ phrases)
@@ -133,31 +134,104 @@ const PERSONALITY_MODIFIERS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// HORSE BUS - Coordinates horse interactions
+// ANTI-SPAM GUARD SYSTEM - Database backed for persistence
 // ═══════════════════════════════════════════════════════════════════════════
-class HorseBus {
-    constructor() {
-        this.recentInteractions = new Map(); // Track recent interactions
+
+// Daily limits per horse - prevent unrealistic spam
+const DAILY_LIMITS = {
+    likes: 50,        // Max 50 likes per day per horse
+    comments: 15,     // Max 15 comments per day per horse  
+    replies: 10,      // Max 10 replies per day per horse
+    friend_requests: 5 // Max 5 friend requests per day per horse
+};
+
+// Cooldowns in milliseconds - minimum time between same interaction type
+const COOLDOWNS = {
+    like_same_post: 24 * 60 * 60 * 1000,  // Can't like same post twice in 24h
+    comment_same_post: 6 * 60 * 60 * 1000, // Can't comment on same post twice in 6h
+    reply_same_comment: 12 * 60 * 60 * 1000, // Can't reply to same comment twice in 12h
+    like_same_author: 30 * 60 * 1000,  // Wait 30min before liking same author again
+    comment_same_author: 2 * 60 * 60 * 1000, // Wait 2h before commenting on same author again
+};
+
+// Check if horse has hit daily limit
+async function checkDailyLimit(horseProfileId, actionType) {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Check different tables based on action type
+    let count = 0;
+
+    if (actionType === 'likes') {
+        const { count: likeCount } = await supabase
+            .from('social_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', horseProfileId)
+            .gte('created_at', today);
+        count = likeCount || 0;
+    } else if (actionType === 'comments' || actionType === 'replies') {
+        const { count: commentCount } = await supabase
+            .from('social_comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('author_id', horseProfileId)
+            .gte('created_at', today);
+        count = commentCount || 0;
+    } else if (actionType === 'friend_requests') {
+        const { count: friendCount } = await supabase
+            .from('friendships')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', horseProfileId)
+            .gte('created_at', today);
+        count = friendCount || 0;
     }
 
-    // Check if a horse recently interacted with another
-    hasRecentInteraction(horseId, targetId, type, windowMs = 3600000) {
-        const key = `${horseId}:${targetId}:${type}`;
-        const lastTime = this.recentInteractions.get(key);
-        if (lastTime && Date.now() - lastTime < windowMs) {
-            return true;
-        }
-        return false;
-    }
-
-    // Record an interaction
-    recordInteraction(horseId, targetId, type) {
-        const key = `${horseId}:${targetId}:${type}`;
-        this.recentInteractions.set(key, Date.now());
-    }
+    const limit = DAILY_LIMITS[actionType] || 20;
+    return count < limit;
 }
 
-const horseBus = new HorseBus();
+// Check cooldown - has horse interacted with this target recently?
+async function checkCooldown(horseProfileId, targetId, actionType) {
+    let cooldownMs;
+    let tableName;
+    let targetColumn;
+
+    if (actionType === 'like_post') {
+        cooldownMs = COOLDOWNS.like_same_post;
+        tableName = 'social_likes';
+        targetColumn = 'post_id';
+    } else if (actionType === 'comment_post') {
+        cooldownMs = COOLDOWNS.comment_same_post;
+        tableName = 'social_comments';
+        targetColumn = 'post_id';
+    } else if (actionType === 'reply_comment') {
+        cooldownMs = COOLDOWNS.reply_same_comment;
+        tableName = 'social_comments';
+        targetColumn = 'parent_id';
+    } else {
+        return true; // No cooldown defined, allow
+    }
+
+    const cutoffTime = new Date(Date.now() - cooldownMs).toISOString();
+
+    const { data } = await supabase
+        .from(tableName)
+        .select('id')
+        .eq(targetColumn === 'post_id' ? (tableName === 'social_likes' ? 'post_id' : 'post_id') : 'parent_id', targetId)
+        .eq(tableName === 'social_likes' ? 'user_id' : 'author_id', horseProfileId)
+        .gte('created_at', cutoffTime)
+        .limit(1);
+
+    return !data || data.length === 0; // Return true if no recent interaction
+}
+
+// Get random delay for natural pacing (1-5 seconds)
+function getRandomDelay() {
+    return 1000 + Math.random() * 4000;
+}
+
+// Add randomness to skip some actions (makes behavior less robotic)
+function shouldAct(probability = 0.7) {
+    return Math.random() < probability;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FRIEND REQUEST ENGINE
@@ -209,7 +283,7 @@ async function sendFriendRequests(maxRequests = 10) {
         if (!error) {
             console.log(`   ${horse.name} → ${target.name} ✓`);
             requestsSent++;
-            horseBus.recordInteraction(horse.profile_id, target.profile_id, 'friend_request');
+            // Removed horseBus - using DB anti-spam checks instead
 
             if (requestsSent >= maxRequests) break;
         }
@@ -332,8 +406,15 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
 
         if (!commenter) continue;
 
-        // Check if already commented
-        if (horseBus.hasRecentInteraction(commenter.profile_id, post.id, 'comment')) {
+        // Check anti-spam cooldown
+        const canComment = await checkCooldown(commenter.profile_id, post.id, 'comment_post');
+        if (!canComment) {
+            continue;
+        }
+
+        // Check daily limit
+        const withinLimit = await checkDailyLimit(commenter.profile_id, 'comments');
+        if (!withinLimit) {
             continue;
         }
 
@@ -359,13 +440,12 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
         if (!error) {
             const author = horses.find(h => h.profile_id === post.author_id);
             console.log(`   ${commenter.name} → ${author?.name}'s post: "${comment}"`);
-            horseBus.recordInteraction(commenter.profile_id, post.id, 'comment');
             commented++;
 
             if (commented >= maxComments) break;
         }
 
-        await new Promise(r => setTimeout(r, 800)); // Natural pace
+        await new Promise(r => setTimeout(r, getRandomDelay())); // Natural pace
     }
 
     console.log(`   Posted: ${commented} comments`);
@@ -416,7 +496,9 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
             const liker = likers[Math.floor(Math.random() * likers.length)];
             if (!liker) continue;
 
-            if (horseBus.hasRecentInteraction(liker.profile_id, post.id, 'like')) {
+            // Check anti-spam cooldown
+            const canLike = await checkCooldown(liker.profile_id, post.id, 'like_post');
+            if (!canLike) {
                 continue;
             }
 
@@ -439,7 +521,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
                 });
 
             if (!error) {
-                horseBus.recordInteraction(liker.profile_id, post.id, 'like');
+                // No need to record - DB query handles dedup
                 liked++;
             }
         }
@@ -501,7 +583,9 @@ async function replyToComments(maxReplies = 15) {
         if (replier.profile_id === comment.author_id) continue;
 
         // Check if already replied recently
-        if (horseBus.hasRecentInteraction(replier.profile_id, comment.id, 'reply')) {
+        // Check anti-spam cooldown
+        const canReply = await checkCooldown(replier.profile_id, comment.id, 'reply_comment');
+        if (!canReply) {
             continue;
         }
 
@@ -536,7 +620,7 @@ async function replyToComments(maxReplies = 15) {
 
         if (!error) {
             console.log(`   ${replier.name} replied: "${replyText}"`);
-            horseBus.recordInteraction(replier.profile_id, comment.id, 'reply');
+            // No need to record - DB query handles dedup
             replied++;
 
             if (replied >= maxReplies) break;
