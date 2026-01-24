@@ -1629,18 +1629,23 @@ export default function SocialMediaPage() {
 
             if (error) throw error;
 
-            // ♾️ INFINITE FEED: When posts run out, loop back with different sort
-            if (!allPostsData || allPostsData.length < POSTS_PER_PAGE) {
+            // ♾️ INFINITE SCROLL: Continue as long as we get ANY posts back
+            // Only stop when absolutely no more posts are returned
+            if (!allPostsData || allPostsData.length === 0) {
+                // No posts returned - truly at the end
                 if (feedCycle < MAX_FEED_CYCLES) {
-                    // Loop back - reset offset but change sort order for variety
+                    // Loop back from the beginning for endless scroll experience
                     console.log('[Social] Looping feed - cycle', feedCycle + 1);
                     setFeedCycle(prev => prev + 1);
                     setFeedOffset(0);
-                    setHasMorePosts(true);
+                    // Don't set hasMorePosts false - let next scroll trigger the loop
                 } else {
+                    console.log('[Social] Max cycles reached - ending feed');
                     setHasMorePosts(false);
                 }
             } else {
+                // Got posts - continue infinite scroll
+                console.log(`[Social] Got ${allPostsData.length} posts - continuing scroll`);
                 setHasMorePosts(true);
             }
 

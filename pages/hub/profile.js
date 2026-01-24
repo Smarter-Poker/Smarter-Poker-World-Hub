@@ -1094,12 +1094,12 @@ export default function ProfilePage() {
                     </div>
                     <div style={{
                         flex: 1, overflow: 'auto', padding: 16,
-                        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-                        gap: 12
+                        display: 'flex', flexDirection: 'column', gap: 16,
+                        maxWidth: 600, margin: '0 auto', width: '100%'
                     }}>
                         {userPhotos.length === 0 ? (
                             <div style={{
-                                gridColumn: '1 / -1', textAlign: 'center', color: '#888',
+                                textAlign: 'center', color: '#888',
                                 padding: 60
                             }}>
                                 <div style={{ fontSize: 48, marginBottom: 16 }}>📷</div>
@@ -1110,16 +1110,23 @@ export default function ProfilePage() {
                             </div>
                         ) : (
                             userPhotos.map(photo => (
-                                <div key={photo.id} style={{ position: 'relative', paddingBottom: '100%' }}>
+                                <div key={photo.id} style={{
+                                    background: '#111', borderRadius: 12, overflow: 'hidden'
+                                }}>
                                     <img
                                         src={photo.media_url}
                                         alt={photo.content || 'Photo'}
                                         style={{
-                                            position: 'absolute', top: 0, left: 0,
-                                            width: '100%', height: '100%',
-                                            objectFit: 'cover', borderRadius: 8
+                                            width: '100%', height: 'auto',
+                                            display: 'block'
                                         }}
                                     />
+                                    {photo.content && (
+                                        <div style={{
+                                            padding: '12px 16px', color: 'white',
+                                            fontSize: 14, background: '#1a1a1a'
+                                        }}>{photo.content}</div>
+                                    )}
                                 </div>
                             ))
                         )}
@@ -1149,12 +1156,12 @@ export default function ProfilePage() {
                     </div>
                     <div style={{
                         flex: 1, overflow: 'auto', padding: 16,
-                        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                        gap: 12
+                        display: 'flex', flexDirection: 'column', gap: 16,
+                        maxWidth: 600, margin: '0 auto', width: '100%'
                     }}>
                         {userReels.length === 0 ? (
                             <div style={{
-                                gridColumn: '1 / -1', textAlign: 'center', color: '#888',
+                                textAlign: 'center', color: '#888',
                                 padding: 60
                             }}>
                                 <div style={{ fontSize: 48, marginBottom: 16 }}>🎬</div>
@@ -1168,20 +1175,24 @@ export default function ProfilePage() {
                                 <div
                                     key={reel.id}
                                     style={{
-                                        position: 'relative', paddingBottom: '177%',
-                                        background: '#222', borderRadius: 8, overflow: 'hidden'
+                                        background: '#111', borderRadius: 12, overflow: 'hidden'
                                     }}
                                 >
                                     <video
                                         src={reel.media_url}
                                         poster={reel.thumbnail_url}
                                         style={{
-                                            position: 'absolute', top: 0, left: 0,
-                                            width: '100%', height: '100%',
-                                            objectFit: 'cover'
+                                            width: '100%', height: 'auto',
+                                            display: 'block', maxHeight: '80vh'
                                         }}
                                         controls
                                     />
+                                    {reel.caption && (
+                                        <div style={{
+                                            padding: '12px 16px', color: 'white',
+                                            fontSize: 14, background: '#1a1a1a'
+                                        }}>{reel.caption}</div>
+                                    )}
                                 </div>
                             ))
                         )}
@@ -1211,12 +1222,12 @@ export default function ProfilePage() {
                     </div>
                     <div style={{
                         flex: 1, overflow: 'auto', padding: 16,
-                        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                        gap: 16
+                        display: 'flex', flexDirection: 'column', gap: 16,
+                        maxWidth: 600, margin: '0 auto', width: '100%'
                     }}>
                         {userLives.length === 0 ? (
                             <div style={{
-                                gridColumn: '1 / -1', textAlign: 'center', color: '#888',
+                                textAlign: 'center', color: '#888',
                                 padding: 60
                             }}>
                                 <div style={{ fontSize: 48, marginBottom: 16 }}>🔴</div>
@@ -1243,19 +1254,19 @@ export default function ProfilePage() {
                                         }}
                                     >
                                         {/* Video Preview */}
-                                        <div style={{ position: 'relative', aspectRatio: '16/9', background: '#000' }}>
+                                        <div style={{ position: 'relative', background: '#000' }}>
                                             {live.video_url ? (
                                                 <video
                                                     src={live.video_url}
                                                     poster={live.thumbnail_url}
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '80vh' }}
                                                     controls
                                                 />
                                             ) : live.thumbnail_url ? (
                                                 <img
                                                     src={live.thumbnail_url}
                                                     alt={live.title}
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    style={{ width: '100%', height: 'auto', display: 'block' }}
                                                 />
                                             ) : (
                                                 <div style={{

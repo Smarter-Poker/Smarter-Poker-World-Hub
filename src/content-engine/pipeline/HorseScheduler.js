@@ -2,19 +2,18 @@
  * 🐴 HORSE SCHEDULER - Individual Horse Activity Scheduling
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * Assigns each horse a unique activity slot based on their profile_id hash.
- * This ensures horses act at DIFFERENT times, not all at once in batches.
- * 
- * Each hour is divided into 60 minute slots.
- * Each horse is assigned a primary minute slot based on their ID.
- * Crons run every minute, but each horse only acts during THEIR slot.
+ * Assigns each horse to one of 4 cron slots based on their profile_id hash.
+ * Cron runs at minutes 3, 18, 33, 48 - each horse is assigned to ONE of these.
  * 
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// The 4 cron trigger minutes
+const CRON_SLOTS = [3, 18, 33, 48];
+
 /**
- * Get a deterministic minute slot (0-59) for a horse based on their profile_id
- * This ensures the same horse always gets the same slot
+ * Get a deterministic slot index (0-3) for a horse based on their profile_id
+ * This assigns each horse to one of the 4 cron trigger times
  */
 export function getHorseSlot(profileId) {
     if (!profileId) return 0;
@@ -27,27 +26,28 @@ export function getHorseSlot(profileId) {
         hash = hash & hash; // Convert to 32-bit integer
     }
 
-    // Map to 0-59 range
-    return Math.abs(hash) % 60;
+    // Map to 0-3 range (one of 4 cron slots)
+    return Math.abs(hash) % 4;
+}
+
+/**
+ * Get the actual minute this horse should be active
+ */
+export function getHorseCronMinute(profileId) {
+    const slotIndex = getHorseSlot(profileId);
+    return CRON_SLOTS[slotIndex];
 }
 
 /**
  * Check if a horse should be active during the current minute
- * Horses are active in their assigned slot ± variance
+ * Horses are active when the current minute matches their assigned cron slot
  */
 export function shouldHorseBeActive(profileId, currentMinute, variance = 2) {
-    const slot = getHorseSlot(profileId);
+    const assignedMinute = getHorseCronMinute(profileId);
 
-    // Check if current minute is within horse's active window
-    const minSlot = (slot - variance + 60) % 60;
-    const maxSlot = (slot + variance) % 60;
-
-    if (minSlot <= maxSlot) {
-        return currentMinute >= minSlot && currentMinute <= maxSlot;
-    } else {
-        // Wraps around midnight
-        return currentMinute >= minSlot || currentMinute <= maxSlot;
-    }
+    // Allow ±variance from their assigned minute
+    const diff = Math.abs(currentMinute - assignedMinute);
+    return diff <= variance || diff >= (60 - variance);
 }
 
 /**
