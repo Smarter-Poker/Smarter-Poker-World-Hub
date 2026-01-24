@@ -8,15 +8,20 @@ This is the Smarter.Poker platform - a comprehensive poker training and communit
 
 **Smarter Captain** is a poker room management platform (competing with PokerAtlas TableCaptain).
 
-### Before Working on Smarter Captain
+### MANDATORY: Before Working on Smarter Captain
 
-**ALWAYS read these files first:**
+**STOP. Read these files IN ORDER before writing any code:**
+
 ```
-.agent/skills/smarter-captain/SKILL.md              # Overview
-.agent/skills/smarter-captain/IMPLEMENTATION_PHASES.md  # Step-by-step guide
-.agent/skills/smarter-captain/DATABASE_SCHEMA.sql   # Table structures
-.agent/skills/smarter-captain/API_REFERENCE.md      # Endpoint specs
+1. .agent/skills/smarter-captain/AGENT_INSTRUCTIONS.md  # ENFORCEMENT RULES - READ FIRST
+2. .agent/skills/smarter-captain/SKILL.md               # Overview
+3. .agent/skills/smarter-captain/IMPLEMENTATION_PHASES.md   # Step-by-step guide
+4. .agent/skills/smarter-captain/DATABASE_SCHEMA.sql    # Table structures
+5. .agent/skills/smarter-captain/API_REFERENCE.md       # Endpoint specs
+6. .agent/skills/smarter-captain/ENHANCEMENTS.md        # UI design system
 ```
+
+**You MUST provide the confirmation from AGENT_INSTRUCTIONS.md before starting work.**
 
 ### Critical Rules for Smarter Captain
 
