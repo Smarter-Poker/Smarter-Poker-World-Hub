@@ -6,7 +6,7 @@
    Dark, premium casino aesthetic with obsidian backgrounds,
    diamond blue accents, gold highlights, and dangerous red for jackpots.
 
-   Version: 2.0.2 - Premium Casino Redesign (Force Deploy)
+   Version: 2.0.3 - Fixed missing game reference
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -60,7 +60,7 @@ export default function DiamondArcade() {
     // Featured games config
     const todaysFeatured = [
         { ...ARCADE_GAMES['hand-snap'], badge: '2X BONUS', badgeColor: '#fbbf24' },
-        { ...ARCADE_GAMES['ev-or-fold'], badge: 'HOT 🔥', badgeColor: '#ef4444' },
+        { ...ARCADE_GAMES['chip-math'], badge: 'HOT 🔥', badgeColor: '#ef4444' },
         { ...ARCADE_GAMES['board-nuts'], badge: 'NEW ✨', badgeColor: '#22c55e' },
         { ...ARCADE_GAMES['the-gauntlet'], badge: 'JACKPOT', badgeColor: '#dc2626' },
     ];
@@ -277,7 +277,7 @@ export default function DiamondArcade() {
                                 <div style={styles.arcadeHeader}>
                                     <div style={styles.headerLeft}>
                                         <h1 style={styles.arcadeTitle}>
-                                            <span style={styles.diamondIcon}>💎</span> DIAMOND ARCADE <span style={{fontSize: '10px', opacity: 0.5}}>v2.0.2</span>
+                                            <span style={styles.diamondIcon}>💎</span> DIAMOND ARCADE <span style={{fontSize: '10px', opacity: 0.5}}>v2.0.3</span>
                                         </h1>
                                     </div>
                                     <div style={styles.headerRight}>
