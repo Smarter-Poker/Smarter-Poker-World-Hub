@@ -85,11 +85,18 @@ export default function SignUpPage() {
         return () => cancelAnimationFrame(frame);
     }, []);
 
-    // Check alias availability with debounce
+    // Check alias availability with debounce (3-20 characters allowed)
     useEffect(() => {
+        // Must be 3-20 characters
         if (formData.pokerAlias.length < 3) {
             setAliasAvailable(null);
             setAliasError('');
+            return;
+        }
+
+        if (formData.pokerAlias.length > 20) {
+            setAliasAvailable(false);
+            setAliasError('Alias must be 20 characters or less');
             return;
         }
 
@@ -152,6 +159,11 @@ export default function SignUpPage() {
 
         if (formData.pokerAlias.length < 3) {
             setError('Poker alias must be at least 3 characters');
+            return;
+        }
+
+        if (formData.pokerAlias.length > 20) {
+            setError('Poker alias must be 20 characters or less');
             return;
         }
 
