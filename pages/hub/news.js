@@ -253,8 +253,8 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 .box-image {
                     position: relative;
                     width: 100%;
-                    flex: 1;
-                    min-height: 200px;
+                    height: 240px !important;
+                    min-height: 240px !important;
                     overflow: hidden;
                     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
                 }
@@ -312,9 +312,11 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     display: flex;
                     flex-direction: column;
                     gap: 4px;
-                    height: 100px;
-                    max-height: 100px;
+                    height: 100px !important;
+                    max-height: 100px !important;
+                    min-height: 100px !important;
                     justify-content: space-between;
+                    flex-shrink: 0;
                 }
 
                 .box-category {
