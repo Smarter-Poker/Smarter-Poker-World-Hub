@@ -248,7 +248,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
     }, [dragging, dragStart]);
 
     return (
-        <div className="player-seat" style={{ position: 'absolute', zIndex: 100 + seatIndex, pointerEvents: 'all', overflow: 'visible', minWidth: '100px', ...initialPosition }}>
+        <div className="player-seat" style={{ position: 'absolute', zIndex: dragging ? 99999 : (100 + seatIndex), pointerEvents: 'all', overflow: 'visible', minWidth: '100px', ...initialPosition }}>
             {/* Avatar - Draggable via transform */}
             <img
                 src={`https://smarter.poker/_next/image?url=${encodeURIComponent(avatar)}&w=256&q=90`}

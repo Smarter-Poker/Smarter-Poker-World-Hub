@@ -80,8 +80,13 @@ export default function UniversalHeader({
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState({ xp: 0, diamonds: 0, level: 1 });
     const [isLoading, setIsLoading] = useState(true);
+    const [notificationCount, setNotificationCount] = useState(0);
+    const [unreadMessages, setUnreadMessages] = useState(0);
 
     useEffect(() => {
+        let notifChannel = null;
+        let messageChannel = null;
+
         const loadUser = async () => {
             try {
                 // Use Supabase client directly for reliable auth
@@ -122,6 +127,70 @@ export default function UniversalHeader({
                             name: profile.full_name || profile.username
                         }));
                     }
+
+                    // FETCH NOTIFICATION COUNT (unread)
+                    const { count: notifCount } = await supabase
+                        .from('notifications')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('user_id', authUser.id)
+                        .eq('read', false);
+                    setNotificationCount(notifCount || 0);
+
+                    // FETCH UNREAD MESSAGES COUNT
+                    const { count: msgCount } = await supabase
+                        .from('messages')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('recipient_id', authUser.id)
+                        .eq('read', false);
+                    setUnreadMessages(msgCount || 0);
+
+                    // REAL-TIME: Subscribe to new notifications
+                    notifChannel = supabase
+                        .channel('header-notifications')
+                        .on('postgres_changes', {
+                            event: 'INSERT',
+                            schema: 'public',
+                            table: 'notifications',
+                            filter: `user_id=eq.${authUser.id}`
+                        }, () => {
+                            setNotificationCount(prev => prev + 1);
+                        })
+                        .on('postgres_changes', {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'notifications',
+                            filter: `user_id=eq.${authUser.id}`
+                        }, (payload) => {
+                            // If marked as read, decrease count
+                            if (payload.new.read && !payload.old.read) {
+                                setNotificationCount(prev => Math.max(0, prev - 1));
+                            }
+                        })
+                        .subscribe();
+
+                    // REAL-TIME: Subscribe to new messages
+                    messageChannel = supabase
+                        .channel('header-messages')
+                        .on('postgres_changes', {
+                            event: 'INSERT',
+                            schema: 'public',
+                            table: 'messages',
+                            filter: `recipient_id=eq.${authUser.id}`
+                        }, () => {
+                            setUnreadMessages(prev => prev + 1);
+                        })
+                        .on('postgres_changes', {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'messages',
+                            filter: `recipient_id=eq.${authUser.id}`
+                        }, (payload) => {
+                            // If marked as read, decrease count
+                            if (payload.new.read && !payload.old.read) {
+                                setUnreadMessages(prev => Math.max(0, prev - 1));
+                            }
+                        })
+                        .subscribe();
                 }
             } catch (e) {
                 console.error('[UniversalHeader] Data fetch error:', e);
@@ -130,6 +199,12 @@ export default function UniversalHeader({
             }
         };
         loadUser();
+
+        // Cleanup subscriptions
+        return () => {
+            if (notifChannel) supabase.removeChannel(notifChannel);
+            if (messageChannel) supabase.removeChannel(messageChannel);
+        };
     }, []);
 
     const handleBack = () => {
@@ -252,10 +327,10 @@ export default function UniversalHeader({
                 </Link>
 
                 {/* Messages */}
-                <OrbButton href="/hub/messenger" icon="✉️" />
+                <OrbButton href="/hub/messenger" icon="✉️" badge={unreadMessages} />
 
                 {/* Notifications */}
-                <OrbButton href="/hub/notifications" icon="🔔" />
+                <OrbButton href="/hub/notifications" icon="🔔" badge={notificationCount} />
 
                 {/* Search */}
                 {showSearch && (
