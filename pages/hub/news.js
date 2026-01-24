@@ -1042,8 +1042,15 @@ export default function NewsHub() {
         }
     };
 
-    // Filter news
+    // Filter news - EXCLUDE synthetic "Smarter.Poker" articles
+    const VALID_SOURCES = ['PokerNews', 'MSPT', 'CardPlayer', 'WSOP', 'Poker.org', 'Pokerfuse'];
+
     const filteredNews = news.filter(article => {
+        // ALWAYS exclude synthetic/fake news from Smarter.Poker
+        if (article.source_name === 'Smarter.Poker') return false;
+        // Only include articles from valid sources
+        if (!VALID_SOURCES.includes(article.source_name) && !article.source_box) return false;
+        // Apply search filter if present
         if (!searchQuery) return true;
         return article.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             article.content?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1060,18 +1067,18 @@ export default function NewsHub() {
         { box: 6, name: 'Pokerfuse', url: 'https://pokerfuse.com', category: 'industry' }
     ];
 
-    // Get the latest article for each box (filter by source_box or source_name)
+    // Get the latest article for each box - STRICT filtering
     const sourceBoxArticles = DEDICATED_BOXES.map((boxConfig) => {
-        // First try to find by source_box field
-        let articlesForBox = filteredNews.filter(a => a.source_box === boxConfig.box);
-        // Fallback to source_name if source_box not set
-        if (articlesForBox.length === 0) {
-            articlesForBox = filteredNews.filter(a => a.source_name === boxConfig.name);
-        }
-        // Return the most recent article, or a placeholder
+        // Find articles for this specific box by source_box OR exact source_name match
+        const articlesForBox = filteredNews.filter(a =>
+            a.source_box === boxConfig.box || a.source_name === boxConfig.name
+        );
+
+        // Return the most recent article, or a placeholder if none found
         if (articlesForBox.length > 0) {
-            return articlesForBox[0];
+            return { ...articlesForBox[0], _boxNumber: boxConfig.box };
         }
+
         // Placeholder for boxes without articles
         return {
             id: `placeholder-box-${boxConfig.box}`,
@@ -1085,7 +1092,8 @@ export default function NewsHub() {
             category: boxConfig.category,
             published_at: new Date().toISOString(),
             views: 0,
-            isPlaceholder: true
+            isPlaceholder: true,
+            _boxNumber: boxConfig.box
         };
     });
 
