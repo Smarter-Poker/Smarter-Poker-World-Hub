@@ -7,7 +7,7 @@
  * DELETE /api/captain/tournaments/[id]/entries - Unregister player
  */
 import { createClient } from '@supabase/supabase-js';
-import { awardXP } from '@/lib/captain/xp';
+import { awardXP } from '../../../../../src/lib/captain/xp';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
