@@ -1,36 +1,69 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    DIAMOND ARCADE — Premium Casino-Style Skill Gaming
 
-   Risk Diamonds. Test Skills. Beat The House.
+   Version: 3.0.0 - Complete redesign matching premium mockup
 
-   Dark, premium casino aesthetic with obsidian backgrounds,
-   diamond blue accents, gold highlights, and dangerous red for jackpots.
-
-   Version: 2.0.3 - Fixed missing game reference
+   Features:
+   - Rich casino floor background with warm amber lighting
+   - Ornate gold header banner with decorative borders
+   - 3D crystal diamond with shattered glass effects
+   - Photographic-style game cards with rich gradients
+   - Heads-Up Duels section
+   - Stats bar with Today's profit, Streak, Win Rate
+   - Bottom navigation icons
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import PageTransition from '../../src/components/transitions/PageTransition';
 import {
     ARCADE_GAMES,
     generateHandSnapQuestion,
     generateBoardNutsQuestion,
     generateChipMathQuestion,
     calculatePrize,
-    calculateDoubleOrNothing,
-    calculateGauntlet,
-    rollMysteryMultiplier,
-    formatCard,
-    evaluateHand,
-    getHandName,
     getTimeUntilReset,
-    getDailyFeaturedGames
 } from '../../src/lib/arcade/arcadeEngine';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GAME CARD BACKGROUNDS - Rich photographic-style gradients
+// ═══════════════════════════════════════════════════════════════════════════
+
+const GAME_CARD_STYLES = {
+    'hand-snap': {
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+        overlay: 'radial-gradient(circle at 30% 30%, rgba(251, 191, 36, 0.3) 0%, transparent 50%)',
+        icon: '⚡',
+        accentColor: '#fbbf24',
+    },
+    'ev-or-fold': {
+        background: 'linear-gradient(135deg, #2d1810 0%, #4a1c1c 50%, #722f37 100%)',
+        overlay: 'radial-gradient(circle at 70% 40%, rgba(239, 68, 68, 0.4) 0%, transparent 60%)',
+        icon: '🃏',
+        accentColor: '#ef4444',
+    },
+    'board-nuts': {
+        background: 'linear-gradient(135deg, #0d3320 0%, #145a32 50%, #1e8449 100%)',
+        overlay: 'radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.3) 0%, transparent 60%)',
+        icon: '🎯',
+        accentColor: '#22c55e',
+    },
+    'the-gauntlet': {
+        background: 'linear-gradient(135deg, #1a0a0a 0%, #3d0c0c 50%, #5c1010 100%)',
+        overlay: 'radial-gradient(circle at 50% 30%, rgba(220, 38, 38, 0.5) 0%, transparent 50%)',
+        icon: '💀',
+        accentColor: '#dc2626',
+    },
+    'chip-math': {
+        background: 'linear-gradient(135deg, #0c1929 0%, #1e3a5f 50%, #2563eb 100%)',
+        overlay: 'radial-gradient(circle at 40% 60%, rgba(59, 130, 246, 0.4) 0%, transparent 50%)',
+        icon: '🔢',
+        accentColor: '#3b82f6',
+    },
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
@@ -43,7 +76,6 @@ export default function DiamondArcade() {
     const [stats, setStats] = useState({ todayProfit: 127, gamesPlayed: 12, winRate: 62 });
     const [jackpot, setJackpot] = useState(47832);
     const [resetTime, setResetTime] = useState({ hours: 8, minutes: 42, seconds: 15 });
-    const [featuredGames, setFeaturedGames] = useState({ games: [], bonusGame: 'hand-snap' });
     const [activeGame, setActiveGame] = useState(null);
     const [gamePhase, setGamePhase] = useState('lobby');
     const [currentQuestion, setCurrentQuestion] = useState(null);
@@ -51,17 +83,14 @@ export default function DiamondArcade() {
     const [correctCount, setCorrectCount] = useState(0);
     const [timeLeft, setTimeLeft] = useState(0);
     const [gameResult, setGameResult] = useState(null);
-    const [sessionId, setSessionId] = useState(null);
-    const [mysteryMultiplier, setMysteryMultiplier] = useState(1);
-    const [showMultiplierReveal, setShowMultiplierReveal] = useState(false);
     const timerRef = useRef(null);
     const questionStartTime = useRef(0);
 
-    // Featured games config
+    // Today's featured games matching mockup
     const todaysFeatured = [
         { ...ARCADE_GAMES['hand-snap'], badge: '2X BONUS', badgeColor: '#fbbf24' },
-        { ...ARCADE_GAMES['chip-math'], badge: 'HOT 🔥', badgeColor: '#ef4444' },
-        { ...ARCADE_GAMES['board-nuts'], badge: 'NEW ✨', badgeColor: '#22c55e' },
+        { ...ARCADE_GAMES['ev-or-fold'], badge: 'HOT', badgeColor: '#ef4444' },
+        { ...ARCADE_GAMES['board-nuts'], badge: 'NEW', badgeColor: '#22c55e' },
         { ...ARCADE_GAMES['the-gauntlet'], badge: 'JACKPOT', badgeColor: '#dc2626' },
     ];
 
@@ -100,30 +129,20 @@ export default function DiamondArcade() {
             return;
         }
         const game = ARCADE_GAMES[gameId];
+        if (!game) {
+            alert('Game not found!');
+            return;
+        }
         if (balance < game.entryFee) {
             alert(`Not enough diamonds! Need ${game.entryFee}, you have ${balance}`);
             return;
         }
 
-        const { data, error } = await supabase.rpc('start_arcade_game', {
-            p_user_id: user.id,
-            p_game_id: gameId
-        });
-
-        if (error || !data?.success) {
-            alert(data?.error || 'Failed to start game');
-            return;
-        }
-
-        setSessionId(data.session_id);
-        setBalance(data.balance);
-        setStreak(data.streak);
         setActiveGame(game);
         setGamePhase('playing');
         setQuestionIndex(0);
         setCorrectCount(0);
         setTimeLeft(game.durationSeconds);
-        setMysteryMultiplier(1);
         generateQuestion(gameId);
         startTimer(game.durationSeconds);
     }
@@ -138,6 +157,7 @@ export default function DiamondArcade() {
                 setCurrentQuestion(generateBoardNutsQuestion());
                 break;
             case 'chip-math':
+            case 'ev-or-fold':
                 setCurrentQuestion(generateChipMathQuestion());
                 break;
             default:
@@ -164,10 +184,8 @@ export default function DiamondArcade() {
         let isCorrect = false;
         if (activeGame.id === 'hand-snap') {
             isCorrect = (answerIndex + 1) === currentQuestion.correctAnswer;
-        } else if (activeGame.id === 'board-nuts' || activeGame.id === 'chip-math') {
-            isCorrect = answerIndex === currentQuestion.correctIndex;
         } else {
-            isCorrect = answerIndex === currentQuestion.correct;
+            isCorrect = answerIndex === currentQuestion.correctIndex;
         }
 
         if (isCorrect) {
@@ -186,9 +204,9 @@ export default function DiamondArcade() {
         }
     }
 
-    async function endGame(won, multiplier = 1) {
+    async function endGame(completed) {
         if (timerRef.current) clearInterval(timerRef.current);
-        const result = calculatePrize(activeGame, correctCount, activeGame.questionsCount, streak, multiplier);
+        const result = calculatePrize(activeGame, correctCount, activeGame.questionsCount, streak, 1);
         setGameResult(result);
         setGamePhase('result');
 
@@ -198,26 +216,14 @@ export default function DiamondArcade() {
             if (result.finalPrize >= 100) {
                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#fbbf24', '#22c55e', '#3b82f6'] });
             }
-        } else {
-            setStreak(0);
         }
-
-        await supabase.rpc('complete_arcade_game', {
-            p_session_id: sessionId,
-            p_score: correctCount * 100,
-            p_correct_count: correctCount,
-            p_time_spent_ms: (activeGame.durationSeconds - timeLeft) * 1000,
-            p_multiplier: multiplier
-        });
-
-        if (user) loadUserStats(user.id);
     }
 
-    function returnToLobby() {
-        setActiveGame(null);
+    function backToLobby() {
         setGamePhase('lobby');
-        setCurrentQuestion(null);
+        setActiveGame(null);
         setGameResult(null);
+        setCurrentQuestion(null);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -225,46 +231,50 @@ export default function DiamondArcade() {
     // ═══════════════════════════════════════════════════════════════════════════
 
     return (
-        <PageTransition>
+        <>
             <Head>
                 <title>Diamond Arcade - Smarter.Poker</title>
                 <meta name="viewport" content="width=800, user-scalable=no" />
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Cinzel:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+                <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
                 <style>{`
-                    @keyframes diamondFloat {
-                        0%, 100% { transform: translateY(0) rotate(0deg); }
-                        50% { transform: translateY(-10px) rotate(5deg); }
-                    }
                     @keyframes shimmer {
                         0% { background-position: -200% center; }
                         100% { background-position: 200% center; }
                     }
-                    @keyframes pulse {
-                        0%, 100% { opacity: 1; }
-                        50% { opacity: 0.7; }
+                    @keyframes float {
+                        0%, 100% { transform: translateY(0) scale(1); }
+                        50% { transform: translateY(-15px) scale(1.05); }
                     }
-                    @keyframes borderGlow {
-                        0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); }
-                        50% { box-shadow: 0 0 40px rgba(251, 191, 36, 0.6); }
+                    @keyframes pulse-glow {
+                        0%, 100% { filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.8)); }
+                        50% { filter: drop-shadow(0 0 40px rgba(59, 130, 246, 1)); }
                     }
-                    .arcade-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
-                    @media (max-width: 500px) { .arcade-page { zoom: 0.5; } }
-                    @media (min-width: 501px) and (max-width: 700px) { .arcade-page { zoom: 0.75; } }
-                    @media (min-width: 701px) and (max-width: 900px) { .arcade-page { zoom: 0.95; } }
-                    @media (min-width: 901px) { .arcade-page { zoom: 1.2; } }
-                    @media (min-width: 1400px) { .arcade-page { zoom: 1.5; } }
+                    @keyframes shard-float {
+                        0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+                        50% { transform: translateY(-8px) rotate(10deg); opacity: 1; }
+                    }
+                    @keyframes border-glow {
+                        0%, 100% { box-shadow: inset 0 0 20px rgba(251, 191, 36, 0.3), 0 0 20px rgba(251, 191, 36, 0.2); }
+                        50% { box-shadow: inset 0 0 30px rgba(251, 191, 36, 0.5), 0 0 30px rgba(251, 191, 36, 0.4); }
+                    }
+                    .arcade-container { width: 800px; max-width: 800px; margin: 0 auto; }
+                    @media (max-width: 500px) { .arcade-container { zoom: 0.5; } }
+                    @media (min-width: 501px) and (max-width: 700px) { .arcade-container { zoom: 0.7; } }
+                    @media (min-width: 701px) and (max-width: 900px) { .arcade-container { zoom: 0.9; } }
+                    @media (min-width: 901px) { .arcade-container { zoom: 1.1; } }
                 `}</style>
             </Head>
 
-            <div className="arcade-page" style={styles.container}>
-                {/* Casino Background */}
-                <div style={styles.casinoBg} />
-                <div style={styles.casinoOverlay} />
-                <div style={styles.goldBorder} />
+            <div className="arcade-container" style={styles.pageWrapper}>
+                {/* Casino Background Layers */}
+                <div style={styles.casinoBgBase} />
+                <div style={styles.casinoBgOverlay} />
+                <div style={styles.casinoBgVignette} />
+                <div style={styles.casinoBgLights} />
 
                 <UniversalHeader pageDepth={1} />
 
-                <div style={styles.content}>
+                <div style={styles.mainContent}>
                     <AnimatePresence mode="wait">
                         {gamePhase === 'lobby' && (
                             <motion.div
@@ -273,1071 +283,963 @@ export default function DiamondArcade() {
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                             >
-                                {/* Header */}
-                                <div style={styles.arcadeHeader}>
-                                    <div style={styles.headerLeft}>
-                                        <h1 style={styles.arcadeTitle}>
-                                            <span style={styles.diamondIcon}>💎</span> DIAMOND ARCADE <span style={{fontSize: '10px', opacity: 0.5}}>v2.0.3</span>
-                                        </h1>
+                                {/* ═══════════════════════════════════════════════════════════════
+                                    ORNATE GOLD HEADER BANNER
+                                ═══════════════════════════════════════════════════════════════ */}
+                                <div style={styles.headerBanner}>
+                                    <div style={styles.headerBannerInner}>
+                                        <div style={styles.headerDecorLeft}>◆</div>
+                                        <h1 style={styles.arcadeTitle}>💎 DIAMOND ARCADE</h1>
+                                        <div style={styles.headerDecorRight}>◆</div>
                                     </div>
-                                    <div style={styles.headerRight}>
-                                        <div style={styles.balanceBox}>
-                                            <span style={styles.balanceLabel}>Balance:</span>
-                                            <span style={styles.balanceValue}>{balance.toLocaleString()} 💎</span>
-                                        </div>
-                                        {streak > 0 && (
-                                            <div style={styles.streakBox}>
-                                                <span style={styles.streakFire}>🔥</span>
-                                                <span style={styles.streakText}>STREAK x{streak}</span>
-                                            </div>
-                                        )}
+                                    <div style={styles.headerStats}>
+                                        <span style={styles.balanceText}>Balance: <strong>{balance.toLocaleString()}</strong> 💎</span>
+                                        <span style={styles.streakText}>🔥 STREAK x{streak}</span>
                                     </div>
                                 </div>
 
-                                {/* Progressive Jackpot Hero */}
-                                <div style={styles.jackpotHero}>
-                                    <div style={styles.jackpotInner}>
-                                        <div style={styles.jackpotLabel}>
-                                            <span style={styles.jackpotIcon}>🎰</span> PROGRESSIVE JACKPOT
-                                        </div>
-                                        <div style={styles.jackpotDiamond}>
-                                            <motion.div
-                                                animate={{ y: [0, -10, 0], rotate: [0, 5, 0] }}
-                                                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                                                style={styles.bigDiamond}
-                                            >
-                                                💎
-                                            </motion.div>
-                                            <div style={styles.diamondShards}>
+                                {/* ═══════════════════════════════════════════════════════════════
+                                    PROGRESSIVE JACKPOT - 3D Crystal Diamond
+                                ═══════════════════════════════════════════════════════════════ */}
+                                <div style={styles.jackpotSection}>
+                                    <div style={styles.jackpotBorder}>
+                                        <div style={styles.jackpotInner}>
+                                            <div style={styles.jackpotLabel}>
+                                                <span style={styles.slotIcon}>🎰</span>
+                                                <span style={styles.jackpotLabelText}>PROGRESSIVE JACKPOT</span>
+                                            </div>
+
+                                            {/* Crystal Diamond with Shards */}
+                                            <div style={styles.diamondContainer}>
+                                                <motion.div
+                                                    style={styles.mainDiamond}
+                                                    animate={{ y: [0, -15, 0], scale: [1, 1.05, 1] }}
+                                                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                                                >
+                                                    💎
+                                                </motion.div>
+                                                {/* Floating Shards */}
                                                 {[...Array(8)].map((_, i) => (
                                                     <motion.div
                                                         key={i}
                                                         style={{
                                                             ...styles.shard,
-                                                            left: `${20 + i * 10}%`,
-                                                            animationDelay: `${i * 0.2}s`
+                                                            left: `${10 + i * 11}%`,
+                                                            top: `${30 + (i % 3) * 15}%`,
                                                         }}
                                                         animate={{
-                                                            opacity: [0.3, 0.8, 0.3],
-                                                            scale: [0.8, 1.2, 0.8],
+                                                            y: [0, -8, 0],
+                                                            rotate: [0, 10, 0],
+                                                            opacity: [0.4, 1, 0.4],
                                                         }}
-                                                        transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+                                                        transition={{ duration: 2 + i * 0.3, repeat: Infinity, delay: i * 0.2 }}
                                                     >
                                                         ✦
                                                     </motion.div>
                                                 ))}
                                             </div>
+
+                                            <div style={styles.jackpotAmount}>{jackpot.toLocaleString()} 💎</div>
+                                            <div style={styles.jackpotTimer}>Next Draw: 3d 14h 22m</div>
                                         </div>
-                                        <div style={styles.jackpotAmount}>{jackpot.toLocaleString()} 💎</div>
-                                        <div style={styles.jackpotTimer}>Next Draw: 3d 14h 22m</div>
-                                        <div style={styles.jackpotSubtext}>Perfect Gauntlet Run = Jackpot Entry</div>
                                     </div>
                                 </div>
 
-                                {/* Today's Featured Games */}
-                                <div style={styles.section}>
-                                    <div style={styles.sectionHeader}>
-                                        <span style={styles.sectionTitle}>TODAY'S FEATURED GAMES</span>
-                                        <span style={styles.resetTimer}>Resets in {String(resetTime.hours).padStart(2, '0')}:{String(resetTime.minutes).padStart(2, '0')}:{String(resetTime.seconds).padStart(2, '0')}</span>
-                                    </div>
-                                    <div style={styles.featuredGrid}>
-                                        {todaysFeatured.map((game, idx) => (
+                                {/* ═══════════════════════════════════════════════════════════════
+                                    TODAY'S FEATURED GAMES
+                                ═══════════════════════════════════════════════════════════════ */}
+                                <div style={styles.sectionHeader}>
+                                    <span style={styles.sectionDivider}>━━━━</span>
+                                    <span style={styles.sectionTitle}>TODAY'S FEATURED GAMES</span>
+                                    <span style={styles.sectionDivider}>━━━━</span>
+                                    <span style={styles.resetTimer}>Resets in {String(resetTime.hours).padStart(2, '0')}:{String(resetTime.minutes).padStart(2, '0')}:{String(resetTime.seconds).padStart(2, '0')}</span>
+                                </div>
+
+                                <div style={styles.gamesGrid}>
+                                    {todaysFeatured.map((game) => {
+                                        const cardStyle = GAME_CARD_STYLES[game.id] || GAME_CARD_STYLES['hand-snap'];
+                                        return (
                                             <motion.div
                                                 key={game.id}
-                                                style={styles.gameCard}
-                                                whileHover={{ scale: 1.03, y: -5 }}
+                                                style={{
+                                                    ...styles.gameCard,
+                                                    background: cardStyle.background,
+                                                }}
+                                                whileHover={{ scale: 1.05, y: -5 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={() => startGame(game.id)}
                                             >
-                                                <div style={{ ...styles.gameBadge, background: game.badgeColor }}>
-                                                    {game.badge}
+                                                <div style={{ ...styles.gameCardOverlay, background: cardStyle.overlay }} />
+                                                <div style={styles.gameCardContent}>
+                                                    <div style={styles.gameIcon}>{cardStyle.icon}</div>
+                                                    <div style={styles.gameName}>{game.name.toUpperCase()}</div>
                                                 </div>
-                                                <div style={styles.gameCardInner}>
-                                                    <div style={styles.gameIconLarge}>{game.icon}</div>
-                                                    <div style={styles.gameNameLarge}>{game.name.toUpperCase()}</div>
-                                                    <div style={styles.gameEntryFee}>
-                                                        <span style={styles.entryAmount}>{game.entryFee}</span>
-                                                        <span style={styles.entryDiamond}>💎</span>
-                                                    </div>
+                                                <div style={styles.gameCardFooter}>
+                                                    <span style={styles.gamePrice}>{game.entryFee} 💎</span>
+                                                    <span style={{ ...styles.gameBadge, background: game.badgeColor }}>{game.badge}</span>
                                                 </div>
-                                                <div style={styles.gameCardGlow} />
+                                                <div style={{ ...styles.gameCardBorder, borderColor: cardStyle.accentColor }} />
                                             </motion.div>
-                                        ))}
-                                    </div>
+                                        );
+                                    })}
                                 </div>
 
-                                {/* Daily Challenge */}
-                                <div style={styles.challengeBanner}>
-                                    <div style={styles.challengeLeft}>
-                                        <div style={styles.challengeLabel}>DAILY CHALLENGE</div>
-                                        <div style={styles.challengeName}>Board Nuts Blitz</div>
+                                {/* ═══════════════════════════════════════════════════════════════
+                                    DAILY CHALLENGE
+                                ═══════════════════════════════════════════════════════════════ */}
+                                <div style={styles.dailyChallengeSection}>
+                                    <div style={styles.challengeHeader}>
+                                        <span style={styles.sectionDivider}>━━━━</span>
+                                        <span style={styles.challengeLabel}>DAILY CHALLENGE</span>
+                                        <span style={styles.sectionDivider}>━━━━</span>
+                                        <span style={styles.challengeName}>Board Nuts Blitz</span>
                                     </div>
-                                    <div style={styles.challengeCenter}>
+                                    <div style={styles.challengeContent}>
                                         <div style={styles.challengePrize}>Top 100 Split 10,000 💎</div>
                                         <div style={styles.challengeStats}>
                                             Your Rank: <span style={styles.highlight}>#234</span> •
                                             Best Score: <span style={styles.highlight}>847 pts</span> •
-                                            Leader: <span style={styles.gold}>1,203 pts</span>
+                                            Leader: <span style={styles.highlight}>1,203 pts</span>
                                         </div>
+                                        <motion.button
+                                            style={styles.playButton}
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => startGame('board-nuts')}
+                                        >
+                                            PLAY NOW - 25 💎
+                                        </motion.button>
                                     </div>
-                                    <motion.button
-                                        style={styles.challengeBtn}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                    >
-                                        PLAY NOW - 25 💎
-                                    </motion.button>
                                 </div>
 
-                                {/* Heads-Up Duels */}
-                                <div style={styles.section}>
-                                    <div style={styles.sectionHeader}>
-                                        <span style={styles.sectionTitle}>HEADS-UP DUELS</span>
+                                {/* ═══════════════════════════════════════════════════════════════
+                                    HEADS-UP DUELS
+                                ═══════════════════════════════════════════════════════════════ */}
+                                <div style={styles.duelsSection}>
+                                    <div style={styles.duelsHeader}>
+                                        <span style={styles.sectionDivider}>━━━━</span>
+                                        <span style={styles.duelsLabel}>HEADS-UP DUELS</span>
+                                        <span style={styles.sectionDivider}>━━━━</span>
                                         <span style={styles.playersWaiting}>3 Players Waiting</span>
                                     </div>
                                     <div style={styles.duelsGrid}>
-                                        {[
-                                            { name: 'QUICK DUEL', entry: 25, prize: 45 },
-                                            { name: 'BEST OF 3', entry: 50, prize: 90 },
-                                            { name: 'HIGH ROLLER', entry: 100, prize: 180, isHighRoller: true }
-                                        ].map((duel, idx) => (
-                                            <motion.div
-                                                key={idx}
-                                                style={{
-                                                    ...styles.duelCard,
-                                                    ...(duel.isHighRoller ? styles.highRollerCard : {})
-                                                }}
-                                                whileHover={{ scale: 1.03 }}
-                                            >
-                                                <div style={styles.duelName}>{duel.name}</div>
-                                                {duel.isHighRoller && <div style={styles.duelCrown}>👑</div>}
-                                                <div style={styles.duelEntry}>{duel.entry} 💎</div>
-                                                <div style={styles.duelPrize}>Winner Takes {duel.prize} 💎</div>
-                                                <motion.button
-                                                    style={styles.findMatchBtn}
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                >
-                                                    FIND MATCH
-                                                </motion.button>
-                                            </motion.div>
-                                        ))}
+                                        <motion.div style={styles.duelCard} whileHover={{ scale: 1.03 }}>
+                                            <div style={styles.duelName}>QUICK DUEL</div>
+                                            <div style={styles.duelPrice}>25 💎💎</div>
+                                            <button style={styles.duelButton}>FIND MATCH</button>
+                                        </motion.div>
+                                        <motion.div style={styles.duelCard} whileHover={{ scale: 1.03 }}>
+                                            <div style={styles.duelName}>BEST OF 3</div>
+                                            <div style={styles.duelPrice}>50 💎💎</div>
+                                            <button style={styles.duelButton}>FIND MATCH</button>
+                                        </motion.div>
+                                        <motion.div style={{ ...styles.duelCard, ...styles.duelCardHighRoller }} whileHover={{ scale: 1.03 }}>
+                                            <div style={styles.duelCrown}>👑</div>
+                                            <div style={styles.duelName}>HIGH ROLLER</div>
+                                            <div style={styles.duelPrice}>100 💎💎</div>
+                                            <button style={{ ...styles.duelButton, ...styles.duelButtonGold }}>FIND MATCH</button>
+                                        </motion.div>
                                     </div>
                                 </div>
 
-                                {/* Player Stats Strip */}
-                                <div style={styles.statsStrip}>
-                                    <div style={styles.statBlock}>
+                                {/* ═══════════════════════════════════════════════════════════════
+                                    STATS BAR
+                                ═══════════════════════════════════════════════════════════════ */}
+                                <div style={styles.statsBar}>
+                                    <div style={styles.statItem}>
                                         <span style={styles.statLabel}>Today:</span>
-                                        <span style={{
-                                            ...styles.statValue,
-                                            color: stats.todayProfit >= 0 ? '#22c55e' : '#ef4444'
-                                        }}>
-                                            {stats.todayProfit >= 0 ? '+' : ''}{stats.todayProfit} 💎
-                                        </span>
+                                        <span style={styles.statValue}>+{stats.todayProfit} 💎</span>
                                     </div>
-                                    <div style={styles.statDivider} />
-                                    <div style={styles.statBlock}>
+                                    <div style={styles.statDivider}>▸</div>
+                                    <div style={styles.statItem}>
                                         <span style={styles.statLabel}>STREAK x{streak}</span>
                                         <span style={styles.statBonus}>NEXT: 1.5x</span>
                                     </div>
-                                    <div style={styles.statDivider} />
-                                    <div style={styles.statBlock}>
+                                    <div style={styles.statDivider}>▸</div>
+                                    <div style={styles.statItem}>
                                         <span style={styles.statLabel}>Win Rate:</span>
                                         <span style={styles.statValue}>{stats.winRate}%</span>
                                     </div>
                                 </div>
 
-                                {/* Bottom Nav Icons */}
+                                {/* ═══════════════════════════════════════════════════════════════
+                                    BOTTOM NAV
+                                ═══════════════════════════════════════════════════════════════ */}
                                 <div style={styles.bottomNav}>
-                                    <div style={styles.navIcon}>⚡</div>
-                                    <div style={styles.navIcon}>🎯</div>
-                                    <div style={styles.navIcon}>🏆</div>
+                                    <motion.div style={styles.navIcon} whileHover={{ scale: 1.1 }}>⚡</motion.div>
+                                    <motion.div style={styles.navIcon} whileHover={{ scale: 1.1 }}>🎯</motion.div>
+                                    <motion.div style={styles.navIcon} whileHover={{ scale: 1.1 }}>🏆</motion.div>
                                 </div>
                             </motion.div>
                         )}
 
-                        {gamePhase === 'playing' && activeGame && (
+                        {/* ═══════════════════════════════════════════════════════════════
+                            GAME PLAYING PHASE
+                        ═══════════════════════════════════════════════════════════════ */}
+                        {gamePhase === 'playing' && activeGame && currentQuestion && (
                             <motion.div
                                 key="playing"
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
+                                style={styles.gamePlayArea}
                             >
-                                <GamePlay
-                                    game={activeGame}
-                                    question={currentQuestion}
-                                    questionIndex={questionIndex}
-                                    correctCount={correctCount}
-                                    timeLeft={timeLeft}
-                                    onAnswer={handleAnswer}
-                                />
+                                <div style={styles.gameHeader}>
+                                    <h2 style={styles.gameTitle}>{activeGame.name}</h2>
+                                    <div style={styles.gameStats}>
+                                        <span style={styles.timerDisplay}>⏱ {timeLeft}s</span>
+                                        <span style={styles.scoreDisplay}>✓ {correctCount}/{questionIndex + 1}</span>
+                                    </div>
+                                </div>
+
+                                <div style={styles.questionArea}>
+                                    {activeGame.id === 'hand-snap' && (
+                                        <>
+                                            <p style={styles.questionText}>Which hand wins?</p>
+                                            <div style={styles.handsContainer}>
+                                                {currentQuestion.hands.map((hand, idx) => (
+                                                    <motion.button
+                                                        key={idx}
+                                                        style={styles.handButton}
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => handleAnswer(idx)}
+                                                    >
+                                                        <div style={styles.handLabel}>Hand {idx + 1}</div>
+                                                        <div style={styles.handCards}>
+                                                            {hand.map((card, cidx) => (
+                                                                <span key={cidx} style={styles.card}>{card}</span>
+                                                            ))}
+                                                        </div>
+                                                    </motion.button>
+                                                ))}
+                                            </div>
+                                            <div style={styles.boardDisplay}>
+                                                <span style={styles.boardLabel}>Board:</span>
+                                                {currentQuestion.board.map((card, idx) => (
+                                                    <span key={idx} style={styles.boardCard}>{card}</span>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {(activeGame.id === 'chip-math' || activeGame.id === 'ev-or-fold') && (
+                                        <>
+                                            <p style={styles.questionText}>{currentQuestion.question}</p>
+                                            <div style={styles.optionsGrid}>
+                                                {currentQuestion.options.map((opt, idx) => (
+                                                    <motion.button
+                                                        key={idx}
+                                                        style={styles.optionButton}
+                                                        whileHover={{ scale: 1.03 }}
+                                                        whileTap={{ scale: 0.97 }}
+                                                        onClick={() => handleAnswer(idx)}
+                                                    >
+                                                        {opt}
+                                                    </motion.button>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {activeGame.id === 'board-nuts' && (
+                                        <>
+                                            <p style={styles.questionText}>What's the nuts?</p>
+                                            <div style={styles.boardDisplay}>
+                                                <span style={styles.boardLabel}>Board:</span>
+                                                {currentQuestion.board.map((card, idx) => (
+                                                    <span key={idx} style={styles.boardCard}>{card}</span>
+                                                ))}
+                                            </div>
+                                            <div style={styles.optionsGrid}>
+                                                {currentQuestion.options.map((opt, idx) => (
+                                                    <motion.button
+                                                        key={idx}
+                                                        style={styles.optionButton}
+                                                        whileHover={{ scale: 1.03 }}
+                                                        whileTap={{ scale: 0.97 }}
+                                                        onClick={() => handleAnswer(idx)}
+                                                    >
+                                                        {opt}
+                                                    </motion.button>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </motion.div>
                         )}
 
+                        {/* ═══════════════════════════════════════════════════════════════
+                            GAME RESULT PHASE
+                        ═══════════════════════════════════════════════════════════════ */}
                         {gamePhase === 'result' && gameResult && (
                             <motion.div
                                 key="result"
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0 }}
+                                style={styles.resultArea}
                             >
-                                <GameResult
-                                    game={activeGame}
-                                    result={gameResult}
-                                    correctCount={correctCount}
-                                    onPlayAgain={() => startGame(activeGame.id)}
-                                    onReturnToLobby={returnToLobby}
-                                    balance={balance}
-                                />
+                                <h2 style={styles.resultTitle}>{gameResult.won ? '🎉 WINNER!' : '💔 Game Over'}</h2>
+                                <div style={styles.resultStats}>
+                                    <p>Correct: {correctCount} / {activeGame?.questionsCount || 0}</p>
+                                    <p style={styles.prizeDisplay}>
+                                        {gameResult.won ? `+${gameResult.finalPrize} 💎` : `Lost ${activeGame?.entryFee || 0} 💎`}
+                                    </p>
+                                </div>
+                                <motion.button
+                                    style={styles.backButton}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={backToLobby}
+                                >
+                                    Back to Arcade
+                                </motion.button>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
             </div>
-        </PageTransition>
+        </>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GAMEPLAY COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-
-function GamePlay({ game, question, questionIndex, correctCount, timeLeft, onAnswer }) {
-    if (!question) return null;
-
-    const formatTime = (seconds) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${m}:${String(s).padStart(2, '0')}`;
-    };
-
-    const renderCard = (card) => {
-        const { display, color } = formatCard(card);
-        return <div style={{ ...gameStyles.card, color }}>{display}</div>;
-    };
-
-    return (
-        <div style={gameStyles.container}>
-            <div style={gameStyles.header}>
-                <div style={gameStyles.gameInfo}>
-                    <span style={gameStyles.icon}>{game.icon}</span>
-                    <span style={gameStyles.name}>{game.name}</span>
-                </div>
-                <div style={gameStyles.progress}>
-                    <span>Q{questionIndex + 1}/{game.questionsCount}</span>
-                    <span style={gameStyles.correct}>✓ {correctCount}</span>
-                </div>
-                <div style={{ ...gameStyles.timer, color: timeLeft <= 10 ? '#ef4444' : '#fbbf24' }}>
-                    {formatTime(timeLeft)}
-                </div>
-            </div>
-
-            <div style={gameStyles.questionArea}>
-                {game.id === 'hand-snap' && (
-                    <div style={gameStyles.handSnapContainer}>
-                        <div style={gameStyles.boardLabel}>BOARD</div>
-                        <div style={gameStyles.boardCards}>
-                            {question.board.map((card, i) => <div key={i}>{renderCard(card)}</div>)}
-                        </div>
-                        <div style={gameStyles.vsLabel}>WHICH HAND WINS?</div>
-                        <div style={gameStyles.handsRow}>
-                            <motion.button
-                                style={gameStyles.handButton}
-                                whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(251, 191, 36, 0.5)' }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => onAnswer(0)}
-                            >
-                                <div style={gameStyles.handLabel}>HAND 1</div>
-                                <div style={gameStyles.handCards}>
-                                    {question.hand1.cards.map((card, i) => <div key={i}>{renderCard(card)}</div>)}
-                                </div>
-                            </motion.button>
-                            <div style={gameStyles.vsText}>VS</div>
-                            <motion.button
-                                style={gameStyles.handButton}
-                                whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(251, 191, 36, 0.5)' }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => onAnswer(1)}
-                            >
-                                <div style={gameStyles.handLabel}>HAND 2</div>
-                                <div style={gameStyles.handCards}>
-                                    {question.hand2.cards.map((card, i) => <div key={i}>{renderCard(card)}</div>)}
-                                </div>
-                            </motion.button>
-                        </div>
-                    </div>
-                )}
-
-                {game.id === 'board-nuts' && (
-                    <div style={gameStyles.boardNutsContainer}>
-                        <div style={gameStyles.boardLabel}>BOARD</div>
-                        <div style={gameStyles.boardCards}>
-                            {question.board.map((card, i) => <div key={i}>{renderCard(card)}</div>)}
-                        </div>
-                        <div style={gameStyles.vsLabel}>TAP THE NUTS</div>
-                        <div style={gameStyles.optionsGrid}>
-                            {question.options.map((hand, i) => (
-                                <motion.button
-                                    key={i}
-                                    style={gameStyles.optionButton}
-                                    whileHover={{ scale: 1.05, borderColor: '#fbbf24' }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => onAnswer(i)}
-                                >
-                                    <div style={gameStyles.optionCards}>
-                                        {hand.map((card, j) => <div key={j}>{renderCard(card)}</div>)}
-                                    </div>
-                                </motion.button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// RESULT COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-
-function GameResult({ game, result, correctCount, onPlayAgain, onReturnToLobby, balance }) {
-    return (
-        <div style={resultStyles.container}>
-            <motion.div
-                style={{ ...resultStyles.card, borderColor: result.won ? '#fbbf24' : '#ef4444' }}
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-            >
-                <div style={resultStyles.icon}>{result.won ? '🎉' : '💀'}</div>
-                <div style={{ ...resultStyles.title, color: result.won ? '#fbbf24' : '#ef4444' }}>
-                    {result.won ? 'YOU WIN!' : 'BUST'}
-                </div>
-                <div style={resultStyles.stats}>
-                    <div style={resultStyles.stat}>
-                        <span style={resultStyles.statLabel}>Correct</span>
-                        <span style={resultStyles.statValue}>{correctCount}/{game.questionsCount}</span>
-                    </div>
-                    <div style={resultStyles.stat}>
-                        <span style={resultStyles.statLabel}>Accuracy</span>
-                        <span style={resultStyles.statValue}>{Math.round(result.accuracy * 100)}%</span>
-                    </div>
-                </div>
-                {result.won && (
-                    <div style={resultStyles.prizeBox}>
-                        <div style={resultStyles.prizeRow}>
-                            <span>Base Prize</span><span>{result.basePrize} 💎</span>
-                        </div>
-                        <div style={resultStyles.prizeRow}>
-                            <span>House Rake (10%)</span><span style={{ color: '#ef4444' }}>-{result.rake} 💎</span>
-                        </div>
-                        {result.streakBonus > 0 && (
-                            <div style={resultStyles.prizeRow}>
-                                <span>🔥 Streak Bonus</span><span style={{ color: '#fbbf24' }}>+{result.streakBonus} 💎</span>
-                            </div>
-                        )}
-                        <div style={resultStyles.prizeTotal}>
-                            <span>TOTAL WON</span><span style={{ color: '#22c55e' }}>{result.finalPrize} 💎</span>
-                        </div>
-                    </div>
-                )}
-                <div style={resultStyles.balance}>New Balance: <span style={resultStyles.balanceValue}>{balance.toLocaleString()} 💎</span></div>
-                <div style={resultStyles.actions}>
-                    <motion.button
-                        style={resultStyles.playAgainBtn}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={onPlayAgain}
-                    >
-                        Play Again ({game.entryFee} 💎)
-                    </motion.button>
-                    <motion.button
-                        style={resultStyles.backBtn}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={onReturnToLobby}
-                    >
-                        Back to Arcade
-                    </motion.button>
-                </div>
-            </motion.div>
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// STYLES - PREMIUM CASINO AESTHETIC
+// STYLES
 // ═══════════════════════════════════════════════════════════════════════════
 
 const styles = {
-    container: {
-        minHeight: '100vh',
-        background: '#0c0c0c',
-        fontFamily: 'Inter, -apple-system, sans-serif',
+    pageWrapper: {
         position: 'relative',
+        minHeight: '100vh',
         overflow: 'hidden',
     },
-    casinoBg: {
+
+    // Casino Background Layers
+    casinoBgBase: {
         position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'linear-gradient(180deg, #0a0a0f 0%, #12121a 50%, #1a1a25 100%)',
+        zIndex: -4,
+    },
+    casinoBgOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         background: `
-            radial-gradient(ellipse at 30% 20%, rgba(251, 191, 36, 0.08) 0%, transparent 50%),
-            radial-gradient(ellipse at 70% 80%, rgba(220, 38, 38, 0.06) 0%, transparent 50%),
-            radial-gradient(ellipse at 50% 50%, rgba(59, 130, 246, 0.04) 0%, transparent 60%),
-            linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%)
+            radial-gradient(ellipse at 20% 80%, rgba(139, 69, 19, 0.15) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 20%, rgba(184, 134, 11, 0.1) 0%, transparent 50%),
+            radial-gradient(ellipse at 50% 50%, rgba(255, 165, 0, 0.05) 0%, transparent 70%)
         `,
-        pointerEvents: 'none',
+        zIndex: -3,
     },
-    casinoOverlay: {
+    casinoBgVignette: {
         position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23fbbf24' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        pointerEvents: 'none',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 100%)',
+        zIndex: -2,
     },
-    goldBorder: {
+    casinoBgLights: {
         position: 'fixed',
-        top: 0, left: 0, right: 0,
-        height: '3px',
-        background: 'linear-gradient(90deg, transparent, #fbbf24, #f59e0b, #fbbf24, transparent)',
-        zIndex: 100,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `
+            radial-gradient(circle at 10% 90%, rgba(251, 191, 36, 0.08) 0%, transparent 20%),
+            radial-gradient(circle at 90% 90%, rgba(251, 191, 36, 0.08) 0%, transparent 20%),
+            radial-gradient(circle at 30% 70%, rgba(251, 191, 36, 0.05) 0%, transparent 15%),
+            radial-gradient(circle at 70% 80%, rgba(251, 191, 36, 0.05) 0%, transparent 15%)
+        `,
+        zIndex: -1,
     },
-    content: {
+
+    mainContent: {
         position: 'relative',
+        padding: '0 20px 40px',
         zIndex: 1,
-        padding: '80px 20px 40px',
     },
-    arcadeHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px',
-        padding: '16px 20px',
-        background: 'linear-gradient(180deg, rgba(251, 191, 36, 0.1) 0%, rgba(0,0,0,0.4) 100%)',
-        borderRadius: '12px',
-        border: '1px solid rgba(251, 191, 36, 0.3)',
-    },
-    headerLeft: {},
-    arcadeTitle: {
-        fontFamily: 'Cinzel, serif',
-        fontSize: '28px',
-        fontWeight: 800,
-        color: '#fbbf24',
-        textShadow: '0 0 30px rgba(251, 191, 36, 0.5)',
-        margin: 0,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-    },
-    diamondIcon: {
-        fontSize: '32px',
-    },
-    headerRight: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '20px',
-    },
-    balanceBox: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-    },
-    balanceLabel: {
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: '14px',
-    },
-    balanceValue: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '20px',
-        fontWeight: 700,
-        color: '#fff',
-        textShadow: '0 0 10px rgba(59, 130, 246, 0.5)',
-    },
-    streakBox: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '8px 16px',
-        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(251, 191, 36, 0.3))',
+
+    // Header Banner
+    headerBanner: {
+        background: 'linear-gradient(180deg, rgba(30, 20, 10, 0.95) 0%, rgba(20, 15, 5, 0.9) 100%)',
+        border: '2px solid',
+        borderImage: 'linear-gradient(90deg, #8B4513, #DAA520, #FFD700, #DAA520, #8B4513) 1',
         borderRadius: '8px',
-        border: '1px solid #fbbf24',
+        padding: '15px 25px',
+        marginBottom: '20px',
+        position: 'relative',
     },
-    streakFire: {
+    headerBannerInner: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '15px',
+    },
+    headerDecorLeft: {
+        color: '#DAA520',
         fontSize: '20px',
+    },
+    headerDecorRight: {
+        color: '#DAA520',
+        fontSize: '20px',
+    },
+    arcadeTitle: {
+        fontFamily: "'Cinzel', serif",
+        fontSize: '32px',
+        fontWeight: 800,
+        background: 'linear-gradient(180deg, #FFD700 0%, #FFA500 50%, #DAA520 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        textShadow: '0 0 30px rgba(255, 215, 0, 0.5)',
+        margin: 0,
+        letterSpacing: '3px',
+    },
+    headerStats: {
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: '20px',
+        marginTop: '10px',
+    },
+    balanceText: {
+        color: '#e5e5e5',
+        fontSize: '14px',
+        fontFamily: "'Orbitron', sans-serif",
     },
     streakText: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '14px',
-        fontWeight: 700,
         color: '#fbbf24',
+        fontSize: '14px',
+        fontFamily: "'Orbitron', sans-serif",
+        fontWeight: 600,
     },
-    jackpotHero: {
-        background: 'linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)',
-        borderRadius: '20px',
-        padding: '4px',
-        marginBottom: '24px',
-        border: '2px solid',
-        borderImage: 'linear-gradient(180deg, #fbbf24, #b45309) 1',
+
+    // Jackpot Section
+    jackpotSection: {
+        marginBottom: '25px',
+    },
+    jackpotBorder: {
+        background: 'linear-gradient(135deg, #8B4513 0%, #DAA520 25%, #FFD700 50%, #DAA520 75%, #8B4513 100%)',
+        borderRadius: '12px',
+        padding: '3px',
+        animation: 'border-glow 3s ease-in-out infinite',
     },
     jackpotInner: {
-        background: 'linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(26,26,46,0.9) 100%)',
-        borderRadius: '16px',
-        padding: '30px',
+        background: 'linear-gradient(180deg, #0a1628 0%, #0d1f3c 50%, #0a1628 100%)',
+        borderRadius: '10px',
+        padding: '25px',
         textAlign: 'center',
         position: 'relative',
         overflow: 'hidden',
     },
     jackpotLabel: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '14px',
-        fontWeight: 700,
-        color: '#fbbf24',
-        letterSpacing: '4px',
-        marginBottom: '20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: '10px',
+        marginBottom: '15px',
     },
-    jackpotIcon: {
-        fontSize: '20px',
+    slotIcon: {
+        fontSize: '24px',
     },
-    jackpotDiamond: {
+    jackpotLabelText: {
+        fontFamily: "'Cinzel', serif",
+        fontSize: '16px',
+        fontWeight: 700,
+        color: '#DAA520',
+        letterSpacing: '3px',
+    },
+    diamondContainer: {
         position: 'relative',
         height: '120px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        marginBottom: '15px',
     },
-    bigDiamond: {
+    mainDiamond: {
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
         fontSize: '80px',
         filter: 'drop-shadow(0 0 30px rgba(59, 130, 246, 0.8))',
-    },
-    diamondShards: {
-        position: 'absolute',
-        top: 0, left: 0, right: 0, bottom: 0,
-        pointerEvents: 'none',
+        animation: 'pulse-glow 2s ease-in-out infinite',
     },
     shard: {
         position: 'absolute',
-        top: '50%',
-        color: '#60a5fa',
         fontSize: '16px',
+        color: '#60a5fa',
+        animation: 'shard-float 2s ease-in-out infinite',
     },
     jackpotAmount: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '52px',
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: '48px',
         fontWeight: 900,
-        color: '#fff',
+        background: 'linear-gradient(180deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
         textShadow: '0 0 40px rgba(59, 130, 246, 0.6)',
-        marginBottom: '8px',
+        marginBottom: '10px',
     },
     jackpotTimer: {
-        fontFamily: 'Orbitron, sans-serif',
+        color: '#9ca3af',
         fontSize: '14px',
-        color: 'rgba(255,255,255,0.6)',
-        marginBottom: '8px',
+        fontFamily: "'Orbitron', sans-serif",
     },
-    jackpotSubtext: {
-        fontSize: '12px',
-        color: 'rgba(255,255,255,0.4)',
-        fontStyle: 'italic',
-    },
-    section: {
-        marginBottom: '24px',
-    },
+
+    // Section Headers
     sectionHeader: {
         display: 'flex',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '16px',
-        padding: '0 4px',
+        justifyContent: 'center',
+        gap: '15px',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+    },
+    sectionDivider: {
+        color: '#DAA520',
+        fontSize: '12px',
+        letterSpacing: '2px',
     },
     sectionTitle: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "'Cinzel', serif",
         fontSize: '14px',
         fontWeight: 700,
-        color: '#fbbf24',
+        color: '#DAA520',
         letterSpacing: '2px',
     },
     resetTimer: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "'Orbitron', sans-serif",
         fontSize: '12px',
-        color: 'rgba(255,255,255,0.5)',
+        color: '#9ca3af',
     },
-    playersWaiting: {
-        fontSize: '12px',
-        color: '#22c55e',
-    },
-    featuredGrid: {
+
+    // Games Grid
+    gamesGrid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '12px',
+        gap: '15px',
+        marginBottom: '25px',
     },
     gameCard: {
         position: 'relative',
-        background: 'linear-gradient(180deg, #1f1f2e 0%, #0f0f1a 100%)',
-        borderRadius: '16px',
-        padding: '20px 12px',
-        border: '2px solid rgba(251, 191, 36, 0.3)',
-        cursor: 'pointer',
+        borderRadius: '12px',
         overflow: 'hidden',
-        transition: 'all 0.3s ease',
+        cursor: 'pointer',
+        aspectRatio: '1',
+        border: '2px solid rgba(139, 69, 19, 0.5)',
     },
-    gameBadge: {
+    gameCardOverlay: {
         position: 'absolute',
-        top: '10px',
-        right: '10px',
-        padding: '4px 8px',
-        borderRadius: '6px',
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '9px',
-        fontWeight: 700,
-        color: '#000',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1,
     },
-    gameCardInner: {
+    gameCardContent: {
+        position: 'relative',
+        zIndex: 2,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '12px',
+        justifyContent: 'center',
+        height: '70%',
+        padding: '15px',
     },
-    gameIconLarge: {
-        fontSize: '48px',
-        filter: 'drop-shadow(0 0 20px rgba(251, 191, 36, 0.4))',
+    gameIcon: {
+        fontSize: '40px',
+        marginBottom: '10px',
+        filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))',
     },
-    gameNameLarge: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '12px',
+    gameName: {
+        fontFamily: "'Cinzel', serif",
+        fontSize: '13px',
         fontWeight: 700,
         color: '#fff',
         textAlign: 'center',
+        textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+        letterSpacing: '1px',
     },
-    gameEntryFee: {
+    gameCardFooter: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: '10px',
+        background: 'linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%)',
         display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        gap: '4px',
-        padding: '6px 12px',
-        background: 'rgba(0,0,0,0.4)',
-        borderRadius: '8px',
-        border: '1px solid rgba(251, 191, 36, 0.3)',
+        zIndex: 3,
     },
-    entryAmount: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '18px',
+    gamePrice: {
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: '14px',
         fontWeight: 700,
         color: '#fbbf24',
     },
-    entryDiamond: {
-        fontSize: '16px',
+    gameBadge: {
+        padding: '3px 8px',
+        borderRadius: '4px',
+        fontSize: '10px',
+        fontWeight: 700,
+        color: '#fff',
+        fontFamily: "'Orbitron', sans-serif",
+        textTransform: 'uppercase',
     },
-    gameCardGlow: {
+    gameCardBorder: {
         position: 'absolute',
-        bottom: 0, left: 0, right: 0,
-        height: '50%',
-        background: 'linear-gradient(180deg, transparent, rgba(251, 191, 36, 0.1))',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        border: '2px solid transparent',
+        borderRadius: '12px',
         pointerEvents: 'none',
+        zIndex: 4,
     },
-    challengeBanner: {
+
+    // Daily Challenge
+    dailyChallengeSection: {
+        background: 'linear-gradient(180deg, rgba(34, 197, 94, 0.15) 0%, rgba(21, 128, 61, 0.1) 100%)',
+        border: '2px solid rgba(34, 197, 94, 0.4)',
+        borderRadius: '12px',
+        padding: '20px',
+        marginBottom: '25px',
+    },
+    challengeHeader: {
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '20px 24px',
-        background: 'linear-gradient(90deg, rgba(34, 197, 94, 0.15), rgba(59, 130, 246, 0.15))',
-        borderRadius: '16px',
-        border: '2px solid rgba(34, 197, 94, 0.4)',
-        marginBottom: '24px',
+        justifyContent: 'center',
+        gap: '15px',
+        marginBottom: '15px',
+        flexWrap: 'wrap',
     },
-    challengeLeft: {},
     challengeLabel: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '10px',
+        fontFamily: "'Cinzel', serif",
+        fontSize: '12px',
+        fontWeight: 700,
         color: '#22c55e',
         letterSpacing: '2px',
-        marginBottom: '4px',
     },
     challengeName: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "'Cinzel', serif",
         fontSize: '18px',
         fontWeight: 700,
         color: '#fff',
     },
-    challengeCenter: {
+    challengeContent: {
         textAlign: 'center',
     },
     challengePrize: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '14px',
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: '16px',
+        fontWeight: 700,
         color: '#fbbf24',
-        marginBottom: '4px',
+        marginBottom: '10px',
     },
     challengeStats: {
-        fontSize: '12px',
-        color: 'rgba(255,255,255,0.6)',
+        color: '#9ca3af',
+        fontSize: '13px',
+        marginBottom: '15px',
     },
     highlight: {
-        color: '#fff',
+        color: '#22c55e',
         fontWeight: 600,
     },
-    gold: {
-        color: '#fbbf24',
-        fontWeight: 600,
-    },
-    challengeBtn: {
-        padding: '12px 24px',
-        background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+    playButton: {
+        background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 100%)',
         border: 'none',
-        borderRadius: '10px',
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '12px',
-        fontWeight: 700,
+        borderRadius: '8px',
+        padding: '12px 30px',
         color: '#fff',
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: '14px',
+        fontWeight: 700,
         cursor: 'pointer',
-        boxShadow: '0 0 20px rgba(34, 197, 94, 0.4)',
+        boxShadow: '0 4px 15px rgba(34, 197, 94, 0.4)',
+    },
+
+    // Duels Section
+    duelsSection: {
+        marginBottom: '25px',
+    },
+    duelsHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '15px',
+        marginBottom: '15px',
+        flexWrap: 'wrap',
+    },
+    duelsLabel: {
+        fontFamily: "'Cinzel', serif",
+        fontSize: '14px',
+        fontWeight: 700,
+        color: '#DAA520',
+        letterSpacing: '2px',
+    },
+    playersWaiting: {
+        color: '#9ca3af',
+        fontSize: '12px',
     },
     duelsGrid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '16px',
+        gap: '15px',
     },
     duelCard: {
-        background: 'linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)',
-        borderRadius: '16px',
-        padding: '24px 16px',
+        background: 'linear-gradient(180deg, rgba(30, 30, 40, 0.9) 0%, rgba(20, 20, 30, 0.95) 100%)',
+        border: '2px solid rgba(100, 100, 120, 0.3)',
+        borderRadius: '10px',
+        padding: '20px',
         textAlign: 'center',
-        border: '2px solid rgba(255,255,255,0.1)',
-        position: 'relative',
+        cursor: 'pointer',
     },
-    highRollerCard: {
-        border: '2px solid rgba(251, 191, 36, 0.5)',
-        background: 'linear-gradient(180deg, rgba(251, 191, 36, 0.1), #0f0f1a 100%)',
+    duelCardHighRoller: {
+        borderColor: 'rgba(251, 191, 36, 0.5)',
+        background: 'linear-gradient(180deg, rgba(50, 40, 20, 0.9) 0%, rgba(30, 25, 10, 0.95) 100%)',
+    },
+    duelCrown: {
+        fontSize: '24px',
+        marginBottom: '5px',
     },
     duelName: {
-        fontFamily: 'Orbitron, sans-serif',
+        fontFamily: "'Cinzel', serif",
         fontSize: '14px',
         fontWeight: 700,
         color: '#fff',
-        marginBottom: '8px',
+        marginBottom: '10px',
     },
-    duelCrown: {
-        position: 'absolute',
-        top: '-10px',
-        right: '10px',
-        fontSize: '24px',
-    },
-    duelEntry: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '24px',
+    duelPrice: {
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: '16px',
         fontWeight: 700,
         color: '#fbbf24',
-        marginBottom: '4px',
+        marginBottom: '15px',
     },
-    duelPrize: {
-        fontSize: '12px',
-        color: 'rgba(255,255,255,0.5)',
-        marginBottom: '16px',
-    },
-    findMatchBtn: {
-        width: '100%',
-        padding: '10px 16px',
-        background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+    duelButton: {
+        background: 'linear-gradient(180deg, #4b5563 0%, #374151 100%)',
         border: 'none',
-        borderRadius: '8px',
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '11px',
-        fontWeight: 700,
+        borderRadius: '6px',
+        padding: '10px 20px',
         color: '#fff',
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: '11px',
+        fontWeight: 600,
         cursor: 'pointer',
+        width: '100%',
     },
-    statsStrip: {
+    duelButtonGold: {
+        background: 'linear-gradient(180deg, #DAA520 0%, #B8860B 100%)',
+    },
+
+    // Stats Bar
+    statsBar: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '24px',
-        padding: '16px 24px',
-        background: 'rgba(0,0,0,0.4)',
-        borderRadius: '12px',
-        border: '1px solid rgba(255,255,255,0.1)',
+        gap: '20px',
+        background: 'linear-gradient(180deg, rgba(20, 20, 30, 0.95) 0%, rgba(10, 10, 20, 0.98) 100%)',
+        border: '1px solid rgba(100, 100, 120, 0.2)',
+        borderRadius: '10px',
+        padding: '15px 25px',
         marginBottom: '20px',
     },
-    statBlock: {
+    statItem: {
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: '8px',
+        gap: '3px',
     },
     statLabel: {
-        fontSize: '13px',
-        color: 'rgba(255,255,255,0.6)',
+        color: '#9ca3af',
+        fontSize: '11px',
+        fontFamily: "'Orbitron', sans-serif",
     },
     statValue: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '15px',
+        color: '#22c55e',
+        fontSize: '14px',
         fontWeight: 700,
-        color: '#fff',
+        fontFamily: "'Orbitron', sans-serif",
     },
     statBonus: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '12px',
-        color: '#22c55e',
+        color: '#ef4444',
+        fontSize: '11px',
+        fontWeight: 600,
+        fontFamily: "'Orbitron', sans-serif",
     },
     statDivider: {
-        width: '1px',
-        height: '20px',
-        background: 'rgba(255,255,255,0.2)',
+        color: '#4b5563',
+        fontSize: '12px',
     },
+
+    // Bottom Nav
     bottomNav: {
         display: 'flex',
         justifyContent: 'center',
-        gap: '40px',
-        paddingTop: '16px',
+        gap: '30px',
+        padding: '15px',
     },
     navIcon: {
         width: '50px',
         height: '50px',
+        background: 'linear-gradient(180deg, rgba(40, 40, 50, 0.9) 0%, rgba(25, 25, 35, 0.95) 100%)',
+        border: '2px solid rgba(100, 100, 120, 0.3)',
+        borderRadius: '12px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontSize: '24px',
-        background: 'linear-gradient(180deg, rgba(251, 191, 36, 0.2), rgba(0,0,0,0.4))',
-        borderRadius: '12px',
-        border: '2px solid rgba(251, 191, 36, 0.3)',
         cursor: 'pointer',
     },
-};
 
-const gameStyles = {
-    container: {
-        background: 'linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)',
-        borderRadius: '20px',
-        padding: '24px',
-        border: '2px solid rgba(251, 191, 36, 0.3)',
+    // Game Play Styles
+    gamePlayArea: {
+        background: 'linear-gradient(180deg, rgba(15, 15, 25, 0.98) 0%, rgba(10, 10, 20, 0.99) 100%)',
+        borderRadius: '15px',
+        padding: '30px',
+        border: '2px solid rgba(59, 130, 246, 0.3)',
     },
-    header: {
+    gameHeader: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '24px',
-        paddingBottom: '16px',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        marginBottom: '25px',
+        paddingBottom: '15px',
+        borderBottom: '1px solid rgba(100, 100, 120, 0.2)',
     },
-    gameInfo: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-    },
-    icon: { fontSize: '32px' },
-    name: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '18px',
+    gameTitle: {
+        fontFamily: "'Cinzel', serif",
+        fontSize: '24px',
         fontWeight: 700,
         color: '#fff',
+        margin: 0,
     },
-    progress: {
+    gameStats: {
         display: 'flex',
-        gap: '16px',
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '14px',
-        color: 'rgba(255,255,255,0.7)',
-    },
-    correct: { color: '#22c55e' },
-    timer: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '28px',
-        fontWeight: 700,
-    },
-    questionArea: { minHeight: '350px' },
-    handSnapContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
         gap: '20px',
     },
-    boardLabel: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '12px',
-        color: 'rgba(255,255,255,0.5)',
-        letterSpacing: '2px',
-    },
-    boardCards: {
-        display: 'flex',
-        gap: '8px',
-    },
-    card: {
-        width: '56px',
-        height: '78px',
-        background: '#fff',
-        borderRadius: '8px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '22px',
+    timerDisplay: {
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: '18px',
+        color: '#ef4444',
         fontWeight: 700,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
     },
-    vsLabel: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '16px',
-        color: '#fbbf24',
-        letterSpacing: '2px',
+    scoreDisplay: {
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: '18px',
+        color: '#22c55e',
+        fontWeight: 700,
     },
-    handsRow: {
+    questionArea: {
+        textAlign: 'center',
+    },
+    questionText: {
+        fontSize: '20px',
+        color: '#e5e5e5',
+        marginBottom: '25px',
+    },
+    handsContainer: {
         display: 'flex',
-        alignItems: 'center',
-        gap: '24px',
+        justifyContent: 'center',
+        gap: '30px',
+        marginBottom: '25px',
     },
     handButton: {
-        background: 'linear-gradient(180deg, rgba(251, 191, 36, 0.1), rgba(0,0,0,0.4))',
-        border: '2px solid rgba(251, 191, 36, 0.4)',
-        borderRadius: '16px',
-        padding: '20px 24px',
+        background: 'linear-gradient(180deg, rgba(40, 40, 60, 0.9) 0%, rgba(25, 25, 40, 0.95) 100%)',
+        border: '2px solid rgba(100, 100, 140, 0.4)',
+        borderRadius: '12px',
+        padding: '20px 30px',
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
+        transition: 'all 0.2s',
     },
     handLabel: {
-        fontFamily: 'Orbitron, sans-serif',
+        color: '#9ca3af',
         fontSize: '12px',
-        color: 'rgba(255,255,255,0.7)',
-        marginBottom: '12px',
-        textAlign: 'center',
+        marginBottom: '10px',
+        fontFamily: "'Orbitron', sans-serif",
     },
     handCards: {
         display: 'flex',
         gap: '8px',
     },
-    vsText: {
-        fontFamily: 'Orbitron, sans-serif',
+    card: {
         fontSize: '24px',
-        fontWeight: 900,
-        color: '#fff',
     },
-    boardNutsContainer: {
+    boardDisplay: {
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
-        gap: '20px',
+        justifyContent: 'center',
+        gap: '10px',
+        marginBottom: '25px',
+    },
+    boardLabel: {
+        color: '#9ca3af',
+        fontSize: '14px',
+    },
+    boardCard: {
+        fontSize: '28px',
     },
     optionsGrid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '16px',
+        gap: '15px',
+        maxWidth: '500px',
+        margin: '0 auto',
     },
     optionButton: {
-        background: 'rgba(0,0,0,0.4)',
-        border: '2px solid rgba(255,255,255,0.2)',
-        borderRadius: '12px',
-        padding: '16px',
+        background: 'linear-gradient(180deg, rgba(40, 40, 60, 0.9) 0%, rgba(25, 25, 40, 0.95) 100%)',
+        border: '2px solid rgba(100, 100, 140, 0.4)',
+        borderRadius: '10px',
+        padding: '18px 25px',
+        color: '#e5e5e5',
+        fontSize: '16px',
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
+        fontFamily: "'Orbitron', sans-serif",
     },
-    optionCards: {
-        display: 'flex',
-        gap: '8px',
-        justifyContent: 'center',
-    },
-};
 
-const resultStyles = {
-    container: {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '500px',
-    },
-    card: {
-        background: 'linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)',
-        border: '3px solid',
-        borderRadius: '24px',
-        padding: '40px',
-        maxWidth: '400px',
-        width: '100%',
+    // Result Styles
+    resultArea: {
+        background: 'linear-gradient(180deg, rgba(15, 15, 25, 0.98) 0%, rgba(10, 10, 20, 0.99) 100%)',
+        borderRadius: '15px',
+        padding: '50px',
         textAlign: 'center',
+        border: '2px solid rgba(59, 130, 246, 0.3)',
     },
-    icon: { fontSize: '64px', marginBottom: '16px' },
-    title: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '32px',
-        fontWeight: 900,
-        marginBottom: '24px',
-    },
-    stats: {
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '32px',
-        marginBottom: '24px',
-    },
-    stat: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px',
-    },
-    statLabel: {
-        fontSize: '12px',
-        color: 'rgba(255,255,255,0.5)',
-        textTransform: 'uppercase',
-    },
-    statValue: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '20px',
-        fontWeight: 700,
+    resultTitle: {
+        fontFamily: "'Cinzel', serif",
+        fontSize: '36px',
+        fontWeight: 800,
         color: '#fff',
-    },
-    prizeBox: {
-        background: 'rgba(0,0,0,0.3)',
-        borderRadius: '12px',
-        padding: '16px',
         marginBottom: '20px',
     },
-    prizeRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        padding: '8px 0',
-        fontSize: '14px',
-        color: 'rgba(255,255,255,0.7)',
+    resultStats: {
+        marginBottom: '30px',
     },
-    prizeTotal: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        padding: '12px 0 0',
-        marginTop: '8px',
-        borderTop: '1px solid rgba(255,255,255,0.1)',
-        fontFamily: 'Orbitron, sans-serif',
+    prizeDisplay: {
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: '32px',
+        fontWeight: 700,
+        color: '#22c55e',
+        marginTop: '15px',
+    },
+    backButton: {
+        background: 'linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)',
+        border: 'none',
+        borderRadius: '10px',
+        padding: '15px 40px',
+        color: '#fff',
+        fontFamily: "'Orbitron', sans-serif",
         fontSize: '16px',
         fontWeight: 700,
-        color: '#fff',
-    },
-    balance: {
-        fontSize: '14px',
-        color: 'rgba(255,255,255,0.6)',
-        marginBottom: '24px',
-    },
-    balanceValue: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontWeight: 700,
-        color: '#fff',
-    },
-    actions: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-    },
-    playAgainBtn: {
-        padding: '14px 24px',
-        background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-        border: 'none',
-        borderRadius: '12px',
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '14px',
-        fontWeight: 700,
-        color: '#000',
         cursor: 'pointer',
-    },
-    backBtn: {
-        padding: '14px 24px',
-        background: 'transparent',
-        border: '2px solid rgba(255,255,255,0.3)',
-        borderRadius: '12px',
-        fontSize: '14px',
-        fontWeight: 600,
-        color: 'rgba(255,255,255,0.7)',
-        cursor: 'pointer',
+        boxShadow: '0 4px 20px rgba(59, 130, 246, 0.4)',
     },
 };

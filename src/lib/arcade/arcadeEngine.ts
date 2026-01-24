@@ -164,6 +164,18 @@ export const ARCADE_GAMES: Record<string, ArcadeGame> = {
         questionsCount: 5,
         icon: '🎁',
         color: '#a855f7'
+    },
+    'ev-or-fold': {
+        id: 'ev-or-fold',
+        name: 'EV or Fold',
+        description: 'Is this play +EV or should you fold?',
+        category: 'skill',
+        entryFee: 30,
+        maxPrize: 150,
+        durationSeconds: 90,
+        questionsCount: 12,
+        icon: '🃏',
+        color: '#f97316'
     }
 };
 
