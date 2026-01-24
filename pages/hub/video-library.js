@@ -204,81 +204,81 @@ const FULL_VIDEOS = [
     // ═══════════════════════════════════════════════════════════════════
     // POKERGO - 6 Premium Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'pgo1', videoId: 'tGpQ0mGw8UQ', source: 'POKERGO', type: 'cash', title: 'High Stakes Poker Season 10 - Best Moments', views: '2.8M', duration: '45:22' },
-    { id: 'pgo2', videoId: 'eoWC0O1k4LU', source: 'POKERGO', type: 'cash', title: 'No Gamble, No Future - Phil Hellmuth vs Tom Dwan', views: '1.9M', duration: '38:44' },
-    { id: 'pgo3', videoId: 'yQYqdJ1zfSc', source: 'POKERGO', type: 'cash', title: 'Super High Roller Bowl Final Table', views: '1.5M', duration: '82:18' },
-    { id: 'pgo4', videoId: 'O5tP5qPOjYo', source: 'POKERGO', type: 'tournament', title: 'US Poker Open $25K Main Event', views: '980K', duration: '55:33' },
-    { id: 'pgo5', videoId: 'JqGAs5xP9Jk', source: 'POKERGO', type: 'cash', title: 'Poker After Dark - Million Dollar Cash Game', views: '1.2M', duration: '42:18' },
-    { id: 'pgo6', videoId: 'Gg4kVpKSvn0', source: 'POKERGO', type: 'cash', title: 'Best Bluffs from High Stakes Poker', views: '890K', duration: '28:44' },
+    { id: 'pgo1', videoId: 'wFHgCRnx_JU', source: 'POKERGO', type: 'cash', title: 'High Stakes Poker Season 10 - Best Moments', views: '2.8M', duration: '45:22' },
+    { id: 'pgo2', videoId: 'gqH0Og9Z--k', source: 'POKERGO', type: 'cash', title: 'No Gamble, No Future - Phil Hellmuth vs Tom Dwan', views: '1.9M', duration: '38:44' },
+    { id: 'pgo3', videoId: 'obkeMpIYOqY', source: 'POKERGO', type: 'cash', title: 'Super High Roller Bowl Final Table', views: '1.5M', duration: '82:18' },
+    { id: 'pgo4', videoId: 'Fy6I9DmPrmA', source: 'POKERGO', type: 'tournament', title: 'US Poker Open $25K Main Event', views: '980K', duration: '55:33' },
+    { id: 'pgo5', videoId: '49FxwnBtCFQ', source: 'POKERGO', type: 'cash', title: 'Poker After Dark - Million Dollar Cash Game', views: '1.2M', duration: '42:18' },
+    { id: 'pgo6', videoId: 'o1SIuqZDz2E', source: 'POKERGO', type: 'cash', title: 'Best Bluffs from High Stakes Poker', views: '890K', duration: '28:44' },
 
     // ═══════════════════════════════════════════════════════════════════
     // ANDREW NEEME - 5 Premium Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'neeme1', videoId: 'K9NG-sKKBqI', source: 'NEEME', type: 'cash', title: 'Playing the Lodge with Doug Polk', views: '680K', duration: '42:18' },
-    { id: 'neeme2', videoId: 'qJ8CJLqLaLQ', source: 'NEEME', type: 'cash', title: 'My Biggest Pot EVER at Bellagio 10/20', views: '890K', duration: '38:55' },
-    { id: 'neeme3', videoId: 'Y5E4dMnPNEg', source: 'NEEME', type: 'cash', title: 'I Ran My Trip Aces Into Quads...', views: '520K', duration: '35:22' },
-    { id: 'neeme4', videoId: 'ZxC3pX7jL_o', source: 'NEEME', type: 'cash', title: 'Vegas Cash Game Session - Crushing 5/10', views: '450K', duration: '44:18' },
-    { id: 'neeme5', videoId: '8Rq8VoJgPpE', source: 'NEEME', type: 'cash', title: 'The Reality of Professional Poker', views: '620K', duration: '32:44' },
+    { id: 'neeme1', videoId: 'VknSBaSAX2I', source: 'NEEME', type: 'cash', title: 'Playing the Lodge with Doug Polk', views: '680K', duration: '42:18' },
+    { id: 'neeme2', videoId: 'qeItZFws2Hk', source: 'NEEME', type: 'cash', title: 'My Biggest Pot EVER at Bellagio 10/20', views: '890K', duration: '38:55' },
+    { id: 'neeme3', videoId: 'Dwv4ekxyS3A', source: 'NEEME', type: 'cash', title: 'I Ran My Trip Aces Into Quads...', views: '520K', duration: '35:22' },
+    { id: 'neeme4', videoId: 'rSQpzr24-fY', source: 'NEEME', type: 'cash', title: 'Vegas Cash Game Session - Crushing 5/10', views: '450K', duration: '44:18' },
+    { id: 'neeme5', videoId: 'vXBrOA-AHKY', source: 'NEEME', type: 'cash', title: 'The Reality of Professional Poker', views: '620K', duration: '32:44' },
 
     // ═══════════════════════════════════════════════════════════════════
     // RAMPAGE POKER - 5 Premium Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'ramp1', videoId: 'CeV2q7E3xzE', source: 'RAMPAGE', type: 'cash', title: 'I BLUFFED $100,000 vs Mariano!!', views: '1.4M', duration: '38:22' },
-    { id: 'ramp2', videoId: 'kWG4i00-s2Y', source: 'RAMPAGE', type: 'cash', title: 'Playing $100,000 Pot with POCKET KINGS!', views: '980K', duration: '42:18' },
-    { id: 'ramp3', videoId: '2dcg5-ULoFk', source: 'RAMPAGE', type: 'tournament', title: 'DEEP RUN in WSOP Main Event', views: '1.8M', duration: '55:44' },
-    { id: 'ramp4', videoId: 'qD8Ky9B6Vws', source: 'RAMPAGE', type: 'cash', title: 'GOING ON TILT at the Lodge!', views: '720K', duration: '35:22' },
-    { id: 'ramp5', videoId: 'GmW5R1t0n6s', source: 'RAMPAGE', type: 'cash', title: 'MY CRAZIEST BLUFF EVER CAUGHT ON STREAM', views: '1.1M', duration: '28:55' },
+    { id: 'ramp1', videoId: '6vyO89eugpA', source: 'RAMPAGE', type: 'cash', title: 'I BLUFFED $100,000 vs Mariano!!', views: '1.4M', duration: '38:22' },
+    { id: 'ramp2', videoId: 'IVGRM1OF-oo', source: 'RAMPAGE', type: 'cash', title: 'Playing $100,000 Pot with POCKET KINGS!', views: '980K', duration: '42:18' },
+    { id: 'ramp3', videoId: 'Fx3TLCUpRNc', source: 'RAMPAGE', type: 'tournament', title: 'DEEP RUN in WSOP Main Event', views: '1.8M', duration: '55:44' },
+    { id: 'ramp4', videoId: '9ucgJSjFZc4', source: 'RAMPAGE', type: 'cash', title: 'GOING ON TILT at the Lodge!', views: '720K', duration: '35:22' },
+    { id: 'ramp5', videoId: 'UNDaUcrBGPY', source: 'RAMPAGE', type: 'cash', title: 'MY CRAZIEST BLUFF EVER CAUGHT ON STREAM', views: '1.1M', duration: '28:55' },
 
     // ═══════════════════════════════════════════════════════════════════
     // MARIANO - 4 Premium Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'mari1', videoId: 'IJvX9qHGHXE', source: 'MARIANO', type: 'cash', title: 'My TOP 10 Best Poker Hands', views: '1.2M', duration: '32:18' },
-    { id: 'mari2', videoId: 'LZT5fQlGWjo', source: 'MARIANO', type: 'cash', title: 'Crushing High Stakes at the Lodge $179K Pot!', views: '890K', duration: '28:44' },
-    { id: 'mari3', videoId: 'w9bN8iBJ6_0', source: 'MARIANO', type: 'cash', title: 'I HERO CALLED with Queen High and WON!', views: '680K', duration: '22:22' },
-    { id: 'mari4', videoId: 'xVlmH5dwFno', source: 'MARIANO', type: 'cash', title: 'The Most BRUTAL Hands This Year', views: '950K', duration: '35:55' },
+    { id: 'mari1', videoId: 'uYVmCE6meLI', source: 'MARIANO', type: 'cash', title: 'My TOP 10 Best Poker Hands', views: '1.2M', duration: '32:18' },
+    { id: 'mari2', videoId: 'Wo1mGd8_XXE', source: 'MARIANO', type: 'cash', title: 'Crushing High Stakes at the Lodge $179K Pot!', views: '890K', duration: '28:44' },
+    { id: 'mari3', videoId: 'uvCjBlQXupw', source: 'MARIANO', type: 'cash', title: 'I HERO CALLED with Queen High and WON!', views: '680K', duration: '22:22' },
+    { id: 'mari4', videoId: 'kCfNqGeHWpM', source: 'MARIANO', type: 'cash', title: 'The Most BRUTAL Hands This Year', views: '950K', duration: '35:55' },
 
     // ═══════════════════════════════════════════════════════════════════
     // WOLFGANG POKER - 4 Premium Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'wolf1', videoId: 'hPn6aJqcpRQ', source: 'WOLFGANG', type: 'cash', title: 'Playing High Stakes with Rampage and Mariano', views: '580K', duration: '42:18' },
-    { id: 'wolf2', videoId: 'TMfV6L3B4Dc', source: 'WOLFGANG', type: 'tournament', title: 'WSOP Vlog - Deep Run Dreams', views: '450K', duration: '38:44' },
-    { id: 'wolf3', videoId: 'n8kh_tPsRR0', source: 'WOLFGANG', type: 'cash', title: 'I Win My BIGGEST Pot EVER at $5/10', views: '620K', duration: '35:22' },
-    { id: 'wolf4', videoId: 'YUwZVb5z8TU', source: 'WOLFGANG', type: 'cash', title: 'Short Form Poker Content is INSANE!', views: '380K', duration: '18:55' },
+    { id: 'wolf1', videoId: 'CTZeYizF-g0', source: 'WOLFGANG', type: 'cash', title: 'Playing High Stakes with Rampage and Mariano', views: '580K', duration: '42:18' },
+    { id: 'wolf2', videoId: 'clZ-r2QDcbY', source: 'WOLFGANG', type: 'tournament', title: 'WSOP Vlog - Deep Run Dreams', views: '450K', duration: '38:44' },
+    { id: 'wolf3', videoId: 's0WWs2e2Vhc', source: 'WOLFGANG', type: 'cash', title: 'I Win My BIGGEST Pot EVER at $5/10', views: '620K', duration: '35:22' },
+    { id: 'wolf4', videoId: '8XbnLzZIy7Q', source: 'WOLFGANG', type: 'cash', title: 'Short Form Poker Content is INSANE!', views: '380K', duration: '18:55' },
 
     // ═══════════════════════════════════════════════════════════════════
     // JONATHAN LITTLE - 5 Training Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'jl1', videoId: 'Hn7SB8PZtT4', source: 'JLITTLE', type: 'cash', title: 'Avoid These 5 COSTLY Poker Mistakes', views: '2.1M', duration: '22:18' },
-    { id: 'jl2', videoId: '1mR0FrdxwsE', source: 'JLITTLE', type: 'cash', title: 'When and How to BLUFF Like a Pro', views: '1.5M', duration: '28:44' },
-    { id: 'jl3', videoId: 'eMxHVdQrWYs', source: 'JLITTLE', type: 'cash', title: 'Hand Reading Explained - From Beginner to Pro', views: '1.8M', duration: '35:22' },
-    { id: 'jl4', videoId: 'OwqJe2yVfD8', source: 'JLITTLE', type: 'tournament', title: 'How to Play Deep Stack Tournaments', views: '980K', duration: '42:18' },
-    { id: 'jl5', videoId: 'rV3J7xgN0Bc', source: 'JLITTLE', type: 'cash', title: 'River Betting Strategy Masterclass', views: '720K', duration: '25:55' },
+    { id: 'jl1', videoId: 'dg016Stpa2k', source: 'JLITTLE', type: 'cash', title: 'Avoid These 5 COSTLY Poker Mistakes', views: '2.1M', duration: '22:18' },
+    { id: 'jl2', videoId: 'GSzOSY_IcB4', source: 'JLITTLE', type: 'cash', title: 'When and How to BLUFF Like a Pro', views: '1.5M', duration: '28:44' },
+    { id: 'jl3', videoId: 'nvFsvh4FNok', source: 'JLITTLE', type: 'cash', title: 'Hand Reading Explained - From Beginner to Pro', views: '1.8M', duration: '35:22' },
+    { id: 'jl4', videoId: 'Dhlr255j55o', source: 'JLITTLE', type: 'tournament', title: 'How to Play Deep Stack Tournaments', views: '980K', duration: '42:18' },
+    { id: 'jl5', videoId: 'VrQCQnYlTaM', source: 'JLITTLE', type: 'cash', title: 'River Betting Strategy Masterclass', views: '720K', duration: '25:55' },
 
     // ═══════════════════════════════════════════════════════════════════
     // DOUG POLK - 5 Premium Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'polk1', videoId: 'f97HA5JZxtE', source: 'POLK', type: 'cash', title: 'My HEADS UP Battle vs Daniel Negreanu', views: '4.5M', duration: '55:22' },
-    { id: 'polk2', videoId: 'B3b3oLHLKk4', source: 'POLK', type: 'cash', title: 'Roasting These TERRIBLE Poker Hands', views: '1.8M', duration: '22:18' },
-    { id: 'polk3', videoId: 'QgX9LG5V7xU', source: 'POLK', type: 'cash', title: 'Playing the BIGGEST Game at the Lodge', views: '2.1M', duration: '48:44' },
-    { id: 'polk4', videoId: '0W3bJqOvwQQ', source: 'POLK', type: 'cash', title: 'I Played $1,000,000 Pot vs Tom Dwan', views: '3.2M', duration: '35:22' },
-    { id: 'polk5', videoId: 'Pzp9SZw5u80', source: 'POLK', type: 'cash', title: 'Analyzing Phil Hellmuths WORST Plays', views: '1.5M', duration: '28:55' },
+    { id: 'polk1', videoId: '8J8bN60yP4g', source: 'POLK', type: 'cash', title: 'My HEADS UP Battle vs Daniel Negreanu', views: '4.5M', duration: '55:22' },
+    { id: 'polk2', videoId: 'O9uGvQk00Ew', source: 'POLK', type: 'cash', title: 'Roasting These TERRIBLE Poker Hands', views: '1.8M', duration: '22:18' },
+    { id: 'polk3', videoId: '1RdN2cOf9do', source: 'POLK', type: 'cash', title: 'Playing the BIGGEST Game at the Lodge', views: '2.1M', duration: '48:44' },
+    { id: 'polk4', videoId: 'fdY9bxBd_Sw', source: 'POLK', type: 'cash', title: 'I Played $1,000,000 Pot vs Tom Dwan', views: '3.2M', duration: '35:22' },
+    { id: 'polk5', videoId: 'W7rYpGkS1O0', source: 'POLK', type: 'cash', title: 'Analyzing Phil Hellmuths WORST Plays', views: '1.5M', duration: '28:55' },
 
     // ═══════════════════════════════════════════════════════════════════
     // BART HANSON - 4 Training Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'bart1', videoId: 'Q5z7mxxM1WU', source: 'BART', type: 'cash', title: 'Crush Live Poker - Complete Hand Breakdown', views: '890K', duration: '45:22' },
-    { id: 'bart2', videoId: 'EqTfBHLm5jE', source: 'BART', type: 'cash', title: 'How to Play Live Poker for a Living', views: '1.2M', duration: '38:18' },
-    { id: 'bart3', videoId: '90Xhv9yQ4xE', source: 'BART', type: 'cash', title: 'Reading Your Opponents at the Table', views: '680K', duration: '28:44' },
-    { id: 'bart4', videoId: 'YzG3Xt4BN6g', source: 'BART', type: 'cash', title: 'My Top 10 Poker Tips', views: '550K', duration: '22:55' },
+    { id: 'bart1', videoId: '6kzQkQD_UaM', source: 'BART', type: 'cash', title: 'Crush Live Poker - Complete Hand Breakdown', views: '890K', duration: '45:22' },
+    { id: 'bart2', videoId: '8BJVttAf2Xo', source: 'BART', type: 'cash', title: 'How to Play Live Poker for a Living', views: '1.2M', duration: '38:18' },
+    { id: 'bart3', videoId: 'IQRbD9z5sso', source: 'BART', type: 'cash', title: 'Reading Your Opponents at the Table', views: '680K', duration: '28:44' },
+    { id: 'bart4', videoId: 'uRdY2woHpcw', source: 'BART', type: 'cash', title: 'My Top 10 Poker Tips', views: '550K', duration: '22:55' },
 
     // ═══════════════════════════════════════════════════════════════════
     // DANIEL NEGREANU - 5 Celebrity Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'dn1', videoId: 'rV4SqMoKpN4', source: 'NEGREANU', type: 'cash', title: 'My SOUL READ Destroyed Him at High Stakes', views: '3.8M', duration: '28:22' },
-    { id: 'dn2', videoId: 'mGJgEZ6iIhI', source: 'NEGREANU', type: 'tournament', title: 'WSOP Main Event Vlog - Day 1', views: '1.5M', duration: '42:18' },
-    { id: 'dn3', videoId: 'N1DmUw-gA5w', source: 'NEGREANU', type: 'cash', title: 'Playing High Stakes Poker on PokerGO', views: '2.1M', duration: '55:44' },
-    { id: 'dn4', videoId: 'ZVd6s_OMUMY', source: 'NEGREANU', type: 'tournament', title: 'My BIGGEST Tournament Win Ever', views: '2.8M', duration: '48:22' },
-    { id: 'dn5', videoId: '9r8rTT7fmHU', source: 'NEGREANU', type: 'cash', title: 'Daniel vs Doug Polk - The Rematch', views: '1.9M', duration: '35:55' },
+    { id: 'dn1', videoId: '9RMgHjToDFw', source: 'NEGREANU', type: 'cash', title: 'My SOUL READ Destroyed Him at High Stakes', views: '3.8M', duration: '28:22' },
+    { id: 'dn2', videoId: 'FGytzJRnXsg', source: 'NEGREANU', type: 'tournament', title: 'WSOP Main Event Vlog - Day 1', views: '1.5M', duration: '42:18' },
+    { id: 'dn3', videoId: 'AhfeoNu7EnA', source: 'NEGREANU', type: 'cash', title: 'Playing High Stakes Poker on PokerGO', views: '2.1M', duration: '55:44' },
+    { id: 'dn4', videoId: '3RQ5CyN_VGE', source: 'NEGREANU', type: 'tournament', title: 'My BIGGEST Tournament Win Ever', views: '2.8M', duration: '48:22' },
+    { id: 'dn5', videoId: 'RTvaz9x7ER0', source: 'NEGREANU', type: 'cash', title: 'Daniel vs Doug Polk - The Rematch', views: '1.9M', duration: '35:55' },
 
     // ═══════════════════════════════════════════════════════════════════
     // PHIL HELLMUTH - 4 Celebrity Episodes (Real YouTube IDs)
