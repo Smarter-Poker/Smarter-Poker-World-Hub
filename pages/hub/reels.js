@@ -42,11 +42,29 @@ export default function ReelsPage() {
     const [reels, setReels] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [muted, setMuted] = useState(false);
+    const [muted, setMuted] = useState(true); // MUST be true for autoplay to work
     const [liked, setLiked] = useState({});
     const containerRef = useRef(null);
+    const iframeRef = useRef(null);
     const touchStartY = useRef(0);
     const router = useRouter();
+
+    // YouTube API: Send command to iframe via postMessage
+    const sendYouTubeCommand = (command, args = []) => {
+        if (iframeRef.current?.contentWindow) {
+            iframeRef.current.contentWindow.postMessage(JSON.stringify({
+                event: 'command',
+                func: command,
+                args: args
+            }), '*');
+        }
+    };
+
+    const handleUnmute = () => {
+        sendYouTubeCommand('unMute');
+        sendYouTubeCommand('setVolume', [100]);
+        setMuted(false);
+    };
 
     useEffect(() => {
         loadReels();
@@ -237,11 +255,11 @@ export default function ReelsPage() {
                     Reels
                 </div>
 
-                {/* YouTube Video - TRUE FULL SCREEN */}
                 {videoId ? (
                     <iframe
+                        ref={iframeRef}
                         key={currentReel?.id}
-                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
+                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
                         title="Poker Reel"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                         allowFullScreen
@@ -366,7 +384,7 @@ export default function ReelsPage() {
                     </button>
 
                     {/* Sound */}
-                    <button onClick={() => setMuted(prev => !prev)} style={{
+                    <button onClick={muted ? handleUnmute : () => setMuted(true)} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
