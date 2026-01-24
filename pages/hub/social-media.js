@@ -1075,7 +1075,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >Live Video</button>
+                    >Go Live</button>
                     <span style={{ color: '#BCC0C4' }}>·</span>
                     <Link
                         href="/hub/reels"
