@@ -14,6 +14,7 @@ import { supabase } from '../../../src/lib/supabase';
 // Components
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import ArticleCard from '../../../src/components/social/ArticleCard';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -150,6 +151,8 @@ function PokerResumeBadge({ hendonData }) {
 
 // Post Card Component
 function PostCard({ post, author }) {
+    const isArticleOrLink = post.content_type === 'article' || post.content_type === 'link';
+
     return (
         <div style={{ background: C.card, borderRadius: 12, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             <div style={{ padding: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -162,7 +165,20 @@ function PostCard({ post, author }) {
             {post.content && (
                 <div style={{ padding: '0 12px 12px', fontSize: 15, color: C.text, lineHeight: 1.4 }}>{post.content}</div>
             )}
-            {post.media_urls?.length > 0 && (
+            {isArticleOrLink ? (
+                // Use centralized ArticleCard for article/link posts
+                <ArticleCard
+                    url={post.link_url || (() => {
+                        const match = post.content?.match(/https?:\/\/[^\s"'<>]+/);
+                        return match ? match[0] : null;
+                    })()}
+                    title={post.link_title}
+                    description={post.link_description}
+                    image={post.link_image || post.media_urls?.[0]}
+                    siteName={post.link_site_name}
+                    fallbackContent={post.content}
+                />
+            ) : post.media_urls?.length > 0 && (
                 <div>
                     {post.media_urls.length === 1 ? (
                         post.content_type === 'video' ? (
