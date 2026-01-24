@@ -18,6 +18,7 @@ import { SoundEngine } from '../src/audio/SoundEngine';
 import { AvatarProvider } from '../src/contexts/AvatarContext';
 import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
 import ToastContainer from '../src/components/ui/ToastContainer';
+import { PushNotificationProvider } from '../src/components/captain/shared/PushNotificationProvider';
 
 // Dynamic import to avoid SSR issues with celebration animations
 const CelebrationManager = dynamic(
@@ -193,9 +194,11 @@ export default function App({ Component, pageProps }) {
           <AvatarProvider>
             <ExternalLinkProvider>
               <NavigationGuard>
-                <Component {...pageProps} />
-                <CelebrationManager />
-                <ToastContainer />
+                <PushNotificationProvider>
+                  <Component {...pageProps} />
+                  <CelebrationManager />
+                  <ToastContainer />
+                </PushNotificationProvider>
               </NavigationGuard>
             </ExternalLinkProvider>
           </AvatarProvider>
