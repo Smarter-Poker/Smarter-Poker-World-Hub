@@ -19,7 +19,7 @@ const C = {
 };
 
 export function GoLiveModal({ isOpen, onClose, user }) {
-    const [stage, setStage] = useState('setup'); // setup, preview, live, ended
+    const [stage, setStage] = useState('preview'); // preview, live, ended (auto-request camera)
     const [title, setTitle] = useState('');
     const [error, setError] = useState('');
     const [viewerCount, setViewerCount] = useState(0);
@@ -39,7 +39,7 @@ export function GoLiveModal({ isOpen, onClose, user }) {
 
     // Request camera/mic access when modal opens
     useEffect(() => {
-        if (isOpen && stage === 'setup') {
+        if (isOpen) {
             requestMediaAccess();
         }
         return () => {
@@ -399,6 +399,8 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     fontSize: 16,
                                     outline: 'none',
                                     boxSizing: 'border-box',
+                                    color: C.text,
+                                    background: 'white',
                                 }}
                             />
 

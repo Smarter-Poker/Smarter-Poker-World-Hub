@@ -246,6 +246,8 @@ export function EndStreamModal({
                             fontSize: 15,
                             outline: 'none',
                             boxSizing: 'border-box',
+                            color: C.text,
+                            background: 'white',
                         }}
                     />
                 </div>
