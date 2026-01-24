@@ -1796,9 +1796,13 @@ export default function SocialMediaPage() {
             setPosts(prev => [{
                 id: data.id, authorId: user.id, content, contentType: type,
                 mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
-                timeAgo: 'Just now', isLiked: false,
+                timeAgo: 'Just now', isLiked: false, justPosted: true, // Mark as just posted for highlight
                 author: { name: user.name, avatar: user.avatar }
             }, ...prev]);
+
+            // Scroll to top of feed so user sees their new post immediately (Facebook behavior)
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
             return true;
         } catch (e) { console.error('Post error:', e); return false; }
         finally { setIsPosting(false); }
