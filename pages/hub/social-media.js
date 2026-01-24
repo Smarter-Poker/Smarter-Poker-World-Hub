@@ -1078,6 +1078,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
 }
 
 function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onComment }) {
+    const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
     const [showComments, setShowComments] = useState(false);
@@ -1181,7 +1182,7 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                             // VIDEO: Use VideoPostWrapper to handle broken video detection
                             <VideoPostWrapper
                                 url={post.mediaUrls[0]}
-                                onValidVideoClick={(url) => setFullScreenVideo(url)}
+                                onValidVideoClick={() => router.push('/hub/reels')}
                             >
                                 <video
                                     src={post.mediaUrls[0]}
@@ -1512,13 +1513,32 @@ export default function SocialMediaPage() {
                         } : null
                     });
                     await loadContacts(authUser.id);
-                    // Load notifications
+                    // Load notifications with actor profile data
                     const { data: notifs } = await supabase.from('notifications')
                         .select('*')
                         .eq('user_id', authUser.id)
                         .order('created_at', { ascending: false })
                         .limit(20);
-                    if (notifs) setNotifications(notifs);
+                    if (notifs && notifs.length > 0) {
+                        // Get unique actor IDs and fetch their profiles
+                        const actorIds = [...new Set(notifs.map(n => n.actor_id).filter(Boolean))];
+                        if (actorIds.length > 0) {
+                            const { data: profiles } = await supabase.from('profiles')
+                                .select('id, username, full_name, avatar_url')
+                                .in('id', actorIds);
+                            const profileMap = {};
+                            (profiles || []).forEach(p => { profileMap[p.id] = p; });
+                            // Merge actor profile data into notifications
+                            const enrichedNotifs = notifs.map(n => ({
+                                ...n,
+                                actor_avatar_url: profileMap[n.actor_id]?.avatar_url || null,
+                                actor_name: profileMap[n.actor_id]?.full_name || profileMap[n.actor_id]?.username || n.title
+                            }));
+                            setNotifications(enrichedNotifs);
+                        } else {
+                            setNotifications(notifs);
+                        }
+                    }
                 } else {
                     console.log('[Social] No authenticated user found');
                 }

@@ -1,14 +1,13 @@
 /**
  * REELS PAGE - TikTok-style Full-Screen Vertical Video Experience
- * Swipe up/down to navigate, tap to mute/unmute
+ * Tap left/right edges to navigate, video autoplays (muted for browser compliance)
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import Link from 'next/link';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 const C = {
     bg: '#000000',
@@ -42,10 +41,8 @@ export default function ReelsPage() {
     const [reels, setReels] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [muted, setMuted] = useState(false);
+    const [muted, setMuted] = useState(true); // Start muted for autoplay compliance
     const [liked, setLiked] = useState({});
-    const containerRef = useRef(null);
-    const touchStartY = useRef(0);
     const router = useRouter();
 
     useEffect(() => {
@@ -84,7 +81,6 @@ export default function ReelsPage() {
                         profiles: profileMap[post.author_id] || { username: 'Anonymous' },
                     }));
 
-                // Shuffle for variety
                 const shuffled = mappedReels.sort(() => Math.random() - 0.5);
                 setReels(shuffled);
             }
@@ -120,42 +116,6 @@ export default function ReelsPage() {
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
     }, [currentIndex, router]);
-
-    // Touch swipe navigation
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const handleTouchStart = (e) => {
-            touchStartY.current = e.touches[0].clientY;
-        };
-
-        const handleTouchEnd = (e) => {
-            const endY = e.changedTouches[0].clientY;
-            const diff = touchStartY.current - endY;
-            if (diff > 80) goNext();  // Swipe up = next
-            if (diff < -80) goPrev(); // Swipe down = previous
-        };
-
-        // Mouse wheel
-        let wheelTimeout = null;
-        const handleWheel = (e) => {
-            e.preventDefault();
-            if (wheelTimeout) return;
-            wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 400);
-            if (e.deltaY > 30) goNext();
-            if (e.deltaY < -30) goPrev();
-        };
-
-        container.addEventListener('touchstart', handleTouchStart, { passive: true });
-        container.addEventListener('touchend', handleTouchEnd, { passive: true });
-        container.addEventListener('wheel', handleWheel, { passive: false });
-        return () => {
-            container.removeEventListener('touchstart', handleTouchStart);
-            container.removeEventListener('touchend', handleTouchEnd);
-            container.removeEventListener('wheel', handleWheel);
-        };
-    }, [currentIndex]);
 
     if (loading) {
         return (
@@ -208,22 +168,15 @@ export default function ReelsPage() {
             </Head>
 
             {/* Full-screen container */}
-            <div
-                ref={containerRef}
-                style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: C.bg,
-                    overflow: 'hidden',
-                }}
-            >
+            <div style={{ position: 'fixed', inset: 0, background: C.bg, overflow: 'hidden' }}>
+
                 {/* Back button */}
                 <Link
                     href="/hub/social-media"
                     style={{
-                        position: 'absolute', top: 16, left: 16, zIndex: 100,
+                        position: 'absolute', top: 16, left: 16, zIndex: 200,
                         width: 44, height: 44, borderRadius: '50%',
-                        background: 'rgba(0,0,0,0.5)',
+                        background: 'rgba(0,0,0,0.6)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         color: 'white', fontSize: 20, textDecoration: 'none',
                     }}
@@ -232,98 +185,118 @@ export default function ReelsPage() {
                 {/* Title */}
                 <div style={{
                     position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
-                    color: 'white', fontWeight: 700, fontSize: 18, zIndex: 100,
+                    color: 'white', fontWeight: 700, fontSize: 18, zIndex: 200,
                 }}>
                     Reels
                 </div>
 
-                {/* YouTube Video - TRUE FULL SCREEN */}
-                {videoId ? (
+                {/* YouTube Video - AUTOPLAY with mute for browser compliance */}
+                {videoId && (
                     <iframe
-                        key={currentReel?.id}
-                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
+                        key={`${currentReel?.id}-${muted}`}
+                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
                         title="Poker Reel"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                         allowFullScreen
                         style={{
                             position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
+                            top: 0, left: 0,
+                            width: '100%', height: '100%',
                             border: 'none',
+                            pointerEvents: 'auto',
                         }}
                     />
-                ) : (
-                    <div style={{
-                        width: '100%', height: '100%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666',
-                    }}>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 48, marginBottom: 8 }}>🎬</div>
-                            <div>Video loading...</div>
-                        </div>
-                    </div>
                 )}
 
-                {/* TOUCH OVERLAY - Captures swipe gestures over the video */}
+                {/* LEFT TAP ZONE - Go to previous */}
                 <div
-                    onTouchStart={(e) => { touchStartY.current = e.touches[0].clientY; }}
-                    onTouchEnd={(e) => {
-                        const diff = touchStartY.current - e.changedTouches[0].clientY;
-                        if (diff > 60) goNext();
-                        if (diff < -60) goPrev();
-                    }}
+                    onClick={goPrev}
                     style={{
                         position: 'absolute',
-                        inset: 0,
-                        zIndex: 50,
-                        background: 'transparent',
+                        top: 80, left: 0, bottom: 150,
+                        width: 80,
+                        zIndex: 100,
+                        cursor: currentIndex > 0 ? 'pointer' : 'default',
                     }}
                 />
 
-                {/* VISIBLE NAVIGATION BUTTONS */}
+                {/* RIGHT TAP ZONE - Go to next */}
+                <div
+                    onClick={goNext}
+                    style={{
+                        position: 'absolute',
+                        top: 80, right: 0, bottom: 150,
+                        width: 80,
+                        zIndex: 100,
+                        cursor: currentIndex < reels.length - 1 ? 'pointer' : 'default',
+                    }}
+                />
+
+                {/* BOTTOM TAP ZONE for navigation buttons */}
                 <div style={{
                     position: 'absolute',
-                    bottom: 80,
+                    bottom: 30,
                     left: '50%',
                     transform: 'translateX(-50%)',
                     display: 'flex',
-                    gap: 16,
-                    zIndex: 150,
+                    gap: 24,
+                    zIndex: 200,
                 }}>
                     <button
                         onClick={goPrev}
                         disabled={currentIndex === 0}
                         style={{
-                            width: 56, height: 56, borderRadius: '50%',
-                            background: currentIndex === 0 ? 'rgba(100,100,100,0.3)' : 'rgba(255,255,255,0.2)',
+                            width: 60, height: 60, borderRadius: '50%',
+                            background: currentIndex === 0 ? 'rgba(50,50,50,0.6)' : 'rgba(255,255,255,0.25)',
                             backdropFilter: 'blur(8px)',
-                            border: '2px solid rgba(255,255,255,0.3)',
-                            color: 'white', fontSize: 24, cursor: currentIndex === 0 ? 'default' : 'pointer',
+                            border: '2px solid rgba(255,255,255,0.4)',
+                            color: 'white', fontSize: 28,
+                            cursor: currentIndex === 0 ? 'default' : 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}
-                    >▲</button>
+                    >↑</button>
                     <button
                         onClick={goNext}
                         disabled={currentIndex === reels.length - 1}
                         style={{
-                            width: 56, height: 56, borderRadius: '50%',
-                            background: currentIndex === reels.length - 1 ? 'rgba(100,100,100,0.3)' : 'rgba(255,255,255,0.2)',
+                            width: 60, height: 60, borderRadius: '50%',
+                            background: currentIndex === reels.length - 1 ? 'rgba(50,50,50,0.6)' : 'rgba(255,255,255,0.25)',
                             backdropFilter: 'blur(8px)',
-                            border: '2px solid rgba(255,255,255,0.3)',
-                            color: 'white', fontSize: 24, cursor: currentIndex === reels.length - 1 ? 'default' : 'pointer',
+                            border: '2px solid rgba(255,255,255,0.4)',
+                            color: 'white', fontSize: 28,
+                            cursor: currentIndex === reels.length - 1 ? 'default' : 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}
-                    >▼</button>
+                    >↓</button>
                 </div>
+
+                {/* Unmute button - prominent since video starts muted */}
+                {muted && (
+                    <button
+                        onClick={() => setMuted(false)}
+                        style={{
+                            position: 'absolute',
+                            top: '50%', left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            zIndex: 200,
+                            width: 80, height: 80, borderRadius: '50%',
+                            background: 'rgba(255,255,255,0.2)',
+                            backdropFilter: 'blur(10px)',
+                            border: '3px solid white',
+                            color: 'white', fontSize: 36,
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            animation: 'pulse 2s infinite',
+                        }}
+                    >🔊</button>
+                )}
+
+                {/* Author info overlay */}
                 <div style={{
-                    position: 'absolute', bottom: 120, left: 16, right: 80, zIndex: 100,
+                    position: 'absolute', bottom: 120, left: 16, right: 100, zIndex: 150,
+                    pointerEvents: 'none',
                 }}>
-                    <Link href={`/hub/user/${currentReel?.profiles?.username}`} style={{
-                        display: 'flex', alignItems: 'center', gap: 12,
-                        textDecoration: 'none', marginBottom: 12,
-                    }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                         <img
                             src={currentReel?.profiles?.avatar_url || '/default-avatar.png'}
                             style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid white' }}
@@ -336,25 +309,22 @@ export default function ReelsPage() {
                                 {timeAgo(currentReel?.created_at)}
                             </div>
                         </div>
-                    </Link>
-
+                    </div>
                     {currentReel?.caption && (
                         <p style={{
                             color: 'white', fontSize: 14, margin: 0,
                             textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-                            maxWidth: '80%',
                         }}>
-                            {currentReel.caption.length > 100 ? currentReel.caption.slice(0, 100) + '...' : currentReel.caption}
+                            {currentReel.caption.length > 80 ? currentReel.caption.slice(0, 80) + '...' : currentReel.caption}
                         </p>
                     )}
                 </div>
 
                 {/* Action buttons (right side) */}
                 <div style={{
-                    position: 'absolute', bottom: 140, right: 16,
-                    display: 'flex', flexDirection: 'column', gap: 20, zIndex: 100,
+                    position: 'absolute', bottom: 180, right: 12,
+                    display: 'flex', flexDirection: 'column', gap: 16, zIndex: 150,
                 }}>
-                    {/* Like */}
                     <button onClick={handleLike} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -362,30 +332,11 @@ export default function ReelsPage() {
                         <span style={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
                             {liked[currentReel?.id] ? '❤️' : '🤍'}
                         </span>
-                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                        <span style={{ color: 'white', fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                             {(currentReel?.like_count || 0) + (liked[currentReel?.id] ? 1 : 0)}
                         </span>
                     </button>
 
-                    {/* Comment */}
-                    <button style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    }}>
-                        <span style={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>💬</span>
-                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Comment</span>
-                    </button>
-
-                    {/* Share */}
-                    <button style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    }}>
-                        <span style={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>📤</span>
-                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Share</span>
-                    </button>
-
-                    {/* Sound */}
                     <button onClick={() => setMuted(prev => !prev)} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -396,22 +347,24 @@ export default function ReelsPage() {
                     </button>
                 </div>
 
-                {/* Swipe instruction */}
-                <div style={{
-                    position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100,
-                }}>
-                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Swipe up for next</span>
-                    <span style={{ fontSize: 20, marginTop: 4, color: 'rgba(255,255,255,0.6)' }}>↑</span>
-                </div>
-
                 {/* Counter */}
                 <div style={{
-                    position: 'absolute', bottom: 20, right: 16, zIndex: 100,
-                    color: C.textSec, fontSize: 12,
+                    position: 'absolute', top: 20, right: 16, zIndex: 200,
+                    color: C.textSec, fontSize: 14,
+                    background: 'rgba(0,0,0,0.5)',
+                    padding: '4px 10px',
+                    borderRadius: 12,
                 }}>
                     {currentIndex + 1} / {reels.length}
                 </div>
+
+                {/* Pulse animation for unmute button */}
+                <style jsx global>{`
+                    @keyframes pulse {
+                        0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                        50% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.9; }
+                    }
+                `}</style>
             </div>
         </>
     );

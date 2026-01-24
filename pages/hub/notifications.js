@@ -45,7 +45,32 @@ export default function NotificationsPage() {
                     .eq('user_id', au.id)
                     .order('created_at', { ascending: false })
                     .limit(50);
-                if (data) setNotifications(data);
+                if (data && data.length > 0) {
+                    // Fetch actor profiles for avatars
+                    const actorIds = [...new Set(data.map(n => n.actor_id).filter(Boolean))];
+                    if (actorIds.length > 0) {
+                        const { data: profiles } = await supabase.from('profiles')
+                            .select('id, username, full_name, avatar_url')
+                            .in('id', actorIds);
+                        const profileMap = {};
+                        (profiles || []).forEach(p => { profileMap[p.id] = p; });
+                        // Merge actor data
+                        const enriched = data.map(n => ({
+                            ...n,
+                            actor_avatar_url: profileMap[n.actor_id]?.avatar_url || null,
+                            actor_name: profileMap[n.actor_id]?.full_name || profileMap[n.actor_id]?.username || n.title
+                        }));
+                        setNotifications(enriched);
+                        // Auto-mark as read
+                        const unreadIds = data.filter(n => !n.read).map(n => n.id);
+                        if (unreadIds.length > 0) {
+                            await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+                            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                        }
+                    } else {
+                        setNotifications(data);
+                    }
+                }
             }
             setLoading(false);
         };
@@ -120,34 +145,51 @@ export default function NotificationsPage() {
                             <p style={{ color: C.textSec }}>When someone likes, comments, or tags you, you'll see it here.</p>
                         </div>
                     ) : (
-                        notifications.map(n => (
-                            <div
-                                key={n.id}
-                                onClick={() => !n.read && markAsRead(n.id)}
-                                style={{
-                                    padding: 16, display: 'flex', gap: 12, alignItems: 'flex-start',
-                                    background: n.read ? C.card : 'rgba(24, 119, 242, 0.05)',
-                                    borderBottom: `1px solid ${C.border}`, cursor: 'pointer'
-                                }}
-                            >
-                                <div style={{
-                                    width: 56, height: 56, borderRadius: '50%',
-                                    background: n.type === 'like' ? '#ff6b6b' : n.type === 'comment' ? C.blue : n.type === 'mention' ? '#7c3aed' : n.type === 'friend_request' ? C.green : n.type === 'new_follow' ? '#ec4899' : n.type === 'friend_accepted' ? C.green : C.textSec,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 24, flexShrink: 0
-                                }}>
-                                    {n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : n.type === 'friend_accepted' ? '✓' : n.type === 'new_follow' ? '💜' : '🔔'}
+                        notifications.map(n => {
+                            const actionIcon = n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : n.type === 'friend_accepted' ? '✓' : n.type === 'new_follow' ? '💜' : n.type === 'live' ? '🔴' : '🔔';
+                            const iconBg = n.type === 'like' ? '#1877F2' : n.type === 'comment' ? '#44BD32' : n.type === 'live' ? '#FA383E' : n.type === 'friend_request' || n.type === 'friend_accepted' ? '#42B72A' : '#65676B';
+
+                            return (
+                                <div
+                                    key={n.id}
+                                    style={{
+                                        padding: 16, display: 'flex', gap: 12, alignItems: 'flex-start',
+                                        background: n.read ? C.card : 'rgba(24, 119, 242, 0.08)',
+                                        borderBottom: `1px solid ${C.border}`, cursor: 'pointer'
+                                    }}
+                                >
+                                    {/* Facebook-style avatar with action icon */}
+                                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                                        <img
+                                            src={n.actor_avatar_url || '/default-avatar.png'}
+                                            style={{
+                                                width: 56, height: 56, borderRadius: '50%',
+                                                objectFit: 'cover', border: '2px solid #ddd'
+                                            }}
+                                        />
+                                        <div style={{
+                                            position: 'absolute', bottom: -2, right: -2,
+                                            width: 24, height: 24, borderRadius: '50%',
+                                            background: iconBg, border: '2px solid white',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: 12
+                                        }}>{actionIcon}</div>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: 15, color: C.text, lineHeight: 1.4 }}>
+                                            <span style={{ fontWeight: 700 }}>{n.actor_name || n.title}</span>
+                                            {' '}{n.message}
+                                        </div>
+                                        <div style={{ fontSize: 12, color: n.read ? C.textSec : C.blue, marginTop: 4, fontWeight: n.read ? 400 : 600 }}>
+                                            {timeAgo(n.created_at)}
+                                        </div>
+                                    </div>
+                                    {!n.read && (
+                                        <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 8 }} />
+                                    )}
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 600, fontSize: 15, color: C.text }}>{n.title}</div>
-                                    <div style={{ fontSize: 14, color: C.textSec, marginTop: 4 }}>{n.message}</div>
-                                    <div style={{ fontSize: 12, color: C.blue, marginTop: 6 }}>{timeAgo(n.created_at)}</div>
-                                </div>
-                                {!n.read && (
-                                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 8 }} />
-                                )}
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
 
