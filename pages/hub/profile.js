@@ -433,20 +433,39 @@ export default function ProfilePage() {
                         }
 
                         // Fetch user's photos (posts with images)
+                        // Uses content_type='photo' and media_urls array is not empty
                         const photosRes = await fetch(
-                            `${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&media_url=neq.null&media_type=eq.image&order=created_at.desc&limit=50&select=id,media_url,content,created_at`,
+                            `${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&content_type=eq.photo&order=created_at.desc&limit=50&select=id,media_urls,content,created_at`,
                             { headers }
                         );
                         const photosData = photosRes.ok ? await photosRes.json() : [];
-                        setUserPhotos(photosData);
+                        // Transform to flatten media_urls array for display
+                        const flatPhotos = photosData.flatMap(post =>
+                            (post.media_urls || []).map((url, idx) => ({
+                                id: `${post.id}-${idx}`,
+                                media_url: url,
+                                content: post.content,
+                                created_at: post.created_at
+                            }))
+                        );
+                        setUserPhotos(flatPhotos);
 
-                        // Fetch user's reels (from video_reels table if exists, otherwise posts with video)
+                        // Fetch user's reels (posts with video content_type)
                         const reelsRes = await fetch(
-                            `${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&media_type=eq.video&order=created_at.desc&limit=50&select=id,media_url,content,created_at,thumbnail_url`,
+                            `${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&content_type=eq.video&order=created_at.desc&limit=50&select=id,media_urls,content,created_at`,
                             { headers }
                         );
                         const reelsData = reelsRes.ok ? await reelsRes.json() : [];
-                        setUserReels(reelsData);
+                        // Transform to flatten media_urls array for video display
+                        const flatReels = reelsData.flatMap(post =>
+                            (post.media_urls || []).map((url, idx) => ({
+                                id: `${post.id}-${idx}`,
+                                media_url: url,
+                                content: post.content,
+                                created_at: post.created_at
+                            }))
+                        );
+                        setUserReels(flatReels);
                     } catch (e) {
                         console.error('[Profile] Error fetching profile:', e);
                     }
