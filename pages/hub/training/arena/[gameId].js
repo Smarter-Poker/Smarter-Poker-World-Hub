@@ -31,62 +31,62 @@ const VILLAIN_AVATARS = [
     '/avatars/free/owl.png',
 ];
 
-// Seat positions - HARDCODED from user's exact manual layout
-// Positions as percentages of table-wrapper container (based on user's 500x667px viewport)
+// Seat positions - HARDCODED to match user's reference layout exactly
+// Position is the seat container, avatar centered at 0,0, badge 120px below
 const SEAT_POSITIONS = {
-    // Bottom center - Hero (250/500 = 50%)
+    // Bottom center - Hero (dragon)
     hero: {
-        left: '50%', top: '75%',
-        avatarOffset: { x: -6, y: 92 },
-        badgeOffset: { x: -1, y: 211 }
+        left: '50%', top: '76%',
+        avatarOffset: { x: 0, y: 0 },
+        badgeOffset: { x: 0, y: 120 }
     },
-    // Bottom left - Villain 1 (90/500 = 18%)
+    // Bottom left - Villain 1 (lion) - on table edge
     seat1: {
-        left: '18%', top: '65%',
-        avatarOffset: { x: -29, y: 65 },
-        badgeOffset: { x: -27, y: 168 }
+        left: '20%', top: '60%',
+        avatarOffset: { x: 0, y: 0 },
+        badgeOffset: { x: 0, y: 120 }
     },
-    // Middle left - Villain 2 (75/500 = 15%)
+    // Middle left - Villain 2 (lion) - on table edge  
     seat2: {
-        left: '15%', top: '45%',
-        avatarOffset: { x: -21, y: 7 },
-        badgeOffset: { x: -25, y: 126 }
+        left: '14%', top: '42%',
+        avatarOffset: { x: 0, y: 0 },
+        badgeOffset: { x: 0, y: 120 }
     },
-    // Upper left - Villain 3 (75/500 = 15%)
+    // Upper left - Villain 3 (wizard) - on table edge
     seat3: {
-        left: '15%', top: '26%',
-        avatarOffset: { x: -15, y: -55 },
-        badgeOffset: { x: -22, y: 64 }
+        left: '16%', top: '22%',
+        avatarOffset: { x: 0, y: 0 },
+        badgeOffset: { x: 0, y: 120 }
     },
-    // Top left - Villain 4 (160/500 = 32%)
+    // Top left - Villain 4 (wolf) - above table
     seat4: {
-        left: '32%', top: '5%',
-        avatarOffset: { x: -5, y: -29 },
-        badgeOffset: { x: -9, y: 90 }
+        left: '32%', top: '12%',
+        avatarOffset: { x: 0, y: 0 },
+        badgeOffset: { x: 0, y: 120 }
     },
-    // Top right - Villain 5 (340/500 = 68%)
+    // Top right - Villain 5 (spartan) - above table
     seat5: {
-        left: '68%', top: '5%',
-        avatarOffset: { x: 17, y: -31 },
-        badgeOffset: { x: 12, y: 87 }
+        left: '68%', top: '12%',
+        avatarOffset: { x: 0, y: 0 },
+        badgeOffset: { x: 0, y: 120 }
     },
-    // Upper right - Villain 6 (425/500 = 85%)
+    // Upper right - Villain 6 (king) - on table edge
     seat6: {
-        left: '85%', top: '26%',
-        avatarOffset: { x: 19, y: -53 },
-        badgeOffset: { x: 18, y: 67 }
+        left: '84%', top: '22%',
+        avatarOffset: { x: 0, y: 0 },
+        badgeOffset: { x: 0, y: 120 }
     },
-    // Middle right - Villain 7 (425/500 = 85%)
+    // Middle right - Villain 7 (young man) - on table edge
     seat7: {
-        left: '85%', top: '45%',
-        avatarOffset: { x: 20, y: 5 },
-        badgeOffset: { x: 19, y: 125 }
+        left: '86%', top: '42%',
+        avatarOffset: { x: 0, y: 0 },
+        badgeOffset: { x: 0, y: 120 }
     },
-    // Bottom right - Villain 8 (410/500 = 82%)
+    // Bottom right - Villain 8 (owl) - on table edge
     seat8: {
-        left: '82%', top: '65%',
-        avatarOffset: { x: 19, y: 68 },
-        badgeOffset: { x: 23, y: 166 }
+        left: '80%', top: '60%',
+        avatarOffset: { x: 0, y: 0 },
+        badgeOffset: { x: 0, y: 120 }
     },
 };
 

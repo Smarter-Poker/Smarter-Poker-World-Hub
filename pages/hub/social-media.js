@@ -1034,6 +1034,15 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                             boxShadow: '0 2px 8px rgba(156, 39, 176, 0.3)'
                         }}
                     >🎬 Reels</Link>
+                    <Link
+                        href="/hub/friends"
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8,
+                            border: 'none', background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                            cursor: 'pointer', color: 'white', fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                            boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)'
+                        }}
+                    >👥 Find Friends</Link>
                 </div>
                 <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1 }}>Post</button>
             </div>
