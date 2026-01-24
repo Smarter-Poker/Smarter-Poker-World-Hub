@@ -1781,7 +1781,15 @@ export default function SocialMediaPage() {
     };
 
     // ♾️ INFINITE SCROLL: IntersectionObserver for triggering load
+    // Note: loadMoreRef is inside a conditional (posts.length > 0), so we need to re-attach
+    // the observer when posts are loaded and the ref becomes available
     useEffect(() => {
+        if (!loadMoreRef.current) {
+            console.log('[Social] IntersectionObserver skipped - loadMoreRef not yet available (waiting for posts)');
+            return;
+        }
+
+        console.log('[Social] IntersectionObserver attached to loadMoreRef');
         const observer = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting) {
@@ -1792,13 +1800,10 @@ export default function SocialMediaPage() {
             { threshold: 0.1, rootMargin: '200px' }
         );
 
-        if (loadMoreRef.current) {
-            console.log('[Social] IntersectionObserver attached to loadMoreRef');
-            observer.observe(loadMoreRef.current);
-        }
+        observer.observe(loadMoreRef.current);
 
         return () => observer.disconnect();
-    }, []); // Empty deps - observer is stable, uses refs for current values
+    }, [posts.length]); // Re-run when posts load (makes ref available)
 
     const handlePost = async (content, urls, type, mentions = []) => {
         if (!user?.id) return false;
