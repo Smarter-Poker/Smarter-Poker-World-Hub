@@ -622,8 +622,73 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                     borderBottomRightRadius: isOwn && !isLastInGroup ? 4 : 18,
                     borderBottomLeftRadius: !isOwn && !isLastInGroup ? 4 : 18,
                     wordBreak: 'break-word',
+                    overflow: 'hidden',
                 }}>
-                    {message.content || message.text}
+                    {/* Render media content (images/videos) */}
+                    {(() => {
+                        const content = message.content || message.text || '';
+
+                        // Check for image markdown: 📷 [Image](url) or direct image URLs
+                        const imageMatch = content.match(/📷\s*\[Image\]\(([^)]+)\)/);
+                        const imageUrl = imageMatch?.[1] || message.media_url;
+
+                        // Check for video markdown: 🎬 [Video](url)
+                        const videoMatch = content.match(/🎬\s*\[Video\]\(([^)]+)\)/);
+                        const videoUrl = videoMatch?.[1];
+
+                        // Check if content is just a direct image/video URL
+                        const directImageUrl = content.match(/^https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)(\?[^\s]*)?$/i);
+                        const directVideoUrl = content.match(/^https?:\/\/[^\s]+\.(mp4|webm|mov)(\?[^\s]*)?$/i);
+
+                        if (imageUrl || directImageUrl) {
+                            const url = imageUrl || directImageUrl[0];
+                            return (
+                                <div style={{ margin: '-8px -12px', borderRadius: 18, overflow: 'hidden' }}>
+                                    <img
+                                        src={url}
+                                        alt="Shared image"
+                                        style={{
+                                            maxWidth: '100%',
+                                            maxHeight: 300,
+                                            display: 'block',
+                                            borderRadius: 12,
+                                            cursor: 'pointer',
+                                        }}
+                                        onClick={() => window.open(url, '_blank')}
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.insertAdjacentHTML('afterend', '<span>📷 Image failed to load</span>');
+                                        }}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        if (videoUrl || directVideoUrl) {
+                            const url = videoUrl || directVideoUrl[0];
+                            return (
+                                <div style={{ margin: '-8px -12px', borderRadius: 18, overflow: 'hidden' }}>
+                                    <video
+                                        src={url}
+                                        controls
+                                        style={{
+                                            maxWidth: '100%',
+                                            maxHeight: 300,
+                                            display: 'block',
+                                            borderRadius: 12,
+                                        }}
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.insertAdjacentHTML('afterend', '<span>🎬 Video failed to load</span>');
+                                        }}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        // Regular text content
+                        return content;
+                    })()}
                 </div>
 
                 {/* Display reactions */}
@@ -858,6 +923,11 @@ export default function MessengerPage() {
     const [totalUnreadCount, setTotalUnreadCount] = useState(0);
     const [onlineUsers, setOnlineUsers] = useState(new Set());
     const [friends, setFriends] = useState([]); // Friends list for quick access
+    // Jitsi Call State
+    const [showCall, setShowCall] = useState(false);
+    const [callType, setCallType] = useState('video'); // 'audio' or 'video'
+    const [callRoomName, setCallRoomName] = useState('');
+    const [showUserInfo, setShowUserInfo] = useState(false);
 
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
@@ -1388,6 +1458,23 @@ export default function MessengerPage() {
         const total = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
         setTotalUnreadCount(total);
     }, [conversations]);
+
+    // Start a Jitsi call
+    const startCall = (type) => {
+        if (!activeConversation || !user) return;
+        // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
+        const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;
+        setCallRoomName(roomName);
+        setCallType(type);
+        setShowCall(true);
+    };
+
+    // End call
+    const endCall = () => {
+        setShowCall(false);
+        setCallRoomName('');
+    };
+
     if (loading) {
         return (
             <div style={{
@@ -1466,6 +1553,65 @@ export default function MessengerPage() {
 
             {/* Toast Notifications */}
             <Toast toast={toast} onDismiss={() => setToast(null)} />
+
+            {/* Jitsi Call Modal */}
+            {showCall && callRoomName && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 9999,
+                    background: '#000',
+                    display: 'flex',
+                    flexDirection: 'column',
+                }}>
+                    {/* Call Header */}
+                    <div style={{
+                        padding: '12px 16px',
+                        background: 'rgba(0,0,0,0.9)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderBottom: '1px solid #333',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <span style={{ fontSize: 20 }}>{callType === 'video' ? '📹' : '📞'}</span>
+                            <div>
+                                <div style={{ color: 'white', fontWeight: 600 }}>
+                                    {callType === 'video' ? 'Video' : 'Voice'} Call with {activeConversation?.otherUser?.username || 'User'}
+                                </div>
+                                <div style={{ color: '#888', fontSize: 12 }}>Powered by Jitsi Meet</div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={endCall}
+                            style={{
+                                padding: '10px 20px',
+                                background: '#E53935',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 8,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                            }}
+                        >
+                            📵 End Call
+                        </button>
+                    </div>
+                    {/* Jitsi Iframe */}
+                    <iframe
+                        src={`https://meet.jit.si/${callRoomName}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=${callType === 'audio'}&userInfo.displayName=${encodeURIComponent(user?.user_metadata?.username || 'User')}`}
+                        style={{
+                            flex: 1,
+                            width: '100%',
+                            border: 'none',
+                        }}
+                        allow="camera; microphone; fullscreen; display-capture; autoplay"
+                    />
+                </div>
+            )}
 
             <div className="messenger-page" style={{
                 display: 'flex',
