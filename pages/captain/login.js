@@ -1,64 +1,93 @@
 /**
- * Captain Staff Login Page - PIN entry for terminal
- * Reference: IMPLEMENTATION_PHASES.md - Step 1.5
+ * Captain Staff Login Page - Venue selection + PIN entry
+ * Based on PokerAtlas TableCaptain / Bravo Poker patterns
  * UI: Facebook color scheme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { KeyRound, Loader2, AlertCircle } from 'lucide-react';
+import { KeyRound, Loader2, MapPin, ChevronRight, ArrowLeft } from 'lucide-react';
 
 export default function CaptainLogin() {
   const router = useRouter();
-  const { venue_id } = router.query;
+  const { venue_id: queryVenueId } = router.query;
 
+  const [step, setStep] = useState('venue'); // 'venue' or 'pin'
+  const [venues, setVenues] = useState([]);
+  const [selectedVenue, setSelectedVenue] = useState(null);
   const [pin, setPin] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState(null);
-  const [venue, setVenue] = useState(null);
 
+  // Fetch captain-enabled venues
   useEffect(() => {
-    if (venue_id) {
-      fetchVenue();
-    }
-  }, [venue_id]);
+    fetchVenues();
+  }, []);
 
-  async function fetchVenue() {
+  // If venue_id in query, auto-select it
+  useEffect(() => {
+    if (queryVenueId && venues.length > 0) {
+      const venue = venues.find(v => v.id === parseInt(queryVenueId));
+      if (venue) {
+        setSelectedVenue(venue);
+        setStep('pin');
+      }
+    }
+  }, [queryVenueId, venues]);
+
+  async function fetchVenues() {
     try {
-      const res = await fetch(`/api/captain/venues/${venue_id}`);
+      const res = await fetch('/api/captain/venues?captain_enabled=true');
       const data = await res.json();
       if (data.success) {
-        setVenue(data.data.venue);
+        setVenues(data.data.venues || []);
       }
     } catch (err) {
-      console.error('Failed to fetch venue:', err);
+      console.error('Failed to fetch venues:', err);
+    } finally {
+      setLoading(false);
     }
   }
 
+  function handleVenueSelect(venue) {
+    setSelectedVenue(venue);
+    setStep('pin');
+    setError(null);
+  }
+
+  function handleBackToVenues() {
+    setStep('venue');
+    setSelectedVenue(null);
+    setPin('');
+    setError(null);
+  }
+
   async function handleSubmit(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (pin.length < 4) return;
 
-    setLoading(true);
+    setVerifying(true);
     setError(null);
 
     try {
       const res = await fetch('/api/captain/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ venue_id, pin_code: pin })
+        body: JSON.stringify({ venue_id: selectedVenue.id, pin_code: pin })
       });
 
       const data = await res.json();
 
       if (data.success && data.data.valid) {
-        // Store staff session
+        // Store staff session with venue info
         localStorage.setItem('captain_staff', JSON.stringify({
           ...data.data.staff,
           permissions: data.data.permissions,
-          venue_id
+          venue_id: selectedVenue.id,
+          venue_name: selectedVenue.name
         }));
-        router.push(`/captain/dashboard?venue_id=${venue_id}`);
+        router.push('/captain/dashboard');
       } else {
         setError('Invalid PIN. Please try again.');
         setPin('');
@@ -66,14 +95,22 @@ export default function CaptainLogin() {
     } catch (err) {
       setError('Connection error. Please try again.');
     } finally {
-      setLoading(false);
+      setVerifying(false);
     }
   }
 
   function handlePinInput(digit) {
-    if (pin.length < 6) {
-      setPin(prev => prev + digit);
+    if (pin.length < 4) {
+      const newPin = pin + digit;
+      setPin(newPin);
       setError(null);
+
+      // Auto-submit when 4 digits entered
+      if (newPin.length === 4) {
+        setTimeout(() => {
+          handleSubmit();
+        }, 200);
+      }
     }
   }
 
@@ -85,18 +122,64 @@ export default function CaptainLogin() {
     setPin('');
   }
 
-  if (!venue_id) {
+  // Venue Selection Screen
+  if (step === 'venue') {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 text-[#EF4444]" />
-          <h1 className="text-xl font-semibold text-[#1F2937]">Venue Required</h1>
-          <p className="text-[#6B7280] mt-2">Please access this page with a venue ID.</p>
+      <>
+        <Head>
+          <title>Staff Login | Smarter Captain</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        </Head>
+
+        <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-start p-4 pt-12">
+          <div className="w-full max-w-md">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-[#1877F2] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <KeyRound className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-[#1F2937]">Staff Login</h1>
+              <p className="text-[#6B7280] mt-1">Select your venue to continue</p>
+            </div>
+
+            {/* Venue List */}
+            <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+              {loading ? (
+                <div className="p-8 text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#1877F2] mx-auto" />
+                  <p className="text-[#6B7280] mt-2">Loading venues...</p>
+                </div>
+              ) : venues.length === 0 ? (
+                <div className="p-8 text-center">
+                  <MapPin className="w-8 h-8 text-[#9CA3AF] mx-auto mb-2" />
+                  <p className="text-[#6B7280]">No venues available</p>
+                  <p className="text-sm text-[#9CA3AF] mt-1">Contact admin to enable Captain</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-[#E5E7EB]">
+                  {venues.map((venue) => (
+                    <button
+                      key={venue.id}
+                      onClick={() => handleVenueSelect(venue)}
+                      className="w-full p-4 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors text-left"
+                    >
+                      <div>
+                        <h3 className="font-semibold text-[#1F2937]">{venue.name}</h3>
+                        <p className="text-sm text-[#6B7280]">{venue.city}, {venue.state}</p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
+  // PIN Entry Screen
   return (
     <>
       <Head>
@@ -106,21 +189,30 @@ export default function CaptainLogin() {
 
       <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm">
+          {/* Back Button */}
+          {!queryVenueId && (
+            <button
+              onClick={handleBackToVenues}
+              className="flex items-center gap-2 text-[#6B7280] hover:text-[#1F2937] mb-6 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span>Change Venue</span>
+            </button>
+          )}
+
           {/* Header */}
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-[#1877F2] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <KeyRound className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-[#1F2937]">Staff Login</h1>
-            {venue && (
-              <p className="text-[#6B7280] mt-1">{venue.name}</p>
-            )}
+            <h1 className="text-2xl font-bold text-[#1F2937]">Enter PIN</h1>
+            <p className="text-[#6B7280] mt-1">{selectedVenue?.name}</p>
           </div>
 
           {/* PIN Display */}
           <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 mb-4">
-            <div className="flex justify-center gap-3 mb-6">
-              {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div className="flex justify-center gap-4 mb-6">
+              {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
                   className={`w-4 h-4 rounded-full transition-colors ${
@@ -143,7 +235,7 @@ export default function CaptainLogin() {
                   key={digit}
                   type="button"
                   onClick={() => handlePinInput(digit.toString())}
-                  disabled={loading}
+                  disabled={verifying}
                   className="h-16 rounded-xl bg-[#F9FAFB] text-2xl font-semibold text-[#1F2937] hover:bg-[#E5E7EB] active:bg-[#D1D5DB] transition-colors disabled:opacity-50"
                 >
                   {digit}
@@ -152,7 +244,7 @@ export default function CaptainLogin() {
               <button
                 type="button"
                 onClick={handleClear}
-                disabled={loading}
+                disabled={verifying}
                 className="h-16 rounded-xl bg-[#F9FAFB] text-sm font-medium text-[#6B7280] hover:bg-[#E5E7EB] active:bg-[#D1D5DB] transition-colors disabled:opacity-50"
               >
                 Clear
@@ -160,7 +252,7 @@ export default function CaptainLogin() {
               <button
                 type="button"
                 onClick={() => handlePinInput('0')}
-                disabled={loading}
+                disabled={verifying}
                 className="h-16 rounded-xl bg-[#F9FAFB] text-2xl font-semibold text-[#1F2937] hover:bg-[#E5E7EB] active:bg-[#D1D5DB] transition-colors disabled:opacity-50"
               >
                 0
@@ -168,7 +260,7 @@ export default function CaptainLogin() {
               <button
                 type="button"
                 onClick={handleBackspace}
-                disabled={loading}
+                disabled={verifying}
                 className="h-16 rounded-xl bg-[#F9FAFB] text-sm font-medium text-[#6B7280] hover:bg-[#E5E7EB] active:bg-[#D1D5DB] transition-colors disabled:opacity-50"
               >
                 Back
@@ -176,21 +268,13 @@ export default function CaptainLogin() {
             </div>
           </div>
 
-          {/* Submit Button */}
-          <button
-            onClick={handleSubmit}
-            disabled={pin.length < 4 || loading}
-            className="w-full h-14 bg-[#1877F2] text-white rounded-xl font-semibold text-lg hover:bg-[#1664d9] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Verifying...
-              </>
-            ) : (
-              'Login'
-            )}
-          </button>
+          {/* Loading indicator */}
+          {verifying && (
+            <div className="text-center">
+              <Loader2 className="w-6 h-6 animate-spin text-[#1877F2] mx-auto" />
+              <p className="text-sm text-[#6B7280] mt-2">Verifying...</p>
+            </div>
+          )}
         </div>
       </div>
     </>

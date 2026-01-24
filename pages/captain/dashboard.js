@@ -1,6 +1,6 @@
 /**
  * Captain Staff Dashboard - Main terminal view
- * Reference: IMPLEMENTATION_PHASES.md - Step 1.5
+ * Based on PokerAtlas TableCaptain / Bravo Poker patterns
  * UI: Facebook color scheme, no emojis, Inter font
  */
 import { useState, useEffect, useCallback } from 'react';
@@ -14,9 +14,9 @@ import ActivityFeed, { createActivity } from '../../src/components/captain/staff
 
 export default function CaptainDashboard() {
   const router = useRouter();
-  const { venue_id } = router.query;
 
   const [staff, setStaff] = useState(null);
+  const [venueId, setVenueId] = useState(null);
   const [venue, setVenue] = useState(null);
   const [games, setGames] = useState([]);
   const [waitlists, setWaitlists] = useState([]);
@@ -26,35 +26,46 @@ export default function CaptainDashboard() {
   const [online, setOnline] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
 
-  // Check staff session
+  // Check staff session on mount
   useEffect(() => {
     const storedStaff = localStorage.getItem('captain_staff');
     if (!storedStaff) {
-      router.push(`/captain/login?venue_id=${venue_id}`);
+      router.push('/captain/login');
       return;
     }
 
-    const staffData = JSON.parse(storedStaff);
-    if (staffData.venue_id !== venue_id) {
+    try {
+      const staffData = JSON.parse(storedStaff);
+      if (!staffData.venue_id) {
+        localStorage.removeItem('captain_staff');
+        router.push('/captain/login');
+        return;
+      }
+
+      setStaff(staffData);
+      setVenueId(staffData.venue_id);
+
+      // Set venue name from stored data if available
+      if (staffData.venue_name) {
+        setVenue({ id: staffData.venue_id, name: staffData.venue_name });
+      }
+    } catch (err) {
       localStorage.removeItem('captain_staff');
-      router.push(`/captain/login?venue_id=${venue_id}`);
-      return;
+      router.push('/captain/login');
     }
-
-    setStaff(staffData);
-  }, [venue_id, router]);
+  }, [router]);
 
   // Fetch data
   const fetchData = useCallback(async (showRefreshing = false) => {
-    if (!venue_id) return;
+    if (!venueId) return;
 
     if (showRefreshing) setRefreshing(true);
 
     try {
       const [venueRes, gamesRes, waitlistRes] = await Promise.all([
-        fetch(`/api/captain/venues/${venue_id}`),
-        fetch(`/api/captain/games/venue/${venue_id}`),
-        fetch(`/api/captain/waitlist/venue/${venue_id}`)
+        fetch(`/api/captain/venues/${venueId}`),
+        fetch(`/api/captain/games/venue/${venueId}`),
+        fetch(`/api/captain/waitlist/venue/${venueId}`)
       ]);
 
       const [venueData, gamesData, waitlistData] = await Promise.all([
@@ -84,23 +95,23 @@ export default function CaptainDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [venue_id]);
+  }, [venueId]);
 
   // Initial fetch and auto-refresh
   useEffect(() => {
-    if (staff && venue_id) {
+    if (staff && venueId) {
       fetchData();
 
       // Auto-refresh every 30 seconds
       const interval = setInterval(() => fetchData(), 30000);
       return () => clearInterval(interval);
     }
-  }, [staff, venue_id, fetchData]);
+  }, [staff, venueId, fetchData]);
 
   // Handle logout
   function handleLogout() {
     localStorage.removeItem('captain_staff');
-    router.push(`/captain/login?venue_id=${venue_id}`);
+    router.push('/captain/login');
   }
 
   // Handle call player
@@ -199,7 +210,7 @@ export default function CaptainDashboard() {
     alert('Add Walk-In modal - to be implemented with full UI');
   }
 
-  if (!staff) {
+  if (!staff || loading) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
         <div className="animate-pulse text-[#6B7280]">Loading...</div>
@@ -221,7 +232,7 @@ export default function CaptainDashboard() {
             <div>
               <h1 className="font-bold text-[#1F2937] text-lg">{venue?.name || 'Loading...'}</h1>
               <p className="text-sm text-[#6B7280]">
-                {staff.display_name} ({staff.role})
+                {staff.display_name || staff.role} ({staff.role})
               </p>
             </div>
 
