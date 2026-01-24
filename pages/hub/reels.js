@@ -308,9 +308,9 @@ export default function ReelsPage() {
                         {currentReel?.video_url && getYouTubeVideoId(currentReel.video_url) ? (
                             <iframe
                                 key={currentReel?.id}
-                                src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${getYouTubeVideoId(currentReel.video_url)}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
+                                src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${getYouTubeVideoId(currentReel.video_url)}&controls=0&showinfo=0&rel=0&modestbranding=1&fs=1&iv_load_policy=3`}
                                 title="Poker Reel"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                                 allowFullScreen
                                 style={{
                                     position: 'absolute',
