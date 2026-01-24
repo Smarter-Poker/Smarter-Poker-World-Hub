@@ -491,7 +491,7 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                     src={getYouTubeEmbedUrl(videoUrl)}
                     style={{
                         width: '100vw',
-                        height: '95vh',
+                        height: '100vh',
                         border: 'none'
                     }}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"

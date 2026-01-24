@@ -1,61 +1,21 @@
 /**
- * REELS PAGE - Facebook-style permanent video archive
- * Videos from Stories are saved here permanently
+ * REELS PAGE - TikTok-style Full-Screen Vertical Video Experience
+ * Swipe up/down to navigate, tap to mute/unmute
  */
 
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { motion } from 'framer-motion';
-import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
-
-// Dynamic import for ReactPlayer (SSR compatibility)
-const ReactPlayer = dynamic(() => import('react-player'), {
-    ssr: false,
-    loading: () => (
-        <div style={{
-            width: '100%',
-            height: '100%',
-            background: '#000',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff'
-        }}>
-            <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 48, marginBottom: 8 }}>🎬</div>
-                <div>Loading video...</div>
-            </div>
-        </div>
-    )
-});
-
-// Extract YouTube video ID from URL
-function getYouTubeVideoId(url) {
-    if (!url) return null;
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s?]+)/);
-    return match ? match[1] : null;
-}
-
-// God-Mode Stack
-import { useReelsStore } from '../../src/stores/reelsStore';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 const C = {
     bg: '#000000',
-    card: '#1C1C1E',
     text: '#FFFFFF',
     textSec: 'rgba(255,255,255,0.7)',
-    border: '#2C2C2E',
-    blue: '#0A84FF',
-    red: '#FF453A',
-    pink: '#FF2D55',
 };
 
-// Time ago helper
 function timeAgo(d) {
     if (!d) return '';
     const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
@@ -65,55 +25,46 @@ function timeAgo(d) {
     return `${Math.floor(s / 86400)}d ago`;
 }
 
+function getYouTubeVideoId(url) {
+    if (!url) return null;
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+    if (shortsMatch) return shortsMatch[1];
+    const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+    if (watchMatch) return watchMatch[1];
+    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+    if (shortMatch) return shortMatch[1];
+    const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
+    if (embedMatch) return embedMatch[1];
+    return null;
+}
+
 export default function ReelsPage() {
     const [reels, setReels] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [muted, setMuted] = useState(true);
+    const [muted, setMuted] = useState(false);
     const [liked, setLiked] = useState({});
-    const [user, setUser] = useState(null);
-    const videoRef = useRef(null);
     const containerRef = useRef(null);
+    const touchStartY = useRef(0);
     const router = useRouter();
 
     useEffect(() => {
-        supabase.auth.getUser().then(({ data }) => {
-            if (data?.user) setUser(data.user);
-        });
         loadReels();
     }, []);
 
     const loadReels = async () => {
         setLoading(true);
         try {
-            // Query video posts from social_posts - this is where horses post clips
-            // NOTE: Not joining profiles directly due to schema cache issue
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('social_posts')
-                .select(`
-                    id,
-                    author_id,
-                    content,
-                    media_urls,
-                    visibility,
-                    like_count,
-                    comment_count,
-                    share_count,
-                    metadata,
-                    created_at
-                `)
+                .select('id, author_id, content, media_urls, like_count, comment_count, created_at')
                 .eq('content_type', 'video')
                 .eq('visibility', 'public')
                 .order('created_at', { ascending: false })
                 .limit(100);
 
-            if (error) {
-                console.error('Load reels error:', error);
-            } else if (data && data.length > 0) {
-                // Get unique author IDs
+            if (data && data.length > 0) {
                 const authorIds = [...new Set(data.map(p => p.author_id))];
-
-                // Fetch profiles separately
                 const { data: profiles } = await supabase
                     .from('profiles')
                     .select('id, username, avatar_url, full_name')
@@ -122,28 +73,20 @@ export default function ReelsPage() {
                 const profileMap = {};
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });
 
-                // Map social_posts fields to reels format
                 const mappedReels = data
                     .filter(post => post.media_urls && post.media_urls.length > 0)
                     .map(post => ({
                         id: post.id,
-                        author_id: post.author_id,
-                        video_url: post.media_urls[0], // First media URL is the video
+                        video_url: post.media_urls[0],
                         caption: post.content,
-                        is_public: post.visibility === 'public',
-                        view_count: Math.floor(Math.random() * 500) + 50, // Placeholder view count
                         like_count: post.like_count || 0,
-                        comment_count: post.comment_count || 0,
-                        share_count: post.share_count || 0,
                         created_at: post.created_at,
-                        profiles: profileMap[post.author_id] || { username: 'Anonymous', full_name: 'Anonymous User' },
-                        source: post.metadata?.source || 'unknown'
+                        profiles: profileMap[post.author_id] || { username: 'Anonymous' },
                     }));
 
-                // Shuffle for random TikTok-style discovery
+                // Shuffle for variety
                 const shuffled = mappedReels.sort(() => Math.random() - 0.5);
                 setReels(shuffled);
-                console.log(`Loaded ${shuffled.length} video reels`);
             }
         } catch (e) {
             console.error('Load reels error:', e);
@@ -154,18 +97,14 @@ export default function ReelsPage() {
     const currentReel = reels[currentIndex];
 
     const goNext = () => {
-        if (currentIndex < reels.length - 1) {
-            setCurrentIndex(prev => prev + 1);
-        }
+        if (currentIndex < reels.length - 1) setCurrentIndex(prev => prev + 1);
     };
 
     const goPrev = () => {
-        if (currentIndex > 0) {
-            setCurrentIndex(prev => prev - 1);
-        }
+        if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
     };
 
-    const handleLike = async () => {
+    const handleLike = () => {
         if (!currentReel) return;
         setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
     };
@@ -180,34 +119,36 @@ export default function ReelsPage() {
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, [currentIndex]);
+    }, [currentIndex, router]);
 
-    // Touch/scroll/wheel navigation
+    // Touch swipe navigation
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
-        let startY = 0;
-        const handleTouchStart = (e) => { startY = e.touches[0].clientY; };
-        const handleTouchEnd = (e) => {
-            const endY = e.changedTouches[0].clientY;
-            const diff = startY - endY;
-            if (diff > 50) goNext();
-            if (diff < -50) goPrev();
+        const handleTouchStart = (e) => {
+            touchStartY.current = e.touches[0].clientY;
         };
 
-        // Mouse wheel navigation
+        const handleTouchEnd = (e) => {
+            const endY = e.changedTouches[0].clientY;
+            const diff = touchStartY.current - endY;
+            if (diff > 80) goNext();  // Swipe up = next
+            if (diff < -80) goPrev(); // Swipe down = previous
+        };
+
+        // Mouse wheel
         let wheelTimeout = null;
         const handleWheel = (e) => {
             e.preventDefault();
-            if (wheelTimeout) return; // Debounce
-            wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 300);
+            if (wheelTimeout) return;
+            wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 400);
             if (e.deltaY > 30) goNext();
             if (e.deltaY < -30) goPrev();
         };
 
-        container.addEventListener('touchstart', handleTouchStart);
-        container.addEventListener('touchend', handleTouchEnd);
+        container.addEventListener('touchstart', handleTouchStart, { passive: true });
+        container.addEventListener('touchend', handleTouchEnd, { passive: true });
         container.addEventListener('wheel', handleWheel, { passive: false });
         return () => {
             container.removeEventListener('touchstart', handleTouchStart);
@@ -221,7 +162,7 @@ export default function ReelsPage() {
             <>
                 <Head><title>Reels | Smarter Poker</title></Head>
                 <div style={{
-                    minHeight: '100vh', background: C.bg,
+                    position: 'fixed', inset: 0, background: C.bg,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                     <div style={{ color: C.text, fontSize: 18 }}>Loading Reels...</div>
@@ -235,23 +176,20 @@ export default function ReelsPage() {
             <>
                 <Head><title>Reels | Smarter Poker</title></Head>
                 <div style={{
-                    minHeight: '100vh', background: C.bg,
+                    position: 'fixed', inset: 0, background: C.bg,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                 }}>
                     <div style={{ fontSize: 64, marginBottom: 16 }}>🎬</div>
                     <h1 style={{ color: C.text, fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
-                        Loading Reels...
+                        No Reels Yet
                     </h1>
                     <p style={{ color: C.textSec, fontSize: 16, marginBottom: 32, textAlign: 'center', maxWidth: 300 }}>
-                        Fresh poker clips are posted hourly. Check back soon for viral moments!
+                        Fresh poker clips are posted hourly!
                     </p>
                     <Link href="/hub/social-media" style={{
                         padding: '12px 32px',
                         background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)',
-                        color: 'white',
-                        borderRadius: 8,
-                        fontWeight: 600,
-                        textDecoration: 'none',
+                        color: 'white', borderRadius: 8, fontWeight: 600, textDecoration: 'none',
                     }}>
                         Back to Feed
                     </Link>
@@ -260,256 +198,171 @@ export default function ReelsPage() {
         );
     }
 
+    const videoId = getYouTubeVideoId(currentReel?.video_url);
+
     return (
         <>
-            <UniversalHeader pageDepth={2} />
             <Head>
                 <title>Reels | Smarter Poker</title>
-                <meta name="viewport" content="width=800, user-scalable=no" />
-                <style>{`
-                    .reels-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
-                    @media (max-width: 500px) { .reels-page { zoom: 0.5; } }
-                    @media (min-width: 501px) and (max-width: 700px) { .reels-page { zoom: 0.75; } }
-                    @media (min-width: 701px) and (max-width: 900px) { .reels-page { zoom: 0.95; } }
-                    @media (min-width: 901px) { .reels-page { zoom: 1.2; } }
-                    @media (min-width: 1400px) { .reels-page { zoom: 1.5; } }
-                `}</style>
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
             </Head>
-            <div className="reels-page"
+
+            {/* Full-screen container */}
+            <div
                 ref={containerRef}
                 style={{
-                    minHeight: '100vh',
+                    position: 'fixed',
+                    inset: 0,
                     background: C.bg,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    overflow: 'hidden',
                 }}
             >
                 {/* Back button */}
                 <Link
                     href="/hub/social-media"
                     style={{
-                        position: 'fixed', top: 20, left: 20,
+                        position: 'absolute', top: 16, left: 16, zIndex: 100,
                         width: 44, height: 44, borderRadius: '50%',
-                        background: 'rgba(255,255,255,0.1)',
-                        border: 'none', color: 'white', fontSize: 20,
-                        cursor: 'pointer', zIndex: 10,
+                        background: 'rgba(0,0,0,0.5)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        textDecoration: 'none',
+                        color: 'white', fontSize: 20, textDecoration: 'none',
                     }}
                 >←</Link>
 
                 {/* Title */}
                 <div style={{
-                    position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
-                    color: 'white', fontWeight: 700, fontSize: 18, zIndex: 10,
+                    position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
+                    color: 'white', fontWeight: 700, fontSize: 18, zIndex: 100,
                 }}>
                     Reels
                 </div>
 
-                {/* Reel container */}
-                <div style={{
-                    width: '100%',
-                    maxWidth: 420,
-                    height: '100vh',
-                    position: 'relative',
-                    background: '#000',
-                }}>
-                    {/* Video Player - YouTube Embed for reliable playback */}
-                    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                        {currentReel?.video_url && getYouTubeVideoId(currentReel.video_url) ? (
-                            <iframe
-                                key={currentReel?.id}
-                                src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${getYouTubeVideoId(currentReel.video_url)}&controls=0&showinfo=0&rel=0&modestbranding=1&fs=1&iv_load_policy=3`}
-                                title="Poker Reel"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                                allowFullScreen
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    height: '100%',
-                                    border: 'none',
-                                }}
-                            />
-                        ) : (
-                            <div style={{
-                                width: '100%',
-                                height: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#666',
-                            }}>
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: 48, marginBottom: 8 }}>🎬</div>
-                                    <div>Video loading...</div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Author info overlay */}
+                {/* YouTube Video - TRUE FULL SCREEN */}
+                {videoId ? (
+                    <iframe
+                        key={currentReel?.id}
+                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
+                        title="Poker Reel"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                        allowFullScreen
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            border: 'none',
+                        }}
+                    />
+                ) : (
                     <div style={{
-                        position: 'absolute', bottom: 80, left: 16, right: 80,
-                        zIndex: 10,
+                        width: '100%', height: '100%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666',
                     }}>
-                        <Link href={`/hub/user/${currentReel?.profiles?.username}`} style={{
-                            display: 'flex', alignItems: 'center', gap: 12,
-                            textDecoration: 'none', marginBottom: 12,
-                        }}>
-                            <img
-                                src={currentReel?.profiles?.avatar_url || '/default-avatar.png'}
-                                style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid white' }}
-                            />
-                            <div>
-                                <div style={{ color: 'white', fontWeight: 600, fontSize: 15 }}>
-                                    {currentReel?.profiles?.full_name || currentReel?.profiles?.username}
-                                </div>
-                                <div style={{ color: C.textSec, fontSize: 12 }}>
-                                    {timeAgo(currentReel?.created_at)}
-                                </div>
-                            </div>
-                        </Link>
-
-                        {currentReel?.caption && (
-                            <p style={{
-                                color: 'white', fontSize: 14, margin: 0,
-                                textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                            }}>
-                                {currentReel.caption}
-                            </p>
-                        )}
-                    </div>
-
-                    {/* Action buttons (right side) */}
-                    <div style={{
-                        position: 'absolute', bottom: 100, right: 16,
-                        display: 'flex', flexDirection: 'column', gap: 20,
-                        zIndex: 10,
-                    }}>
-                        {/* Like */}
-                        <button
-                            onClick={handleLike}
-                            style={{
-                                background: 'none', border: 'none',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                cursor: 'pointer',
-                            }}
-                        >
-                            <span style={{ fontSize: 28 }}>
-                                {liked[currentReel?.id] ? '❤️' : '🤍'}
-                            </span>
-                            <span style={{ color: 'white', fontSize: 12 }}>
-                                {(currentReel?.like_count || 0) + (liked[currentReel?.id] ? 1 : 0)}
-                            </span>
-                        </button>
-
-                        {/* Comment */}
-                        <button style={{
-                            background: 'none', border: 'none',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                            cursor: 'pointer',
-                        }}>
-                            <span style={{ fontSize: 28 }}>💬</span>
-                            <span style={{ color: 'white', fontSize: 12 }}>Comment</span>
-                        </button>
-
-                        {/* Share */}
-                        <button style={{
-                            background: 'none', border: 'none',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                            cursor: 'pointer',
-                        }}>
-                            <span style={{ fontSize: 28 }}>📤</span>
-                            <span style={{ color: 'white', fontSize: 12 }}>Share</span>
-                        </button>
-
-                        {/* Sound toggle */}
-                        <button
-                            onClick={() => setMuted(prev => !prev)}
-                            style={{
-                                background: 'none', border: 'none',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                cursor: 'pointer',
-                            }}
-                        >
-                            <span style={{ fontSize: 24 }}>{muted ? '🔇' : '🔊'}</span>
-                        </button>
-                    </div>
-
-                    {/* Navigation indicators */}
-                    {reels.length > 1 && (
-                        <div style={{
-                            position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                            display: 'flex', flexDirection: 'column', gap: 4,
-                        }}>
-                            {reels.slice(0, 10).map((_, i) => (
-                                <div
-                                    key={i}
-                                    onClick={() => setCurrentIndex(i)}
-                                    style={{
-                                        width: 4,
-                                        height: i === currentIndex ? 24 : 16,
-                                        borderRadius: 2,
-                                        background: i === currentIndex ? 'white' : 'rgba(255,255,255,0.3)',
-                                        transition: 'all 0.2s',
-                                        cursor: 'pointer',
-                                    }}
-                                />
-                            ))}
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 48, marginBottom: 8 }}>🎬</div>
+                            <div>Video loading...</div>
                         </div>
+                    </div>
+                )}
+
+                {/* Author info overlay */}
+                <div style={{
+                    position: 'absolute', bottom: 120, left: 16, right: 80, zIndex: 100,
+                }}>
+                    <Link href={`/hub/user/${currentReel?.profiles?.username}`} style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        textDecoration: 'none', marginBottom: 12,
+                    }}>
+                        <img
+                            src={currentReel?.profiles?.avatar_url || '/default-avatar.png'}
+                            style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid white' }}
+                        />
+                        <div>
+                            <div style={{ color: 'white', fontWeight: 600, fontSize: 15, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                                {currentReel?.profiles?.full_name || currentReel?.profiles?.username}
+                            </div>
+                            <div style={{ color: C.textSec, fontSize: 12 }}>
+                                {timeAgo(currentReel?.created_at)}
+                            </div>
+                        </div>
+                    </Link>
+
+                    {currentReel?.caption && (
+                        <p style={{
+                            color: 'white', fontSize: 14, margin: 0,
+                            textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                            maxWidth: '80%',
+                        }}>
+                            {currentReel.caption.length > 100 ? currentReel.caption.slice(0, 100) + '...' : currentReel.caption}
+                        </p>
                     )}
+                </div>
 
-                    {/* View count */}
-                    <div style={{
-                        position: 'absolute', bottom: 60, left: 16,
-                        color: C.textSec, fontSize: 12,
-                        display: 'flex', alignItems: 'center', gap: 4,
+                {/* Action buttons (right side) */}
+                <div style={{
+                    position: 'absolute', bottom: 140, right: 16,
+                    display: 'flex', flexDirection: 'column', gap: 20, zIndex: 100,
+                }}>
+                    {/* Like */}
+                    <button onClick={handleLike} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
-                        👁 {currentReel?.view_count || 0} views
-                    </div>
+                        <span style={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
+                            {liked[currentReel?.id] ? '❤️' : '🤍'}
+                        </span>
+                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                            {(currentReel?.like_count || 0) + (liked[currentReel?.id] ? 1 : 0)}
+                        </span>
+                    </button>
 
-                    {/* Navigation buttons */}
-                    <div style={{
-                        position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-                        display: 'flex', gap: 24,
+                    {/* Comment */}
+                    <button style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
-                        <button
-                            onClick={goPrev}
-                            disabled={currentIndex === 0}
-                            style={{
-                                width: 50, height: 50, borderRadius: '50%',
-                                background: currentIndex === 0 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)',
-                                border: 'none', color: 'white', fontSize: 20,
-                                cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}
-                        >▲</button>
-                        <button
-                            onClick={goNext}
-                            disabled={currentIndex === reels.length - 1}
-                            style={{
-                                width: 50, height: 50, borderRadius: '50%',
-                                background: currentIndex === reels.length - 1 ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)',
-                                border: 'none', color: 'white', fontSize: 20,
-                                cursor: currentIndex === reels.length - 1 ? 'not-allowed' : 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}
-                        >▼</button>
-                    </div>
+                        <span style={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>💬</span>
+                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Comment</span>
+                    </button>
 
-                    {/* Reel counter */}
-                    <div style={{
-                        position: 'absolute', bottom: 20, right: 16,
-                        color: C.textSec, fontSize: 12,
+                    {/* Share */}
+                    <button style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
-                        {currentIndex + 1} / {reels.length}
-                    </div>
+                        <span style={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>📤</span>
+                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Share</span>
+                    </button>
+
+                    {/* Sound */}
+                    <button onClick={() => setMuted(prev => !prev)} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    }}>
+                        <span style={{ fontSize: 28, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
+                            {muted ? '🔇' : '🔊'}
+                        </span>
+                    </button>
+                </div>
+
+                {/* Swipe instruction */}
+                <div style={{
+                    position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100,
+                }}>
+                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Swipe up for next</span>
+                    <span style={{ fontSize: 20, marginTop: 4, color: 'rgba(255,255,255,0.6)' }}>↑</span>
+                </div>
+
+                {/* Counter */}
+                <div style={{
+                    position: 'absolute', bottom: 20, right: 16, zIndex: 100,
+                    color: C.textSec, fontSize: 12,
+                }}>
+                    {currentIndex + 1} / {reels.length}
                 </div>
             </div>
         </>
     );
 }
-// Force redeploy Fri Jan 23 18:22:17 CST 2026

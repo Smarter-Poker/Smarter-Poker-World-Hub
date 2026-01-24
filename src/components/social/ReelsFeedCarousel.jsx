@@ -70,9 +70,8 @@ function ReelCard({ reel, onClick }) {
     const youtubeThumbnail = isYouTube ? (reel.thumbnail_url || getYouTubeThumbnail(reel.video_url)) : null;
 
     const handleClick = () => {
-        if (isYouTube && reel.video_url) {
-            window.open(reel.video_url, '_blank');
-        } else if (onClick) {
+        // Always use internal viewer - no more opening YouTube externally
+        if (onClick) {
             onClick();
         }
     };
