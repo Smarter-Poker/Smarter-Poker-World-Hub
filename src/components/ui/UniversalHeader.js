@@ -97,11 +97,20 @@ export default function UniversalHeader({
                     setUser(authUser);
 
                     // Fetch profile data (XP, avatar, name, diamonds)
-                    const { data: profile } = await supabase
+                    const { data: profile, error: profileError } = await supabase
                         .from('profiles')
                         .select('username, full_name, avatar_url, xp_total, diamonds')
                         .eq('id', authUser.id)
                         .single();
+
+                    // DEBUG: Log what we got from the database
+                    console.log('[UniversalHeader] Profile fetch:', {
+                        userId: authUser.id,
+                        profile,
+                        profileError,
+                        diamonds: profile?.diamonds,
+                        xp: profile?.xp_total
+                    });
 
                     // Use diamonds from profile (user_diamond_balance has FK constraint issues)
                     const diamondBalance = profile?.diamonds || 0;
