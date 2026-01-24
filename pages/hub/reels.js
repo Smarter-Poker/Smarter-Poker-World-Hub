@@ -25,10 +25,20 @@ const ReactPlayer = dynamic(() => import('react-player'), {
             justifyContent: 'center',
             color: '#fff'
         }}>
-            Loading video...
+            <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 48, marginBottom: 8 }}>🎬</div>
+                <div>Loading video...</div>
+            </div>
         </div>
     )
 });
+
+// Extract YouTube video ID from URL
+function getYouTubeVideoId(url) {
+    if (!url) return null;
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s?]+)/);
+    return match ? match[1] : null;
+}
 
 // God-Mode Stack
 import { useReelsStore } from '../../src/stores/reelsStore';
@@ -293,30 +303,39 @@ export default function ReelsPage() {
                     position: 'relative',
                     background: '#000',
                 }}>
-                    {/* Video Player - Supports YouTube, Vimeo, and direct video URLs */}
+                    {/* Video Player - YouTube Embed for reliable playback */}
                     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                        <ReactPlayer
-                            key={currentReel?.id}
-                            url={currentReel?.video_url}
-                            playing={true}
-                            loop={true}
-                            muted={muted}
-                            width="100%"
-                            height="100%"
-                            style={{ position: 'absolute', top: 0, left: 0 }}
-                            config={{
-                                youtube: {
-                                    playerVars: {
-                                        controls: 0,
-                                        modestbranding: 1,
-                                        rel: 0,
-                                        showinfo: 0,
-                                        playsinline: 1
-                                    }
-                                }
-                            }}
-                            onClick={() => setMuted(prev => !prev)}
-                        />
+                        {currentReel?.video_url && getYouTubeVideoId(currentReel.video_url) ? (
+                            <iframe
+                                key={currentReel?.id}
+                                src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${getYouTubeVideoId(currentReel.video_url)}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
+                                title="Poker Reel"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    border: 'none',
+                                }}
+                            />
+                        ) : (
+                            <div style={{
+                                width: '100%',
+                                height: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#666',
+                            }}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: 48, marginBottom: 8 }}>🎬</div>
+                                    <div>Video loading...</div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Author info overlay */}
