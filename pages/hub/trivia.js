@@ -1,6 +1,6 @@
 /**
  * SMARTER.POKER DAILY TRIVIA - AI-POWERED QUIZ
- * Build: 20260124-v1
+ * Build: 20260124-v2
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Features:
@@ -9,7 +9,7 @@
  * - XP and Diamond rewards
  * - Daily leaderboard
  * - Streak tracking
- * - Questions refresh every day at midnight UTC
+ * - Questions refresh every day at 11:59:59 PM CST (Central Standard Time)
  *
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -350,10 +350,23 @@ export default function TriviaPage() {
     }
 
     function getTimeUntilReset() {
+        // Calculate time until 11:59:59 PM CST
         const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setUTCHours(24, 0, 0, 0);
-        const diff = tomorrow - now;
+
+        // Get current time in CST
+        const cstNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+
+        // Calculate end of day in CST (11:59:59 PM)
+        const endOfDayCST = new Date(cstNow);
+        endOfDayCST.setHours(23, 59, 59, 999);
+
+        // Calculate the difference
+        const diff = endOfDayCST - cstNow;
+
+        if (diff <= 0) {
+            return 'Resetting soon...';
+        }
+
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         return `${hours}h ${minutes}m`;

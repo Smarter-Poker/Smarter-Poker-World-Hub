@@ -71,7 +71,7 @@
     },
     {
       "path": "/api/cron/generate-trivia",
-      "schedule": "0 0 * * *"
+      "schedule": "59 5 * * *"
     }
   ]
 }

@@ -3,6 +3,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  * Returns today's AI-generated trivia questions
  * Falls back to generating questions if none exist
+ * All dates are in CST (Central Standard Time / America/Chicago)
+ * Questions reset at 11:59:59 PM CST daily
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -12,6 +14,20 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TIMEZONE HELPER - All trivia dates are in CST
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getTodayCST() {
+    // Get current date in CST (Central Standard Time / America/Chicago)
+    const now = new Date();
+    const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    const year = cstDate.getFullYear();
+    const month = String(cstDate.getMonth() + 1).padStart(2, '0');
+    const day = String(cstDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FALLBACK QUESTIONS (Used when database is empty)
@@ -120,7 +136,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayCST();
 
         // Try to fetch today's questions from database
         const { data: questions, error } = await supabase

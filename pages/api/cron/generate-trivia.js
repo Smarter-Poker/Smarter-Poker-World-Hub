@@ -2,7 +2,8 @@
  * AI TRIVIA GENERATOR - Daily Cron Job
  * ═══════════════════════════════════════════════════════════════════════════
  * Generates 10 unique poker trivia questions daily using OpenAI
- * Runs at midnight UTC via Vercel Cron
+ * Runs at 11:59 PM CST via Vercel Cron (5:59 AM UTC)
+ * All dates are in CST (Central Standard Time / America/Chicago)
  *
  * Categories:
  * - poker_history: The legends and milestones of poker
@@ -64,6 +65,20 @@ const CATEGORIES = [
 ];
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TIMEZONE HELPER - All trivia dates are in CST
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getTodayCST() {
+    // Get current date in CST (Central Standard Time / America/Chicago)
+    const now = new Date();
+    const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    const year = cstDate.getFullYear();
+    const month = String(cstDate.getMonth() + 1).padStart(2, '0');
+    const day = String(cstDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // QUESTION GENERATOR
@@ -143,7 +158,7 @@ Remember: correct_index is 0-based (0, 1, 2, or 3).`;
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function generateDailyQuestions() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayCST();
 
     // Check if we already have questions for today
     const { data: existing } = await supabase
@@ -264,7 +279,7 @@ export default async function handler(req, res) {
     }
 }
 
-// Vercel Cron config - runs at midnight UTC
+// Vercel Cron config - runs at 11:59 PM CST (5:59 AM UTC)
 export const config = {
     maxDuration: 60
 };
