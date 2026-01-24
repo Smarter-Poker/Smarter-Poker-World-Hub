@@ -5,7 +5,7 @@
  * Provides seeded shuffling so same game/level always shows same avatars.
  */
 
-// Free avatars (available to all users) - table versions for consistent circular sizing
+// Free avatars (available to all users) - table versions with pre-attached gold badges
 export const FREE_AVATARS = [
     '/avatars/table/free_lion.png',
     '/avatars/table/free_shark.png',
@@ -21,7 +21,7 @@ export const FREE_AVATARS = [
     '/avatars/table/free_detective.png',
 ];
 
-// VIP avatars (premium users only) - table versions for consistent circular sizing
+// VIP avatars (premium users only) - table versions with pre-attached gold badges
 export const VIP_AVATARS = [
     '/avatars/table/free_rockstar.png',
     '/avatars/table/free_wizard.png',
@@ -120,7 +120,7 @@ export function getHeroAvatar(userProfile = null) {
         if (stored) return stored;
     }
 
-    // Default hero avatar
+    // Default hero avatar (table version with pre-attached badge)
     return '/avatars/table/free_rockstar.png';
 }
 

@@ -179,6 +179,7 @@ function UserCard({
     isPending,
     isFollowing,
     isFollower,
+    mutualCount = 0,
     onAddFriend,
     onRemoveFriend,
     onFollow,
@@ -195,15 +196,20 @@ function UserCard({
             transition: 'all 0.3s ease',
             border: `1px solid ${C.border}`,
         }}>
-            <Link href={`/hub/user/${user.id}`} style={{ flexShrink: 0 }}>
+            <Link href={`/hub/user/${user.username || user.id}`} style={{ flexShrink: 0 }}>
                 <Avatar src={user.avatar_url} name={user.full_name || user.username} size={70} />
             </Link>
             <div style={{ flex: 1, minWidth: 0 }}>
-                <Link href={`/hub/user/${user.id}`} style={{ textDecoration: 'none' }}>
+                <Link href={`/hub/user/${user.username || user.id}`} style={{ textDecoration: 'none' }}>
                     <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 4 }}>
                         {user.full_name || user.username || 'Poker Player'}
                     </div>
                 </Link>
+                {mutualCount > 0 && (
+                    <div style={{ fontSize: 13, color: C.textSec, marginBottom: 4 }}>
+                        {mutualCount} mutual friends
+                    </div>
+                )}
                 {isFollower && !isFriend && (
                     <div style={{ fontSize: 12, color: C.pink, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span>💜</span> Follows you
@@ -354,6 +360,7 @@ export default function FriendsPage() {
     const [pendingIds, setPendingIds] = useState(new Set());
     const [followingIds, setFollowingIds] = useState(new Set());
     const [followerIds, setFollowerIds] = useState(new Set());
+    const [myFriendIds, setMyFriendIds] = useState([]); // For mutual friends calculation
 
     const fetchData = async () => {
         const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -370,9 +377,12 @@ export default function FriendsPage() {
             .eq('user_id', authUser.id)
             .eq('status', 'accepted');
 
+        let currentFriendIdsList = [];
         if (friendships) {
             setFriends(friendships.map(f => f.friend));
-            setFriendIds(new Set(friendships.map(f => f.friend_id)));
+            currentFriendIdsList = friendships.map(f => f.friend_id);
+            setFriendIds(new Set(currentFriendIdsList));
+            setMyFriendIds(currentFriendIdsList);
         }
 
         // Fetch pending friend requests (where I am the receiver)
@@ -427,8 +437,27 @@ export default function FriendsPage() {
             .order('created_at', { ascending: false })
             .limit(100);
 
-        if (allUsers) {
-            setSuggestions(allUsers);
+        if (allUsers && currentFriendIdsList.length > 0) {
+            // Calculate mutual friends for each suggestion
+            const usersWithMutual = await Promise.all(allUsers.map(async (u) => {
+                const { data: theirFriends } = await supabase
+                    .from('friendships')
+                    .select('user_id, friend_id')
+                    .eq('status', 'accepted')
+                    .or(`user_id.eq.${u.id},friend_id.eq.${u.id}`)
+                    .limit(50);
+                let mutualCount = 0;
+                if (theirFriends) {
+                    const theirFriendIds = theirFriends.map(f => f.user_id === u.id ? f.friend_id : f.user_id);
+                    mutualCount = currentFriendIdsList.filter(id => theirFriendIds.includes(id)).length;
+                }
+                return { ...u, mutualCount };
+            }));
+            // Sort by mutual friends (descending)
+            usersWithMutual.sort((a, b) => b.mutualCount - a.mutualCount);
+            setSuggestions(usersWithMutual);
+        } else if (allUsers) {
+            setSuggestions(allUsers.map(u => ({ ...u, mutualCount: 0 })));
         }
 
         // Keep discover as default - user came here to find friends
@@ -778,6 +807,7 @@ export default function FriendsPage() {
                                 isPending={pendingIds.has(person.id)}
                                 isFollowing={followingIds.has(person.id)}
                                 isFollower={followerIds.has(person.id)}
+                                mutualCount={person.mutualCount || 0}
                                 onRemoveFriend={handleRemoveFriend}
                                 onFollow={handleFollow}
                                 onUnfollow={handleUnfollow}

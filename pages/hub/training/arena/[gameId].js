@@ -126,13 +126,17 @@ function ArenaHeader({ diamonds = 0, xp = 0, level = 1, onBack, onSettings }) {
 
 // Draggable Player Seat Component - Avatar and Badge can be dragged independently
 // seatIndex is used to set unique z-index: lower seats rendered first, badges always on top
-function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initialPosition, isHero = false, onPositionChange }) {
-    const size = 109; // 20% smaller than original 136px - same size for Hero and Villains
-    // Use hardcoded offsets from SEAT_POSITIONS if available
+function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initialPosition, isHero = false, onPositionChange, devMode = false, onDelete }) {
+    const size = 109; // Avatar display size
+    // Table avatars are 125x170, scaled to 109px width = 148px height
+    // Gold box is at bottom of image - need to position text overlay there
+    const scaledHeight = Math.round(170 * (size / 125)); // ~148px
+    const badgeBoxTop = scaledHeight - 30; // Gold box starts ~30px from bottom
+
     const avatarInitial = initialPosition?.avatarOffset || { x: 0, y: 0 };
-    const badgeInitial = initialPosition?.badgeOffset || { x: 0, y: 100 };
     const [avatarPos, setAvatarPos] = useState(avatarInitial);
-    const [badgePos, setBadgePos] = useState(badgeInitial);
+    // Badge position is computed relative to avatar (locked to gold box in image)
+    const badgeRelativeOffset = { x: 15, y: badgeBoxTop }; // Centered on gold box
     const [dragging, setDragging] = useState(null); // 'avatar' | 'badge' | null
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
@@ -215,7 +219,7 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
                     position: 'relative',
                 }}
             />
-            {/* Gold Badge - Draggable via transform - HIGHEST z-index to always be on top */}
+            {/* Text overlay for the pre-attached badge box in avatar image */}
             <div
                 className="player-badge"
                 onMouseDown={(e) => handleMouseDown(e, 'badge')}
@@ -227,15 +231,44 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
                     zIndex: dragging === 'badge' ? 99999 : 50000,
                     cursor: dragging === 'badge' ? 'grabbing' : 'grab',
                     userSelect: 'none',
-                    pointerEvents: 'all', // Only badge captures clicks
-                    width: '95px',
-                    minWidth: '95px',
-                    whiteSpace: 'nowrap',
+                    pointerEvents: 'all',
+                    width: '80px', // Match the gold box width in table avatars
+                    height: '28px', // Match the gold box height
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                 }}
             >
                 <span className="player-name" style={{ pointerEvents: 'none' }}>{name}</span>
                 <span className="player-stack" style={{ pointerEvents: 'none' }}>{stack} BB</span>
             </div>
+            {/* DEV MODE: Delete button */}
+            {devMode && onDelete && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(seatId); }}
+                    style={{
+                        position: 'absolute',
+                        top: avatarPos.y - 10,
+                        left: avatarPos.x + size - 15,
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        background: '#dc2626',
+                        border: '2px solid #fff',
+                        color: '#fff',
+                        fontSize: 14,
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        pointerEvents: 'all',
+                        zIndex: 999999,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                    }}
+                >✕</button>
+            )}
         </div>
     );
 }
@@ -644,34 +677,36 @@ export const ${layoutName} = {
 
 
 
-                            {/* Villain Seats - Dynamic based on layout */}
-                            {villainAvatars[0] && SEAT_POSITIONS.seat1 && (
-                                <DraggablePlayerSeat seatIndex={1} seatId="seat1" avatar={villainAvatars[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} onPositionChange={updatePosition} />
+                            {/* Villain Seats - Dynamic based on layout, respects hiddenSeats */}
+                            {villainAvatars[0] && SEAT_POSITIONS.seat1 && !hiddenSeats.has('seat1') && (
+                                <DraggablePlayerSeat seatIndex={1} seatId="seat1" avatar={villainAvatars[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
                             )}
-                            {villainAvatars[1] && SEAT_POSITIONS.seat2 && (
-                                <DraggablePlayerSeat seatIndex={2} seatId="seat2" avatar={villainAvatars[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} onPositionChange={updatePosition} />
+                            {villainAvatars[1] && SEAT_POSITIONS.seat2 && !hiddenSeats.has('seat2') && (
+                                <DraggablePlayerSeat seatIndex={2} seatId="seat2" avatar={villainAvatars[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
                             )}
-                            {villainAvatars[2] && SEAT_POSITIONS.seat3 && (
-                                <DraggablePlayerSeat seatIndex={3} seatId="seat3" avatar={villainAvatars[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} onPositionChange={updatePosition} />
+                            {villainAvatars[2] && SEAT_POSITIONS.seat3 && !hiddenSeats.has('seat3') && (
+                                <DraggablePlayerSeat seatIndex={3} seatId="seat3" avatar={villainAvatars[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
                             )}
-                            {villainAvatars[3] && SEAT_POSITIONS.seat4 && (
-                                <DraggablePlayerSeat seatIndex={4} seatId="seat4" avatar={villainAvatars[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} onPositionChange={updatePosition} />
+                            {villainAvatars[3] && SEAT_POSITIONS.seat4 && !hiddenSeats.has('seat4') && (
+                                <DraggablePlayerSeat seatIndex={4} seatId="seat4" avatar={villainAvatars[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
                             )}
-                            {villainAvatars[4] && SEAT_POSITIONS.seat5 && (
-                                <DraggablePlayerSeat seatIndex={5} seatId="seat5" avatar={villainAvatars[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} onPositionChange={updatePosition} />
+                            {villainAvatars[4] && SEAT_POSITIONS.seat5 && !hiddenSeats.has('seat5') && (
+                                <DraggablePlayerSeat seatIndex={5} seatId="seat5" avatar={villainAvatars[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
                             )}
-                            {villainAvatars[5] && SEAT_POSITIONS.seat6 && (
-                                <DraggablePlayerSeat seatIndex={6} seatId="seat6" avatar={villainAvatars[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} onPositionChange={updatePosition} />
+                            {villainAvatars[5] && SEAT_POSITIONS.seat6 && !hiddenSeats.has('seat6') && (
+                                <DraggablePlayerSeat seatIndex={6} seatId="seat6" avatar={villainAvatars[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
                             )}
-                            {villainAvatars[6] && SEAT_POSITIONS.seat7 && (
-                                <DraggablePlayerSeat seatIndex={7} seatId="seat7" avatar={villainAvatars[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} onPositionChange={updatePosition} />
+                            {villainAvatars[6] && SEAT_POSITIONS.seat7 && !hiddenSeats.has('seat7') && (
+                                <DraggablePlayerSeat seatIndex={7} seatId="seat7" avatar={villainAvatars[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
                             )}
-                            {villainAvatars[7] && SEAT_POSITIONS.seat8 && (
-                                <DraggablePlayerSeat seatIndex={8} seatId="seat8" avatar={villainAvatars[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} onPositionChange={updatePosition} />
+                            {villainAvatars[7] && SEAT_POSITIONS.seat8 && !hiddenSeats.has('seat8') && (
+                                <DraggablePlayerSeat seatIndex={8} seatId="seat8" avatar={villainAvatars[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
                             )}
 
                             {/* Hero Seat - DRAGGABLE - highest seatIndex */}
-                            <DraggablePlayerSeat seatIndex={9} seatId="hero" avatar={heroAvatar} name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} onPositionChange={updatePosition} />
+                            {!hiddenSeats.has('hero') && (
+                                <DraggablePlayerSeat seatIndex={9} seatId="hero" avatar={heroAvatar} name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} />
+                            )}
 
 
                             {/* Hero Cards - DRAGGABLE */}
@@ -975,19 +1010,21 @@ export const ${layoutName} = {
                     z-index: 15;
                 }
                 :global(.player-badge) {
+                    /* Badge box is pre-attached to avatar image - this is just text overlay */
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    padding: 4px 15px;
-                    background: #0a0a0a;
-                    border: 2px solid #d4a020;
-                    border-radius: 5px;
-                    margin-top: -10px;
-                    min-width: 82px;
+                    justify-content: center;
+                    padding: 2px 8px;
+                    background: transparent;
+                    border: none;
+                    min-width: 70px;
                     z-index: 200;
+                    /* Text shadow for readability on gold badge background */
+                    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
                 }
-                :global(.player-name) { font-size: 18px; font-weight: 600; color: #d4a020; }
-                :global(.player-stack) { font-size: 14px; font-weight: 700; color: #d4a020; }
+                :global(.player-name) { font-size: 11px; font-weight: 700; color: #d4a020; line-height: 1.2; }
+                :global(.player-stack) { font-size: 10px; font-weight: 600; color: #d4a020; line-height: 1.2; }
                 
                 /* ========== CARDS ========== */
                 :global(.card) {
@@ -1105,8 +1142,63 @@ export const ${layoutName} = {
             {devMode && (
                 <div className="export-panel">
                     <h3>📐 Layout Export Tool</h3>
-                    <p>Drag elements to position them, then click Export to generate code.</p>
-                    <button onClick={exportLayout}>📋 EXPORT LAYOUT</button>
+                    <p>Drag elements. Click ✕ on avatars to remove seats. Export when ready.</p>
+
+                    {/* Layout Type Selector */}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                        <label style={{ fontSize: 12, color: '#aaa' }}>Export as:</label>
+                        <select
+                            value={selectedLayoutType}
+                            onChange={(e) => setSelectedLayoutType(e.target.value)}
+                            style={{
+                                padding: '6px 10px',
+                                background: '#222',
+                                border: '1px solid #444',
+                                borderRadius: 6,
+                                color: '#fff',
+                                fontSize: 13,
+                                flex: 1
+                            }}
+                        >
+                            <option value="9max">9-Max (Full Ring)</option>
+                            <option value="6max">6-Max</option>
+                            <option value="4handed">4-Handed</option>
+                            <option value="3handed">3-Handed</option>
+                            <option value="headsup">Heads-Up</option>
+                        </select>
+                    </div>
+
+                    {/* Seat Status */}
+                    <div style={{
+                        padding: 8,
+                        background: '#1a1a1a',
+                        borderRadius: 6,
+                        fontSize: 11,
+                        color: '#888',
+                        marginBottom: 8
+                    }}>
+                        <strong style={{ color: '#22c55e' }}>Visible Seats: {9 - hiddenSeats.size}</strong>
+                        {hiddenSeats.size > 0 && (
+                            <span style={{ marginLeft: 8, color: '#dc2626' }}>
+                                Hidden: {[...hiddenSeats].join(', ')}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Buttons */}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={exportLayout} style={{ flex: 1 }}>📋 EXPORT LAYOUT</button>
+                        {hiddenSeats.size > 0 && (
+                            <button
+                                onClick={resetSeats}
+                                style={{
+                                    background: '#3b82f6',
+                                    flex: 0
+                                }}
+                            >↻ RESET</button>
+                        )}
+                    </div>
+
                     {exportData && (
                         <>
                             <textarea value={exportData} readOnly />
