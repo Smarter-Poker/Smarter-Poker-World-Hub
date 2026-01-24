@@ -1476,22 +1476,9 @@ export default function SocialMediaPage() {
     const [liveStreams, setLiveStreams] = useState([]);
     const [watchingStream, setWatchingStream] = useState(null);
 
-    // Hide bottom nav when scrolling up, show when scrolling down
-    useEffect(() => {
-        const handleScroll = () => {
-            const currentScrollY = window.scrollY;
-            if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-                // Scrolling down - hide nav
-                setBottomNavVisible(false);
-            } else {
-                // Scrolling up - show nav
-                setBottomNavVisible(true);
-            }
-            lastScrollY.current = currentScrollY;
-        };
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+    // Bottom nav visibility - ALWAYS VISIBLE (scroll-hide was causing usability issues)
+    // Previously hid nav when scrolling down, but users couldn't find the Friends button
+    // useEffect removed - nav stays visible at all times
 
     useEffect(() => {
         (async () => {
