@@ -895,7 +895,8 @@ export default function NewsHub() {
 
     const fetchNews = async () => {
         try {
-            const params = new URLSearchParams({ limit: '20' });
+            // Fetch enough articles to ensure all 6 source boxes have content
+            const params = new URLSearchParams({ limit: '100' });
             if (activeTab !== 'all') params.set('category', activeTab);
             if (searchQuery) params.set('search', searchQuery);
 
@@ -956,7 +957,7 @@ export default function NewsHub() {
     const fetchMSPTNews = async () => {
         try {
             // Fetch MSPT-specific news from articles API
-            const res = await fetch('/api/news/articles?search=MSPT&limit=4');
+            const res = await fetch('/api/news/articles?search=MSPT&limit=10');
             const { success, data } = await res.json();
             if (success && data?.length) {
                 // Transform to MSPT format
