@@ -153,19 +153,11 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 <div className="box-overlay" />
             </div>
 
-            {/* Content */}
+            {/* Content - compact: title + meta only */}
             <div className="box-content">
-                {/* Title */}
                 <h3 className="box-title">{article.title}</h3>
-
-                {/* Description/Excerpt */}
-                {article.content && (
-                    <p className="box-excerpt">{article.content.substring(0, 100)}...</p>
-                )}
-
-                {/* Meta */}
                 <div className="box-meta">
-                    <span className="source">{article.source_name || article.author_name || 'Smarter.Poker'}</span>
+                    <span className="source">{article.source_name || 'Smarter.Poker'}</span>
                     <span className="separator">•</span>
                     <span className="time">{timeAgo(article.published_at)}</span>
                     <span className="separator">•</span>
@@ -253,8 +245,9 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 .box-image {
                     position: relative;
                     width: 100%;
-                    height: 240px !important;
-                    min-height: 240px !important;
+                    height: 270px !important;
+                    min-height: 270px !important;
+                    flex: 1;
                     overflow: hidden;
                     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
                 }
@@ -263,8 +256,11 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     width: 100%;
                     height: 100%;
                     object-fit: cover;
+                    object-position: center top;
                     transition: transform 0.4s;
-                    position: relative;
+                    position: absolute;
+                    top: 0;
+                    left: 0;
                     z-index: 1;
                 }
 
@@ -308,15 +304,16 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 }
 
                 .box-content {
-                    padding: 10px 14px;
+                    padding: 8px 12px;
                     display: flex;
                     flex-direction: column;
                     gap: 4px;
-                    height: 100px !important;
-                    max-height: 100px !important;
-                    min-height: 100px !important;
+                    height: 70px !important;
+                    max-height: 70px !important;
+                    min-height: 70px !important;
                     justify-content: space-between;
                     flex-shrink: 0;
+                    background: #242526;
                 }
 
                 .box-category {
@@ -1051,33 +1048,40 @@ export default function NewsHub() {
             article.content?.toLowerCase().includes(searchQuery.toLowerCase());
     });
 
-    // 6 dedicated source boxes - each box shows the latest article from its specific source
-    const DEDICATED_SOURCES = [
-        { name: 'PokerNews', url: 'https://www.pokernews.com', category: 'tournament' },
-        { name: 'Poker.org', url: 'https://www.poker.org', category: 'industry' },
-        { name: 'CardPlayer', url: 'https://www.cardplayer.com', category: 'news' },
-        { name: 'Pokerfuse', url: 'https://pokerfuse.com', category: 'industry' },
-        { name: 'WSOP', url: 'https://www.wsop.com', category: 'tournament' },
-        { name: 'MSPT', url: 'https://msptpoker.com', category: 'tournament' }
+    // 6 dedicated source boxes - each box is assigned to a specific source
+    // Box numbers match the source_box field in the database (set by news-scraper.js)
+    const DEDICATED_BOXES = [
+        { box: 1, name: 'PokerNews', url: 'https://www.pokernews.com', category: 'news' },
+        { box: 2, name: 'MSPT', url: 'https://msptpoker.com', category: 'tournament' },
+        { box: 3, name: 'CardPlayer', url: 'https://www.cardplayer.com', category: 'news' },
+        { box: 4, name: 'WSOP', url: 'https://www.wsop.com', category: 'tournament' },
+        { box: 5, name: 'Poker.org', url: 'https://www.poker.org', category: 'news' },
+        { box: 6, name: 'Pokerfuse', url: 'https://pokerfuse.com', category: 'industry' }
     ];
 
-    // Get the latest article from each dedicated source (always show all 6 boxes)
-    const sourceBoxArticles = DEDICATED_SOURCES.map((source) => {
-        const articlesFromSource = filteredNews.filter(a => a.source_name === source.name);
-        // Return the most recent article from this source, or a placeholder if none
-        if (articlesFromSource.length > 0) {
-            return articlesFromSource[0];
+    // Get the latest article for each box (filter by source_box or source_name)
+    const sourceBoxArticles = DEDICATED_BOXES.map((boxConfig) => {
+        // First try to find by source_box field
+        let articlesForBox = filteredNews.filter(a => a.source_box === boxConfig.box);
+        // Fallback to source_name if source_box not set
+        if (articlesForBox.length === 0) {
+            articlesForBox = filteredNews.filter(a => a.source_name === boxConfig.name);
         }
-        // Create placeholder for sources without articles
+        // Return the most recent article, or a placeholder
+        if (articlesForBox.length > 0) {
+            return articlesForBox[0];
+        }
+        // Placeholder for boxes without articles
         return {
-            id: `placeholder-${source.name}`,
-            title: `Awaiting ${source.name} News`,
+            id: `placeholder-box-${boxConfig.box}`,
+            title: `Awaiting ${boxConfig.name} News`,
             content: null,
             excerpt: null,
-            source_name: source.name,
-            source_url: source.url,
-            image_url: FALLBACK_IMAGES[source.category] || FALLBACK_IMAGES.news,
-            category: source.category,
+            source_name: boxConfig.name,
+            source_box: boxConfig.box,
+            source_url: boxConfig.url,
+            image_url: FALLBACK_IMAGES[boxConfig.category] || FALLBACK_IMAGES.news,
+            category: boxConfig.category,
             published_at: new Date().toISOString(),
             views: 0,
             isPlaceholder: true
