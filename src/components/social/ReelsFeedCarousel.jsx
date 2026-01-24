@@ -27,6 +27,14 @@ function timeAgo(d) {
     return `${Math.floor(s / 86400)}d`;
 }
 
+// Format view count (456000 -> 456K)
+function formatViews(count) {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(0)}K`;
+    return count.toString();
+}
+
 // YouTube URL helpers
 function isYouTubeUrl(url) {
     if (!url) return false;
@@ -215,7 +223,7 @@ function ReelCard({ reel, onClick }) {
                 alignItems: 'center',
                 gap: 4,
             }}>
-                👁 {reel.view_count || 0}
+                ▶ {formatViews(reel.view_count)}
             </div>
         </div>
     );
