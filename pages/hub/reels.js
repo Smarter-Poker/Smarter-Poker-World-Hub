@@ -266,7 +266,57 @@ export default function ReelsPage() {
                     </div>
                 )}
 
-                {/* Author info overlay */}
+                {/* TOUCH OVERLAY - Captures swipe gestures over the video */}
+                <div
+                    onTouchStart={(e) => { touchStartY.current = e.touches[0].clientY; }}
+                    onTouchEnd={(e) => {
+                        const diff = touchStartY.current - e.changedTouches[0].clientY;
+                        if (diff > 60) goNext();
+                        if (diff < -60) goPrev();
+                    }}
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        zIndex: 50,
+                        background: 'transparent',
+                    }}
+                />
+
+                {/* VISIBLE NAVIGATION BUTTONS */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: 80,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    gap: 16,
+                    zIndex: 150,
+                }}>
+                    <button
+                        onClick={goPrev}
+                        disabled={currentIndex === 0}
+                        style={{
+                            width: 56, height: 56, borderRadius: '50%',
+                            background: currentIndex === 0 ? 'rgba(100,100,100,0.3)' : 'rgba(255,255,255,0.2)',
+                            backdropFilter: 'blur(8px)',
+                            border: '2px solid rgba(255,255,255,0.3)',
+                            color: 'white', fontSize: 24, cursor: currentIndex === 0 ? 'default' : 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                    >▲</button>
+                    <button
+                        onClick={goNext}
+                        disabled={currentIndex === reels.length - 1}
+                        style={{
+                            width: 56, height: 56, borderRadius: '50%',
+                            background: currentIndex === reels.length - 1 ? 'rgba(100,100,100,0.3)' : 'rgba(255,255,255,0.2)',
+                            backdropFilter: 'blur(8px)',
+                            border: '2px solid rgba(255,255,255,0.3)',
+                            color: 'white', fontSize: 24, cursor: currentIndex === reels.length - 1 ? 'default' : 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                    >▼</button>
+                </div>
                 <div style={{
                     position: 'absolute', bottom: 120, left: 16, right: 80, zIndex: 100,
                 }}>

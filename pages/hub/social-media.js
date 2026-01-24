@@ -1538,17 +1538,14 @@ export default function SocialMediaPage() {
         if (showNotifications && notifications.length > 0 && user) {
             const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
             if (unreadIds.length > 0) {
-                // Mark all as read in database
-                supabase.from('notifications')
-                    .update({ read: true })
-                    .in('id', unreadIds)
-                    .then(() => {
-                        // Update local state
-                        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                    });
+                // Mark all as read IMMEDIATELY
+                (async () => {
+                    await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                })();
             }
         }
-    }, [showNotifications]);
+    }, [showNotifications, notifications.length, user]);
 
     const loadFeed = async (offset = 0, append = false) => {
         try {
@@ -2280,38 +2277,53 @@ export default function SocialMediaPage() {
                                 No notifications yet
                             </div>
                         ) : (
-                            notifications.map(n => (
-                                <div
-                                    key={n.id}
-                                    onClick={async () => {
-                                        if (!n.read) {
-                                            await supabase.from('notifications').update({ read: true }).eq('id', n.id);
-                                            setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
-                                        }
-                                    }}
-                                    style={{
-                                        padding: 12, borderBottom: `1px solid ${C.border}`,
-                                        display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer',
-                                        background: n.read ? 'transparent' : 'rgba(24, 119, 242, 0.05)'
-                                    }}
-                                >
-                                    <div style={{
-                                        width: 48, height: 48, borderRadius: '50%', background: C.blue,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: 24, flexShrink: 0
-                                    }}>
-                                        {n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : '🔔'}
+                            notifications.map(n => {
+                                // Get action icon based on type
+                                const actionIcon = n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : n.type === 'live' ? '🔴' : '🔔';
+                                const iconBg = n.type === 'like' ? '#1877F2' : n.type === 'comment' ? '#44BD32' : n.type === 'live' ? '#FA383E' : n.type === 'friend_request' ? '#1877F2' : '#65676B';
+
+                                return (
+                                    <div
+                                        key={n.id}
+                                        style={{
+                                            padding: 12, borderBottom: `1px solid ${C.border}`,
+                                            display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer',
+                                            background: n.read ? 'transparent' : 'rgba(24, 119, 242, 0.08)'
+                                        }}
+                                    >
+                                        {/* Facebook-style avatar with action icon */}
+                                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                                            <img
+                                                src={n.actor_avatar_url || n.metadata?.actor_avatar || '/default-avatar.png'}
+                                                style={{
+                                                    width: 56, height: 56, borderRadius: '50%',
+                                                    objectFit: 'cover', border: '2px solid #ddd'
+                                                }}
+                                            />
+                                            {/* Action type icon overlay */}
+                                            <div style={{
+                                                position: 'absolute', bottom: -2, right: -2,
+                                                width: 24, height: 24, borderRadius: '50%',
+                                                background: iconBg, border: '2px solid white',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: 12
+                                            }}>{actionIcon}</div>
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: 14, color: C.text, lineHeight: 1.4 }}>
+                                                <span style={{ fontWeight: 700 }}>{n.actor_name || n.metadata?.actor_name || n.title}</span>
+                                                {' '}{n.message}
+                                            </div>
+                                            <div style={{ fontSize: 12, color: n.read ? C.textSec : C.blue, marginTop: 4, fontWeight: n.read ? 400 : 600 }}>
+                                                {timeAgo(n.created_at)}
+                                            </div>
+                                        </div>
+                                        {!n.read && (
+                                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 8 }} />
+                                        )}
                                     </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{n.title}</div>
-                                        <div style={{ fontSize: 13, color: C.textSec, marginTop: 2 }}>{n.message}</div>
-                                        <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>{timeAgo(n.created_at)}</div>
-                                    </div>
-                                    {!n.read && (
-                                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 6 }} />
-                                    )}
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 )}
