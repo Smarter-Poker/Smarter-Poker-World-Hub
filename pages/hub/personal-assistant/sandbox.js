@@ -744,6 +744,11 @@ export default function VirtualSandboxPage() {
   // Bet sizing
   const [betSizing, setBetSizing] = useState('standard');
 
+  // Modal states (Masterplan Section VIII: Friction Elements)
+  const [showGameTypeModal, setShowGameTypeModal] = useState(false);
+  const [pendingGameType, setPendingGameType] = useState(null);
+  const [showWarningBanner, setShowWarningBanner] = useState(null);
+
   // Use the real analysis hook
   const { analyze, isAnalyzing, results, error: analysisError } = useSandboxAnalysis();
 
@@ -762,6 +767,41 @@ export default function VirtualSandboxPage() {
     return used;
   }, [heroCard1, heroCard2, boardFlop, boardTurn, boardRiver]);
 
+  // Check for unrealistic setups (Masterplan Section VIII)
+  const checkUnrealisticSetup = useCallback(() => {
+    const warnings = [];
+
+    // Check for extreme stack sizes
+    if (heroStack > 300) {
+      warnings.push('Very deep stacks (>300 BB) are rare in most games.');
+    }
+    if (heroStack < 10) {
+      warnings.push('Very short stacks (<10 BB) have limited strategic options.');
+    }
+
+    // Check for too many opponents with unusual archetypes
+    const extremeArchetypes = villains.filter(v =>
+      ['over_bluffer', 'icm_pressure'].includes(v.archetype?.id)
+    ).length;
+    if (extremeArchetypes > 3) {
+      warnings.push('Multiple extreme archetypes create unrealistic table dynamics.');
+    }
+
+    // Check for mismatched game type and archetypes
+    if (gameType === 'cash' && villains.some(v =>
+      ['icm_scared', 'icm_pressure'].includes(v.archetype?.id)
+    )) {
+      warnings.push('ICM-focused archetypes are designed for tournament play.');
+    }
+
+    // Check for extreme opponent count with deep stacks
+    if (numOpponents >= 8 && heroStack > 150) {
+      warnings.push('Full ring with very deep stacks is uncommon in modern poker.');
+    }
+
+    return warnings.length > 0 ? warnings.join(' ') : null;
+  }, [heroStack, villains, gameType, numOpponents]);
+
   // Update villain archetype
   const updateVillainArchetype = (seat, archetypeId) => {
     setVillains(villains.map(v =>
@@ -773,6 +813,12 @@ export default function VirtualSandboxPage() {
 
   // Run analysis using real API
   const runAnalysis = async () => {
+    // Check for unrealistic setups (Masterplan Section VIII)
+    const warning = checkUnrealisticSetup();
+    if (warning) {
+      setShowWarningBanner(warning);
+    }
+
     await analyze({
       heroHand: { card1: heroCard1, card2: heroCard2 },
       heroPosition,
@@ -833,6 +879,77 @@ export default function VirtualSandboxPage() {
             </div>
           </div>
         </div>
+
+        {/* Game Type Confirmation Modal (Masterplan Section VIII) */}
+        <AnimatePresence>
+          {showGameTypeModal && (
+            <motion.div
+              style={styles.modalOverlay}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowGameTypeModal(false)}
+            >
+              <motion.div
+                style={styles.modal}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 style={styles.modalTitle}>Switch Game Type?</h3>
+                <p style={styles.modalText}>
+                  Switching from <strong>{gameType === 'cash' ? 'Cash (ChipEV)' : 'Tournament (ICM)'}</strong> to{' '}
+                  <strong>{pendingGameType === 'cash' ? 'Cash (ChipEV)' : 'Tournament (ICM)'}</strong> will
+                  change how optimal play is calculated.
+                </p>
+                <p style={styles.modalSubtext}>
+                  {pendingGameType === 'tournament'
+                    ? 'ICM considerations will affect decisions near bubble/final table spots.'
+                    : 'ChipEV focuses purely on chip accumulation without tournament equity adjustments.'}
+                </p>
+                <div style={styles.modalButtons}>
+                  <button
+                    style={styles.modalBtnCancel}
+                    onClick={() => setShowGameTypeModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    style={styles.modalBtnConfirm}
+                    onClick={() => {
+                      setGameType(pendingGameType);
+                      setShowGameTypeModal(false);
+                    }}
+                  >
+                    Switch to {pendingGameType === 'cash' ? 'Cash' : 'Tournament'}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Unrealistic Setup Warning Banner (Masterplan Section VIII) */}
+        <AnimatePresence>
+          {showWarningBanner && (
+            <motion.div
+              style={styles.warningBanner}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+            >
+              <span style={styles.warningIcon}>⚠️</span>
+              {showWarningBanner}
+              <button
+                style={styles.warningClose}
+                onClick={() => setShowWarningBanner(null)}
+              >
+                ✕
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Main Layout */}
         <div style={styles.mainLayout}>
@@ -896,7 +1013,12 @@ export default function VirtualSandboxPage() {
                       ...styles.toggleBtn,
                       ...(gameType === 'cash' ? styles.toggleBtnActive : {}),
                     }}
-                    onClick={() => setGameType('cash')}
+                    onClick={() => {
+                      if (gameType !== 'cash') {
+                        setPendingGameType('cash');
+                        setShowGameTypeModal(true);
+                      }
+                    }}
                   >
                     Cash (ChpEV)
                   </button>
@@ -905,9 +1027,14 @@ export default function VirtualSandboxPage() {
                       ...styles.toggleBtn,
                       ...(gameType === 'tournament' ? styles.toggleBtnActive : {}),
                     }}
-                    onClick={() => setGameType('tournament')}
+                    onClick={() => {
+                      if (gameType !== 'tournament') {
+                        setPendingGameType('tournament');
+                        setShowGameTypeModal(true);
+                      }
+                    }}
                   >
-                    Tournament
+                    Tournament (ICM)
                   </button>
                 </div>
               </div>
@@ -1079,16 +1206,41 @@ export default function VirtualSandboxPage() {
               <div style={styles.explorePanel}>
                 <h4 style={styles.exploreTitle}>Explore Further?</h4>
                 <div style={styles.exploreButtons}>
-                  <button style={styles.exploreBtn}>
+                  <button
+                    style={styles.exploreBtn}
+                    onClick={() => {
+                      setHeroStack(40);
+                      // Update all villain stacks proportionally
+                      setVillains(villains.map(v => ({ ...v, stack: Math.round(v.stack * 0.4) })));
+                      setTimeout(runAnalysis, 100);
+                    }}
+                  >
                     Try at 40 BB Stacks
                     <span style={styles.exploreArrow}>&#8250;</span>
                   </button>
-                  <button style={styles.exploreBtn}>
-                    Switch to ICM Mode
+                  <button
+                    style={styles.exploreBtn}
+                    onClick={() => {
+                      setGameType(gameType === 'cash' ? 'tournament' : 'cash');
+                      setTimeout(runAnalysis, 100);
+                    }}
+                  >
+                    {gameType === 'cash' ? 'Switch to ICM Mode' : 'Switch to Cash Mode'}
                     <span style={styles.exploreArrow}>&#8250;</span>
                   </button>
-                  <button style={styles.exploreBtn}>
-                    Test vs Loose-Passive
+                  <button
+                    style={styles.exploreBtn}
+                    onClick={() => {
+                      // Find a villain that isn't already loose-passive and change them
+                      const loosePassiveId = 'loose_passive';
+                      const updated = villains.map((v, i) =>
+                        i === 0 ? { ...v, archetype: VILLAIN_ARCHETYPES.find(a => a.id === loosePassiveId) } : v
+                      );
+                      setVillains(updated);
+                      setTimeout(runAnalysis, 100);
+                    }}
+                  >
+                    Test vs Calling Station
                     <span style={styles.exploreArrow}>&#8250;</span>
                   </button>
                 </div>
@@ -1387,5 +1539,94 @@ const styles = {
   exploreArrow: {
     fontSize: 18,
     color: '#64b5f6',
+  },
+
+  // Modal styles (Masterplan Section VIII)
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0, 0, 0, 0.7)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  modal: {
+    background: '#1a2a44',
+    borderRadius: 16,
+    padding: 24,
+    maxWidth: 400,
+    width: '90%',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 600,
+    color: '#fff',
+    marginBottom: 12,
+  },
+  modalText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 1.5,
+    marginBottom: 8,
+  },
+  modalSubtext: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.5)',
+    lineHeight: 1.5,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    display: 'flex',
+    gap: 12,
+    justifyContent: 'flex-end',
+  },
+  modalBtnCancel: {
+    padding: '10px 20px',
+    background: 'transparent',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 13,
+    cursor: 'pointer',
+  },
+  modalBtnConfirm: {
+    padding: '10px 20px',
+    background: '#64b5f6',
+    border: 'none',
+    borderRadius: 8,
+    color: '#000',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+
+  // Warning banner styles (Masterplan Section VIII)
+  warningBanner: {
+    background: 'rgba(251, 191, 36, 0.15)',
+    borderBottom: '1px solid rgba(251, 191, 36, 0.3)',
+    padding: '12px 20px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    fontSize: 13,
+    color: '#fbbf24',
+  },
+  warningIcon: {
+    fontSize: 16,
+  },
+  warningClose: {
+    marginLeft: 'auto',
+    background: 'transparent',
+    border: 'none',
+    color: '#fbbf24',
+    fontSize: 16,
+    cursor: 'pointer',
+    padding: 4,
   },
 };

@@ -2,10 +2,139 @@
  * POST /api/assistant/sandbox/analyze
  * Runs GTO analysis on a sandbox scenario
  *
- * Currently uses AI approximation. Can be upgraded to solver-verified data later.
+ * Per Masterplan Section VIII: Safety & Friction Elements
+ * - Cache repeated sandbox configs
+ * - Rate-limit combinatorial exploration
+ * - Block reverse-engineering attempts
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { checkSandboxAccess } from '../../../../src/lib/personal-assistant/contextAuthority';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RATE LIMITING & CACHING — Per Masterplan Section VIII
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Simple in-memory cache (in production, use Redis)
+const analysisCache = new Map();
+const rateLimitMap = new Map();
+
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 30; // 30 requests per minute
+
+/**
+ * Check rate limit for a user
+ */
+function checkRateLimit(userId) {
+  const now = Date.now();
+  const userKey = userId || 'anonymous';
+
+  if (!rateLimitMap.has(userKey)) {
+    rateLimitMap.set(userKey, { count: 1, windowStart: now });
+    return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1 };
+  }
+
+  const userLimit = rateLimitMap.get(userKey);
+
+  // Reset window if expired
+  if (now - userLimit.windowStart > RATE_LIMIT_WINDOW_MS) {
+    rateLimitMap.set(userKey, { count: 1, windowStart: now });
+    return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1 };
+  }
+
+  // Check if over limit
+  if (userLimit.count >= MAX_REQUESTS_PER_WINDOW) {
+    const retryAfter = Math.ceil((userLimit.windowStart + RATE_LIMIT_WINDOW_MS - now) / 1000);
+    return { allowed: false, remaining: 0, retryAfter };
+  }
+
+  userLimit.count++;
+  return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - userLimit.count };
+}
+
+/**
+ * Generate cache key from analysis params
+ */
+function getCacheKey(params) {
+  const { heroHand, heroPosition, heroStack, gameType, villains, board } = params;
+  return JSON.stringify({
+    h: [heroHand?.card1, heroHand?.card2].sort().join(''),
+    p: heroPosition,
+    s: Math.round(heroStack / 10) * 10, // Round to nearest 10
+    g: gameType,
+    v: villains?.map(v => v.archetype?.id).sort().join(','),
+    b: [
+      ...(board?.flop || []),
+      board?.turn,
+      board?.river
+    ].filter(Boolean).sort().join(''),
+  });
+}
+
+/**
+ * Get cached analysis if available
+ */
+function getCachedAnalysis(cacheKey) {
+  const cached = analysisCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.analysis;
+  }
+  return null;
+}
+
+/**
+ * Cache analysis result
+ */
+function cacheAnalysis(cacheKey, analysis) {
+  // Limit cache size
+  if (analysisCache.size > 1000) {
+    // Remove oldest entries
+    const keysToDelete = Array.from(analysisCache.keys()).slice(0, 100);
+    keysToDelete.forEach(k => analysisCache.delete(k));
+  }
+
+  analysisCache.set(cacheKey, {
+    analysis,
+    timestamp: Date.now(),
+  });
+}
+
+/**
+ * Detect potential reverse-engineering attempts
+ */
+function detectReverseEngineering(userId, params) {
+  const userKey = userId || 'anonymous';
+  const recentRequests = rateLimitMap.get(`${userKey}_history`) || [];
+  const now = Date.now();
+
+  // Keep last 5 minutes of request history
+  const recent = recentRequests.filter(r => now - r.timestamp < 5 * 60 * 1000);
+
+  // Add current request
+  recent.push({
+    timestamp: now,
+    stack: params.heroStack,
+    villains: params.villains?.length || 0,
+  });
+
+  rateLimitMap.set(`${userKey}_history`, recent.slice(-50));
+
+  // Check for suspicious patterns
+  if (recent.length >= 10) {
+    // Rapid stack size iterations (potential range exploration)
+    const uniqueStacks = new Set(recent.map(r => r.stack)).size;
+    if (uniqueStacks > 8 && recent.length <= 15) {
+      return {
+        suspicious: true,
+        reason: 'rapid_stack_iteration',
+        warning: 'Slow down! Exploring many stack sizes quickly may indicate automated range building.',
+      };
+    }
+  }
+
+  return { suspicious: false };
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -68,10 +197,146 @@ function generateStackFormatHash(heroStack, gameType, villains) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GTO APPROXIMATION ENGINE
+// SOLVER TEMPLATE MATCHING — Tier 1/2 Data Source Hierarchy
 // ═══════════════════════════════════════════════════════════════════════════
 
-// GTO approximation engine
+/**
+ * Attempt to find a matching solver template in the database.
+ * Returns null if no match found (will fall back to AI approximation).
+ */
+async function findSolverTemplate(supabase, params) {
+  const {
+    heroHand,
+    heroPosition,
+    heroStack,
+    gameType,
+    board,
+  } = params;
+
+  // Normalize stack depth to common ranges solvers use
+  const stackDepth = heroStack <= 25 ? 20 :
+    heroStack <= 35 ? 30 :
+    heroStack <= 50 ? 40 :
+    heroStack <= 75 ? 60 :
+    heroStack <= 125 ? 100 : 150;
+
+  // Determine street
+  const boardCards = [
+    ...(board?.flop || []),
+    board?.turn,
+    board?.river
+  ].filter(Boolean);
+
+  const street = boardCards.length === 0 ? 'preflop' :
+    boardCards.length <= 3 ? 'flop' :
+    boardCards.length === 4 ? 'turn' : 'river';
+
+  // Build board texture classification for matching
+  let boardTexture = null;
+  if (street !== 'preflop' && board?.flop) {
+    const flop = board.flop.filter(Boolean);
+    if (flop.length === 3) {
+      // Check for monotone, two-tone, rainbow
+      const suits = flop.map(c => c[1]);
+      const uniqueSuits = new Set(suits).size;
+      const ranks = flop.map(c => c[0]);
+      const highCards = ranks.filter(r => ['A', 'K', 'Q', 'J', 'T'].includes(r)).length;
+
+      if (uniqueSuits === 1) boardTexture = 'monotone';
+      else if (uniqueSuits === 2) boardTexture = 'two_tone';
+      else boardTexture = 'rainbow';
+
+      if (highCards >= 2) boardTexture += '_high';
+      else if (highCards === 0) boardTexture += '_low';
+    }
+  }
+
+  try {
+    // First try exact template match
+    let query = supabase
+      .from('solver_templates')
+      .select('*')
+      .eq('game_type', gameType === 'tournament' ? 'mtt' : 'cash')
+      .eq('stack_depth_bb', stackDepth)
+      .ilike('position_config', `%${heroPosition}%`);
+
+    if (boardTexture) {
+      query = query.ilike('board_texture', `%${boardTexture.split('_')[0]}%`);
+    }
+
+    const { data: exactMatch } = await query.limit(1).single();
+
+    if (exactMatch) {
+      return {
+        template: exactMatch,
+        tier: 1,
+        source: `Solver-Verified (${exactMatch.solver_version || 'Pio'})`,
+      };
+    }
+
+    // Try approximate match with nearby stack depth
+    const nearbyStacks = [stackDepth - 20, stackDepth + 20].filter(s => s > 0);
+    const { data: approxMatch } = await supabase
+      .from('solver_templates')
+      .select('*')
+      .eq('game_type', gameType === 'tournament' ? 'mtt' : 'cash')
+      .in('stack_depth_bb', nearbyStacks)
+      .ilike('position_config', `%${heroPosition}%`)
+      .limit(1)
+      .single();
+
+    if (approxMatch) {
+      return {
+        template: approxMatch,
+        tier: 2,
+        source: 'Solver-Approximated',
+      };
+    }
+
+    return null;
+  } catch (error) {
+    // No match found or query error
+    return null;
+  }
+}
+
+/**
+ * Parse solver template frequencies into our output format.
+ */
+function parseSolverTemplate(template, params) {
+  const frequencies = template.frequencies || {};
+  const actions = Object.entries(frequencies)
+    .map(([action, freq]) => ({ action, frequency: parseFloat(freq) || 0 }))
+    .sort((a, b) => b.frequency - a.frequency);
+
+  if (actions.length === 0) {
+    return null;
+  }
+
+  const primary = actions[0];
+  const alternatives = actions.slice(1, 3); // Take top 2 alternatives
+
+  // Ensure we always have 2 alternatives
+  while (alternatives.length < 2) {
+    alternatives.push({ action: 'Fold', frequency: 0 });
+  }
+
+  return {
+    primaryAction: primary.action,
+    primaryFrequency: Math.round(primary.frequency),
+    alternatives: alternatives.map(a => ({
+      action: a.action,
+      frequency: Math.round(a.frequency)
+    })),
+    whyNot: template.explanation || 'This action follows GTO equilibrium strategy.',
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GTO APPROXIMATION ENGINE (Tier 3 Fallback)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// GTO approximation engine - used when no solver data exists
 function analyzeScenario(params) {
   const {
     heroHand,
@@ -261,8 +526,30 @@ export default async function handler(req, res) {
       potSize
     } = req.body;
 
-    // Run analysis
-    const analysis = analyzeScenario({
+    // Check context authority (Masterplan Section I)
+    const contextAccess = await checkSandboxAccess(supabase, userId);
+    if (!contextAccess.allowed) {
+      return res.status(403).json({
+        success: false,
+        blocked: true,
+        contextState: contextAccess.contextState,
+        error: contextAccess.message,
+        cooldownRemaining: contextAccess.cooldownRemaining,
+      });
+    }
+
+    // Check rate limit (Masterplan Section VIII)
+    const rateLimit = checkRateLimit(userId);
+    if (!rateLimit.allowed) {
+      return res.status(429).json({
+        success: false,
+        error: 'Rate limit exceeded. Please slow down.',
+        retryAfter: rateLimit.retryAfter,
+      });
+    }
+
+    // Build params for analysis
+    const analysisParams = {
       heroHand,
       heroPosition,
       heroStack,
@@ -270,7 +557,56 @@ export default async function handler(req, res) {
       villains,
       board,
       potSize: potSize || 0
-    });
+    };
+
+    // Check cache first (Masterplan Section VIII)
+    const cacheKey = getCacheKey(analysisParams);
+    const cachedResult = getCachedAnalysis(cacheKey);
+    if (cachedResult) {
+      return res.status(200).json({
+        success: true,
+        cached: true,
+        ...cachedResult,
+      });
+    }
+
+    // Detect potential reverse-engineering (Masterplan Section VIII)
+    const reverseCheck = detectReverseEngineering(userId, analysisParams);
+    if (reverseCheck.suspicious) {
+      // Add warning but still allow the request
+      res.setHeader('X-Warning', reverseCheck.warning);
+    }
+
+    // Try to find solver template first (Tier 1/2)
+    const solverMatch = await findSolverTemplate(supabase, analysisParams);
+
+    let analysis;
+    let dataTier = 3;
+
+    if (solverMatch && solverMatch.template) {
+      // Use solver data
+      const parsed = parseSolverTemplate(solverMatch.template, analysisParams);
+      if (parsed) {
+        dataTier = solverMatch.tier;
+        const villainTypes = villains?.slice(0, 2).map(v => v.archetype?.name || 'Unknown').join(' & ') || 'Unknown';
+
+        analysis = {
+          ...parsed,
+          context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} - ${heroStack} BB - ${heroPosition} vs ${villainTypes}`,
+          source: solverMatch.source,
+          confidence: solverMatch.tier === 1 ? 'High' : 'Medium',
+          sensitivityFlags: heroStack < 50 ? ['stack_sensitive'] : [],
+          street: analysisParams.board?.flop?.length > 0 ?
+            (analysisParams.board?.river ? 'river' : analysisParams.board?.turn ? 'turn' : 'flop') : 'preflop',
+        };
+      }
+    }
+
+    // Fall back to AI approximation (Tier 3) if no solver match
+    if (!analysis) {
+      analysis = analyzeScenario(analysisParams);
+      dataTier = 3;
+    }
 
     // Save session to database if userId provided
     let sessionId = null;
@@ -308,11 +644,11 @@ export default async function handler(req, res) {
           sensitivity_flags: analysis.sensitivityFlags,
           why_not_check: analysis.whyNot,
           truth_seal: {
-            source: 'ai_approx',
+            source: dataTier === 1 ? 'solver_verified' : dataTier === 2 ? 'solver_approx' : 'ai_approx',
             template_id: generateTemplateId({ heroHand, heroPosition, heroStack, gameType, villains, board }),
             stack_format_hash: generateStackFormatHash(heroStack, gameType, villains),
             timestamp: new Date().toISOString(),
-            model_version: 'gto-approx-v1.0.0'
+            model_version: dataTier === 3 ? 'gto-approx-v1.0.0' : (solverMatch?.template?.solver_version || 'pio-2.0')
           }
         });
 
@@ -331,9 +667,15 @@ export default async function handler(req, res) {
       }
     }
 
+    // Cache the result (Masterplan Section VIII)
+    cacheAnalysis(cacheKey, analysis);
+
     return res.status(200).json({
       success: true,
       sessionId,
+      rateLimit: {
+        remaining: rateLimit.remaining,
+      },
       ...analysis
     });
 
