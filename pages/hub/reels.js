@@ -121,11 +121,8 @@ export default function ReelsPage() {
         return () => window.removeEventListener('keydown', handleKey);
     }, [currentIndex, router]);
 
-    // Touch swipe navigation
+    // DOCUMENT-LEVEL touch capture to intercept BEFORE YouTube iframe gets them
     useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
         const handleTouchStart = (e) => {
             touchStartY.current = e.touches[0].clientY;
         };
@@ -133,27 +130,30 @@ export default function ReelsPage() {
         const handleTouchEnd = (e) => {
             const endY = e.changedTouches[0].clientY;
             const diff = touchStartY.current - endY;
-            if (diff > 80) goNext();  // Swipe up = next
-            if (diff < -80) goPrev(); // Swipe down = previous
+            if (Math.abs(diff) > 80) {
+                e.preventDefault();
+                if (diff > 0) goNext();  // Swipe up = next
+                else goPrev(); // Swipe down = previous
+            }
         };
 
-        // Mouse wheel
+        // Mouse wheel with debounce
         let wheelTimeout = null;
         const handleWheel = (e) => {
-            e.preventDefault();
             if (wheelTimeout) return;
             wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 400);
             if (e.deltaY > 30) goNext();
             if (e.deltaY < -30) goPrev();
         };
 
-        container.addEventListener('touchstart', handleTouchStart, { passive: true });
-        container.addEventListener('touchend', handleTouchEnd, { passive: true });
-        container.addEventListener('wheel', handleWheel, { passive: false });
+        // CAPTURE phase - intercepts before iframe
+        document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
+        document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
+        window.addEventListener('wheel', handleWheel, { passive: true });
         return () => {
-            container.removeEventListener('touchstart', handleTouchStart);
-            container.removeEventListener('touchend', handleTouchEnd);
-            container.removeEventListener('wheel', handleWheel);
+            document.removeEventListener('touchstart', handleTouchStart, { capture: true });
+            document.removeEventListener('touchend', handleTouchEnd, { capture: true });
+            window.removeEventListener('wheel', handleWheel);
         };
     }, [currentIndex]);
 
@@ -254,7 +254,37 @@ export default function ReelsPage() {
                             border: 'none',
                         }}
                     />
-                ) : (
+                ) : null}
+
+                {/* INVISIBLE TAP ZONES - for navigation */}
+                {/* LEFT ZONE - tap for previous */}
+                <div
+                    onClick={goPrev}
+                    style={{
+                        position: 'absolute',
+                        top: 80,
+                        left: 0,
+                        width: '35%',
+                        height: 'calc(100% - 200px)',
+                        zIndex: 50,
+                        cursor: 'pointer',
+                    }}
+                />
+                {/* RIGHT ZONE - tap for next */}
+                <div
+                    onClick={goNext}
+                    style={{
+                        position: 'absolute',
+                        top: 80,
+                        right: 0,
+                        width: '35%',
+                        height: 'calc(100% - 200px)',
+                        zIndex: 50,
+                        cursor: 'pointer',
+                    }}
+                />
+
+                {!videoId && (
                     <div style={{
                         width: '100%', height: '100%',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666',
@@ -362,7 +392,7 @@ export default function ReelsPage() {
                 }}>
                     {currentIndex + 1} / {reels.length}
                 </div>
-            </div>
+            </div >
         </>
     );
 }
