@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     console.log('🐴 Starting horses-social-comments cron...');
 
     try {
-        const result = await commentOnPosts(10, true); // 10 comments, include real users
+        const result = await commentOnPosts(5, true); // 5 comments per run, include real users
 
         console.log(`✅ Horses posted ${result.commented} comments`);
 

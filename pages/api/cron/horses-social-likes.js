@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     console.log('🐴 Starting horses-social-likes cron...');
 
     try {
-        const result = await likePosts(15, true); // 15 likes, include real users
+        const result = await likePosts(8, true); // 8 likes per run, include real users
 
         console.log(`✅ Horses liked ${result.liked} posts`);
 
