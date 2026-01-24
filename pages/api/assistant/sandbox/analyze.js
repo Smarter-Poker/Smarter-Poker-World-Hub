@@ -12,6 +12,65 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
+// ═══════════════════════════════════════════════════════════════════════════
+// TRUTH SEAL GENERATORS — Ensures reproducibility per Masterplan Section VII
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate a unique template ID for this scenario configuration.
+ * Identical inputs will always produce identical template IDs.
+ */
+function generateTemplateId(params) {
+  const {
+    heroHand,
+    heroPosition,
+    heroStack,
+    gameType,
+    villains,
+    board,
+  } = params;
+
+  // Create deterministic string from all inputs
+  const inputString = [
+    heroHand?.card1 || '',
+    heroHand?.card2 || '',
+    heroPosition || '',
+    heroStack || 0,
+    gameType || 'cash',
+    (villains || []).map(v => `${v.archetype?.id || 'gto'}:${v.stack || 100}`).join(','),
+    (board?.flop || []).join(''),
+    board?.turn || '',
+    board?.river || '',
+  ].join('|');
+
+  // Simple hash function for deterministic ID
+  let hash = 0;
+  for (let i = 0; i < inputString.length; i++) {
+    const char = inputString.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return `tmpl_${Math.abs(hash).toString(16).padStart(8, '0')}`;
+}
+
+/**
+ * Generate a hash representing stack depth and format configuration.
+ * Used for cache invalidation and reproducibility verification.
+ */
+function generateStackFormatHash(heroStack, gameType, villains) {
+  const stackDepth = heroStack <= 30 ? 'short' : heroStack <= 60 ? 'medium' : 'deep';
+  const avgVillainStack = villains?.length > 0
+    ? Math.round(villains.reduce((sum, v) => sum + (v.stack || 100), 0) / villains.length)
+    : 100;
+  const format = gameType === 'tournament' ? 'icm' : 'chipev';
+
+  return `${stackDepth}_${format}_vs${avgVillainStack}bb`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GTO APPROXIMATION ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+
 // GTO approximation engine
 function analyzeScenario(params) {
   const {
@@ -250,8 +309,10 @@ export default async function handler(req, res) {
           why_not_check: analysis.whyNot,
           truth_seal: {
             source: 'ai_approx',
+            template_id: generateTemplateId({ heroHand, heroPosition, heroStack, gameType, villains, board }),
+            stack_format_hash: generateStackFormatHash(heroStack, gameType, villains),
             timestamp: new Date().toISOString(),
-            version: '1.0.0'
+            model_version: 'gto-approx-v1.0.0'
           }
         });
 
