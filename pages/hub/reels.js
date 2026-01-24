@@ -13,7 +13,22 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for ReactPlayer (SSR compatibility)
-const ReactPlayer = dynamic(() => import('react-player'), { ssr: false });
+const ReactPlayer = dynamic(() => import('react-player/youtube'), {
+    ssr: false,
+    loading: () => (
+        <div style={{
+            width: '100%',
+            height: '100%',
+            background: '#000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff'
+        }}>
+            Loading video...
+        </div>
+    )
+});
 
 // God-Mode Stack
 import { useReelsStore } from '../../src/stores/reelsStore';

@@ -47,12 +47,12 @@ const SEAT_POSITIONS = {
     seat4: { left: '28%', top: '8%', transform: 'translateX(-50%)' },
     // Top right - Villain 5 (spartan)
     seat5: { left: '72%', top: '8%', transform: 'translateX(-50%)' },
-    // Upper right - Villain 6 (king with glasses) - LEFT-based so drag works
-    seat6: { left: '85%', top: '28%', transform: 'translateX(-50%)' },
-    // Middle right - Villain 7 (young man) - LEFT-based so drag works
-    seat7: { left: '92%', top: '50%', transform: 'translate(-50%, -50%)' },
-    // Bottom right - Villain 8 (owl) - LEFT-based so drag works
-    seat8: { left: '85%', bottom: '22%', transform: 'translateX(-50%)' },
+    // Upper right - Villain 6 (king with glasses) - mirrors seat3
+    seat6: { right: '8%', top: '28%' },
+    // Middle right - Villain 7 (young man) - mirrors seat2
+    seat7: { right: '3%', top: '50%', transform: 'translateY(-50%)' },
+    // Bottom right - Villain 8 (owl) - mirrors seat1
+    seat8: { right: '15%', bottom: '22%', transform: 'translateX(50%)' },
 };
 
 const SUITS = {
