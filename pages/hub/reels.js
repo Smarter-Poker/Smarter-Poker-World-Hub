@@ -1,8 +1,8 @@
 /**
  * REELS PAGE - Full-Screen TikTok-Style Video Experience
  * 
- * CRITICAL FIXES:
- * 1. WHITE LINE/BLUE GLOW: EXTREME overscan (80px) + BLACK EDGE COVERS
+ * ISSUE SOLUTIONS:
+ * 1. WHITE LINE/BLUE GLOW: SOLID BLACK edge covers (not gradients!)
  * 2. SWIPE: Document-level touch handlers + tap zones
  * 3. UNMUTE: Big centered unmute button
  */
@@ -173,8 +173,8 @@ export default function ReelsPage() {
 
     const youtubeUrl = `https://www.youtube.com/embed/${reel?.videoId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${reel?.videoId}&playsinline=1&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
 
-    // EXTREME overscan to hide YouTube's ambient glow
-    const OVERSCAN = 80;
+    // EDGE COVER SIZE - SOLID BLACK to completely hide YouTube's ambient glow
+    const EDGE_SIZE = 40;
 
     return (
         <>
@@ -195,15 +195,15 @@ export default function ReelsPage() {
                 touchAction: 'none'
             }}>
 
-                {/* VIDEO CONTAINER with clip-path */}
+                {/* VIDEO CONTAINER - positioned INSIDE the edge covers */}
                 <div style={{
                     position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    clipPath: 'inset(0)',
-                    overflow: 'hidden'
+                    top: EDGE_SIZE,
+                    left: EDGE_SIZE,
+                    right: EDGE_SIZE,
+                    bottom: EDGE_SIZE,
+                    overflow: 'hidden',
+                    borderRadius: 8 // Slight rounding for polish
                 }}>
                     {reel && (
                         <iframe
@@ -214,10 +214,11 @@ export default function ReelsPage() {
                             allowFullScreen
                             style={{
                                 position: 'absolute',
-                                top: -OVERSCAN,
-                                left: -OVERSCAN,
-                                width: `calc(100% + ${OVERSCAN * 2}px)`,
-                                height: `calc(100% + ${OVERSCAN * 2}px)`,
+                                // Overscan within this container to hide YouTube's inner glow
+                                top: -20,
+                                left: -20,
+                                width: 'calc(100% + 40px)',
+                                height: 'calc(100% + 40px)',
                                 border: 'none',
                                 pointerEvents: 'auto'
                             }}
@@ -225,30 +226,39 @@ export default function ReelsPage() {
                     )}
                 </div>
 
-                {/* BLACK EDGE COVERS - Physically cover any glow that leaks through */}
-                {/* LEFT COVER */}
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: 60,
-                    height: '100%',
-                    background: 'linear-gradient(to right, #000 0%, #000 70%, transparent 100%)',
-                    zIndex: 8,
-                    pointerEvents: 'none'
-                }} />
+                {/* SOLID BLACK EDGE COVERS - These are the main container's edges */}
+                {/* The edges are naturally black since main container bg is #000 */}
+                {/* But we add explicit covers to ensure they capture taps */}
 
-                {/* RIGHT COVER */}
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    width: 60,
-                    height: '100%',
-                    background: 'linear-gradient(to left, #000 0%, #000 70%, transparent 100%)',
-                    zIndex: 8,
-                    pointerEvents: 'none'
-                }} />
+                {/* LEFT TAP ZONE (also acts as solid black cover) */}
+                <div
+                    onClick={() => goPrev()}
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: EDGE_SIZE,
+                        height: '100%',
+                        background: '#000',
+                        zIndex: 20,
+                        cursor: 'pointer'
+                    }}
+                />
+
+                {/* RIGHT TAP ZONE (also acts as solid black cover) */}
+                <div
+                    onClick={() => goNext()}
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        width: EDGE_SIZE,
+                        height: '100%',
+                        background: '#000',
+                        zIndex: 20,
+                        cursor: 'pointer'
+                    }}
+                />
 
                 {/* TOP COVER */}
                 <div style={{
@@ -256,9 +266,9 @@ export default function ReelsPage() {
                     top: 0,
                     left: 0,
                     width: '100%',
-                    height: 60,
-                    background: 'linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%)',
-                    zIndex: 8,
+                    height: EDGE_SIZE,
+                    background: '#000',
+                    zIndex: 15,
                     pointerEvents: 'none'
                 }} />
 
@@ -268,39 +278,11 @@ export default function ReelsPage() {
                     bottom: 0,
                     left: 0,
                     width: '100%',
-                    height: 60,
-                    background: 'linear-gradient(to top, #000 0%, #000 70%, transparent 100%)',
-                    zIndex: 8,
+                    height: EDGE_SIZE,
+                    background: '#000',
+                    zIndex: 15,
                     pointerEvents: 'none'
                 }} />
-
-                {/* LEFT TAP ZONE */}
-                <div
-                    onClick={() => goPrev()}
-                    style={{
-                        position: 'absolute',
-                        top: 60,
-                        left: 0,
-                        width: '30%',
-                        height: 'calc(100% - 180px)',
-                        zIndex: 15,
-                        cursor: 'pointer'
-                    }}
-                />
-
-                {/* RIGHT TAP ZONE */}
-                <div
-                    onClick={() => goNext()}
-                    style={{
-                        position: 'absolute',
-                        top: 60,
-                        right: 0,
-                        width: '30%',
-                        height: 'calc(100% - 180px)',
-                        zIndex: 15,
-                        cursor: 'pointer'
-                    }}
-                />
 
                 {/* UNMUTE BUTTON */}
                 {muted && (
@@ -312,7 +294,7 @@ export default function ReelsPage() {
                             left: '50%',
                             transform: 'translate(-50%, -50%)',
                             zIndex: 50,
-                            background: 'rgba(0,0,0,0.9)',
+                            background: 'rgba(0,0,0,0.95)',
                             color: 'white',
                             padding: '20px 40px',
                             borderRadius: 100,
@@ -334,18 +316,18 @@ export default function ReelsPage() {
                 {/* Back button */}
                 <Link href="/hub/social-media" style={{
                     position: 'absolute',
-                    top: 12,
-                    left: 12,
+                    top: 8,
+                    left: 8,
                     zIndex: 100,
-                    width: 44,
-                    height: 44,
+                    width: 36,
+                    height: 36,
                     borderRadius: '50%',
                     background: 'rgba(0,0,0,0.9)',
                     color: 'white',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 22,
+                    fontSize: 18,
                     textDecoration: 'none',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
                 }}>←</Link>
@@ -353,12 +335,12 @@ export default function ReelsPage() {
                 {/* Title */}
                 <div style={{
                     position: 'absolute',
-                    top: 18,
+                    top: 10,
                     left: '50%',
                     transform: 'translateX(-50%)',
                     color: 'white',
                     fontWeight: 700,
-                    fontSize: 18,
+                    fontSize: 16,
                     zIndex: 100,
                     textShadow: '0 2px 8px rgba(0,0,0,1)',
                     pointerEvents: 'none'
@@ -367,25 +349,25 @@ export default function ReelsPage() {
                 {/* Navigation hint */}
                 <div style={{
                     position: 'absolute',
-                    bottom: 20,
+                    bottom: 10,
                     left: '50%',
                     transform: 'translateX(-50%)',
                     color: 'rgba(255,255,255,0.6)',
-                    fontSize: 13,
+                    fontSize: 12,
                     zIndex: 100,
                     pointerEvents: 'none',
                     textShadow: '0 1px 4px rgba(0,0,0,0.8)'
                 }}>
-                    Swipe ↑↓ or tap edges
+                    Swipe or tap edges
                 </div>
 
                 {/* Video counter */}
                 <div style={{
                     position: 'absolute',
-                    bottom: 20,
-                    right: 20,
+                    bottom: 10,
+                    right: 10,
                     color: 'rgba(255,255,255,0.6)',
-                    fontSize: 12,
+                    fontSize: 11,
                     zIndex: 100,
                     pointerEvents: 'none'
                 }}>
