@@ -1401,48 +1401,52 @@ export default function NewsHub() {
                                 </AnimatePresence>
 
                                 {/* Reels Preview Section - Shows on News tab */}
-                                {reels.length > 0 && (
-                                    <section className="reels-preview-section">
-                                        <div className="section-header-row">
-                                            <h2 className="section-title">
-                                                <Film size={18} /> Poker Reels
-                                            </h2>
-                                            <button
-                                                className="see-all-btn"
-                                                onClick={() => setActiveSection('reels')}
-                                            >
-                                                See All →
-                                            </button>
-                                        </div>
+                                <section className="reels-preview-section">
+                                    <div className="section-header-row">
+                                        <h2 className="section-title">
+                                            <Film size={18} /> Poker Reels
+                                        </h2>
+                                        <button
+                                            className="see-all-btn"
+                                            onClick={() => setActiveSection('reels')}
+                                        >
+                                            See All →
+                                        </button>
+                                    </div>
+                                    {reels.length > 0 ? (
                                         <div className="reels-carousel">
                                             {reels.slice(0, 6).map(reel => (
                                                 <ReelCard key={reel.id} reel={reel} />
                                             ))}
                                         </div>
-                                    </section>
-                                )}
+                                    ) : (
+                                        <p style={{color: '#888', padding: '20px', textAlign: 'center'}}>Loading reels...</p>
+                                    )}
+                                </section>
 
                                 {/* Videos Preview Section - Shows on News tab */}
-                                {videos.length > 0 && (
-                                    <section className="videos-preview-section">
-                                        <div className="section-header-row">
-                                            <h2 className="section-title">
-                                                <Play size={18} /> Latest Videos
-                                            </h2>
-                                            <button
-                                                className="see-all-btn"
-                                                onClick={() => setActiveSection('videos')}
-                                            >
-                                                See All →
-                                            </button>
-                                        </div>
+                                <section className="videos-preview-section">
+                                    <div className="section-header-row">
+                                        <h2 className="section-title">
+                                            <Play size={18} /> Latest Videos
+                                        </h2>
+                                        <button
+                                            className="see-all-btn"
+                                            onClick={() => setActiveSection('videos')}
+                                        >
+                                            See All →
+                                        </button>
+                                    </div>
+                                    {videos.length > 0 ? (
                                         <div className="videos-carousel">
                                             {videos.slice(0, 4).map(video => (
                                                 <VideoCard key={video.id} video={video} onClick={openVideo} />
                                             ))}
                                         </div>
-                                    </section>
-                                )}
+                                    ) : (
+                                        <p style={{color: '#888', padding: '20px', textAlign: 'center'}}>Loading videos...</p>
+                                    )}
+                                </section>
                             </>
                         ) : activeSection === 'videos' ? (
                             /* Videos Section */
