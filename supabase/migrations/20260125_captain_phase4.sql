@@ -1,8 +1,8 @@
 -- =====================================================
 -- SMARTER CAPTAIN - PHASE 4 DATABASE MIGRATION
 -- =====================================================
--- Tables: 3 (as specified in SCOPE_LOCK.md)
--- Phase: Home Games
+-- Tables: 7 (Home Games + Messaging + Notifications)
+-- Phase: Home Games & Club Communication
 -- =====================================================
 
 -- ===================
@@ -18,10 +18,14 @@ CREATE TABLE IF NOT EXISTS captain_home_groups (
   -- Owner/Host
   owner_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
 
+  -- Club Identity (for QR codes and sharing)
+  club_code TEXT UNIQUE, -- Short 6-char code for easy sharing
+  invite_code TEXT UNIQUE, -- 8-char invite code
+  qr_code_url TEXT, -- Stored QR code image URL (optional, can generate dynamically)
+
   -- Privacy settings
   is_private BOOLEAN DEFAULT true,
   requires_approval BOOLEAN DEFAULT true,
-  invite_code TEXT UNIQUE,
 
   -- Location (approximate for discovery)
   city TEXT,
@@ -58,6 +62,7 @@ CREATE TABLE IF NOT EXISTS captain_home_groups (
 CREATE INDEX IF NOT EXISTS idx_home_groups_owner ON captain_home_groups(owner_id);
 CREATE INDEX IF NOT EXISTS idx_home_groups_location ON captain_home_groups(city, state);
 CREATE INDEX IF NOT EXISTS idx_home_groups_invite ON captain_home_groups(invite_code);
+CREATE INDEX IF NOT EXISTS idx_home_groups_club_code ON captain_home_groups(club_code);
 
 -- ===================
 -- TABLE 2: captain_home_members
@@ -83,6 +88,12 @@ CREATE TABLE IF NOT EXISTS captain_home_members (
   -- Preferences
   can_host BOOLEAN DEFAULT false,
   notifications_enabled BOOLEAN DEFAULT true,
+
+  -- Notification preferences (granular)
+  notify_announcements BOOLEAN DEFAULT true,
+  notify_new_games BOOLEAN DEFAULT true,
+  notify_game_reminders BOOLEAN DEFAULT true,
+  notify_rsvp_updates BOOLEAN DEFAULT true,
 
   -- Metadata
   invited_by UUID REFERENCES profiles(id),
@@ -191,6 +202,115 @@ CREATE INDEX IF NOT EXISTS idx_home_rsvps_game ON captain_home_rsvps(game_id, re
 CREATE INDEX IF NOT EXISTS idx_home_rsvps_user ON captain_home_rsvps(user_id);
 
 -- ===================
+-- TABLE 5: captain_club_announcements
+-- ===================
+-- Club announcements and messages to members
+
+CREATE TABLE IF NOT EXISTS captain_club_announcements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID REFERENCES captain_home_groups(id) ON DELETE CASCADE,
+
+  -- Author
+  author_id UUID REFERENCES profiles(id),
+
+  -- Content
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  message_type TEXT DEFAULT 'announcement' CHECK (message_type IN ('announcement', 'game_reminder', 'event', 'update', 'urgent')),
+
+  -- Targeting
+  target_all BOOLEAN DEFAULT true,
+  target_member_ids UUID[], -- If not target_all, specific members
+
+  -- Scheduling
+  scheduled_for TIMESTAMPTZ,
+  sent_at TIMESTAMPTZ,
+
+  -- Related content
+  related_game_id UUID REFERENCES captain_home_games(id) ON DELETE SET NULL,
+
+  -- Push notification
+  send_push BOOLEAN DEFAULT true,
+  push_sent BOOLEAN DEFAULT false,
+  push_sent_count INTEGER DEFAULT 0,
+
+  -- Status
+  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'sent', 'cancelled')),
+
+  -- Metadata
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_club_announcements_group ON captain_club_announcements(group_id, status);
+CREATE INDEX IF NOT EXISTS idx_club_announcements_scheduled ON captain_club_announcements(scheduled_for) WHERE status = 'scheduled';
+
+-- ===================
+-- TABLE 6: captain_push_subscriptions
+-- ===================
+-- Push notification device tokens per user per club
+
+CREATE TABLE IF NOT EXISTS captain_push_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  group_id UUID REFERENCES captain_home_groups(id) ON DELETE CASCADE,
+
+  -- Device info
+  device_token TEXT NOT NULL,
+  device_type TEXT CHECK (device_type IN ('ios', 'android', 'web')),
+  device_name TEXT,
+
+  -- Status
+  is_active BOOLEAN DEFAULT true,
+  last_used TIMESTAMPTZ DEFAULT now(),
+
+  -- Metadata
+  created_at TIMESTAMPTZ DEFAULT now(),
+
+  UNIQUE(user_id, group_id, device_token)
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_subs_user ON captain_push_subscriptions(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_push_subs_group ON captain_push_subscriptions(group_id, is_active);
+
+-- ===================
+-- TABLE 7: captain_notification_log
+-- ===================
+-- Log of sent notifications for tracking/debugging
+
+CREATE TABLE IF NOT EXISTS captain_notification_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Target
+  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  group_id UUID REFERENCES captain_home_groups(id) ON DELETE SET NULL,
+  announcement_id UUID REFERENCES captain_club_announcements(id) ON DELETE SET NULL,
+
+  -- Notification details
+  notification_type TEXT NOT NULL,
+  title TEXT,
+  body TEXT,
+
+  -- Delivery
+  channel TEXT CHECK (channel IN ('push', 'sms', 'email', 'in_app')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'delivered', 'failed', 'read')),
+
+  -- Response
+  sent_at TIMESTAMPTZ,
+  delivered_at TIMESTAMPTZ,
+  read_at TIMESTAMPTZ,
+  error_message TEXT,
+
+  -- Metadata
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notification_log_user ON captain_notification_log(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_notification_log_group ON captain_notification_log(group_id, created_at);
+
+-- ===================
 -- ROW LEVEL SECURITY
 -- ===================
 
@@ -198,6 +318,9 @@ ALTER TABLE captain_home_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE captain_home_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE captain_home_games ENABLE ROW LEVEL SECURITY;
 ALTER TABLE captain_home_rsvps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE captain_club_announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE captain_push_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE captain_notification_log ENABLE ROW LEVEL SECURITY;
 
 -- Groups: Public groups visible to all, private to members only
 CREATE POLICY home_groups_select ON captain_home_groups
@@ -293,6 +416,47 @@ CREATE POLICY home_rsvps_update ON captain_home_rsvps
 CREATE POLICY home_rsvps_delete ON captain_home_rsvps
   FOR DELETE USING (user_id = auth.uid());
 
+-- Announcements: Members can view, admins can create/edit
+CREATE POLICY club_announcements_select ON captain_club_announcements
+  FOR SELECT USING (
+    group_id IN (SELECT group_id FROM captain_home_members WHERE user_id = auth.uid() AND status = 'approved')
+  );
+
+CREATE POLICY club_announcements_insert ON captain_club_announcements
+  FOR INSERT WITH CHECK (
+    group_id IN (SELECT id FROM captain_home_groups WHERE owner_id = auth.uid()) OR
+    group_id IN (SELECT group_id FROM captain_home_members WHERE user_id = auth.uid() AND role IN ('owner', 'admin') AND status = 'approved')
+  );
+
+CREATE POLICY club_announcements_update ON captain_club_announcements
+  FOR UPDATE USING (
+    author_id = auth.uid() OR
+    group_id IN (SELECT id FROM captain_home_groups WHERE owner_id = auth.uid())
+  );
+
+CREATE POLICY club_announcements_delete ON captain_club_announcements
+  FOR DELETE USING (
+    author_id = auth.uid() OR
+    group_id IN (SELECT id FROM captain_home_groups WHERE owner_id = auth.uid())
+  );
+
+-- Push subscriptions: Users manage their own
+CREATE POLICY push_subs_select ON captain_push_subscriptions
+  FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY push_subs_insert ON captain_push_subscriptions
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY push_subs_update ON captain_push_subscriptions
+  FOR UPDATE USING (user_id = auth.uid());
+
+CREATE POLICY push_subs_delete ON captain_push_subscriptions
+  FOR DELETE USING (user_id = auth.uid());
+
+-- Notification log: Users can see their own notifications
+CREATE POLICY notification_log_select ON captain_notification_log
+  FOR SELECT USING (user_id = auth.uid());
+
 -- ===================
 -- FUNCTIONS
 -- ===================
@@ -342,21 +506,42 @@ CREATE TRIGGER home_rsvp_count_trigger
 AFTER INSERT OR UPDATE OR DELETE ON captain_home_rsvps
 FOR EACH ROW EXECUTE FUNCTION update_home_game_rsvp_counts();
 
--- Generate unique invite code
-CREATE OR REPLACE FUNCTION generate_invite_code()
+-- Generate unique invite code and club code
+CREATE OR REPLACE FUNCTION generate_club_codes()
 RETURNS TRIGGER AS $$
+DECLARE
+  new_club_code TEXT;
+  code_exists BOOLEAN;
 BEGIN
+  -- Generate invite code (8 chars)
   IF NEW.invite_code IS NULL THEN
     NEW.invite_code := upper(substr(md5(random()::text), 1, 8));
   END IF;
+
+  -- Generate club code (6 chars, alphanumeric, easy to type)
+  IF NEW.club_code IS NULL THEN
+    LOOP
+      -- Generate a 6-character alphanumeric code (no confusing chars like 0/O, 1/I/L)
+      new_club_code := upper(substr(
+        translate(encode(gen_random_bytes(4), 'base64'), '+/=0O1IL', ''),
+        1, 6
+      ));
+      -- Check if it exists
+      SELECT EXISTS(SELECT 1 FROM captain_home_groups WHERE club_code = new_club_code) INTO code_exists;
+      EXIT WHEN NOT code_exists;
+    END LOOP;
+    NEW.club_code := new_club_code;
+  END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS home_group_invite_code_trigger ON captain_home_groups;
-CREATE TRIGGER home_group_invite_code_trigger
+DROP TRIGGER IF EXISTS home_group_codes_trigger ON captain_home_groups;
+CREATE TRIGGER home_group_codes_trigger
 BEFORE INSERT ON captain_home_groups
-FOR EACH ROW EXECUTE FUNCTION generate_invite_code();
+FOR EACH ROW EXECUTE FUNCTION generate_club_codes();
 
 -- Auto-add owner as member
 CREATE OR REPLACE FUNCTION auto_add_group_owner()
