@@ -138,15 +138,24 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 </div>
             )}
 
-            {/* Image with fallback */}
+            {/* Image with fallback chain */}
             <div className="box-image">
                 <img
                     src={imageUrl}
                     alt={article.title}
                     loading="lazy"
                     onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.parentElement.classList.add('no-image');
+                        // Try category fallback first
+                        const catFallback = FALLBACK_IMAGES[article.category];
+                        const defaultFallback = FALLBACK_IMAGES.news;
+                        if (e.target.src !== catFallback && catFallback) {
+                            e.target.src = catFallback;
+                        } else if (e.target.src !== defaultFallback) {
+                            e.target.src = defaultFallback;
+                        } else {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.classList.add('no-image');
+                        }
                     }}
                 />
                 <div className="image-placeholder">
@@ -1133,13 +1142,14 @@ export default function NewsHub() {
                 {/* Category Tabs (for News section) */}
                 {activeSection === 'news' && (
                     <div className="category-bar">
-                        {['all', 'tournament', 'news', 'industry'].map(tab => (
+                        {['all', 'tournament', 'strategy', 'news', 'industry'].map(tab => (
                             <button
                                 key={tab}
                                 className={`category-tab ${activeTab === tab ? 'active' : ''}`}
                                 onClick={() => setActiveTab(tab)}
                             >
                                 {tab === 'tournament' && '🏆'}
+                                {tab === 'strategy' && '📚'}
                                 {tab === 'news' && '📰'}
                                 {tab === 'industry' && '💼'}
                                 {tab === 'all' && '🃏'}
@@ -1381,6 +1391,32 @@ export default function NewsHub() {
                                         </motion.section>
                                     )}
                                 </AnimatePresence>
+
+                                {/* Featured Videos Carousel */}
+                                {videos.length > 0 && (
+                                    <section className="featured-videos-section">
+                                        <div className="section-header">
+                                            <h2 className="section-title">
+                                                <Play size={18} /> Featured Videos
+                                            </h2>
+                                            <button
+                                                className="see-all-btn"
+                                                onClick={() => setActiveSection('videos')}
+                                            >
+                                                See All →
+                                            </button>
+                                        </div>
+                                        <div className="videos-carousel">
+                                            {videos.slice(0, 6).map(video => (
+                                                <VideoCard
+                                                    key={video.id}
+                                                    video={video}
+                                                    onClick={openVideo}
+                                                />
+                                            ))}
+                                        </div>
+                                    </section>
+                                )}
                             </>
                         ) : activeSection === 'videos' ? (
                             /* Videos Section */
@@ -1982,6 +2018,64 @@ export default function NewsHub() {
 
                     .see-all-videos:hover {
                         background: rgba(255, 0, 0, 0.2);
+                    }
+
+                    /* Featured Videos Carousel on News Page */
+                    .featured-videos-section {
+                        margin-top: 32px;
+                        padding-top: 24px;
+                        border-top: 1px solid rgba(255, 255, 255, 0.1);
+                    }
+
+                    .featured-videos-section .section-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 16px;
+                    }
+
+                    .featured-videos-section .see-all-btn {
+                        background: none;
+                        border: none;
+                        color: #00d4ff;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        padding: 6px 12px;
+                        border-radius: 6px;
+                        transition: all 0.2s;
+                    }
+
+                    .featured-videos-section .see-all-btn:hover {
+                        background: rgba(0, 212, 255, 0.1);
+                    }
+
+                    .videos-carousel {
+                        display: flex;
+                        gap: 16px;
+                        overflow-x: auto;
+                        padding-bottom: 12px;
+                        scrollbar-width: thin;
+                        scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+                        scroll-snap-type: x mandatory;
+                    }
+
+                    .videos-carousel::-webkit-scrollbar {
+                        height: 6px;
+                    }
+
+                    .videos-carousel::-webkit-scrollbar-track {
+                        background: transparent;
+                    }
+
+                    .videos-carousel::-webkit-scrollbar-thumb {
+                        background: rgba(255, 255, 255, 0.2);
+                        border-radius: 3px;
+                    }
+
+                    .videos-carousel > * {
+                        flex: 0 0 280px;
+                        scroll-snap-align: start;
                     }
 
                     /* Reels Section */
