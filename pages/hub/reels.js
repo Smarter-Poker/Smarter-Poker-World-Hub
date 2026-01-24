@@ -1,14 +1,13 @@
 /**
- * REELS PAGE - Full-Screen YouTube Shorts Experience
+ * REELS PAGE - Full-Screen TikTok-Style Video Experience
  * 
- * SOLUTIONS IMPLEMENTED:
- * 1. SWIPE: Touch capture zones on left/right edges (40% each) to intercept swipes
- *    Center 20% left open for YouTube controls
- * 2. UNMUTE: Tap-to-unmute overlay - tapping reloads iframe with mute=0
- * 3. WHITE LINE: Slight overscan with overflow:hidden + frameBorder=0
+ * CRITICAL FIXES:
+ * 1. WHITE LINE/BLUE GLOW: Large overscan (40px) + clip-path to hide YouTube letterboxing
+ * 2. SWIPE: Document-level touch handlers that work even over iframes
+ * 3. UNMUTE: Videos MUST start muted (browser policy) - big unmute button
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import { supabase } from '../../src/lib/supabase';
 import Link from 'next/link';
@@ -32,9 +31,12 @@ export default function ReelsPage() {
     const [reels, setReels] = useState([]);
     const [idx, setIdx] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [muted, setMuted] = useState(true); // Start muted for autoplay
+    const [muted, setMuted] = useState(true);
+
+    // Touch tracking refs
     const touchStartY = useRef(0);
     const touchStartTime = useRef(0);
+    const isNavigating = useRef(false);
 
     useEffect(() => {
         loadReels();
@@ -66,42 +68,58 @@ export default function ReelsPage() {
         setLoading(false);
     };
 
-    const reel = reels[idx];
-
-    // Navigate to next/prev reel
-    const goNext = () => {
+    // Navigation with debounce to prevent double-triggers
+    const goNext = useCallback(() => {
+        if (isNavigating.current) return;
         if (idx < reels.length - 1) {
-            setIdx(idx + 1);
-            setMuted(true); // Reset to muted on navigation
+            isNavigating.current = true;
+            setIdx(prev => prev + 1);
+            setMuted(true);
+            setTimeout(() => { isNavigating.current = false; }, 300);
         }
-    };
+    }, [idx, reels.length]);
 
-    const goPrev = () => {
+    const goPrev = useCallback(() => {
+        if (isNavigating.current) return;
         if (idx > 0) {
-            setIdx(idx - 1);
-            setMuted(true); // Reset to muted on navigation
+            isNavigating.current = true;
+            setIdx(prev => prev - 1);
+            setMuted(true);
+            setTimeout(() => { isNavigating.current = false; }, 300);
         }
-    };
+    }, [idx]);
 
-    // Swipe handlers for touch zones
-    const handleTouchStart = (e) => {
-        touchStartY.current = e.touches[0].clientY;
-        touchStartTime.current = Date.now();
-    };
+    // DOCUMENT-LEVEL touch handlers (work even over iframes)
+    useEffect(() => {
+        const handleTouchStart = (e) => {
+            touchStartY.current = e.touches[0].clientY;
+            touchStartTime.current = Date.now();
+        };
 
-    const handleTouchEnd = (e) => {
-        const deltaY = touchStartY.current - e.changedTouches[0].clientY;
-        const deltaTime = Date.now() - touchStartTime.current;
+        const handleTouchEnd = (e) => {
+            const deltaY = touchStartY.current - e.changedTouches[0].clientY;
+            const deltaTime = Date.now() - touchStartTime.current;
 
-        // Only trigger if swipe is significant (>60px) and fast enough (<500ms)
-        if (Math.abs(deltaY) > 60 && deltaTime < 500) {
-            if (deltaY > 0) {
-                goNext(); // Swipe up = next
-            } else {
-                goPrev(); // Swipe down = prev
+            // Swipe detection: >80px movement in <400ms
+            if (Math.abs(deltaY) > 80 && deltaTime < 400) {
+                e.preventDefault();
+                if (deltaY > 0) {
+                    goNext();
+                } else {
+                    goPrev();
+                }
             }
-        }
-    };
+        };
+
+        // Use capture phase to intercept before iframe
+        document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
+        document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
+
+        return () => {
+            document.removeEventListener('touchstart', handleTouchStart, { capture: true });
+            document.removeEventListener('touchend', handleTouchEnd, { capture: true });
+        };
+    }, [goNext, goPrev]);
 
     // Keyboard navigation
     useEffect(() => {
@@ -111,29 +129,28 @@ export default function ReelsPage() {
         };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [idx, reels.length]);
+    }, [goNext, goPrev]);
 
-    // Mouse wheel navigation
+    // Mouse wheel navigation (for desktop)
     useEffect(() => {
-        let wheelTimeout = null;
+        let wheelCooldown = false;
         const handler = (e) => {
-            if (wheelTimeout) return; // Debounce
-            if (e.deltaY > 50) {
-                goNext();
-                wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 500);
-            } else if (e.deltaY < -50) {
-                goPrev();
-                wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 500);
+            if (wheelCooldown) return;
+            if (Math.abs(e.deltaY) > 50) {
+                wheelCooldown = true;
+                if (e.deltaY > 0) {
+                    goNext();
+                } else {
+                    goPrev();
+                }
+                setTimeout(() => { wheelCooldown = false; }, 500);
             }
         };
         window.addEventListener('wheel', handler, { passive: true });
         return () => window.removeEventListener('wheel', handler);
-    }, [idx, reels.length]);
+    }, [goNext, goPrev]);
 
-    // Handle unmute tap
-    const handleUnmute = () => {
-        setMuted(false);
-    };
+    const reel = reels[idx];
 
     if (loading) {
         return (
@@ -164,8 +181,10 @@ export default function ReelsPage() {
         );
     }
 
-    // Build YouTube URL with appropriate mute setting
     const youtubeUrl = `https://www.youtube.com/embed/${reel?.videoId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${reel?.videoId}&playsinline=1&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
+
+    // Overscan amount to hide YouTube's letterbox glow
+    const OVERSCAN = 40;
 
     return (
         <>
@@ -174,6 +193,7 @@ export default function ReelsPage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
             </Head>
 
+            {/* Main container - full screen, black background */}
             <div style={{
                 position: 'fixed',
                 top: 0,
@@ -181,17 +201,21 @@ export default function ReelsPage() {
                 right: 0,
                 bottom: 0,
                 background: '#000',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                touchAction: 'none' // Disable browser handling of touch gestures
             }}>
-                {/* Video container with slight overscan to hide white edges */}
+
+                {/* VIDEO CONTAINER - uses clip-path to physically cut off edges */}
                 <div style={{
                     position: 'absolute',
-                    top: -5,
-                    left: -5,
-                    right: -5,
-                    bottom: -5,
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    clipPath: 'inset(0)', // This clips any overflow from the iframe
                     overflow: 'hidden'
                 }}>
+                    {/* IFRAME with overscan - extends beyond visible area */}
                     {reel && (
                         <iframe
                             key={`${reel.id}-${muted}`}
@@ -201,119 +225,149 @@ export default function ReelsPage() {
                             allowFullScreen
                             style={{
                                 position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '100%',
-                                border: 'none'
+                                top: -OVERSCAN,
+                                left: -OVERSCAN,
+                                width: `calc(100% + ${OVERSCAN * 2}px)`,
+                                height: `calc(100% + ${OVERSCAN * 2}px)`,
+                                border: 'none',
+                                pointerEvents: 'auto' // Allow interaction with YouTube controls
                             }}
                         />
                     )}
                 </div>
 
-                {/* LEFT TOUCH ZONE - captures swipes on left 40% */}
+                {/* INVISIBLE SWIPE OVERLAY - covers entire screen to capture gestures */}
+                {/* This is ABOVE the iframe to capture touch events */}
                 <div
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
                     style={{
                         position: 'absolute',
                         top: 0,
                         left: 0,
-                        width: '40%',
-                        height: '100%',
-                        zIndex: 10,
-                        // Transparent - only captures touch, doesn't block view
+                        right: 0,
+                        bottom: 0,
+                        zIndex: 5,
+                        // Touch events pass through to document handlers
+                        pointerEvents: 'none'
                     }}
                 />
 
-                {/* RIGHT TOUCH ZONE - captures swipes on right 40% */}
+                {/* LEFT TAP ZONE - for prev video */}
                 <div
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
+                    onClick={() => goPrev()}
                     style={{
                         position: 'absolute',
-                        top: 0,
-                        right: 0,
-                        width: '40%',
-                        height: '100%',
-                        zIndex: 10,
+                        top: 60,
+                        left: 0,
+                        width: '30%',
+                        height: 'calc(100% - 180px)',
+                        zIndex: 15,
+                        cursor: 'pointer'
                     }}
                 />
 
-                {/* TAP TO UNMUTE OVERLAY - only shows when muted */}
+                {/* RIGHT TAP ZONE - for next video */}
+                <div
+                    onClick={() => goNext()}
+                    style={{
+                        position: 'absolute',
+                        top: 60,
+                        right: 0,
+                        width: '30%',
+                        height: 'calc(100% - 180px)',
+                        zIndex: 15,
+                        cursor: 'pointer'
+                    }}
+                />
+
+                {/* UNMUTE BUTTON - Very prominent, centered */}
                 {muted && (
                     <div
-                        onClick={handleUnmute}
+                        onClick={() => setMuted(false)}
                         style={{
                             position: 'absolute',
-                            bottom: 100,
+                            top: '50%',
                             left: '50%',
-                            transform: 'translateX(-50%)',
-                            zIndex: 20,
-                            background: 'rgba(0,0,0,0.8)',
+                            transform: 'translate(-50%, -50%)',
+                            zIndex: 50,
+                            background: 'rgba(0,0,0,0.85)',
                             color: 'white',
-                            padding: '16px 32px',
-                            borderRadius: 50,
-                            fontSize: 18,
-                            fontWeight: 600,
+                            padding: '20px 40px',
+                            borderRadius: 100,
+                            fontSize: 20,
+                            fontWeight: 700,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 12,
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-                            border: '2px solid rgba(255,255,255,0.3)'
+                            gap: 16,
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                            border: '3px solid rgba(255,255,255,0.4)',
+                            backdropFilter: 'blur(10px)'
                         }}
                     >
-                        <span style={{ fontSize: 24 }}>🔊</span>
-                        Tap to Unmute
+                        <span style={{ fontSize: 32 }}>🔊</span>
+                        TAP TO UNMUTE
                     </div>
                 )}
 
                 {/* Back button */}
                 <Link href="/hub/social-media" style={{
                     position: 'absolute',
-                    top: 16,
-                    left: 16,
+                    top: 12,
+                    left: 12,
                     zIndex: 100,
                     width: 44,
                     height: 44,
                     borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.7)',
+                    background: 'rgba(0,0,0,0.8)',
                     color: 'white',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 20,
-                    textDecoration: 'none'
+                    fontSize: 22,
+                    textDecoration: 'none',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
                 }}>←</Link>
 
                 {/* Title */}
                 <div style={{
                     position: 'absolute',
-                    top: 20,
+                    top: 18,
                     left: '50%',
                     transform: 'translateX(-50%)',
                     color: 'white',
                     fontWeight: 700,
                     fontSize: 18,
                     zIndex: 100,
-                    textShadow: '0 2px 8px rgba(0,0,0,0.9)',
+                    textShadow: '0 2px 8px rgba(0,0,0,1)',
                     pointerEvents: 'none'
                 }}>Reels</div>
 
-                {/* Swipe hint - shows briefly */}
+                {/* Navigation hint */}
                 <div style={{
                     position: 'absolute',
-                    bottom: 40,
+                    bottom: 20,
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    color: 'rgba(255,255,255,0.6)',
-                    fontSize: 14,
-                    zIndex: 5,
+                    color: 'rgba(255,255,255,0.5)',
+                    fontSize: 13,
+                    zIndex: 10,
                     pointerEvents: 'none',
                     textShadow: '0 1px 4px rgba(0,0,0,0.8)'
                 }}>
-                    Swipe ↑↓ to navigate
+                    Swipe ↑↓ or tap edges
+                </div>
+
+                {/* Video counter */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: 20,
+                    right: 20,
+                    color: 'rgba(255,255,255,0.5)',
+                    fontSize: 12,
+                    zIndex: 10,
+                    pointerEvents: 'none'
+                }}>
+                    {idx + 1} / {reels.length}
                 </div>
             </div>
         </>
