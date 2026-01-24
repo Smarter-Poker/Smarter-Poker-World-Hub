@@ -167,9 +167,9 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                     </div>
                 )}
 
-                {/* Article iframe */}
+                {/* Article iframe - Served through our proxy to bypass X-Frame-Options */}
                 <iframe
-                    src={url}
+                    src={`/api/proxy?url=${encodeURIComponent(url)}`}
                     style={{
                         flex: 1,
                         width: '100%',
@@ -183,7 +183,7 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                         setLoading(false);
                         setError(true);
                     }}
-                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                    // No sandbox restrictions needed since content comes from our proxy
                     referrerPolicy="no-referrer"
                 />
 
