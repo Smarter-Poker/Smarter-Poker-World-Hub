@@ -80,18 +80,25 @@ export function getHorseActivityRate(profileId, actionType) {
 }
 
 /**
- * Get horse's preferred activity hours (some horses are night owls, some early birds)
+ * Get horse's preferred activity hours (12-hour windows - horses sleep!)
+ * Each horse has a unique 12-hour active window based on their ID
  */
 export function getHorseActiveHours(profileId) {
     const hash = getHorseSlot(profileId);
 
-    // Distribute horses across different active periods
+    // All patterns are exactly 12 hours active
+    // start = when they wake up, end = when they sleep (exactly 12 hours later)
     const patterns = [
-        { start: 6, end: 22 },   // Day shift
-        { start: 8, end: 24 },   // Late riser
-        { start: 0, end: 18 },   // Early bird
-        { start: 12, end: 4 },   // Night owl
-        { start: 9, end: 21 },   // Business hours
+        { start: 6, end: 18 },   // Early bird: 6am-6pm
+        { start: 8, end: 20 },   // Morning person: 8am-8pm
+        { start: 10, end: 22 },  // Late riser: 10am-10pm
+        { start: 12, end: 0 },   // Afternoon/evening: 12pm-12am
+        { start: 14, end: 2 },   // Evening person: 2pm-2am
+        { start: 16, end: 4 },   // Night owl: 4pm-4am
+        { start: 18, end: 6 },   // Night shift: 6pm-6am
+        { start: 20, end: 8 },   // Late night: 8pm-8am
+        { start: 22, end: 10 },  // Graveyard: 10pm-10am
+        { start: 0, end: 12 },   // Midnight player: 12am-12pm
     ];
 
     return patterns[hash % patterns.length];
