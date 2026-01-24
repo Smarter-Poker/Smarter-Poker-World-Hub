@@ -1048,26 +1048,12 @@ export default function NewsHub() {
             article.content?.toLowerCase().includes(searchQuery.toLowerCase());
     });
 
-    // Source-specific articles for each box
-    const pokerNewsArticles = filteredNews.filter(a => a.source_name === 'PokerNews');
-    const cardPlayerArticles = filteredNews.filter(a => a.source_name === 'CardPlayer');
-    const wsopArticles = filteredNews.filter(a => a.source_name === 'WSOP');
-    const pokerOrgArticles = filteredNews.filter(a => a.source_name === 'Poker.org');
-    const pokerfuseArticles = filteredNews.filter(a => a.source_name === 'Pokerfuse');
-    const msptArticles = filteredNews.filter(a => a.source_name === 'MSPT');
+    // Top 6 articles shown in grid
+    const topArticles = filteredNews.slice(0, 6);
+    const topArticleIds = topArticles.map(a => a.id);
 
-    // IDs of featured articles (first from each source)
-    const featuredIds = [
-        pokerNewsArticles[0]?.id,
-        msptArticles[0]?.id,
-        cardPlayerArticles[0]?.id,
-        wsopArticles[0]?.id,
-        pokerOrgArticles[0]?.id,
-        pokerfuseArticles[0]?.id
-    ].filter(Boolean);
-
-    // Remaining stories (not in the 6 featured boxes)
-    const remainingStories = filteredNews.filter(a => !featuredIds.includes(a.id));
+    // Remaining stories (after the top 6)
+    const remainingStories = filteredNews.slice(6);
 
     // Trending = sorted by views
     const trendingNews = [...news].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
@@ -1239,101 +1225,19 @@ export default function NewsHub() {
                                         </div>
                                     ) : (
                                         <div className="news-grid">
-                                            {/* Box 1: PokerNews */}
-                                            {pokerNewsArticles[0] ? (
+                                            {/* Show top 6 articles regardless of source */}
+                                            {filteredNews.slice(0, 6).map((article, index) => (
                                                 <NewsBox
-                                                    key={pokerNewsArticles[0].id}
-                                                    article={pokerNewsArticles[0]}
-                                                    index={0}
+                                                    key={article.id}
+                                                    article={article}
+                                                    index={index}
                                                     onOpen={openArticle}
-                                                    isBookmarked={bookmarks.includes(pokerNewsArticles[0].id)}
+                                                    isBookmarked={bookmarks.includes(article.id)}
                                                     onBookmark={toggleBookmark}
                                                     onShare={setShareArticle}
-                                                    isRead={readArticles.includes(pokerNewsArticles[0].id)}
+                                                    isRead={readArticles.includes(article.id)}
                                                 />
-                                            ) : (
-                                                <SourcePlaceholderBox sourceName="PokerNews" index={0} />
-                                            )}
-
-                                            {/* Box 2: MSPT */}
-                                            {msptArticles[0] ? (
-                                                <NewsBox
-                                                    key={msptArticles[0].id}
-                                                    article={msptArticles[0]}
-                                                    index={1}
-                                                    onOpen={openArticle}
-                                                    isBookmarked={bookmarks.includes(msptArticles[0].id)}
-                                                    onBookmark={toggleBookmark}
-                                                    onShare={setShareArticle}
-                                                    isRead={readArticles.includes(msptArticles[0].id)}
-                                                />
-                                            ) : (
-                                                <SourcePlaceholderBox sourceName="MSPT" index={1} />
-                                            )}
-
-                                            {/* Box 3: CardPlayer */}
-                                            {cardPlayerArticles[0] ? (
-                                                <NewsBox
-                                                    key={cardPlayerArticles[0].id}
-                                                    article={cardPlayerArticles[0]}
-                                                    index={2}
-                                                    onOpen={openArticle}
-                                                    isBookmarked={bookmarks.includes(cardPlayerArticles[0].id)}
-                                                    onBookmark={toggleBookmark}
-                                                    onShare={setShareArticle}
-                                                    isRead={readArticles.includes(cardPlayerArticles[0].id)}
-                                                />
-                                            ) : (
-                                                <SourcePlaceholderBox sourceName="CardPlayer" index={2} />
-                                            )}
-
-                                            {/* Box 4: WSOP */}
-                                            {wsopArticles[0] ? (
-                                                <NewsBox
-                                                    key={wsopArticles[0].id}
-                                                    article={wsopArticles[0]}
-                                                    index={3}
-                                                    onOpen={openArticle}
-                                                    isBookmarked={bookmarks.includes(wsopArticles[0].id)}
-                                                    onBookmark={toggleBookmark}
-                                                    onShare={setShareArticle}
-                                                    isRead={readArticles.includes(wsopArticles[0].id)}
-                                                />
-                                            ) : (
-                                                <SourcePlaceholderBox sourceName="WSOP" index={3} />
-                                            )}
-
-                                            {/* Box 5: Poker.org */}
-                                            {pokerOrgArticles[0] ? (
-                                                <NewsBox
-                                                    key={pokerOrgArticles[0].id}
-                                                    article={pokerOrgArticles[0]}
-                                                    index={4}
-                                                    onOpen={openArticle}
-                                                    isBookmarked={bookmarks.includes(pokerOrgArticles[0].id)}
-                                                    onBookmark={toggleBookmark}
-                                                    onShare={setShareArticle}
-                                                    isRead={readArticles.includes(pokerOrgArticles[0].id)}
-                                                />
-                                            ) : (
-                                                <SourcePlaceholderBox sourceName="Poker.org" index={4} />
-                                            )}
-
-                                            {/* Box 6: Pokerfuse */}
-                                            {pokerfuseArticles[0] ? (
-                                                <NewsBox
-                                                    key={pokerfuseArticles[0].id}
-                                                    article={pokerfuseArticles[0]}
-                                                    index={5}
-                                                    onOpen={openArticle}
-                                                    isBookmarked={bookmarks.includes(pokerfuseArticles[0].id)}
-                                                    onBookmark={toggleBookmark}
-                                                    onShare={setShareArticle}
-                                                    isRead={readArticles.includes(pokerfuseArticles[0].id)}
-                                                />
-                                            ) : (
-                                                <SourcePlaceholderBox sourceName="Pokerfuse" index={5} />
-                                            )}
+                                            ))}
                                         </div>
                                     )}
 
