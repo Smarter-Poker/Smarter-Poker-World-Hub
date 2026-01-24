@@ -13,6 +13,7 @@ import QuickActions from '../../src/components/captain/staff/QuickActions';
 import ActivityFeed, { createActivity } from '../../src/components/captain/staff/ActivityFeed';
 import OpenGameModal from '../../src/components/captain/modals/OpenGameModal';
 import AddWalkInModal from '../../src/components/captain/modals/AddWalkInModal';
+import SeatPlayerModal from '../../src/components/captain/modals/SeatPlayerModal';
 
 export default function CaptainDashboard() {
   const router = useRouter();
@@ -30,6 +31,8 @@ export default function CaptainDashboard() {
   const [lastRefresh, setLastRefresh] = useState(null);
   const [showOpenGameModal, setShowOpenGameModal] = useState(false);
   const [showAddWalkInModal, setShowAddWalkInModal] = useState(false);
+  const [showSeatPlayerModal, setShowSeatPlayerModal] = useState(false);
+  const [playerToSeat, setPlayerToSeat] = useState(null);
 
   // Check staff session on mount
   useEffect(() => {
@@ -144,44 +147,16 @@ export default function CaptainDashboard() {
     }
   }
 
-  // Handle seat player
-  async function handleSeatPlayer(player) {
-    // For now, show a simple prompt - in full implementation this would open a modal
-    const seatNumber = window.prompt('Enter seat number (1-9):');
-    if (!seatNumber) return;
+  // Handle seat player - open modal
+  function handleSeatPlayer(player) {
+    setPlayerToSeat(player);
+    setShowSeatPlayerModal(true);
+  }
 
-    // Find an appropriate game
-    const matchingGame = games.find(g =>
-      g.game_type === player.game_type &&
-      g.stakes === player.stakes &&
-      ['waiting', 'running'].includes(g.status)
-    );
-
-    if (!matchingGame) {
-      alert('No matching game found');
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/captain/waitlist/${player.id}/seat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          game_id: matchingGame.id,
-          seat_number: parseInt(seatNumber)
-        })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        addActivity('player_seated', `Seated ${player.player_name || 'Player'} at seat ${seatNumber}`);
-        fetchData();
-      } else {
-        alert(data.error?.message || 'Failed to seat player');
-      }
-    } catch (error) {
-      console.error('Failed to seat player:', error);
-    }
+  // Handle player seated from modal
+  function handlePlayerSeated({ player, game, seat_number }) {
+    addActivity('player_seated', `Seated ${player.player_name || 'Player'} at seat ${seat_number} on ${game.table_name || 'Table ' + game.table_number}`);
+    fetchData();
   }
 
   // Handle remove player
@@ -300,10 +275,10 @@ export default function CaptainDashboard() {
             <QuickActions
               onOpenGame={handleOpenGame}
               onAddWalkIn={handleAddWalkIn}
-              onViewWaitlist={() => {}}
-              onManageTables={() => {}}
-              onSendAnnouncement={() => {}}
-              onSettings={() => {}}
+              onViewWaitlist={() => document.getElementById('waitlist-section')?.scrollIntoView({ behavior: 'smooth' })}
+              onManageTables={() => router.push('/captain/tables')}
+              onSendAnnouncement={() => router.push('/captain/announcements')}
+              onSettings={() => router.push('/captain/settings')}
               permissions={staff.permissions}
             />
           </section>
@@ -328,7 +303,7 @@ export default function CaptainDashboard() {
           </div>
 
           {/* Waitlist Manager */}
-          <section>
+          <section id="waitlist-section">
             <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Waitlist</h2>
             <WaitlistManager
               waitlists={waitlists}
@@ -356,6 +331,17 @@ export default function CaptainDashboard() {
         onSubmit={handleWalkInAdded}
         venueId={venueId}
         activeGames={games}
+      />
+
+      <SeatPlayerModal
+        isOpen={showSeatPlayerModal}
+        onClose={() => {
+          setShowSeatPlayerModal(false);
+          setPlayerToSeat(null);
+        }}
+        onSubmit={handlePlayerSeated}
+        player={playerToSeat}
+        games={games}
       />
     </>
   );
