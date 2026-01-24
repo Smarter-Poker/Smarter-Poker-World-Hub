@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    DIAMOND ARCADE — Premium Casino-Style Skill Gaming
 
-   Version: 3.1.0 - Casino background image + enhanced styling
+   Version: 3.2.0 - Premium mockup matching update
 
    Features:
    - Rich casino floor background with warm amber lighting
@@ -34,59 +34,70 @@ import {
 
 const GAME_CARD_STYLES = {
     'hand-snap': {
-        background: 'linear-gradient(145deg, #0a1628 0%, #0d2847 30%, #1a4a7a 60%, #0d2847 100%)',
+        background: `
+            linear-gradient(135deg, #0a1830 0%, #102040 20%, #1a3a6a 40%, #0d2545 60%, #0a1830 100%)
+        `,
         overlay: `
-            radial-gradient(circle at 50% 40%, rgba(251, 191, 36, 0.5) 0%, transparent 40%),
-            radial-gradient(circle at 30% 60%, rgba(59, 130, 246, 0.3) 0%, transparent 30%),
-            radial-gradient(circle at 70% 30%, rgba(251, 191, 36, 0.2) 0%, transparent 25%)
+            radial-gradient(ellipse at 50% 30%, rgba(251, 191, 36, 0.6) 0%, transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.3) 0%, transparent 60%),
+            linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.4) 100%)
         `,
         icon: '⚡',
         accentColor: '#fbbf24',
-        boxShadow: 'inset 0 0 60px rgba(251, 191, 36, 0.2), 0 0 30px rgba(251, 191, 36, 0.3)',
+        boxShadow: 'inset 0 0 40px rgba(251, 191, 36, 0.15), inset 0 0 80px rgba(59, 130, 246, 0.1)',
     },
     'ev-or-fold': {
-        background: 'linear-gradient(145deg, #1a0505 0%, #3d1515 30%, #5c2020 50%, #8b2525 70%, #3d1515 100%)',
+        background: `
+            linear-gradient(135deg, #1a0808 0%, #3d1212 20%, #6b1a1a 40%, #8b2020 50%, #5c1515 70%, #2d0a0a 100%)
+        `,
         overlay: `
-            radial-gradient(circle at 60% 40%, rgba(239, 68, 68, 0.4) 0%, transparent 45%),
-            radial-gradient(circle at 30% 70%, rgba(251, 191, 36, 0.2) 0%, transparent 30%),
-            radial-gradient(ellipse at 50% 80%, rgba(0,0,0,0.5) 0%, transparent 50%)
+            radial-gradient(ellipse at 50% 40%, rgba(239, 68, 68, 0.5) 0%, transparent 50%),
+            radial-gradient(circle at 30% 60%, rgba(251, 191, 36, 0.2) 0%, transparent 40%),
+            linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.5) 100%)
         `,
         icon: '🃏',
         accentColor: '#ef4444',
-        boxShadow: 'inset 0 0 60px rgba(239, 68, 68, 0.2), 0 0 30px rgba(239, 68, 68, 0.3)',
+        boxShadow: 'inset 0 0 50px rgba(239, 68, 68, 0.2), inset 0 0 80px rgba(0,0,0,0.3)',
     },
     'board-nuts': {
-        background: 'linear-gradient(145deg, #052e16 0%, #0a4d28 30%, #166534 50%, #15803d 70%, #0a4d28 100%)',
+        background: `
+            linear-gradient(135deg, #041a0d 0%, #0a3d1f 20%, #0f5c2e 40%, #15803d 50%, #0d4d25 70%, #052e16 100%)
+        `,
         overlay: `
-            radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.3) 0%, transparent 50%),
-            radial-gradient(circle at 70% 30%, rgba(251, 191, 36, 0.15) 0%, transparent 30%),
-            radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.4) 0%, transparent 40%)
+            radial-gradient(ellipse at 50% 45%, rgba(34, 197, 94, 0.4) 0%, transparent 55%),
+            radial-gradient(circle at 70% 30%, rgba(251, 191, 36, 0.15) 0%, transparent 35%),
+            linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.4) 100%)
         `,
         icon: '🎯',
         accentColor: '#22c55e',
-        boxShadow: 'inset 0 0 60px rgba(34, 197, 94, 0.2), 0 0 30px rgba(34, 197, 94, 0.3)',
+        boxShadow: 'inset 0 0 50px rgba(34, 197, 94, 0.2), inset 0 0 80px rgba(0,0,0,0.2)',
     },
     'the-gauntlet': {
-        background: 'linear-gradient(145deg, #0a0000 0%, #2d0a0a 20%, #4a0f0f 40%, #6b1414 60%, #2d0a0a 100%)',
+        background: `
+            linear-gradient(135deg, #0a0000 0%, #1a0505 15%, #3d0c0c 30%, #5c1010 45%, #7a1515 55%, #5c1010 70%, #2d0808 85%, #0a0000 100%)
+        `,
         overlay: `
-            radial-gradient(circle at 50% 35%, rgba(220, 38, 38, 0.5) 0%, transparent 40%),
-            radial-gradient(circle at 30% 80%, rgba(251, 191, 36, 0.15) 0%, transparent 30%),
-            radial-gradient(circle at 70% 80%, rgba(251, 191, 36, 0.15) 0%, transparent 30%),
-            radial-gradient(ellipse at 50% 100%, rgba(220, 38, 38, 0.3) 0%, transparent 50%)
+            radial-gradient(ellipse at 50% 35%, rgba(220, 38, 38, 0.6) 0%, transparent 45%),
+            radial-gradient(circle at 30% 70%, rgba(251, 191, 36, 0.15) 0%, transparent 35%),
+            radial-gradient(circle at 70% 70%, rgba(251, 191, 36, 0.15) 0%, transparent 35%),
+            linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.5) 100%)
         `,
         icon: '💀',
         accentColor: '#dc2626',
-        boxShadow: 'inset 0 0 80px rgba(220, 38, 38, 0.3), 0 0 40px rgba(220, 38, 38, 0.4)',
+        boxShadow: 'inset 0 0 60px rgba(220, 38, 38, 0.25), inset 0 0 100px rgba(0,0,0,0.3)',
     },
     'chip-math': {
-        background: 'linear-gradient(145deg, #0c1929 0%, #1e3a5f 30%, #2563eb 50%, #1e3a5f 100%)',
+        background: `
+            linear-gradient(135deg, #0c1929 0%, #1a3050 20%, #2563eb 45%, #1e4a8a 60%, #152a50 80%, #0c1929 100%)
+        `,
         overlay: `
-            radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.4) 0%, transparent 50%),
-            radial-gradient(circle at 30% 30%, rgba(251, 191, 36, 0.2) 0%, transparent 30%)
+            radial-gradient(ellipse at 50% 45%, rgba(59, 130, 246, 0.5) 0%, transparent 55%),
+            radial-gradient(circle at 30% 30%, rgba(251, 191, 36, 0.15) 0%, transparent 35%),
+            linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.4) 100%)
         `,
         icon: '🔢',
         accentColor: '#3b82f6',
-        boxShadow: 'inset 0 0 60px rgba(59, 130, 246, 0.2), 0 0 30px rgba(59, 130, 246, 0.3)',
+        boxShadow: 'inset 0 0 50px rgba(59, 130, 246, 0.2), inset 0 0 80px rgba(0,0,0,0.2)',
     },
 };
 
@@ -413,31 +424,27 @@ export default function DiamondArcade() {
                                 </div>
 
                                 {/* ═══════════════════════════════════════════════════════════════
-                                    DAILY CHALLENGE
+                                    DAILY CHALLENGE - Horizontal Strip
                                 ═══════════════════════════════════════════════════════════════ */}
                                 <div style={styles.dailyChallengeSection}>
                                     <div style={styles.challengeHeader}>
-                                        <span style={styles.sectionDivider}>━━━━</span>
-                                        <span style={styles.challengeLabel}>DAILY CHALLENGE</span>
-                                        <span style={styles.sectionDivider}>━━━━</span>
+                                        <span style={styles.challengeLabel}>━━ DAILY CHALLENGE ━━</span>
                                         <span style={styles.challengeName}>Board Nuts Blitz</span>
                                     </div>
                                     <div style={styles.challengeContent}>
                                         <div style={styles.challengePrize}>Top 100 Split 10,000 💎</div>
                                         <div style={styles.challengeStats}>
-                                            Your Rank: <span style={styles.highlight}>#234</span> •
-                                            Best Score: <span style={styles.highlight}>847 pts</span> •
-                                            Leader: <span style={styles.highlight}>1,203 pts</span>
+                                            Your Rank: <span style={styles.highlight}>#234</span> • Best Score: <span style={styles.highlight}>847 pts</span> • Leader: <span style={styles.highlight}>1,203 pts</span>
                                         </div>
-                                        <motion.button
-                                            style={styles.playButton}
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={() => startGame('board-nuts')}
-                                        >
-                                            PLAY NOW - 25 💎
-                                        </motion.button>
                                     </div>
+                                    <motion.button
+                                        style={styles.playButton}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => startGame('board-nuts')}
+                                    >
+                                        PLAY NOW - 25 💎
+                                    </motion.button>
                                 </div>
 
                                 {/* ═══════════════════════════════════════════════════════════════
@@ -832,42 +839,51 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '15px',
-        marginBottom: '20px',
+        gap: '12px',
+        marginBottom: '15px',
         flexWrap: 'wrap',
+        padding: '8px 0',
+        borderTop: '1px solid rgba(218, 165, 32, 0.3)',
+        borderBottom: '1px solid rgba(218, 165, 32, 0.3)',
+        background: 'linear-gradient(90deg, transparent 0%, rgba(218, 165, 32, 0.08) 50%, transparent 100%)',
     },
     sectionDivider: {
-        color: '#DAA520',
-        fontSize: '12px',
-        letterSpacing: '2px',
+        color: '#B8860B',
+        fontSize: '10px',
+        letterSpacing: '3px',
+        opacity: 0.8,
     },
     sectionTitle: {
         fontFamily: "'Cinzel', serif",
-        fontSize: '14px',
+        fontSize: '13px',
         fontWeight: 700,
         color: '#DAA520',
-        letterSpacing: '2px',
+        letterSpacing: '3px',
+        textShadow: '0 0 10px rgba(218, 165, 32, 0.5)',
     },
     resetTimer: {
         fontFamily: "'Orbitron', sans-serif",
-        fontSize: '12px',
-        color: '#9ca3af',
+        fontSize: '11px',
+        color: '#B8860B',
+        marginLeft: '10px',
     },
 
     // Games Grid
     gamesGrid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '15px',
-        marginBottom: '25px',
+        gap: '12px',
+        marginBottom: '20px',
     },
     gameCard: {
         position: 'relative',
-        borderRadius: '12px',
+        borderRadius: '8px',
         overflow: 'hidden',
         cursor: 'pointer',
-        aspectRatio: '1',
-        border: '2px solid rgba(139, 69, 19, 0.5)',
+        aspectRatio: '0.85',
+        border: '3px solid',
+        borderImage: 'linear-gradient(180deg, #DAA520 0%, #8B4513 50%, #5c3a0a 100%) 1',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,215,0,0.3)',
     },
     gameCardOverlay: {
         position: 'absolute',
@@ -884,53 +900,59 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '70%',
-        padding: '15px',
+        height: '65%',
+        padding: '10px',
     },
     gameIcon: {
-        fontSize: '40px',
-        marginBottom: '10px',
-        filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))',
+        fontSize: '48px',
+        marginBottom: '8px',
+        filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.8)) drop-shadow(0 0 20px rgba(255,255,255,0.3))',
     },
     gameName: {
         fontFamily: "'Cinzel', serif",
-        fontSize: '13px',
-        fontWeight: 700,
+        fontSize: '12px',
+        fontWeight: 800,
         color: '#fff',
         textAlign: 'center',
-        textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+        textShadow: '0 2px 4px rgba(0,0,0,1), 0 0 10px rgba(0,0,0,0.8)',
         letterSpacing: '1px',
+        textTransform: 'uppercase',
     },
     gameCardFooter: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        padding: '12px',
-        background: 'linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)',
+        padding: '8px 10px',
+        background: 'linear-gradient(0deg, rgba(0,0,0,0.98) 0%, rgba(0,0,0,0.85) 60%, transparent 100%)',
         zIndex: 3,
     },
     priceAndBadge: {
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        justifyContent: 'space-between',
+        width: '100%',
     },
     gamePrice: {
         fontFamily: "'Orbitron', sans-serif",
-        fontSize: '15px',
+        fontSize: '14px',
         fontWeight: 700,
         color: '#fbbf24',
-        textShadow: '0 0 10px rgba(251, 191, 36, 0.5)',
+        textShadow: '0 0 8px rgba(251, 191, 36, 0.6)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '2px',
     },
     gameBadge: {
-        padding: '4px 10px',
-        borderRadius: '4px',
-        fontSize: '11px',
-        fontWeight: 700,
+        padding: '3px 8px',
+        borderRadius: '3px',
+        fontSize: '9px',
+        fontWeight: 800,
         color: '#fff',
         fontFamily: "'Orbitron', sans-serif",
         textTransform: 'uppercase',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+        letterSpacing: '0.5px',
     },
     gameCardGlow: {
         position: 'absolute',
@@ -943,49 +965,53 @@ const styles = {
         opacity: 0.5,
     },
 
-    // Daily Challenge
+    // Daily Challenge - Compact horizontal strip
     dailyChallengeSection: {
-        background: 'linear-gradient(180deg, rgba(34, 197, 94, 0.15) 0%, rgba(21, 128, 61, 0.1) 100%)',
-        border: '2px solid rgba(34, 197, 94, 0.4)',
-        borderRadius: '12px',
-        padding: '20px',
-        marginBottom: '25px',
+        background: 'linear-gradient(180deg, rgba(20, 15, 5, 0.95) 0%, rgba(15, 10, 2, 0.9) 100%)',
+        border: '2px solid',
+        borderImage: 'linear-gradient(90deg, #5c3a0a, #DAA520, #5c3a0a) 1',
+        borderRadius: '0',
+        padding: '15px 20px',
+        marginBottom: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '15px',
     },
     challengeHeader: {
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: '15px',
-        marginBottom: '15px',
-        flexWrap: 'wrap',
+        gap: '10px',
     },
     challengeLabel: {
         fontFamily: "'Cinzel', serif",
-        fontSize: '12px',
+        fontSize: '11px',
         fontWeight: 700,
-        color: '#22c55e',
+        color: '#DAA520',
         letterSpacing: '2px',
     },
     challengeName: {
         fontFamily: "'Cinzel', serif",
-        fontSize: '18px',
+        fontSize: '16px',
         fontWeight: 700,
         color: '#fff',
     },
     challengeContent: {
-        textAlign: 'center',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '20px',
+        flexWrap: 'wrap',
     },
     challengePrize: {
         fontFamily: "'Orbitron', sans-serif",
-        fontSize: '16px',
+        fontSize: '14px',
         fontWeight: 700,
         color: '#fbbf24',
-        marginBottom: '10px',
     },
     challengeStats: {
         color: '#9ca3af',
-        fontSize: '13px',
-        marginBottom: '15px',
+        fontSize: '12px',
     },
     highlight: {
         color: '#22c55e',
@@ -994,63 +1020,67 @@ const styles = {
     playButton: {
         background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 100%)',
         border: 'none',
-        borderRadius: '8px',
-        padding: '12px 30px',
+        borderRadius: '6px',
+        padding: '10px 20px',
         color: '#fff',
         fontFamily: "'Orbitron', sans-serif",
-        fontSize: '14px',
+        fontSize: '12px',
         fontWeight: 700,
         cursor: 'pointer',
-        boxShadow: '0 4px 15px rgba(34, 197, 94, 0.4)',
+        boxShadow: '0 4px 12px rgba(34, 197, 94, 0.4)',
     },
 
     // Duels Section
     duelsSection: {
-        marginBottom: '25px',
+        marginBottom: '20px',
     },
     duelsHeader: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '15px',
-        marginBottom: '15px',
-        flexWrap: 'wrap',
+        gap: '12px',
+        marginBottom: '12px',
+        padding: '6px 0',
+        borderTop: '1px solid rgba(218, 165, 32, 0.3)',
+        borderBottom: '1px solid rgba(218, 165, 32, 0.3)',
+        background: 'linear-gradient(90deg, transparent 0%, rgba(218, 165, 32, 0.08) 50%, transparent 100%)',
     },
     duelsLabel: {
         fontFamily: "'Cinzel', serif",
-        fontSize: '14px',
+        fontSize: '12px',
         fontWeight: 700,
         color: '#DAA520',
         letterSpacing: '2px',
     },
     playersWaiting: {
-        color: '#9ca3af',
-        fontSize: '12px',
+        color: '#B8860B',
+        fontSize: '11px',
     },
     duelsGrid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '15px',
+        gap: '12px',
     },
     duelCard: {
-        background: 'linear-gradient(180deg, rgba(30, 30, 40, 0.9) 0%, rgba(20, 20, 30, 0.95) 100%)',
-        border: '2px solid rgba(100, 100, 120, 0.3)',
-        borderRadius: '10px',
-        padding: '20px',
+        background: 'linear-gradient(180deg, rgba(25, 25, 35, 0.95) 0%, rgba(15, 15, 25, 0.98) 100%)',
+        border: '2px solid rgba(100, 100, 120, 0.4)',
+        borderRadius: '8px',
+        padding: '15px',
         textAlign: 'center',
         cursor: 'pointer',
     },
     duelCardHighRoller: {
-        borderColor: 'rgba(251, 191, 36, 0.5)',
-        background: 'linear-gradient(180deg, rgba(50, 40, 20, 0.9) 0%, rgba(30, 25, 10, 0.95) 100%)',
+        borderColor: 'rgba(251, 191, 36, 0.6)',
+        background: 'linear-gradient(180deg, rgba(40, 35, 15, 0.95) 0%, rgba(25, 20, 8, 0.98) 100%)',
+        boxShadow: '0 0 20px rgba(251, 191, 36, 0.2)',
     },
     duelCrown: {
-        fontSize: '24px',
-        marginBottom: '5px',
+        fontSize: '20px',
+        marginBottom: '4px',
     },
     duelName: {
         fontFamily: "'Cinzel', serif",
-        fontSize: '14px',
+        fontSize: '12px',
         fontWeight: 700,
         color: '#fff',
         marginBottom: '10px',
