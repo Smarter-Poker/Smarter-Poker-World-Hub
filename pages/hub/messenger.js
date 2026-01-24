@@ -152,10 +152,12 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
 // 📝 MESSAGE INPUT COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageInput({ onSend, onTyping, disabled }) {
+function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
     const [text, setText] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const inputRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     const emojis = ['😀', '😂', '❤️', '👍', '🔥', '🎉', '😎', '🤔', '👏', '💯', '♠️', '♥️', '♦️', '♣️', '🃏', '🎰'];
 
@@ -197,10 +199,34 @@ function MessageInput({ onSend, onTyping, disabled }) {
                 background: 'transparent', cursor: 'pointer', fontSize: 20, color: C.blue,
             }}>➕</button>
 
-            <button style={{
-                width: 36, height: 36, borderRadius: '50%', border: 'none',
-                background: 'transparent', cursor: 'pointer', fontSize: 20, color: C.blue,
-            }}>📷</button>
+            {/* Photo/Video Upload Button */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*,video/*"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || !onMediaUpload) return;
+                    setUploading(true);
+                    try {
+                        await onMediaUpload(file);
+                    } finally {
+                        setUploading(false);
+                        e.target.value = '';
+                    }
+                }}
+            />
+            <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                style={{
+                    width: 36, height: 36, borderRadius: '50%', border: 'none',
+                    background: 'transparent', cursor: uploading ? 'wait' : 'pointer', fontSize: 20, color: C.blue,
+                    opacity: uploading ? 0.5 : 1,
+                }}
+                title="Send photo or video"
+            >{uploading ? '⏳' : '📷'}</button>
 
             <button style={{
                 width: 36, height: 36, borderRadius: '50%', border: 'none',
@@ -232,6 +258,7 @@ function MessageInput({ onSend, onTyping, disabled }) {
                         padding: '10px 0',
                         fontSize: 15,
                         outline: 'none',
+                        color: '#050505',
                     }}
                 />
 
@@ -700,6 +727,7 @@ function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser,
                         padding: '10px 0',
                         fontSize: 15,
                         outline: 'none',
+                        color: '#050505',
                     }}
                 />
             </div>
@@ -1090,6 +1118,93 @@ export default function MessengerPage() {
         } catch (e) {
             console.error('Delete message error:', e);
             setToast({ type: 'error', message: 'Failed to delete message' });
+        }
+    };
+
+    // Handle media (photo/video) upload
+    const handleMediaUpload = async (file) => {
+        if (!user || !activeConversation || !file) return;
+
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+        if (!isImage && !isVideo) {
+            setToast({ type: 'error', message: 'Only images and videos are supported' });
+            return;
+        }
+
+        // File size limit: 10MB for images, 50MB for videos
+        const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            setToast({ type: 'error', message: `File too large. Max ${isVideo ? '50MB' : '10MB'}` });
+            return;
+        }
+
+        // Optimistic UI update
+        const tempId = `temp-${Date.now()}`;
+        const mediaPreview = URL.createObjectURL(file);
+        const tempMessage = {
+            id: tempId,
+            content: isImage ? `📷 Photo` : `🎬 Video`,
+            media_url: mediaPreview,
+            media_type: isImage ? 'image' : 'video',
+            created_at: new Date().toISOString(),
+            sender_id: user.id,
+            status: 'sending',
+            profiles: { id: user.id, username: user.user_metadata?.username, avatar_url: user.user_metadata?.avatar_url },
+        };
+        setMessages(prev => [...prev, tempMessage]);
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
+        try {
+            // Upload to Supabase Storage
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/${activeConversation.id}/${Date.now()}.${fileExt}`;
+            const bucket = isImage ? 'chat-images' : 'chat-videos';
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from(bucket)
+                .upload(fileName, file);
+
+            if (uploadError) {
+                // Fallback to general bucket if specific doesn't exist
+                const { data: fallbackData, error: fallbackError } = await supabase.storage
+                    .from('user-uploads')
+                    .upload(`messages/${fileName}`, file);
+                if (fallbackError) throw fallbackError;
+            }
+
+            // Get public URL
+            const { data: urlData } = supabase.storage
+                .from(uploadData ? bucket : 'user-uploads')
+                .getPublicUrl(uploadData ? fileName : `messages/${fileName}`);
+
+            // Send message with media URL
+            const content = isImage
+                ? `📷 [Image](${urlData.publicUrl})`
+                : `🎬 [Video](${urlData.publicUrl})`;
+
+            const { data, error } = await supabase.rpc('fn_send_message', {
+                p_conversation_id: activeConversation.id,
+                p_sender_id: user.id,
+                p_content: content,
+            });
+
+            if (error) throw error;
+
+            // Update message with real data
+            setMessages(prev => prev.map(m =>
+                m.id === tempId
+                    ? { ...m, id: data, content, media_url: urlData.publicUrl, status: 'sent' }
+                    : m
+            ));
+
+            setToast({ type: 'success', message: `${isImage ? 'Photo' : 'Video'} sent!` });
+        } catch (e) {
+            console.error('Media upload error:', e);
+            setMessages(prev => prev.map(m =>
+                m.id === tempId ? { ...m, status: 'failed' } : m
+            ));
+            setToast({ type: 'error', message: 'Failed to send media. Tap to retry.' });
         }
     };
 
@@ -1743,7 +1858,7 @@ export default function MessengerPage() {
                                 </div>
 
                                 {/* Message Input */}
-                                <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} />
+                                <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} />
                             </>
                         ) : (
                             /* No conversation selected */
