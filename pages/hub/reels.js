@@ -43,11 +43,22 @@ export default function ReelsPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [muted, setMuted] = useState(true); // MUST be true for autoplay to work
+    const [userWantsSound, setUserWantsSound] = useState(false); // localStorage preference
     const [liked, setLiked] = useState({});
     const containerRef = useRef(null);
     const iframeRef = useRef(null);
     const touchStartY = useRef(0);
     const router = useRouter();
+
+    // Load sound preference from localStorage on mount
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const savedPref = localStorage.getItem('reels-sound-enabled');
+            if (savedPref === 'true') {
+                setUserWantsSound(true);
+            }
+        }
+    }, []);
 
     // YouTube API: Send command to iframe via postMessage
     const sendYouTubeCommand = (command, args = []) => {
@@ -60,10 +71,37 @@ export default function ReelsPage() {
         }
     };
 
+    // Auto-unmute after video loads (if user has previously enabled sound)
+    useEffect(() => {
+        if (userWantsSound && !loading && reels.length > 0) {
+            // Wait for iframe to load, then unmute
+            const timer = setTimeout(() => {
+                sendYouTubeCommand('unMute');
+                sendYouTubeCommand('setVolume', [100]);
+                setMuted(false);
+            }, 1000); // Give iframe time to initialize YouTube API
+            return () => clearTimeout(timer);
+        }
+    }, [currentIndex, userWantsSound, loading, reels.length]);
+
     const handleUnmute = () => {
         sendYouTubeCommand('unMute');
         sendYouTubeCommand('setVolume', [100]);
         setMuted(false);
+        setUserWantsSound(true);
+        // Save preference to localStorage
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('reels-sound-enabled', 'true');
+        }
+    };
+
+    const handleMute = () => {
+        sendYouTubeCommand('mute');
+        setMuted(true);
+        setUserWantsSound(false);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('reels-sound-enabled', 'false');
+        }
     };
 
     useEffect(() => {
@@ -384,7 +422,7 @@ export default function ReelsPage() {
                     </button>
 
                     {/* Sound */}
-                    <button onClick={muted ? handleUnmute : () => setMuted(true)} style={{
+                    <button onClick={muted ? handleUnmute : handleMute} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
