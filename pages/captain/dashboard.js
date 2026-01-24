@@ -11,6 +11,8 @@ import GameGrid from '../../src/components/captain/staff/GameGrid';
 import WaitlistManager from '../../src/components/captain/staff/WaitlistManager';
 import QuickActions from '../../src/components/captain/staff/QuickActions';
 import ActivityFeed, { createActivity } from '../../src/components/captain/staff/ActivityFeed';
+import OpenGameModal from '../../src/components/captain/modals/OpenGameModal';
+import AddWalkInModal from '../../src/components/captain/modals/AddWalkInModal';
 
 export default function CaptainDashboard() {
   const router = useRouter();
@@ -19,12 +21,15 @@ export default function CaptainDashboard() {
   const [venueId, setVenueId] = useState(null);
   const [venue, setVenue] = useState(null);
   const [games, setGames] = useState([]);
+  const [tables, setTables] = useState([]);
   const [waitlists, setWaitlists] = useState([]);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [online, setOnline] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
+  const [showOpenGameModal, setShowOpenGameModal] = useState(false);
+  const [showAddWalkInModal, setShowAddWalkInModal] = useState(false);
 
   // Check staff session on mount
   useEffect(() => {
@@ -62,16 +67,18 @@ export default function CaptainDashboard() {
     if (showRefreshing) setRefreshing(true);
 
     try {
-      const [venueRes, gamesRes, waitlistRes] = await Promise.all([
+      const [venueRes, gamesRes, waitlistRes, tablesRes] = await Promise.all([
         fetch(`/api/captain/venues/${venueId}`),
         fetch(`/api/captain/games/venue/${venueId}`),
-        fetch(`/api/captain/waitlist/venue/${venueId}`)
+        fetch(`/api/captain/waitlist/venue/${venueId}`),
+        fetch(`/api/captain/tables/venue/${venueId}`)
       ]);
 
-      const [venueData, gamesData, waitlistData] = await Promise.all([
+      const [venueData, gamesData, waitlistData, tablesData] = await Promise.all([
         venueRes.json(),
         gamesRes.json(),
-        waitlistRes.json()
+        waitlistRes.json(),
+        tablesRes.json()
       ]);
 
       if (venueData.success) {
@@ -84,6 +91,10 @@ export default function CaptainDashboard() {
 
       if (waitlistData.success) {
         setWaitlists(waitlistData.data.waitlists || []);
+      }
+
+      if (tablesData.success) {
+        setTables(tablesData.data.tables || []);
       }
 
       setOnline(true);
@@ -200,14 +211,26 @@ export default function CaptainDashboard() {
     ].slice(0, 50));
   }
 
-  // Handle open game (placeholder for modal)
+  // Handle open game
   function handleOpenGame() {
-    alert('Open Game modal - to be implemented with full UI');
+    setShowOpenGameModal(true);
   }
 
-  // Handle add walk-in (placeholder for modal)
+  // Handle game opened
+  function handleGameOpened(game) {
+    addActivity('success', `Opened ${game.stakes} ${game.game_type.toUpperCase()} on Table ${game.table_number || game.table_id}`);
+    fetchData();
+  }
+
+  // Handle add walk-in
   function handleAddWalkIn() {
-    alert('Add Walk-In modal - to be implemented with full UI');
+    setShowAddWalkInModal(true);
+  }
+
+  // Handle walk-in added
+  function handleWalkInAdded(entry) {
+    addActivity('player_seated', `Added ${entry.player_name || 'Walk-in'} to ${entry.stakes} ${entry.game_type.toUpperCase()} waitlist`);
+    fetchData();
   }
 
   if (!staff || loading) {
@@ -317,6 +340,23 @@ export default function CaptainDashboard() {
           </section>
         </main>
       </div>
+
+      {/* Modals */}
+      <OpenGameModal
+        isOpen={showOpenGameModal}
+        onClose={() => setShowOpenGameModal(false)}
+        onSubmit={handleGameOpened}
+        tables={tables}
+        venueId={venueId}
+      />
+
+      <AddWalkInModal
+        isOpen={showAddWalkInModal}
+        onClose={() => setShowAddWalkInModal(false)}
+        onSubmit={handleWalkInAdded}
+        venueId={venueId}
+        activeGames={games}
+      />
     </>
   );
 }
