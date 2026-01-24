@@ -5,7 +5,7 @@
    fast-paced poker knowledge games. Daily rotation keeps it fresh.
    10% house rake on all winnings.
 
-   Version: 1.0.0
+   Version: 1.0.1 - Force redeploy
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
