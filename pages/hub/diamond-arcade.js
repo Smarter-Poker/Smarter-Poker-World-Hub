@@ -4,6 +4,8 @@
    A casino-style skill gaming floor where users gamble diamonds in
    fast-paced poker knowledge games. Daily rotation keeps it fresh.
    10% house rake on all winnings.
+
+   Version: 1.0.0
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
