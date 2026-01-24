@@ -1,10 +1,11 @@
 /**
  * REELS PAGE - Full-Screen TikTok-Style Video Experience
  * 
- * ISSUE SOLUTIONS:
- * 1. WHITE LINE/BLUE GLOW: SOLID BLACK edge covers (not gradients!)
- * 2. SWIPE: Document-level touch handlers + tap zones
- * 3. UNMUTE: Big centered unmute button
+ * KEY FEATURES:
+ * 1. Full-screen video with black borders (hides YouTube letterboxing)
+ * 2. YouTube IFrame API for REAL unmute (no iframe reload)
+ * 3. Swipe/tap navigation
+ * 4. Videos autoplay muted (browser requirement)
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -31,14 +32,23 @@ export default function ReelsPage() {
     const [reels, setReels] = useState([]);
     const [idx, setIdx] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [muted, setMuted] = useState(true);
+    const [showUnmuteHint, setShowUnmuteHint] = useState(true);
 
+    const iframeRef = useRef(null);
     const touchStartY = useRef(0);
     const touchStartTime = useRef(0);
     const isNavigating = useRef(false);
 
     useEffect(() => {
         loadReels();
+        // Hide unmute hint after first interaction
+        const hideHint = () => setShowUnmuteHint(false);
+        document.addEventListener('touchstart', hideHint, { once: true });
+        document.addEventListener('click', hideHint, { once: true });
+        return () => {
+            document.removeEventListener('touchstart', hideHint);
+            document.removeEventListener('click', hideHint);
+        };
     }, []);
 
     const loadReels = async () => {
@@ -67,12 +77,30 @@ export default function ReelsPage() {
         setLoading(false);
     };
 
+    // Send command to YouTube iframe via postMessage
+    const sendYouTubeCommand = useCallback((command, args = []) => {
+        if (iframeRef.current?.contentWindow) {
+            iframeRef.current.contentWindow.postMessage(JSON.stringify({
+                event: 'command',
+                func: command,
+                args: args
+            }), '*');
+        }
+    }, []);
+
+    // Unmute the video using YouTube API
+    const handleUnmute = useCallback(() => {
+        sendYouTubeCommand('unMute');
+        sendYouTubeCommand('setVolume', [100]);
+        setShowUnmuteHint(false);
+    }, [sendYouTubeCommand]);
+
     const goNext = useCallback(() => {
         if (isNavigating.current) return;
         if (idx < reels.length - 1) {
             isNavigating.current = true;
             setIdx(prev => prev + 1);
-            setMuted(true);
+            setShowUnmuteHint(true); // Show hint for new video
             setTimeout(() => { isNavigating.current = false; }, 300);
         }
     }, [idx, reels.length]);
@@ -82,7 +110,7 @@ export default function ReelsPage() {
         if (idx > 0) {
             isNavigating.current = true;
             setIdx(prev => prev - 1);
-            setMuted(true);
+            setShowUnmuteHint(true);
             setTimeout(() => { isNavigating.current = false; }, 300);
         }
     }, [idx]);
@@ -119,10 +147,11 @@ export default function ReelsPage() {
         const handler = (e) => {
             if (e.key === 'ArrowDown') goNext();
             if (e.key === 'ArrowUp') goPrev();
+            if (e.key === 'm' || e.key === 'M') handleUnmute();
         };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [goNext, goPrev]);
+    }, [goNext, goPrev, handleUnmute]);
 
     // Mouse wheel navigation
     useEffect(() => {
@@ -171,10 +200,11 @@ export default function ReelsPage() {
         );
     }
 
-    const youtubeUrl = `https://www.youtube.com/embed/${reel?.videoId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${reel?.videoId}&playsinline=1&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
+    // YouTube URL with mute=1 for autoplay (browser requirement), enablejsapi=1 for API control
+    const youtubeUrl = `https://www.youtube.com/embed/${reel?.videoId}?autoplay=1&mute=1&loop=1&playlist=${reel?.videoId}&playsinline=1&controls=1&rel=0&modestbranding=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`;
 
-    // EDGE COVER SIZE - SOLID BLACK to completely hide YouTube's ambient glow
-    const EDGE_SIZE = 40;
+    // Black frame size
+    const FRAME = 30;
 
     return (
         <>
@@ -183,7 +213,7 @@ export default function ReelsPage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
             </Head>
 
-            {/* Main container */}
+            {/* Main container - full screen black */}
             <div style={{
                 position: 'fixed',
                 top: 0,
@@ -195,183 +225,137 @@ export default function ReelsPage() {
                 touchAction: 'none'
             }}>
 
-                {/* VIDEO CONTAINER - positioned INSIDE the edge covers */}
+                {/* VIDEO AREA - inset with black frame */}
                 <div style={{
                     position: 'absolute',
-                    top: EDGE_SIZE,
-                    left: EDGE_SIZE,
-                    right: EDGE_SIZE,
-                    bottom: EDGE_SIZE,
+                    top: FRAME,
+                    left: FRAME,
+                    right: FRAME,
+                    bottom: FRAME,
                     overflow: 'hidden',
-                    borderRadius: 8 // Slight rounding for polish
+                    borderRadius: 12,
+                    background: '#111'
                 }}>
                     {reel && (
                         <iframe
-                            key={`${reel.id}-${muted}`}
+                            ref={iframeRef}
+                            key={reel.id}
                             src={youtubeUrl}
                             frameBorder="0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
                             style={{
                                 position: 'absolute',
-                                // Overscan within this container to hide YouTube's inner glow
-                                top: -20,
-                                left: -20,
-                                width: 'calc(100% + 40px)',
-                                height: 'calc(100% + 40px)',
-                                border: 'none',
-                                pointerEvents: 'auto'
+                                top: -15,
+                                left: -15,
+                                width: 'calc(100% + 30px)',
+                                height: 'calc(100% + 30px)',
+                                border: 'none'
                             }}
                         />
                     )}
                 </div>
 
-                {/* SOLID BLACK EDGE COVERS - These are the main container's edges */}
-                {/* The edges are naturally black since main container bg is #000 */}
-                {/* But we add explicit covers to ensure they capture taps */}
-
-                {/* LEFT TAP ZONE (also acts as solid black cover) */}
+                {/* NAVIGATION TAP ZONES - on the black frame edges */}
+                {/* LEFT - Previous */}
                 <div
-                    onClick={() => goPrev()}
+                    onClick={goPrev}
                     style={{
                         position: 'absolute',
-                        top: 0,
+                        top: FRAME,
                         left: 0,
-                        width: EDGE_SIZE,
-                        height: '100%',
-                        background: '#000',
+                        width: FRAME + 40,
+                        height: `calc(100% - ${FRAME * 2}px)`,
                         zIndex: 20,
                         cursor: 'pointer'
                     }}
                 />
 
-                {/* RIGHT TAP ZONE (also acts as solid black cover) */}
+                {/* RIGHT - Next */}
                 <div
-                    onClick={() => goNext()}
+                    onClick={goNext}
                     style={{
                         position: 'absolute',
-                        top: 0,
+                        top: FRAME,
                         right: 0,
-                        width: EDGE_SIZE,
-                        height: '100%',
-                        background: '#000',
+                        width: FRAME + 40,
+                        height: `calc(100% - ${FRAME * 2}px)`,
                         zIndex: 20,
                         cursor: 'pointer'
                     }}
                 />
 
-                {/* TOP COVER */}
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: EDGE_SIZE,
-                    background: '#000',
-                    zIndex: 15,
-                    pointerEvents: 'none'
-                }} />
-
-                {/* BOTTOM COVER */}
-                <div style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    width: '100%',
-                    height: EDGE_SIZE,
-                    background: '#000',
-                    zIndex: 15,
-                    pointerEvents: 'none'
-                }} />
-
-                {/* UNMUTE BUTTON */}
-                {muted && (
+                {/* UNMUTE BUTTON - Tap to enable sound */}
+                {showUnmuteHint && (
                     <div
-                        onClick={() => setMuted(false)}
+                        onClick={handleUnmute}
                         style={{
                             position: 'absolute',
-                            top: '50%',
+                            bottom: FRAME + 80,
                             left: '50%',
-                            transform: 'translate(-50%, -50%)',
+                            transform: 'translateX(-50%)',
                             zIndex: 50,
-                            background: 'rgba(0,0,0,0.95)',
-                            color: 'white',
-                            padding: '20px 40px',
-                            borderRadius: 100,
-                            fontSize: 20,
+                            background: 'rgba(255,255,255,0.95)',
+                            color: '#000',
+                            padding: '14px 28px',
+                            borderRadius: 50,
+                            fontSize: 16,
                             fontWeight: 700,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 16,
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
-                            border: '3px solid rgba(255,255,255,0.5)'
+                            gap: 10,
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.4)'
                         }}
                     >
-                        <span style={{ fontSize: 32 }}>🔊</span>
-                        TAP TO UNMUTE
+                        <span style={{ fontSize: 22 }}>🔊</span>
+                        Tap for Sound
                     </div>
                 )}
 
-                {/* Back button */}
-                <Link href="/hub/social-media" style={{
+                {/* Header bar */}
+                <div style={{
                     position: 'absolute',
-                    top: 8,
-                    left: 8,
-                    zIndex: 100,
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.9)',
-                    color: 'white',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: FRAME,
+                    background: '#000',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 18,
-                    textDecoration: 'none',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
-                }}>←</Link>
-
-                {/* Title */}
-                <div style={{
-                    position: 'absolute',
-                    top: 10,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    color: 'white',
-                    fontWeight: 700,
-                    fontSize: 16,
-                    zIndex: 100,
-                    textShadow: '0 2px 8px rgba(0,0,0,1)',
-                    pointerEvents: 'none'
-                }}>Reels</div>
-
-                {/* Navigation hint */}
-                <div style={{
-                    position: 'absolute',
-                    bottom: 10,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    color: 'rgba(255,255,255,0.6)',
-                    fontSize: 12,
-                    zIndex: 100,
-                    pointerEvents: 'none',
-                    textShadow: '0 1px 4px rgba(0,0,0,0.8)'
+                    justifyContent: 'space-between',
+                    padding: '0 12px',
+                    zIndex: 30
                 }}>
-                    Swipe or tap edges
+                    <Link href="/hub/social-media" style={{
+                        color: 'white',
+                        fontSize: 22,
+                        textDecoration: 'none'
+                    }}>←</Link>
+
+                    <span style={{
+                        color: 'white',
+                        fontWeight: 700,
+                        fontSize: 16
+                    }}>Reels</span>
+
+                    <span style={{
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: 12
+                    }}>{idx + 1}/{reels.length}</span>
                 </div>
 
-                {/* Video counter */}
+                {/* Footer hint */}
                 <div style={{
                     position: 'absolute',
-                    bottom: 10,
-                    right: 10,
-                    color: 'rgba(255,255,255,0.6)',
-                    fontSize: 11,
-                    zIndex: 100,
-                    pointerEvents: 'none'
+                    bottom: 8,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    color: 'rgba(255,255,255,0.5)',
+                    fontSize: 12,
+                    zIndex: 30
                 }}>
-                    {idx + 1} / {reels.length}
+                    Swipe ↑↓ or tap edges
                 </div>
             </div>
         </>
