@@ -240,7 +240,7 @@ function shouldAct(probability = 0.7) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Send friend requests from horses to other horses
+ * Send friend requests from horses to other horses AND real users
  */
 async function sendFriendRequests(maxRequests = 10) {
     console.log('\n🤝 SENDING FRIEND REQUESTS...');
@@ -254,13 +254,31 @@ async function sendFriendRequests(maxRequests = 10) {
 
     if (!horses || horses.length < 2) return { sent: 0 };
 
+    const horseIds = horses.map(h => h.profile_id);
+
+    // Get real users (non-horse profiles) for horses to befriend
+    const { data: realUsers } = await supabase
+        .from('profiles')
+        .select('id, username, full_name')
+        .not('id', 'in', `(${horseIds.join(',')})`)
+        .limit(50);
+
+    // Combine potential targets: other horses + real users
+    const allTargets = [
+        ...horses.map(h => ({ profile_id: h.profile_id, name: h.name, isHorse: true })),
+        ...(realUsers || []).map(u => ({ profile_id: u.id, name: u.full_name || u.username, isHorse: false }))
+    ];
+
     let requestsSent = 0;
 
     // Each horse sends a few friend requests
     for (const horse of horses.slice(0, maxRequests * 2)) {
-        // Pick a random other horse to befriend
-        const otherHorses = horses.filter(h => h.profile_id !== horse.profile_id);
-        const target = otherHorses[Math.floor(Math.random() * otherHorses.length)];
+        // Pick a random target to befriend (prioritize real users 70% of time)
+        const targetPool = Math.random() < 0.7
+            ? allTargets.filter(t => !t.isHorse && t.profile_id !== horse.profile_id)
+            : allTargets.filter(t => t.profile_id !== horse.profile_id);
+
+        const target = targetPool[Math.floor(Math.random() * targetPool.length)];
 
         if (!target) continue;
 
@@ -283,9 +301,8 @@ async function sendFriendRequests(maxRequests = 10) {
             });
 
         if (!error) {
-            console.log(`   ${horse.name} → ${target.name} ✓`);
+            console.log(`   ${horse.name} → ${target.name} ${target.isHorse ? '🐴' : '👤'} ✓`);
             requestsSent++;
-            // Removed horseBus - using DB anti-spam checks instead
 
             if (requestsSent >= maxRequests) break;
         }
