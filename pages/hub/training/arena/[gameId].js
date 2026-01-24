@@ -31,27 +31,63 @@ const VILLAIN_AVATARS = [
     '/avatars/free/owl.png',
 ];
 
-// Seat positions - EXACT match to Golden Template
-// ALL positions use LEFT/TOP percentages only
+// Seat positions - HARDCODED from user's exact manual layout
+// Positions as percentages of table-wrapper container (based on user's 500x667px viewport)
 const SEAT_POSITIONS = {
-    // Bottom center - Hero
-    hero: { left: '50%', top: '75%', transform: 'translate(-50%, -50%)' },
-    // Bottom left - Villain 1 (viking)
-    seat1: { left: '18%', top: '65%', transform: 'translate(-50%, -50%)' },
-    // Middle left - Villain 2 (wizard)
-    seat2: { left: '15%', top: '45%', transform: 'translate(-50%, -50%)' },
-    // Upper left - Villain 3 (ninja)
-    seat3: { left: '15%', top: '26%', transform: 'translate(-50%, -50%)' },
-    // Top left - Villain 4 (wolf)
-    seat4: { left: '32%', top: '5%', transform: 'translate(-50%, -50%)' },
-    // Top right - Villain 5 (spartan)
-    seat5: { left: '68%', top: '5%', transform: 'translate(-50%, -50%)' },
-    // Upper right - Villain 6 (king)
-    seat6: { left: '85%', top: '26%', transform: 'translate(-50%, -50%)' },
-    // Middle right - Villain 7 (young man)
-    seat7: { left: '85%', top: '45%', transform: 'translate(-50%, -50%)' },
-    // Bottom right - Villain 8 (owl)
-    seat8: { left: '82%', top: '65%', transform: 'translate(-50%, -50%)' },
+    // Bottom center - Hero (250/500 = 50%)
+    hero: {
+        left: '50%', top: '75%',
+        avatarOffset: { x: -6, y: 92 },
+        badgeOffset: { x: -1, y: 211 }
+    },
+    // Bottom left - Villain 1 (90/500 = 18%)
+    seat1: {
+        left: '18%', top: '65%',
+        avatarOffset: { x: -29, y: 65 },
+        badgeOffset: { x: -27, y: 168 }
+    },
+    // Middle left - Villain 2 (75/500 = 15%)
+    seat2: {
+        left: '15%', top: '45%',
+        avatarOffset: { x: -21, y: 7 },
+        badgeOffset: { x: -25, y: 126 }
+    },
+    // Upper left - Villain 3 (75/500 = 15%)
+    seat3: {
+        left: '15%', top: '26%',
+        avatarOffset: { x: -15, y: -55 },
+        badgeOffset: { x: -22, y: 64 }
+    },
+    // Top left - Villain 4 (160/500 = 32%)
+    seat4: {
+        left: '32%', top: '5%',
+        avatarOffset: { x: -5, y: -29 },
+        badgeOffset: { x: -9, y: 90 }
+    },
+    // Top right - Villain 5 (340/500 = 68%)
+    seat5: {
+        left: '68%', top: '5%',
+        avatarOffset: { x: 17, y: -31 },
+        badgeOffset: { x: 12, y: 87 }
+    },
+    // Upper right - Villain 6 (425/500 = 85%)
+    seat6: {
+        left: '85%', top: '26%',
+        avatarOffset: { x: 19, y: -53 },
+        badgeOffset: { x: 18, y: 67 }
+    },
+    // Middle right - Villain 7 (425/500 = 85%)
+    seat7: {
+        left: '85%', top: '45%',
+        avatarOffset: { x: 20, y: 5 },
+        badgeOffset: { x: 19, y: 125 }
+    },
+    // Bottom right - Villain 8 (410/500 = 82%)
+    seat8: {
+        left: '82%', top: '65%',
+        avatarOffset: { x: 19, y: 68 },
+        badgeOffset: { x: 23, y: 166 }
+    },
 };
 
 const SUITS = {
@@ -158,8 +194,11 @@ function ArenaHeader({ diamonds = 0, xp = 0, level = 1, onBack, onSettings }) {
 // seatIndex is used to set unique z-index: lower seats rendered first, badges always on top
 function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initialPosition, isHero = false, onPositionChange }) {
     const size = 109; // 20% smaller than original 136px - same size for Hero and Villains
-    const [avatarPos, setAvatarPos] = useState({ x: 0, y: 0 });
-    const [badgePos, setBadgePos] = useState({ x: 0, y: 20 }); // Badge starts 20px below avatar center
+    // Use hardcoded offsets from SEAT_POSITIONS if available
+    const avatarInitial = initialPosition?.avatarOffset || { x: 0, y: 0 };
+    const badgeInitial = initialPosition?.badgeOffset || { x: 0, y: 100 };
+    const [avatarPos, setAvatarPos] = useState(avatarInitial);
+    const [badgePos, setBadgePos] = useState(badgeInitial);
     const [dragging, setDragging] = useState(null); // 'avatar' | 'badge' | null
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
@@ -278,7 +317,8 @@ function Card({ rank, suit, isRed, size = 'normal' }) {
 
 // Draggable Hero Cards Component
 function DraggableHeroCards({ cards }) {
-    const [pos, setPos] = useState({ x: 0, y: 0 });
+    // Hardcoded position from user's exact layout
+    const [pos, setPos] = useState({ x: 229, y: 538 });
     const [dragging, setDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
