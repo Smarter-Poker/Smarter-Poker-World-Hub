@@ -6,7 +6,7 @@
    Dark, premium casino aesthetic with obsidian backgrounds,
    diamond blue accents, gold highlights, and dangerous red for jackpots.
 
-   Version: 2.0.1 - Premium Casino Redesign (Deploy Trigger)
+   Version: 2.0.2 - Premium Casino Redesign (Force Deploy)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -277,7 +277,7 @@ export default function DiamondArcade() {
                                 <div style={styles.arcadeHeader}>
                                     <div style={styles.headerLeft}>
                                         <h1 style={styles.arcadeTitle}>
-                                            <span style={styles.diamondIcon}>💎</span> DIAMOND ARCADE
+                                            <span style={styles.diamondIcon}>💎</span> DIAMOND ARCADE <span style={{fontSize: '10px', opacity: 0.5}}>v2.0.2</span>
                                         </h1>
                                     </div>
                                     <div style={styles.headerRight}>
