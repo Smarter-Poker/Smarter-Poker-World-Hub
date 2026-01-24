@@ -1011,67 +1011,56 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                 </div>
             )}
             {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}>⚠️ {error}</div>}
-            <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+                <div style={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
                     <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFiles} />
                     <button
                         onClick={() => fileRef.current?.click()}
                         disabled={media.length >= MAX_MEDIA}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
+                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', cursor: media.length >= MAX_MEDIA ? 'not-allowed' : 'pointer',
-                            color: media.length >= MAX_MEDIA ? '#ccc' : '#65676B', fontSize: 14, fontWeight: 500,
-                            transition: 'background 0.2s'
+                            color: media.length >= MAX_MEDIA ? '#ccc' : '#65676B', fontSize: 13, fontWeight: 500,
+                            transition: 'background 0.2s', whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >{uploading ? 'Uploading...' : 'Photo/Video'}</button>
+                    >{uploading ? '...' : '📷'}</button>
                     <button
                         onClick={onGoLive}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
+                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', cursor: 'pointer',
-                            color: '#65676B', fontSize: 14, fontWeight: 500,
-                            transition: 'background 0.2s'
+                            color: '#65676B', fontSize: 13, fontWeight: 500,
+                            transition: 'background 0.2s', whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >Live Video</button>
+                    >🎥</button>
                     <Link
                         href="/hub/reels"
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
+                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', textDecoration: 'none',
-                            color: '#65676B', fontSize: 14, fontWeight: 500,
-                            transition: 'background 0.2s'
+                            color: '#65676B', fontSize: 13, fontWeight: 500,
+                            transition: 'background 0.2s', whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >Reels</Link>
+                    >📺 Reels</Link>
                     <Link
                         href="/hub/lives"
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
+                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', textDecoration: 'none',
-                            color: '#FA383E', fontSize: 14, fontWeight: 600,
-                            transition: 'background 0.2s'
+                            color: '#FA383E', fontSize: 13, fontWeight: 600,
+                            transition: 'background 0.2s', whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >🔴 Lives</Link>
-                    <Link
-                        href="/hub/friends"
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
-                            border: 'none', background: 'transparent', textDecoration: 'none',
-                            color: '#1877F2', fontSize: 14, fontWeight: 600,
-                            transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#E7F3FF'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                    >Find Friends</Link>
+                    >🔴</Link>
                 </div>
-                <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1 }}>Post</button>
+                <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1, flexShrink: 0 }}>Post</button>
             </div>
         </div>
     );
@@ -1771,10 +1760,22 @@ export default function SocialMediaPage() {
         }
     };
 
+    // ♾️ INFINITE SCROLL: Refs to avoid stale closures in IntersectionObserver
+    const feedOffsetRef = useRef(feedOffset);
+    const hasMorePostsRef = useRef(hasMorePosts);
+    const loadingMoreRef = useRef(loadingMore);
+
+    // Keep refs in sync with state
+    useEffect(() => { feedOffsetRef.current = feedOffset; }, [feedOffset]);
+    useEffect(() => { hasMorePostsRef.current = hasMorePosts; }, [hasMorePosts]);
+    useEffect(() => { loadingMoreRef.current = loadingMore; }, [loadingMore]);
+
     // ♾️ INFINITE SCROLL: Load more posts when scrolling
     const loadMorePosts = async () => {
-        if (loadingMore || !hasMorePosts) return;
-        const newOffset = feedOffset + POSTS_PER_PAGE;
+        console.log('[Social] loadMorePosts called, loadingMore:', loadingMoreRef.current, 'hasMorePosts:', hasMorePostsRef.current);
+        if (loadingMoreRef.current || !hasMorePostsRef.current) return;
+        const newOffset = feedOffsetRef.current + POSTS_PER_PAGE;
+        console.log('[Social] Loading more from offset:', newOffset);
         setFeedOffset(newOffset);
         await loadFeed(newOffset, true);
     };
@@ -1783,7 +1784,8 @@ export default function SocialMediaPage() {
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting && hasMorePosts && !loadingMore) {
+                if (entries[0].isIntersecting) {
+                    console.log('[Social] Sentinel visible! Calling loadMorePosts...');
                     loadMorePosts();
                 }
             },
@@ -1791,11 +1793,12 @@ export default function SocialMediaPage() {
         );
 
         if (loadMoreRef.current) {
+            console.log('[Social] IntersectionObserver attached to loadMoreRef');
             observer.observe(loadMoreRef.current);
         }
 
         return () => observer.disconnect();
-    }, [hasMorePosts, loadingMore, feedOffset]);
+    }, []); // Empty deps - observer is stable, uses refs for current values
 
     const handlePost = async (content, urls, type, mentions = []) => {
         if (!user?.id) return false;
