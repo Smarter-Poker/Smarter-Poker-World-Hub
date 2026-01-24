@@ -135,29 +135,43 @@ export default function NotificationsPage() {
 
     const handleAcceptFriendRequest = async (notification, e) => {
         e.stopPropagation(); // Prevent navigation
-        const requesterId = notification.data?.actor_id || notification.actor_id;
-        if (!requesterId || !user) return;
+
+        // Get sender_id from notification data (stored by the trigger)
+        const requesterId = notification.data?.sender_id || notification.data?.actor_id || notification.actor_id;
+        const friendshipId = notification.data?.friendship_id;
+
+        console.log('Accept clicked:', { requesterId, friendshipId, notificationData: notification.data });
+
+        if (!requesterId || !user) {
+            console.error('Missing requesterId or user');
+            return;
+        }
 
         try {
-            // Find and accept the friend request
-            const { data: request } = await supabase
-                .from('friendships')
-                .select('id')
-                .eq('user_id', requesterId)
-                .eq('friend_id', user.id)
-                .eq('status', 'pending')
-                .single();
+            // Use friendship_id directly if available, otherwise find it
+            let requestId = friendshipId;
 
-            if (request) {
+            if (!requestId) {
+                const { data: request } = await supabase
+                    .from('friendships')
+                    .select('id')
+                    .eq('user_id', requesterId)
+                    .eq('friend_id', user.id)
+                    .eq('status', 'pending')
+                    .single();
+                requestId = request?.id;
+            }
+
+            if (requestId) {
                 // Update request to accepted
-                await supabase.from('friendships').update({ status: 'accepted' }).eq('id', request.id);
+                await supabase.from('friendships').update({ status: 'accepted' }).eq('id', requestId);
 
                 // Create reverse friendship
-                await supabase.from('friendships').insert({
+                await supabase.from('friendships').upsert({
                     user_id: user.id,
                     friend_id: requesterId,
                     status: 'accepted'
-                });
+                }, { onConflict: 'user_id,friend_id' });
 
                 // Update notification to show accepted
                 await supabase.from('notifications').update({
@@ -171,6 +185,10 @@ export default function NotificationsPage() {
                         ? { ...n, message: 'is now your friend!', type: 'friend_accepted', handled: true }
                         : n
                 ));
+
+                console.log('Friend request accepted successfully!');
+            } else {
+                console.error('Could not find friendship to accept');
             }
         } catch (err) {
             console.error('Error accepting friend request:', err);
@@ -179,17 +197,30 @@ export default function NotificationsPage() {
 
     const handleDeclineFriendRequest = async (notification, e) => {
         e.stopPropagation(); // Prevent navigation
-        const requesterId = notification.data?.actor_id || notification.actor_id;
-        if (!requesterId || !user) return;
+
+        // Get sender_id from notification data (stored by the trigger)
+        const requesterId = notification.data?.sender_id || notification.data?.actor_id || notification.actor_id;
+        const friendshipId = notification.data?.friendship_id;
+
+        console.log('Decline clicked:', { requesterId, friendshipId, notificationData: notification.data });
+
+        if (!requesterId || !user) {
+            console.error('Missing requesterId or user');
+            return;
+        }
 
         try {
-            // Delete the friend request
-            await supabase
-                .from('friendships')
-                .delete()
-                .eq('user_id', requesterId)
-                .eq('friend_id', user.id)
-                .eq('status', 'pending');
+            // Delete the friend request using friendship_id if available
+            if (friendshipId) {
+                await supabase.from('friendships').delete().eq('id', friendshipId);
+            } else {
+                await supabase
+                    .from('friendships')
+                    .delete()
+                    .eq('user_id', requesterId)
+                    .eq('friend_id', user.id)
+                    .eq('status', 'pending');
+            }
 
             // 🔥 FACEBOOK-STYLE: Auto-convert to follower
             // The requester now FOLLOWS the person who declined
@@ -211,6 +242,8 @@ export default function NotificationsPage() {
                     ? { ...n, message: 'is now following you', type: 'new_follow', handled: true }
                     : n
             ));
+
+            console.log('Friend request declined, auto-followed!');
         } catch (err) {
             console.error('Error declining friend request:', err);
         }
