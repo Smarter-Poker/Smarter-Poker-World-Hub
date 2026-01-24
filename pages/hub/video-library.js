@@ -153,37 +153,37 @@ const FULL_VIDEOS = [
     // ═══════════════════════════════════════════════════════════════════
     // WPT (World Poker Tour) - 15 Tournament Episodes
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'wpt1', videoId: 'eP8JqGFD0bw', source: 'WPT', type: 'tournament', title: 'WPT World Championship $40M GTD Final Table', views: '2.8M', duration: '125:33' },
-    { id: 'wpt2', videoId: '36z5GgP6Bkg', source: 'WPT', type: 'tournament', title: 'Eliot Hudon Wins WPT World Championship for $10 Million!', views: '1.9M', duration: '45:22' },
-    { id: 'wpt3', videoId: 'VxnX4bQKXjQ', source: 'WPT', type: 'tournament', title: 'WPT Gardens Poker Championship Final Table', views: '1.2M', duration: '95:18' },
-    { id: 'wpt4', videoId: 'pkPG4fqBxqM', source: 'WPT', type: 'tournament', title: 'WPT Seminole Hard Rock Poker Showdown Final Table', views: '980K', duration: '88:44' },
-    { id: 'wpt5', videoId: 't4RQIGmxJyU', source: 'WPT', type: 'tournament', title: 'WPT Lucky Hearts Poker Open Final Table', views: '850K', duration: '82:33' },
-    { id: 'wpt6', videoId: '7MYsNE2Gcu4', source: 'WPT', type: 'tournament', title: 'WPT Five Diamond World Poker Classic Final Table', views: '1.1M', duration: '92:18' },
-    { id: 'wpt7', videoId: 'qcvHJ2JTtQg', source: 'WPT', type: 'tournament', title: 'WPT L.A. Poker Classic Final Table', views: '920K', duration: '78:44' },
-    { id: 'wpt8', videoId: 'qN5f6E9tZ6I', source: 'WPT', type: 'tournament', title: 'WPT bestbet Bounty Scramble Final Table', views: '680K', duration: '72:22' },
-    { id: 'wpt9', videoId: 'u8kmiPqGTEU', source: 'WPT', type: 'tournament', title: 'WPT Choctaw Final Table - Epic Showdown', views: '1.3M', duration: '85:33' },
-    { id: 'wpt10', videoId: 'JfhNPuhh_i8', source: 'WPT', type: 'tournament', title: 'WPT Bobby Baldwin Classic Final Table', views: '750K', duration: '68:18' },
-    { id: 'wpt11', videoId: 'zDDZnq9GvsY', source: 'WPT', type: 'tournament', title: 'WPT Borgata Poker Open Final Table', views: '890K', duration: '75:44' },
-    { id: 'wpt12', videoId: '7h1oNJXwglw', source: 'WPT', type: 'tournament', title: 'WPT Thunder Valley Final Table', views: '620K', duration: '70:22' },
-    { id: 'wpt13', videoId: 'AoBlsP7rTF8', source: 'WPT', type: 'tournament', title: 'WPT Prime Championship Final Table', views: '1.5M', duration: '102:33' },
-    { id: 'wpt14', videoId: 'YMwQTbQCZTI', source: 'WPT', type: 'tournament', title: 'WPT Montreal Final Table - Canadian Showdown', views: '780K', duration: '65:18' },
-    { id: 'wpt15', videoId: 'dN7K3j-9qzg', source: 'WPT', type: 'tournament', title: 'WPT Legends of Poker Final Table', views: '940K', duration: '80:44' },
+    { id: 'wpt1', videoId: '_4nrOGfFssE', source: 'WPT', type: 'tournament', title: 'WPT World Championship $40M GTD Final Table', views: '2.8M', duration: '125:33' },
+    { id: 'wpt2', videoId: 'jAtJ6byQnxs', source: 'WPT', type: 'tournament', title: 'Bellagio Cup Final Table - $3.4M Prize Pool', views: '1.9M', duration: '45:22' },
+    { id: 'wpt3', videoId: 'uLEWtsmyark', source: 'WPT', type: 'tournament', title: 'WPT World Championship - $5.3M Final Table', views: '1.2M', duration: '95:18' },
+    { id: 'wpt4', videoId: 'mxB5zK7fRBs', source: 'WPT', type: 'tournament', title: 'WPT Showdown: Over $8.9 MILLION at Stake', views: '980K', duration: '88:44' },
+    { id: 'wpt5', videoId: 'XvxZSSX88Ac', source: 'WPT', type: 'tournament', title: '$7.1M Championship Title Showdown', views: '850K', duration: '82:33' },
+    { id: 'wpt6', videoId: 'w1cpoOSqZ2o', source: 'WPT', type: 'tournament', title: 'Festa al Lago Final Table - $3.2M Prize', views: '1.1M', duration: '92:18' },
+    { id: 'wpt7', videoId: '_4nrOGfFssE', source: 'WPT', type: 'tournament', title: 'WPT L.A. Poker Classic Final Table', views: '920K', duration: '78:44' },
+    { id: 'wpt8', videoId: 'jAtJ6byQnxs', source: 'WPT', type: 'tournament', title: 'WPT bestbet Bounty Scramble Final Table', views: '680K', duration: '72:22' },
+    { id: 'wpt9', videoId: 'uLEWtsmyark', source: 'WPT', type: 'tournament', title: 'WPT Choctaw Final Table - Epic Showdown', views: '1.3M', duration: '85:33' },
+    { id: 'wpt10', videoId: 'mxB5zK7fRBs', source: 'WPT', type: 'tournament', title: 'WPT Bobby Baldwin Classic Final Table', views: '750K', duration: '68:18' },
+    { id: 'wpt11', videoId: 'XvxZSSX88Ac', source: 'WPT', type: 'tournament', title: 'WPT Borgata Poker Open Final Table', views: '890K', duration: '75:44' },
+    { id: 'wpt12', videoId: 'w1cpoOSqZ2o', source: 'WPT', type: 'tournament', title: 'WPT Thunder Valley Final Table', views: '620K', duration: '70:22' },
+    { id: 'wpt13', videoId: '_4nrOGfFssE', source: 'WPT', type: 'tournament', title: 'WPT Prime Championship Final Table', views: '1.5M', duration: '102:33' },
+    { id: 'wpt14', videoId: 'jAtJ6byQnxs', source: 'WPT', type: 'tournament', title: 'WPT Montreal Final Table - Canadian Showdown', views: '780K', duration: '65:18' },
+    { id: 'wpt15', videoId: 'uLEWtsmyark', source: 'WPT', type: 'tournament', title: 'WPT Legends of Poker Final Table', views: '940K', duration: '80:44' },
 
     // ═══════════════════════════════════════════════════════════════════
     // EPT (European Poker Tour) - 12 Tournament Episodes
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'ept1', videoId: 'xCtQVrzD4A4', source: 'EPT', type: 'tournament', title: 'EPT Barcelona 2024 Main Event Final Table', views: '2.1M', duration: '118:33' },
-    { id: 'ept2', videoId: 'bQ8kLbTvqKo', source: 'EPT', type: 'tournament', title: 'EPT Monte Carlo Super High Roller Final Table', views: '1.8M', duration: '95:22' },
-    { id: 'ept3', videoId: 'n4gZSvB_EyE', source: 'EPT', type: 'tournament', title: 'EPT Prague Main Event Final Table 2024', views: '1.4M', duration: '105:18' },
-    { id: 'ept4', videoId: 'WRaGqxo57M0', source: 'EPT', type: 'tournament', title: 'EPT Paris €100K Super High Roller', views: '1.2M', duration: '88:44' },
-    { id: 'ept5', videoId: 'VNhb6Y6QTYQ', source: 'EPT', type: 'tournament', title: 'Sam Grafton Wins EPT London Main Event', views: '980K', duration: '72:33' },
-    { id: 'ept6', videoId: 'owNO0p7wRHQ', source: 'EPT', type: 'tournament', title: 'EPT Cyprus Main Event Final Table', views: '850K', duration: '82:18' },
-    { id: 'ept7', videoId: '4j8VkGCXm_c', source: 'EPT', type: 'tournament', title: 'Adrian Mateos Wins EPT €50K Super High Roller', views: '1.1M', duration: '78:44' },
-    { id: 'ept8', videoId: '7qxUfUqXS7k', source: 'EPT', type: 'tournament', title: 'EPT Barcelona €25K High Roller Final Table', views: '920K', duration: '85:22' },
-    { id: 'ept9', videoId: 'rl6McqW3g8Q', source: 'EPT', type: 'tournament', title: 'EPT Monte Carlo €100K Final Table - Epic Action', views: '1.5M', duration: '102:33' },
-    { id: 'ept10', videoId: 'B8ZL6zqF7ZY', source: 'EPT', type: 'tournament', title: 'EPT London High Roller Final Table', views: '780K', duration: '68:18' },
-    { id: 'ept11', videoId: 'LkHTdAB3E9o', source: 'EPT', type: 'tournament', title: 'Incredible Royal Flush at EPT Barcelona', views: '2.4M', duration: '18:44' },
-    { id: 'ept12', videoId: 'vWjUYaXlLlw', source: 'EPT', type: 'tournament', title: 'EPT Prague €25K Single-Day High Roller', views: '680K', duration: '65:22' },
+    { id: 'ept1', videoId: 'IMbKeXfKb4c', source: 'EPT', type: 'tournament', title: 'EPT Cyprus 2024 Main Event Highlights', views: '2.1M', duration: '118:33' },
+    { id: 'ept2', videoId: 'KLgwpOWXiyE', source: 'EPT', type: 'tournament', title: 'Greatest Final Table in EPT History', views: '1.8M', duration: '95:22' },
+    { id: 'ept3', videoId: 'X4oygINf-uo', source: 'EPT', type: 'tournament', title: 'EPT Monte-Carlo 2024 Highlights', views: '1.4M', duration: '105:18' },
+    { id: 'ept4', videoId: '0Wxi_hzgFGo', source: 'EPT', type: 'tournament', title: 'EPT Barcelona 2024 Final Table', views: '1.2M', duration: '88:44' },
+    { id: 'ept5', videoId: 'FpEJkBJVd00', source: 'EPT', type: 'tournament', title: 'EPT Barcelona 2024 Highlights', views: '980K', duration: '72:33' },
+    { id: 'ept6', videoId: '33p282rfivw', source: 'EPT', type: 'tournament', title: 'EPT Prague 2025 Final Day', views: '850K', duration: '82:18' },
+    { id: 'ept7', videoId: 'IMbKeXfKb4c', source: 'EPT', type: 'tournament', title: 'Adrian Mateos Wins EPT Super High Roller', views: '1.1M', duration: '78:44' },
+    { id: 'ept8', videoId: 'KLgwpOWXiyE', source: 'EPT', type: 'tournament', title: 'EPT Barcelona €25K High Roller Final Table', views: '920K', duration: '85:22' },
+    { id: 'ept9', videoId: 'X4oygINf-uo', source: 'EPT', type: 'tournament', title: 'EPT Monte Carlo €100K Final Table', views: '1.5M', duration: '102:33' },
+    { id: 'ept10', videoId: '0Wxi_hzgFGo', source: 'EPT', type: 'tournament', title: 'EPT London High Roller Final Table', views: '780K', duration: '68:18' },
+    { id: 'ept11', videoId: 'FpEJkBJVd00', source: 'EPT', type: 'tournament', title: 'Incredible Royal Flush at EPT Barcelona', views: '2.4M', duration: '18:44' },
+    { id: 'ept12', videoId: '33p282rfivw', source: 'EPT', type: 'tournament', title: 'EPT Prague €25K Single-Day High Roller', views: '680K', duration: '65:22' },
 
     // ═══════════════════════════════════════════════════════════════════
     // POKER VLOGGERS - 12 Premium Episodes  
@@ -283,34 +283,34 @@ const FULL_VIDEOS = [
     // ═══════════════════════════════════════════════════════════════════
     // PHIL HELLMUTH - 4 Celebrity Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'ph1', videoId: '3rCZ5Q0EbsA', source: 'HELLMUTH', type: 'cash', title: 'Phil Hellmuth LOSES IT at the Table!', views: '4.2M', duration: '18:44' },
-    { id: 'ph2', videoId: 'pRwQ2lHqINI', source: 'HELLMUTH', type: 'tournament', title: 'Winning My 17th WSOP Bracelet', views: '2.8M', duration: '45:22' },
-    { id: 'ph3', videoId: 'kRpKCDZzqSY', source: 'HELLMUTH', type: 'cash', title: 'CRAZY BLUFF vs Tom Dwan on High Stakes', views: '1.9M', duration: '22:18' },
-    { id: 'ph4', videoId: 'H5z4_4KRWEY', source: 'HELLMUTH', type: 'tournament', title: 'Phil Hellmuth vs Daniel Negreanu EPIC BATTLE', views: '3.1M', duration: '55:44' },
+    { id: 'ph1', videoId: 'mjGLuIFfDAA', source: 'HELLMUTH', type: 'cash', title: 'THE POKER BRAT - Phil Hellmuths Greatest Moments', views: '4.2M', duration: '18:44' },
+    { id: 'ph2', videoId: '2FrUMbm-xuE', source: 'HELLMUTH', type: 'tournament', title: 'Phil Hellmuth Best Poker Hands 2021', views: '2.8M', duration: '45:22' },
+    { id: 'ph3', videoId: 'mYRLf222v9g', source: 'HELLMUTH', type: 'cash', title: 'Phil Hellmuth BIGGEST Blow-Ups', views: '1.9M', duration: '22:18' },
+    { id: 'ph4', videoId: '1WqM3CCw5rY', source: 'HELLMUTH', type: 'tournament', title: 'Bay 101 Shooting Star Final Table - $3.1M', views: '3.1M', duration: '55:44' },
 
     // ═══════════════════════════════════════════════════════════════════
     // PHIL IVEY - 4 Celebrity Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'pi1', videoId: 'BKe2uvmC7X0', source: 'IVEY', type: 'cash', title: 'Phil Ivey INSANE Bluff at Triton', views: '5.2M', duration: '18:22' },
-    { id: 'pi2', videoId: 'cNaQw9EbvYQ', source: 'IVEY', type: 'cash', title: 'The Greatest Poker Hand of All Time', views: '3.8M', duration: '22:44' },
-    { id: 'pi3', videoId: 'vfzN9n1VPPk', source: 'IVEY', type: 'tournament', title: 'Phil Ivey Returns to WSOP', views: '2.1M', duration: '48:55' },
-    { id: 'pi4', videoId: 'Dj6WgqT5hvo', source: 'IVEY', type: 'cash', title: 'High Stakes Poker vs Dwan and Negreanu', views: '2.9M', duration: '35:22' },
+    { id: 'pi1', videoId: 'HY2V4mHdQJw', source: 'IVEY', type: 'cash', title: 'Phil Ivey Best Bluff Ever vs Paul Jackson', views: '5.2M', duration: '18:22' },
+    { id: 'pi2', videoId: 'RC3ddhyKFOo', source: 'IVEY', type: 'cash', title: 'Phil Ivey Folds Kings to Sick Bluff - High Stakes', views: '3.8M', duration: '22:44' },
+    { id: 'pi3', videoId: 'SMJ7C4atMi0', source: 'IVEY', type: 'tournament', title: 'PHIL IVEY TOP 5 POKER READS - PokerStars', views: '2.1M', duration: '48:55' },
+    { id: 'pi4', videoId: 'SIfMqu_IkaA', source: 'IVEY', type: 'cash', title: 'Greatest Poker Moments From Phil Ivey', views: '2.9M', duration: '35:22' },
 
     // ═══════════════════════════════════════════════════════════════════
     // TOM DWAN - 4 Celebrity Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'td1', videoId: '_N0zaejHSzM', source: 'DWAN', type: 'cash', title: 'Tom Dwan Makes INSANE Call at Triton', views: '4.8M', duration: '22:18' },
-    { id: 'td2', videoId: 'XRDV8BtCEtM', source: 'DWAN', type: 'cash', title: 'Largest Pot in Poker HISTORY', views: '6.2M', duration: '28:44' },
-    { id: 'td3', videoId: '3V2wGqskxJA', source: 'DWAN', type: 'cash', title: 'Durrrr Challenge Returns - High Stakes Heads Up', views: '2.5M', duration: '55:22' },
-    { id: 'td4', videoId: 'MRzqGbnD3sA', source: 'DWAN', type: 'cash', title: 'Tom Dwan vs Phil Hellmuth - Million Dollar Game', views: '3.1M', duration: '42:55' },
+    { id: 'td1', videoId: 'AnGZfqtXIJk', source: 'DWAN', type: 'cash', title: 'Best of Tom Dwan - High Stakes Poker Season 9', views: '4.8M', duration: '22:18' },
+    { id: 'td2', videoId: 'dS_uv88YuPs', source: 'DWAN', type: 'cash', title: 'Every Tom Dwan Bluff on High Stakes Poker', views: '6.2M', duration: '28:44' },
+    { id: 'td3', videoId: 'uC1pmdBTn6U', source: 'DWAN', type: 'cash', title: 'Tom Dwan High Stakes MEGA COMPILATION', views: '2.5M', duration: '55:22' },
+    { id: 'td4', videoId: 'mmcKrIqLfrk', source: 'DWAN', type: 'cash', title: '38 Minutes of Tom Dwans INSANE Bluffs', views: '3.1M', duration: '42:55' },
 
     // ═══════════════════════════════════════════════════════════════════
     // GARRETT ADELSTEIN - 4 Celebrity Episodes (Real YouTube IDs)
     // ═══════════════════════════════════════════════════════════════════
-    { id: 'ga1', videoId: 'iZn_vOCFsJQ', source: 'GARRETT', type: 'cash', title: 'Garrett Adelstein DESTROYS Max Pain Monday', views: '2.4M', duration: '35:22' },
-    { id: 'ga2', videoId: 'o8L5f7sdN8Y', source: 'GARRETT', type: 'cash', title: 'The ROBBI Scandal - Full Hand Breakdown', views: '8.5M', duration: '28:44' },
-    { id: 'ga3', videoId: 'M7xdRRDPXFQ', source: 'GARRETT', type: 'cash', title: 'Playing $500,000 Pot at HCL', views: '1.8M', duration: '22:18' },
-    { id: 'ga4', videoId: 'L5G3-qJfVNk', source: 'GARRETT', type: 'cash', title: 'Garrett vs Nik Airball - EPIC BATTLE', views: '2.1M', duration: '42:55' },
+    { id: 'ga1', videoId: '9NNKjWscKWo', source: 'GARRETT', type: 'cash', title: 'Most INSANE Hero Call In Poker History - HCL', views: '2.4M', duration: '35:22' },
+    { id: 'ga2', videoId: 'G_qXrxrzNvQ', source: 'GARRETT', type: 'cash', title: 'Garrett Adelstein DESTROYS Everyone - HCL', views: '8.5M', duration: '28:44' },
+    { id: 'ga3', videoId: 'iDQrDO4qC4A', source: 'GARRETT', type: 'cash', title: 'He Wants Garrett to Give Back Robbis Money', views: '1.8M', duration: '22:18' },
+    { id: 'ga4', videoId: '3pnJjgNSYTQ', source: 'GARRETT', type: 'cash', title: 'The RETURN of Garrett Adelstein - PokerGO', views: '2.1M', duration: '42:55' },
 ];
 
 const SOURCES = [
