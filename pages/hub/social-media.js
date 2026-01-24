@@ -1813,13 +1813,33 @@ export default function SocialMediaPage() {
     }, []); // Empty deps - uses refs for current values
 
     const handlePost = async (content, urls, type, mentions = []) => {
-        if (!user?.id) return false;
+        console.log('[Social] 📝 handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions });
+        console.log('[Social] 📝 User state:', { id: user?.id, name: user?.name, hasUser: !!user });
+
+        if (!user?.id) {
+            console.error('[Social] ❌ Cannot post: user.id is missing!', user);
+            return false;
+        }
+
         setIsPosting(true);
         try {
-            const { data, error } = await supabase.from('social_posts').insert({
-                author_id: user.id, content, content_type: type, media_urls: urls, visibility: 'public'
-            }).select().single();
-            if (error) throw error;
+            const insertPayload = {
+                author_id: user.id,
+                content,
+                content_type: type,
+                media_urls: urls,
+                visibility: 'public'
+            };
+            console.log('[Social] 📝 Inserting post with payload:', insertPayload);
+
+            const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().single();
+
+            if (error) {
+                console.error('[Social] ❌ Supabase insert error:', error.message, error.details, error.hint, error.code);
+                throw error;
+            }
+
+            console.log('[Social] ✅ Post created successfully:', data?.id);
 
             // Insert mentions if any
             if (mentions.length > 0 && data?.id) {
