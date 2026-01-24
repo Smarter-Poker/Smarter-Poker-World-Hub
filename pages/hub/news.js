@@ -105,7 +105,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
         tournament: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', icon: '🏆' },
         strategy: { bg: 'rgba(124, 58, 237, 0.15)', color: '#a78bfa', icon: '📚' },
         industry: { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', icon: '💼' },
-        news: { bg: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', icon: '📰' },
+        news: { bg: 'rgba(0, 212, 255, 0.15)', color: '#2374E1', icon: '📰' },
         online: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', icon: '💻' }
     };
     const catStyle = categoryColors[article.category] || categoryColors.news;
@@ -176,21 +176,20 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
             <style jsx>{`
                 .news-box {
                     position: relative;
-                    background: linear-gradient(145deg, rgba(20, 20, 35, 0.95), rgba(15, 15, 25, 0.98));
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                    border-radius: 10px;
+                    background: #242526;
+                    border: 1px solid #3E4042;
+                    border-radius: 8px;
                     overflow: hidden;
                     cursor: pointer;
-                    transition: all 0.3s ease;
+                    transition: all 0.2s ease;
                     display: flex;
                     flex-direction: column;
                     height: 340px;
                 }
 
                 .news-box:hover {
-                    border-color: rgba(0, 212, 255, 0.7);
-                    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
-                    transform: translateY(-4px);
+                    background: #3A3B3C;
+                    transform: translateY(-2px);
                 }
 
                 .news-box.read {
@@ -366,7 +365,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 }
 
                 .box-meta .source {
-                    color: #00d4ff;
+                    color: #2374E1;
                     font-weight: 600;
                 }
 
@@ -709,7 +708,7 @@ function MSPTBox({ msptNews, onOpenMSPT }) {
 // Placeholder Box for sources without articles yet
 function SourcePlaceholderBox({ sourceName, sourceUrl, index }) {
     const sourceInfo = {
-        'PokerNews': { icon: '🃏', color: '#00d4ff', url: 'https://www.pokernews.com' },
+        'PokerNews': { icon: '🃏', color: '#2374E1', url: 'https://www.pokernews.com' },
         'MSPT': { icon: '🎰', color: '#dc2626', url: 'https://msptpoker.com' },
         'CardPlayer': { icon: '♠️', color: '#22c55e', url: 'https://www.cardplayer.com' },
         'WSOP': { icon: '🏆', color: '#fbbf24', url: 'https://www.wsop.com' },
@@ -717,7 +716,7 @@ function SourcePlaceholderBox({ sourceName, sourceUrl, index }) {
         'Pokerfuse': { icon: '🔥', color: '#f97316', url: 'https://pokerfuse.com' }
     };
 
-    const info = sourceInfo[sourceName] || { icon: '📰', color: '#00d4ff', url: '#' };
+    const info = sourceInfo[sourceName] || { icon: '📰', color: '#2374E1', url: '#' };
 
     return (
         <div
@@ -1134,31 +1133,6 @@ export default function NewsHub() {
                     </div>
                 </header>
 
-                {/* Category Tabs (for News section) */}
-                {activeSection === 'news' && (
-                    <div className="category-bar">
-                        {['all', 'tournament', 'news', 'industry'].map(tab => (
-                            <button
-                                key={tab}
-                                className={`category-tab ${activeTab === tab ? 'active' : ''}`}
-                                onClick={() => setActiveTab(tab)}
-                            >
-                                {tab === 'tournament' && '🏆'}
-                                {tab === 'news' && '📰'}
-                                {tab === 'industry' && '💼'}
-                                {tab === 'all' && '🃏'}
-                                <span>{tab === 'all' ? 'All News' : tab === 'news' ? 'General' : tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
-                            </button>
-                        ))}
-
-                        {lastUpdate && (
-                            <span className="last-update">
-                                <Clock size={12} /> Updated {timeAgo(lastUpdate)}
-                            </span>
-                        )}
-                    </div>
-                )}
-
                 {/* Share Modal */}
                 <AnimatePresence>
                     {shareArticle && (
@@ -1519,8 +1493,8 @@ export default function NewsHub() {
                 <style jsx>{`
                     .news-hub {
                         min-height: 100vh;
-                        background: #0a0a12;
-                        color: #fff;
+                        background: #18191A;
+                        color: #E4E6EB;
                         font-family: 'Inter', -apple-system, sans-serif;
                     }
 
@@ -1533,9 +1507,8 @@ export default function NewsHub() {
                         align-items: center;
                         justify-content: space-between;
                         padding: 12px 24px;
-                        background: rgba(10, 10, 18, 0.95);
-                        backdrop-filter: blur(12px);
-                        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+                        background: #242526;
+                        border-bottom: 1px solid #3E4042;
                     }
 
                     .header-left {
@@ -1557,15 +1530,13 @@ export default function NewsHub() {
                     }
 
                     .logo :global(.logo-icon) {
-                        color: #00d4ff;
+                        color: #2374E1;
                     }
 
                     .logo span {
                         font-size: 18px;
                         font-weight: 700;
-                        background: linear-gradient(90deg, #00d4ff, #7c3aed);
-                        -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent;
+                        color: #E4E6EB;
                     }
 
                     .section-tabs {
@@ -1578,10 +1549,10 @@ export default function NewsHub() {
                         align-items: center;
                         gap: 6px;
                         padding: 8px 16px;
-                        background: transparent;
-                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        background: #3A3B3C;
+                        border: none;
                         border-radius: 8px;
-                        color: rgba(255, 255, 255, 0.6);
+                        color: #B0B3B8;
                         font-size: 13px;
                         font-weight: 500;
                         cursor: pointer;
@@ -1589,13 +1560,12 @@ export default function NewsHub() {
                     }
 
                     .section-tab:hover {
-                        background: rgba(255, 255, 255, 0.05);
-                        color: #fff;
+                        background: #4E4F50;
+                        color: #E4E6EB;
                     }
 
                     .section-tab.active {
-                        background: linear-gradient(135deg, #00d4ff, #7c3aed);
-                        border-color: transparent;
+                        background: #2374E1;
                         color: #fff;
                     }
 
@@ -1607,16 +1577,16 @@ export default function NewsHub() {
                     .search-box input {
                         width: 100%;
                         padding: 8px 12px 8px 36px;
-                        background: rgba(255, 255, 255, 0.05);
-                        border: 1px solid rgba(255, 255, 255, 0.08);
-                        border-radius: 8px;
-                        color: #fff;
+                        background: #3A3B3C;
+                        border: none;
+                        border-radius: 20px;
+                        color: #E4E6EB;
                         font-size: 13px;
                         outline: none;
                     }
 
                     .search-box input:focus {
-                        border-color: #00d4ff;
+                        border-color: #2374E1;
                     }
 
                     .search-box :global(.search-icon) {
@@ -1705,7 +1675,7 @@ export default function NewsHub() {
 
                     .category-tab.active {
                         background: rgba(0, 212, 255, 0.15);
-                        color: #00d4ff;
+                        color: #2374E1;
                     }
 
                     .last-update {
@@ -1766,7 +1736,7 @@ export default function NewsHub() {
                     }
 
                     .section-title :global(svg) {
-                        color: #00d4ff;
+                        color: #2374E1;
                     }
 
                     .section-desc {
@@ -1946,7 +1916,7 @@ export default function NewsHub() {
                         border: 1px solid rgba(0, 212, 255, 0.3);
                         border-radius: 8px;
                         padding: 8px 16px;
-                        color: #00d4ff;
+                        color: #2374E1;
                         font-size: 13px;
                         font-weight: 600;
                         cursor: pointer;
@@ -2047,9 +2017,9 @@ export default function NewsHub() {
                     }
 
                     .widget {
-                        background: rgba(255, 255, 255, 0.03);
-                        border: 1px solid rgba(255, 255, 255, 0.06);
-                        border-radius: 14px;
+                        background: #242526;
+                        border: 1px solid #3E4042;
+                        border-radius: 8px;
                         padding: 16px;
                     }
 
@@ -2060,18 +2030,19 @@ export default function NewsHub() {
                         font-size: 13px;
                         font-weight: 600;
                         margin-bottom: 14px;
+                        color: #E4E6EB;
                     }
 
                     .widget h4 :global(svg) {
-                        color: #00d4ff;
+                        color: #2374E1;
                     }
 
                     /* Newsletter Widget */
                     .newsletter h4 {
-                        background: linear-gradient(135deg, #7c3aed, #ec4899);
+                        background: #2374E1;
                         margin: -16px -16px 14px -16px;
                         padding: 12px 16px;
-                        border-radius: 14px 14px 0 0;
+                        border-radius: 8px 8px 0 0;
                     }
 
                     .newsletter h4 :global(svg) {
@@ -2086,16 +2057,16 @@ export default function NewsHub() {
                     .newsletter input {
                         flex: 1;
                         padding: 10px 12px;
-                        background: rgba(255, 255, 255, 0.05);
-                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        background: #3A3B3C;
+                        border: 1px solid #3E4042;
                         border-radius: 8px;
-                        color: #fff;
+                        color: #E4E6EB;
                         font-size: 12px;
                     }
 
                     .newsletter button {
                         padding: 10px 16px;
-                        background: linear-gradient(135deg, #00d4ff, #7c3aed);
+                        background: #2374E1;
                         border: none;
                         border-radius: 8px;
                         color: #fff;
@@ -2150,7 +2121,7 @@ export default function NewsHub() {
                         width: 20px;
                         font-size: 13px;
                         font-weight: 700;
-                        color: #00d4ff;
+                        color: #2374E1;
                     }
 
                     .trend-thumb {
@@ -2235,7 +2206,7 @@ export default function NewsHub() {
                     .leaderboard .points {
                         font-size: 12px;
                         font-weight: 600;
-                        color: #00d4ff;
+                        color: #2374E1;
                     }
 
                     /* MSPT Widget */
@@ -2370,7 +2341,7 @@ export default function NewsHub() {
 
                     .events-list .date {
                         background: rgba(0, 212, 255, 0.1);
-                        color: #00d4ff;
+                        color: #2374E1;
                         padding: 4px 8px;
                         border-radius: 6px;
                         font-weight: 600;
