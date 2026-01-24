@@ -253,8 +253,8 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 .box-image {
                     position: relative;
                     width: 100%;
-                    height: 180px;
-                    min-height: 180px;
+                    height: 240px;
+                    min-height: 240px;
                     overflow: hidden;
                     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
                 }
@@ -308,11 +308,12 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 }
 
                 .box-content {
-                    padding: 14px;
+                    padding: 10px 14px;
                     display: flex;
                     flex-direction: column;
-                    gap: 8px;
+                    gap: 4px;
                     flex: 1;
+                    justify-content: flex-end;
                 }
 
                 .box-category {
@@ -1067,9 +1068,9 @@ export default function NewsHub() {
         // Create placeholder for sources without articles
         return {
             id: `placeholder-${source.name}`,
-            title: `Latest from ${source.name}`,
-            content: `Check back soon for the latest poker news from ${source.name}.`,
-            excerpt: `Check back soon for the latest poker news from ${source.name}.`,
+            title: `Awaiting ${source.name} News`,
+            content: null,
+            excerpt: null,
             source_name: source.name,
             source_url: source.url,
             image_url: FALLBACK_IMAGES[source.category] || FALLBACK_IMAGES.news,
