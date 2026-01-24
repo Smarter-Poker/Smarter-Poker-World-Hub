@@ -245,8 +245,8 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 .box-image {
                     position: relative;
                     width: 100%;
-                    height: 270px !important;
-                    min-height: 270px !important;
+                    height: 280px !important;
+                    min-height: 280px !important;
                     flex: 1;
                     overflow: hidden;
                     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -307,13 +307,14 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     padding: 8px 12px;
                     display: flex;
                     flex-direction: column;
+                    justify-content: center;
                     gap: 4px;
-                    height: 70px !important;
-                    max-height: 70px !important;
-                    min-height: 70px !important;
-                    justify-content: space-between;
+                    height: 60px !important;
+                    max-height: 60px !important;
+                    min-height: 60px !important;
                     flex-shrink: 0;
                     background: #242526;
+                    overflow: hidden;
                 }
 
                 .box-category {
@@ -330,14 +331,14 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 }
 
                 .box-title {
-                    font-size: 14px;
+                    font-size: 13px;
                     font-weight: 600;
-                    line-height: 1.4;
+                    line-height: 1.3;
                     color: #fff;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 2;
-                    -webkit-box-orient: vertical;
+                    white-space: nowrap;
                     overflow: hidden;
+                    text-overflow: ellipsis;
+                    margin: 0;
                 }
 
                 .news-box-large .box-title {
@@ -361,8 +362,8 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     gap: 6px;
                     font-size: 11px;
                     color: rgba(255, 255, 255, 0.5);
-                    margin-top: auto;
-                    flex-wrap: wrap;
+                    white-space: nowrap;
+                    overflow: hidden;
                 }
 
                 .box-meta .source {
