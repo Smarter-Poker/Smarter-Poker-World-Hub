@@ -632,21 +632,21 @@ const HERO_CARDS_OFFSET = ${JSON.stringify(output.heroCardsPosition)};`;
 
 
                             {/* Villain Seats - DRAGGABLE with unique seatIndex for z-index layering */}
-                            <DraggablePlayerSeat seatIndex={1} seatId="seat1" avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} />
-                            <DraggablePlayerSeat seatIndex={2} seatId="seat2" avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} />
-                            <DraggablePlayerSeat seatIndex={3} seatId="seat3" avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} />
-                            <DraggablePlayerSeat seatIndex={4} seatId="seat4" avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} />
-                            <DraggablePlayerSeat seatIndex={5} seatId="seat5" avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} />
-                            <DraggablePlayerSeat seatIndex={6} seatId="seat6" avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} />
-                            <DraggablePlayerSeat seatIndex={7} seatId="seat7" avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} />
-                            <DraggablePlayerSeat seatIndex={8} seatId="seat8" avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} />
+                            <DraggablePlayerSeat seatIndex={1} seatId="seat1" avatar={VILLAIN_AVATARS[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} onPositionChange={updatePosition} />
+                            <DraggablePlayerSeat seatIndex={2} seatId="seat2" avatar={VILLAIN_AVATARS[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} onPositionChange={updatePosition} />
+                            <DraggablePlayerSeat seatIndex={3} seatId="seat3" avatar={VILLAIN_AVATARS[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} onPositionChange={updatePosition} />
+                            <DraggablePlayerSeat seatIndex={4} seatId="seat4" avatar={VILLAIN_AVATARS[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} onPositionChange={updatePosition} />
+                            <DraggablePlayerSeat seatIndex={5} seatId="seat5" avatar={VILLAIN_AVATARS[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} onPositionChange={updatePosition} />
+                            <DraggablePlayerSeat seatIndex={6} seatId="seat6" avatar={VILLAIN_AVATARS[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} onPositionChange={updatePosition} />
+                            <DraggablePlayerSeat seatIndex={7} seatId="seat7" avatar={VILLAIN_AVATARS[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} onPositionChange={updatePosition} />
+                            <DraggablePlayerSeat seatIndex={8} seatId="seat8" avatar={VILLAIN_AVATARS[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} onPositionChange={updatePosition} />
 
                             {/* Hero Seat - DRAGGABLE - highest seatIndex */}
-                            <DraggablePlayerSeat seatIndex={9} seatId="hero" avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} />
+                            <DraggablePlayerSeat seatIndex={9} seatId="hero" avatar="/avatars/vip/dragon.png" name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} onPositionChange={updatePosition} />
 
 
                             {/* Hero Cards - DRAGGABLE */}
-                            <DraggableHeroCards cards={heroCards} />
+                            <DraggableHeroCards cards={heroCards} onPositionChange={updatePosition} />
                         </div>
 
                         {/* Timer - positioned outside table-wrapper, at bottom of table-area */}
@@ -1000,7 +1000,92 @@ const HERO_CARDS_OFFSET = ${JSON.stringify(output.heroCardsPosition)};`;
                     color: #fff;
                     box-shadow: 0 4px 12px rgba(30,95,168,0.5);
                 }
+                
+                /* DEV MODE Export Panel */
+                .dev-toggle {
+                    position: fixed;
+                    top: 10px;
+                    right: 10px;
+                    z-index: 999999;
+                    padding: 8px 16px;
+                    background: ${devMode ? '#22c55e' : '#3b82f6'};
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    font-size: 12px;
+                }
+                .export-panel {
+                    position: fixed;
+                    top: 50px;
+                    right: 10px;
+                    z-index: 999999;
+                    width: 400px;
+                    max-height: 80vh;
+                    background: rgba(0,0,0,0.95);
+                    border: 2px solid #22c55e;
+                    border-radius: 12px;
+                    padding: 16px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+                .export-panel h3 {
+                    margin: 0;
+                    color: #22c55e;
+                    font-size: 16px;
+                }
+                .export-panel p {
+                    margin: 0;
+                    color: #888;
+                    font-size: 12px;
+                }
+                .export-panel textarea {
+                    width: 100%;
+                    height: 300px;
+                    background: #111;
+                    border: 1px solid #333;
+                    border-radius: 8px;
+                    color: #0f0;
+                    font-family: monospace;
+                    font-size: 11px;
+                    padding: 8px;
+                    resize: vertical;
+                }
+                .export-panel button {
+                    padding: 10px 20px;
+                    background: #22c55e;
+                    color: black;
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                }
+                .export-panel button:hover {
+                    background: #16a34a;
+                }
             `}</style>
+
+            {/* DEV MODE Toggle Button */}
+            <button className="dev-toggle" onClick={() => setDevMode(!devMode)}>
+                {devMode ? '✓ DEV MODE ON' : '🔧 DEV MODE'}
+            </button>
+
+            {/* Export Panel - only visible in dev mode */}
+            {devMode && (
+                <div className="export-panel">
+                    <h3>📐 Layout Export Tool</h3>
+                    <p>Drag elements to position them, then click Export to generate code.</p>
+                    <button onClick={exportLayout}>📋 EXPORT LAYOUT</button>
+                    {exportData && (
+                        <>
+                            <textarea value={exportData} readOnly />
+                            <button onClick={copyToClipboard}>📋 COPY TO CLIPBOARD</button>
+                        </>
+                    )}
+                </div>
+            )}
         </>
     );
 }
