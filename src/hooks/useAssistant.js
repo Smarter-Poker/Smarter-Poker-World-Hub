@@ -300,3 +300,118 @@ export function useRecentSessions(limit = 10) {
 
   return { sessions, isLoading };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// useLeakDetection — Trigger leak detection analysis
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function useLeakDetection() {
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [detectionResult, setDetectionResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const runDetection = useCallback(async () => {
+    try {
+      setIsDetecting(true);
+      setError(null);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError('Must be logged in to run leak detection');
+        return { success: false, error: 'Not logged in' };
+      }
+
+      const response = await fetch('/api/assistant/leaks/detect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setDetectionResult({
+          handsAnalyzed: data.handsAnalyzed,
+          leaksDetected: data.leaksDetected,
+          leaks: data.leaks,
+        });
+      } else {
+        setError(data.error || 'Detection failed');
+      }
+
+      return data;
+    } catch (err) {
+      console.error('Leak detection error:', err);
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setIsDetecting(false);
+    }
+  }, []);
+
+  return { runDetection, isDetecting, detectionResult, error };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// useLeakHandExamples — Fetch hand examples for a specific leak
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function useLeakHandExamples(leakId) {
+  const [examples, setExamples] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchExamples = useCallback(async () => {
+    if (!leakId) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error: fetchError } = await supabase
+        .from('leak_hand_examples')
+        .select(`
+          id,
+          situation_snapshot,
+          ev_loss_bb,
+          created_at,
+          hand_history_id
+        `)
+        .eq('leak_id', leakId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (fetchError) {
+        console.error('Error fetching leak examples:', fetchError);
+        setError(fetchError.message);
+        return;
+      }
+
+      const formatted = (data || []).map(ex => ({
+        id: ex.id,
+        snapshot: ex.situation_snapshot,
+        evLoss: ex.ev_loss_bb,
+        date: ex.created_at,
+        handId: ex.hand_history_id,
+      }));
+
+      setExamples(formatted);
+    } catch (err) {
+      console.error('Fetch examples error:', err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [leakId]);
+
+  useEffect(() => {
+    if (leakId) {
+      fetchExamples();
+    }
+  }, [leakId, fetchExamples]);
+
+  return { examples, isLoading, error, refetch: fetchExamples };
+}
