@@ -31,60 +31,59 @@ const VILLAIN_AVATARS = [
     '/avatars/free/owl.png',
 ];
 
-// Seat positions - PIXEL-MEASURED from user's reference image
-// Reference image: ~394px wide, positions calculated as percentages
+// Seat positions - SYMMETRICAL PAIRS matching reference exactly
 const SEAT_POSITIONS = {
-    // Hero - bottom center (195/394 = 49.5%, rounded to 50%)
+    // Hero - bottom center
     hero: {
         left: '50%', top: '78%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // V1 - bottom left (85/394 = 21.5%)
+    // V1 - bottom left (mirror of V8)
     seat1: {
-        left: '22%', top: '65%',
+        left: '18%', top: '64%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // V2 - middle left (55/394 = 14%)
+    // V2 - middle left (mirror of V7)
     seat2: {
-        left: '14%', top: '48%',
+        left: '13%', top: '46%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // V3 - upper left (70/394 = 18%)
+    // V3 - upper left (mirror of V6)
     seat3: {
-        left: '18%', top: '25%',
+        left: '15%', top: '26%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // V4 - top left (165/394 = 42%)
+    // V4 - top left (mirror of V5)
     seat4: {
-        left: '42%', top: '13%',
+        left: '35%', top: '14%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // V5 - top right (290/394 = 74%)
+    // V5 - top right (mirror of V4)
     seat5: {
-        left: '74%', top: '13%',
+        left: '65%', top: '14%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // V6 - upper right (320/394 = 81%)
+    // V6 - upper right (mirror of V3)
     seat6: {
-        left: '81%', top: '25%',
+        left: '85%', top: '26%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // V7 - middle right (325/394 = 82%)
+    // V7 - middle right (mirror of V2)
     seat7: {
-        left: '82%', top: '48%',
+        left: '87%', top: '46%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
-    // V8 - bottom right (305/394 = 77%)
+    // V8 - bottom right (mirror of V1)
     seat8: {
-        left: '77%', top: '65%',
+        left: '82%', top: '64%',
         avatarOffset: { x: 0, y: 0 },
         badgeOffset: { x: 0, y: 120 }
     },
@@ -228,6 +227,11 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
                 avatar: avatarPos,
                 badge: badgePos
             });
+            // Report to parent for export
+            if (onPositionChange) {
+                onPositionChange(`${seatId}-avatar`, avatarPos);
+                onPositionChange(`${seatId}-badge`, badgePos);
+            }
         }
         setDragging(null);
     };
@@ -316,7 +320,7 @@ function Card({ rank, suit, isRed, size = 'normal' }) {
 }
 
 // Draggable Hero Cards Component
-function DraggableHeroCards({ cards }) {
+function DraggableHeroCards({ cards, onPositionChange }) {
     // Exact offset from user's layout (extracted 2026-01-23)
     const [pos, setPos] = useState({ x: 20, y: 0 });
     const [dragging, setDragging] = useState(false);
@@ -337,6 +341,9 @@ function DraggableHeroCards({ cards }) {
     const handleMouseUp = () => {
         if (dragging) {
             console.log('🎯 HERO CARDS POSITION:', pos);
+            if (onPositionChange) {
+                onPositionChange('heroCards', pos);
+            }
         }
         setDragging(false);
     };
@@ -403,6 +410,11 @@ export default function TrainingArenaPage() {
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [userXP, setUserXP] = useState(0);
     const [userLevel, setUserLevel] = useState(1);
+
+    // DEV MODE - Export layout functionality
+    const [devMode, setDevMode] = useState(false);
+    const [exportData, setExportData] = useState('');
+    const positionRefs = useState({})[0]; // Store all position updates
 
     // Load real user data on mount
     useEffect(() => {
@@ -501,6 +513,47 @@ export default function TrainingArenaPage() {
 
     const handleBack = () => router.push('/hub/training');
     const handleSettings = () => console.log('Settings clicked');
+
+    // Update position refs when elements are dragged
+    const updatePosition = useCallback((id, data) => {
+        positionRefs[id] = data;
+    }, [positionRefs]);
+
+    // Export all positions as code
+    const exportLayout = () => {
+        const output = {
+            SEAT_POSITIONS: {},
+            heroCardsPosition: positionRefs['heroCards'] || { x: 20, y: 0 }
+        };
+
+        // Gather seat positions
+        ['hero', 'seat1', 'seat2', 'seat3', 'seat4', 'seat5', 'seat6', 'seat7', 'seat8'].forEach(seatKey => {
+            const avatarData = positionRefs[`${seatKey}-avatar`];
+            const badgeData = positionRefs[`${seatKey}-badge`];
+            const basePos = SEAT_POSITIONS[seatKey];
+
+            output.SEAT_POSITIONS[seatKey] = {
+                left: basePos.left,
+                top: basePos.top,
+                avatarOffset: avatarData || { x: 0, y: 0 },
+                badgeOffset: badgeData || { x: 0, y: 120 }
+            };
+        });
+
+        const code = `// EXPORTED LAYOUT - ${new Date().toISOString()}
+const SEAT_POSITIONS = ${JSON.stringify(output.SEAT_POSITIONS, null, 4)};
+
+// Hero Cards Position
+const HERO_CARDS_OFFSET = ${JSON.stringify(output.heroCardsPosition)};`;
+
+        setExportData(code);
+    };
+
+    // Copy to clipboard
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(exportData);
+        alert('Copied to clipboard!');
+    };
 
     if (loading) {
         return (

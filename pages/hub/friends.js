@@ -267,7 +267,7 @@ function UserCard({
                                     gap: 4,
                                 }}
                             >
-                                👋 Add Friend
+                                Add Friend
                             </button>
                         ) : (
                             <div style={{
@@ -278,7 +278,7 @@ function UserCard({
                                 fontWeight: 600,
                                 fontSize: 12,
                             }}>
-                                ⏳ Request Sent
+                                Request Sent
                             </div>
                         )}
                     </>
