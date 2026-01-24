@@ -1048,18 +1048,37 @@ export default function NewsHub() {
     });
 
     // 6 dedicated source boxes - each box shows the latest article from its specific source
-    const DEDICATED_SOURCES = ['PokerNews', 'Poker.org', 'CardPlayer', 'Pokerfuse', 'WSOP', 'MSPT'];
+    const DEDICATED_SOURCES = [
+        { name: 'PokerNews', url: 'https://www.pokernews.com' },
+        { name: 'Poker.org', url: 'https://www.poker.org' },
+        { name: 'CardPlayer', url: 'https://www.cardplayer.com' },
+        { name: 'Pokerfuse', url: 'https://pokerfuse.com' },
+        { name: 'WSOP', url: 'https://www.wsop.com' },
+        { name: 'MSPT', url: 'https://msptpoker.com' }
+    ];
 
-    // Get the latest article from each dedicated source
-    const sourceBoxArticles = DEDICATED_SOURCES.map(sourceName => {
-        const articlesFromSource = filteredNews.filter(a => a.source_name === sourceName);
-        // Return the most recent article from this source (already sorted by published_at desc from API)
-        return articlesFromSource[0] || null;
-    }).filter(Boolean); // Remove nulls for sources with no articles
+    // Get the latest article from each dedicated source (always show all 6 boxes)
+    const sourceBoxArticles = DEDICATED_SOURCES.map((source, index) => {
+        const articlesFromSource = filteredNews.filter(a => a.source_name === source.name);
+        // Return the most recent article from this source, or a placeholder if none
+        return articlesFromSource[0] || {
+            id: `placeholder-${source.name}`,
+            title: `Latest from ${source.name}`,
+            content: `Check back soon for the latest poker news from ${source.name}.`,
+            excerpt: `Check back soon for the latest poker news from ${source.name}.`,
+            source_name: source.name,
+            source_url: source.url,
+            image_url: FALLBACK_IMAGES[['tournament', 'industry', 'news', 'industry', 'tournament', 'tournament'][index]],
+            category: ['tournament', 'industry', 'news', 'industry', 'tournament', 'tournament'][index],
+            published_at: new Date().toISOString(),
+            views: 0,
+            isPlaceholder: true
+        };
+    });
 
-    // Top articles = source box articles (up to 6)
+    // Top articles = source box articles (always 6)
     const topArticles = sourceBoxArticles;
-    const topArticleIds = topArticles.map(a => a.id);
+    const topArticleIds = topArticles.filter(a => !a.isPlaceholder).map(a => a.id);
 
     // Remaining stories = all other articles not in the top boxes
     const remainingStories = filteredNews.filter(a => !topArticleIds.includes(a.id));
