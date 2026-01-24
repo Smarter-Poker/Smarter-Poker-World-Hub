@@ -15,56 +15,182 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DIAMOND PACKAGES — Available for purchase
+// DIAMOND PACKAGES — 1 Diamond = 1 Cent ($0.01)
+// 5% bonus on purchases of $100 or more
 // ═══════════════════════════════════════════════════════════════════════════
 const DIAMOND_PACKAGES = [
     {
-        id: 'starter',
-        name: 'Starter Pack',
+        id: 'micro',
+        name: 'Micro',
         diamonds: 100,
-        price: 0.99,
+        price: 1.00,
         popular: false,
         bonus: 0,
     },
     {
-        id: 'essential',
-        name: 'Essential Pack',
+        id: 'small',
+        name: 'Small',
         diamonds: 500,
-        price: 3.99,
+        price: 5.00,
         popular: false,
-        bonus: 50,
+        bonus: 0,
     },
     {
-        id: 'popular',
-        name: 'Popular Pack',
-        diamonds: 1200,
-        price: 8.99,
+        id: 'medium',
+        name: 'Medium',
+        diamonds: 1000,
+        price: 10.00,
+        popular: false,
+        bonus: 0,
+    },
+    {
+        id: 'standard',
+        name: 'Standard',
+        diamonds: 2500,
+        price: 25.00,
         popular: true,
-        bonus: 200,
+        bonus: 0,
+    },
+    {
+        id: 'large',
+        name: 'Large',
+        diamonds: 5000,
+        price: 50.00,
+        popular: false,
+        bonus: 0,
     },
     {
         id: 'value',
-        name: 'Value Pack',
-        diamonds: 2500,
-        price: 16.99,
+        name: 'Value',
+        diamonds: 10000,
+        price: 100.00,
         popular: false,
-        bonus: 500,
+        bonus: 500, // 5% bonus
+        hasDiscount: true,
     },
     {
         id: 'premium',
-        name: 'Premium Pack',
-        diamonds: 6500,
-        price: 39.99,
+        name: 'Premium',
+        diamonds: 25000,
+        price: 250.00,
         popular: false,
-        bonus: 1500,
+        bonus: 1250, // 5% bonus
+        hasDiscount: true,
     },
     {
-        id: 'ultimate',
-        name: 'Ultimate Pack',
-        diamonds: 15000,
-        price: 79.99,
+        id: 'whale',
+        name: 'Whale',
+        diamonds: 50000,
+        price: 500.00,
         popular: false,
-        bonus: 5000,
+        bonus: 2500, // 5% bonus
+        hasDiscount: true,
+    },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VIP MEMBERSHIP — $19.99/month for all features
+// ═══════════════════════════════════════════════════════════════════════════
+const VIP_MEMBERSHIP = {
+    monthly: {
+        id: 'vip-monthly',
+        name: 'VIP Monthly',
+        price: 19.99,
+        interval: 'month',
+        popular: true,
+    },
+    annual: {
+        id: 'vip-annual',
+        name: 'VIP Annual',
+        price: 199.99,
+        interval: 'year',
+        savings: 39.89, // 2 months free
+        popular: false,
+    },
+};
+
+const VIP_BENEFITS = [
+    { icon: '🎰', title: 'Diamond Arena Access', description: 'Unlimited tournament entries (normally 50-1,000 💎 each)', value: '$500+/mo' },
+    { icon: '🎮', title: 'Diamond Arcade', description: 'All arcade games free (normally 10-20 💎 per play)', value: '$100+/mo' },
+    { icon: '🧠', title: 'Premium Training', description: 'Full access to all training modules & drills', value: '$50/mo' },
+    { icon: '🎨', title: 'Avatar Engine', description: 'Unlimited custom AI avatar generations', value: '$100+/mo' },
+    { icon: '📊', title: 'Advanced Analytics', description: 'Deep bankroll insights & performance tracking', value: '$30/mo' },
+    { icon: '🤖', title: 'AI Personal Assistant', description: 'Priority AI coaching & hand analysis', value: '$50/mo' },
+    { icon: '🏆', title: 'Exclusive Leaderboards', description: 'VIP-only competitions with bonus prizes', value: 'Exclusive' },
+    { icon: '💬', title: 'Priority Support', description: '24/7 priority customer support', value: 'Priceless' },
+    { icon: '🎁', title: 'Daily Diamond Bonus', description: '+25 💎 free every day ($7.50/mo value)', value: '$7.50/mo' },
+    { icon: '✨', title: 'VIP Badge & Flair', description: 'Exclusive profile badge and cosmetics', value: 'Exclusive' },
+    { icon: '🚀', title: '2x XP Boost', description: 'Double XP earnings on all activities', value: '$25/mo' },
+    { icon: '🔓', title: 'Early Access', description: 'First access to new features & games', value: 'Exclusive' },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MERCHANDISE — Physical goods
+// ═══════════════════════════════════════════════════════════════════════════
+const MERCHANDISE = [
+    {
+        id: 'card-protector-gold',
+        name: 'Gold Card Protector',
+        description: 'Premium weighted card protector with Smarter.Poker logo',
+        price: 24.99,
+        image: '/merch/card-protector-gold.jpg',
+        category: 'accessories',
+    },
+    {
+        id: 'card-protector-black',
+        name: 'Stealth Card Protector',
+        description: 'Matte black weighted card protector',
+        price: 24.99,
+        image: '/merch/card-protector-black.jpg',
+        category: 'accessories',
+    },
+    {
+        id: 'hoodie-neural',
+        name: 'Neural Network Hoodie',
+        description: 'Premium hoodie with neural poker design',
+        price: 59.99,
+        image: '/merch/hoodie-neural.jpg',
+        category: 'apparel',
+    },
+    {
+        id: 'tshirt-gto',
+        name: 'GTO Wizard Tee',
+        description: '100% cotton tee with GTO brain graphic',
+        price: 29.99,
+        image: '/merch/tshirt-gto.jpg',
+        category: 'apparel',
+    },
+    {
+        id: 'hat-diamond',
+        name: 'Diamond Dad Hat',
+        description: 'Embroidered diamond logo cap',
+        price: 34.99,
+        image: '/merch/hat-diamond.jpg',
+        category: 'apparel',
+    },
+    {
+        id: 'deck-premium',
+        name: 'Premium Playing Cards',
+        description: 'Casino-quality Smarter.Poker deck',
+        price: 14.99,
+        image: '/merch/deck-premium.jpg',
+        category: 'accessories',
+    },
+    {
+        id: 'chip-set-100',
+        name: '100-Chip Travel Set',
+        description: 'Clay composite chips in aluminum case',
+        price: 79.99,
+        image: '/merch/chip-set-100.jpg',
+        category: 'accessories',
+    },
+    {
+        id: 'chip-set-500',
+        name: '500-Chip Pro Set',
+        description: 'Full tournament set with dealer button',
+        price: 199.99,
+        image: '/merch/chip-set-500.jpg',
+        category: 'accessories',
     },
 ];
 
@@ -73,7 +199,6 @@ const DIAMOND_PACKAGES = [
 // ═══════════════════════════════════════════════════════════════════════════
 function PackageCard({ pkg, onSelect, isSelected }) {
     const totalDiamonds = pkg.diamonds + pkg.bonus;
-    const pricePerDiamond = (pkg.price / totalDiamonds).toFixed(4);
 
     return (
         <div
@@ -87,9 +212,11 @@ function PackageCard({ pkg, onSelect, isSelected }) {
                     ? '2px solid #00D4FF'
                     : pkg.popular
                         ? '2px solid rgba(255, 215, 0, 0.5)'
-                        : '1px solid rgba(255, 255, 255, 0.15)',
+                        : pkg.hasDiscount
+                            ? '2px solid rgba(0, 255, 136, 0.4)'
+                            : '1px solid rgba(255, 255, 255, 0.15)',
                 borderRadius: 16,
-                padding: 24,
+                padding: 20,
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 transform: isSelected ? 'scale(1.02)' : 'scale(1)',
@@ -103,13 +230,31 @@ function PackageCard({ pkg, onSelect, isSelected }) {
                     right: 16,
                     background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                     color: '#0a1628',
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: 700,
-                    padding: '4px 12px',
+                    padding: '4px 10px',
                     borderRadius: 10,
                     textTransform: 'uppercase',
                 }}>
-                    Most Popular
+                    Popular
+                </div>
+            )}
+
+            {/* 5% Discount Badge */}
+            {pkg.hasDiscount && (
+                <div style={{
+                    position: 'absolute',
+                    top: -10,
+                    right: 16,
+                    background: 'linear-gradient(135deg, #00ff88, #00cc66)',
+                    color: '#0a1628',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: 10,
+                    textTransform: 'uppercase',
+                }}>
+                    +5% Bonus
                 </div>
             )}
 
@@ -117,14 +262,14 @@ function PackageCard({ pkg, onSelect, isSelected }) {
             <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
-                marginBottom: 16,
+                gap: 10,
+                marginBottom: 12,
             }}>
-                <span style={{ fontSize: 40 }}>💎</span>
+                <span style={{ fontSize: 32 }}>💎</span>
                 <div>
                     <div style={{
                         fontFamily: 'Orbitron, sans-serif',
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: 700,
                         color: '#00D4FF',
                     }}>
@@ -132,11 +277,11 @@ function PackageCard({ pkg, onSelect, isSelected }) {
                     </div>
                     {pkg.bonus > 0 && (
                         <div style={{
-                            fontSize: 12,
+                            fontSize: 11,
                             color: '#00ff88',
                             fontWeight: 600,
                         }}>
-                            +{pkg.bonus.toLocaleString()} BONUS
+                            ({pkg.diamonds.toLocaleString()} + {pkg.bonus.toLocaleString()} bonus)
                         </div>
                     )}
                 </div>
@@ -144,33 +289,177 @@ function PackageCard({ pkg, onSelect, isSelected }) {
 
             {/* Package Name */}
             <div style={{
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: 600,
                 color: '#fff',
-                marginBottom: 8,
+                marginBottom: 6,
             }}>
                 {pkg.name}
             </div>
 
-            {/* Price */}
+            {/* Price - 1 diamond = 1 cent */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
             }}>
                 <span style={{
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: 700,
                     color: '#fff',
                 }}>
                     ${pkg.price.toFixed(2)}
                 </span>
                 <span style={{
-                    fontSize: 11,
+                    fontSize: 10,
                     color: 'rgba(255, 255, 255, 0.5)',
                 }}>
-                    ${pricePerDiamond}/💎
+                    1💎 = $0.01
                 </span>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VIP MEMBERSHIP CARD COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+function VIPCard({ plan, isSelected, onSelect }) {
+    return (
+        <div
+            onClick={() => onSelect(plan.id)}
+            style={{
+                position: 'relative',
+                background: isSelected
+                    ? 'linear-gradient(135deg, rgba(138, 43, 226, 0.3), rgba(255, 107, 157, 0.3))'
+                    : 'linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(255, 107, 157, 0.1))',
+                border: isSelected
+                    ? '2px solid #8a2be2'
+                    : plan.popular
+                        ? '2px solid rgba(138, 43, 226, 0.5)'
+                        : '1px solid rgba(138, 43, 226, 0.3)',
+                borderRadius: 16,
+                padding: 24,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                flex: 1,
+            }}
+        >
+            {plan.popular && (
+                <div style={{
+                    position: 'absolute',
+                    top: -10,
+                    right: 16,
+                    background: 'linear-gradient(135deg, #8a2be2, #ff6b9d)',
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: 10,
+                    textTransform: 'uppercase',
+                }}>
+                    Recommended
+                </div>
+            )}
+
+            {plan.savings && (
+                <div style={{
+                    position: 'absolute',
+                    top: -10,
+                    left: 16,
+                    background: 'linear-gradient(135deg, #00ff88, #00cc66)',
+                    color: '#0a1628',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: 10,
+                }}>
+                    Save ${plan.savings.toFixed(2)}
+                </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <span style={{ fontSize: 36 }}>👑</span>
+                <div>
+                    <div style={{
+                        fontFamily: 'Orbitron, sans-serif',
+                        fontSize: 20,
+                        fontWeight: 700,
+                        color: '#fff',
+                    }}>
+                        {plan.name}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
+                        All features included
+                    </div>
+                </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 32, fontWeight: 700, color: '#fff' }}>
+                    ${plan.price.toFixed(2)}
+                </span>
+                <span style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)' }}>
+                    /{plan.interval}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MERCHANDISE CARD COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+function MerchCard({ item, onSelect }) {
+    return (
+        <div
+            onClick={() => onSelect(item.id)}
+            style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: 12,
+                overflow: 'hidden',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+            }}
+        >
+            {/* Product Image Placeholder */}
+            <div style={{
+                height: 120,
+                background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(138, 43, 226, 0.1))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 40,
+            }}>
+                {item.category === 'apparel' ? '👕' : '🎴'}
+            </div>
+
+            <div style={{ padding: 14 }}>
+                <div style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: '#fff',
+                    marginBottom: 4,
+                }}>
+                    {item.name}
+                </div>
+                <div style={{
+                    fontSize: 11,
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    marginBottom: 8,
+                    lineHeight: 1.4,
+                }}>
+                    {item.description}
+                </div>
+                <div style={{
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: '#00D4FF',
+                }}>
+                    ${item.price.toFixed(2)}
+                </div>
             </div>
         </div>
     );
@@ -181,22 +470,38 @@ function PackageCard({ pkg, onSelect, isSelected }) {
 // ═══════════════════════════════════════════════════════════════════════════
 export default function DiamondStorePage() {
     const router = useRouter();
-    const [selectedPackage, setSelectedPackage] = useState('popular');
+    const [activeTab, setActiveTab] = useState('diamonds'); // diamonds, vip, merch
+    const [selectedPackage, setSelectedPackage] = useState('standard');
+    const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const handlePurchase = () => {
+    const handleDiamondPurchase = () => {
         if (!selectedPackage) return;
-
         setIsProcessing(true);
-
-        // TODO: Integrate with payment processor (Stripe, etc.)
+        // TODO: Stripe Checkout for one-time payment
         setTimeout(() => {
             setIsProcessing(false);
-            alert('Payment integration coming soon! Diamonds will be added to your account after purchase.');
+            alert('Stripe checkout coming soon! Diamonds will be added to your account after purchase.');
         }, 1000);
     };
 
+    const handleVIPSubscribe = () => {
+        if (!selectedVIP) return;
+        setIsProcessing(true);
+        // TODO: Stripe Subscription checkout
+        setTimeout(() => {
+            setIsProcessing(false);
+            alert('Stripe subscription coming soon! VIP access will be activated after payment.');
+        }, 1000);
+    };
+
+    const handleMerchPurchase = (itemId) => {
+        // TODO: Stripe Checkout for merchandise
+        alert(`Merch store coming soon! Item: ${itemId}`);
+    };
+
     const selectedPkg = DIAMOND_PACKAGES.find(p => p.id === selectedPackage);
+    const selectedVIPPlan = selectedVIP === 'vip-monthly' ? VIP_MEMBERSHIP.monthly : VIP_MEMBERSHIP.annual;
 
     return (
         <PageTransition>
@@ -225,59 +530,204 @@ export default function DiamondStorePage() {
                 <UniversalHeader pageDepth={1} />
                 <div style={styles.header}>
                     <div style={{ width: 100 }} />
+                    <h1 style={styles.pageTitle}>💎 Store</h1>
+                    <div style={{ width: 100 }} />
+                </div>
 
-                    <h1 style={styles.pageTitle}>💎 Diamond Store</h1>
-
-                    <div style={{ width: 100 }} /> {/* Spacer for centering */}
+                {/* Tab Navigation */}
+                <div style={styles.tabNav}>
+                    <button
+                        onClick={() => setActiveTab('diamonds')}
+                        style={{
+                            ...styles.tabButton,
+                            ...(activeTab === 'diamonds' ? styles.tabButtonActive : {}),
+                        }}
+                    >
+                        💎 Diamonds
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('vip')}
+                        style={{
+                            ...styles.tabButton,
+                            ...(activeTab === 'vip' ? styles.tabButtonActiveVIP : {}),
+                        }}
+                    >
+                        👑 VIP Membership
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('merch')}
+                        style={{
+                            ...styles.tabButton,
+                            ...(activeTab === 'merch' ? styles.tabButtonActive : {}),
+                        }}
+                    >
+                        🛍️ Merch
+                    </button>
                 </div>
 
                 {/* Main Content */}
                 <div style={styles.content}>
-                    {/* Intro */}
-                    <div style={styles.intro}>
-                        <p style={styles.introText}>
-                            Diamonds power your poker journey. Use them for tournament entries,
-                            premium training, cosmetics, and more!
-                        </p>
-                    </div>
 
-                    {/* Package Grid */}
-                    <div style={styles.packageGrid}>
-                        {DIAMOND_PACKAGES.map(pkg => (
-                            <PackageCard
-                                key={pkg.id}
-                                pkg={pkg}
-                                isSelected={selectedPackage === pkg.id}
-                                onSelect={setSelectedPackage}
-                            />
-                        ))}
-                    </div>
+                    {/* ═══════════════════════════════════════════════════════════════════ */}
+                    {/* DIAMONDS TAB */}
+                    {/* ═══════════════════════════════════════════════════════════════════ */}
+                    {activeTab === 'diamonds' && (
+                        <>
+                            {/* Intro */}
+                            <div style={styles.intro}>
+                                <p style={styles.introText}>
+                                    <strong>1 Diamond = $0.01</strong> — Use diamonds for tournament entries,
+                                    premium training, cosmetics, and more. <span style={{ color: '#00ff88' }}>5% bonus on $100+ purchases!</span>
+                                </p>
+                            </div>
 
-                    {/* Purchase Section */}
-                    <div style={styles.purchaseSection}>
-                        <div style={styles.selectedInfo}>
-                            {selectedPkg && (
-                                <>
-                                    <span style={styles.selectedLabel}>Selected:</span>
-                                    <span style={styles.selectedName}>{selectedPkg.name}</span>
-                                    <span style={styles.selectedDiamonds}>
-                                        💎 {(selectedPkg.diamonds + selectedPkg.bonus).toLocaleString()}
-                                    </span>
-                                </>
-                            )}
-                        </div>
+                            {/* Package Grid */}
+                            <div style={styles.packageGrid}>
+                                {DIAMOND_PACKAGES.map(pkg => (
+                                    <PackageCard
+                                        key={pkg.id}
+                                        pkg={pkg}
+                                        isSelected={selectedPackage === pkg.id}
+                                        onSelect={setSelectedPackage}
+                                    />
+                                ))}
+                            </div>
 
-                        <button
-                            onClick={handlePurchase}
-                            disabled={!selectedPackage || isProcessing}
-                            style={{
-                                ...styles.purchaseButton,
-                                opacity: (!selectedPackage || isProcessing) ? 0.6 : 1,
-                            }}
-                        >
-                            {isProcessing ? 'Processing...' : `Purchase for $${selectedPkg?.price.toFixed(2) || '0.00'}`}
-                        </button>
-                    </div>
+                            {/* Purchase Section */}
+                            <div style={styles.purchaseSection}>
+                                <div style={styles.selectedInfo}>
+                                    {selectedPkg && (
+                                        <>
+                                            <span style={styles.selectedLabel}>Selected:</span>
+                                            <span style={styles.selectedName}>{selectedPkg.name}</span>
+                                            <span style={styles.selectedDiamonds}>
+                                                💎 {(selectedPkg.diamonds + selectedPkg.bonus).toLocaleString()}
+                                            </span>
+                                        </>
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={handleDiamondPurchase}
+                                    disabled={!selectedPackage || isProcessing}
+                                    style={{
+                                        ...styles.purchaseButton,
+                                        opacity: (!selectedPackage || isProcessing) ? 0.6 : 1,
+                                    }}
+                                >
+                                    {isProcessing ? 'Processing...' : `Purchase for $${selectedPkg?.price.toFixed(2) || '0.00'}`}
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+                    {/* ═══════════════════════════════════════════════════════════════════ */}
+                    {/* VIP MEMBERSHIP TAB */}
+                    {/* ═══════════════════════════════════════════════════════════════════ */}
+                    {activeTab === 'vip' && (
+                        <>
+                            {/* VIP Hero */}
+                            <div style={styles.vipHero}>
+                                <h2 style={styles.vipTitle}>👑 VIP Membership</h2>
+                                <p style={styles.vipSubtitle}>
+                                    Unlock <strong>everything</strong> for one low monthly price. No diamond costs, no limits.
+                                </p>
+                            </div>
+
+                            {/* VIP Plan Selection */}
+                            <div style={styles.vipPlansRow}>
+                                <VIPCard
+                                    plan={VIP_MEMBERSHIP.monthly}
+                                    isSelected={selectedVIP === 'vip-monthly'}
+                                    onSelect={setSelectedVIP}
+                                />
+                                <VIPCard
+                                    plan={VIP_MEMBERSHIP.annual}
+                                    isSelected={selectedVIP === 'vip-annual'}
+                                    onSelect={setSelectedVIP}
+                                />
+                            </div>
+
+                            {/* Subscribe Button */}
+                            <div style={styles.vipSubscribeSection}>
+                                <button
+                                    onClick={handleVIPSubscribe}
+                                    disabled={isProcessing}
+                                    style={{
+                                        ...styles.vipSubscribeButton,
+                                        opacity: isProcessing ? 0.6 : 1,
+                                    }}
+                                >
+                                    {isProcessing ? 'Processing...' : `Subscribe for $${selectedVIPPlan.price.toFixed(2)}/${selectedVIPPlan.interval}`}
+                                </button>
+                                <p style={styles.vipCancelNote}>Cancel anytime. No commitment required.</p>
+                            </div>
+
+                            {/* VIP Benefits Table */}
+                            <div style={styles.benefitsSection}>
+                                <h3 style={styles.benefitsTitle}>Everything Included with VIP</h3>
+                                <div style={styles.benefitsGrid}>
+                                    {VIP_BENEFITS.map((benefit, idx) => (
+                                        <div key={idx} style={styles.benefitCard}>
+                                            <span style={styles.benefitIcon}>{benefit.icon}</span>
+                                            <div style={styles.benefitInfo}>
+                                                <div style={styles.benefitTitle}>{benefit.title}</div>
+                                                <div style={styles.benefitDesc}>{benefit.description}</div>
+                                            </div>
+                                            <div style={styles.benefitValue}>{benefit.value}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Value Comparison */}
+                            <div style={styles.valueComparison}>
+                                <div style={styles.valueBox}>
+                                    <div style={styles.valueLabel}>Total Feature Value</div>
+                                    <div style={styles.valueAmount}>$800+/mo</div>
+                                </div>
+                                <div style={styles.valueDivider}>→</div>
+                                <div style={styles.valueBoxHighlight}>
+                                    <div style={styles.valueLabel}>VIP Price</div>
+                                    <div style={styles.vipPrice}>$19.99/mo</div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* ═══════════════════════════════════════════════════════════════════ */}
+                    {/* MERCHANDISE TAB */}
+                    {/* ═══════════════════════════════════════════════════════════════════ */}
+                    {activeTab === 'merch' && (
+                        <>
+                            <div style={styles.intro}>
+                                <h2 style={styles.merchTitle}>🛍️ Official Merch</h2>
+                                <p style={styles.introText}>
+                                    Rep the Smarter.Poker brand at the tables. Premium quality gear for serious players.
+                                </p>
+                            </div>
+
+                            {/* Apparel Section */}
+                            <div style={styles.merchSection}>
+                                <h3 style={styles.merchCategoryTitle}>👕 Apparel</h3>
+                                <div style={styles.merchGrid}>
+                                    {MERCHANDISE.filter(m => m.category === 'apparel').map(item => (
+                                        <MerchCard key={item.id} item={item} onSelect={handleMerchPurchase} />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Accessories Section */}
+                            <div style={styles.merchSection}>
+                                <h3 style={styles.merchCategoryTitle}>🎴 Accessories</h3>
+                                <div style={styles.merchGrid}>
+                                    {MERCHANDISE.filter(m => m.category === 'accessories').map(item => (
+                                        <MerchCard key={item.id} item={item} onSelect={handleMerchPurchase} />
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     {/* YELLOW BALL: DIAMOND REWARD SYSTEM V1.0 */}
                     <div style={styles.rewardSystem}>
@@ -525,11 +975,42 @@ const styles = {
         alignItems: 'center',
         padding: '16px 24px',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        position: 'sticky',
-        top: 0,
         background: 'rgba(10, 22, 40, 0.95)',
         backdropFilter: 'blur(10px)',
         zIndex: 100,
+    },
+    // TAB NAVIGATION
+    tabNav: {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 8,
+        padding: '16px 24px',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        background: 'rgba(10, 22, 40, 0.8)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 99,
+    },
+    tabButton: {
+        padding: '10px 24px',
+        background: 'rgba(255, 255, 255, 0.05)',
+        border: '1px solid rgba(255, 255, 255, 0.15)',
+        borderRadius: 10,
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+    },
+    tabButtonActive: {
+        background: 'rgba(0, 212, 255, 0.2)',
+        border: '1px solid #00D4FF',
+        color: '#00D4FF',
+    },
+    tabButtonActiveVIP: {
+        background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(255, 107, 157, 0.2))',
+        border: '1px solid #8a2be2',
+        color: '#ff6b9d',
     },
     backButton: {
         display: 'flex',
@@ -918,5 +1399,167 @@ const styles = {
         marginLeft: 'auto',
         color: '#FFD700',
         fontWeight: 700,
+    },
+    // VIP MEMBERSHIP STYLES
+    vipHero: {
+        textAlign: 'center',
+        marginBottom: 32,
+    },
+    vipTitle: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: 32,
+        fontWeight: 700,
+        background: 'linear-gradient(135deg, #8a2be2, #ff6b9d)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        marginBottom: 12,
+    },
+    vipSubtitle: {
+        fontSize: 16,
+        color: 'rgba(255, 255, 255, 0.7)',
+        maxWidth: 500,
+        margin: '0 auto',
+        lineHeight: 1.6,
+    },
+    vipPlansRow: {
+        display: 'flex',
+        gap: 20,
+        marginBottom: 24,
+    },
+    vipSubscribeSection: {
+        textAlign: 'center',
+        marginBottom: 40,
+    },
+    vipSubscribeButton: {
+        padding: '16px 48px',
+        background: 'linear-gradient(135deg, #8a2be2, #ff6b9d)',
+        border: 'none',
+        borderRadius: 12,
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: 700,
+        cursor: 'pointer',
+        boxShadow: '0 0 30px rgba(138, 43, 226, 0.4)',
+    },
+    vipCancelNote: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.5)',
+        marginTop: 12,
+    },
+    benefitsSection: {
+        marginBottom: 32,
+    },
+    benefitsTitle: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: 20,
+        fontWeight: 600,
+        color: '#fff',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    benefitsGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gap: 12,
+    },
+    benefitCard: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '14px 16px',
+        background: 'rgba(138, 43, 226, 0.1)',
+        border: '1px solid rgba(138, 43, 226, 0.2)',
+        borderRadius: 10,
+    },
+    benefitIcon: {
+        fontSize: 24,
+        width: 40,
+        textAlign: 'center',
+    },
+    benefitInfo: {
+        flex: 1,
+    },
+    benefitTitle: {
+        fontSize: 14,
+        fontWeight: 600,
+        color: '#fff',
+    },
+    benefitDesc: {
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.5)',
+    },
+    benefitValue: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: '#00ff88',
+        textAlign: 'right',
+    },
+    valueComparison: {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 24,
+        padding: '24px',
+        background: 'rgba(255, 255, 255, 0.03)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: 16,
+        marginBottom: 32,
+    },
+    valueBox: {
+        textAlign: 'center',
+    },
+    valueBoxHighlight: {
+        textAlign: 'center',
+        padding: '16px 32px',
+        background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(255, 107, 157, 0.2))',
+        borderRadius: 12,
+        border: '2px solid #8a2be2',
+    },
+    valueLabel: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.5)',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 4,
+    },
+    valueAmount: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: 28,
+        fontWeight: 700,
+        color: 'rgba(255, 255, 255, 0.3)',
+        textDecoration: 'line-through',
+    },
+    vipPrice: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: 28,
+        fontWeight: 700,
+        color: '#ff6b9d',
+    },
+    valueDivider: {
+        fontSize: 24,
+        color: 'rgba(255, 255, 255, 0.3)',
+    },
+    // MERCHANDISE STYLES
+    merchTitle: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: 28,
+        fontWeight: 700,
+        color: '#fff',
+        marginBottom: 12,
+    },
+    merchSection: {
+        marginBottom: 32,
+    },
+    merchCategoryTitle: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: 18,
+        fontWeight: 600,
+        color: '#fff',
+        marginBottom: 16,
+    },
+    merchGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: 16,
     },
 };
