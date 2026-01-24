@@ -2,6 +2,7 @@
  * TRIVIA SUBMIT API - Save Quiz Results
  * ═══════════════════════════════════════════════════════════════════════════
  * Saves player's trivia score and awards XP
+ * All dates are in CST (Central Standard Time / America/Chicago)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -11,6 +12,16 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Get current date in CST
+function getTodayCST() {
+    const now = new Date();
+    const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    const year = cstDate.getFullYear();
+    const month = String(cstDate.getMonth() + 1).padStart(2, '0');
+    const day = String(cstDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -24,7 +35,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Invalid score data' });
         }
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayCST();
 
         // For now, save as anonymous (would use auth in production)
         const username = 'Guest_' + Math.random().toString(36).substring(2, 8);
