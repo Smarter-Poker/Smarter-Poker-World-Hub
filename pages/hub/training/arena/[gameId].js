@@ -157,7 +157,7 @@ function ArenaHeader({ diamonds = 0, xp = 0, level = 1, onBack, onSettings }) {
 // Draggable Player Seat Component - Avatar and Badge can be dragged independently
 // seatIndex is used to set unique z-index: lower seats rendered first, badges always on top
 function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initialPosition, isHero = false, onPositionChange }) {
-    const size = 136;
+    const size = 109; // 20% smaller than original 136px - same size for Hero and Villains
     const [avatarPos, setAvatarPos] = useState({ x: 0, y: 0 });
     const [badgePos, setBadgePos] = useState({ x: 0, y: 20 }); // Badge starts 20px below avatar center
     const [dragging, setDragging] = useState(null); // 'avatar' | 'badge' | null
@@ -239,8 +239,8 @@ function DraggablePlayerSeat({ avatar, name, stack, seatId, seatIndex = 0, initi
                     cursor: dragging === 'badge' ? 'grabbing' : 'grab',
                     userSelect: 'none',
                     pointerEvents: 'all',
-                    width: 'auto',
-                    minWidth: '82px',
+                    width: '95px',
+                    minWidth: '95px',
                     whiteSpace: 'nowrap',
                 }}
             >

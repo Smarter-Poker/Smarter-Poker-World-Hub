@@ -346,6 +346,11 @@ export default function FriendsPage() {
     const [followers, setFollowers] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
 
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+
     // ID sets for quick lookup
     const [friendIds, setFriendIds] = useState(new Set());
     const [pendingIds, setPendingIds] = useState(new Set());
@@ -447,6 +452,39 @@ export default function FriendsPage() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SEARCH FUNCTIONALITY
+    // ═══════════════════════════════════════════════════════════════════════
+
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return;
+        }
+
+        setIsSearching(true);
+        const timer = setTimeout(async () => {
+            try {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .or(`username.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%`)
+                    .neq('id', user?.id || '')
+                    .limit(20);
+
+                if (data) {
+                    setSearchResults(data);
+                }
+            } catch (e) {
+                console.error('Search error:', e);
+            }
+            setIsSearching(false);
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery, user?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════
     // HANDLERS
@@ -611,6 +649,53 @@ export default function FriendsPage() {
     );
 
     const renderContent = () => {
+        // If searching, show search results
+        if (searchQuery.trim()) {
+            if (isSearching) {
+                return (
+                    <div style={{ textAlign: 'center', padding: 48, color: C.textSec }}>
+                        <div style={{ fontSize: 32, marginBottom: 16 }}>🔍</div>
+                        <div>Searching...</div>
+                    </div>
+                );
+            }
+
+            if (searchResults.length > 0) {
+                return (
+                    <div>
+                        <div style={{
+                            fontSize: 14,
+                            color: C.textSec,
+                            marginBottom: 16,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8
+                        }}>
+                            <span>🔎</span> Found {searchResults.length} {searchResults.length === 1 ? 'person' : 'people'}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {searchResults.map(person => (
+                                <UserCard
+                                    key={person.id}
+                                    user={person}
+                                    isFriend={friendIds.has(person.id)}
+                                    isPending={pendingIds.has(person.id)}
+                                    isFollowing={followingIds.has(person.id)}
+                                    isFollower={followerIds.has(person.id)}
+                                    onRemoveFriend={handleRemoveFriend}
+                                    onFollow={handleFollow}
+                                    onUnfollow={handleUnfollow}
+                                    onAddFriend={handleAddFriend}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+
+            return <EmptyState icon="🔎" message={`No users found for "${searchQuery}"`} />;
+        }
+
         switch (activeTab) {
             case 'requests':
                 return friendRequests.length > 0 ? (
@@ -760,6 +845,51 @@ export default function FriendsPage() {
                     <StatItem label="Followers" value={followers.length} color={C.purple} />
                 </div>
 
+                {/* Search Bar */}
+                <div style={{
+                    padding: '16px 20px',
+                    background: C.card,
+                    borderBottom: `1px solid ${C.border}`,
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        background: C.bg,
+                        borderRadius: 24,
+                        padding: '12px 20px',
+                        border: `1px solid ${C.border}`,
+                    }}>
+                        <span style={{ fontSize: 20, color: C.textSec }}>🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Search for friends by name or username..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{
+                                flex: 1,
+                                background: 'transparent',
+                                border: 'none',
+                                outline: 'none',
+                                color: C.text,
+                                fontSize: 15,
+                            }}
+                        />
+                        {isSearching && <span style={{ fontSize: 16 }}>⏳</span>}
+                        {searchQuery && !isSearching && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: C.textSec,
+                                    fontSize: 16,
+                                }}
+                            >✕</button>
+                        )}
+                    </div>
+                </div>
                 {/* Tabs */}
                 <div style={{
                     display: 'flex',
