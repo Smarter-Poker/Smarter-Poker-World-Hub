@@ -22,6 +22,7 @@ import { LiveStreamCard } from '../../src/components/social/LiveStreamCard';
 import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../src/services/LiveStreamService';
 import ArticleCard, { ArticleCardFromPost, getPostMediaType } from '../../src/components/social/ArticleCard';
+import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 
 // God-Mode Stack
@@ -1068,7 +1069,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
     );
 }
 
-function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onComment }) {
+function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onComment, onOpenArticle }) {
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
@@ -1195,6 +1196,7 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                                 image={post.link_image || post.mediaUrls?.[0]}
                                 siteName={post.link_site_name}
                                 fallbackContent={post.content}
+                                onClick={onOpenArticle}
                             />
                         ) : (
                             <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
@@ -1413,6 +1415,9 @@ export default function SocialMediaPage() {
     const searchTimeout = useRef(null);
     const globalSearchTimeout = useRef(null);
     const lastScrollY = useRef(0);
+
+    // Article Reader Modal State
+    const [articleReader, setArticleReader] = useState({ open: false, url: null, title: null });
 
     // ♾️ INFINITE SCROLL STATE
     const [feedOffset, setFeedOffset] = useState(0);
@@ -2501,7 +2506,15 @@ export default function SocialMediaPage() {
                             {/* Render posts with Reels carousel inserted after every 3 posts */}
                             {posts.map((p, index) => (
                                 <>
-                                    <PostCard key={p.id} post={{ ...p, isGodMode }} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />
+                                    <PostCard
+                                        key={p.id}
+                                        post={{ ...p, isGodMode }}
+                                        currentUserId={user?.id}
+                                        currentUserName={user?.name}
+                                        onLike={handleLike}
+                                        onDelete={handleDelete}
+                                        onOpenArticle={(url) => setArticleReader({ open: true, url, title: p.link_title || null })}
+                                    />
                                     {/* Insert Reels carousel after 3rd post */}
                                     {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
                                 </>
@@ -2634,6 +2647,15 @@ export default function SocialMediaPage() {
                     />
                 )}
             </div>
+
+            {/* In-App Article Reader Modal */}
+            {articleReader.open && (
+                <ArticleReaderModal
+                    url={articleReader.url}
+                    title={articleReader.title}
+                    onClose={() => setArticleReader({ open: false, url: null, title: null })}
+                />
+            )}
         </PageTransition>
     );
 }
