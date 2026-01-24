@@ -1405,8 +1405,11 @@ export default function SocialMediaPage() {
     const [feedOffset, setFeedOffset] = useState(0);
     const [hasMorePosts, setHasMorePosts] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [feedCycle, setFeedCycle] = useState(0); // Track how many times we've looped
+    const [seenPostIds, setSeenPostIds] = useState(new Set()); // Track seen posts for variety
     const loadMoreRef = useRef(null);
     const POSTS_PER_PAGE = 20;
+    const MAX_FEED_CYCLES = 10; // Maximum loops before truly ending (shows tons of content)
 
     // 👑 GOD MODE STATE
     const [isGodMode, setIsGodMode] = useState(false);
@@ -1598,18 +1601,65 @@ export default function SocialMediaPage() {
 
             if (error) throw error;
 
-            // Check if there are more posts
+            // ♾️ INFINITE FEED: When posts run out, loop back with different sort
             if (!allPostsData || allPostsData.length < POSTS_PER_PAGE) {
-                setHasMorePosts(false);
+                if (feedCycle < MAX_FEED_CYCLES) {
+                    // Loop back - reset offset but change sort order for variety
+                    console.log('[Social] Looping feed - cycle', feedCycle + 1);
+                    setFeedCycle(prev => prev + 1);
+                    setFeedOffset(0);
+                    setHasMorePosts(true);
+                } else {
+                    setHasMorePosts(false);
+                }
             } else {
                 setHasMorePosts(true);
             }
 
-            // Mark priority posts
+            // 📈 FACEBOOK-STYLE RANKING: Score posts by relevance
+            const calculatePostScore = (post) => {
+                let score = 0;
+
+                // Friends get highest priority (+100)
+                if (friendIds.includes(post.author_id)) score += 100;
+
+                // Following gets medium priority (+50)
+                if (followingIds.includes(post.author_id)) score += 50;
+
+                // Engagement boost
+                score += Math.min((post.like_count || 0) * 2, 30); // Max 30 from likes
+                score += Math.min((post.comment_count || 0) * 3, 30); // Max 30 from comments
+                score += Math.min((post.share_count || 0) * 4, 20); // Max 20 from shares
+
+                // Recency boost - posts less than 24h old get +40
+                const ageHours = (Date.now() - new Date(post.created_at).getTime()) / 3600000;
+                if (ageHours < 6) score += 50; // Very fresh
+                else if (ageHours < 24) score += 40; // Last 24h
+                else if (ageHours < 72) score += 20; // Last 3 days
+
+                // Decay older posts
+                const ageDays = ageHours / 24;
+                score -= Math.min(ageDays * 2, 20); // Max -20 for old posts
+
+                // If we've seen this post before (on loop), reduce score
+                if (seenPostIds.has(post.id)) score -= 30;
+
+                // Add some randomization for variety (+/- 15)
+                score += (Math.random() * 30) - 15;
+
+                return score;
+            };
+
+            // Mark priority posts and calculate scores
             const mixedFeed = (allPostsData || []).map(p => ({
                 ...p,
-                isPriority: priorityUserIds.includes(p.author_id)
+                isPriority: priorityUserIds.includes(p.author_id),
+                score: calculatePostScore(p),
+                isSuggested: feedCycle > 0 // Mark as suggested on loop
             }));
+
+            // Sort by score (Facebook-style ranking)
+            mixedFeed.sort((a, b) => b.score - a.score);
 
             // Fetch author profiles
             if (mixedFeed.length > 0) {
@@ -1632,6 +1682,7 @@ export default function SocialMediaPage() {
                     timeAgo: timeAgo(p.created_at),
                     isLiked: false,
                     isPriority: p.isPriority,
+                    isSuggested: p.isSuggested || false, // Mark as suggested on feed loop
                     isFriend: friendIds.includes(p.author_id),
                     isFollowing: followingIds.includes(p.author_id),
                     author: {
@@ -1646,6 +1697,11 @@ export default function SocialMediaPage() {
                         avatar: authorMap[p.author_id]?.avatar_url || null
                     }
                 }));
+
+                // Track seen posts for variety on loop
+                const newSeenIds = new Set(seenPostIds);
+                formattedPosts.forEach(p => newSeenIds.add(p.id));
+                setSeenPostIds(newSeenIds);
 
                 if (append) {
                     setPosts(prev => [...prev, ...formattedPosts]);
@@ -2310,8 +2366,8 @@ export default function SocialMediaPage() {
                                     </div>
                                 )}
                                 {!hasMorePosts && posts.length > 0 && (
-                                    <p style={{ color: C.textSec, fontSize: 14 }}>
-                                        🎉 You've seen all the posts!
+                                    <p style={{ color: C.textSec, fontSize: 14, textAlign: 'center' }}>
+                                        You're all caught up! Check back later for new content.
                                     </p>
                                 )}
                             </div>
