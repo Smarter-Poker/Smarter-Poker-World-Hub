@@ -4,24 +4,34 @@ These are tasks that require external accounts, manual configuration, or human a
 
 ## Priority 1: Required for Production
 
-### 1. Twilio SMS Setup
-**Why:** SMS notifications for waitlist, tournaments, and announcements
+### 1. OneSignal Push Notifications (RECOMMENDED)
+**Why:** Push notifications for waitlist, tournaments, and announcements - NO SMS COSTS!
 **Steps:**
-1. Create account at https://www.twilio.com
-2. Verify your phone number
-3. Buy a phone number (~$1/month)
-4. Get credentials from Dashboard:
-   - Account SID
-   - Auth Token
-5. Add to Vercel environment variables:
+1. Go to https://onesignal.com and create FREE account
+2. Click "New App/Website"
+3. Enter app name: "Smarter Captain"
+4. Select platform: **Web Push**
+5. Site Setup:
+   - Site URL: Your Vercel URL (e.g., https://your-app.vercel.app)
+   - For local testing, enable "LOCAL TESTING"
+6. Go to Settings → Keys & IDs
+7. Copy:
+   - **OneSignal App ID**
+   - **Rest API Key**
+8. Add to Vercel environment variables:
    ```
-   TWILIO_ACCOUNT_SID=your_account_sid
-   TWILIO_AUTH_TOKEN=your_auth_token
-   TWILIO_PHONE_NUMBER=+1234567890
+   NEXT_PUBLIC_ONESIGNAL_APP_ID=your_app_id_here
+   ONESIGNAL_REST_API_KEY=your_rest_api_key_here
    ```
-6. Test by calling the notification API
 
-**Cost:** ~$0.0075 per SMS sent
+**Cost:** FREE (up to 10,000 subscribers)
+
+**Benefits over SMS:**
+- No per-message costs
+- Works on desktop and mobile
+- No verification hassles
+- Rich notifications with buttons
+- No phone number required from users
 
 ---
 
@@ -36,17 +46,12 @@ These are tasks that require external accounts, manual configuration, or human a
    NEXT_PUBLIC_SENTRY_DSN=your_dsn_here
    SENTRY_DSN=your_dsn_here
    ```
-5. (Optional) Add auth token for source maps:
-   ```
-   SENTRY_AUTH_TOKEN=your_auth_token
-   ```
-6. Install package: `npm install @sentry/nextjs`
 
 **Cost:** Free tier includes 5,000 errors/month
 
 ---
 
-### 3. Supabase Production Setup
+### 3. Supabase Production Check
 **Why:** Database and authentication for production
 **Current:** Already configured (verify credentials are production-ready)
 **Check:**
@@ -59,25 +64,7 @@ These are tasks that require external accounts, manual configuration, or human a
 
 ## Priority 2: Recommended for Launch
 
-### 4. Push Notification Service
-**Why:** Browser/mobile push notifications (alternative to SMS)
-**Options:**
-- **OneSignal** (recommended, free tier)
-- Firebase Cloud Messaging
-- Pusher
-
-**Steps for OneSignal:**
-1. Create account at https://onesignal.com
-2. Create app → Select "Web Push"
-3. Add keys to environment:
-   ```
-   NEXT_PUBLIC_ONESIGNAL_APP_ID=your_app_id
-   ONESIGNAL_REST_API_KEY=your_rest_key
-   ```
-
----
-
-### 5. Email Service
+### 4. Email Service (Optional)
 **Why:** Transactional emails (registration, receipts, reports)
 **Options:**
 - **Resend** (recommended, 100 emails/day free)
@@ -95,7 +82,7 @@ These are tasks that require external accounts, manual configuration, or human a
 
 ---
 
-### 6. Custom Domain
+### 5. Custom Domain
 **Why:** Professional URL (captain.smarter.poker)
 **Steps:**
 1. Configure DNS for subdomain
@@ -105,6 +92,25 @@ These are tasks that require external accounts, manual configuration, or human a
 ---
 
 ## Priority 3: Future Enhancements
+
+### 6. Twilio SMS (OPTIONAL - Skip if using OneSignal)
+**Why:** SMS notifications as backup/alternative
+**Note:** Twilio has strict verification requirements. Only set up if you specifically need SMS.
+**Steps:**
+1. Create account at https://www.twilio.com
+2. Complete business verification
+3. Register for A2P 10DLC (required for US)
+4. Buy a phone number
+5. Add to environment:
+   ```
+   TWILIO_ACCOUNT_SID=your_account_sid
+   TWILIO_AUTH_TOKEN=your_auth_token
+   TWILIO_PHONE_NUMBER=+1234567890
+   ```
+
+**Cost:** ~$1/month + $0.0075 per SMS
+
+---
 
 ### 7. Stripe Payments
 **Why:** Tournament buy-ins, comp redemptions, subscriptions
@@ -131,15 +137,7 @@ These are tasks that require external accounts, manual configuration, or human a
 
 ---
 
-### 9. QR Code Generator Service
-**Why:** Club/group invite QR codes
-**Note:** Currently using a simple URL-based approach. For fancy QR codes with logos:
-- Use QR Code API (api.qrserver.com - free)
-- Or integrate qrcode npm package (already works without external service)
-
----
-
-### 10. Hardware Procurement (For Venue Displays)
+### 9. Hardware Procurement (For Venue Displays)
 **Why:** Table displays, waitlist kiosks, tournament clocks
 **Recommended:**
 - **Fire TV Stick 4K** ($50) - For TV displays
@@ -158,47 +156,70 @@ Add these to Vercel (Settings → Environment Variables):
 NEXT_PUBLIC_SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 
-# Twilio (Priority 1)
+# OneSignal Push Notifications (Priority 1 - FREE)
+NEXT_PUBLIC_ONESIGNAL_APP_ID=
+ONESIGNAL_REST_API_KEY=
+
+# Sentry Error Monitoring (Priority 1 - FREE)
+NEXT_PUBLIC_SENTRY_DSN=
+SENTRY_DSN=
+
+# Email - Optional (Priority 2)
+RESEND_API_KEY=
+
+# Twilio SMS - Optional (Priority 3)
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_PHONE_NUMBER=
 
-# Sentry (Priority 1)
-NEXT_PUBLIC_SENTRY_DSN=
-SENTRY_DSN=
-
-# Push Notifications (Priority 2)
-NEXT_PUBLIC_ONESIGNAL_APP_ID=
-ONESIGNAL_REST_API_KEY=
-
-# Email (Priority 2)
-RESEND_API_KEY=
-
-# Payments (Priority 3)
+# Payments - Future (Priority 3)
 STRIPE_SECRET_KEY=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 
-# Maps (Priority 3)
+# Maps - Future (Priority 3)
 NEXT_PUBLIC_GOOGLE_MAPS_KEY=
 ```
 
 ---
 
-## Testing Checklist
+## Quick Start Checklist
 
-After setting up each service, test:
+### Minimum Viable Setup (Do These First):
+- [ ] **OneSignal:** Create account, get App ID + API Key, add to Vercel
+- [ ] **Sentry:** Create account, get DSN, add to Vercel
 
-- [ ] **Twilio:** Send test SMS via `/api/captain/notifications/send`
-- [ ] **Sentry:** Trigger test error, verify in dashboard
-- [ ] **Push:** Subscribe to notifications, send test push
-- [ ] **Email:** Send test email via API
+### Testing After Setup:
+- [ ] Open your app in browser
+- [ ] Click "Enable Notifications" button
+- [ ] Notification prompt should appear
+- [ ] Trigger a test notification via API
 
 ---
 
-## Questions?
+## OneSignal Quick Test
 
-If any setup is unclear, the code has comments pointing to exactly what's needed.
-Look for `SETUP REQUIRED` comments in:
-- `src/lib/captain/twilio.js`
+After adding environment variables, test with this curl:
+
+```bash
+curl -X POST https://onesignal.com/api/v1/notifications \
+  -H "Authorization: Basic YOUR_REST_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "app_id": "YOUR_APP_ID",
+    "included_segments": ["Subscribed Users"],
+    "headings": {"en": "Test"},
+    "contents": {"en": "Push notifications working!"}
+  }'
+```
+
+---
+
+## Files Reference
+
+Push notification code is in:
+- `src/lib/captain/pushNotifications.js` - Server-side sending
+- `src/components/captain/shared/PushNotificationProvider.jsx` - Client-side setup
+
+Sentry config:
 - `sentry.client.config.js`
 - `sentry.server.config.js`
