@@ -36,8 +36,15 @@ const STORY_GRADIENTS = [
     'linear-gradient(135deg, #833AB4 0%, #FD1D1D 50%, #FCB045 100%)',
 ];
 
-// Story Ring - shows colored ring for unviewed stories
-function StoryRing({ hasUnviewed, children, size = 64, onClick }) {
+// Story Ring - shows colored ring for unviewed stories or LIVE status
+function StoryRing({ hasUnviewed, isLive, children, size = 64, onClick }) {
+    // Red glowing ring for live users
+    const liveGradient = 'linear-gradient(135deg, #FA383E, #FF6B6B, #FA383E)';
+    const unviewedGradient = 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)';
+    const defaultBorder = '#DADDE1';
+
+    const ringBackground = isLive ? liveGradient : hasUnviewed ? unviewedGradient : defaultBorder;
+
     return (
         <div
             onClick={onClick}
@@ -45,11 +52,12 @@ function StoryRing({ hasUnviewed, children, size = 64, onClick }) {
                 width: size + 8,
                 height: size + 8,
                 borderRadius: '50%',
-                background: hasUnviewed
-                    ? 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)'
-                    : '#DADDE1',
+                background: ringBackground,
                 padding: 3,
                 cursor: 'pointer',
+                // Pulsing animation for live users
+                animation: isLive ? 'liveGlow 1.5s ease-in-out infinite' : 'none',
+                boxShadow: isLive ? '0 0 15px rgba(250, 56, 62, 0.6)' : 'none',
             }}
         >
             <div style={{
@@ -69,7 +77,7 @@ function StoryRing({ hasUnviewed, children, size = 64, onClick }) {
 }
 
 // Story Avatar - individual story in the bar
-function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory }) {
+function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive }) {
     // Show ring if: other user has unviewed story, OR this is user's own story and they have stories
     const hasUnviewed = !story?.is_viewed && !isOwn;
     const showRing = hasUnviewed || (isOwn && hasStory);
@@ -87,12 +95,21 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory }) {
                 position: 'relative',
             }}
         >
-            <StoryRing hasUnviewed={showRing} size={64}>
+            <StoryRing hasUnviewed={showRing} isLive={isLive} size={64}>
                 <div style={{ position: 'relative' }}>
                     <img
                         src={story?.author_avatar || '/default-avatar.png'}
                         style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }}
                     />
+                    {isLive && (
+                        <div style={{
+                            position: 'absolute', bottom: -4, left: '50%', transform: 'translateX(-50%)',
+                            background: '#FA383E', color: 'white',
+                            padding: '2px 6px', borderRadius: 4,
+                            fontSize: 10, fontWeight: 700,
+                            border: '2px solid white',
+                        }}>LIVE</div>
+                    )}
                     {isOwn && (
                         <div
                             onClick={(e) => { e.stopPropagation(); onCreateStory?.(); }}
@@ -109,7 +126,8 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory }) {
             </StoryRing>
             <span style={{
                 fontSize: 12,
-                color: C.text,
+                color: isLive ? '#FA383E' : C.text,
+                fontWeight: isLive ? 700 : 400,
                 textAlign: 'center',
                 maxWidth: 70,
                 overflow: 'hidden',
@@ -125,14 +143,28 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory }) {
 // Stories Bar - horizontal scroll of stories at top of feed
 export function StoriesBar({ userId, onCreateStory }) {
     const [stories, setStories] = useState([]);
+    const [liveUsers, setLiveUsers] = useState(new Set()); // Track who is live
     const [loading, setLoading] = useState(true);
     const [viewingStory, setViewingStory] = useState(null);
     const [showCreate, setShowCreate] = useState(false);
     const scrollRef = useRef(null);
 
     useEffect(() => {
-        if (userId) loadStories();
+        if (userId) {
+            loadStories();
+            loadLiveUsers();
+        }
     }, [userId]);
+
+    const loadLiveUsers = async () => {
+        const { data } = await supabase
+            .from('live_streams')
+            .select('broadcaster_id')
+            .eq('status', 'live');
+        if (data) {
+            setLiveUsers(new Set(data.map(s => s.broadcaster_id)));
+        }
+    };
 
     const loadStories = async () => {
         setLoading(true);
@@ -200,6 +232,7 @@ export function StoriesBar({ userId, onCreateStory }) {
                             key={storyGroup.author_id}
                             story={storyGroup}
                             onClick={() => handleViewStory(storyGroup)}
+                            isLive={liveUsers.has(storyGroup.author_id)}
                         />
                     ))}
 

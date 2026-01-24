@@ -1049,6 +1049,17 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >Reels</Link>
                     <Link
+                        href="/hub/lives"
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
+                            border: 'none', background: 'transparent', textDecoration: 'none',
+                            color: '#FA383E', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >🔴 Lives</Link>
+                    <Link
                         href="/hub/friends"
                         style={{
                             display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,

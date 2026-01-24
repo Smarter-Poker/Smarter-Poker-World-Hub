@@ -60,6 +60,49 @@ const CONFIG = {
 const usedClipsThisSession = new Set();
 
 // ═══════════════════════════════════════════════════════════════════════════
+// VIDEO ID VALIDATION - Ensure only real YouTube videos are posted
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Validate a YouTube video ID by checking if its thumbnail exists
+ * Returns true if the video ID is valid and the thumbnail is accessible
+ */
+async function validateYouTubeVideoId(videoId) {
+    if (!videoId || typeof videoId !== 'string') return false;
+
+    // Quick pattern check - fake IDs often end in 3 repeating uppercase letters
+    if (/[A-Z]{3}$/.test(videoId)) {
+        console.log(`   ⚠️ Suspicious ID pattern (ends in XXX): ${videoId}`);
+        return false;
+    }
+
+    try {
+        // Check if YouTube thumbnail exists (fastest way to validate)
+        const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+        const response = await fetch(thumbnailUrl, { method: 'HEAD' });
+
+        if (response.ok) {
+            return true;
+        } else {
+            console.log(`   ❌ Invalid video ID (no thumbnail): ${videoId}`);
+            return false;
+        }
+    } catch (e) {
+        console.log(`   ❌ Video ID validation failed: ${videoId} - ${e.message}`);
+        return false;
+    }
+}
+
+/**
+ * Extract video ID from a YouTube URL
+ */
+function extractVideoIdFromUrl(url) {
+    if (!url) return null;
+    const match = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/);
+    return match ? match[1] : null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // GET RECENTLY POSTED CLIPS (for coordination between horses)
 // ═══════════════════════════════════════════════════════════════════════════
 async function getRecentlyPostedClipIds() {
@@ -124,12 +167,26 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             if (!candidate) break;
 
             // Check if this clip was recently used (database check) or used this session
-            if (!recentlyUsedClips.has(candidate.id) && !usedClipsThisSession.has(candidate.id)) {
-                clip = candidate;
-                usedClipsThisSession.add(candidate.id);
-            } else {
+            if (recentlyUsedClips.has(candidate.id) || usedClipsThisSession.has(candidate.id)) {
                 console.log(`   Skipping ${candidate.id} (already used)`);
+                attempts++;
+                continue;
             }
+
+            // CRITICAL: Validate the video ID is real before accepting
+            const videoId = extractVideoIdFromUrl(candidate.source_url) || candidate.video_id;
+            const isValid = await validateYouTubeVideoId(videoId);
+
+            if (!isValid) {
+                console.log(`   ⚠️ Rejecting ${candidate.id} - invalid video ID: ${videoId}`);
+                attempts++;
+                continue;
+            }
+
+            // Video ID is valid - accept this clip
+            clip = candidate;
+            usedClipsThisSession.add(candidate.id);
+            console.log(`   ✅ Validated: ${videoId}`);
             attempts++;
         }
 
