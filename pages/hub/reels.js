@@ -393,6 +393,18 @@ export default function ReelsPage() {
                             title="Poker Reel"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen
+                            onLoad={() => {
+                                // Send playVideo immediately on load for Safari
+                                sendYouTubeCommand('playVideo');
+                                // Also try again after a short delay
+                                setTimeout(() => {
+                                    sendYouTubeCommand('playVideo');
+                                    if (userWantsSound) {
+                                        sendYouTubeCommand('unMute');
+                                        sendYouTubeCommand('setVolume', [100]);
+                                    }
+                                }, 500);
+                            }}
                             style={{
                                 position: 'absolute',
                                 top: -40,
