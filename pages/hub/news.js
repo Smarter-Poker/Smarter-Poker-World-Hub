@@ -2143,10 +2143,10 @@ export default function NewsHub() {
 
                     /* Leaderboard */
                     .leaderboard h4 {
-                        background: linear-gradient(135deg, #f59e0b, #d97706);
+                        background: #2374E1;
                         margin: -16px -16px 14px -16px;
                         padding: 12px 16px;
-                        border-radius: 14px 14px 0 0;
+                        border-radius: 8px 8px 0 0;
                     }
 
                     .leaderboard h4 :global(svg) {
@@ -2164,7 +2164,7 @@ export default function NewsHub() {
                         align-items: center;
                         gap: 10px;
                         padding: 8px 0;
-                        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                        border-bottom: 1px solid #3E4042;
                     }
 
                     .leaderboard li:last-child {
@@ -2183,20 +2183,20 @@ export default function NewsHub() {
                     }
 
                     .medal-1 {
-                        background: linear-gradient(135deg, #fbbf24, #d97706);
-                        color: #000;
-                    }
-                    .medal-2 {
-                        background: linear-gradient(135deg, #9ca3af, #6b7280);
-                        color: #000;
-                    }
-                    .medal-3 {
-                        background: linear-gradient(135deg, #b45309, #92400e);
+                        background: #2374E1;
                         color: #fff;
                     }
+                    .medal-2 {
+                        background: #3A3B3C;
+                        color: #E4E6EB;
+                    }
+                    .medal-3 {
+                        background: #3A3B3C;
+                        color: #E4E6EB;
+                    }
                     .medal-4, .medal-5 {
-                        background: rgba(255, 255, 255, 0.1);
-                        color: rgba(255, 255, 255, 0.5);
+                        background: #3A3B3C;
+                        color: #B0B3B8;
                     }
 
                     .leaderboard .name {
@@ -2211,10 +2211,10 @@ export default function NewsHub() {
 
                     /* MSPT Widget */
                     .mspt h4 {
-                        background: linear-gradient(135deg, #dc2626, #b91c1c);
+                        background: #2374E1;
                         margin: -16px -16px 14px -16px;
                         padding: 12px 16px;
-                        border-radius: 14px 14px 0 0;
+                        border-radius: 8px 8px 0 0;
                     }
 
                     .mspt h4 :global(svg) {
@@ -2306,15 +2306,15 @@ export default function NewsHub() {
                     }
 
                     .events:hover {
-                        border-color: rgba(34, 197, 94, 0.3);
+                        border-color: #2374E1;
                         transform: translateY(-2px);
                     }
 
                     .events h4 {
-                        background: linear-gradient(135deg, #22c55e, #16a34a);
+                        background: #2374E1;
                         margin: -16px -16px 14px -16px;
                         padding: 12px 16px;
-                        border-radius: 14px 14px 0 0;
+                        border-radius: 8px 8px 0 0;
                     }
 
                     .events h4 :global(svg) {
@@ -2331,7 +2331,7 @@ export default function NewsHub() {
                         display: flex;
                         justify-content: space-between;
                         padding: 10px 0;
-                        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                        border-bottom: 1px solid #3E4042;
                         font-size: 12px;
                     }
 
