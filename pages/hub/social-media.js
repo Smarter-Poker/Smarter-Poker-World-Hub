@@ -2208,6 +2208,70 @@ export default function SocialMediaPage() {
                     {/* Stories Bar */}
                     {user && <StoriesBar userId={user.id} />}
 
+                    {/* Find Friends Action Bar */}
+                    <div style={{
+                        display: 'flex',
+                        gap: 12,
+                        padding: '12px 0',
+                        marginBottom: 8,
+                        overflowX: 'auto',
+                    }}>
+                        <Link href="/hub/friends" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '10px 20px',
+                            background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)',
+                            borderRadius: 24,
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: 14,
+                            textDecoration: 'none',
+                            flexShrink: 0,
+                            boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)',
+                            transition: 'transform 0.2s, box-shadow 0.2s',
+                        }}
+                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.4)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 15px rgba(139, 92, 246, 0.3)'; }}
+                        >
+                            <span style={{ fontSize: 18 }}>👥</span>
+                            Find Friends
+                        </Link>
+                        <Link href="/hub/notifications" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '10px 20px',
+                            background: C.card,
+                            border: `1px solid ${C.border}`,
+                            borderRadius: 24,
+                            color: C.text,
+                            fontWeight: 500,
+                            fontSize: 14,
+                            textDecoration: 'none',
+                            flexShrink: 0,
+                        }}>
+                            <span style={{ fontSize: 16 }}>🔔</span>
+                            Notifications
+                        </Link>
+                        <Link href="/hub/friends?tab=requests" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '10px 20px',
+                            background: C.card,
+                            border: `1px solid ${C.border}`,
+                            borderRadius: 24,
+                            color: C.text,
+                            fontWeight: 500,
+                            fontSize: 14,
+                            textDecoration: 'none',
+                            flexShrink: 0,
+                        }}>
+                            <span style={{ fontSize: 16 }}>🤝</span>
+                            Friend Requests
+                        </Link>
+                    </div>
                     {/* Post Creator */}
                     {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} />}
 
