@@ -31,28 +31,27 @@ const VILLAIN_AVATARS = [
     '/avatars/free/owl.png',
 ];
 
-// Seat positions - EXACT match to reference image
-// Positions are relative to the table-wrapper container
-// ALL positions use LEFT/TOP (not right) so drag transforms work correctly
+// Seat positions - EXACT match to Golden Template
+// ALL positions use LEFT/TOP percentages only
 const SEAT_POSITIONS = {
     // Bottom center - Hero
-    hero: { left: '50%', bottom: '3%', transform: 'translateX(-50%)' },
+    hero: { left: '50%', top: '75%', transform: 'translate(-50%, -50%)' },
     // Bottom left - Villain 1 (viking)
-    seat1: { left: '15%', bottom: '22%', transform: 'translateX(-50%)' },
+    seat1: { left: '18%', top: '65%', transform: 'translate(-50%, -50%)' },
     // Middle left - Villain 2 (wizard)
-    seat2: { left: '3%', top: '50%', transform: 'translateY(-50%)' },
+    seat2: { left: '15%', top: '45%', transform: 'translate(-50%, -50%)' },
     // Upper left - Villain 3 (ninja)
-    seat3: { left: '8%', top: '28%' },
+    seat3: { left: '15%', top: '26%', transform: 'translate(-50%, -50%)' },
     // Top left - Villain 4 (wolf)
-    seat4: { left: '28%', top: '8%', transform: 'translateX(-50%)' },
+    seat4: { left: '32%', top: '5%', transform: 'translate(-50%, -50%)' },
     // Top right - Villain 5 (spartan)
-    seat5: { left: '72%', top: '8%', transform: 'translateX(-50%)' },
-    // Upper right - Villain 6 (king with glasses) - mirrors seat3
-    seat6: { right: '8%', top: '28%' },
-    // Middle right - Villain 7 (young man) - mirrors seat2
-    seat7: { right: '3%', top: '50%', transform: 'translateY(-50%)' },
-    // Bottom right - Villain 8 (owl) - mirrors seat1
-    seat8: { right: '15%', bottom: '22%', transform: 'translateX(50%)' },
+    seat5: { left: '68%', top: '5%', transform: 'translate(-50%, -50%)' },
+    // Upper right - Villain 6 (king)
+    seat6: { left: '85%', top: '26%', transform: 'translate(-50%, -50%)' },
+    // Middle right - Villain 7 (young man)
+    seat7: { left: '85%', top: '45%', transform: 'translate(-50%, -50%)' },
+    // Bottom right - Villain 8 (owl)
+    seat8: { left: '82%', top: '65%', transform: 'translate(-50%, -50%)' },
 };
 
 const SUITS = {

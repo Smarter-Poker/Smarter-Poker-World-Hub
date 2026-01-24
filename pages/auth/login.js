@@ -180,7 +180,7 @@ export default function LoginPage() {
             </p>
 
             {/* Auth Form */}
-            <form onSubmit={mode === 'login' ? handleLogin : handleSignup} style={{
+            <form onSubmit={mode === 'login' ? handleLogin : handleSignup} autoComplete="off" style={{
                 width: '100%',
                 maxWidth: 360,
                 display: 'flex',
@@ -193,6 +193,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoComplete="off"
                     style={{
                         padding: '14px 16px',
                         fontSize: 16,
@@ -212,6 +213,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         minLength={6}
+                        autoComplete="new-password"
                         style={{
                             width: '100%',
                             padding: '14px 48px 14px 16px',

@@ -13,7 +13,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for ReactPlayer (SSR compatibility)
-const ReactPlayer = dynamic(() => import('react-player/youtube'), {
+const ReactPlayer = dynamic(() => import('react-player'), {
     ssr: false,
     loading: () => (
         <div style={{
@@ -452,3 +452,4 @@ export default function ReelsPage() {
         </>
     );
 }
+// Force redeploy Fri Jan 23 18:22:17 CST 2026
