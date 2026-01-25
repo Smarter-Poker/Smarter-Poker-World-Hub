@@ -16,6 +16,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // God-Mode Stack
 import { useMessengerStore } from '../../src/stores/messengerStore';
+import { useOneSignal } from '../../src/contexts/OneSignalContext';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 COLOR PALETTE - Premium Poker Theme
@@ -984,6 +985,10 @@ export default function MessengerPage() {
     const [callType, setCallType] = useState('video'); // 'audio' or 'video'
     const [callRoomName, setCallRoomName] = useState('');
     const [showUserInfo, setShowUserInfo] = useState(false);
+    const [showPushPrompt, setShowPushPrompt] = useState(false);
+
+    // OneSignal Push Notifications
+    const { isInitialized: pushReady, isSubscribed: pushSubscribed, subscribe: subscribePush, setExternalUserId } = useOneSignal();
 
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
@@ -1515,12 +1520,30 @@ export default function MessengerPage() {
         setTotalUnreadCount(total);
     }, [conversations]);
 
+    // 📲 Link OneSignal to user ID for push notifications
+    useEffect(() => {
+        if (user?.id && pushReady && setExternalUserId) {
+            // Link user's Supabase ID to OneSignal for targeted notifications
+            setExternalUserId(user.id);
+
+            // Show prompt if not subscribed after 3 seconds
+            if (!pushSubscribed) {
+                const timer = setTimeout(() => {
+                    setShowPushPrompt(true);
+                }, 3000);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [user?.id, pushReady, pushSubscribed, setExternalUserId]);
+
     // Start a Jitsi call
     const startCall = async (type) => {
         if (!activeConversation || !user) return;
         // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
         const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;
         const jitsiUrl = `https://meet.jit.si/${roomName}`;
+        const callerName = user.user_metadata?.username || user.user_metadata?.poker_alias || 'Someone';
+        const otherUser = activeConversation?.otherUser;
 
         // Send call invite message
         const callTypeLabel = type === 'video' ? '📹 Video' : '📞 Voice';
@@ -1544,6 +1567,36 @@ export default function MessengerPage() {
                 profiles: { id: user.id, username: user.user_metadata?.username, avatar_url: user.user_metadata?.avatar_url },
             };
             setMessages(prev => [...prev, newMsg]);
+
+            // 📲 Send push notification to the other user
+            if (otherUser?.id) {
+                try {
+                    await fetch('/api/notifications/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            title: `${type === 'video' ? '📹' : '📞'} Incoming ${type === 'video' ? 'Video' : 'Voice'} Call`,
+                            message: `${callerName} is calling you on Smarter.Poker`,
+                            url: `https://smarter.poker/hub/messenger?call=${roomName}`,
+                            externalUserIds: [otherUser.id],
+                            data: {
+                                type: 'call_invite',
+                                callType: type,
+                                roomName: roomName,
+                                callerId: user.id,
+                                callerName: callerName,
+                                jitsiUrl: jitsiUrl,
+                            },
+                            buttons: [
+                                { id: 'join', text: 'Join Call', url: jitsiUrl },
+                            ],
+                        }),
+                    });
+                    console.log('📲 Push notification sent for call invite');
+                } catch (pushError) {
+                    console.warn('Push notification failed (user may not be subscribed):', pushError);
+                }
+            }
         } catch (e) {
             console.error('Failed to send call invite:', e);
         }
@@ -1639,6 +1692,61 @@ export default function MessengerPage() {
 
             {/* Toast Notifications */}
             <Toast toast={toast} onDismiss={() => setToast(null)} />
+
+            {/* Push Notification Subscription Banner */}
+            {showPushPrompt && !pushSubscribed && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: isMobile ? 70 : 20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'linear-gradient(135deg, #1877F2, #0A5DC7)',
+                    color: 'white',
+                    padding: '12px 20px',
+                    borderRadius: 12,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                    zIndex: 1000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    maxWidth: 400,
+                }}>
+                    <span style={{ fontSize: 28 }}>🔔</span>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 2 }}>Enable Call Notifications</div>
+                        <div style={{ fontSize: 12, opacity: 0.9 }}>Get notified when someone calls you</div>
+                    </div>
+                    <button
+                        onClick={async () => {
+                            const success = await subscribePush();
+                            if (success) {
+                                setShowPushPrompt(false);
+                                setToast({ type: 'success', message: 'Push notifications enabled!' });
+                            }
+                        }}
+                        style={{
+                            padding: '8px 16px',
+                            background: 'white',
+                            color: '#1877F2',
+                            border: 'none',
+                            borderRadius: 8,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                        }}
+                    >Enable</button>
+                    <button
+                        onClick={() => setShowPushPrompt(false)}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: 18,
+                            opacity: 0.7,
+                        }}
+                    >✕</button>
+                </div>
+            )}
 
             {/* Jitsi Call Modal */}
             {showCall && callRoomName && (
