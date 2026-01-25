@@ -116,20 +116,37 @@ export default function SignUpPage() {
             setAliasError('');
 
             try {
+                // Use RPC function that bypasses RLS for unauthenticated users
                 const { data, error } = await supabase
-                    .from('profiles')
-                    .select('username')
-                    .ilike('username', formData.pokerAlias)
-                    .limit(1);
+                    .rpc('check_username_available', { p_username: formData.pokerAlias });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Alias check RPC error:', error);
+                    // Fallback to direct query if RPC doesn't exist
+                    const { data: fallbackData, error: fallbackError } = await supabase
+                        .from('profiles')
+                        .select('username')
+                        .ilike('username', formData.pokerAlias)
+                        .limit(1);
 
-                if (data && data.length > 0) {
-                    setAliasAvailable(false);
-                    setAliasError('This alias is already taken');
+                    if (fallbackError) throw fallbackError;
+
+                    if (fallbackData && fallbackData.length > 0) {
+                        setAliasAvailable(false);
+                        setAliasError('This alias is already taken');
+                    } else {
+                        setAliasAvailable(true);
+                        setAliasError('');
+                    }
                 } else {
-                    setAliasAvailable(true);
-                    setAliasError('');
+                    // RPC returns true if available, false if taken
+                    if (data === true) {
+                        setAliasAvailable(true);
+                        setAliasError('');
+                    } else {
+                        setAliasAvailable(false);
+                        setAliasError('This alias is already taken');
+                    }
                 }
             } catch (err) {
                 console.error('Alias check error:', err);

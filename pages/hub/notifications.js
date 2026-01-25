@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
+import { getAuthUser } from '../../src/lib/authUtils';
 
 // God-Mode Stack
 import { useNotificationsStore } from '../../src/stores/notificationsStore';
@@ -38,7 +39,8 @@ export default function NotificationsPage() {
 
     useEffect(() => {
         const fetchNotifications = async () => {
-            const { data: { user: au } } = await supabase.auth.getUser();
+            // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+            const au = getAuthUser();
             if (au) {
                 setUser(au);
                 const { data } = await supabase

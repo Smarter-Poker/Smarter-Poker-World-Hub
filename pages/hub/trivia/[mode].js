@@ -7,6 +7,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getAuthUser } from '../../../src/lib/authUtils';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -48,8 +49,8 @@ export default function TriviaModePage() {
             setError(null);
 
             try {
-                // Get user
-                const { data: { user } } = await supabase.auth.getUser();
+                // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+                const user = getAuthUser();
                 if (user) {
                     setUserId(user.id);
 

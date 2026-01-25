@@ -15,6 +15,7 @@ import { supabase } from '../../src/lib/supabase';
 import { useFriendsStore } from '../../src/stores/friendsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { getAuthUser } from '../../src/lib/authUtils';
 
 const C = {
     bg: '#0a0a0a', card: '#1a1a1a', cardHover: '#252525', text: '#FFFFFF', textSec: '#9ca3af',
@@ -407,7 +408,8 @@ export default function FriendsPage() {
     const [myFriendIds, setMyFriendIds] = useState([]); // For mutual friends calculation
 
     const fetchData = async () => {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+        const authUser = getAuthUser();
         if (!authUser) {
             setLoading(false);
             return;

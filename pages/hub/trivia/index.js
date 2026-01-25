@@ -6,6 +6,7 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getAuthUser } from '../../../src/lib/authUtils';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -22,7 +23,8 @@ export default function TriviaHubPage() {
     useEffect(() => {
         async function loadUserData() {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+                const user = getAuthUser();
 
                 if (user) {
                     // Get user profile for diamonds
