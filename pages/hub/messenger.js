@@ -2110,9 +2110,9 @@ export default function MessengerPage() {
                             📵 End Call
                         </button>
                     </div>
-                    {/* Jitsi Iframe */}
+                    {/* Jitsi Iframe - Auto-join without prejoin screen (Snapchat/WhatsApp style) */}
                     <iframe
-                        src={`https://meet.jit.si/${callRoomName}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=${callType === 'audio'}&userInfo.displayName=${encodeURIComponent(user?.user_metadata?.username || 'User')}`}
+                        src={`https://meet.jit.si/${callRoomName}#jitsi_meet_external_api_id=1&config.prejoinPageEnabled=false&config.prejoinConfig.enabled=false&config.requireDisplayName=false&config.startWithAudioMuted=false&config.startWithVideoMuted=${callType === 'audio'}&config.disableDeepLinking=true&config.enableWelcomePage=false&userInfo.displayName=${encodeURIComponent(user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'User')}`}
                         style={{
                             flex: 1,
                             width: '100%',
