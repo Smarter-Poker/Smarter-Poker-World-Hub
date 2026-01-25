@@ -7,12 +7,19 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+
+// Dynamic import for LiveKit (client-side only)
+const LiveKitCall = dynamic(
+    () => import('../../src/components/video/LiveKitCall'),
+    { ssr: false }
+);
 
 // God-Mode Stack
 import { useMessengerStore } from '../../src/stores/messengerStore';
@@ -1763,16 +1770,6 @@ export default function MessengerPage() {
 
     // End call - notify the other party
     const endCall = async () => {
-        // Clean up Jitsi API instance
-        if (window.jitsiApiInstance) {
-            try {
-                window.jitsiApiInstance.dispose();
-            } catch (e) {
-                console.warn('Error disposing Jitsi:', e);
-            }
-            window.jitsiApiInstance = null;
-        }
-
         // Notify the other user that call ended (subscribe, send, then cleanup)
         if (activeConversation?.otherUser?.id) {
             try {
@@ -2074,7 +2071,7 @@ export default function MessengerPage() {
                 </div>
             )}
 
-            {/* Jitsi Call Modal - Using External API for true auto-join (Snapchat/WhatsApp style) */}
+            {/* LiveKit Video Call Modal - True seamless WhatsApp/Snapchat style */}
             {showCall && callRoomName && (
                 <div style={{
                     position: 'fixed',
@@ -2100,7 +2097,7 @@ export default function MessengerPage() {
                                 <div style={{ color: 'white', fontWeight: 600 }}>
                                     {callType === 'video' ? 'Video' : 'Voice'} Call with {activeConversation?.otherUser?.username || 'User'}
                                 </div>
-                                <div style={{ color: '#888', fontSize: 12 }}>Powered by Jitsi Meet</div>
+                                <div style={{ color: '#888', fontSize: 12 }}>Smarter Poker Video</div>
                             </div>
                         </div>
                         <button
@@ -2121,88 +2118,14 @@ export default function MessengerPage() {
                             📵 End Call
                         </button>
                     </div>
-                    {/* Jitsi Container - External API will render here */}
-                    <div
-                        id="jitsi-container"
-                        style={{ flex: 1, width: '100%' }}
-                        ref={(containerRef) => {
-                            if (!containerRef || window.jitsiApiInstance) return;
-
-                            // Load Jitsi External API script dynamically
-                            const loadJitsiScript = () => {
-                                return new Promise((resolve) => {
-                                    if (window.JitsiMeetExternalAPI) {
-                                        resolve();
-                                        return;
-                                    }
-                                    const script = document.createElement('script');
-                                    script.src = 'https://meet.jit.si/external_api.js';
-                                    script.onload = resolve;
-                                    document.head.appendChild(script);
-                                });
-                            };
-
-                            loadJitsiScript().then(() => {
-                                const displayName = user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'User';
-
-                                // Create Jitsi instance with proper config to skip prejoin
-                                window.jitsiApiInstance = new window.JitsiMeetExternalAPI('meet.jit.si', {
-                                    roomName: callRoomName,
-                                    parentNode: containerRef,
-                                    width: '100%',
-                                    height: '100%',
-                                    userInfo: {
-                                        displayName: displayName,
-                                    },
-                                    configOverwrite: {
-                                        // CRITICAL: Skip the prejoin page entirely
-                                        prejoinConfig: { enabled: false },
-                                        prejoinPageEnabled: false,
-                                        // Try to bypass lobby/waiting room
-                                        enableLobby: false,
-                                        lobby: { autoKnock: true, enableChat: false },
-                                        autoKnockLobby: true,
-                                        hideLobbyButton: true,
-                                        startSilent: false,
-                                        // Audio/video settings
-                                        startWithAudioMuted: false,
-                                        startWithVideoMuted: callType === 'audio',
-                                        // Disable unnecessary features
-                                        disableDeepLinking: true,
-                                        enableWelcomePage: false,
-                                        requireDisplayName: false,
-                                        enableClosePage: false,
-                                        // Additional settings for seamless experience
-                                        disableModeratorIndicator: true,
-                                        disableReactions: true,
-                                        disablePolls: true,
-                                        disableRemoteMute: false,
-                                        enableNoAudioDetection: false,
-                                        enableNoisyMicDetection: false,
-                                    },
-                                    interfaceConfigOverwrite: {
-                                        // Simplified UI for Snapchat/WhatsApp feel
-                                        TOOLBAR_BUTTONS: [
-                                            'microphone', 'camera', 'closedcaptions', 'desktop',
-                                            'fullscreen', 'fodeviceselection', 'hangup', 'chat',
-                                            'settings', 'videoquality', 'filmstrip', 'tileview',
-                                        ],
-                                        SHOW_JITSI_WATERMARK: false,
-                                        SHOW_WATERMARK_FOR_GUESTS: false,
-                                        SHOW_BRAND_WATERMARK: false,
-                                        BRAND_WATERMARK_LINK: '',
-                                        SHOW_POWERED_BY: false,
-                                        MOBILE_APP_PROMO: false,
-                                        HIDE_INVITE_MORE_HEADER: true,
-                                    },
-                                });
-
-                                // Handle Jitsi events
-                                window.jitsiApiInstance.addListener('readyToClose', () => {
-                                    endCall();
-                                });
-                            });
-                        }}
+                    {/* LiveKit Video Component */}
+                    <LiveKitCall
+                        roomName={callRoomName}
+                        participantName={user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'User'}
+                        participantId={user?.id}
+                        callType={callType}
+                        otherUserName={activeConversation?.otherUser?.username}
+                        onEnd={endCall}
                     />
                 </div>
             )}
