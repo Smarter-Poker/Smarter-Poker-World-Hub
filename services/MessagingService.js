@@ -199,10 +199,28 @@ class MessagingService {
             return [];
         }
 
-        return (data || []).map(p => ({
-            ...p,
-            ...p.profiles,
+        // Map with fallback for missing profiles (DEFENSIVE FIX)
+        const result = await Promise.all((data || []).map(async (p) => {
+            let profile = p.profiles;
+
+            // FALLBACK: If FK join didn't return profile, fetch directly
+            if (!profile && p.user_id) {
+                console.warn('[MESSAGING] FK join failed for user:', p.user_id, '- using fallback');
+                const { data: directProfile } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url')
+                    .eq('id', p.user_id)
+                    .single();
+                profile = directProfile || { id: p.user_id, username: 'Unknown User', avatar_url: null };
+            }
+
+            return {
+                ...p,
+                ...profile,
+            };
         }));
+
+        return result;
     }
 
     /**
@@ -269,6 +287,7 @@ class MessagingService {
             return [];
         }
 
+        // DEFENSIVE: Handle null profiles gracefully
         return (data || []).map(msg => ({
             id: msg.id,
             text: msg.content,
@@ -276,11 +295,11 @@ class MessagingService {
             timestamp: msg.created_at,
             isEdited: msg.is_edited,
             senderId: msg.sender_id,
-            sender: msg.profiles,
+            sender: msg.profiles || { id: msg.sender_id, username: 'Unknown', avatar_url: null },
             readBy: (msg.social_message_reads || []).map(r => ({
                 userId: r.user_id,
                 readAt: r.read_at,
-                username: r.profiles?.username,
+                username: r.profiles?.username || 'Unknown',
             })),
         }));
     }
@@ -438,11 +457,12 @@ class MessagingService {
             return [];
         }
 
+        // DEFENSIVE: Handle null profiles gracefully
         return (data || []).map(r => ({
             userId: r.user_id,
             readAt: r.read_at,
-            username: r.profiles?.username,
-            avatar: r.profiles?.avatar_url,
+            username: r.profiles?.username || 'Unknown',
+            avatar: r.profiles?.avatar_url || null,
         }));
     }
 

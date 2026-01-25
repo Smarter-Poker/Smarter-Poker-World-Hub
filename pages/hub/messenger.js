@@ -986,6 +986,11 @@ export default function MessengerPage() {
     const [callRoomName, setCallRoomName] = useState('');
     const [showUserInfo, setShowUserInfo] = useState(false);
     const [showPushPrompt, setShowPushPrompt] = useState(false);
+    // Incoming Call State (for seamless calling like Snapchat/WhatsApp)
+    const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
+    const [callingUser, setCallingUser] = useState(null); // Track who we're calling
+    const incomingCallAudioRef = useRef(null);
+    const callTimeoutRef = useRef(null);
 
     // OneSignal Push Notifications
     const { isInitialized: pushReady, isSubscribed: pushSubscribed, subscribe: subscribePush, setExternalUserId } = useOneSignal();
@@ -1105,6 +1110,108 @@ export default function MessengerPage() {
 
         return () => supabase.removeChannel(typingChannel);
     }, [user, activeConversation]);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 📞 CALL SIGNALING VIA SUPABASE REALTIME
+    // Listen for incoming calls, call accepted/declined, call ended
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        if (!user) return;
+
+        const callChannel = supabase
+            .channel(`call-signal:${user.id}`)
+            .on('broadcast', { event: 'incoming_call' }, (payload) => {
+                console.log('📞 Incoming call signal received:', payload);
+                const { callerId, callerName, callerAvatar, callType, roomName } = payload.payload;
+
+                // Don't show incoming call if we're already in a call
+                if (showCall) return;
+
+                setIncomingCall({ callerId, callerName, callerAvatar, callType, roomName });
+
+                // Play ringing sound
+                if (incomingCallAudioRef.current) {
+                    incomingCallAudioRef.current.loop = true;
+                    incomingCallAudioRef.current.play().catch(() => { });
+                }
+
+                // Auto-decline after 30 seconds
+                callTimeoutRef.current = setTimeout(() => {
+                    handleDeclineCall('timeout');
+                }, 30000);
+            })
+            .on('broadcast', { event: 'call_declined' }, (payload) => {
+                console.log('📞 Call declined:', payload);
+                if (callingUser) {
+                    const reason = payload.payload.reason === 'timeout' ? 'No answer' : 'Call declined';
+                    setToast({ type: 'info', message: reason });
+                    setCallingUser(null);
+                }
+            })
+            .on('broadcast', { event: 'call_accepted' }, (payload) => {
+                console.log('📞 Call accepted:', payload);
+                // The caller's call is already showing, just clear the "calling" state
+                setCallingUser(null);
+            })
+            .on('broadcast', { event: 'call_ended' }, (payload) => {
+                console.log('📞 Call ended by other party:', payload);
+                setShowCall(false);
+                setCallRoomName('');
+                setToast({ type: 'info', message: 'Call ended' });
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(callChannel);
+            if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
+        };
+    }, [user, showCall, callingUser]);
+
+    // Handle accepting incoming call
+    const handleAcceptCall = () => {
+        if (!incomingCall || !user) return;
+
+        // Stop ringing
+        if (incomingCallAudioRef.current) {
+            incomingCallAudioRef.current.pause();
+            incomingCallAudioRef.current.currentTime = 0;
+        }
+        if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
+
+        // Notify caller that we accepted
+        supabase.channel(`call-signal:${incomingCall.callerId}`).send({
+            type: 'broadcast',
+            event: 'call_accepted',
+            payload: { accepterId: user.id }
+        });
+
+        // Join the call
+        setCallRoomName(incomingCall.roomName);
+        setCallType(incomingCall.callType);
+        setShowCall(true);
+        setIncomingCall(null);
+    };
+
+    // Handle declining incoming call
+    const handleDeclineCall = (reason = 'declined') => {
+        if (!incomingCall) return;
+
+        // Stop ringing
+        if (incomingCallAudioRef.current) {
+            incomingCallAudioRef.current.pause();
+            incomingCallAudioRef.current.currentTime = 0;
+        }
+        if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
+
+        // Notify caller that we declined
+        supabase.channel(`call-signal:${incomingCall.callerId}`).send({
+            type: 'broadcast',
+            event: 'call_declined',
+            payload: { declinerId: user.id, reason }
+        });
+
+        setIncomingCall(null);
+    };
 
     // Broadcast our typing state
     const broadcastTyping = () => {
@@ -1549,81 +1656,80 @@ export default function MessengerPage() {
         }
     }, [user?.id, pushReady, pushSubscribed, setExternalUserId]);
 
-    // Start a Jitsi call
+    // Start a Jitsi call - Now uses real-time signaling for instant popup
     const startCall = async (type) => {
         if (!activeConversation || !user) return;
-        // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
-        const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;
-        const jitsiUrl = `https://meet.jit.si/${roomName}`;
-        const callerName = user.user_metadata?.username || user.user_metadata?.poker_alias || 'Someone';
         const otherUser = activeConversation?.otherUser;
-
-        // Send call invite message
-        const callTypeLabel = type === 'video' ? '📹 Video' : '📞 Voice';
-        const inviteMessage = `${callTypeLabel} Call Started!\n\n🔗 Join here: ${jitsiUrl}\n\nClick the link above to join the call.`;
-
-        try {
-            // Send the invite message
-            await supabase.rpc('fn_send_message', {
-                p_conversation_id: activeConversation.id,
-                p_sender_id: user.id,
-                p_content: inviteMessage,
-            });
-
-            // Add to local messages optimistically
-            const newMsg = {
-                id: `call-${Date.now()}`,
-                content: inviteMessage,
-                created_at: new Date().toISOString(),
-                sender_id: user.id,
-                status: 'sent',
-                profiles: { id: user.id, username: user.user_metadata?.username, avatar_url: user.user_metadata?.avatar_url },
-            };
-            setMessages(prev => [...prev, newMsg]);
-
-            // 📲 Send push notification to the other user
-            if (otherUser?.id) {
-                try {
-                    await fetch('/api/notifications/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            title: `${type === 'video' ? '📹' : '📞'} Incoming ${type === 'video' ? 'Video' : 'Voice'} Call`,
-                            message: `${callerName} is calling you on Smarter.Poker`,
-                            url: `https://smarter.poker/hub/messenger?call=${roomName}`,
-                            externalUserIds: [otherUser.id],
-                            data: {
-                                type: 'call_invite',
-                                callType: type,
-                                roomName: roomName,
-                                callerId: user.id,
-                                callerName: callerName,
-                                jitsiUrl: jitsiUrl,
-                            },
-                            buttons: [
-                                { id: 'join', text: 'Join Call', url: jitsiUrl },
-                            ],
-                        }),
-                    });
-                    console.log('📲 Push notification sent for call invite');
-                } catch (pushError) {
-                    console.warn('Push notification failed (user may not be subscribed):', pushError);
-                }
-            }
-        } catch (e) {
-            console.error('Failed to send call invite:', e);
+        if (!otherUser?.id) {
+            setToast({ type: 'error', message: 'Cannot start call - user not found' });
+            return;
         }
 
-        setCallRoomName(roomName);
+        // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
+        const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;
+        const callerName = user.user_metadata?.username || user.user_metadata?.poker_alias || 'Someone';
+        const callerAvatar = user.user_metadata?.avatar_url || null;
+
+        // Set calling state to show "Calling..." UI
+        setCallingUser(otherUser);
         setCallType(type);
+
+        // 📞 Send real-time call signal to the other user
+        try {
+            await supabase.channel(`call-signal:${otherUser.id}`).send({
+                type: 'broadcast',
+                event: 'incoming_call',
+                payload: {
+                    callerId: user.id,
+                    callerName: callerName,
+                    callerAvatar: callerAvatar,
+                    callType: type,
+                    roomName: roomName,
+                }
+            });
+            console.log('📞 Call signal sent to:', otherUser.id);
+
+            // Also send push notification for users not on the page
+            try {
+                await fetch('/api/notifications/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: `${type === 'video' ? '📹' : '📞'} Incoming ${type === 'video' ? 'Video' : 'Voice'} Call`,
+                        message: `${callerName} is calling you on Smarter.Poker`,
+                        url: `https://smarter.poker/hub/messenger`,
+                        externalUserIds: [otherUser.id],
+                    }),
+                });
+            } catch (pushError) {
+                console.warn('Push notification failed:', pushError);
+            }
+        } catch (e) {
+            console.error('Failed to send call signal:', e);
+            setToast({ type: 'error', message: 'Failed to call. Please try again.' });
+            setCallingUser(null);
+            return;
+        }
+
+        // Start the call immediately for the caller
+        setCallRoomName(roomName);
         setShowCall(true);
-        setToast({ type: 'success', message: `${type === 'video' ? 'Video' : 'Voice'} call started! Invite sent.` });
+        setToast({ type: 'info', message: `Calling ${otherUser.username}...` });
     };
 
-    // End call
+    // End call - notify the other party
     const endCall = () => {
+        // Notify the other user that call ended
+        if (activeConversation?.otherUser?.id) {
+            supabase.channel(`call-signal:${activeConversation.otherUser.id}`).send({
+                type: 'broadcast',
+                event: 'call_ended',
+                payload: { enderId: user?.id }
+            });
+        }
         setShowCall(false);
         setCallRoomName('');
+        setCallingUser(null);
         setToast({ type: 'info', message: 'Call ended' });
     };
 
@@ -1758,6 +1864,144 @@ export default function MessengerPage() {
                             opacity: 0.7,
                         }}
                     >✕</button>
+                </div>
+            )}
+
+            {/* Ringing Audio for Incoming Calls */}
+            <audio
+                ref={incomingCallAudioRef}
+                src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleR0tRXFuYz0mFTNNaWxofmh+YKStoJd/aGtbL09OYUFRYWOHeoKK"
+            />
+
+            {/* ════════════════════════════════════════════════════════
+                INCOMING CALL POPUP - Shows when someone calls you
+                ════════════════════════════════════════════════════════ */}
+            {incomingCall && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 10000,
+                    background: 'rgba(0, 0, 0, 0.85)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}>
+                    <div style={{
+                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                        borderRadius: 24,
+                        padding: 40,
+                        textAlign: 'center',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        maxWidth: 360,
+                        width: '90%',
+                    }}>
+                        {/* Call Type Icon */}
+                        <div style={{
+                            fontSize: 48,
+                            marginBottom: 16,
+                            animation: 'pulse 1.5s infinite',
+                        }}>
+                            {incomingCall.callType === 'video' ? '📹' : '📞'}
+                        </div>
+
+                        {/* Caller Avatar */}
+                        <div style={{
+                            width: 100,
+                            height: 100,
+                            borderRadius: '50%',
+                            margin: '0 auto 16px',
+                            background: incomingCall.callerAvatar
+                                ? `url(${incomingCall.callerAvatar}) center/cover`
+                                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 40,
+                            color: 'white',
+                            border: '3px solid rgba(255,255,255,0.2)',
+                            boxShadow: '0 0 0 4px rgba(0,132,255,0.3), 0 0 30px rgba(0,132,255,0.4)',
+                            animation: 'ring 1.5s infinite',
+                        }}>
+                            {!incomingCall.callerAvatar && (incomingCall.callerName?.[0]?.toUpperCase() || '?')}
+                        </div>
+
+                        {/* Caller Name */}
+                        <h2 style={{
+                            color: 'white',
+                            fontSize: 24,
+                            fontWeight: 600,
+                            margin: '0 0 8px 0',
+                        }}>
+                            {incomingCall.callerName}
+                        </h2>
+
+                        {/* Call Type Label */}
+                        <p style={{
+                            color: 'rgba(255,255,255,0.7)',
+                            fontSize: 16,
+                            margin: '0 0 32px 0',
+                        }}>
+                            Incoming {incomingCall.callType === 'video' ? 'Video' : 'Voice'} Call...
+                        </p>
+
+                        {/* Accept / Decline Buttons */}
+                        <div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
+                            <button
+                                onClick={() => handleDeclineCall('declined')}
+                                style={{
+                                    width: 70,
+                                    height: 70,
+                                    borderRadius: '50%',
+                                    border: 'none',
+                                    background: 'linear-gradient(135deg, #ff4757 0%, #c0392b 100%)',
+                                    color: 'white',
+                                    fontSize: 28,
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 20px rgba(255,71,87,0.4)',
+                                    transition: 'transform 0.2s',
+                                }}
+                                onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                                onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                                title="Decline"
+                            >
+                                ✕
+                            </button>
+                            <button
+                                onClick={handleAcceptCall}
+                                style={{
+                                    width: 70,
+                                    height: 70,
+                                    borderRadius: '50%',
+                                    border: 'none',
+                                    background: 'linear-gradient(135deg, #00b894 0%, #27ae60 100%)',
+                                    color: 'white',
+                                    fontSize: 28,
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 20px rgba(0,184,148,0.4)',
+                                    transition: 'transform 0.2s',
+                                }}
+                                onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                                onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                                title="Accept"
+                            >
+                                ✓
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Ring Animation Keyframes */}
+                    <style>{`
+                        @keyframes ring {
+                            0%, 100% { box-shadow: 0 0 0 4px rgba(0,132,255,0.3), 0 0 30px rgba(0,132,255,0.4); }
+                            50% { box-shadow: 0 0 0 8px rgba(0,132,255,0.2), 0 0 50px rgba(0,132,255,0.6); }
+                        }
+                        @keyframes pulse {
+                            0%, 100% { transform: scale(1); }
+                            50% { transform: scale(1.1); }
+                        }
+                    `}</style>
                 </div>
             )}
 
