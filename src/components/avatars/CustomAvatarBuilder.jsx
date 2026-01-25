@@ -10,7 +10,7 @@ import { useAvatar } from '../../contexts/AvatarContext';
 import { getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
 
 export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
-  const { user, createCustomAvatar, isVip: contextIsVip } = useAvatar();
+  const { user, createCustomAvatar, isVip: contextIsVip, initializing } = useAvatar();
   const effectiveVip = isVip || contextIsVip;
 
   const [prompt, setPrompt] = useState('');
@@ -149,7 +149,40 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
     setGeneratedImage(null);
   }
 
-  // Show login prompt if not authenticated
+  // Show loading while auth is initializing (prevents premature "Sign In Required")
+  if (initializing) {
+    return (
+      <div style={{
+        width: '100%',
+        maxWidth: '600px',
+        margin: '40px auto',
+        padding: '40px',
+        background: 'rgba(10, 14, 39, 0.9)',
+        border: '2px solid rgba(0, 245, 255, 0.3)',
+        borderRadius: '20px',
+        textAlign: 'center'
+      }}>
+        <div style={{
+          fontSize: '48px',
+          marginBottom: '20px'
+        }}>♦️</div>
+        <h2 style={{
+          fontFamily: 'Orbitron, sans-serif',
+          fontSize: '24px',
+          color: '#00f5ff',
+          marginBottom: '15px'
+        }}>Loading...</h2>
+        <p style={{
+          color: 'rgba(255,255,255,0.7)',
+          fontSize: '16px'
+        }}>
+          Checking authentication...
+        </p>
+      </div>
+    );
+  }
+
+  // Show login prompt ONLY after confirming no session exists
   if (!user) {
     return (
       <div style={{

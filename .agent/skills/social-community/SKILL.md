@@ -1,153 +1,176 @@
 ---
 name: Social & Community
-description: Build social features including posts, comments, likes, and user interactions
+description: "Build social features including posts, comments, likes, and user interactions. READ BEFORE MODIFYING ANY SOCIAL MEDIA CODE."
 ---
 
-# Social & Community Skill
+# 🛡️ Social Media Protection & Development Guide
 
-## Overview
-Build the social layer (Orb #1) with posts, comments, likes, follows, and community features.
+> **🚨 CRITICAL**: This skill documents ALL working features in the social hub. Before making ANY change to social-media.js or related files, you MUST verify all features still work after your changes.
 
-## Database Schema
+## Why This Exists
 
-### social_posts
-```sql
-CREATE TABLE social_posts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  author_id UUID REFERENCES auth.users(id),
-  content TEXT NOT NULL,
-  content_type TEXT DEFAULT 'text', -- 'text', 'image', 'video', 'link'
-  media_url TEXT,
-  metadata JSONB DEFAULT '{}',
-  likes_count INTEGER DEFAULT 0,
-  comments_count INTEGER DEFAULT 0,
-  shares_count INTEGER DEFAULT 0,
-  is_pinned BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+The social media page (`/hub/social-media.js`) is a 2700+ line file with 60+ functions that powers the entire social experience. It has been broken and rebuilt MULTIPLE times. Small changes have catastrophic consequences.
+
+---
+
+## Complete Feature Registry
+
+### 📰 Feed & Posts (WORKING - DO NOT BREAK)
+
+| Feature | Location | State Variables | Props |
+|---------|----------|----------------|-------|
+| Post Feed | Lines 1669-1866 | `posts`, `feedOffset`, `hasMorePosts` | - |
+| Post Card | Lines 1072-1300 | - | `onOpenArticle`, `onLike`, `onComment` |
+| Create Post | Lines 850-1070 | `isPosting`, `postContent`, `media` | - |
+| Infinite Scroll | Lines 1868-1919 | `loadingMore`, `feedCycle` | - |
+| Like/React | Lines 2008-2020 | - | via PostCard |
+| Delete Post | Lines 2022-2025 | - | - |
+
+### 📖 Stories (WORKING - DO NOT BREAK)
+
+| Feature | Location | State | Component |
+|---------|----------|-------|-----------|
+| Stories Bar | Line ~2330 | stories from API | `<StoriesBar />` |
+| Story Viewer | External component | - | `StoriesBar` handles |
+
+### 🎬 Reels (WORKING - DO NOT BREAK)
+
+| Feature | Location | Notes |
+|---------|----------|-------|
+| Reels Carousel | Line ~2510 | Inserted after every 3 posts |
+| Reel Viewer | External component | Opens full-screen |
+
+### 📰 Article Reader (WORKING - DO NOT BREAK)
+
+| Feature | Location | State | Dependencies |
+|---------|----------|-------|--------------|
+| Article Card | PostCard ~1186-1200 | - | onOpenArticle prop |
+| Reader Modal | Line ~2509 | `articleReader: {open, url, title}` | ArticleReaderModal |
+| In-App Display | - | - | `/api/proxy` route |
+
+**Critical Flow:**
+```
+PostCard → onOpenArticle → setArticleReader → ArticleReaderModal
 ```
 
-### social_likes
-```sql
-CREATE TABLE social_likes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id),
-  post_id UUID REFERENCES social_posts(id),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, post_id)
-);
-```
+### 🔴 Live Streaming (WORKING - DO NOT BREAK)
 
-### social_comments
-```sql
-CREATE TABLE social_comments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  post_id UUID REFERENCES social_posts(id),
-  author_id UUID REFERENCES auth.users(id),
-  content TEXT NOT NULL,
-  parent_id UUID REFERENCES social_comments(id), -- For replies
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
+| Feature | Location | State | Components |
+|---------|----------|-------|------------|
+| Go Live Button | Line ~2360 | `showGoLiveModal` | GoLiveModal |
+| Live Stream Cards | Line ~2380 | `liveStreams` | LiveStreamCard |
+| Stream Viewer | Line ~2400 | `watchingStream` | LiveStreamViewer |
 
-### user_follows
-```sql
-CREATE TABLE user_follows (
-  follower_id UUID REFERENCES auth.users(id),
-  following_id UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (follower_id, following_id)
-);
-```
+### 💬 Chat Windows (WORKING - DO NOT BREAK)
 
-## Post Creation
+| Feature | Location | State |
+|---------|----------|-------|
+| Chat Popups | Line ~2668 | `openChats`, `chatMsgs` |
+| Send Message | Line 2119-2126 | via fn_send_message |
+
+### 🔔 Notifications (WORKING - DO NOT BREAK)
+
+| Feature | Location | State |
+|---------|----------|-------|
+| Notification Bell | Line ~2650 | `notifications` |
+| Unread Count | Line ~2652-2653 | filtered from notifications |
+| Mark as Read | Lines 1655-1667 | auto on dropdown open |
+
+### 🔍 Search (WORKING - DO NOT BREAK)
+
+| Feature | Location | State |
+|---------|----------|-------|
+| User Search | Lines 2041-2050 | `searchResults` |
+| Global Search | Lines 2052-2098 | `globalSearchResults` |
+
+---
+
+## Verification Checklist
+
+Before committing ANY change, manually verify:
+
+- [ ] Feed loads (scroll should show posts)
+- [ ] Posts have author avatar and name
+- [ ] Posts with images show images
+- [ ] Posts with videos show video player
+- [ ] Posts with articles show proper thumbnail card
+- [ ] Clicking article opens IN-APP modal (NOT new tab!)
+- [ ] Like button works (updates count)
+- [ ] Comment button opens comment section
+- [ ] Stories bar shows at top
+- [ ] Clicking story opens viewer
+- [ ] Reels carousel appears between posts
+- [ ] Notifications bell shows count
+- [ ] Search finds users
+- [ ] Chat windows open/work
+- [ ] New post creation works
+
+---
+
+## Common Breakages & How to Avoid
+
+### The Article Reader Pattern
+
 ```javascript
-async function createPost(userId, content, contentType = 'text', mediaUrl = null) {
-  const { data: post, error } = await supabase
-    .from('social_posts')
-    .insert({
-      author_id: userId,
-      content,
-      content_type: contentType,
-      media_url: mediaUrl
-    })
-    .select()
-    .single();
-  
-  // Award XP for posting
-  await supabase.rpc('award_xp', {
-    p_user_id: userId,
-    p_amount: 10,
-    p_source: 'post_created'
-  });
-  
-  return post;
-}
+// ❌ BREAKS IT - removes the modal handler
+<PostCard post={p} />
+
+// ✅ CORRECT - passes the modal handler
+<PostCard 
+    post={p} 
+    onOpenArticle={(url, title) => setArticleReader({ open: true, url, title })} 
+/>
 ```
 
-## Feed Queries
+### The FK Join Pattern
+
 ```javascript
-// Get personalized feed (following + popular)
-async function getFeed(userId, page = 0, limit = 20) {
-  const { data: posts } = await supabase
-    .from('social_posts')
-    .select(`
-      *,
-      author:profiles!author_id(id, username, avatar_url, full_name),
-      likes:social_likes(user_id),
-      comments:social_comments(count)
-    `)
-    .order('created_at', { ascending: false })
-    .range(page * limit, (page + 1) * limit - 1);
-  
-  return posts.map(post => ({
-    ...post,
-    isLiked: post.likes.some(l => l.user_id === userId),
-    commentsCount: post.comments[0]?.count || 0
-  }));
-}
+// ❌ BREAKS IT - crashes on null profile
+const author = authorMap[post.author_id].username;
+
+// ✅ CORRECT - handles null gracefully
+const author = authorMap[post.author_id]?.username || 'Player';
 ```
 
-## Like/Unlike
+### The Filter Pattern
+
 ```javascript
-async function toggleLike(userId, postId) {
-  const { data: existing } = await supabase
-    .from('social_likes')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('post_id', postId)
-    .single();
-  
-  if (existing) {
-    await supabase.from('social_likes').delete().eq('id', existing.id);
-    await supabase.rpc('decrement_likes', { p_post_id: postId });
-    return false;
-  } else {
-    await supabase.from('social_likes').insert({ user_id: userId, post_id: postId });
-    await supabase.rpc('increment_likes', { p_post_id: postId });
-    return true;
-  }
-}
+// ❌ BREAKS IT - silently removes items
+items.filter(item => item.profile);
+
+// ✅ CORRECT - keeps with fallback
+items.map(item => ({ ...item, profile: item.profile || DEFAULT }));
 ```
 
-## Real-time Updates
-```javascript
-// Subscribe to new posts
-supabase.channel('social_feed')
-  .on('postgres_changes', { 
-    event: 'INSERT', 
-    schema: 'public', 
-    table: 'social_posts' 
-  }, (payload) => {
-    addNewPost(payload.new);
-  })
-  .subscribe();
+---
+
+## Files That Affect Social Media
+
+```
+pages/hub/social-media.js          # Main file - 2700+ lines
+src/components/social/Stories.jsx   # Stories component
+src/components/social/PostCard.jsx  # If extracted
+src/components/social/ArticleReaderModal.jsx
+src/services/UnifiedSocialService.js
+services/MessagingService.js
+src/stores/socialStore.js
+pages/api/proxy.js                 # Article reader backend
 ```
 
-## Components
-- `PostComposer.jsx` - Create new posts
-- `PostCard.jsx` - Display single post
-- `FeedList.jsx` - Infinite scroll feed
-- `CommentSection.jsx` - Comments & replies
-- `UserProfile.jsx` - Profile with posts
-- `FollowButton.jsx` - Follow/unfollow
+---
+
+## Before You Start
+
+1. **Read the workflow**: `/social-feed-protection`
+2. **Run tests**: `node scripts/test-article-reader.js`
+3. **Understand the feature you're changing**: Read this skill
+4. **Make minimal changes**: One feature at a time
+5. **Test EVERYTHING**: Use the checklist above
+
+---
+
+## The Golden Rule
+
+> **If you don't understand how a feature works, DON'T MODIFY IT.**
+> 
+> Ask questions first. Break nothing. Test everything.

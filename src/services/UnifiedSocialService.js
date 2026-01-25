@@ -247,7 +247,22 @@ export class UnifiedSocialService {
             .from('social_conversation_participants')
             .select(`user_id, profiles (id, username, avatar_url)`)
             .eq('conversation_id', conversationId);
-        return (data || []).map(p => ({ ...p, ...p.profiles, name: p.profiles?.username, avatar: p.profiles?.avatar_url }));
+
+        // DEFENSIVE: Handle null profiles with fallback fetch
+        const result = await Promise.all((data || []).map(async (p) => {
+            let profile = p.profiles;
+            if (!profile && p.user_id) {
+                console.warn('[SOCIAL] FK join failed for user:', p.user_id);
+                const { data: directProfile } = await this.supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url')
+                    .eq('id', p.user_id)
+                    .single();
+                profile = directProfile || { id: p.user_id, username: 'Unknown', avatar_url: null };
+            }
+            return { ...p, ...profile, name: profile?.username, avatar: profile?.avatar_url };
+        }));
+        return result;
     }
 
     async getMessages(conversationId, limit = 50) {
@@ -260,12 +275,14 @@ export class UnifiedSocialService {
             .limit(limit);
 
         if (error) return [];
+
+        // DEFENSIVE: Handle null profiles gracefully
         return (data || []).map(m => ({
             id: m.id,
             text: m.content,
             time: this.formatTime(m.created_at),
             senderId: m.sender_id,
-            sender: m.profiles
+            sender: m.profiles || { username: 'Unknown', avatar_url: null }
         }));
     }
 

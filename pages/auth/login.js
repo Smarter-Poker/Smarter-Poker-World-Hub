@@ -16,6 +16,17 @@ export default function LoginPage() {
     const [mode, setMode] = useState('login'); // 'login' or 'signup'
     const [message, setMessage] = useState(null);
     const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true); // Default to checked
+
+    // Load remembered email on mount
+    useEffect(() => {
+        const savedEmail = localStorage.getItem('smarter-poker-remembered-email');
+        const wasRemembered = localStorage.getItem('smarter-poker-remember-me') === 'true';
+        if (savedEmail && wasRemembered) {
+            setEmail(savedEmail);
+            setRememberMe(true);
+        }
+    }, []);
 
     useEffect(() => {
         // Check for existing Supabase session
@@ -44,6 +55,16 @@ export default function LoginPage() {
             if (authError) throw authError;
 
             console.log('✅ Login successful:', data.user?.email);
+
+            // Remember device if checkbox is checked
+            if (rememberMe) {
+                localStorage.setItem('smarter-poker-remembered-email', email);
+                localStorage.setItem('smarter-poker-remember-me', 'true');
+            } else {
+                localStorage.removeItem('smarter-poker-remembered-email');
+                localStorage.removeItem('smarter-poker-remember-me');
+            }
+
             // Set flag so hub plays intro animation
             sessionStorage.setItem('just_authenticated', 'true');
             router.push('/hub');
@@ -159,7 +180,7 @@ export default function LoginPage() {
             </p>
 
             {/* Auth Form */}
-            <form onSubmit={mode === 'login' ? handleLogin : handleSignup} style={{
+            <form onSubmit={mode === 'login' ? handleLogin : handleSignup} autoComplete="off" style={{
                 width: '100%',
                 maxWidth: 360,
                 display: 'flex',
@@ -172,6 +193,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoComplete="off"
                     style={{
                         padding: '14px 16px',
                         fontSize: 16,
@@ -191,6 +213,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         minLength={6}
+                        autoComplete="new-password"
                         style={{
                             width: '100%',
                             padding: '14px 48px 14px 16px',
@@ -237,21 +260,48 @@ export default function LoginPage() {
                 </div>
 
                 {mode === 'login' && (
-                    <button
-                        type="button"
-                        onClick={() => router.push('/auth/forgot-password')}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'rgba(255, 255, 255, 0.6)',
-                            fontSize: 13,
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: -4,
+                    }}>
+                        {/* Remember Me Checkbox */}
+                        <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
                             cursor: 'pointer',
-                            textAlign: 'right',
-                            marginTop: -8,
-                        }}
-                    >
-                        Forgot your password?
-                    </button>
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            fontSize: 13,
+                        }}>
+                            <input
+                                type="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                                style={{
+                                    width: 16,
+                                    height: 16,
+                                    accentColor: '#1877F2',
+                                    cursor: 'pointer',
+                                }}
+                            />
+                            Remember me
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => router.push('/auth/forgot-password')}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                fontSize: 13,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            Forgot password?
+                        </button>
+                    </div>
                 )}
 
                 {error && (

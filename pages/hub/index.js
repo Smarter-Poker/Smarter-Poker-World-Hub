@@ -4,6 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import dynamic from 'next/dynamic';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // Dynamic import with SSR disabled to prevent hydration mismatches from R3F/WebGL
 const WorldHub = dynamic(() => import('../../src/world/WorldHub'), {
@@ -25,7 +26,10 @@ const WorldHub = dynamic(() => import('../../src/world/WorldHub'), {
 });
 
 export default function HubPage() {
-    return <WorldHub />;
+    return (
+        <>
+            <UniversalHeader pageDepth={1} />
+            <WorldHub />
+        </>
+    );
 }
-
-

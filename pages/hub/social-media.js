@@ -1,18 +1,54 @@
 /**
- * SMARTER.POKER SOCIAL HUB - Full Sngine Reconstruction
- * Light Theme + Working Supabase Integration + Go Live Streaming
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  🚨🚨🚨 PROTECTED FILE - READ BEFORE MODIFYING 🚨🚨🚨                      ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║                                                                           ║
+ * ║  THIS FILE CONTAINS MULTIPLE CRITICAL FEATURES THAT BREAK FREQUENTLY.    ║
+ * ║  BEFORE MAKING ANY CHANGES:                                              ║
+ * ║                                                                           ║
+ * ║  1. RUN: /social-feed-protection workflow                                ║
+ * ║  2. READ: .agent/PROTECTED_FILES.md                                      ║
+ * ║  3. TEST BEFORE: node scripts/test-article-reader.js                     ║
+ * ║  4. TEST AFTER: node scripts/test-article-reader.js                      ║
+ * ║                                                                           ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  CRITICAL FEATURES IN THIS FILE - DO NOT BREAK:                          ║
+ * ║                                                                           ║
+ * ║  📰 Article Reader (Lines ~1186-1200, ~1417, ~2509)                       ║
+ * ║     - ArticleCard with onClick → opens ArticleReaderModal                 ║
+ * ║     - articleReader state {open, url, title}                             ║
+ * ║     - onOpenArticle prop passed to PostCard                              ║
+ * ║                                                                           ║
+ * ║  📖 Stories Bar (Line ~2330)                                              ║
+ * ║     - StoriesBar component with stories fetch                            ║
+ * ║                                                                           ║
+ * ║  🎬 Reels Carousel (Lines ~2510)                                          ║
+ * ║     - ReelsFeedCarousel inserted after every 3 posts                     ║
+ * ║                                                                           ║
+ * ║  🔴 Live Streaming (Lines ~2360-2400)                                     ║
+ * ║     - GoLiveModal, LiveStreamCard, LiveStreamViewer                      ║
+ * ║                                                                           ║
+ * ║  📋 PostCard Component (Lines ~1072-1300)                                 ║
+ * ║     - Renders all post types correctly                                   ║
+ * ║     - onOpenArticle prop for article clicks                              ║
+ * ║                                                                           ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  SMARTER.POKER SOCIAL HUB                                                ║
+ * ║  Light Theme + Working Supabase Integration + Go Live Streaming          ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
 import Head from 'next/head';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useRouter } from 'next/router';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, querySocialPosts, queryProfiles, fetchWithAuth } from '../../src/lib/authUtils';
+import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
 import { StoriesBar, ShareToStoryPrompt } from '../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../src/components/social/ReelsFeedCarousel';
@@ -20,6 +56,8 @@ import { GoLiveModal } from '../../src/components/social/GoLiveModal';
 import { LiveStreamCard } from '../../src/components/social/LiveStreamCard';
 import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../src/services/LiveStreamService';
+import ArticleCard, { ArticleCardFromPost, getPostMediaType } from '../../src/components/social/ArticleCard';
+import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 
 // God-Mode Stack
@@ -39,6 +77,17 @@ const timeAgo = (d) => {
     if (s < 3600) return `${Math.floor(s / 60)}m`;
     if (s < 86400) return `${Math.floor(s / 3600)}h`;
     return `${Math.floor(s / 86400)}d`;
+};
+
+// Decode HTML entities in text (for link preview titles/descriptions)
+const decodeHtmlEntities = (text) => {
+    if (!text) return text;
+    const entities = {
+        '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"',
+        '&#039;': "'", '&#39;': "'", '&apos;': "'", '&#x27;': "'",
+        '&nbsp;': ' ', '&#8217;': "'", '&#8216;': "'", '&#8220;': '"', '&#8221;': '"'
+    };
+    return text.replace(/&[#\w]+;/g, match => entities[match] || match);
 };
 
 function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
@@ -285,8 +334,15 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔗 LINK PREVIEW CARD - Fetches and displays rich link metadata for feed posts
 // ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ CRITICAL: DO NOT MODIFY without running /social-feed-protection workflow
+// This component has broken 4+ times. Key requirements:
+// - Uses useExternalLink for internal popups (NOT target="_blank")
+// - Image uses aspectRatio: '16/9' and objectFit: 'cover' (full width, no black bars)
+// - decodeHtmlEntities for title/description (fixes &#039; display)
+// ═══════════════════════════════════════════════════════════════════════════
 
 function LinkPreviewCard({ url }) {
+    const { openExternal } = useExternalLink();
     const [metadata, setMetadata] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -339,12 +395,17 @@ function LinkPreviewCard({ url }) {
         );
     }
 
+    const handleClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Open article links directly in new tab - modal was showing "Content Unavailable"
+        window.open(url, '_blank', 'noopener,noreferrer');
+    };
+
     return (
-        <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: 'none', display: 'block' }}
+        <div
+            onClick={handleClick}
+            style={{ textDecoration: 'none', display: 'block', cursor: 'pointer' }}
         >
             <div style={{
                 border: `1px solid ${C.border}`,
@@ -353,16 +414,12 @@ function LinkPreviewCard({ url }) {
                 background: C.bg,
                 margin: '0 12px 12px'
             }}>
-                {/* Link Preview Image - real thumbnail or gradient fallback */}
+                {/* Link Preview Image - full width, proper aspect ratio */}
                 <div style={{
-                    height: 280,
+                    width: '100%',
+                    aspectRatio: '16/9',
                     position: 'relative',
                     background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: 48,
                     overflow: 'hidden'
                 }}>
                     {metadata?.image ? (
@@ -373,13 +430,12 @@ function LinkPreviewCard({ url }) {
                                 width: '100%',
                                 height: '100%',
                                 objectFit: 'cover',
-                                objectPosition: 'center top',
-                                position: 'absolute',
-                                top: 0,
-                                left: 0
+                                objectPosition: 'center center'
                             }}
                         />
-                    ) : '🔗'}
+                    ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'white', fontSize: 48 }}>🔗</div>
+                    )}
                 </div>
                 {/* Link Info */}
                 <div style={{ padding: '12px 16px', background: C.card }}>
@@ -387,7 +443,7 @@ function LinkPreviewCard({ url }) {
                         {metadata?.siteName || new URL(url).hostname.replace('www.', '')}
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>
-                        {metadata?.title || 'View Article'}
+                        {decodeHtmlEntities(metadata?.title) || 'View Article'}
                     </div>
                     {metadata?.description && (
                         <div style={{
@@ -400,7 +456,7 @@ function LinkPreviewCard({ url }) {
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical'
                         }}>
-                            {metadata.description}
+                            {decodeHtmlEntities(metadata.description)}
                         </div>
                     )}
                     <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>
@@ -408,7 +464,7 @@ function LinkPreviewCard({ url }) {
                     </div>
                 </div>
             </div>
-        </a>
+        </div>
     );
 }
 
@@ -473,7 +529,7 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                     src={getYouTubeEmbedUrl(videoUrl)}
                     style={{
                         width: '100vw',
-                        height: '95vh',
+                        height: '100vh',
                         border: 'none'
                     }}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
@@ -764,6 +820,11 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         inputRef.current?.focus();
     };
 
+    // ⚠️ CRITICAL: handlePost - Core posting functionality
+    // This has broken multiple times. Requires:
+    // - RLS policy "Authenticated users can post" WITH CHECK (true)
+    // - author_id set from user.id
+    // - Run /social-feed-protection workflow after changes
     const handlePost = async () => {
         // Allow posting if there's content, media, OR a link preview
         if (!content.trim() && !media.length && !linkPreview) return;
@@ -988,37 +1049,66 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                 </div>
             )}
             {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}>⚠️ {error}</div>}
-            <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
                     <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFiles} />
                     <button
                         onClick={() => fileRef.current?.click()}
                         disabled={media.length >= MAX_MEDIA}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6,
+                            padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', cursor: media.length >= MAX_MEDIA ? 'not-allowed' : 'pointer',
-                            color: media.length >= MAX_MEDIA ? '#ccc' : C.textSec, fontSize: 13
+                            color: media.length >= MAX_MEDIA ? '#ccc' : '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
                         }}
-                    >{uploading ? '⏳' : '🖼️'} Photo/Video</button>
-                    <button onClick={onGoLive} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>📺 Live</button>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>🃏 Share Hand</button>
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >{uploading ? 'Uploading...' : 'Photo/Video'}</button>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
+                    <button
+                        onClick={onGoLive}
+                        style={{
+                            padding: '6px 8px', borderRadius: 6,
+                            border: 'none', background: 'transparent', cursor: 'pointer',
+                            color: '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >Go Live</button>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
                     <Link
                         href="/hub/reels"
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8,
-                            border: 'none', background: 'linear-gradient(135deg, #E91E63 0%, #9C27B0 100%)',
-                            cursor: 'pointer', color: 'white', fontSize: 13, fontWeight: 600, textDecoration: 'none',
-                            boxShadow: '0 2px 8px rgba(156, 39, 176, 0.3)'
+                            padding: '6px 8px', borderRadius: 6,
+                            background: 'transparent', textDecoration: 'none',
+                            color: '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
                         }}
-                    >🎬 Reels</Link>
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >Reels</Link>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
+                    <Link
+                        href="/hub/friends"
+                        style={{
+                            padding: '6px 8px', borderRadius: 6,
+                            background: 'transparent', textDecoration: 'none',
+                            color: '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >Find Friends</Link>
                 </div>
-                <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1 }}>Post</button>
+                <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1, flexShrink: 0 }}>Post</button>
             </div>
         </div>
     );
 }
 
-function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onComment }) {
+function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onComment, onOpenArticle }) {
+    const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
     const [showComments, setShowComments] = useState(false);
@@ -1070,11 +1160,11 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
     return (
         <div style={{ background: C.card, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2, overflow: 'hidden' }}>
             <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Link href={`/hub/user/${post.author?.name || 'player'}`} style={{ textDecoration: 'none' }}>
+                <Link href={`/hub/user/${post.author?.username || 'player'}`} style={{ textDecoration: 'none' }}>
                     <Avatar src={post.author?.avatar} name={post.author?.name} size={40} />
                 </Link>
                 <div style={{ flex: 1 }}>
-                    <Link href={`/hub/user/${post.author?.name || 'player'}`} style={{ fontWeight: 600, color: C.text, textDecoration: 'none' }}>
+                    <Link href={`/hub/user/${post.author?.username || 'player'}`} style={{ fontWeight: 600, color: C.text, textDecoration: 'none' }}>
                         {post.author?.name || 'Player'}
                     </Link>
                     <div style={{ fontSize: 12, color: C.textSec }}>{post.timeAgo}</div>
@@ -1090,11 +1180,27 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
             </div>
             {post.content && (
                 <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>
-                    {post.content.split(/(@\w+)/g).map((part, i) =>
-                        part.startsWith('@') ?
-                            <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>{part}</span> :
-                            part
-                    )}
+                    {(() => {
+                        // For link-type posts, strip URLs from displayed content (Facebook-style)
+                        let displayContent = post.content;
+                        if (post.contentType === 'link' || post.contentType === 'video') {
+                            // Remove URLs from content - they'll be shown as clickable preview cards
+                            displayContent = displayContent
+                                .replace(/https?:\/\/[^\s]+/gi, '')  // Remove http/https URLs
+                                .replace(/🔗\s*/g, '')                // Remove link emoji prefix
+                                .trim();
+                        }
+
+                        // If content is empty after stripping URL, don't render this block
+                        if (!displayContent) return null;
+
+                        // Render with @mention highlighting
+                        return displayContent.split(/(@\w+)/g).map((part, i) =>
+                            part.startsWith('@') ?
+                                <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>{part}</span> :
+                                part
+                        );
+                    })()}
                 </div>
             )}
             {/* Media Grid - supports up to 10 images/videos */}
@@ -1106,7 +1212,7 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                             // VIDEO: Use VideoPostWrapper to handle broken video detection
                             <VideoPostWrapper
                                 url={post.mediaUrls[0]}
-                                onValidVideoClick={(url) => setFullScreenVideo(url)}
+                                onValidVideoClick={() => router.push('/hub/reels')}
                             >
                                 <video
                                     src={post.mediaUrls[0]}
@@ -1116,9 +1222,20 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                                     preload="metadata"
                                 />
                             </VideoPostWrapper>
-                        ) : post.contentType === 'link' ? (
-                            // LINK: Rich preview card with dynamic metadata
-                            <LinkPreviewCard url={post.mediaUrls[0]} />
+                        ) : (post.contentType === 'link' || post.contentType === 'article') ? (
+                            // LINK/ARTICLE: Use centralized ArticleCard component
+                            <ArticleCard
+                                url={post.link_url || (() => {
+                                    const match = post.content?.match(/https?:\/\/[^\s"'<>]+/);
+                                    return match ? match[0] : null;
+                                })()}
+                                title={post.link_title}
+                                description={post.link_description}
+                                image={post.link_image || post.mediaUrls?.[0]}
+                                siteName={post.link_site_name}
+                                fallbackContent={post.content}
+                                onClick={onOpenArticle}
+                            />
                         ) : (
                             <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
                         )
@@ -1337,12 +1454,17 @@ export default function SocialMediaPage() {
     const globalSearchTimeout = useRef(null);
     const lastScrollY = useRef(0);
 
+    // Article Reader Modal State
+    const [articleReader, setArticleReader] = useState({ open: false, url: null, title: null });
+
     // ♾️ INFINITE SCROLL STATE
     const [feedOffset, setFeedOffset] = useState(0);
     const [hasMorePosts, setHasMorePosts] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
-    const loadMoreRef = useRef(null);
+    const [feedCycle, setFeedCycle] = useState(0); // Track how many times we've looped
+    const [seenPostIds, setSeenPostIds] = useState(new Set()); // Track seen posts for variety
     const POSTS_PER_PAGE = 20;
+    const MAX_FEED_CYCLES = 10; // Maximum loops before truly ending (shows tons of content)
 
     // 👑 GOD MODE STATE
     const [isGodMode, setIsGodMode] = useState(false);
@@ -1354,19 +1476,19 @@ export default function SocialMediaPage() {
     const [liveStreams, setLiveStreams] = useState([]);
     const [watchingStream, setWatchingStream] = useState(null);
 
-    // Hide bottom nav when scrolling up, show when scrolling down
+    // Bottom nav visibility - hide when scrolling down, show when scrolling up
     useEffect(() => {
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
+            // Hide nav when scrolling down, show when scrolling up or at top
             if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-                // Scrolling down - hide nav
                 setBottomNavVisible(false);
             } else {
-                // Scrolling up - show nav
                 setBottomNavVisible(true);
             }
             lastScrollY.current = currentScrollY;
         };
+
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
@@ -1410,7 +1532,13 @@ export default function SocialMediaPage() {
                 }
 
                 if (authUser) {
-                    const { data: p } = await supabase.from('profiles').select('username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
+                    // Check for profile by id OR by owner_id (allows login access to owned profiles)
+                    let { data: p } = await supabase.from('profiles').select('id, username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
+                    // If no profile found by id, check if user owns another profile via owner_id
+                    if (!p) {
+                        const { data: ownedProfile } = await supabase.from('profiles').select('id, username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('owner_id', authUser.id).maybeSingle();
+                        if (ownedProfile) p = ownedProfile;
+                    }
                     // 👑 Check for God Mode
                     if (p?.role === 'god') {
                         setIsGodMode(true);
@@ -1421,8 +1549,9 @@ export default function SocialMediaPage() {
                         ? p.full_name
                         : (p?.username || authUser.email?.split('@')[0] || 'Player');
                     setUser({
-                        id: authUser.id,
+                        id: p?.id || authUser.id, // Use profile ID if owned, else auth ID
                         name: displayName,
+                        username: p?.username || null,
                         avatar: p?.avatar_url || null,
                         tier: p?.skill_tier,
                         role: p?.role || 'user',
@@ -1434,13 +1563,81 @@ export default function SocialMediaPage() {
                         } : null
                     });
                     await loadContacts(authUser.id);
-                    // Load notifications
+
+                    // 🕐 Update last_active timestamp (powers "last active" status on friends page)
+                    supabase.from('profiles')
+                        .update({ last_active: new Date().toISOString() })
+                        .eq('id', p?.id || authUser.id)
+                        .then(() => console.log('[Social] Updated last_active timestamp'));
+
+                    // Load notifications with actor profile data
                     const { data: notifs } = await supabase.from('notifications')
                         .select('*')
                         .eq('user_id', authUser.id)
                         .order('created_at', { ascending: false })
                         .limit(20);
-                    if (notifs) setNotifications(notifs);
+                    if (notifs && notifs.length > 0) {
+                        // Collect actor IDs from notifications
+                        // The data is stored in the 'data' JSONB column: data.actor_id (social) or data.sender_id (friend requests)
+                        const actorIds = [...new Set(notifs.map(n =>
+                            n.data?.actor_id || n.data?.sender_id || n.actor_id
+                        ).filter(Boolean))];
+
+                        // Also parse actor names from notification titles as fallback
+                        const actorNames = [...new Set(notifs.map(n => {
+                            const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                            return match ? match[1] : null;
+                        }).filter(Boolean))];
+
+                        // Build profile lookup maps
+                        let profileById = {};
+                        let profileByName = {};
+
+                        // Lookup by actor_id if available
+                        if (actorIds.length > 0) {
+                            const { data: profilesById } = await supabase.from('profiles')
+                                .select('id, username, full_name, avatar_url')
+                                .in('id', actorIds);
+                            (profilesById || []).forEach(p => {
+                                profileById[p.id] = p;
+                            });
+                        }
+
+                        // Lookup by full_name as fallback
+                        if (actorNames.length > 0) {
+                            const { data: profilesByName } = await supabase.from('profiles')
+                                .select('id, username, full_name, avatar_url')
+                                .in('full_name', actorNames);
+                            (profilesByName || []).forEach(p => {
+                                if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
+                            });
+                        }
+
+                        // Merge actor profile data into notifications
+                        const enrichedNotifs = notifs.map(n => {
+                            // Get actor ID from the data JSONB column
+                            const actorId = n.data?.actor_id || n.data?.sender_id || n.actor_id;
+                            let profile = actorId ? profileById[actorId] : null;
+
+                            // Fallback to name matching
+                            if (!profile) {
+                                const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                                const actorName = match ? match[1] : null;
+                                profile = actorName ? profileByName[actorName.toLowerCase()] : null;
+                            }
+
+                            // Get display name from data or parse from title
+                            const displayName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
+
+                            return {
+                                ...n,
+                                actor_avatar_url: profile?.avatar_url || n.metadata?.actor_avatar || null,
+                                actor_name: profile?.full_name || displayName,
+                                actor_username: profile?.username || null
+                            };
+                        });
+                        setNotifications(enrichedNotifs);
+                    }
                 } else {
                     console.log('[Social] No authenticated user found');
                 }
@@ -1454,6 +1651,20 @@ export default function SocialMediaPage() {
             setLoading(false);
         })();
     }, []);
+
+    // 🔔 AUTO-MARK NOTIFICATIONS AS READ when dropdown opens
+    useEffect(() => {
+        if (showNotifications && notifications.length > 0 && user) {
+            const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+            if (unreadIds.length > 0) {
+                // Mark all as read IMMEDIATELY
+                (async () => {
+                    await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                })();
+            }
+        }
+    }, [showNotifications, notifications.length, user]);
 
     const loadFeed = async (offset = 0, append = false) => {
         try {
@@ -1534,18 +1745,70 @@ export default function SocialMediaPage() {
 
             if (error) throw error;
 
-            // Check if there are more posts
-            if (!allPostsData || allPostsData.length < POSTS_PER_PAGE) {
-                setHasMorePosts(false);
+            // ♾️ INFINITE SCROLL: Continue as long as we get ANY posts back
+            // Only stop when absolutely no more posts are returned
+            if (!allPostsData || allPostsData.length === 0) {
+                // No posts returned - truly at the end
+                if (feedCycle < MAX_FEED_CYCLES) {
+                    // Loop back from the beginning for endless scroll experience
+                    console.log('[Social] Looping feed - cycle', feedCycle + 1);
+                    setFeedCycle(prev => prev + 1);
+                    setFeedOffset(0);
+                    // Don't set hasMorePosts false - let next scroll trigger the loop
+                } else {
+                    console.log('[Social] Max cycles reached - ending feed');
+                    setHasMorePosts(false);
+                }
             } else {
+                // Got posts - continue infinite scroll
+                console.log(`[Social] Got ${allPostsData.length} posts - continuing scroll`);
                 setHasMorePosts(true);
             }
 
-            // Mark priority posts
+            // 📈 FACEBOOK-STYLE RANKING: Score posts by relevance
+            const calculatePostScore = (post) => {
+                let score = 0;
+
+                // Friends get highest priority (+100)
+                if (friendIds.includes(post.author_id)) score += 100;
+
+                // Following gets medium priority (+50)
+                if (followingIds.includes(post.author_id)) score += 50;
+
+                // Engagement boost
+                score += Math.min((post.like_count || 0) * 2, 30); // Max 30 from likes
+                score += Math.min((post.comment_count || 0) * 3, 30); // Max 30 from comments
+                score += Math.min((post.share_count || 0) * 4, 20); // Max 20 from shares
+
+                // Recency boost - posts less than 24h old get +40
+                const ageHours = (Date.now() - new Date(post.created_at).getTime()) / 3600000;
+                if (ageHours < 6) score += 50; // Very fresh
+                else if (ageHours < 24) score += 40; // Last 24h
+                else if (ageHours < 72) score += 20; // Last 3 days
+
+                // Decay older posts
+                const ageDays = ageHours / 24;
+                score -= Math.min(ageDays * 2, 20); // Max -20 for old posts
+
+                // If we've seen this post before (on loop), reduce score
+                if (seenPostIds.has(post.id)) score -= 30;
+
+                // Add some randomization for variety (+/- 15)
+                score += (Math.random() * 30) - 15;
+
+                return score;
+            };
+
+            // Mark priority posts and calculate scores
             const mixedFeed = (allPostsData || []).map(p => ({
                 ...p,
-                isPriority: priorityUserIds.includes(p.author_id)
+                isPriority: priorityUserIds.includes(p.author_id),
+                score: calculatePostScore(p),
+                isSuggested: feedCycle > 0 // Mark as suggested on loop
             }));
+
+            // Sort by score (Facebook-style ranking)
+            mixedFeed.sort((a, b) => b.score - a.score);
 
             // Fetch author profiles
             if (mixedFeed.length > 0) {
@@ -1568,6 +1831,7 @@ export default function SocialMediaPage() {
                     timeAgo: timeAgo(p.created_at),
                     isLiked: false,
                     isPriority: p.isPriority,
+                    isSuggested: p.isSuggested || false, // Mark as suggested on feed loop
                     isFriend: friendIds.includes(p.author_id),
                     isFollowing: followingIds.includes(p.author_id),
                     author: {
@@ -1579,9 +1843,15 @@ export default function SocialMediaPage() {
                             if (pref === 'username') return a.username || a.full_name || 'Player';
                             return a.full_name || a.username || 'Player';
                         })(),
+                        username: authorMap[p.author_id]?.username || null,
                         avatar: authorMap[p.author_id]?.avatar_url || null
                     }
                 }));
+
+                // Track seen posts for variety on loop
+                const newSeenIds = new Set(seenPostIds);
+                formattedPosts.forEach(p => newSeenIds.add(p.id));
+                setSeenPostIds(newSeenIds);
 
                 if (append) {
                     setPosts(prev => [...prev, ...formattedPosts]);
@@ -1595,40 +1865,87 @@ export default function SocialMediaPage() {
         }
     };
 
+    // ♾️ INFINITE SCROLL: Refs to avoid stale closures in IntersectionObserver
+    const feedOffsetRef = useRef(feedOffset);
+    const hasMorePostsRef = useRef(hasMorePosts);
+    const loadingMoreRef = useRef(loadingMore);
+
+    // Keep refs in sync with state
+    useEffect(() => { feedOffsetRef.current = feedOffset; }, [feedOffset]);
+    useEffect(() => { hasMorePostsRef.current = hasMorePosts; }, [hasMorePosts]);
+    useEffect(() => { loadingMoreRef.current = loadingMore; }, [loadingMore]);
+
     // ♾️ INFINITE SCROLL: Load more posts when scrolling
     const loadMorePosts = async () => {
-        if (loadingMore || !hasMorePosts) return;
-        const newOffset = feedOffset + POSTS_PER_PAGE;
+        console.log('[Social] loadMorePosts called, loadingMore:', loadingMoreRef.current, 'hasMorePosts:', hasMorePostsRef.current);
+        if (loadingMoreRef.current || !hasMorePostsRef.current) return;
+        const newOffset = feedOffsetRef.current + POSTS_PER_PAGE;
+        console.log('[Social] Loading more from offset:', newOffset);
         setFeedOffset(newOffset);
         await loadFeed(newOffset, true);
     };
 
-    // ♾️ INFINITE SCROLL: IntersectionObserver for triggering load
-    useEffect(() => {
-        const observer = new IntersectionObserver(
+    // ♾️ INFINITE SCROLL: Store observer in ref to avoid recreating
+    const observerRef = useRef(null);
+
+    // ♾️ INFINITE SCROLL: Callback ref that attaches observer immediately when element mounts
+    const loadMoreCallbackRef = useCallback((node) => {
+        // Cleanup previous observer if any
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+            observerRef.current = null;
+        }
+
+        // If node is null (unmounting), we're done
+        if (!node) {
+            console.log('[Social] Sentinel unmounted, observer disconnected');
+            return;
+        }
+
+        console.log('[Social] ✅ Sentinel mounted! Attaching IntersectionObserver...');
+
+        // Create and attach new observer
+        observerRef.current = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting && hasMorePosts && !loadingMore) {
+                if (entries[0].isIntersecting) {
+                    console.log('[Social] Sentinel visible! Calling loadMorePosts...');
                     loadMorePosts();
                 }
             },
             { threshold: 0.1, rootMargin: '200px' }
         );
 
-        if (loadMoreRef.current) {
-            observer.observe(loadMoreRef.current);
-        }
-
-        return () => observer.disconnect();
-    }, [hasMorePosts, loadingMore, feedOffset]);
+        observerRef.current.observe(node);
+    }, []); // Empty deps - uses refs for current values
 
     const handlePost = async (content, urls, type, mentions = []) => {
-        if (!user?.id) return false;
+        console.log('[Social] 📝 handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions });
+        console.log('[Social] 📝 User state:', { id: user?.id, name: user?.name, hasUser: !!user });
+
+        if (!user?.id) {
+            console.error('[Social] ❌ Cannot post: user.id is missing!', user);
+            return false;
+        }
+
         setIsPosting(true);
         try {
-            const { data, error } = await supabase.from('social_posts').insert({
-                author_id: user.id, content, content_type: type, media_urls: urls, visibility: 'public'
-            }).select().single();
-            if (error) throw error;
+            const insertPayload = {
+                author_id: user.id,
+                content,
+                content_type: type,
+                media_urls: urls,
+                visibility: 'public'
+            };
+            console.log('[Social] 📝 Inserting post with payload:', insertPayload);
+
+            const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().single();
+
+            if (error) {
+                console.error('[Social] ❌ Supabase insert error:', error.message, error.details, error.hint, error.code);
+                throw error;
+            }
+
+            console.log('[Social] ✅ Post created successfully:', data?.id);
 
             // Insert mentions if any
             if (mentions.length > 0 && data?.id) {
@@ -1676,9 +1993,13 @@ export default function SocialMediaPage() {
             setPosts(prev => [{
                 id: data.id, authorId: user.id, content, contentType: type,
                 mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
-                timeAgo: 'Just now', isLiked: false,
-                author: { name: user.name, avatar: user.avatar }
+                timeAgo: 'Just now', isLiked: false, justPosted: true, // Mark as just posted for highlight
+                author: { name: user.name, username: user.username, avatar: user.avatar }
             }, ...prev]);
+
+            // Scroll to top of feed so user sees their new post immediately (Facebook behavior)
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
             return true;
         } catch (e) { console.error('Post error:', e); return false; }
         finally { setIsPosting(false); }
@@ -1810,41 +2131,36 @@ export default function SocialMediaPage() {
         <PageTransition>
             <Head>
                 <title>Social Hub | Smarter.Poker</title>
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
-                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
-                    html, body { background: ${C.bg} !important; }
+                    /* Facebook-style Responsive Layout - NO ZOOM, proper mobile sizing */
+                    html, body { 
+                        background: ${C.bg} !important; 
+                        margin: 0;
+                        padding: 0;
+                    }
                     
                     .social-page-container {
-                        width: 800px;
-                        max-width: 800px;
+                        width: 100%;
+                        max-width: 680px;
                         margin: 0 auto;
+                        min-height: 100vh;
                         overflow-x: hidden;
                     }
                     
-                    /* Mobile phones (390-450px) - zoom to ~50% */
-                    @media (max-width: 500px) {
-                        .social-page-container { zoom: 0.5; }
+                    /* Mobile-first: Full width on phones, centered on larger screens */
+                    @media (max-width: 680px) {
+                        .social-page-container {
+                            max-width: 100%;
+                            padding: 0;
+                        }
                     }
                     
-                    /* Large phones / small tablets (501-700px) */
-                    @media (min-width: 501px) and (max-width: 700px) {
-                        .social-page-container { zoom: 0.75; }
-                    }
-                    
-                    /* Tablets (701-900px) */
-                    @media (min-width: 701px) and (max-width: 900px) {
-                        .social-page-container { zoom: 0.95; }
-                    }
-                    
-                    /* Desktop (901px+) - slight scale up */
-                    @media (min-width: 901px) {
-                        .social-page-container { zoom: 1.2; }
-                    }
-                    
-                    /* Large desktop (1400px+) - cap at 1.5x */
-                    @media (min-width: 1400px) {
-                        .social-page-container { zoom: 1.5; }
+                    /* Desktop: Centered column with max-width */
+                    @media (min-width: 681px) {
+                        .social-page-container {
+                            padding: 0 16px;
+                        }
                     }
                 `}</style>
             </Head>
@@ -1989,24 +2305,12 @@ export default function SocialMediaPage() {
             </div>
 
             <div style={{ minHeight: '100vh', background: '#0a0e1a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', paddingBottom: 70 }}>
-                {/* Hub-Style Header */}
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <button
-                        onClick={() => setSidebarOpen(true)}
-                        style={{
-                            background: 'none', border: 'none', fontSize: 24, cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            width: 50, height: 56, marginLeft: 4, color: 'white'
-                        }}
-                    >☰</button>
-                    <div style={{ flex: 1 }}>
-                        <UniversalHeader
-                            pageDepth={1}
-                            showSearch={true}
-                            onSearchClick={() => setShowGlobalSearch(!showGlobalSearch)}
-                        />
-                    </div>
-                </div>
+                {/* Standard Hub Header - DO NOT MODIFY - see /social-feed-protection workflow */}
+                <UniversalHeader
+                    pageDepth={1}
+                    showSearch={true}
+                    onSearchClick={() => setShowGlobalSearch(!showGlobalSearch)}
+                />
 
                 {/* Global Search Overlay */}
                 {showGlobalSearch && (
@@ -2140,38 +2444,59 @@ export default function SocialMediaPage() {
                                 No notifications yet
                             </div>
                         ) : (
-                            notifications.map(n => (
-                                <div
-                                    key={n.id}
-                                    onClick={async () => {
-                                        if (!n.read) {
-                                            await supabase.from('notifications').update({ read: true }).eq('id', n.id);
-                                            setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
-                                        }
-                                    }}
-                                    style={{
-                                        padding: 12, borderBottom: `1px solid ${C.border}`,
-                                        display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer',
-                                        background: n.read ? 'transparent' : 'rgba(24, 119, 242, 0.05)'
-                                    }}
-                                >
-                                    <div style={{
-                                        width: 48, height: 48, borderRadius: '50%', background: C.blue,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: 24, flexShrink: 0
-                                    }}>
-                                        {n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : '🔔'}
+                            notifications.map(n => {
+                                // Get action icon based on type
+                                const actionIcon = n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : n.type === 'live' ? '🔴' : '🔔';
+                                const iconBg = n.type === 'like' ? '#1877F2' : n.type === 'comment' ? '#44BD32' : n.type === 'live' ? '#FA383E' : n.type === 'friend_request' ? '#1877F2' : '#65676B';
+
+                                return (
+                                    <div
+                                        key={n.id}
+                                        onClick={() => {
+                                            setShowNotifications(false);
+                                            if (n.actor_username) {
+                                                router.push(`/hub/user/${n.actor_username}`);
+                                            }
+                                        }}
+                                        style={{
+                                            padding: 12, borderBottom: `1px solid ${C.border}`,
+                                            display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer',
+                                            background: n.read ? 'transparent' : 'rgba(24, 119, 242, 0.08)'
+                                        }}
+                                    >
+                                        {/* Facebook-style avatar with action icon */}
+                                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                                            <img
+                                                src={n.actor_avatar_url || n.metadata?.actor_avatar || '/default-avatar.png'}
+                                                style={{
+                                                    width: 56, height: 56, borderRadius: '50%',
+                                                    objectFit: 'cover', border: '2px solid #ddd'
+                                                }}
+                                            />
+                                            {/* Action type icon overlay */}
+                                            <div style={{
+                                                position: 'absolute', bottom: -2, right: -2,
+                                                width: 24, height: 24, borderRadius: '50%',
+                                                background: iconBg, border: '2px solid white',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: 12
+                                            }}>{actionIcon}</div>
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: 14, color: C.text, lineHeight: 1.4 }}>
+                                                <span style={{ fontWeight: 700 }}>{n.actor_name || n.metadata?.actor_name || n.title}</span>
+                                                {' '}{n.message}
+                                            </div>
+                                            <div style={{ fontSize: 12, color: n.read ? C.textSec : C.blue, marginTop: 4, fontWeight: n.read ? 400 : 600 }}>
+                                                {timeAgo(n.created_at)}
+                                            </div>
+                                        </div>
+                                        {!n.read && (
+                                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 8 }} />
+                                        )}
                                     </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{n.title}</div>
-                                        <div style={{ fontSize: 13, color: C.textSec, marginTop: 2 }}>{n.message}</div>
-                                        <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>{timeAgo(n.created_at)}</div>
-                                    </div>
-                                    {!n.read && (
-                                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 6 }} />
-                                    )}
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 )}
@@ -2179,7 +2504,7 @@ export default function SocialMediaPage() {
                 {/* Main Feed - 800px Design Canvas */}
                 <main className="social-page-container" style={{ padding: '8px' }}>
                     {/* Stories Bar */}
-                    {user && <StoriesBar userId={user.id} />}
+                    {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
 
                     {/* Post Creator */}
                     {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} />}
@@ -2226,14 +2551,22 @@ export default function SocialMediaPage() {
                             {/* Render posts with Reels carousel inserted after every 3 posts */}
                             {posts.map((p, index) => (
                                 <>
-                                    <PostCard key={p.id} post={{ ...p, isGodMode }} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />
+                                    <PostCard
+                                        key={p.id}
+                                        post={{ ...p, isGodMode }}
+                                        currentUserId={user?.id}
+                                        currentUserName={user?.name}
+                                        onLike={handleLike}
+                                        onDelete={handleDelete}
+                                        onOpenArticle={(url) => setArticleReader({ open: true, url, title: p.link_title || null })}
+                                    />
                                     {/* Insert Reels carousel after 3rd post */}
                                     {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
                                 </>
                             ))}
 
                             {/* ♾️ INFINITE SCROLL: Load more trigger */}
-                            <div ref={loadMoreRef} style={{
+                            <div ref={loadMoreCallbackRef} style={{
                                 padding: '20px',
                                 textAlign: 'center',
                                 minHeight: 60
@@ -2258,8 +2591,8 @@ export default function SocialMediaPage() {
                                     </div>
                                 )}
                                 {!hasMorePosts && posts.length > 0 && (
-                                    <p style={{ color: C.textSec, fontSize: 14 }}>
-                                        🎉 You've seen all the posts!
+                                    <p style={{ color: C.textSec, fontSize: 14, textAlign: 'center' }}>
+                                        You're all caught up! Check back later for new content.
                                     </p>
                                 )}
                             </div>
@@ -2302,7 +2635,6 @@ export default function SocialMediaPage() {
                         textDecoration: 'none', color: C.textSec, flex: 1, padding: '8px 4px', minWidth: 50, position: 'relative'
                     }}>
                         <span style={{ fontSize: 22 }}>👥</span>
-                        <div style={{ position: 'absolute', top: 4, right: 'calc(50% - 20px)', background: C.red, color: 'white', borderRadius: '50%', width: 16, height: 16, fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, pointerEvents: 'none' }}>1</div>
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Friends</span>
                     </Link>
                     <Link href="/hub/club-arena" style={{
@@ -2360,6 +2692,15 @@ export default function SocialMediaPage() {
                     />
                 )}
             </div>
+
+            {/* In-App Article Reader Modal */}
+            {articleReader.open && (
+                <ArticleReaderModal
+                    url={articleReader.url}
+                    title={articleReader.title}
+                    onClose={() => setArticleReader({ open: false, url: null, title: null })}
+                />
+            )}
         </PageTransition>
     );
 }

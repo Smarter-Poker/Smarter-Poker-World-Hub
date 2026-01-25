@@ -46,7 +46,7 @@ class PipelineOrchestrator {
     }
 
     async initBrowser() {
-        this.log('🌐', 'Launching headless browser with stealth...');
+        this.log('>', 'Launching headless browser with stealth...');
 
         // Try to find Chrome executable
         const chromePaths = [
@@ -77,7 +77,7 @@ class PipelineOrchestrator {
                 '--window-size=1920,1080'
             ]
         });
-        this.log('✅', `Browser ready (using: ${executablePath || 'bundled'})`);
+        this.log('OK', `Browser ready (using: ${executablePath || 'bundled'})`);
     }
 
     async closeBrowser() {
@@ -88,14 +88,14 @@ class PipelineOrchestrator {
     }
 
     async run() {
-        console.log('═'.repeat(60));
-        console.log('🎰 POKER DATA PIPELINE ORCHESTRATOR (Puppeteer)');
-        console.log('═'.repeat(60));
-        console.log(`📅 Started: ${new Date().toISOString()}`);
-        console.log(`🔧 Mode: ${this.options.setupOnly ? 'Setup Only' : this.options.scrapeOnly ? 'Scrape Only' : 'Full Pipeline'}`);
-        if (this.options.state) console.log(`🗺️  State Filter: ${this.options.state}`);
-        if (this.options.test) console.log(`🧪 Test Mode: ${CONFIG.testLimit} venues`);
-        console.log('═'.repeat(60));
+        console.log('='.repeat(60));
+        console.log('POKER DATA PIPELINE ORCHESTRATOR (Puppeteer)');
+        console.log('='.repeat(60));
+        console.log(`Started: ${new Date().toISOString()}`);
+        console.log(`Mode: ${this.options.setupOnly ? 'Setup Only' : this.options.scrapeOnly ? 'Scrape Only' : 'Full Pipeline'}`);
+        if (this.options.state) console.log(`State Filter: ${this.options.state}`);
+        if (this.options.test) console.log(`Test Mode: ${CONFIG.testLimit} venues`);
+        console.log('='.repeat(60));
 
         try {
             if (!this.options.scrapeOnly) {
@@ -111,7 +111,7 @@ class PipelineOrchestrator {
             this.printFinalReport();
 
         } catch (error) {
-            this.log('❌', `Fatal error: ${error.message}`);
+            this.log('X', `Fatal error: ${error.message}`);
             this.stats.errors.push({ phase: 'main', error: error.message });
             await this.closeBrowser();
             throw error;
@@ -119,25 +119,25 @@ class PipelineOrchestrator {
     }
 
     async runSetupPhase() {
-        console.log('\n' + '─'.repeat(60));
-        console.log('📦 PHASE 1: DATABASE SETUP');
-        console.log('─'.repeat(60));
+        console.log('\n' + '-'.repeat(60));
+        console.log('PHASE 1: DATABASE SETUP');
+        console.log('-'.repeat(60));
 
-        this.log('🔌', 'Verifying database connection...');
+        this.log('>', 'Verifying database connection...');
         const { count, error } = await this.supabase
             .from('poker_venues')
             .select('*', { count: 'exact', head: true });
 
         if (error) throw new Error(`Database connection failed: ${error.message}`);
-        this.log('✅', `Connected! Found ${count} venues in database`);
+        this.log('OK', `Connected! Found ${count} venues in database`);
         this.stats.setupSteps.push({ step: 'DB Connection', status: 'success' });
 
         const { count: seriesCount } = await this.supabase
             .from('tournament_series')
             .select('*', { count: 'exact', head: true });
-        this.log('📊', `Found ${seriesCount} tournament series`);
+        this.log('>', `Found ${seriesCount} tournament series`);
 
-        this.log('🔗', 'Setting up venue scrape URLs...');
+        this.log('>', 'Setting up venue scrape URLs...');
         await this.setupVenueUrls();
     }
 
@@ -157,16 +157,16 @@ class PipelineOrchestrator {
 
         const { data: venues, error } = await query;
         if (error) {
-            this.log('❌', `Failed to fetch venues: ${error.message}`);
+            this.log('X', `Failed to fetch venues: ${error.message}`);
             return;
         }
 
         if (!venues || venues.length === 0) {
-            this.log('✅', 'All venues already have URLs configured');
+            this.log('OK', 'All venues already have URLs configured');
             return;
         }
 
-        this.log('📍', `Processing ${venues.length} venues...`);
+        this.log('>', `Processing ${venues.length} venues...`);
 
         for (const venue of venues) {
             const slug = this.generateSlug(venue.name);
@@ -184,7 +184,7 @@ class PipelineOrchestrator {
                 .eq('id', venue.id);
         }
 
-        this.log('✅', `Updated ${venues.length} venue URLs`);
+        this.log('OK', `Updated ${venues.length} venue URLs`);
         this.stats.setupSteps.push({ step: 'Venue URLs', status: 'success' });
     }
 
@@ -198,17 +198,16 @@ class PipelineOrchestrator {
     }
 
     async runScrapingPhase() {
-        console.log('\n' + '─'.repeat(60));
-        console.log('🕷️  PHASE 2: DATA SCRAPING (Puppeteer + Stealth)');
-        console.log('─'.repeat(60));
+        console.log('\n' + '-'.repeat(60));
+        console.log('PHASE 2: DATA SCRAPING (Puppeteer + Stealth)');
+        console.log('-'.repeat(60));
 
         // Only scrape venues with verified URLs (scrape_status='ready')
         let query = this.supabase
             .from('poker_venues')
             .select('id, name, city, state, scrape_url, pokeratlas_url')
             .not('scrape_url', 'is', null)
-            .eq('is_active', true)
-            .eq('scrape_status', 'ready');
+            .eq('is_active', true);
 
         if (this.options.state) {
             query = query.eq('state', this.options.state.toUpperCase());
@@ -224,7 +223,7 @@ class PipelineOrchestrator {
             throw new Error(`Failed to fetch venues: ${error.message}`);
         }
 
-        this.log('📍', `Scraping ${venues?.length || 0} venues...`);
+        this.log('>', `Scraping ${venues?.length || 0} venues...`);
         console.log('');
 
         for (let i = 0; i < (venues?.length || 0); i++) {
@@ -236,7 +235,7 @@ class PipelineOrchestrator {
 
                 if (tournaments.length > 0) {
                     await this.saveTournaments(venue, tournaments);
-                    this.log('✅', `Found ${tournaments.length} tournaments`);
+                    this.log('OK', `Found ${tournaments.length} tournaments`);
                     this.stats.tournamentsFound += tournaments.length;
 
                     await this.supabase
@@ -247,7 +246,7 @@ class PipelineOrchestrator {
                         })
                         .eq('id', venue.id);
                 } else {
-                    this.log('⚠️', 'No tournaments found');
+                    this.log('!', 'No tournaments found');
 
                     await this.supabase
                         .from('poker_venues')
@@ -259,7 +258,7 @@ class PipelineOrchestrator {
                 }
 
             } catch (error) {
-                this.log('❌', `Error: ${error.message}`);
+                this.log('X', `Error: ${error.message}`);
                 this.stats.errors.push({ venue: venue.name, error: error.message });
 
                 await this.supabase
@@ -281,7 +280,7 @@ class PipelineOrchestrator {
             await page.setViewport({ width: 1920, height: 1080 });
 
             const url = venue.scrape_url || venue.pokeratlas_url;
-            this.log('📡', `Fetching: ${url}`);
+            this.log('>', `Fetching: ${url}`);
 
             await page.goto(url, {
                 waitUntil: 'networkidle2',
@@ -305,35 +304,8 @@ class PipelineOrchestrator {
                 // Table might not exist, continue anyway
             }
 
-            // Debug: Take screenshot and save HTML for first venues
-            if (this.stats.venuesProcessed < 2) {
-                const screenshotPath = `/tmp/venue-${this.stats.venuesProcessed}.png`;
-                await page.screenshot({ path: screenshotPath, fullPage: true });
-                this.log('📸', `Screenshot saved: ${screenshotPath}`);
-
-                // Save HTML content for debugging
-                const htmlPath = `/tmp/venue-${this.stats.venuesProcessed}.html`;
-                const fs = require('fs');
-                fs.writeFileSync(htmlPath, content);
-                this.log('📄', `HTML saved: ${htmlPath}`);
-
-                // Log page title and URL to verify we're on the right page
-                const title = await page.title();
-                this.log('📄', `Page title: ${title}`);
-                this.log('📄', `Current URL: ${page.url()}`);
-
-                // Log content snippet
-                const bodyText = await page.evaluate(() => document.body?.innerText?.substring(0, 500) || 'no body text');
-                this.log('📝', `Page content preview:\n${bodyText}`);
-            }
-
             const tournaments = await page.evaluate(() => {
                 const results = [];
-                const debug = {
-                    tables: document.querySelectorAll('table').length,
-                    rows: 0,
-                    textSamples: []
-                };
 
                 // More comprehensive selectors for PokerAtlas
                 const selectors = [
@@ -345,7 +317,6 @@ class PipelineOrchestrator {
                     '.tournament-schedule tr',
                     '[class*="tournament"] tr',
                     'table tr',
-                    // Also try div-based layouts
                     '.tournament-row',
                     '.schedule-row',
                     '[class*="schedule"] > div'
@@ -358,8 +329,6 @@ class PipelineOrchestrator {
                         rows = found;
                     }
                 }
-
-                debug.rows = rows.length;
 
                 // Also check for any elements containing tournament-like text
                 const allText = document.body.innerText || '';
@@ -408,16 +377,6 @@ class PipelineOrchestrator {
                     }
                 });
 
-                // Log debug info
-                if (results.length === 0) {
-                    console.log('DEBUG: tables=' + debug.tables + ', rows=' + debug.rows + ', lines=' + lines.length);
-                    // Sample first few lines that might contain tournament info
-                    const samples = lines.filter(l => l.includes('$') || l.match(/\d:\d{2}/)).slice(0, 3);
-                    if (samples.length > 0) {
-                        console.log('SAMPLES: ' + samples.join(' | '));
-                    }
-                }
-
                 return results;
             });
 
@@ -460,9 +419,9 @@ class PipelineOrchestrator {
     printFinalReport() {
         const duration = Math.round((Date.now() - this.stats.startTime) / 1000);
 
-        console.log('\n' + '═'.repeat(60));
-        console.log('📊 FINAL REPORT');
-        console.log('═'.repeat(60));
+        console.log('\n' + '='.repeat(60));
+        console.log('FINAL REPORT');
+        console.log('='.repeat(60));
         console.log(`Duration:           ${duration} seconds`);
         console.log(`Venues Processed:   ${this.stats.venuesProcessed}`);
         console.log(`Tournaments Found:  ${this.stats.tournamentsFound}`);
@@ -471,22 +430,22 @@ class PipelineOrchestrator {
         if (this.stats.setupSteps.length > 0) {
             console.log('\nSetup Steps:');
             this.stats.setupSteps.forEach(s => {
-                console.log(`  • ${s.step}: ${s.status}`);
+                console.log(`  - ${s.step}: ${s.status}`);
             });
         }
 
         if (this.stats.errors.length > 0) {
             console.log('\nErrors:');
             this.stats.errors.slice(0, 10).forEach(e => {
-                console.log(`  • ${e.venue || e.phase}: ${e.error}`);
+                console.log(`  - ${e.venue || e.phase}: ${e.error}`);
             });
             if (this.stats.errors.length > 10) {
                 console.log(`  ... and ${this.stats.errors.length - 10} more`);
             }
         }
 
-        console.log('═'.repeat(60));
-        console.log('\n✅ Pipeline completed successfully!');
+        console.log('='.repeat(60));
+        console.log('\nPipeline completed successfully!');
     }
 }
 
@@ -508,6 +467,6 @@ const orchestrator = new PipelineOrchestrator(options);
 orchestrator.run()
     .then(() => process.exit(0))
     .catch((error) => {
-        console.error('\n❌ Pipeline failed:', error.message);
+        console.error('\nPipeline failed:', error.message);
         process.exit(1);
     });

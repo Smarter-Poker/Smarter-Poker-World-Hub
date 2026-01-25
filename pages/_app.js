@@ -17,7 +17,48 @@ import { UnreadProvider } from '../src/hooks/useUnreadCount';
 import { SoundEngine } from '../src/audio/SoundEngine';
 import { AvatarProvider } from '../src/contexts/AvatarContext';
 import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
+import { OneSignalProvider } from '../src/contexts/OneSignalContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
+import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CACHE BUSTER — Clears stale caches on new deploys
+// Uses build timestamp to detect version changes
+// ═══════════════════════════════════════════════════════════════════════════
+const BUILD_VERSION = process.env.NEXT_PUBLIC_BUILD_ID || process.env.VERCEL_GIT_COMMIT_SHA || Date.now().toString();
+
+if (typeof window !== 'undefined') {
+  const CACHE_VERSION_KEY = 'smarter_poker_cache_version';
+  const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+
+  if (storedVersion && storedVersion !== BUILD_VERSION) {
+    console.log('[Cache Buster] New version detected! Clearing caches...');
+    console.log(`[Cache Buster] Old: ${storedVersion.slice(0, 8)}, New: ${BUILD_VERSION.slice(0, 8)}`);
+
+    // Clear all caches
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => {
+          console.log(`[Cache Buster] Deleting cache: ${name}`);
+          caches.delete(name);
+        });
+      });
+    }
+
+    // Unregister all service workers (except OneSignal will re-register itself)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          console.log('[Cache Buster] Unregistering service worker');
+          registration.unregister();
+        });
+      });
+    }
+  }
+
+  // Store current version
+  localStorage.setItem(CACHE_VERSION_KEY, BUILD_VERSION);
+}
 
 // Dynamic import to avoid SSR issues with celebration animations
 const CelebrationManager = dynamic(
@@ -56,6 +97,8 @@ function NavigationGuard({ children }) {
 
         // Look for existing Supabase auth sessions with old auto-generated keys
         let migratedSession = false;
+        const oldKeysToRemove = [];
+
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
           if (key && key.startsWith('sb-') && key.includes('-auth-token')) {
@@ -67,11 +110,20 @@ function NavigationGuard({ children }) {
                 console.log(`[Auth Migration v6] Migrated session from ${key} to ${NEW_AUTH_KEY}`);
                 migratedSession = true;
               }
+              // CRITICAL: Remove old Supabase key to prevent token refresh failure loop
+              // If old key exists, Supabase will try to refresh it → 400 error → SIGNED_OUT
+              oldKeysToRemove.push(key);
             } catch (e) {
               console.warn('[Auth Migration v6] Failed to migrate:', e);
             }
           }
         }
+
+        // Remove old Supabase auth keys AFTER migration completes
+        oldKeysToRemove.forEach(key => {
+          console.log(`[Auth Migration v6] Removing old key: ${key.substring(0, 20)}...`);
+          localStorage.removeItem(key);
+        });
 
         // Also clear any corrupted keys with newlines
         const keysToRemove = [];
@@ -192,11 +244,14 @@ export default function App({ Component, pageProps }) {
         <UnreadProvider>
           <AvatarProvider>
             <ExternalLinkProvider>
-              <NavigationGuard>
-                <Component {...pageProps} />
-                <CelebrationManager />
-                <ToastContainer />
-              </NavigationGuard>
+              <OneSignalProvider>
+                <NavigationGuard>
+                  <Component {...pageProps} />
+                  <CelebrationManager />
+                  <ToastContainer />
+                  <GlobalNotificationPrompt />
+                </NavigationGuard>
+              </OneSignalProvider>
             </ExternalLinkProvider>
           </AvatarProvider>
         </UnreadProvider>

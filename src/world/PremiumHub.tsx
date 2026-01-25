@@ -608,7 +608,7 @@ export default function PremiumHub() {
                     zIndex: 50,
                 }}
             >
-                <BottomCard label="NEWS" onClick={() => router.push('/hub/news')} />
+                <BottomCard imageUrl="/images/news_card_art.png" label="NEWS" onClick={() => router.push('/hub/news')} />
                 <BottomCard label="LEADERBOARD" onClick={() => router.push('/hub/leaderboard')} />
                 <BottomCard label="SETTINGS" onClick={() => router.push('/hub/settings')} />
             </div>

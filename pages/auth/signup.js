@@ -40,7 +40,9 @@ export default function SignUpPage() {
         email: '',
         password: '',
         confirmPassword: '',
-        birthdate: '',
+        birthMonth: '',
+        birthDay: '',
+        birthYear: '',
         city: '',
         state: '',
         pokerAlias: '',
@@ -72,6 +74,15 @@ export default function SignUpPage() {
     const [verificationCode, setVerificationCode] = useState('');
     const [verifying, setVerifying] = useState(false);
 
+    // SMS Phone Verification State
+    const [phoneVerified, setPhoneVerified] = useState(false);
+    const [phoneSendingOtp, setPhoneSendingOtp] = useState(false);
+    const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+    const [phoneOtp, setPhoneOtp] = useState('');
+    const [phoneVerifying, setPhoneVerifying] = useState(false);
+    const [phoneError, setPhoneError] = useState('');
+    const [phoneOtpCooldown, setPhoneOtpCooldown] = useState(0);
+
     // Animated glow effect
     useEffect(() => {
         let frame;
@@ -85,11 +96,18 @@ export default function SignUpPage() {
         return () => cancelAnimationFrame(frame);
     }, []);
 
-    // Check alias availability with debounce
+    // Check alias availability with debounce (3-20 characters allowed)
     useEffect(() => {
+        // Must be 3-20 characters
         if (formData.pokerAlias.length < 3) {
             setAliasAvailable(null);
             setAliasError('');
+            return;
+        }
+
+        if (formData.pokerAlias.length > 20) {
+            setAliasAvailable(false);
+            setAliasError('Alias must be 20 characters or less');
             return;
         }
 
@@ -98,20 +116,37 @@ export default function SignUpPage() {
             setAliasError('');
 
             try {
+                // Use RPC function that bypasses RLS for unauthenticated users
                 const { data, error } = await supabase
-                    .from('profiles')
-                    .select('username')
-                    .ilike('username', formData.pokerAlias)
-                    .limit(1);
+                    .rpc('check_username_available', { p_username: formData.pokerAlias });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Alias check RPC error:', error);
+                    // Fallback to direct query if RPC doesn't exist
+                    const { data: fallbackData, error: fallbackError } = await supabase
+                        .from('profiles')
+                        .select('username')
+                        .ilike('username', formData.pokerAlias)
+                        .limit(1);
 
-                if (data && data.length > 0) {
-                    setAliasAvailable(false);
-                    setAliasError('This alias is already taken');
+                    if (fallbackError) throw fallbackError;
+
+                    if (fallbackData && fallbackData.length > 0) {
+                        setAliasAvailable(false);
+                        setAliasError('This alias is already taken');
+                    } else {
+                        setAliasAvailable(true);
+                        setAliasError('');
+                    }
                 } else {
-                    setAliasAvailable(true);
-                    setAliasError('');
+                    // RPC returns true if available, false if taken
+                    if (data === true) {
+                        setAliasAvailable(true);
+                        setAliasError('');
+                    } else {
+                        setAliasAvailable(false);
+                        setAliasError('This alias is already taken');
+                    }
                 }
             } catch (err) {
                 console.error('Alias check error:', err);
@@ -131,6 +166,93 @@ export default function SignUpPage() {
         if (cleaned.length <= 6) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
         return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
     };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SMS PHONE VERIFICATION FUNCTIONS
+    // ─────────────────────────────────────────────────────────────────────────
+    const sendPhoneOtp = async () => {
+        const cleanPhone = formData.phone.replace(/\D/g, '');
+        if (cleanPhone.length !== 10) {
+            setPhoneError('Please enter a valid 10-digit phone number');
+            return;
+        }
+
+        setPhoneSendingOtp(true);
+        setPhoneError('');
+
+        try {
+            const res = await fetch('/api/sms/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: cleanPhone }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Failed to send code');
+            }
+
+            setPhoneOtpSent(true);
+            // Start 60-second cooldown
+            setPhoneOtpCooldown(60);
+            const interval = setInterval(() => {
+                setPhoneOtpCooldown(prev => {
+                    if (prev <= 1) {
+                        clearInterval(interval);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        } catch (err) {
+            setPhoneError(err.message);
+        } finally {
+            setPhoneSendingOtp(false);
+        }
+    };
+
+    const verifyPhoneOtp = async () => {
+        if (phoneOtp.length !== 6) {
+            setPhoneError('Please enter the 6-digit code');
+            return;
+        }
+
+        setPhoneVerifying(true);
+        setPhoneError('');
+
+        try {
+            const cleanPhone = formData.phone.replace(/\D/g, '');
+            const res = await fetch('/api/sms/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: cleanPhone, code: phoneOtp }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Verification failed');
+            }
+
+            setPhoneVerified(true);
+            setPhoneError('');
+        } catch (err) {
+            setPhoneError(err.message);
+        } finally {
+            setPhoneVerifying(false);
+        }
+    };
+
+    // Reset phone verification if phone number changes
+    useEffect(() => {
+        if (phoneVerified || phoneOtpSent) {
+            setPhoneVerified(false);
+            setPhoneOtpSent(false);
+            setPhoneOtp('');
+            setPhoneError('');
+        }
+    }, [formData.phone]);
 
     // Validate email format
     const isValidEmail = (email) => {
@@ -155,6 +277,11 @@ export default function SignUpPage() {
             return;
         }
 
+        if (formData.pokerAlias.length > 20) {
+            setError('Poker alias must be 20 characters or less');
+            return;
+        }
+
         if (!isValidEmail(formData.email)) {
             setError('Please enter a valid email address');
             return;
@@ -170,12 +297,12 @@ export default function SignUpPage() {
             return;
         }
 
-        // Birthdate validation - must be 18+
-        if (!formData.birthdate) {
-            setError('Please enter your birth date');
+        // Birthdate validation - must be 18+ (using dropdown values)
+        if (!formData.birthMonth || !formData.birthDay || !formData.birthYear) {
+            setError('Please select your complete birth date');
             return;
         }
-        const birthDate = new Date(formData.birthdate);
+        const birthDate = new Date(`${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`);
         const today = new Date();
         const age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -244,46 +371,86 @@ export default function SignUpPage() {
                     if (profileData && profileData.length > 0) {
                         setAssignedPlayerNumber(profileData[0].player_number);
                     }
+
+                    // CRITICAL: Also create user_diamond_balance record (header reads from this table)
+                    await supabase
+                        .from('user_diamond_balance')
+                        .upsert({
+                            user_id: authData.user.id,
+                            balance: 300, // Starting diamonds bonus
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
+                        }, {
+                            onConflict: 'user_id',
+                        });
                 } catch (rpcErr) {
                     // Fallback to direct insert
                     console.log('Fallback: Direct profile insert');
-                    const { error: insertError } = await supabase
+
+                    // Get the next player number (max + 1)
+                    const { data: maxData } = await supabase
                         .from('profiles')
-                        .upsert({
-                            id: authData.user.id,
+                        .select('player_number')
+                        .order('player_number', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    const nextPlayerNumber = (maxData?.player_number || 1254) + 1;
+                    console.log('Updating profile for user:', authData.user.id);
+
+                    // UPDATE the profile created by the database trigger
+                    // The trigger creates the profile with correct id = auth.user.id
+                    // We just need to add/update the additional fields
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({
                             full_name: formData.fullName,
-                            email: formData.email,
                             phone: cleanPhoneFormatted,
                             city: formData.city,
                             state: formData.state,
                             username: formData.pokerAlias,
-                            xp_total: 50, // Starting XP bonus
-                            diamonds: 300, // Starting diamonds bonus (NO PURCHASE NECESSARY)
+                            player_number: nextPlayerNumber,
+                            xp_total: 100, // Starting XP bonus
+                            diamonds: 300, // Starting diamonds bonus
                             diamond_multiplier: 1.0,
-                            streak_days: 0,
+                            streak_count: 0,
                             skill_tier: 'Newcomer',
-                            // Restricted Tier flagging for WA, ID, MI, NV, CA
                             access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
-                            created_at: new Date().toISOString(),
                             last_login: new Date().toISOString(),
-                        }, {
-                            onConflict: 'id',
-                        });
+                        })
+                        .eq('id', authData.user.id);
 
-                    if (insertError) {
-                        console.error('Profile insert error:', insertError);
+                    if (updateError) {
+                        console.error('Profile update error:', updateError);
+                        // If update fails (profile doesn't exist yet), try insert as fallback
+                        const { error: insertError } = await supabase
+                            .from('profiles')
+                            .insert({
+                                id: authData.user.id,
+                                full_name: formData.fullName,
+                                email: formData.email,
+                                phone: cleanPhoneFormatted,
+                                city: formData.city,
+                                state: formData.state,
+                                username: formData.pokerAlias,
+                                player_number: nextPlayerNumber,
+                                xp_total: 100,
+                                diamonds: 300,
+                                diamond_multiplier: 1.0,
+                                streak_count: 0,
+                                skill_tier: 'Newcomer',
+                                access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
+                                created_at: new Date().toISOString(),
+                                last_login: new Date().toISOString(),
+                            });
+
+                        if (insertError) {
+                            console.error('Profile insert fallback error:', insertError);
+                        }
                     }
 
-                    // Try to get player number
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('player_number')
-                        .eq('id', authData.user.id)
-                        .single();
-
-                    if (profile?.player_number) {
-                        setAssignedPlayerNumber(profile.player_number);
-                    }
+                    // Set the assigned player number
+                    setAssignedPlayerNumber(nextPlayerNumber);
                 }
             }
 
@@ -422,7 +589,7 @@ export default function SignUpPage() {
                                     type="text"
                                     value={formData.fullName}
                                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                                    placeholder="John Smith"
+                                    placeholder=""
                                     style={styles.inputSingle}
                                     required
                                 />
@@ -435,7 +602,7 @@ export default function SignUpPage() {
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    placeholder="you@example.com"
+                                    placeholder=""
                                     style={styles.inputSingle}
                                     required
                                 />
@@ -449,7 +616,7 @@ export default function SignUpPage() {
                                         type={showPassword ? 'text' : 'password'}
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        placeholder="••••••••"
+                                        placeholder=""
                                         style={styles.inputSingle}
                                         minLength={6}
                                         required
@@ -483,7 +650,7 @@ export default function SignUpPage() {
                                         type={showConfirmPassword ? 'text' : 'password'}
                                         value={formData.confirmPassword}
                                         onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                        placeholder="••••••••"
+                                        placeholder=""
                                         style={styles.inputSingle}
                                         minLength={6}
                                         required
@@ -517,17 +684,56 @@ export default function SignUpPage() {
                                 </button>
                             </div>
 
-                            {/* Birthdate - 18+ Verification */}
+                            {/* Birthdate - 18+ Verification - Dropdown Selectors */}
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Date of Birth <span style={styles.labelHint}>(must be 18+)</span></label>
-                                <input
-                                    type="date"
-                                    value={formData.birthdate}
-                                    onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
-                                    style={styles.inputSingle}
-                                    max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                                    required
-                                />
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    {/* Month Dropdown */}
+                                    <select
+                                        value={formData.birthMonth || ''}
+                                        onChange={(e) => setFormData({ ...formData, birthMonth: e.target.value })}
+                                        style={{ ...styles.selectInput, flex: 1.5 }}
+                                        required
+                                    >
+                                        <option value="">Month</option>
+                                        <option value="01">January</option>
+                                        <option value="02">February</option>
+                                        <option value="03">March</option>
+                                        <option value="04">April</option>
+                                        <option value="05">May</option>
+                                        <option value="06">June</option>
+                                        <option value="07">July</option>
+                                        <option value="08">August</option>
+                                        <option value="09">September</option>
+                                        <option value="10">October</option>
+                                        <option value="11">November</option>
+                                        <option value="12">December</option>
+                                    </select>
+                                    {/* Day Dropdown */}
+                                    <select
+                                        value={formData.birthDay || ''}
+                                        onChange={(e) => setFormData({ ...formData, birthDay: e.target.value })}
+                                        style={{ ...styles.selectInput, flex: 1 }}
+                                        required
+                                    >
+                                        <option value="">Day</option>
+                                        {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                                            <option key={day} value={String(day).padStart(2, '0')}>{day}</option>
+                                        ))}
+                                    </select>
+                                    {/* Year Dropdown */}
+                                    <select
+                                        value={formData.birthYear || ''}
+                                        onChange={(e) => setFormData({ ...formData, birthYear: e.target.value })}
+                                        style={{ ...styles.selectInput, flex: 1.2 }}
+                                        required
+                                    >
+                                        <option value="">Year</option>
+                                        {Array.from({ length: 82 }, (_, i) => new Date().getFullYear() - 18 - i).map(year => (
+                                            <option key={year} value={year}>{year}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             {/* City & State */}
@@ -538,7 +744,7 @@ export default function SignUpPage() {
                                         type="text"
                                         value={formData.city}
                                         onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                                        placeholder="Las Vegas"
+                                        placeholder=""
                                         style={styles.inputSingle}
                                         required
                                     />
@@ -596,21 +802,98 @@ export default function SignUpPage() {
                                 )}
                             </div>
 
-                            {/* Phone Number */}
+                            {/* Phone Number with SMS Verification */}
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Phone Number</label>
-                                <div style={styles.phoneInput}>
-                                    <span style={styles.phonePrefix}>+1</span>
-                                    <input
-                                        type="tel"
-                                        value={formatPhone(formData.phone)}
-                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                        placeholder="(555) 123-4567"
-                                        style={styles.input}
-                                        maxLength={14}
-                                        required
-                                    />
+                                <label style={styles.label}>
+                                    Phone Number
+                                    {phoneVerified && <span style={{ color: '#00ff66', marginLeft: '8px' }}>✓ Verified</span>}
+                                </label>
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                    <div style={{ ...styles.phoneInput, flex: 1 }}>
+                                        <span style={styles.phonePrefix}>+1</span>
+                                        <input
+                                            type="tel"
+                                            value={formatPhone(formData.phone)}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            placeholder=""
+                                            style={{
+                                                ...styles.input,
+                                                borderColor: phoneVerified ? '#00ff66' : 'rgba(0, 212, 255, 0.3)',
+                                            }}
+                                            maxLength={14}
+                                            required
+                                            disabled={phoneVerified}
+                                        />
+                                    </div>
+                                    {!phoneVerified && (
+                                        <button
+                                            type="button"
+                                            onClick={sendPhoneOtp}
+                                            disabled={phoneSendingOtp || phoneOtpCooldown > 0 || formData.phone.replace(/\D/g, '').length !== 10}
+                                            style={{
+                                                padding: '12px 16px',
+                                                background: phoneOtpCooldown > 0 ? 'rgba(100, 100, 100, 0.5)' : 'linear-gradient(135deg, #00d4ff, #0099cc)',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                color: '#fff',
+                                                fontWeight: '600',
+                                                fontSize: '13px',
+                                                cursor: phoneSendingOtp || phoneOtpCooldown > 0 ? 'not-allowed' : 'pointer',
+                                                whiteSpace: 'nowrap',
+                                                opacity: formData.phone.replace(/\D/g, '').length !== 10 ? 0.5 : 1,
+                                            }}
+                                        >
+                                            {phoneSendingOtp ? 'Sending...' : phoneOtpCooldown > 0 ? `Resend (${phoneOtpCooldown}s)` : phoneOtpSent ? 'Resend Code' : 'Send Code'}
+                                        </button>
+                                    )}
                                 </div>
+
+                                {/* OTP Input - appears after sending code */}
+                                {phoneOtpSent && !phoneVerified && (
+                                    <div style={{ marginTop: '12px' }}>
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                            <input
+                                                type="text"
+                                                value={phoneOtp}
+                                                onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                placeholder="Enter 6-digit code"
+                                                style={{
+                                                    ...styles.inputSingle,
+                                                    flex: 1,
+                                                    letterSpacing: '4px',
+                                                    textAlign: 'center',
+                                                    fontSize: '18px',
+                                                }}
+                                                maxLength={6}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={verifyPhoneOtp}
+                                                disabled={phoneVerifying || phoneOtp.length !== 6}
+                                                style={{
+                                                    padding: '12px 20px',
+                                                    background: phoneOtp.length === 6 ? 'linear-gradient(135deg, #00ff66, #00cc52)' : 'rgba(100, 100, 100, 0.5)',
+                                                    border: 'none',
+                                                    borderRadius: '8px',
+                                                    color: '#fff',
+                                                    fontWeight: '600',
+                                                    fontSize: '13px',
+                                                    cursor: phoneOtp.length === 6 ? 'pointer' : 'not-allowed',
+                                                }}
+                                            >
+                                                {phoneVerifying ? 'Verifying...' : 'Verify'}
+                                            </button>
+                                        </div>
+                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '8px' }}>
+                                            Check your phone for the verification code from Smarter.Poker
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Phone Error Message */}
+                                {phoneError && (
+                                    <span style={{ color: '#ff4d4d', fontSize: '12px', marginTop: '6px', display: 'block' }}>{phoneError}</span>
+                                )}
                             </div>
 
                             {/* RESTRICTED STATE NOTICE */}
@@ -648,9 +931,9 @@ export default function SignUpPage() {
                                 type="submit"
                                 style={{
                                     ...styles.submitButton,
-                                    opacity: loading || aliasAvailable === false || !ageConfirmed ? 0.7 : 1,
+                                    opacity: loading || aliasAvailable === false || !ageConfirmed || !phoneVerified ? 0.7 : 1,
                                 }}
-                                disabled={loading || aliasAvailable === false || !ageConfirmed}
+                                disabled={loading || aliasAvailable === false || !ageConfirmed || !phoneVerified}
                             >
                                 {loading ? 'Creating Account...' : 'Create Account'}
                             </button>

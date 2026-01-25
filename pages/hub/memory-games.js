@@ -1262,8 +1262,8 @@ export default function MemoryGamesPage() {
     const [comboName, setComboName] = useState(null);
     const [multiplier, setMultiplier] = useState(1);
 
-    // Economy state
-    const [diamondBalance, setDiamondBalance] = useState(100);
+    // Economy state - fetched from Supabase
+    const [diamondBalance, setDiamondBalance] = useState(0);
     const [isVIP, setIsVIP] = useState(false);
     const [lastReward, setLastReward] = useState(null);
 
@@ -1275,10 +1275,23 @@ export default function MemoryGamesPage() {
     const [screenShake, setScreenShake] = useState(false);
     const [showComboPopup, setShowComboPopup] = useState(false);
 
-    // Initialize effects CSS and load balance
+    // Initialize effects CSS and load real user balance from Supabase
     useEffect(() => {
         EffectsEngine.initCSS();
-        setDiamondBalance(DiamondEngine.getBalance());
+        // Fetch real diamond balance from Supabase
+        const loadUserBalance = async () => {
+            try {
+                const { getAuthUser, queryDiamondBalance } = await import('../../src/lib/authUtils');
+                const authUser = getAuthUser();
+                if (authUser) {
+                    const balance = await queryDiamondBalance(authUser.id);
+                    setDiamondBalance(balance);
+                }
+            } catch (e) {
+                console.error('[MemoryGames] Failed to fetch diamond balance:', e);
+            }
+        };
+        loadUserBalance();
         setIsVIP(DiamondEngine.isVIP());
     }, []);
 
@@ -1514,58 +1527,8 @@ export default function MemoryGamesPage() {
                 <div style={styles.bgGrid} />
                 <div style={styles.bgGlow} />
 
-                {/* Header */}
-                <div style={styles.header}>
-                    <button
-                        onClick={() => mode === 'game' || mode === 'result' ? setMode('menu') : router.push('/hub')}
-                        style={styles.backButton}
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M19 12H5M12 19l-7-7 7-7" />
-                        </svg>
-                        <span>{mode === 'menu' ? 'Hub' : 'Menu'}</span>
-                    </button>
-
-                    <div style={styles.headerStats}>
-                        {/* VIP Badge */}
-                        {isVIP && (
-                            <div style={styles.vipBadge}>
-                                👑 VIP
-                            </div>
-                        )}
-
-                        {/* Combo Display */}
-                        {combo > 0 && (
-                            <div style={{
-                                ...styles.comboBadge,
-                                animation: showComboPopup ? 'pulse 0.5s ease-in-out' : 'none',
-                            }}>
-                                🔥 {combo}x
-                            </div>
-                        )}
-
-                        {/* XP Display */}
-                        <div style={styles.statBadge}>
-                            <span style={styles.statIcon}>⭐</span>
-                            <span style={styles.statValue}>{totalXP.toLocaleString()} XP</span>
-                        </div>
-
-                        {/* Diamond Display */}
-                        <div style={{
-                            ...styles.statBadge,
-                            ...styles.diamondBadge,
-                            position: 'relative',
-                        }}>
-                            <span style={styles.statIcon}>💎</span>
-                            <span style={{ ...styles.statValue, color: '#00D4FF' }}>
-                                {diamondBalance.toLocaleString()}
-                            </span>
-                            {lastReward && Date.now() - lastReward.timestamp < 2000 && (
-                                <div style={styles.rewardPopup}>+{lastReward.diamonds} 💎</div>
-                            )}
-                        </div>
-                    </div>
-                </div>
+                {/* Standard Hub Header - DO NOT MODIFY */}
+                <UniversalHeader pageDepth={1} />
 
                 {/* Combo Popup */}
                 {showComboPopup && comboName && (

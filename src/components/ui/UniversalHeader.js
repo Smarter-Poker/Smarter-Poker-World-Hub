@@ -3,19 +3,24 @@
  * UNIVERSAL HEADER COMPONENT — Hub-Style Dark Theme
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * Matches the Hub page header style:
+ * CRITICAL: This is the GLOBAL STANDARD header for ALL smarter.poker pages.
+ * DO NOT MODIFY without running /social-feed-protection workflow.
+ * 
+ * Features:
  * - Dark background with neon blue accents
  * - "Smarter.Poker" in white text 
- * - Diamond wallet with +
- * - XP display with level
- * - Neon orb icons for profile, messages, notifications, search, settings
+ * - Diamond wallet with + (REAL balance from user_diamond_balance)
+ * - XP display with level (REAL data from profiles.xp_total)
+ * - Profile picture (REAL avatar from profiles.avatar_url)
+ * - Neon orb icons for profile, messages, notifications, settings
  * - Return to Hub button (for major pages) or Back button (for nested pages)
  */
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { getAuthUser, queryProfiles } from '../../lib/authUtils';
+import { supabase } from '../../lib/supabase';
+import PushNotificationBell from '../notifications/PushNotificationBell';
 
 // Dark theme colors matching hub
 const C = {
@@ -75,30 +80,210 @@ export default function UniversalHeader({
     const router = useRouter();
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState({ xp: 0, diamonds: 0, level: 1 });
+    const [isLoading, setIsLoading] = useState(true);
+    const [notificationCount, setNotificationCount] = useState(0);
+    const [unreadMessages, setUnreadMessages] = useState(0);
 
     useEffect(() => {
+        let notifChannel = null;
+        let messageChannel = null;
+        let mounted = true; // Prevent state updates after unmount
+
         const loadUser = async () => {
-            const authUser = getAuthUser();
-            if (authUser) {
-                setUser(authUser);
-                try {
-                    const profile = await queryProfiles(authUser.id, 'username,full_name,avatar_url,xp_total,diamond_balance');
-                    if (profile) {
-                        const xp = profile.xp_total || 0;
-                        const level = Math.floor(xp / 100) + 1;
-                        setStats({
-                            xp: xp % 100,
-                            diamonds: profile.diamond_balance || 0,
-                            level
-                        });
-                        setUser(prev => ({ ...prev, avatar: profile.avatar_url, name: profile.full_name || profile.username }));
+            try {
+                // 🛡️ BULLETPROOF: Bypass Supabase client entirely to avoid AbortError
+                // Read user directly from localStorage instead of calling getUser()
+                let authUser = null;
+                if (typeof window !== 'undefined') {
+                    try {
+                        // Check explicit storage key first
+                        const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                        if (explicitAuth) {
+                            const tokenData = JSON.parse(explicitAuth);
+                            authUser = tokenData?.user || null;
+                        }
+                        // Fallback to legacy sb-* keys
+                        if (!authUser) {
+                            const sbKeys = Object.keys(localStorage).filter(
+                                k => k.startsWith('sb-') && k.endsWith('-auth-token')
+                            );
+                            if (sbKeys.length > 0) {
+                                const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                                authUser = tokenData?.user || null;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[UniversalHeader] Error reading localStorage:', e);
                     }
-                } catch (e) {
-                    console.error('[Header] Profile fetch error:', e);
                 }
+
+                if (!mounted) return;
+
+                if (authUser) {
+                    setUser(authUser);
+                    console.log('[UniversalHeader] User found in localStorage:', authUser.email);
+
+                    // 🛡️ BULLETPROOF: Retry logic with exponential backoff
+                    const MAX_RETRIES = 3;
+                    const fetchProfileWithRetry = async (attempt = 1) => {
+                        if (!mounted) return false;
+                        try {
+                            const response = await fetch('/api/user/get-header-stats', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId: authUser.id }),
+                            });
+
+                            const result = await response.json();
+                            console.log(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
+
+                            if (result.success && result.profile && mounted) {
+                                const { xp, diamonds, level, full_name, username, avatar_url } = result.profile;
+                                setStats({ xp, diamonds, level });
+                                setUser(prev => ({
+                                    ...prev,
+                                    avatar: avatar_url,
+                                    name: full_name || username
+                                }));
+                                return true; // Success
+                            }
+                            return false; // API returned error
+                        } catch (e) {
+                            console.warn(`[UniversalHeader] Attempt ${attempt} failed:`, e.message);
+                            return false;
+                        }
+                    };
+
+                    // Try up to MAX_RETRIES times with exponential backoff
+                    let success = await fetchProfileWithRetry(1);
+                    for (let attempt = 2; attempt <= MAX_RETRIES && !success && mounted; attempt++) {
+                        const delay = Math.pow(2, attempt - 1) * 500; // 500ms, 1000ms, 2000ms
+                        console.log(`[UniversalHeader] Retrying in ${delay}ms...`);
+                        await new Promise(r => setTimeout(r, delay));
+                        success = await fetchProfileWithRetry(attempt);
+                    }
+
+                    // Final fallback: direct REST API call (not Supabase client)
+                    if (!success && mounted) {
+                        console.log('[UniversalHeader] All API retries failed, trying direct REST...');
+                        try {
+                            const SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
+                            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+
+                            // Get access token for authenticated query
+                            let accessToken = SUPABASE_ANON_KEY;
+                            try {
+                                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                                if (authData.access_token) accessToken = authData.access_token;
+                            } catch (e) { }
+
+                            const response = await fetch(
+                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,xp_total,diamonds`,
+                                {
+                                    headers: {
+                                        'apikey': SUPABASE_ANON_KEY,
+                                        'Authorization': `Bearer ${accessToken}`,
+                                        'Content-Type': 'application/json'
+                                    }
+                                }
+                            );
+                            const profiles = await response.json();
+                            const profile = profiles?.[0];
+
+                            if (profile && mounted) {
+                                const xpTotal = profile.xp_total || 0;
+                                const level = Math.max(1, Math.floor(Math.sqrt(xpTotal / 231)));
+                                setStats({ xp: xpTotal, diamonds: profile.diamonds || 0, level });
+                                setUser(prev => ({
+                                    ...prev,
+                                    avatar: profile.avatar_url,
+                                    name: profile.full_name || profile.username
+                                }));
+                                console.log('[UniversalHeader] Direct REST fallback SUCCESS:', { xpTotal, diamonds: profile.diamonds });
+                            }
+                        } catch (e) {
+                            console.error('[UniversalHeader] Direct REST fallback failed:', e);
+                        }
+                    }
+
+                    // FETCH NOTIFICATION COUNT (unread)
+                    const { count: notifCount } = await supabase
+                        .from('notifications')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('user_id', authUser.id)
+                        .eq('read', false);
+                    setNotificationCount(notifCount || 0);
+
+                    // FETCH UNREAD MESSAGES COUNT
+                    const { count: msgCount } = await supabase
+                        .from('messages')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('recipient_id', authUser.id)
+                        .eq('read', false);
+                    setUnreadMessages(msgCount || 0);
+
+                    // REAL-TIME: Subscribe to new notifications
+                    notifChannel = supabase
+                        .channel('header-notifications')
+                        .on('postgres_changes', {
+                            event: 'INSERT',
+                            schema: 'public',
+                            table: 'notifications',
+                            filter: `user_id=eq.${authUser.id}`
+                        }, () => {
+                            setNotificationCount(prev => prev + 1);
+                        })
+                        .on('postgres_changes', {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'notifications',
+                            filter: `user_id=eq.${authUser.id}`
+                        }, (payload) => {
+                            // If marked as read, decrease count
+                            if (payload.new.read && !payload.old.read) {
+                                setNotificationCount(prev => Math.max(0, prev - 1));
+                            }
+                        })
+                        .subscribe();
+
+                    // REAL-TIME: Subscribe to new messages
+                    messageChannel = supabase
+                        .channel('header-messages')
+                        .on('postgres_changes', {
+                            event: 'INSERT',
+                            schema: 'public',
+                            table: 'messages',
+                            filter: `recipient_id=eq.${authUser.id}`
+                        }, () => {
+                            setUnreadMessages(prev => prev + 1);
+                        })
+                        .on('postgres_changes', {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'messages',
+                            filter: `recipient_id=eq.${authUser.id}`
+                        }, (payload) => {
+                            // If marked as read, decrease count
+                            if (payload.new.read && !payload.old.read) {
+                                setUnreadMessages(prev => Math.max(0, prev - 1));
+                            }
+                        })
+                        .subscribe();
+                }
+            } catch (e) {
+                console.error('[UniversalHeader] Data fetch error:', e);
+            } finally {
+                setIsLoading(false);
             }
         };
         loadUser();
+
+        // Cleanup subscriptions
+        return () => {
+            mounted = false;
+            if (notifChannel) supabase.removeChannel(notifChannel);
+            if (messageChannel) supabase.removeChannel(messageChannel);
+        };
     }, []);
 
     const handleBack = () => {
@@ -172,7 +357,7 @@ export default function UniversalHeader({
                     color: C.white
                 }}>
                     <span style={{ fontSize: 16 }}>💎</span>
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>{stats.diamonds.toLocaleString()}</span>
+                    <span data-testid="header-diamonds" style={{ fontWeight: 700, fontSize: 14 }}>{stats.diamonds.toLocaleString()}</span>
                     <span style={{
                         width: 18, height: 18, borderRadius: '50%',
                         background: 'rgba(0, 212, 255, 0.3)',
@@ -192,9 +377,9 @@ export default function UniversalHeader({
                     borderRadius: 20
                 }}>
                     <span style={{ color: C.gold, fontWeight: 700, fontSize: 14 }}>XP</span>
-                    <span style={{ color: C.white, fontWeight: 600, fontSize: 14 }}>{stats.xp}</span>
+                    <span data-testid="header-xp" style={{ color: C.white, fontWeight: 600, fontSize: 14 }}>{stats.xp.toLocaleString()}</span>
                     <span style={{ color: C.textSec, fontSize: 12 }}>•</span>
-                    <span style={{ color: C.cyan, fontWeight: 700, fontSize: 14 }}>LV {stats.level}</span>
+                    <span data-testid="header-level" style={{ color: C.cyan, fontWeight: 700, fontSize: 14 }}>LV {stats.level}</span>
                 </div>
             </div>
 
@@ -221,10 +406,13 @@ export default function UniversalHeader({
                 </Link>
 
                 {/* Messages */}
-                <OrbButton href="/hub/messenger" icon="✉️" />
+                <OrbButton href="/hub/messenger" icon="✉️" badge={unreadMessages} />
 
                 {/* Notifications */}
-                <OrbButton href="/hub/notifications" icon="🔔" />
+                <OrbButton href="/hub/notifications" icon="🔔" badge={notificationCount} />
+
+                {/* Push Notification Bell */}
+                <PushNotificationBell />
 
                 {/* Search */}
                 {showSearch && (

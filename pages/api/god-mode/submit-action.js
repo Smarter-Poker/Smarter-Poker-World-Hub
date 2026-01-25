@@ -34,45 +34,65 @@ export default async function handler(req, res) {
             heroHand,
             board,
             potSize = 100,
+            handData, // Full hand data from fetch-hand including solver_node
         } = req.body;
 
         if (!gameId || !userId || !action) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        // 1. Get the solver node for this hand
-        let solverNode = null;
+        // Extract data from handData if provided
+        const effectiveFileId = fileId || handData?.fileId;
+        const effectiveVariantHash = variantHash || handData?.variantHash;
+        const effectiveHeroHand = heroHand || handData?.hero_hand;
+        const effectiveBoard = board || handData?.board;
+        const effectivePotSize = potSize || handData?.pot_size || 100;
 
-        // Try to fetch from solved_spots_gold
-        if (fileId && !fileId.startsWith('chart_') && !fileId.startsWith('bb_') && !fileId.startsWith('tt_')) {
+        // 1. Get the solver node - prefer handData.solver_node (already processed)
+        let solverNode = handData?.solver_node || null;
+
+        // If no solver_node in handData, try database
+        if (!solverNode && effectiveFileId && !effectiveFileId.startsWith('chart_') && !effectiveFileId.startsWith('bb_') && !effectiveFileId.startsWith('tt_')) {
             const { data: spotData } = await supabase
                 .from('solved_spots_gold')
-                .select('solver_node, strategy')
-                .eq('id', fileId)
+                .select('strategy_matrix')
+                .eq('id', effectiveFileId)
                 .single();
 
-            if (spotData) {
-                solverNode = spotData.solver_node || spotData.strategy;
+            if (spotData?.strategy_matrix) {
+                // Build solver node from strategy_matrix
+                const sm = spotData.strategy_matrix;
+                solverNode = { actions: {} };
+
+                if (sm.actions && sm.frequencies && sm.hand_evs) {
+                    const hand = effectiveHeroHand?.replace(/[shdc]/g, '').slice(0, 2) || '';
+                    const handEv = sm.hand_evs[hand] || 0;
+
+                    for (const act of sm.actions) {
+                        const freq = sm.frequencies[act]?.[hand] || 0;
+                        solverNode.actions[act] = { frequency: freq, ev: handEv * freq };
+                    }
+                }
             }
         }
 
-        // Fallback to mock solver node for demo
-        if (!solverNode) {
+        // Fallback to mock solver node only if nothing else
+        if (!solverNode || Object.keys(solverNode.actions || {}).length === 0) {
             solverNode = getMockSolverNode(action);
         }
 
         // 2. Calculate damage
-        const damageResult = calculateDamage(action, sizing, solverNode, potSize);
+        const damageResult = calculateDamage(action, sizing, solverNode, effectivePotSize);
 
         // 3. Record in hand history
         try {
             await supabase.from('god_mode_hand_history').insert({
                 user_id: userId,
                 game_id: gameId,
-                source_file_id: fileId || 'unknown',
-                variant_hash: variantHash || '0',
-                hero_hand: heroHand || '',
-                board: board || '',
+                source_file_id: effectiveFileId || 'unknown',
+                variant_hash: effectiveVariantHash || '0',
+                hero_hand: effectiveHeroHand || '',
+                board: effectiveBoard || '',
                 level_at_play: 1, // TODO: Get from session
                 round_hand_number: 1, // TODO: Track properly
                 user_action: action,

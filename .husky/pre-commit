@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# 🛡️ SMARTER POKER PRE-COMMIT HOOK
+# Blocks commits containing dangerous Supabase auth methods
+
+echo "🔍 Scanning for dangerous Supabase auth patterns..."
+
+# Files to check (staged files only, excluding certain paths)
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | grep -v 'authUtils' | grep -v 'AvatarContext' | grep -v 'safeSupabase' | grep -v 'eslint-plugin')
+
+if [ -z "$FILES" ]; then
+  echo "✅ No relevant files to check"
+  exit 0
+fi
+
+# Check for dangerous patterns
+DANGEROUS=0
+for file in $FILES; do
+  if git show ":$file" 2>/dev/null | grep -q 'supabase\.auth\.getUser'; then
+    echo "�� BLOCKED: $file contains supabase.auth.getUser()"
+    echo "   Use: import { getAuthUser } from '@/lib/authUtils'"
+    DANGEROUS=1
+  fi
+  if git show ":$file" 2>/dev/null | grep -q 'supabase\.auth\.getSession'; then
+    echo "🚫 BLOCKED: $file contains supabase.auth.getSession()"
+    echo "   Use: import { getAuthUser } from '@/lib/authUtils'"
+    DANGEROUS=1
+  fi
+done
+
+if [ $DANGEROUS -eq 1 ]; then
+  echo ""
+  echo "❌ Commit blocked! Remove dangerous Supabase auth calls."
+  echo "   See: src/lib/authUtils.ts for safe alternatives"
+  exit 1
+fi
+
+echo "✅ No dangerous auth patterns found"
+exit 0

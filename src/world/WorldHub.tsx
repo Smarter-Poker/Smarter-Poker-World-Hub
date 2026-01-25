@@ -88,11 +88,9 @@ const HOLO_EDGE_COLORS = [
 ];
 
 function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) {
-    const [edgeOpacity, setEdgeOpacity] = useState(0.3);
-    const [floatY, setFloatY] = useState(0);
     const [hasAnimatedIn, setHasAnimatedIn] = useState(false);
 
-    // Intro animation - stagger each card (faster timing)
+    // Intro animation only - no continuous floating (footer cards are static)
     useEffect(() => {
         if (isIntroComplete && !hasAnimatedIn) {
             const delay = 200 + index * 80; // Faster: 200ms base + 80ms stagger
@@ -104,36 +102,8 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
     // Each card gets a unique edge glow color
     const edgeColor = useMemo(() => HOLO_EDGE_COLORS[index % HOLO_EDGE_COLORS.length], [index]);
 
-    // Animation parameters unique to each card - truly independent
-    const animParams = useMemo(() => ({
-        floatSpeed: 0.25 + (index * 0.08) + Math.random() * 0.15,
-        floatAmplitude: 2 + Math.random() * 3,
-        phase: (index * 1.2) + Math.random() * Math.PI * 2,
-        pulseSpeed: 0.6 + Math.random() * 0.5,
-    }), [index]);
-
-    // Holographic animations
-    useEffect(() => {
-        let animFrame: number;
-        const startTime = Date.now();
-
-        const animate = () => {
-            const elapsed = (Date.now() - startTime) / 1000;
-
-            // Gentle floating motion
-            const float = Math.sin(elapsed * animParams.floatSpeed + animParams.phase) * animParams.floatAmplitude;
-            setFloatY(float);
-
-            // Pulsing edge glow
-            const pulse = (Math.sin(elapsed * animParams.pulseSpeed) + 1) / 2;
-            setEdgeOpacity(0.3 + pulse * 0.4);
-
-            animFrame = requestAnimationFrame(animate);
-        };
-
-        animate();
-        return () => cancelAnimationFrame(animFrame);
-    }, [animParams]);
+    // Static values - footer cards do NOT float (only main carousel floats)
+    const edgeOpacity = 0.5;
 
     return (
         <div
@@ -143,21 +113,21 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                 alignItems: 'center',
                 cursor: 'pointer',
                 transform: hasAnimatedIn
-                    ? `translateY(${floatY}px) perspective(800px) rotateX(10deg) scale(1)`
+                    ? `translateY(0px) perspective(800px) rotateX(8deg) rotateY(0deg) scale(1)`
                     : `translateY(150px) perspective(800px) rotateX(-20deg) scale(0.5)`,
                 opacity: hasAnimatedIn ? 1 : 0,
                 flex: 1,
                 maxWidth: `clamp(140px, 17vw, 186px)`,  // Viewport-scaled card width
-                transition: 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease-out',
+                transition: hasAnimatedIn ? 'none' : 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease-out',
                 transformStyle: 'preserve-3d',
             }}
             onClick={() => onSelect(orb.id)}
             title={orb.label}
             onMouseEnter={(e) => {
-                e.currentTarget.style.transform = `translateY(${floatY - 12}px) perspective(800px) rotateX(0deg) scale(1.15)`;
+                e.currentTarget.style.transform = `translateY(-8px) perspective(800px) rotateX(5deg) rotateY(0deg) scale(1.1)`;
             }}
             onMouseLeave={(e) => {
-                e.currentTarget.style.transform = `translateY(${floatY}px) perspective(800px) rotateX(10deg) scale(1)`;
+                e.currentTarget.style.transform = `translateY(0px) perspective(800px) rotateX(8deg) rotateY(0deg) scale(1)`;
             }}
         >
             {/* Holographic pedestal glow */}
@@ -212,29 +182,64 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                         boxShadow: `0 0 20px rgba(0, 180, 255, 0.3), 0 20px 40px rgba(0, 0, 0, 0.5)`,
                     }}
                 >
-                    {/* Card image */}
+                    {/* Card image - Static for footer cards (marketplace fills edge-to-edge) */}
                     <div
                         style={{
+                            position: 'absolute',
+                            top: orb.id === 'marketplace' ? 0 : 0,
+                            left: orb.id === 'marketplace' ? 0 : 0,
+                            right: orb.id === 'marketplace' ? 0 : 0,
+                            bottom: orb.id === 'marketplace' ? 0 : 0,
                             width: '100%',
                             height: '100%',
                             backgroundImage: orb.imageUrl
                                 ? `url('${orb.imageUrl}')`
                                 : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                            backgroundSize: 'cover',
+                            backgroundSize: orb.id === 'marketplace' ? '100% 100%' : 'cover',
                             backgroundPosition: 'center',
-                            borderRadius: 6,
+                            borderRadius: orb.id === 'marketplace' ? 6 : 6,
                         }}
                     />
 
                     {/* ═══════════════════════════════════════════════════════════════
-                        INNER WHITE BORDER FRAME - Clean sharp line (matching mockup)
+                        INNER WHITE BORDER FRAME - Hidden for marketplace (full image), shown for others
                         ═══════════════════════════════════════════════════════════════ */}
-                    <div style={{ position: 'absolute', top: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
-                    <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
-                    <div style={{ position: 'absolute', top: 8, bottom: 8, left: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
-                    <div style={{ position: 'absolute', top: 8, bottom: 8, right: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                    {orb.id !== 'marketplace' && (
+                        <>
+                            <div style={{ position: 'absolute', top: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                            <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                            <div style={{ position: 'absolute', top: 8, bottom: 8, left: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                            <div style={{ position: 'absolute', top: 8, bottom: 8, right: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
+                        </>
+                    )}
                 </div>
             </div>
+
+            {/* ═══════════════════════════════════════════════════════════════
+                CARD TITLE - Neon glow positioned ABOVE the card
+                ═══════════════════════════════════════════════════════════════ */}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: -20,
+                    left: 0,
+                    right: 0,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#00ffff',
+                    textAlign: 'center',
+                    textTransform: 'uppercase',
+                    letterSpacing: 1.5,
+                    textShadow: '0 0 10px #00ffff, 0 0 20px #00d4ff, 0 0 4px rgba(0, 212, 255, 0.8)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                }}
+            >
+                {orb.label}
+            </div>
+
+            {/* Card descriptions removed for cleaner look */}
         </div>
     );
 }
@@ -448,10 +453,12 @@ export default function WorldHub() {
     useEffect(() => {
         const fetchUserProfile = async () => {
             try {
-                // Use the shared singleton
-                const { supabase } = await import('../lib/supabase');
-                const { data: { user } } = await supabase.auth.getUser();
+                // 🛡️ BULLETPROOF: Use authUtils instead of getUser() to avoid AbortError
+                const { getAuthUser } = await import('../lib/authUtils');
+                const user = getAuthUser();
+
                 if (user) {
+                    const { supabase } = await import('../lib/supabase');
                     const { data: profile } = await supabase
                         .from('profiles')
                         .select('avatar_url')
@@ -662,7 +669,7 @@ export default function WorldHub() {
                 </Canvas>
 
 
-                {/* Keyframe animations for shine and pedestal effects */}
+                {/* Keyframe animations for shine, pedestal, and holographic inner effects */}
                 <style jsx global>{`
                 @keyframes pedestalPulse {
                     0%, 100% { opacity: 0.6; transform: translateX(-50%) rotateX(75deg) scale(1); }
@@ -672,6 +679,51 @@ export default function WorldHub() {
                     0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
                     50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
                     100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+                }
+                /* Holographic inner image floating - each card gets unique animation */
+                @keyframes holoFloat0 {
+                    0%, 100% { transform: translate(0, 0) rotateX(0deg) rotateY(0deg) scale(1); }
+                    25% { transform: translate(2%, 1%) rotateX(3deg) rotateY(-2deg) scale(1.02); }
+                    50% { transform: translate(-1%, 2%) rotateX(-2deg) rotateY(3deg) scale(1); }
+                    75% { transform: translate(-2%, -1%) rotateX(2deg) rotateY(-1deg) scale(1.01); }
+                }
+                @keyframes holoFloat1 {
+                    0%, 100% { transform: translate(0, 0) rotateX(0deg) rotateY(0deg) scale(1); }
+                    25% { transform: translate(-2%, 2%) rotateX(-3deg) rotateY(2deg) scale(1.01); }
+                    50% { transform: translate(2%, -1%) rotateX(2deg) rotateY(-3deg) scale(1.02); }
+                    75% { transform: translate(1%, 1%) rotateX(-1deg) rotateY(2deg) scale(1); }
+                }
+                @keyframes holoFloat2 {
+                    0%, 100% { transform: translate(0, 0) rotateX(0deg) rotateY(0deg) scale(1); }
+                    25% { transform: translate(1%, -2%) rotateX(2deg) rotateY(3deg) scale(1.02); }
+                    50% { transform: translate(-2%, 1%) rotateX(-3deg) rotateY(-2deg) scale(1); }
+                    75% { transform: translate(2%, 2%) rotateX(1deg) rotateY(-3deg) scale(1.01); }
+                }
+                @keyframes holoFloat3 {
+                    0%, 100% { transform: translate(0, 0) rotateX(0deg) rotateY(0deg) scale(1); }
+                    25% { transform: translate(-1%, 1%) rotateX(-2deg) rotateY(-3deg) scale(1.01); }
+                    50% { transform: translate(2%, 2%) rotateX(3deg) rotateY(2deg) scale(1.02); }
+                    75% { transform: translate(-2%, -2%) rotateX(-1deg) rotateY(1deg) scale(1); }
+                }
+                @keyframes holoFloat4 {
+                    0%, 100% { transform: translate(0, 0) rotateX(0deg) rotateY(0deg) scale(1); }
+                    25% { transform: translate(2%, -1%) rotateX(3deg) rotateY(2deg) scale(1); }
+                    50% { transform: translate(-1%, -2%) rotateX(-2deg) rotateY(-3deg) scale(1.01); }
+                    75% { transform: translate(1%, 2%) rotateX(2deg) rotateY(1deg) scale(1.02); }
+                }
+                @keyframes holoFloat5 {
+                    0%, 100% { transform: translate(0, 0) rotateX(0deg) rotateY(0deg) scale(1); }
+                    25% { transform: translate(-2%, -1%) rotateX(-1deg) rotateY(3deg) scale(1.02); }
+                    50% { transform: translate(1%, 2%) rotateX(2deg) rotateY(-2deg) scale(1); }
+                    75% { transform: translate(2%, -2%) rotateX(-3deg) rotateY(-1deg) scale(1.01); }
+                }
+                /* Light sweep animation */
+                @keyframes lightSweep {
+                    0%, 100% { left: -100%; opacity: 0; }
+                    40% { opacity: 0; }
+                    50% { left: 50%; opacity: 1; }
+                    60% { opacity: 0; }
+                    100% { left: 200%; opacity: 0; }
                 }
                 /* Hide scrollbar for mobile footer */
                 div::-webkit-scrollbar {
@@ -720,113 +772,10 @@ export default function WorldHub() {
                 {/* ═══════════════════════════════════════════════════════════════
                 HUD OVERLAY LAYER — All interactive UI elements
                 z-index: 10 ensures cards and UI are ABOVE background/neurons
+                NOTE: TOP BAR REMOVED - Using UniversalHeader from pages/hub/index.js
                 ═══════════════════════════════════════════════════════════════ */}
                 <div className="hud-overlay" style={{ zIndex: 10 }}>
-                    {/* TOP BAR: Full Width Glassmorphism Header */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: isMobile ? `clamp(10px, 1.5vh, 12px) clamp(12px, 2.0vh, 16px)` : `clamp(14px, 1.5vh, 16px) clamp(32px, 3.7vh, 40px)`,  // Viewport-scaled padding
-                            background: 'linear-gradient(180deg, rgba(10, 22, 40, 0.92), rgba(5, 15, 30, 0.95))',
-                            backdropFilter: 'blur(15px)',
-                            WebkitBackdropFilter: 'blur(15px)',
-                            borderBottom: '2px solid rgba(0, 212, 255, 0.3)',
-                            boxShadow: `
-                            0 4px 30px rgba(0, 0, 0, 0.5),
-                            0 0 30px rgba(0, 212, 255, 0.1)
-                        `,
-                        }}
-                    >
-                        {/* LEFT SECTION: Logo */}
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <img
-                                src="/smarter-poker-logo.png"
-                                alt="Smarter Poker — Return to Home"
-                                onClick={handleLogoClick}
-                                style={{
-                                    height: isMobile ? `clamp(32px, 6vh, 40px)` : `clamp(48px, 5.6vh, 60px)`,  // Viewport-scaled logo
-                                    width: 'auto',
-                                    objectFit: 'contain',
-                                    filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6))',
-                                    cursor: 'pointer',
-                                    transition: 'transform 0.2s ease-out, filter 0.2s ease-out',
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1.05)';
-                                    e.currentTarget.style.filter = 'drop-shadow(0 2px 12px rgba(0, 212, 255, 0.5))';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1)';
-                                    e.currentTarget.style.filter = 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6))';
-                                }}
-                                title="Return to Home"
-                            />
-                        </div>
-
-                        {/* CENTER SECTION: Stats */}
-                        {!isMobile && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                <DiamondStat onBuyClick={handleBuyDiamonds} />
-                                <XPStat />
-                            </div>
-                        )}
-
-                        {/* RIGHT SECTION: Icons */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 12, position: 'relative' }}>
-                            {/* PROFILE ORB */}
-                            <div ref={profileOrbRef}>
-                                <ProfileOrbInline
-                                    onClick={handleProfileClick}
-                                    size={isMobile ? 36 : Math.min(56, Math.max(48, window.innerHeight * 0.052))}
-                                    avatarUrl={userAvatarUrl}
-                                />
-                            </div>
-                            <ProfileDropdown
-                                isOpen={isProfileDropdownOpen}
-                                onClose={() => setIsProfileDropdownOpen(false)}
-                                anchorRef={profileOrbRef}
-                            />
-
-                            {/* MESSAGES ORB - Hidden on mobile */}
-                            {!isMobile && (
-                                <HudIconOrb
-                                    iconUrl="/message-orb-icon.png"
-                                    title="Messages"
-                                    size={56}
-                                    badgeCount={messageCount}
-                                    onClick={() => handleNavigate('messages')}
-                                />
-                            )}
-
-                            {/* NOTIFICATIONS ORB - Hidden on mobile */}
-                            {!isMobile && (
-                                <HudIconOrb
-                                    iconUrl="/notification-orb-icon.png"
-                                    title="Notifications"
-                                    size={56}
-                                    badgeCount={notificationCount}
-                                    onClick={() => handleNavigate('notifications')}
-                                />
-                            )}
-
-                            {/* SEARCH ORB */}
-                            <SearchOrb onClick={() => setIsSearchOpen(true)} size={isMobile ? 36 : 56} />
-
-                            {/* SETTINGS ORB - Hidden on mobile */}
-                            {!isMobile && (
-                                <SettingsOrb onClick={handleSettings} size={56} />
-                            )}
-
-                            {/* LIVE HELP ORB */}
-                            <LiveHelpOrb onClick={liveHelp.openHelp} size={isMobile ? 36 : 56} />
-                        </div>
-                    </div>
+                    {/* TOP BAR is now provided by UniversalHeader in pages/hub/index.js */}
 
                     {/* ═══════════════════════════════════════════════════════════════
                     WELCOME BACK — Below header, centered

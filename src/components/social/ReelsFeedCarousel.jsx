@@ -27,25 +27,71 @@ function timeAgo(d) {
     return `${Math.floor(s / 86400)}d`;
 }
 
+// Format view count (456000 -> 456K)
+function formatViews(count) {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(0)}K`;
+    return count.toString();
+}
+
+// YouTube URL helpers
+function isYouTubeUrl(url) {
+    if (!url) return false;
+    return url.includes('youtube.com') || url.includes('youtu.be');
+}
+
+function getYouTubeVideoId(url) {
+    if (!url) return null;
+    // Handle YouTube Shorts URLs
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+    if (shortsMatch) return shortsMatch[1];
+    const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+    if (watchMatch) return watchMatch[1];
+    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+    if (shortMatch) return shortMatch[1];
+    const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
+    if (embedMatch) return embedMatch[1];
+    return null;
+}
+
+function getYouTubeThumbnail(url) {
+    const videoId = getYouTubeVideoId(url);
+    if (videoId) return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    return null;
+}
+
 // Individual Reel Card in the carousel
 function ReelCard({ reel, onClick }) {
-    const [isPlaying, setIsPlaying] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
     const videoRef = useRef(null);
 
+    const isYouTube = isYouTubeUrl(reel.video_url);
+    const youtubeThumbnail = isYouTube ? (reel.thumbnail_url || getYouTubeThumbnail(reel.video_url)) : null;
+
+    const handleClick = () => {
+        // Always use internal viewer - no more opening YouTube externally
+        if (onClick) {
+            onClick();
+        }
+    };
+
     const handleMouseEnter = () => {
-        setIsPlaying(true);
-        videoRef.current?.play();
+        setIsHovered(true);
+        if (!isYouTube && videoRef.current) videoRef.current.play();
     };
 
     const handleMouseLeave = () => {
-        setIsPlaying(false);
-        videoRef.current?.pause();
-        if (videoRef.current) videoRef.current.currentTime = 0;
+        setIsHovered(false);
+        if (!isYouTube && videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.currentTime = 0;
+        }
     };
 
     return (
         <div
-            onClick={onClick}
+            onClick={handleClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             style={{
@@ -58,40 +104,54 @@ function ReelCard({ reel, onClick }) {
                 flexShrink: 0,
                 background: '#000',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                transform: isHovered ? 'scale(1.02)' : 'scale(1)',
+                transition: 'transform 0.2s',
             }}
         >
-            {/* Video */}
-            <video
-                ref={videoRef}
-                src={reel.video_url}
-                muted
-                loop
-                playsInline
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                }}
-            />
+            {/* Thumbnail image for YouTube, video for direct URLs */}
+            {isYouTube ? (
+                <img
+                    src={youtubeThumbnail || '/default-reel-thumb.jpg'}
+                    alt={reel.caption || 'Reel'}
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                    }}
+                />
+            ) : (
+                <video
+                    ref={videoRef}
+                    src={reel.video_url}
+                    muted
+                    loop
+                    playsInline
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                    }}
+                />
+            )}
 
             {/* Play indicator */}
-            {!isPlaying && (
-                <div style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: 48,
-                    height: 48,
-                    borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}>
-                    <span style={{ fontSize: 24, color: 'white', marginLeft: 4 }}>▶</span>
-                </div>
-            )}
+            <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                background: isYouTube ? 'rgba(255,0,0,0.8)' : 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: isHovered ? 1 : 0.8,
+                transition: 'opacity 0.2s',
+            }}>
+                <span style={{ fontSize: 24, color: 'white', marginLeft: 4 }}>▶</span>
+            </div>
 
             {/* Gradient overlay */}
             <div style={{
@@ -162,7 +222,7 @@ function ReelCard({ reel, onClick }) {
                 alignItems: 'center',
                 gap: 4,
             }}>
-                👁 {reel.view_count || 0}
+                ▶ {formatViews(reel.view_count)}
             </div>
         </div>
     );
@@ -245,27 +305,38 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 >→</button>
             )}
 
-            {/* Reel container */}
+            {/* Reel container - FULLSCREEN TikTok-style */}
             <div style={{
-                width: '100%',
-                maxWidth: 400,
-                height: '85vh',
-                borderRadius: 16,
-                overflow: 'hidden',
-                position: 'relative',
+                width: '100vw',
+                height: '100vh',
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
                 background: '#000',
             }}>
-                <video
-                    ref={videoRef}
-                    key={currentReel.id}
-                    src={currentReel.video_url}
-                    autoPlay
-                    loop
-                    muted={muted}
-                    playsInline
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onClick={() => setMuted(prev => !prev)}
-                />
+                {isYouTubeUrl(currentReel.video_url) ? (
+                    <iframe
+                        key={currentReel.id}
+                        src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&rel=0&modestbranding=1&playsinline=1${muted ? '&mute=1' : ''}`}
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    />
+                ) : (
+                    <video
+                        ref={videoRef}
+                        key={currentReel.id}
+                        src={currentReel.video_url}
+                        autoPlay
+                        loop
+                        muted={muted}
+                        playsInline
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onClick={() => setMuted(prev => !prev)}
+                    />
+                )}
 
                 {/* Author overlay */}
                 <div style={{
@@ -356,7 +427,6 @@ export function ReelsFeedCarousel() {
                     *,
                     profiles:author_id (id, username, avatar_url, full_name)
                 `)
-                .eq('is_public', true)
                 .order('created_at', { ascending: false })
                 .limit(20);
 

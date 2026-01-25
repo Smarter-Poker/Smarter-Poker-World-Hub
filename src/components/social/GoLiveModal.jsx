@@ -1,10 +1,32 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   GO LIVE MODAL — Facebook/TikTok-style Live Streaming Interface
-   Camera preview, stream settings, and broadcast controls
-   ═══════════════════════════════════════════════════════════════════════════ */
+/**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  🚨 PROTECTED FILE - DO NOT MODIFY WITHOUT TESTING 🚨                     ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  WORKFLOW: /social-feed-protection                                       ║
+ * ║  REGISTRY: .agent/PROTECTED_FILES.md                                     ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  GO LIVE MODAL — Facebook/TikTok-style Live Streaming Interface          ║
+ * ║                                                                           ║
+ * ║  FUNCTIONALITY:                                                           ║
+ * ║  - Camera/microphone permission handling                                  ║
+ * ║  - Live video preview before broadcast                                    ║
+ * ║  - MediaRecorder for recording streams                                    ║
+ * ║  - Integration with LiveStreamService                                     ║
+ * ║  - EndStreamModal for post-stream options                                 ║
+ * ║                                                                           ║
+ * ║  STAGES: setup → preview → live → ended                                  ║
+ * ║                                                                           ║
+ * ║  DO NOT BREAK:                                                            ║
+ * ║  - videoRef binding to camera stream                                     ║
+ * ║  - mediaRecorderRef for recording                                        ║
+ * ║  - liveStreamService integration                                          ║
+ * ║  - Stage transitions (preview → live → ended)                            ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
 
 import { useState, useRef, useEffect } from 'react';
 import { liveStreamService } from '../../services/LiveStreamService';
+import { EndStreamModal } from './EndStreamModal';
 
 // Colors matching the social media page
 const C = {
@@ -18,20 +40,27 @@ const C = {
 };
 
 export function GoLiveModal({ isOpen, onClose, user }) {
-    const [stage, setStage] = useState('setup'); // setup, preview, live
+    const [stage, setStage] = useState('preview'); // preview, live, ended (auto-request camera)
     const [title, setTitle] = useState('');
     const [error, setError] = useState('');
     const [viewerCount, setViewerCount] = useState(0);
     const [streamId, setStreamId] = useState(null);
     const [elapsedTime, setElapsedTime] = useState(0);
 
+    // Recording state
+    const [recordedBlob, setRecordedBlob] = useState(null);
+    const [thumbnailUrl, setThumbnailUrl] = useState(null);
+
     const videoRef = useRef(null);
     const streamRef = useRef(null);
     const timerRef = useRef(null);
+    const mediaRecorderRef = useRef(null);
+    const recordedChunksRef = useRef([]);
+    const canvasRef = useRef(null);
 
     // Request camera/mic access when modal opens
     useEffect(() => {
-        if (isOpen && stage === 'setup') {
+        if (isOpen) {
             requestMediaAccess();
         }
         return () => {
@@ -42,8 +71,18 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             if (timerRef.current) {
                 clearInterval(timerRef.current);
             }
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+            }
         };
     }, [isOpen]);
+
+    // Rebind stream to video element whenever stage changes (critical for live stage)
+    useEffect(() => {
+        if (streamRef.current && videoRef.current) {
+            videoRef.current.srcObject = streamRef.current;
+        }
+    }, [stage]);
 
     const requestMediaAccess = async () => {
         try {
@@ -63,6 +102,72 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         }
     };
 
+    // Capture thumbnail from video
+    const captureThumbnail = () => {
+        if (!videoRef.current) return null;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth || 640;
+        canvas.height = videoRef.current.videoHeight || 360;
+        const ctx = canvas.getContext('2d');
+
+        // Flip horizontally since video is mirrored
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+
+        return canvas.toDataURL('image/jpeg', 0.8);
+    };
+
+    // Start recording
+    const startRecording = () => {
+        if (!streamRef.current) return;
+
+        recordedChunksRef.current = [];
+
+        // Try different MIME types for browser compatibility
+        const mimeTypes = [
+            'video/webm;codecs=vp9,opus',
+            'video/webm;codecs=vp8,opus',
+            'video/webm',
+            'video/mp4'
+        ];
+
+        let selectedMimeType = '';
+        for (const mimeType of mimeTypes) {
+            if (MediaRecorder.isTypeSupported(mimeType)) {
+                selectedMimeType = mimeType;
+                break;
+            }
+        }
+
+        if (!selectedMimeType) {
+            console.warn('No supported MIME type for recording');
+            return;
+        }
+
+        const mediaRecorder = new MediaRecorder(streamRef.current, {
+            mimeType: selectedMimeType,
+            videoBitsPerSecond: 2500000 // 2.5 Mbps
+        });
+
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                recordedChunksRef.current.push(event.data);
+            }
+        };
+
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunksRef.current, { type: selectedMimeType });
+            setRecordedBlob(blob);
+            console.log('📹 Recording complete, size:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+        };
+
+        mediaRecorder.start(1000); // Capture in 1-second chunks
+        mediaRecorderRef.current = mediaRecorder;
+        console.log('🔴 Recording started with:', selectedMimeType);
+    };
+
     const handleGoLive = async () => {
         if (!streamRef.current || !user?.id) {
             setError('Unable to start stream. Please try again.');
@@ -70,6 +175,10 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         }
 
         try {
+            // Capture thumbnail at stream start
+            const thumb = captureThumbnail();
+            setThumbnailUrl(thumb);
+
             // Set up viewer count callback
             liveStreamService.onViewerCountChange = (count) => {
                 setViewerCount(count);
@@ -86,6 +195,9 @@ export function GoLiveModal({ isOpen, onClose, user }) {
             setStage('live');
             setElapsedTime(0);
 
+            // Start recording
+            startRecording();
+
             // Start elapsed time counter
             timerRef.current = setInterval(() => {
                 setElapsedTime(prev => prev + 1);
@@ -99,6 +211,11 @@ export function GoLiveModal({ isOpen, onClose, user }) {
 
     const handleEndStream = async () => {
         try {
+            // Stop recording first to ensure blob is ready
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+            }
+
             await liveStreamService.endBroadcast();
 
             // Stop timer
@@ -107,17 +224,34 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                 timerRef.current = null;
             }
 
-            // Stop media
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop());
-                streamRef.current = null;
-            }
+            // Stop media tracks (but keep the stream for preview in EndStreamModal)
+            // We'll stop them after the EndStreamModal closes
 
-            onClose();
+            // Transition to ended stage to show EndStreamModal
+            setStage('ended');
+
         } catch (err) {
             console.error('Failed to end broadcast:', err);
             setError(err.message);
         }
+    };
+
+    const handleEndStreamModalClose = (action) => {
+        // Stop media tracks now
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+
+        // Reset state
+        setStage('setup');
+        setRecordedBlob(null);
+        setThumbnailUrl(null);
+        setStreamId(null);
+        setElapsedTime(0);
+
+        // Close the main modal
+        onClose(action);
     };
 
     const formatTime = (seconds) => {
@@ -131,6 +265,21 @@ export function GoLiveModal({ isOpen, onClose, user }) {
     };
 
     if (!isOpen) return null;
+
+    // Show EndStreamModal when stream has ended
+    if (stage === 'ended') {
+        return (
+            <EndStreamModal
+                isOpen={true}
+                onClose={handleEndStreamModalClose}
+                streamId={streamId}
+                videoBlob={recordedBlob}
+                thumbnailUrl={thumbnailUrl}
+                duration={elapsedTime}
+                user={user}
+            />
+        );
+    }
 
     return (
         <div
@@ -271,6 +420,8 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     fontSize: 16,
                                     outline: 'none',
                                     boxSizing: 'border-box',
+                                    color: C.text,
+                                    background: 'white',
                                 }}
                             />
 
@@ -373,6 +524,22 @@ export function GoLiveModal({ isOpen, onClose, user }) {
                                     }}
                                 >
                                     ⏱️ {formatTime(elapsedTime)}
+                                </div>
+                                {/* Recording indicator */}
+                                <div
+                                    style={{
+                                        background: 'rgba(255, 0, 0, 0.8)',
+                                        color: 'white',
+                                        padding: '8px 12px',
+                                        borderRadius: 8,
+                                        fontSize: 14,
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6,
+                                    }}
+                                >
+                                    ⏺️ REC
                                 </div>
                             </div>
 

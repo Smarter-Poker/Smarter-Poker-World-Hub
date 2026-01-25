@@ -48,7 +48,7 @@ function Avatar({ src, size = 120, onUpload }) {
     };
 
     return (
-        <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>
+        <div style={{ position: 'relative', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}>
             <img
                 src={src || '/default-avatar.png'}
                 alt="Profile"
@@ -78,10 +78,14 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
                     value={value || ''}
                     onChange={e => onChange(e.target.value)}
                     placeholder={placeholder}
+                    spellCheck={false}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
                     style={{
                         width: '100%', padding: 12, borderRadius: 8, border: `1px solid ${C.border}`,
                         fontSize: 15, resize: 'vertical', minHeight: 80, boxSizing: 'border-box',
-                        fontFamily: 'inherit'
+                        fontFamily: 'inherit', color: '#000000', background: '#ffffff'
                     }}
                 />
             ) : (
@@ -90,9 +94,13 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
                     value={value || ''}
                     onChange={e => onChange(e.target.value)}
                     placeholder={placeholder}
+                    spellCheck={false}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
                     style={{
                         width: '100%', padding: 12, borderRadius: 8, border: `1px solid ${C.border}`,
-                        fontSize: 15, boxSizing: 'border-box'
+                        fontSize: 15, boxSizing: 'border-box', color: '#000000', background: '#ffffff'
                     }}
                 />
             )}
@@ -242,10 +250,25 @@ export default function ProfilePage() {
     const isRefreshing = useProfileStore((s) => s.isRefreshing);
     const setIsRefreshing = useProfileStore((s) => s.setIsRefreshing);
 
+    // Ref for cover photo upload
+    const coverPhotoRef = useRef(null);
+
     // Local state (keep for data/session)
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
+
+    // Social stats and friends
+    const [socialStats, setSocialStats] = useState({ friends: 0, followers: 0, following: 0, posts: 0 });
+    const [friends, setFriends] = useState([]);
+
+    // Photo, Reels, and Lives galleries
+    const [photoGalleryOpen, setPhotoGalleryOpen] = useState(false);
+    const [reelsGalleryOpen, setReelsGalleryOpen] = useState(false);
+    const [livesGalleryOpen, setLivesGalleryOpen] = useState(false);
+    const [userPhotos, setUserPhotos] = useState([]);
+    const [userReels, setUserReels] = useState([]);
+    const [userLives, setUserLives] = useState([]);
 
     // Profile fields
     const [profile, setProfile] = useState({
@@ -265,6 +288,7 @@ export default function ProfilePage() {
         home_casino: '',
         birth_year: '',
         avatar_url: '',
+        cover_photo_url: '', // Cover photo for profile
         card_back_preference: 'white', // Default to white deck
         // HendonMob scraped data
         hendon_total_cashes: null,
@@ -301,14 +325,29 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                // Use localStorage to get user - avoids AbortError from supabase.auth.getUser()
+                // FIXED: Check BOTH storage key formats:
+                // 1. New unified key: 'smarter-poker-auth' (from supabase.ts)
+                // 2. Legacy Supabase keys: 'sb-*-auth-token'
                 let authUser = null;
-                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                if (sbKeys.length > 0) {
+
+                // First, try the new unified storage key
+                const unifiedToken = localStorage.getItem('smarter-poker-auth');
+                if (unifiedToken) {
                     try {
-                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        const tokenData = JSON.parse(unifiedToken);
                         authUser = tokenData?.user || null;
                     } catch (e) { /* ignore parse errors */ }
+                }
+
+                // Fallback: check legacy Supabase keys
+                if (!authUser) {
+                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    if (sbKeys.length > 0) {
+                        try {
+                            const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                            authUser = tokenData?.user || null;
+                        } catch (e) { /* ignore parse errors */ }
+                    }
                 }
 
                 if (authUser) {
@@ -334,6 +373,109 @@ export default function ProfilePage() {
                                 setOriginalProfile(profileData);
                             }
                         }
+
+                        // Fetch social stats and friends
+                        const headers = {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`,
+                            'Content-Type': 'application/json'
+                        };
+
+                        // Count friends
+                        const friendsRes = await fetch(
+                            `${supabaseUrl}/rest/v1/friendships?or=(user_id.eq.${authUser.id},friend_id.eq.${authUser.id})&status=eq.accepted&select=user_id,friend_id`,
+                            { headers }
+                        );
+                        const friendsData = friendsRes.ok ? await friendsRes.json() : [];
+
+                        // Count followers
+                        const followersRes = await fetch(
+                            `${supabaseUrl}/rest/v1/follows?following_id=eq.${authUser.id}&select=id`,
+                            { headers }
+                        );
+                        const followersData = followersRes.ok ? await followersRes.json() : [];
+
+                        // Count following
+                        const followingRes = await fetch(
+                            `${supabaseUrl}/rest/v1/follows?follower_id=eq.${authUser.id}&select=id`,
+                            { headers }
+                        );
+                        const followingData = followingRes.ok ? await followingRes.json() : [];
+
+                        // Count posts
+                        const postsRes = await fetch(
+                            `${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&select=id`,
+                            { headers }
+                        );
+                        const postsData = postsRes.ok ? await postsRes.json() : [];
+
+                        setSocialStats({
+                            friends: friendsData.length,
+                            followers: followersData.length,
+                            following: followingData.length,
+                            posts: postsData.length
+                        });
+
+                        // Get friend profiles for display
+                        if (friendsData.length > 0) {
+                            const friendIds = friendsData.map(f => f.user_id === authUser.id ? f.friend_id : f.user_id);
+                            const profilesRes = await fetch(
+                                `${supabaseUrl}/rest/v1/profiles?id=in.(${friendIds.join(',')})&select=id,full_name,username,avatar_url`,
+                                { headers }
+                            );
+                            const friendProfiles = profilesRes.ok ? await profilesRes.json() : [];
+
+                            // Calculate mutual friends for each (simplified - just use random for now since we don't have full network data)
+                            const friendsWithMutual = friendProfiles.map(f => ({
+                                ...f,
+                                mutualCount: 0 // Will be calculated properly with RPC in future
+                            }));
+
+                            setFriends(friendsWithMutual);
+                        }
+
+                        // Fetch user's photos (posts with images)
+                        // Uses content_type='photo' and media_urls array is not empty
+                        const photosRes = await fetch(
+                            `${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&content_type=eq.photo&order=created_at.desc&limit=50&select=id,media_urls,content,created_at`,
+                            { headers }
+                        );
+                        const photosData = photosRes.ok ? await photosRes.json() : [];
+                        // Transform to flatten media_urls array for display
+                        const flatPhotos = photosData.flatMap(post =>
+                            (post.media_urls || []).map((url, idx) => ({
+                                id: `${post.id}-${idx}`,
+                                media_url: url,
+                                content: post.content,
+                                created_at: post.created_at
+                            }))
+                        );
+                        setUserPhotos(flatPhotos);
+
+                        // Fetch user's reels (posts with video content_type)
+                        const reelsRes = await fetch(
+                            `${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&content_type=eq.video&order=created_at.desc&limit=50&select=id,media_urls,content,created_at`,
+                            { headers }
+                        );
+                        const reelsData = reelsRes.ok ? await reelsRes.json() : [];
+                        // Transform to flatten media_urls array for video display
+                        const flatReels = reelsData.flatMap(post =>
+                            (post.media_urls || []).map((url, idx) => ({
+                                id: `${post.id}-${idx}`,
+                                media_url: url,
+                                content: post.content,
+                                created_at: post.created_at
+                            }))
+                        );
+                        setUserReels(flatReels);
+
+                        // Fetch user's saved lives (draft streams)
+                        const livesRes = await fetch(
+                            `${supabaseUrl}/rest/v1/live_streams?broadcaster_id=eq.${authUser.id}&status=eq.ended&order=created_at.desc&limit=50&select=id,title,video_url,thumbnail_url,is_draft,is_posted,viewer_count,started_at,ended_at,created_at`,
+                            { headers }
+                        );
+                        const livesData = livesRes.ok ? await livesRes.json() : [];
+                        setUserLives(livesData);
                     } catch (e) {
                         console.error('[Profile] Error fetching profile:', e);
                     }
@@ -393,6 +535,43 @@ export default function ProfilePage() {
         }
     };
 
+    const handleCoverPhotoUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+
+        setMessage('Uploading cover photo...');
+
+        const fileExt = file.name.split('.').pop();
+        const filePath = `${user.id}/cover.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, file, { upsert: true });
+
+        if (uploadError) {
+            setMessage('Error uploading cover photo: ' + uploadError.message);
+            console.error('Upload error:', uploadError);
+            return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+
+        // Auto-save to database immediately
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ cover_photo_url: publicUrl, updated_at: new Date().toISOString() })
+            .eq('id', user.id);
+
+        if (updateError) {
+            setMessage('Error saving cover photo: ' + updateError.message);
+            console.error('Save error:', updateError);
+            return;
+        }
+
+        setProfile(prev => ({ ...prev, cover_photo_url: publicUrl }));
+        setMessage('✓ Cover photo saved!');
+    };
+
     const handleSave = async () => {
         if (!user) return;
         setSaving(true);
@@ -418,6 +597,7 @@ export default function ProfilePage() {
                 home_casino: profile.home_casino,
                 birth_year: profile.birth_year,
                 avatar_url: profile.avatar_url,
+                cover_photo_url: profile.cover_photo_url,
                 card_back_preference: profile.card_back_preference,
                 updated_at: new Date().toISOString(),
             })
@@ -480,35 +660,136 @@ export default function ProfilePage() {
                 {/* Header - Universal Header with Back navigation (nested page) */}
                 <UniversalHeader pageDepth={2} />
 
-                {/* Cover Photo Area */}
-                <div style={{
-                    height: 200,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    position: 'relative'
-                }}>
+                {/* Cover Photo Area - Clickable to upload */}
+                <div
+                    onClick={() => coverPhotoRef.current?.click()}
+                    style={{
+                        height: 200,
+                        background: profile.cover_photo_url
+                            ? `url(${profile.cover_photo_url}) center/cover no-repeat`
+                            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        position: 'relative',
+                        cursor: 'pointer'
+                    }}
+                >
+                    <input
+                        ref={coverPhotoRef}
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={handleCoverPhotoUpload}
+                    />
+
+                    {/* Add Cover Photo - Bottom Right inside cover */}
+                    <div style={{
+                        position: 'absolute',
+                        bottom: 12,
+                        right: 12,
+                        background: 'rgba(0,0,0,0.6)',
+                        color: 'white',
+                        padding: '8px 16px',
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6
+                    }}>
+                        📷 {profile.cover_photo_url ? 'Change Cover' : 'Add Cover Photo'}
+                    </div>
+
+                    {/* Profile Avatar - Center */}
                     <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)' }}>
-                        <Avatar src={avatar?.imageUrl || profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
+                        <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
+                    </div>
+                </div>
+
+                {/* Action Buttons Row - BELOW cover photo in the black area */}
+                <div style={{
+                    background: C.bg,
+                    padding: '16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    maxWidth: 800,
+                    margin: '0 auto',
+                    marginTop: 70 // Account for avatar overlap
+                }}>
+                    {/* Left side - Photos & Reels */}
+                    <div style={{ display: 'flex', gap: 8 }}>
                         <button
-                            onClick={() => router.push('/hub/avatars')}
+                            onClick={() => setPhotoGalleryOpen(true)}
                             style={{
-                                position: 'absolute', bottom: -8, left: -8, background: 'linear-gradient(135deg, #00f5ff, #0099ff)', color: '#0a0e27',
-                                border: 'none', borderRadius: 20, padding: '6px 12px', fontSize: 11,
-                                fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,245,255,0.4)'
+                                background: C.card,
+                                color: C.text,
+                                border: `1px solid ${C.border}`,
+                                borderRadius: 8,
+                                padding: '10px 16px',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6
                             }}
                         >
-                            🎨 Avatar
+                            📷 Photos
                         </button>
                         <button
-                            onClick={() => setLibraryOpen(true)}
+                            onClick={() => setReelsGalleryOpen(true)}
                             style={{
-                                position: 'absolute', bottom: -8, right: -8, background: C.blue, color: 'white',
-                                border: 'none', borderRadius: 20, padding: '6px 12px', fontSize: 11,
-                                fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                                background: C.card,
+                                color: C.text,
+                                border: `1px solid ${C.border}`,
+                                borderRadius: 8,
+                                padding: '10px 16px',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6
                             }}
                         >
-                            📸 Library
+                            🎬 Reels
+                        </button>
+                        <button
+                            onClick={() => setLivesGalleryOpen(true)}
+                            style={{
+                                background: C.card,
+                                color: C.text,
+                                border: `1px solid ${C.border}`,
+                                borderRadius: 8,
+                                padding: '10px 16px',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6
+                            }}
+                        >
+                            🔴 Lives
                         </button>
                     </div>
+
+                    {/* Right side - Build Custom Avatar */}
+                    <button
+                        onClick={() => router.push('/hub/avatars')}
+                        style={{
+                            background: 'linear-gradient(135deg, #00f5ff, #0099ff)',
+                            color: '#0a0e27',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '10px 16px',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(0,245,255,0.4)'
+                        }}
+                    >
+                        Build A Custom Avatar
+                    </button>
                 </div>
 
                 {/* Main Content */}
@@ -520,6 +801,88 @@ export default function ProfilePage() {
                             color: message.includes('Error') ? '#c62828' : '#2e7d32'
                         }}>
                             {message}
+                        </div>
+                    )}
+
+                    {/* Social Stats Row */}
+                    <div style={{
+                        background: C.card, borderRadius: 8, padding: 16, marginBottom: 16,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                        display: 'flex', justifyContent: 'space-around', textAlign: 'center'
+                    }}>
+                        <div style={{ cursor: 'pointer' }} onClick={() => router.push('/hub/friends')}>
+                            <div style={{ fontSize: 24, fontWeight: 700, color: C.text }}>{socialStats.friends}</div>
+                            <div style={{ fontSize: 13, color: C.textSec }}>Friends</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: 24, fontWeight: 700, color: C.text }}>{socialStats.followers}</div>
+                            <div style={{ fontSize: 13, color: C.textSec }}>Followers</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: 24, fontWeight: 700, color: C.text }}>{socialStats.following}</div>
+                            <div style={{ fontSize: 13, color: C.textSec }}>Following</div>
+                        </div>
+                        <div style={{ cursor: 'pointer' }} onClick={() => router.push('/hub/social-media')}>
+                            <div style={{ fontSize: 24, fontWeight: 700, color: C.text }}>{socialStats.posts}</div>
+                            <div style={{ fontSize: 13, color: C.textSec }}>Posts</div>
+                        </div>
+                    </div>
+
+                    {/* Friends Section - Facebook Style */}
+                    {friends.length > 0 && (
+                        <div style={{
+                            background: C.card, borderRadius: 8, padding: 16, marginBottom: 16,
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Friends</h3>
+                                <a
+                                    href="/hub/friends"
+                                    style={{ color: C.blue, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}
+                                >
+                                    See all
+                                </a>
+                            </div>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(4, 1fr)',
+                                gap: 12
+                            }}>
+                                {friends.slice(0, 8).map(friend => (
+                                    <a
+                                        key={friend.id}
+                                        href={`/hub/user/${friend.username || friend.id}`}
+                                        style={{
+                                            textDecoration: 'none',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            textAlign: 'center'
+                                        }}
+                                    >
+                                        <img
+                                            src={friend.avatar_url || '/default-avatar.png'}
+                                            alt={friend.full_name || friend.username}
+                                            style={{
+                                                width: 80, height: 80, borderRadius: '50%',
+                                                objectFit: 'cover', marginBottom: 8,
+                                                border: '2px solid #eee'
+                                            }}
+                                        />
+                                        <div style={{
+                                            fontSize: 13, fontWeight: 600, color: C.text,
+                                            maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                                        }}>
+                                            {friend.full_name || friend.username || 'User'}
+                                        </div>
+                                        {friend.mutualCount > 0 && (
+                                            <div style={{ fontSize: 11, color: C.textSec }}>
+                                                {friend.mutualCount} mutual friends
+                                            </div>
+                                        )}
+                                    </a>
+                                ))}
+                            </div>
                         </div>
                     )}
 
@@ -708,6 +1071,287 @@ export default function ProfilePage() {
                 supabase={supabase}
                 mode="browse"
             />
+
+            {/* Photo Gallery Modal */}
+            {photoGalleryOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.9)', zIndex: 9999,
+                    display: 'flex', flexDirection: 'column'
+                }}>
+                    <div style={{
+                        padding: 16, display: 'flex', justifyContent: 'space-between',
+                        alignItems: 'center', borderBottom: '1px solid #333'
+                    }}>
+                        <h2 style={{ margin: 0, color: 'white', fontSize: 20 }}>📷 My Photos</h2>
+                        <button
+                            onClick={() => setPhotoGalleryOpen(false)}
+                            style={{
+                                background: 'none', border: 'none', color: 'white',
+                                fontSize: 28, cursor: 'pointer'
+                            }}
+                        >×</button>
+                    </div>
+                    <div style={{
+                        flex: 1, overflow: 'auto', padding: 16,
+                        display: 'flex', flexDirection: 'column', gap: 16,
+                        maxWidth: 600, margin: '0 auto', width: '100%'
+                    }}>
+                        {userPhotos.length === 0 ? (
+                            <div style={{
+                                textAlign: 'center', color: '#888',
+                                padding: 60
+                            }}>
+                                <div style={{ fontSize: 48, marginBottom: 16 }}>📷</div>
+                                <div style={{ fontSize: 18 }}>No photos yet</div>
+                                <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
+                                    Photos from your posts will appear here
+                                </div>
+                            </div>
+                        ) : (
+                            userPhotos.map(photo => (
+                                <div key={photo.id} style={{
+                                    background: '#111', borderRadius: 12, overflow: 'hidden'
+                                }}>
+                                    <img
+                                        src={photo.media_url}
+                                        alt={photo.content || 'Photo'}
+                                        style={{
+                                            width: '100%', height: 'auto',
+                                            display: 'block'
+                                        }}
+                                    />
+                                    {photo.content && (
+                                        <div style={{
+                                            padding: '12px 16px', color: 'white',
+                                            fontSize: 14, background: '#1a1a1a'
+                                        }}>{photo.content}</div>
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Reels Gallery Modal */}
+            {reelsGalleryOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.9)', zIndex: 9999,
+                    display: 'flex', flexDirection: 'column'
+                }}>
+                    <div style={{
+                        padding: 16, display: 'flex', justifyContent: 'space-between',
+                        alignItems: 'center', borderBottom: '1px solid #333'
+                    }}>
+                        <h2 style={{ margin: 0, color: 'white', fontSize: 20 }}>🎬 My Reels</h2>
+                        <button
+                            onClick={() => setReelsGalleryOpen(false)}
+                            style={{
+                                background: 'none', border: 'none', color: 'white',
+                                fontSize: 28, cursor: 'pointer'
+                            }}
+                        >×</button>
+                    </div>
+                    <div style={{
+                        flex: 1, overflow: 'auto', padding: 16,
+                        display: 'flex', flexDirection: 'column', gap: 16,
+                        maxWidth: 600, margin: '0 auto', width: '100%'
+                    }}>
+                        {userReels.length === 0 ? (
+                            <div style={{
+                                textAlign: 'center', color: '#888',
+                                padding: 60
+                            }}>
+                                <div style={{ fontSize: 48, marginBottom: 16 }}>🎬</div>
+                                <div style={{ fontSize: 18 }}>No reels yet</div>
+                                <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
+                                    Videos from your posts will appear here
+                                </div>
+                            </div>
+                        ) : (
+                            userReels.map(reel => (
+                                <div
+                                    key={reel.id}
+                                    style={{
+                                        background: '#111', borderRadius: 12, overflow: 'hidden'
+                                    }}
+                                >
+                                    <video
+                                        src={reel.media_url}
+                                        poster={reel.thumbnail_url}
+                                        style={{
+                                            width: '100%', height: 'auto',
+                                            display: 'block', maxHeight: '80vh'
+                                        }}
+                                        controls
+                                    />
+                                    {reel.caption && (
+                                        <div style={{
+                                            padding: '12px 16px', color: 'white',
+                                            fontSize: 14, background: '#1a1a1a'
+                                        }}>{reel.caption}</div>
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Lives Gallery Modal */}
+            {livesGalleryOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.9)', zIndex: 9999,
+                    display: 'flex', flexDirection: 'column'
+                }}>
+                    <div style={{
+                        padding: 16, display: 'flex', justifyContent: 'space-between',
+                        alignItems: 'center', borderBottom: '1px solid #333'
+                    }}>
+                        <h2 style={{ margin: 0, color: 'white', fontSize: 20 }}>🔴 My Lives</h2>
+                        <button
+                            onClick={() => setLivesGalleryOpen(false)}
+                            style={{
+                                background: 'none', border: 'none', color: 'white',
+                                fontSize: 28, cursor: 'pointer'
+                            }}
+                        >×</button>
+                    </div>
+                    <div style={{
+                        flex: 1, overflow: 'auto', padding: 16,
+                        display: 'flex', flexDirection: 'column', gap: 16,
+                        maxWidth: 600, margin: '0 auto', width: '100%'
+                    }}>
+                        {userLives.length === 0 ? (
+                            <div style={{
+                                textAlign: 'center', color: '#888',
+                                padding: 60
+                            }}>
+                                <div style={{ fontSize: 48, marginBottom: 16 }}>🔴</div>
+                                <div style={{ fontSize: 18 }}>No saved lives yet</div>
+                                <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
+                                    When you end a live stream, you can save it here
+                                </div>
+                            </div>
+                        ) : (
+                            userLives.map(live => {
+                                const duration = live.started_at && live.ended_at
+                                    ? Math.round((new Date(live.ended_at) - new Date(live.started_at)) / 1000)
+                                    : 0;
+                                const durationStr = `${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}`;
+                                const dateStr = new Date(live.created_at).toLocaleDateString();
+
+                                return (
+                                    <div
+                                        key={live.id}
+                                        style={{
+                                            background: '#1a1a1a',
+                                            borderRadius: 12,
+                                            overflow: 'hidden'
+                                        }}
+                                    >
+                                        {/* Video Preview */}
+                                        <div style={{ position: 'relative', background: '#000' }}>
+                                            {live.video_url ? (
+                                                <video
+                                                    src={live.video_url}
+                                                    poster={live.thumbnail_url}
+                                                    style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '80vh' }}
+                                                    controls
+                                                />
+                                            ) : live.thumbnail_url ? (
+                                                <img
+                                                    src={live.thumbnail_url}
+                                                    alt={live.title}
+                                                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                                                />
+                                            ) : (
+                                                <div style={{
+                                                    width: '100%', height: '100%',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    color: '#666', fontSize: 40
+                                                }}>📺</div>
+                                            )}
+                                            {/* Duration badge */}
+                                            <div style={{
+                                                position: 'absolute', bottom: 8, right: 8,
+                                                background: 'rgba(0,0,0,0.8)', color: 'white',
+                                                padding: '4px 8px', borderRadius: 4, fontSize: 12
+                                            }}>{durationStr}</div>
+                                            {/* Status badge */}
+                                            <div style={{
+                                                position: 'absolute', top: 8, left: 8,
+                                                background: live.is_posted ? '#42B72A' : '#FA383E',
+                                                color: 'white',
+                                                padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600
+                                            }}>{live.is_posted ? 'Posted' : 'Draft'}</div>
+                                        </div>
+                                        {/* Info */}
+                                        <div style={{ padding: 12 }}>
+                                            <div style={{ color: 'white', fontWeight: 600, marginBottom: 4 }}>
+                                                {live.title || 'Live Stream'}
+                                            </div>
+                                            <div style={{ color: '#888', fontSize: 13, marginBottom: 12 }}>
+                                                {dateStr} • {live.viewer_count || 0} viewers
+                                            </div>
+                                            {/* Actions */}
+                                            {!live.is_posted && (
+                                                <div style={{ display: 'flex', gap: 8 }}>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!live.video_url) {
+                                                                alert('No video available to post');
+                                                                return;
+                                                            }
+                                                            // Post to feed
+                                                            const { error } = await supabase.from('social_posts').insert({
+                                                                author_id: user?.id,
+                                                                content: `🔴 ${live.title || 'Live replay'}`,
+                                                                content_type: 'video',
+                                                                media_urls: [live.video_url],
+                                                                visibility: 'public'
+                                                            });
+                                                            if (!error) {
+                                                                await supabase.from('live_streams')
+                                                                    .update({ is_posted: true, is_draft: false })
+                                                                    .eq('id', live.id);
+                                                                setUserLives(prev => prev.map(l =>
+                                                                    l.id === live.id ? { ...l, is_posted: true, is_draft: false } : l
+                                                                ));
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            flex: 1, padding: '10px 16px', borderRadius: 6,
+                                                            background: '#1877F2', color: 'white',
+                                                            border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                                                        }}
+                                                    >📤 Post</button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (confirm('Delete this live stream?')) {
+                                                                await supabase.from('live_streams').delete().eq('id', live.id);
+                                                                setUserLives(prev => prev.filter(l => l.id !== live.id));
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            padding: '10px 16px', borderRadius: 6,
+                                                            background: 'transparent', color: '#FA383E',
+                                                            border: '1px solid #FA383E', fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                                                        }}
+                                                    >🗑️</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            )}
         </>
     );
 }

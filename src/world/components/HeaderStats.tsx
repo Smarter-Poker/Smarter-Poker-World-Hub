@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { getAuthUser } from '../../lib/authUtils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 📊 DEFAULT NEW USER STATS
@@ -50,17 +51,8 @@ function useUserProfile() {
 
         const fetchProfile = async () => {
             try {
-                // Get current user
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-                if (authError) {
-                    console.log('Auth error:', authError);
-                    // Not logged in, use defaults
-                    if (isMounted) {
-                        setProfile(prev => ({ ...prev, isLoading: false }));
-                    }
-                    return;
-                }
+                // 🛡️ BULLETPROOF: Get user from localStorage to avoid AbortError
+                const user = getAuthUser();
 
                 if (!user) {
                     // Not logged in, use defaults

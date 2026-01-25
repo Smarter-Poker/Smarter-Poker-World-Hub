@@ -15,6 +15,7 @@ import { supabase } from '../../src/lib/supabase';
 import { useFriendsStore } from '../../src/stores/friendsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { getAuthUser } from '../../src/lib/authUtils';
 
 const C = {
     bg: '#0a0a0a', card: '#1a1a1a', cardHover: '#252525', text: '#FFFFFF', textSec: '#9ca3af',
@@ -24,6 +25,18 @@ const C = {
     gradient2: 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)',
     gradient3: 'linear-gradient(135deg, #22c55e 0%, #06b6d4 100%)',
 };
+
+// Time ago helper for last active status
+function timeAgo(date) {
+    if (!date) return null;
+    const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+    if (seconds < 300) return 'online'; // Within 5 minutes = online
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+    return `${Math.floor(seconds / 604800)}w ago`;
+}
 
 function Avatar({ src, name, size = 60, hasStory = false }) {
     return (
@@ -96,9 +109,7 @@ function FollowButton({ isFollowing, onFollow, onUnfollow, size = 'normal' }) {
                 color: 'white',
                 boxShadow: '0 4px 15px rgba(236, 72, 153, 0.3)',
             }}
-        >
-            <span style={{ fontSize: size === 'small' ? 10 : 12 }}>👤</span> Follow
-        </button>
+        >Follow</button>
     );
 }
 
@@ -181,6 +192,7 @@ function UserCard({
     isPending,
     isFollowing,
     isFollower,
+    mutualCount = 0,
     onAddFriend,
     onRemoveFriend,
     onFollow,
@@ -197,15 +209,20 @@ function UserCard({
             transition: 'all 0.3s ease',
             border: `1px solid ${C.border}`,
         }}>
-            <Link href={`/hub/user/${user.id}`} style={{ flexShrink: 0 }}>
+            <Link href={`/hub/user/${user.username || user.id}`} style={{ flexShrink: 0 }}>
                 <Avatar src={user.avatar_url} name={user.full_name || user.username} size={70} />
             </Link>
             <div style={{ flex: 1, minWidth: 0 }}>
-                <Link href={`/hub/user/${user.id}`} style={{ textDecoration: 'none' }}>
+                <Link href={`/hub/user/${user.username || user.id}`} style={{ textDecoration: 'none' }}>
                     <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 4 }}>
                         {user.full_name || user.username || 'Poker Player'}
                     </div>
                 </Link>
+                {mutualCount > 0 && (
+                    <div style={{ fontSize: 13, color: C.textSec, marginBottom: 4 }}>
+                        {mutualCount} mutual friends
+                    </div>
+                )}
                 {isFollower && !isFriend && (
                     <div style={{ fontSize: 12, color: C.pink, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span>💜</span> Follows you
@@ -221,6 +238,38 @@ function UserCard({
                         🃏 {user.favorite_game}
                     </div>
                 )}
+                {/* Last Active Status */}
+                {user.last_active && (() => {
+                    const status = timeAgo(user.last_active);
+                    const isOnline = status === 'online';
+                    return (
+                        <div style={{
+                            fontSize: 12,
+                            color: isOnline ? C.green : C.textSec,
+                            marginTop: 4,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                        }}>
+                            {isOnline ? (
+                                <>
+                                    <span style={{
+                                        width: 8, height: 8,
+                                        borderRadius: '50%',
+                                        background: C.green,
+                                        boxShadow: '0 0 6px rgba(34, 197, 94, 0.6)'
+                                    }} />
+                                    Online now
+                                </>
+                            ) : (
+                                <>
+                                    <span style={{ opacity: 0.6 }}>⏱️</span>
+                                    Active {status}
+                                </>
+                            )}
+                        </div>
+                    );
+                })()}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
                 {isFriend ? (
@@ -269,7 +318,7 @@ function UserCard({
                                     gap: 4,
                                 }}
                             >
-                                👋 Add Friend
+                                Add Friend
                             </button>
                         ) : (
                             <div style={{
@@ -280,7 +329,7 @@ function UserCard({
                                 fontWeight: 600,
                                 fontSize: 12,
                             }}>
-                                ⏳ Request Sent
+                                Request Sent
                             </div>
                         )}
                     </>
@@ -313,7 +362,7 @@ function TabButton({ active, onClick, icon, label, count }) {
                 position: 'relative',
             }}
         >
-            <span>{icon}</span>
+            {icon && <span>{icon}</span>}
             <span>{label}</span>
             {count > 0 && (
                 <span style={{
@@ -337,7 +386,7 @@ function TabButton({ active, onClick, icon, label, count }) {
 export default function FriendsPage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('requests'); // requests, friends, following, followers, discover
+    const [activeTab, setActiveTab] = useState('discover'); // requests, friends, following, followers, discover
 
     // Data states
     const [friends, setFriends] = useState([]);
@@ -346,31 +395,67 @@ export default function FriendsPage() {
     const [followers, setFollowers] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
 
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+
     // ID sets for quick lookup
     const [friendIds, setFriendIds] = useState(new Set());
     const [pendingIds, setPendingIds] = useState(new Set());
     const [followingIds, setFollowingIds] = useState(new Set());
     const [followerIds, setFollowerIds] = useState(new Set());
+    const [myFriendIds, setMyFriendIds] = useState([]); // For mutual friends calculation
 
     const fetchData = async () => {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+        const authUser = getAuthUser();
         if (!authUser) {
             setLoading(false);
             return;
         }
         setUser(authUser);
 
-        // Fetch current friends (accepted)
-        const { data: friendships } = await supabase
+        // Fetch current friends (accepted) - CHECK BOTH DIRECTIONS
+        // Friendships can be stored where user_id = me OR friend_id = me
+        const { data: friendshipsAsUser } = await supabase
             .from('friendships')
             .select('friend_id, friend:profiles!friendships_friend_id_fkey(*)')
             .eq('user_id', authUser.id)
             .eq('status', 'accepted');
 
-        if (friendships) {
-            setFriends(friendships.map(f => f.friend));
-            setFriendIds(new Set(friendships.map(f => f.friend_id)));
+        const { data: friendshipsAsFriend } = await supabase
+            .from('friendships')
+            .select('user_id, requester:profiles!friendships_user_id_fkey(*)')
+            .eq('friend_id', authUser.id)
+            .eq('status', 'accepted');
+
+        let currentFriendIdsList = [];
+        const allFriends = [];
+
+        // Friends where I am the user_id (I sent the request)
+        if (friendshipsAsUser) {
+            friendshipsAsUser.forEach(f => {
+                if (f.friend) {
+                    allFriends.push(f.friend);
+                    currentFriendIdsList.push(f.friend_id);
+                }
+            });
         }
+
+        // Friends where I am the friend_id (they sent the request)
+        if (friendshipsAsFriend) {
+            friendshipsAsFriend.forEach(f => {
+                if (f.requester && !currentFriendIdsList.includes(f.user_id)) {
+                    allFriends.push(f.requester);
+                    currentFriendIdsList.push(f.user_id);
+                }
+            });
+        }
+
+        setFriends(allFriends);
+        setFriendIds(new Set(currentFriendIdsList));
+        setMyFriendIds(currentFriendIdsList);
 
         // Fetch pending friend requests (where I am the receiver)
         const { data: incomingRequests } = await supabase
@@ -416,30 +501,39 @@ export default function FriendsPage() {
             setFollowerIds(new Set(myFollowers.map(f => f.follower_id)));
         }
 
-        // Fetch suggested users (not already friends)
+        // Fetch ALL users for discovery (show everyone)
         const { data: allUsers } = await supabase
             .from('profiles')
             .select('*')
             .neq('id', authUser.id)
-            .limit(20);
+            .order('created_at', { ascending: false })
+            .limit(100);
 
-        if (allUsers) {
-            const friendIdSet = new Set(friendships?.map(f => f.friend_id) || []);
-            const pendingIdSet = new Set(outgoingRequests?.map(r => r.friend_id) || []);
-            const incomingIdSet = new Set(incomingRequests?.map(r => r.user_id) || []);
-            setSuggestions(allUsers.filter(u =>
-                !friendIdSet.has(u.id) && !pendingIdSet.has(u.id) && !incomingIdSet.has(u.id)
-            ));
+        if (allUsers && currentFriendIdsList.length > 0) {
+            // Calculate mutual friends for each suggestion
+            const usersWithMutual = await Promise.all(allUsers.map(async (u) => {
+                const { data: theirFriends } = await supabase
+                    .from('friendships')
+                    .select('user_id, friend_id')
+                    .eq('status', 'accepted')
+                    .or(`user_id.eq.${u.id},friend_id.eq.${u.id}`)
+                    .limit(50);
+                let mutualCount = 0;
+                if (theirFriends) {
+                    const theirFriendIds = theirFriends.map(f => f.user_id === u.id ? f.friend_id : f.user_id);
+                    mutualCount = currentFriendIdsList.filter(id => theirFriendIds.includes(id)).length;
+                }
+                return { ...u, mutualCount };
+            }));
+            // Sort by mutual friends (descending)
+            usersWithMutual.sort((a, b) => b.mutualCount - a.mutualCount);
+            setSuggestions(usersWithMutual);
+        } else if (allUsers) {
+            setSuggestions(allUsers.map(u => ({ ...u, mutualCount: 0 })));
         }
 
-        // Auto-select best tab
-        if (incomingRequests?.length > 0) {
-            setActiveTab('requests');
-        } else if (friendships?.length > 0) {
-            setActiveTab('friends');
-        } else {
-            setActiveTab('discover');
-        }
+        // Keep discover as default - user came here to find friends
+        setActiveTab('discover');
 
         setLoading(false);
     };
@@ -447,6 +541,39 @@ export default function FriendsPage() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SEARCH FUNCTIONALITY
+    // ═══════════════════════════════════════════════════════════════════════
+
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return;
+        }
+
+        setIsSearching(true);
+        const timer = setTimeout(async () => {
+            try {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .or(`username.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%`)
+                    .neq('id', user?.id || '')
+                    .limit(20);
+
+                if (data) {
+                    setSearchResults(data);
+                }
+            } catch (e) {
+                console.error('Search error:', e);
+            }
+            setIsSearching(false);
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery, user?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════
     // HANDLERS
@@ -611,6 +738,53 @@ export default function FriendsPage() {
     );
 
     const renderContent = () => {
+        // If searching, show search results
+        if (searchQuery.trim()) {
+            if (isSearching) {
+                return (
+                    <div style={{ textAlign: 'center', padding: 48, color: C.textSec }}>
+                        <div style={{ fontSize: 32, marginBottom: 16 }}>🔍</div>
+                        <div>Searching...</div>
+                    </div>
+                );
+            }
+
+            if (searchResults.length > 0) {
+                return (
+                    <div>
+                        <div style={{
+                            fontSize: 14,
+                            color: C.textSec,
+                            marginBottom: 16,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8
+                        }}>
+                            <span>🔎</span> Found {searchResults.length} {searchResults.length === 1 ? 'person' : 'people'}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {searchResults.map(person => (
+                                <UserCard
+                                    key={person.id}
+                                    user={person}
+                                    isFriend={friendIds.has(person.id)}
+                                    isPending={pendingIds.has(person.id)}
+                                    isFollowing={followingIds.has(person.id)}
+                                    isFollower={followerIds.has(person.id)}
+                                    onRemoveFriend={handleRemoveFriend}
+                                    onFollow={handleFollow}
+                                    onUnfollow={handleUnfollow}
+                                    onAddFriend={handleAddFriend}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+
+            return <EmptyState icon="🔎" message={`No users found for "${searchQuery}"`} />;
+        }
+
         switch (activeTab) {
             case 'requests':
                 return friendRequests.length > 0 ? (
@@ -705,6 +879,7 @@ export default function FriendsPage() {
                                 isPending={pendingIds.has(person.id)}
                                 isFollowing={followingIds.has(person.id)}
                                 isFollower={followerIds.has(person.id)}
+                                mutualCount={person.mutualCount || 0}
                                 onRemoveFriend={handleRemoveFriend}
                                 onFollow={handleFollow}
                                 onUnfollow={handleUnfollow}
@@ -760,6 +935,51 @@ export default function FriendsPage() {
                     <StatItem label="Followers" value={followers.length} color={C.purple} />
                 </div>
 
+                {/* Search Bar */}
+                <div style={{
+                    padding: '16px 20px',
+                    background: C.card,
+                    borderBottom: `1px solid ${C.border}`,
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        background: C.bg,
+                        borderRadius: 24,
+                        padding: '12px 20px',
+                        border: `1px solid ${C.border}`,
+                    }}>
+                        <span style={{ fontSize: 20, color: C.textSec }}>🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Search for friends by name or username..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{
+                                flex: 1,
+                                background: 'transparent',
+                                border: 'none',
+                                outline: 'none',
+                                color: C.text,
+                                fontSize: 15,
+                            }}
+                        />
+                        {isSearching && <span style={{ fontSize: 16 }}>⏳</span>}
+                        {searchQuery && !isSearching && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: C.textSec,
+                                    fontSize: 16,
+                                }}
+                            >✕</button>
+                        )}
+                    </div>
+                </div>
                 {/* Tabs */}
                 <div style={{
                     display: 'flex',
@@ -770,39 +990,39 @@ export default function FriendsPage() {
                     borderBottom: `1px solid ${C.border}`,
                 }}>
                     <TabButton
+                        active={activeTab === 'discover'}
+                        onClick={() => setActiveTab('discover')}
+                        icon=""
+                        label="Discover"
+                        count={suggestions.length}
+                    />
+                    <TabButton
                         active={activeTab === 'requests'}
                         onClick={() => setActiveTab('requests')}
-                        icon="🔔"
+                        icon=""
                         label="Requests"
                         count={friendRequests.length}
                     />
                     <TabButton
                         active={activeTab === 'friends'}
                         onClick={() => setActiveTab('friends')}
-                        icon="👥"
+                        icon=""
                         label="Friends"
                         count={friends.length}
                     />
                     <TabButton
                         active={activeTab === 'following'}
                         onClick={() => setActiveTab('following')}
-                        icon="💜"
+                        icon=""
                         label="Following"
                         count={following.length}
                     />
                     <TabButton
                         active={activeTab === 'followers'}
                         onClick={() => setActiveTab('followers')}
-                        icon="⭐"
+                        icon=""
                         label="Followers"
                         count={followers.length}
-                    />
-                    <TabButton
-                        active={activeTab === 'discover'}
-                        onClick={() => setActiveTab('discover')}
-                        icon="✨"
-                        label="Discover"
-                        count={0}
                     />
                 </div>
 

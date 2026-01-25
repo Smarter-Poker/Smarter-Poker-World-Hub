@@ -15,6 +15,7 @@ import { getClinicById, getRemediationXPMultiplier } from '../../../../src/data/
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import feedback, { EFFECT_STYLES, screenEffects } from '../../../../src/engine/HapticsFeedback';
 import { WorldNavHeader } from '../../../../src/components/navigation/WorldNavHeader';
+import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 
 // Constants
 const TIME_PER_QUESTION = 21;
@@ -300,12 +301,14 @@ export default function ClinicPlayPage() {
             </Head>
             <style>{`
                 html, body { margin: 0; padding: 0; width: 100%; height: 100vh; overflow: hidden; }
-                iframe { border: none; width: 100%; height: 100vh; display: block; }
             `}</style>
+            {/* Standard Hub Header - DO NOT MODIFY */}
+            <UniversalHeader pageDepth={2} />
             <iframe
                 ref={iframeRef}
                 src={`/templates/training_game_template.html?clinicId=${clinicId}&clinicName=${encodeURIComponent(clinic.name)}&v=clinic`}
                 title={clinic.name}
+                style={{ border: 'none', width: '100%', height: 'calc(100vh - 60px)', display: 'block' }}
                 onLoad={() => {
                     console.log('[CLINIC] Template loaded');
                     setTimeout(sendClinicDataToIframe, 100);

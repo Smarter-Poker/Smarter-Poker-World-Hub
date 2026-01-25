@@ -19,17 +19,28 @@
 
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
+import { shouldHorseBeActive, isHorseActiveHour, getHorseActivityRate } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
-// Dynamic import for ClipLibrary (works on Vercel)
-let getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES;
-try {
-    const lib = await import('../../../src/content-engine/pipeline/ClipLibrary.js');
-    getRandomClip = lib.getRandomClip;
-    getRandomCaption = lib.getRandomCaption;
-    markClipUsed = lib.markClipUsed;
-    CLIP_CATEGORIES = lib.CLIP_CATEGORIES;
-} catch (e) {
-    console.error('Failed to load ClipLibrary:', e.message);
+// ClipLibrary functions - loaded dynamically in handler
+let getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES, getHorsePreferredSources;
+let clipLibraryLoaded = false;
+
+async function loadClipLibrary() {
+    if (clipLibraryLoaded) return true;
+    try {
+        const lib = await import('../../../src/content-engine/pipeline/ClipLibrary.js');
+        getRandomClip = lib.getRandomClip;
+        getRandomCaption = lib.getRandomCaption;
+        markClipUsed = lib.markClipUsed;
+        CLIP_CATEGORIES = lib.CLIP_CATEGORIES;
+        getHorsePreferredSources = lib.getHorsePreferredSources;
+        clipLibraryLoaded = true;
+        console.log('✅ ClipLibrary loaded successfully');
+        return true;
+    } catch (e) {
+        console.error('❌ Failed to load ClipLibrary:', e.message);
+        return false;
+    }
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -39,14 +50,57 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 
 const CONFIG = {
-    HORSES_PER_TRIGGER: 3,
+    HORSES_PER_TRIGGER: 3,  // 3 clips per trigger (runs 4x/hour = 12 clips/hour)
     VIDEO_CLIP_PROBABILITY: 0.90,  // LAW: 90% video clips
-    MAX_CLIPS_PER_DAY: 50,
-    CLIP_COOLDOWN_HOURS: 48  // Don't repost same clip within 48 hours
+    MAX_CLIPS_PER_DAY: 200,  // Increased capacity
+    CLIP_COOLDOWN_HOURS: 48  // Don't reuse same clip for 48 hours
 };
 
 // Track clips used in this session to prevent duplicates within same cron run
 const usedClipsThisSession = new Set();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VIDEO ID VALIDATION - Ensure only real YouTube videos are posted
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Validate a YouTube video ID by checking if its thumbnail exists
+ * Returns true if the video ID is valid and the thumbnail is accessible
+ */
+async function validateYouTubeVideoId(videoId) {
+    if (!videoId || typeof videoId !== 'string') return false;
+
+    // Quick pattern check - fake IDs often end in 3 repeating uppercase letters
+    if (/[A-Z]{3}$/.test(videoId)) {
+        console.log(`   ⚠️ Suspicious ID pattern (ends in XXX): ${videoId}`);
+        return false;
+    }
+
+    try {
+        // Check if YouTube thumbnail exists (fastest way to validate)
+        const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+        const response = await fetch(thumbnailUrl, { method: 'HEAD' });
+
+        if (response.ok) {
+            return true;
+        } else {
+            console.log(`   ❌ Invalid video ID (no thumbnail): ${videoId}`);
+            return false;
+        }
+    } catch (e) {
+        console.log(`   ❌ Video ID validation failed: ${videoId} - ${e.message}`);
+        return false;
+    }
+}
+
+/**
+ * Extract video ID from a YouTube URL
+ */
+function extractVideoIdFromUrl(url) {
+    if (!url) return null;
+    const match = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/);
+    return match ? match[1] : null;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GET RECENTLY POSTED CLIPS (for coordination between horses)
@@ -83,7 +137,7 @@ async function getRecentlyPostedClipIds() {
 
 /**
  * Post a video clip for a Horse
- * Simplified version that matches working debug endpoint
+ * Now with proper deduplication to avoid posting same clips
  */
 async function postVideoClip(horse, recentlyUsedClips = new Set()) {
     console.log(`🎬 ${horse.name}: Posting video clip...`);
@@ -95,14 +149,53 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             return null;
         }
 
-        // Get a random clip from the library
-        const clip = getRandomClip();
+        // Get this horse's preferred content sources
+        const preferredSources = getHorsePreferredSources ? getHorsePreferredSources(horse.profile_id) : null;
+        if (preferredSources) {
+            console.log(`   ${horse.name} prefers: ${preferredSources.join(', ')}`);
+        }
+
+        // Get a random clip that hasn't been used recently, preferring horse's sources
+        let clip = null;
+        let attempts = 0;
+        const maxAttempts = 15;
+
+        while (!clip && attempts < maxAttempts) {
+            // Try to get clip from preferred source first
+            const preferSource = preferredSources ? preferredSources[attempts % preferredSources.length] : null;
+            const candidate = getRandomClip({ preferSource });
+            if (!candidate) break;
+
+            // Check if this clip was recently used (database check) or used this session
+            if (recentlyUsedClips.has(candidate.id) || usedClipsThisSession.has(candidate.id)) {
+                console.log(`   Skipping ${candidate.id} (already used)`);
+                attempts++;
+                continue;
+            }
+
+            // CRITICAL: Validate the video ID is real before accepting
+            const videoId = extractVideoIdFromUrl(candidate.source_url) || candidate.video_id;
+            const isValid = await validateYouTubeVideoId(videoId);
+
+            if (!isValid) {
+                console.log(`   ⚠️ Rejecting ${candidate.id} - invalid video ID: ${videoId}`);
+                attempts++;
+                continue;
+            }
+
+            // Video ID is valid - accept this clip
+            clip = candidate;
+            usedClipsThisSession.add(candidate.id);
+            console.log(`   ✅ Validated: ${videoId}`);
+            attempts++;
+        }
+
         if (!clip) {
-            console.error(`   No clips available`);
+            console.error(`   No fresh clips available after ${attempts} attempts`);
             return null;
         }
 
-        console.log(`   Selected clip: ${clip.id}`);
+        console.log(`   Selected clip: ${clip.id} (attempt ${attempts})`);
 
         // Generate caption using template
         const templateCaption = getRandomCaption ? getRandomCaption(clip.category || 'funny') : 'Check out this hand! 🔥';
@@ -113,11 +206,19 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 model: 'gpt-4o',
                 messages: [{
                     role: 'user',
-                    content: `Write 1 short poker clip caption (10 words max): ${templateCaption}`
+                    content: `Write 1 short poker clip caption (10 words max). RULES: NO quotation marks. NO em-dashes (—). NO colons. Just casual text like a real person would post. Reference: ${templateCaption}`
                 }],
                 max_tokens: 30
             });
             caption = response.choices[0].message.content;
+            // Clean up any quotes/dashes that slip through - strip ALL quote variants
+            caption = caption
+                .replace(/[\"""''`]/g, '')  // All quote types
+                .replace(/—/g, ' ')         // Em-dashes to space
+                .replace(/–/g, ' ')         // En-dashes to space  
+                .replace(/:/g, '')          // Colons
+                .replace(/\s+/g, ' ')       // Multiple spaces to single
+                .trim();
         } catch (e) {
             console.log(`   Using template caption (OpenAI error: ${e.message})`);
         }
@@ -344,20 +445,30 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Missing env vars' });
     }
 
+    // Load ClipLibrary dynamically
+    const libLoaded = await loadClipLibrary();
+    if (!libLoaded) {
+        return res.status(500).json({ error: 'Failed to load ClipLibrary' });
+    }
+
     try {
         // Get recently posted clips to avoid duplicates (horse coordination)
         const recentlyUsedClips = await getRecentlyPostedClipIds();
         console.log(`📋 Found ${recentlyUsedClips.size} recently posted clips to avoid`);
 
-        // Get random active horses
-        const { data: horses, error: horseError } = await supabase
+        // Get current time for per-horse scheduling
+        const now = new Date();
+        const currentMinute = now.getMinutes();
+        const currentHour = now.getHours();
+
+        // Get ALL active horses
+        const { data: allHorses, error: horseError } = await supabase
             .from('content_authors')
             .select('*')
             .eq('is_active', true)
-            .not('profile_id', 'is', null)
-            .limit(CONFIG.HORSES_PER_TRIGGER * 2);
+            .not('profile_id', 'is', null);
 
-        if (horseError || !horses?.length) {
+        if (horseError || !allHorses?.length) {
             return res.status(200).json({
                 success: true,
                 message: 'No horses available',
@@ -365,15 +476,40 @@ export default async function handler(req, res) {
             });
         }
 
-        // Shuffle and select
-        const shuffled = horses.sort(() => Math.random() - 0.5);
-        const selectedHorses = shuffled.slice(0, CONFIG.HORSES_PER_TRIGGER);
+        // FILTER: Only horses who are "awake" during their 12-hour active window
+        // Each horse has a unique sleep schedule based on their profile_id hash
+        const activeHorses = allHorses.filter(horse => {
+            if (!horse.profile_id) return false;
+            const isAwake = isHorseActiveHour(horse.profile_id, currentHour);
+            if (!isAwake) {
+                console.log(`   💤 ${horse.name} is sleeping (not in active hours)`);
+            }
+            return isAwake;
+        });
+
+        console.log(`⏰ Minute ${currentMinute}, Hour ${currentHour}`);
+        console.log(`🐴 Awake horses this hour: ${activeHorses.length}/${allHorses.length}`);
+
+        if (activeHorses.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: 'No horses in their active slot this minute',
+                posted: 0,
+                activeHorses: 0
+            });
+        }
+
+        // Select horses based on their activity rate (some post more than others)
+        const selectedHorses = activeHorses.filter(horse => {
+            const rate = getHorseActivityRate(horse.profile_id, 'post');
+            return Math.random() < rate;
+        }).slice(0, CONFIG.HORSES_PER_TRIGGER);
 
         const results = [];
 
         for (const horse of selectedHorses) {
-            // Random delay
-            await new Promise(r => setTimeout(r, Math.random() * 4000 + 2000));
+            // Random delay 5-15 seconds between posts (stay under 60s timeout)
+            await new Promise(r => setTimeout(r, Math.random() * 10000 + 5000));
 
             // 100% VIDEO CLIPS ONLY - no AI generated content
             const result = await postVideoClip(horse, recentlyUsedClips);

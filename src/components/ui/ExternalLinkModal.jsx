@@ -59,17 +59,53 @@ export function ExternalLinkProvider({ children }) {
             const href = link.getAttribute('href');
             if (!href) return;
 
+            // Skip internal navigation
+            if (href.includes('smarter.poker') || href.includes('localhost')) return;
+
             // Check if it's an external link
             const isExternal = (
                 href.startsWith('http://') ||
                 href.startsWith('https://') ||
                 href.startsWith('//')
-            ) && !href.includes('smarter.poker') && !href.includes('localhost');
+            );
+
+            if (!isExternal) return;
+
+            // CRITICAL: Skip image and media URLs - they should display normally, not in modal
+            const lowerHref = href.toLowerCase();
+            const isMediaUrl = (
+                // Image extensions
+                lowerHref.match(/\.(png|jpg|jpeg|gif|webp|svg|ico|bmp|avif)(\?.*)?$/) ||
+                // Video extensions
+                lowerHref.match(/\.(mp4|webm|mov|avi|mkv|m4v)(\?.*)?$/) ||
+                // Audio extensions
+                lowerHref.match(/\.(mp3|wav|ogg|m4a|aac)(\?.*)?$/) ||
+                // Common image/media CDN domains
+                lowerHref.includes('primg.net') ||
+                lowerHref.includes('imgur.com') ||
+                lowerHref.includes('cloudinary.com') ||
+                lowerHref.includes('supabase.co/storage') ||
+                lowerHref.includes('youtube.com/watch') ||
+                lowerHref.includes('youtu.be') ||
+                // Skip if it's inside an img tag (wrapped image)
+                link.querySelector('img')
+            );
+
+            if (isMediaUrl) {
+                // Let media URLs open normally (new tab or inline)
+                return;
+            }
+
+            // CRITICAL: Skip video call URLs - Jitsi must open in new tab, not modal
+            if (lowerHref.includes('meet.jit.si')) {
+                // Let Jitsi calls open in new tab (target="_blank" already set on <a>)
+                return;
+            }
 
             // Also intercept links that explicitly should open externally
             const forceInternal = link.hasAttribute('data-internal');
 
-            if (isExternal || forceInternal) {
+            if (forceInternal || isExternal) {
                 e.preventDefault();
                 e.stopPropagation();
 

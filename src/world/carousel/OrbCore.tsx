@@ -12,11 +12,13 @@ import * as THREE from 'three';
 import { TextureLoader } from 'three';
 
 interface OrbCoreProps {
+    id?: string;
     color: string;
     label: string;
     gradient?: [string, string];
     active: boolean;
     imageUrl?: string;
+    description?: string;
 }
 
 // Holographic color palette (cyan/blue/green/white only)
@@ -29,8 +31,9 @@ const HOLO_COLORS = [
     '#ffffff', // Pure White
 ];
 
-export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCoreProps) {
+export function OrbCore({ id, color, label, gradient, active, imageUrl, description }: OrbCoreProps) {
     const groupRef = useRef<THREE.Group>(null);
+    const isMarketplace = id === 'marketplace';
 
     // Random holographic parameters for each card - truly independent floating
     const holoParams = useMemo(() => ({
@@ -71,10 +74,10 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
     return (
         <group ref={groupRef}>
             {/* ═══════════════════════════════════════════════════════════════
-                CARD CONTENT AREA - Custom image with holographic overlay
+                CARD CONTENT AREA - Marketplace fills full frame, others have inset
                 ═══════════════════════════════════════════════════════════════ */}
             <mesh position={[0, 0, 0.03]}>
-                <planeGeometry args={[cardWidth - 0.02, cardHeight - 0.02]} />
+                <planeGeometry args={isMarketplace ? [cardWidth, cardHeight] : [cardWidth - 0.10, cardHeight - 0.10]} />
                 {texture ? (
                     <meshBasicMaterial map={texture} />
                 ) : (
@@ -111,10 +114,9 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
             </mesh>
 
             {/* ═══════════════════════════════════════════════════════════════
-                INNER WHITE BORDER FRAME - Continuous line rectangle
-                Using drei's Line for a proper connected rectangle with no gaps
+                INNER WHITE BORDER FRAME - Hidden for marketplace (full image)
                 ═══════════════════════════════════════════════════════════════ */}
-            {(() => {
+            {!isMarketplace && (() => {
                 const inset = 0.05;
                 const left = -(cardWidth / 2) + inset;
                 const right = (cardWidth / 2) - inset;
@@ -140,6 +142,43 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                     />
                 );
             })()}
+
+            {/* ═══════════════════════════════════════════════════════════════
+                CARD TITLE - Neon glow positioned ABOVE the card
+                ═══════════════════════════════════════════════════════════════ */}
+            <Text
+                position={[0, (cardHeight / 2) + 0.02, 0.02]}
+                fontSize={0.07}
+                color="#00ffff"
+                anchorX="center"
+                anchorY="bottom"
+                outlineWidth={0.004}
+                outlineColor="#00d4ff"
+                letterSpacing={0.08}
+            >
+                {label.toUpperCase()}
+            </Text>
+
+            {/* ═══════════════════════════════════════════════════════════════
+                CARD DESCRIPTION - Neon glow positioned BELOW the card (2 lines max)
+                ═══════════════════════════════════════════════════════════════ */}
+            {description && (
+                <Text
+                    position={[0, -(cardHeight / 2) - 0.03, 0.02]}
+                    fontSize={0.04}
+                    color="#ffffff"
+                    anchorX="center"
+                    anchorY="top"
+                    textAlign="center"
+                    maxWidth={cardWidth}
+                    lineHeight={1.3}
+                    outlineWidth={0.001}
+                    outlineColor="#00d4ff"
+                    letterSpacing={0.02}
+                >
+                    {description}
+                </Text>
+            )}
         </group>
     );
 }

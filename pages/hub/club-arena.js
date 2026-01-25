@@ -3,6 +3,7 @@
  * Loads Club Engine iframe from club.smarter.poker
  * 
  * FIX: Proper cleanup on navigation to prevent page freeze
+ * SSO: Passes auth token to Club Arena via postMessage
  */
 
 import Head from 'next/head';
@@ -11,6 +12,7 @@ import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+import { supabase } from '../../src/lib/supabase';
 
 // God-Mode Stack
 import { useClubArenaStore } from '../../src/stores/clubArenaStore';
@@ -22,6 +24,83 @@ export default function ClubArenaPage() {
     const iframeRef = useRef(null);
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [authSent, setAuthSent] = useState(false);
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SSO HANDSHAKE — Send auth token to Club Arena iframe with retry
+    // ══════════════════════════════════════════════════════════════════════════
+
+    // Poll and send auth token until successful
+    useEffect(() => {
+        console.log('[SSO-PARENT] SSO effect mounted, iframeLoaded:', iframeLoaded);
+
+        if (!iframeLoaded || authSent) return;
+
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        const tryToSendAuth = async () => {
+            if (authSent || attempts >= maxAttempts) return;
+            attempts++;
+
+            console.log(`[SSO-PARENT] Attempt ${attempts} to send auth token`);
+
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                console.log('[SSO-PARENT] Session found:', !!session);
+
+                if (session && iframeRef.current?.contentWindow) {
+                    iframeRef.current.contentWindow.postMessage({
+                        type: 'SMARTER_POKER_AUTH',
+                        payload: {
+                            access_token: session.access_token,
+                            refresh_token: session.refresh_token,
+                        }
+                    }, 'https://club.smarter.poker');
+                    console.log('[SSO-PARENT] ✅ Auth token sent to Club Arena!');
+                    setAuthSent(true);
+                } else if (attempts < maxAttempts) {
+                    // Retry after delay
+                    setTimeout(tryToSendAuth, 500);
+                }
+            } catch (err) {
+                console.error('[SSO-PARENT] Error getting session:', err);
+            }
+        };
+
+        // Start after a small delay to ensure iframe is ready
+        setTimeout(tryToSendAuth, 300);
+    }, [iframeLoaded, authSent]);
+
+    // Also listen for CLUB_ARENA_READY and respond with token
+    useEffect(() => {
+        console.log('[SSO-PARENT] Message listener mounted');
+
+        const handleMessage = async (event) => {
+            console.log('[SSO-PARENT] Received message from:', event.origin, event.data?.type);
+
+            if (event.origin !== 'https://club.smarter.poker') return;
+
+            if (event.data?.type === 'CLUB_ARENA_READY' && iframeRef.current) {
+                console.log('[SSO-PARENT] CLUB_ARENA_READY received, sending auth...');
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    iframeRef.current.contentWindow?.postMessage({
+                        type: 'SMARTER_POKER_AUTH',
+                        payload: {
+                            access_token: session.access_token,
+                            refresh_token: session.refresh_token,
+                        }
+                    }, 'https://club.smarter.poker');
+                    console.log('[SSO-PARENT] ✅ Responded to CLUB_ARENA_READY');
+                    setAuthSent(true);
+                }
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
 
     // Cleanup iframe on unmount or navigation
     useEffect(() => {

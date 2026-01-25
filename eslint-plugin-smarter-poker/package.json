@@ -1,0 +1,7 @@
+{
+    "name": "eslint-plugin-smarter-poker",
+    "version": "1.0.0",
+    "description": "Custom ESLint rules for Smarter Poker to prevent auth bugs",
+    "main": "index.js",
+    "private": true
+}

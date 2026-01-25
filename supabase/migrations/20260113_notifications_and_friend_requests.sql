@@ -49,17 +49,18 @@ BEGIN
     FROM public.profiles WHERE id = NEW.user_id;
     
     -- Create notification for the recipient
+    -- Format: "{sender_name} {message}" - message is what comes after the name
+    -- Facebook-style examples:
+    --   "Seth Gordon sent you a friend request"
+    --   "Seth Gordon accepted your friend request"
     INSERT INTO public.notifications (user_id, type, title, message, data)
     VALUES (
         NEW.friend_id,
         CASE WHEN NEW.status = 'pending' THEN 'friend_request' ELSE 'friend_accept' END,
-        CASE WHEN NEW.status = 'pending' 
-            THEN sender_name || ' sent you a friend request'
-            ELSE sender_name || ' is now your friend'
-        END,
+        sender_name,
         CASE WHEN NEW.status = 'pending'
-            THEN 'Accept to become friends'
-            ELSE 'You can now see each other''s posts'
+            THEN 'sent you a friend request'
+            ELSE 'accepted your friend request'
         END,
         jsonb_build_object(
             'sender_id', NEW.user_id,

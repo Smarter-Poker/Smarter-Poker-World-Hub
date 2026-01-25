@@ -1,9 +1,130 @@
 {
   "framework": "nextjs",
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "source": "/hub/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/hub",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        }
+      ]
+    }
+  ],
   "crons": [
+    {
+      "path": "/api/cron/daily-content",
+      "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/cron/horses-news",
+      "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/cron/news-scraper",
+      "schedule": "0 */2 * * *"
+    },
     {
       "path": "/api/cron/scrape-news",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/pokernews-videos",
+      "schedule": "30 */2 * * *"
+    },
+    {
+      "path": "/api/cron/youtube-shorts",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/horses-social-likes",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-social-comments",
+      "schedule": "2,7,12,17,22,27,32,37,42,47,52,57 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-social-friends",
+      "schedule": "15 */4 * * *"
+    },
+    {
+      "path": "/api/cron/horses-social-replies",
+      "schedule": "3,8,13,18,23,28,33,38,43,48,53,58 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-clips",
+      "schedule": "3 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-clips",
+      "schedule": "18 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-clips",
+      "schedule": "33 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-clips",
+      "schedule": "48 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-stories",
+      "schedule": "8 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-stories",
+      "schedule": "23 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-stories",
+      "schedule": "38 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-stories",
+      "schedule": "53 * * * *"
+    },
+    {
+      "path": "/api/cron/scrape-poker-clips",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/generate-trivia",
+      "schedule": "59 5 * * *"
     }
   ]
 }

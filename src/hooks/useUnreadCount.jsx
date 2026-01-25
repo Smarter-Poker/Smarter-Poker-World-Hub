@@ -5,6 +5,7 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '../lib/supabase';
+import { getAuthUser } from '../lib/authUtils';
 
 const UnreadContext = createContext({
     unreadCount: 0,
@@ -15,13 +16,13 @@ export function UnreadProvider({ children }) {
     const [unreadCount, setUnreadCount] = useState(0);
     const [userId, setUserId] = useState(null);
 
-    // Get user on mount
+    // Get user on mount - use bulletproof authUtils instead of supabase client
     useEffect(() => {
-        supabase.auth.getUser().then(({ data }) => {
-            if (data?.user) {
-                setUserId(data.user.id);
-            }
-        });
+        // 🛡️ BULLETPROOF: Read from localStorage to avoid AbortError
+        const user = getAuthUser();
+        if (user) {
+            setUserId(user.id);
+        }
     }, []);
 
     // Fetch unread count
