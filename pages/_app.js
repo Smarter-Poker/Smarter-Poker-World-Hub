@@ -96,6 +96,8 @@ function NavigationGuard({ children }) {
 
         // Look for existing Supabase auth sessions with old auto-generated keys
         let migratedSession = false;
+        const oldKeysToRemove = [];
+
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
           if (key && key.startsWith('sb-') && key.includes('-auth-token')) {
@@ -107,11 +109,20 @@ function NavigationGuard({ children }) {
                 console.log(`[Auth Migration v6] Migrated session from ${key} to ${NEW_AUTH_KEY}`);
                 migratedSession = true;
               }
+              // CRITICAL: Remove old Supabase key to prevent token refresh failure loop
+              // If old key exists, Supabase will try to refresh it → 400 error → SIGNED_OUT
+              oldKeysToRemove.push(key);
             } catch (e) {
               console.warn('[Auth Migration v6] Failed to migrate:', e);
             }
           }
         }
+
+        // Remove old Supabase auth keys AFTER migration completes
+        oldKeysToRemove.forEach(key => {
+          console.log(`[Auth Migration v6] Removing old key: ${key.substring(0, 20)}...`);
+          localStorage.removeItem(key);
+        });
 
         // Also clear any corrupted keys with newlines
         const keysToRemove = [];
