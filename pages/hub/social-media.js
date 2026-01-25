@@ -1563,6 +1563,13 @@ export default function SocialMediaPage() {
                         } : null
                     });
                     await loadContacts(authUser.id);
+
+                    // 🕐 Update last_active timestamp (powers "last active" status on friends page)
+                    supabase.from('profiles')
+                        .update({ last_active: new Date().toISOString() })
+                        .eq('id', p?.id || authUser.id)
+                        .then(() => console.log('[Social] Updated last_active timestamp'));
+
                     // Load notifications with actor profile data
                     const { data: notifs } = await supabase.from('notifications')
                         .select('*')
