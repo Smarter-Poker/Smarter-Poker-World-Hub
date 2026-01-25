@@ -40,7 +40,9 @@ export default function SignUpPage() {
         email: '',
         password: '',
         confirmPassword: '',
-        birthdate: '',
+        birthMonth: '',
+        birthDay: '',
+        birthYear: '',
         city: '',
         state: '',
         pokerAlias: '',
@@ -278,12 +280,12 @@ export default function SignUpPage() {
             return;
         }
 
-        // Birthdate validation - must be 18+
-        if (!formData.birthdate) {
-            setError('Please enter your birth date');
+        // Birthdate validation - must be 18+ (using dropdown values)
+        if (!formData.birthMonth || !formData.birthDay || !formData.birthYear) {
+            setError('Please select your complete birth date');
             return;
         }
-        const birthDate = new Date(formData.birthdate);
+        const birthDate = new Date(`${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`);
         const today = new Date();
         const age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -570,7 +572,7 @@ export default function SignUpPage() {
                                     type="text"
                                     value={formData.fullName}
                                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                                    placeholder="John Smith"
+                                    placeholder=""
                                     style={styles.inputSingle}
                                     required
                                 />
@@ -583,7 +585,7 @@ export default function SignUpPage() {
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    placeholder="you@example.com"
+                                    placeholder=""
                                     style={styles.inputSingle}
                                     required
                                 />
@@ -665,17 +667,56 @@ export default function SignUpPage() {
                                 </button>
                             </div>
 
-                            {/* Birthdate - 18+ Verification */}
+                            {/* Birthdate - 18+ Verification - Dropdown Selectors */}
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Date of Birth <span style={styles.labelHint}>(must be 18+)</span></label>
-                                <input
-                                    type="date"
-                                    value={formData.birthdate}
-                                    onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
-                                    style={styles.inputSingle}
-                                    max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                                    required
-                                />
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    {/* Month Dropdown */}
+                                    <select
+                                        value={formData.birthMonth || ''}
+                                        onChange={(e) => setFormData({ ...formData, birthMonth: e.target.value })}
+                                        style={{ ...styles.selectInput, flex: 1.5 }}
+                                        required
+                                    >
+                                        <option value="">Month</option>
+                                        <option value="01">January</option>
+                                        <option value="02">February</option>
+                                        <option value="03">March</option>
+                                        <option value="04">April</option>
+                                        <option value="05">May</option>
+                                        <option value="06">June</option>
+                                        <option value="07">July</option>
+                                        <option value="08">August</option>
+                                        <option value="09">September</option>
+                                        <option value="10">October</option>
+                                        <option value="11">November</option>
+                                        <option value="12">December</option>
+                                    </select>
+                                    {/* Day Dropdown */}
+                                    <select
+                                        value={formData.birthDay || ''}
+                                        onChange={(e) => setFormData({ ...formData, birthDay: e.target.value })}
+                                        style={{ ...styles.selectInput, flex: 1 }}
+                                        required
+                                    >
+                                        <option value="">Day</option>
+                                        {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                                            <option key={day} value={String(day).padStart(2, '0')}>{day}</option>
+                                        ))}
+                                    </select>
+                                    {/* Year Dropdown */}
+                                    <select
+                                        value={formData.birthYear || ''}
+                                        onChange={(e) => setFormData({ ...formData, birthYear: e.target.value })}
+                                        style={{ ...styles.selectInput, flex: 1.2 }}
+                                        required
+                                    >
+                                        <option value="">Year</option>
+                                        {Array.from({ length: 82 }, (_, i) => new Date().getFullYear() - 18 - i).map(year => (
+                                            <option key={year} value={year}>{year}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             {/* City & State */}
@@ -686,7 +727,7 @@ export default function SignUpPage() {
                                         type="text"
                                         value={formData.city}
                                         onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                                        placeholder="Las Vegas"
+                                        placeholder=""
                                         style={styles.inputSingle}
                                         required
                                     />
