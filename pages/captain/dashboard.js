@@ -14,6 +14,7 @@ import ActivityFeed, { createActivity } from '../../src/components/captain/staff
 import OpenGameModal from '../../src/components/captain/modals/OpenGameModal';
 import AddWalkInModal from '../../src/components/captain/modals/AddWalkInModal';
 import SeatPlayerModal from '../../src/components/captain/modals/SeatPlayerModal';
+import { useRealtimeUpdates } from '../../src/lib/captain/useRealtimeUpdates';
 
 export default function CaptainDashboard() {
   const router = useRouter();
@@ -121,6 +122,22 @@ export default function CaptainDashboard() {
       return () => clearInterval(interval);
     }
   }, [staff, venueId, fetchData]);
+
+  // Real-time updates
+  const handleRealtimeUpdate = useCallback((type, payload) => {
+    // Add activity for the change
+    if (payload.eventType === 'INSERT') {
+      if (type === 'waitlist') {
+        addActivity('notification_sent', 'New player joined waitlist');
+      } else if (type === 'games') {
+        addActivity('success', 'New game started');
+      }
+    }
+    // Refresh data to get latest state
+    fetchData();
+  }, [fetchData]);
+
+  useRealtimeUpdates(venueId, handleRealtimeUpdate, !!staff);
 
   // Handle logout
   function handleLogout() {
