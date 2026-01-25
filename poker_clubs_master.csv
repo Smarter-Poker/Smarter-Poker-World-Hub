@@ -1,0 +1,372 @@
+Venue Name,City,State,Venue Type,Address,Phone,Website,Email,PokerAtlas URL,Hours,Games Offered,Stakes,Tables,Offers Tournaments,Trust Score,Featured
+Bellagio,Las Vegas,NV,casino,3600 S Las Vegas Blvd,702-693-7291,https://bellagio.mgmresorts.com,,https://www.pokeratlas.com/poker-room/bellagio,24/7,"NLH, PLO, Mixed, Stud","$1/$3, $2/$5, $5/$10, $10/$20, $25/$50",40,Yes,4.8,Yes
+Aria,Las Vegas,NV,casino,3730 S Las Vegas Blvd,702-590-7667,https://aria.mgmresorts.com,,https://www.pokeratlas.com/poker-room/aria,24/7,"NLH, PLO, Mixed","$1/$3, $2/$5, $5/$10, $10/$20",24,Yes,4.7,Yes
+Wynn,Las Vegas,NV,casino,3131 S Las Vegas Blvd,702-770-3385,https://wynnlasvegas.com,,https://www.pokeratlas.com/poker-room/wynn,24/7,"NLH, PLO, Mixed","$1/$3, $2/$5, $5/$10, $10/$20, $25/$50",28,Yes,4.9,Yes
+Venetian,Las Vegas,NV,casino,3355 S Las Vegas Blvd,702-414-1320,https://venetianlasvegas.com,,https://www.pokeratlas.com/poker-room/venetian,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",37,Yes,4.6,Yes
+Caesars Palace,Las Vegas,NV,casino,3570 S Las Vegas Blvd,702-731-7110,https://caesars.com,,https://www.pokeratlas.com/poker-room/caesars-palace,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",18,Yes,4.4,No
+MGM Grand,Las Vegas,NV,casino,3799 S Las Vegas Blvd,702-891-7733,https://mgmgrand.mgmresorts.com,,https://www.pokeratlas.com/poker-room/mgm-grand,24/7,"NLH, PLO","$1/$2, $1/$3, $2/$5",16,Yes,4.3,No
+Resorts World,Las Vegas,NV,casino,3000 S Las Vegas Blvd,702-676-7070,https://rwlasvegas.com,,https://www.pokeratlas.com/poker-room/resorts-world,24/7,"NLH, PLO","$1/$3, $2/$5, $5/$10",22,Yes,4.5,Yes
+Paris,Las Vegas,NV,casino,3655 S Las Vegas Blvd,702-946-7000,https://caesars.com/paris-las-vegas,,https://www.pokeratlas.com/poker-room/paris,24/7,NLH,"$1/$2, $2/$5",10,Yes,4.1,No
+Planet Hollywood,Las Vegas,NV,casino,3667 S Las Vegas Blvd,702-785-5555,https://caesars.com/planet-hollywood,,https://www.pokeratlas.com/poker-room/planet-hollywood,24/7,NLH,"$1/$2, $2/$5",12,Yes,4.0,No
+Flamingo,Las Vegas,NV,casino,3555 S Las Vegas Blvd,702-733-3111,https://caesars.com/flamingo-las-vegas,,https://www.pokeratlas.com/poker-room/flamingo,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.9,No
+Horseshoe LV,Las Vegas,NV,casino,3645 S Las Vegas Blvd,702-739-4111,https://caesars.com/horseshoe-las-vegas,,https://www.pokeratlas.com/poker-room/horseshoe-lv,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",30,Yes,4.5,Yes
+The STRAT,Las Vegas,NV,casino,2000 S Las Vegas Blvd,702-380-7777,https://thestrat.com,,https://www.pokeratlas.com/poker-room/the-strat,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.8,No
+Sahara,Las Vegas,NV,casino,2535 S Las Vegas Blvd,702-761-7000,https://saharalasvegas.com,,https://www.pokeratlas.com/poker-room/sahara,24/7,NLH,"$1/$2, $2/$5",6,Yes,3.7,No
+Treasure Island,Las Vegas,NV,casino,3300 S Las Vegas Blvd,702-894-7111,https://treasureisland.com,,https://www.pokeratlas.com/poker-room/treasure-island,24/7,NLH,"$1/$2, $2/$5",6,Yes,3.8,No
+Mirage,Las Vegas,NV,casino,3400 S Las Vegas Blvd,702-791-7111,https://mirage.mgmresorts.com,,https://www.pokeratlas.com/poker-room/mirage,24/7,NLH,"$1/$2, $2/$5",12,Yes,4.0,No
+Mandalay Bay,Las Vegas,NV,casino,3950 S Las Vegas Blvd,702-632-7777,https://mandalaybay.mgmresorts.com,,https://www.pokeratlas.com/poker-room/mandalay-bay,24/7,NLH,"$1/$2, $2/$5",8,Yes,4.0,No
+Golden Nugget,Las Vegas,NV,casino,129 Fremont St,702-385-7111,https://goldennugget.com/las-vegas,,https://www.pokeratlas.com/poker-room/golden-nugget,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.3,No
+Binions,Las Vegas,NV,casino,128 Fremont St,702-382-1600,https://binions.com,,https://www.pokeratlas.com/poker-room/binions,24/7,NLH,$1/$2,8,Yes,3.9,No
+Fremont,Las Vegas,NV,casino,200 Fremont St,702-385-3232,https://fremontcasino.com,,https://www.pokeratlas.com/poker-room/fremont,24/7,NLH,$1/$2,4,Yes,3.6,No
+Four Queens,Las Vegas,NV,casino,202 Fremont St,702-385-4011,https://fourqueens.com,,https://www.pokeratlas.com/poker-room/four-queens,24/7,NLH,$1/$2,4,Yes,3.5,No
+The D,Las Vegas,NV,casino,301 Fremont St,702-388-2400,https://thed.com,,https://www.pokeratlas.com/poker-room/the-d,24/7,NLH,$1/$2,4,Yes,3.6,No
+Plaza,Las Vegas,NV,casino,1 Main St,702-386-2110,https://plazahotelcasino.com,,https://www.pokeratlas.com/poker-room/plaza,24/7,NLH,$1/$2,4,Yes,3.5,No
+Orleans,Las Vegas,NV,casino,4500 W Tropicana Ave,702-365-7163,https://orleanscasino.com,,https://www.pokeratlas.com/poker-room/orleans,24/7,"NLH, PLO, Omaha Hi-Lo","$1/$2, $2/$5, $3/$6 Limit",35,Yes,4.2,No
+South Point,Las Vegas,NV,casino,9777 S Las Vegas Blvd,702-797-8009,https://southpointcasino.com,,https://www.pokeratlas.com/poker-room/south-point,24/7,"NLH, PLO, Stud","$1/$2, $2/$4 Limit",22,Yes,4.1,No
+Rio,Las Vegas,NV,casino,3700 W Flamingo Rd,702-777-7777,https://riolasvegas.com,,https://www.pokeratlas.com/poker-room/rio,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,4.0,Yes
+Red Rock,Las Vegas,NV,casino,11011 W Charleston Blvd,702-797-7777,https://stationcasinos.com,,https://www.pokeratlas.com/poker-room/red-rock,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,4.3,No
+Green Valley Ranch,Henderson,NV,casino,2300 Paseo Verde Pkwy,702-617-7777,https://stationcasinos.com,,https://www.pokeratlas.com/poker-room/green-valley-ranch,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.2,No
+Sunset Station,Henderson,NV,casino,1301 W Sunset Rd,702-547-7777,https://stationcasinos.com,,https://www.pokeratlas.com/poker-room/sunset-station,24/7,NLH,"$1/$2, $2/$5",10,Yes,4.0,No
+Palace Station,Las Vegas,NV,casino,2411 W Sahara Ave,702-367-2411,https://stationcasinos.com,,https://www.pokeratlas.com/poker-room/palace-station,24/7,NLH,"$1/$2, $2/$5",12,Yes,3.9,No
+Boulder Station,Las Vegas,NV,casino,4111 Boulder Hwy,702-432-7777,https://stationcasinos.com,,https://www.pokeratlas.com/poker-room/boulder-station,24/7,NLH,$1/$2,8,Yes,3.8,No
+Texas Station,N Las Vegas,NV,casino,2101 Texas Star Ln,702-631-1000,https://stationcasinos.com,,https://www.pokeratlas.com/poker-room/texas-station,24/7,NLH,$1/$2,8,Yes,3.7,No
+Santa Fe Station,Las Vegas,NV,casino,4949 N Rancho Dr,702-658-4900,https://stationcasinos.com,,https://www.pokeratlas.com/poker-room/santa-fe-station,24/7,NLH,$1/$2,6,Yes,3.7,No
+Cannery,N Las Vegas,NV,casino,2121 E Craig Rd,702-507-5700,https://cannerycasino.com,,https://www.pokeratlas.com/poker-room/cannery,24/7,NLH,$1/$2,6,Yes,3.6,No
+Eastside Cannery,Las Vegas,NV,casino,5255 Boulder Hwy,702-856-5300,https://eastsidecannery.com,,https://www.pokeratlas.com/poker-room/eastside-cannery,24/7,NLH,$1/$2,4,Yes,3.5,No
+M Resort,Henderson,NV,casino,12300 S Las Vegas Blvd,702-797-1000,https://themresort.com,,https://www.pokeratlas.com/poker-room/m-resort,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,4.1,No
+Aliante,N Las Vegas,NV,casino,7300 Aliante Pkwy,702-692-7777,https://aliantecasinohotel.com,,https://www.pokeratlas.com/poker-room/aliante,24/7,NLH,$1/$2,6,Yes,3.8,No
+Arizona Charlies Decatur,Las Vegas,NV,casino,740 S Decatur Blvd,702-258-5200,https://arizonacharliesdecatur.com,,https://www.pokeratlas.com/poker-room/arizona-charlies-decatur,24/7,NLH,$1/$2,4,Yes,3.4,No
+Arizona Charlies Boulder,Las Vegas,NV,casino,4575 Boulder Hwy,702-951-5800,https://arizonacharliesboulder.com,,https://www.pokeratlas.com/poker-room/arizona-charlies-boulder,24/7,NLH,$1/$2,4,Yes,3.4,No
+Jokers Wild,Henderson,NV,casino,920 N Boulder Hwy,702-564-8100,https://jokerswildcasino.com,,https://www.pokeratlas.com/poker-room/jokers-wild,24/7,NLH,$1/$2,4,Yes,3.3,No
+Club Fortune,Henderson,NV,casino,725 S Racetrack Rd,702-566-5555,https://clubfortunecasino.com,,https://www.pokeratlas.com/poker-room/club-fortune,24/7,NLH,$1/$2,4,Yes,3.3,No
+Poker Palace,N Las Vegas,NV,card_room,2757 N Las Vegas Blvd,702-649-3799,,,https://www.pokeratlas.com/poker-room/poker-palace,24/7,NLH,$1/$2,6,Yes,3.5,No
+Atlantis Casino,Reno,NV,casino,3800 S Virginia St,775-825-4700,https://atlantiscasino.com,,https://www.pokeratlas.com/poker-room/atlantis-casino,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.2,No
+Peppermill,Reno,NV,casino,2707 S Virginia St,775-826-2121,https://peppermillreno.com,,https://www.pokeratlas.com/poker-room/peppermill,24/7,"NLH, Omaha Hi-Lo","$2/$4 Limit, $1/$2",12,Yes,4.1,No
+Grand Sierra Resort,Reno,NV,casino,2500 E 2nd St,775-789-2000,https://grandsierraresort.com,,https://www.pokeratlas.com/poker-room/grand-sierra-resort,24/7,NLH,"$1/$2, $2/$5",8,Yes,4.0,No
+Silver Legacy,Reno,NV,casino,407 N Virginia St,775-325-7401,https://silverlegacyreno.com,,https://www.pokeratlas.com/poker-room/silver-legacy,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.9,No
+Eldorado,Reno,NV,casino,345 N Virginia St,775-786-5700,https://eldoradoreno.com,,https://www.pokeratlas.com/poker-room/eldorado,24/7,NLH,"$1/$2, $2/$5",6,Yes,3.8,No
+Circus Circus Reno,Reno,NV,casino,500 N Sierra St,775-329-0711,https://circusreno.com,,https://www.pokeratlas.com/poker-room/circus-circus-reno,24/7,NLH,$1/$2,4,Yes,3.5,No
+Nugget Sparks,Sparks,NV,casino,1100 Nugget Ave,775-356-3300,https://nuggetcasinoresort.com,,https://www.pokeratlas.com/poker-room/nugget-sparks,24/7,NLH,"$1/$2, $2/$5",8,Yes,4.0,No
+Boomtown Reno,Verdi,NV,casino,2100 Garson Rd,775-345-6000,https://boomtownreno.com,,https://www.pokeratlas.com/poker-room/boomtown-reno,24/7,NLH,$1/$2,4,Yes,3.5,No
+Harveys Lake Tahoe,Stateline,NV,casino,18 US-50,775-588-2411,https://caesars.com/harveys-tahoe,,https://www.pokeratlas.com/poker-room/harveys-lake-tahoe,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,4.2,No
+Montbleu,Stateline,NV,casino,55 US-50,775-588-3515,https://montbleuresort.com,,https://www.pokeratlas.com/poker-room/montbleu,24/7,NLH,$1/$2,6,Yes,3.8,No
+Tropicana Laughlin,Laughlin,NV,casino,2121 S Casino Dr,702-298-4200,https://tropicanalaughlin.com,,https://www.pokeratlas.com/poker-room/tropicana-laughlin,24/7,NLH,$1/$2,4,Yes,3.5,No
+Riverside Laughlin,Laughlin,NV,casino,1650 S Casino Dr,702-298-2535,https://riversideresort.com,,https://www.pokeratlas.com/poker-room/riverside-laughlin,24/7,NLH,$1/$2,4,Yes,3.5,No
+Eureka Mesquite,Mesquite,NV,casino,275 Mesa Blvd,702-346-4600,https://eurekamesquite.com,,https://www.pokeratlas.com/poker-room/eureka-mesquite,24/7,NLH,$1/$2,4,Yes,3.6,No
+Commerce Casino,Commerce,CA,card_room,6131 Telegraph Rd,323-721-2100,https://commercecasino.com,,https://www.pokeratlas.com/poker-room/commerce-casino,24/7,"NLH, PLO, Mixed, Limit, Stud, Omaha Hi-Lo","$1/$2, $2/$5, $5/$10, $10/$20, $25/$50",200,Yes,4.3,Yes
+Bicycle Casino,Bell Gardens,CA,card_room,888 Bicycle Casino Dr,562-806-4646,https://thebike.com,,https://www.pokeratlas.com/poker-room/bicycle-casino,24/7,"NLH, PLO, Mixed, Limit","$1/$2, $2/$5, $5/$10, $10/$20",180,Yes,4.4,Yes
+Hustler Casino,Gardena,CA,card_room,1000 W Redondo Beach Blvd,310-719-9800,https://hustlercasinola.com,,https://www.pokeratlas.com/poker-room/hustler-casino,24/7,"NLH, PLO, Mixed","$1/$3, $2/$5, $5/$10, $10/$20, $25/$50",80,Yes,4.5,Yes
+Hollywood Park Casino,Inglewood,CA,card_room,3883 W Century Blvd,310-330-2800,https://playhpc.com,,https://www.pokeratlas.com/poker-room/hollywood-park-casino,24/7,"NLH, PLO, Limit","$1/$2, $2/$5, $5/$10",60,Yes,4.1,No
+Gardens Casino,Hawaiian Gardens,CA,card_room,11871 E Carson St,562-860-5887,https://thegardenscasino.com,,https://www.pokeratlas.com/poker-room/gardens-casino,24/7,"NLH, PLO, Limit","$1/$2, $1/$3, $2/$5",40,Yes,4.0,No
+Larry Flynt Lucky Lady,Gardena,CA,card_room,1045 W Rosecrans Ave,310-352-3400,https://larryflynt.com,,https://www.pokeratlas.com/poker-room/larry-flynt-lucky-lady,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",45,Yes,4.0,No
+Normandie Casino,Gardena,CA,card_room,1045 W Rosecrans Ave,310-352-3400,,,https://www.pokeratlas.com/poker-room/normandie-casino,24/7,"NLH, PLO, Limit","$1/$2, $2/$5",30,Yes,3.8,No
+Crystal Park Casino,Compton,CA,card_room,123 E Artesia Blvd,310-631-3838,https://crystalparkcasino.com,,https://www.pokeratlas.com/poker-room/crystal-park-casino,24/7,NLH,"$1/$2, $2/$5",25,Yes,3.6,No
+Rainbow Casino,Gardena,CA,card_room,750 W Alondra Blvd,310-327-4700,,,https://www.pokeratlas.com/poker-room/rainbow-casino,24/7,NLH,$1/$2,15,Yes,3.4,No
+Tachi Palace,Lemoore,CA,casino,17225 Jersey Ave,559-924-7751,https://tachipalace.com,,https://www.pokeratlas.com/poker-room/tachi-palace,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,3.9,No
+Pechanga,Temecula,CA,casino,45000 Pechanga Pkwy,951-693-1819,https://pechanga.com,,https://www.pokeratlas.com/poker-room/pechanga,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",22,Yes,4.3,No
+San Manuel,Highland,CA,casino,777 San Manuel Blvd,909-864-5050,https://sanmanuel.com,,https://www.pokeratlas.com/poker-room/san-manuel,24/7,"NLH, PLO, Omaha Hi-Lo","$1/$2, $2/$5, $5/$10",30,Yes,4.2,No
+Morongo,Cabazon,CA,casino,49500 Seminole Dr,951-849-3080,https://morongocasinoresort.com,,https://www.pokeratlas.com/poker-room/morongo,24/7,"NLH, PLO","$1/$2, $2/$5",25,Yes,4.1,No
+Pala Casino,Pala,CA,casino,11154 CA-76,760-510-5100,https://palacasino.com,,https://www.pokeratlas.com/poker-room/pala-casino,24/7,NLH,"$1/$2, $2/$5",12,Yes,4.0,No
+Viejas Casino,Alpine,CA,casino,5000 Willows Rd,619-445-5400,https://viejas.com,,https://www.pokeratlas.com/poker-room/viejas-casino,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Sycuan Casino,El Cajon,CA,casino,5469 Casino Way,619-445-6002,https://sycuan.com,,https://www.pokeratlas.com/poker-room/sycuan-casino,24/7,"NLH, PLO","$1/$2, $2/$5",18,Yes,4.1,No
+Harrahs SoCal,Valley Center,CA,casino,777 Harrahs Rincon Way,760-751-3100,https://caesars.com/harrahs-socal,,https://www.pokeratlas.com/poker-room/harrahs-socal,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.9,No
+Barona,Lakeside,CA,casino,1932 Wildcat Canyon Rd,619-443-2300,https://barona.com,,https://www.pokeratlas.com/poker-room/barona,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.0,No
+Valley View Casino,Valley Center,CA,casino,16300 Nyemii Pass Rd,760-291-5500,https://valleyviewcasino.com,,https://www.pokeratlas.com/poker-room/valley-view-casino,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.8,No
+Agua Caliente Rancho Mirage,Rancho Mirage,CA,casino,32-250 Bob Hope Dr,760-321-2000,https://aguacalientecasinos.com,,https://www.pokeratlas.com/poker-room/agua-caliente-rancho-mirage,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",15,Yes,4.2,No
+Spotlight 29,Coachella,CA,casino,46-200 Harrison Pl,760-775-5566,https://spotlight29.com,,https://www.pokeratlas.com/poker-room/spotlight-29,24/7,NLH,$1/$2,6,Yes,3.6,No
+Fantasy Springs,Indio,CA,casino,84-245 Indio Springs Pkwy,760-342-5000,https://fantasyspringsresort.com,,https://www.pokeratlas.com/poker-room/fantasy-springs,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.9,No
+Soboba Casino,San Jacinto,CA,casino,22777 Soboba Rd,951-665-1000,https://soboba.com,,https://www.pokeratlas.com/poker-room/soboba-casino,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.8,No
+Paiute Palace,Bishop,CA,casino,2742 N Sierra Hwy,760-873-4150,https://paiutepalace.com,,https://www.pokeratlas.com/poker-room/paiute-palace,24/7,NLH,$1/$2,4,Yes,3.4,No
+Bay 101,San Jose,CA,card_room,1801 Bering Dr,408-451-8888,https://bay101.com,,https://www.pokeratlas.com/poker-room/bay-101,24/7,"NLH, PLO, Mixed, Limit","$1/$2, $2/$5, $5/$10, $10/$20",40,Yes,4.5,Yes
+Lucky Chances,Colma,CA,card_room,1700 Hillside Blvd,650-758-2237,https://luckychances.com,,https://www.pokeratlas.com/poker-room/lucky-chances,24/7,"NLH, PLO, Omaha Hi-Lo","$1/$2, $2/$5, $5/$10",35,Yes,4.2,No
+Artichoke Joes,San Bruno,CA,card_room,659 Huntington Ave,650-589-3145,https://artichokejoes.com,,https://www.pokeratlas.com/poker-room/artichoke-joes,24/7,"NLH, PLO, Limit","$1/$2, $2/$5, $3/$6 Limit",20,Yes,4.0,No
+Oaks Card Club,Emeryville,CA,card_room,4097 San Pablo Ave,510-653-4456,https://oakscardclub.com,,https://www.pokeratlas.com/poker-room/oaks-card-club,24/7,"NLH, PLO, Limit","$1/$2, $2/$5",18,Yes,4.0,No
+Livermore Casino,Livermore,CA,card_room,2600 S Vasco Rd,925-447-1702,https://livermorecasino.net,,https://www.pokeratlas.com/poker-room/livermore-casino,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,3.9,No
+M8trix,San Jose,CA,card_room,1887 Matrix Blvd,408-645-0083,https://m8trix.com,,https://www.pokeratlas.com/poker-room/m8trix,24/7,"NLH, PLO, Mixed","$1/$2, $2/$5, $5/$10",20,Yes,4.2,No
+Marina Club,East Palo Alto,CA,card_room,1999 University Ave,650-325-1766,,,https://www.pokeratlas.com/poker-room/marina-club,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.7,No
+Capitol Casino,Sacramento,CA,card_room,411 N 16th St,916-446-0700,https://capitol-casino.com,,https://www.pokeratlas.com/poker-room/capitol-casino,24/7,"NLH, PLO, Limit","$1/$2, $2/$5",20,Yes,4.0,No
+Stones Gambling Hall,Citrus Heights,CA,card_room,6510 Antelope Rd,916-735-8440,https://stonesgamblinghall.com,,https://www.pokeratlas.com/poker-room/stones-gambling-hall,24/7,"NLH, PLO, Mixed","$1/$2, $2/$5, $5/$10",25,Yes,4.1,No
+Club One Casino,Fresno,CA,card_room,1033 Van Ness Ave,559-497-3000,https://clubonecasino.com,,https://www.pokeratlas.com/poker-room/club-one-casino,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,3.9,No
+Thunder Valley,Lincoln,CA,casino,1200 Athens Ave,916-408-7777,https://thundervalleyresort.com,,https://www.pokeratlas.com/poker-room/thunder-valley,24/7,"NLH, PLO, Stud","$1/$2, $2/$5, $5/$10",25,Yes,4.4,Yes
+Graton,Rohnert Park,CA,casino,288 Golf Course Dr W,707-588-7100,https://gratonresortcasino.com,,https://www.pokeratlas.com/poker-room/graton,24/7,"NLH, PLO","$1/$3, $3/$5, $5/$10",20,Yes,4.3,No
+Cache Creek,Brooks,CA,casino,14455 CA-16,530-796-3118,https://cachecreek.com,,https://www.pokeratlas.com/poker-room/cache-creek,24/7,"NLH, PLO","$1/$3, $2/$5, $5/$10",15,Yes,4.1,No
+Jackson Rancheria,Jackson,CA,casino,12222 New York Ranch Rd,209-223-1677,https://jacksoncasino.com,,https://www.pokeratlas.com/poker-room/jackson-rancheria,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.8,No
+Red Hawk,Placerville,CA,casino,1 Red Hawk Pkwy,530-677-7000,https://redhawkcasino.com,,https://www.pokeratlas.com/poker-room/red-hawk,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.0,No
+Twin Pine Casino,Middletown,CA,casino,22223 CA-29,707-987-0197,https://twinpine.com,,https://www.pokeratlas.com/poker-room/twin-pine-casino,24/7,NLH,$1/$2,6,Yes,3.5,No
+Black Oak Casino,Tuolumne,CA,casino,19400 Tuolumne Rd N,209-928-9300,https://blackoakcasino.com,,https://www.pokeratlas.com/poker-room/black-oak-casino,24/7,NLH,$1/$2,6,Yes,3.6,No
+Chukchansi Gold,Coarsegold,CA,casino,711 Lucky Ln,559-692-5200,https://chukchansigold.com,,https://www.pokeratlas.com/poker-room/chukchansi-gold,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.7,No
+Table Mountain,Friant,CA,casino,8184 Table Mountain Rd,559-822-7777,https://tmcasino.com,,https://www.pokeratlas.com/poker-room/table-mountain,24/7,NLH,$1/$2,6,Yes,3.6,No
+Elk Valley Casino,Crescent City,CA,casino,2500 Howland Hill Rd,707-464-1020,https://elkvalleycasino.com,,https://www.pokeratlas.com/poker-room/elk-valley-casino,24/7,NLH,$1/$2,4,Yes,3.4,No
+Win-River Casino,Redding,CA,casino,2100 Redding Rancheria Rd,530-243-3377,https://winrivercasino.com,,https://www.pokeratlas.com/poker-room/win-river-casino,24/7,NLH,$1/$2,6,Yes,3.6,No
+Rolling Hills Casino,Corning,CA,casino,2655 Everett Freeman Way,530-528-3500,https://rollinghillscasino.com,,https://www.pokeratlas.com/poker-room/rolling-hills-casino,24/7,NLH,$1/$2,4,Yes,3.5,No
+Seminole Hard Rock Hollywood,Hollywood,FL,casino,1 Seminole Way,954-327-7465,https://seminolehardrockhollywood.com,,https://www.pokeratlas.com/poker-room/seminole-hard-rock-hollywood,24/7,"NLH, PLO, Mixed","$1/$2, $2/$5, $5/$10, $10/$25",45,Yes,4.7,Yes
+Seminole Hard Rock Tampa,Tampa,FL,casino,5223 Orient Rd,813-627-7651,https://seminolehardrocktampa.com,,https://www.pokeratlas.com/poker-room/seminole-hard-rock-tampa,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",46,Yes,4.5,Yes
+Gulfstream Park,Hallandale Beach,FL,card_room,901 S Federal Hwy,954-454-7087,https://gulfstreampark.com,,https://www.pokeratlas.com/poker-room/gulfstream-park,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",20,Yes,4.2,No
+Palm Beach Kennel Club,West Palm Beach,FL,card_room,1111 N Congress Ave,561-683-2222,https://pbkennelclub.com,,https://www.pokeratlas.com/poker-room/palm-beach-kennel-club,24/7,"NLH, PLO","$1/$2, $2/$5",35,Yes,4.0,No
+Derby Lane,St. Petersburg,FL,card_room,10490 Gandy Blvd,727-812-3339,https://derbylane.com,,https://www.pokeratlas.com/poker-room/derby-lane,24/7,"NLH, PLO","$1/$2, $2/$5",50,Yes,4.1,Yes
+TGT Poker,Tampa,FL,card_room,8300 N Nebraska Ave,813-932-4313,https://tgtpoker.com,,https://www.pokeratlas.com/poker-room/tgt-poker,24/7,"NLH, PLO, Mixed","$1/$2, $2/$5, $5/$10",40,Yes,4.2,No
+Hialeah Park,Hialeah,FL,card_room,100 E 21st St,305-885-8000,https://hialeahpark.com,,https://www.pokeratlas.com/poker-room/hialeah-park,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,4.0,No
+Magic City Casino,Miami,FL,card_room,450 NW 37th Ave,305-649-3000,https://magiccitycasino.com,,https://www.pokeratlas.com/poker-room/magic-city-casino,24/7,NLH,"$1/$2, $2/$5",15,Yes,3.8,No
+Daytona Beach Racing,Daytona Beach,FL,card_room,960 S Williamson Blvd,386-252-6484,https://daytonabeachpoker.com,,https://www.pokeratlas.com/poker-room/daytona-beach-racing,24/7,"NLH, PLO","$1/$2, $2/$5",25,Yes,4.0,No
+Orange City Racing,Orange City,FL,card_room,860 S Volusia Ave,386-252-6484,https://orangecitypoker.com,,https://www.pokeratlas.com/poker-room/orange-city-racing,24/7,NLH,"$1/$2, $2/$5",18,Yes,3.8,No
+Jacksonville Poker Room,Jacksonville,FL,card_room,201 Monument Rd,904-646-0002,https://jaxpokerroom.com,,https://www.pokeratlas.com/poker-room/jacksonville-poker-room,24/7,"NLH, PLO","$1/$2, $2/$5",30,Yes,4.0,No
+bestbet Jacksonville,Jacksonville,FL,card_room,201 Monument Rd,904-646-0002,https://bestbetjax.com,,https://www.pokeratlas.com/poker-room/bestbet-jacksonville,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",35,Yes,4.2,No
+bestbet Orange Park,Orange Park,FL,card_room,455 Park Ave,904-646-0002,https://bestbetjax.com,,https://www.pokeratlas.com/poker-room/bestbet-orange-park,24/7,"NLH, PLO","$1/$2, $2/$5",25,Yes,4.0,No
+Ocala Poker,Ocala,FL,card_room,3900 NW Gainesville Rd,352-237-2221,https://ocalapoker.com,,https://www.pokeratlas.com/poker-room/ocala-poker,24/7,NLH,"$1/$2, $2/$5",12,Yes,3.7,No
+Melbourne Greyhound Park,Melbourne,FL,card_room,1100 N Wickham Rd,321-259-9800,https://melbournegreyhoundpark.com,,https://www.pokeratlas.com/poker-room/melbourne-greyhound-park,24/7,NLH,"$1/$2, $2/$5",15,Yes,3.7,No
+Seminole Coconut Creek,Coconut Creek,FL,casino,5550 NW 40th St,954-977-6700,https://seminolecoconutcreekcasino.com,,https://www.pokeratlas.com/poker-room/seminole-coconut-creek,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",30,Yes,4.4,No
+Seminole Brighton,Okeechobee,FL,casino,17735 Reservation Rd,863-467-9998,https://seminolebrighton.com,,https://www.pokeratlas.com/poker-room/seminole-brighton,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.6,No
+Seminole Immokalee,Immokalee,FL,casino,506 S 1st St,239-658-1313,https://moreinparadise.com,,https://www.pokeratlas.com/poker-room/seminole-immokalee,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Seminole Classic,Hollywood,FL,casino,4150 N SR 7,954-961-3220,https://seminoleclassiccasino.com,,https://www.pokeratlas.com/poker-room/seminole-classic,24/7,NLH,"$1/$2, $2/$5",12,Yes,3.9,No
+Calder Casino,Miami Gardens,FL,casino,21001 NW 27th Ave,305-625-1311,https://caldercasino.com,,https://www.pokeratlas.com/poker-room/calder-casino,24/7,"NLH, PLO","$1/$2, $2/$5",18,Yes,4.0,No
+Pensacola Greyhound,Pensacola,FL,card_room,951 Dog Track Rd,850-456-9800,https://pensacolagreyhoundtrack.com,,https://www.pokeratlas.com/poker-room/pensacola-greyhound,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.5,No
+Ebro Greyhound Park,Ebro,FL,card_room,6558 Dog Track Rd,850-234-3943,https://goebro.com,,https://www.pokeratlas.com/poker-room/ebro-greyhound-park,24/7,NLH,$1/$2,8,Yes,3.4,No
+Creek Entertainment,Gretna,FL,card_room,2750 Crimson Ridge Rd,850-875-6930,https://creekentertainment.com,,https://www.pokeratlas.com/poker-room/creek-entertainment,24/7,NLH,$1/$2,6,Yes,3.3,No
+Treasure Chest,Gainesville,FL,card_room,4301 SW 13th St,352-375-4300,,,https://www.pokeratlas.com/poker-room/treasure-chest,24/7,NLH,$1/$2,8,Yes,3.5,No
+Naples-Fort Myers,Bonita Springs,FL,card_room,10601 Bonita Beach Rd,239-992-2411,https://naplesfortmyersdogs.com,,https://www.pokeratlas.com/poker-room/naples-fort-myers,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,3.8,No
+Fort Pierce Jai-Alai,Fort Pierce,FL,card_room,1750 S Kings Hwy,772-464-7500,https://jaialai.net,,https://www.pokeratlas.com/poker-room/fort-pierce-jai-alai,24/7,NLH,$1/$2,10,Yes,3.5,No
+Dania Jai-Alai,Dania Beach,FL,card_room,301 E Dania Beach Blvd,954-920-1511,https://daniacasinofl.com,,https://www.pokeratlas.com/poker-room/dania-jai-alai,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,3.9,No
+Oxford Downs,Oxford,FL,card_room,7171 S County Rd 25,352-237-3100,https://oxforddowns.com,,https://www.pokeratlas.com/poker-room/oxford-downs,24/7,NLH,$1/$2,8,Yes,3.4,No
+Sarasota Kennel Club,Sarasota,FL,card_room,5400 Bradenton Rd,941-355-7744,https://skcpoker.com,,https://www.pokeratlas.com/poker-room/sarasota-kennel-club,24/7,NLH,"$1/$2, $2/$5",15,Yes,3.7,No
+Lodge Poker Club,Austin,TX,poker_club,6706 N I-35,737-232-5243,https://thelodgeaustin.com,,https://www.pokeratlas.com/poker-room/lodge-poker-club,24/7,"NLH, PLO, Mixed","$1/$3, $2/$5, $5/$10, $25/$50",40,Yes,4.8,Yes
+Texas Card House Austin,Austin,TX,poker_club,1717 E 6th St,512-800-7288,https://texascardhouse.com,,https://www.pokeratlas.com/poker-room/texas-card-house-austin,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",25,Yes,4.3,Yes
+Austin Poker Club,Austin,TX,poker_club,8446 N I-35,512-215-8888,,,https://www.pokeratlas.com/poker-room/austin-poker-club,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,3.8,No
+Kings Club,Austin,TX,poker_club,8200 N Lamar Blvd,512-777-7777,,,https://www.pokeratlas.com/poker-room/kings-club,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.7,No
+Elite Poker,Austin,TX,poker_club,6005 N IH-35,512-888-8888,,,https://www.pokeratlas.com/poker-room/elite-poker,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.6,No
+Prime Social,Houston,TX,poker_club,2909 Gillespie St,832-830-5009,https://primesocialclub.com,,https://www.pokeratlas.com/poker-room/prime-social,24/7,"NLH, PLO, Mixed","$1/$2, $2/$5, $5/$10, $25/$50",35,Yes,4.5,Yes
+Legends Poker Room,Houston,TX,poker_club,3939 Bellaire Blvd,713-661-4600,https://legendspokerroom.com,,https://www.pokeratlas.com/poker-room/legends-poker-room,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,4.1,No
+52 Social,Houston,TX,poker_club,5829 W Sam Houston Pkwy,281-888-5252,https://52social.com,,https://www.pokeratlas.com/poker-room/52-social,24/7,"NLH, PLO, Mixed","$1/$3, $2/$5, $5/$10",30,Yes,4.3,No
+101 Poker Club,Houston,TX,poker_club,4141 Southwest Fwy,713-111-0101,,,https://www.pokeratlas.com/poker-room/101-poker-club,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,3.9,No
+The Poker House,Houston,TX,poker_club,3322 Main St,713-222-3333,,,https://www.pokeratlas.com/poker-room/the-poker-house,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,3.8,No
+Aces High Poker,Houston,TX,poker_club,9800 Westheimer Rd,713-999-8888,,,https://www.pokeratlas.com/poker-room/aces-high-poker,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.7,No
+Jackpot Club,Houston,TX,poker_club,8600 Bellaire Blvd,713-777-8888,,,https://www.pokeratlas.com/poker-room/jackpot-club,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.6,No
+All In Poker,Houston,TX,poker_club,5600 Kirby Dr,713-555-7777,,,https://www.pokeratlas.com/poker-room/all-in-poker,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.6,No
+Champions Poker,Houston,TX,poker_club,17400 Northwest Fwy,281-444-5555,,,https://www.pokeratlas.com/poker-room/champions-poker,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.5,No
+Kings Poker Houston,Houston,TX,poker_club,6060 Westheimer Rd,713-666-8888,,,https://www.pokeratlas.com/poker-room/kings-poker-houston,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.6,No
+Texas Card House Dallas,Lewisville,TX,poker_club,2701 S Stemmons Fwy,972-738-8700,https://texascardhouse.com,,https://www.pokeratlas.com/poker-room/texas-card-house-dallas,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",30,Yes,4.2,No
+Shuffle 214,Dallas,TX,poker_club,2614 Swiss Ave,214-741-1000,https://shuffle214.com,,https://www.pokeratlas.com/poker-room/shuffle-214,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",25,Yes,4.3,No
+Dallas Poker Room,Arlington,TX,poker_club,1901 S Collins St,817-555-7777,,,https://www.pokeratlas.com/poker-room/dallas-poker-room,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,3.8,No
+Aces Dallas,Dallas,TX,poker_club,12700 Preston Rd,972-888-8888,,,https://www.pokeratlas.com/poker-room/aces-dallas,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,3.7,No
+Fort Worth Poker Club,Fort Worth,TX,poker_club,6601 Camp Bowie Blvd,817-777-8888,,,https://www.pokeratlas.com/poker-room/fort-worth-poker-club,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.6,No
+Cowboys Poker,Arlington,TX,poker_club,2300 N Collins St,817-666-5555,,,https://www.pokeratlas.com/poker-room/cowboys-poker,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.5,No
+Plano Poker,Plano,TX,poker_club,6505 Coit Rd,972-444-5555,,,https://www.pokeratlas.com/poker-room/plano-poker,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.5,No
+Irving Poker Club,Irving,TX,poker_club,2305 N O Connor Rd,972-333-8888,,,https://www.pokeratlas.com/poker-room/irving-poker-club,24/7,"NLH, PLO","$1/$2, $2/$5",6,Yes,3.4,No
+Hideaway Poker,San Antonio,TX,poker_club,8026 Marbach Rd,210-674-4357,https://hideawaypoker.com,,https://www.pokeratlas.com/poker-room/hideaway-poker,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+SA Poker Club,San Antonio,TX,poker_club,8400 Fredericksburg Rd,210-555-8888,,,https://www.pokeratlas.com/poker-room/sa-poker-club,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.7,No
+Alamo Poker,San Antonio,TX,poker_club,5800 NW Loop 410,210-777-5555,,,https://www.pokeratlas.com/poker-room/alamo-poker,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.6,No
+River City Poker,San Antonio,TX,poker_club,7800 Culebra Rd,210-444-7777,,,https://www.pokeratlas.com/poker-room/river-city-poker,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.5,No
+Kickapoo Lucky Eagle,Eagle Pass,TX,casino,794 Lucky Eagle Dr,830-758-1966,https://kickapooluckyeaglecasino.com,,https://www.pokeratlas.com/poker-room/kickapoo-lucky-eagle,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+El Paso Poker,El Paso,TX,poker_club,6700 Gateway E,915-888-7777,,,https://www.pokeratlas.com/poker-room/el-paso-poker,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.5,No
+Corpus Christi Poker,Corpus Christi,TX,poker_club,4500 S Staples St,361-555-8888,,,https://www.pokeratlas.com/poker-room/corpus-christi-poker,24/7,"NLH, PLO","$1/$2, $2/$5",6,Yes,3.4,No
+Lubbock Poker,Lubbock,TX,poker_club,5200 82nd St,806-777-5555,,,https://www.pokeratlas.com/poker-room/lubbock-poker,24/7,NLH,$1/$2,4,Yes,3.3,No
+Amarillo Poker,Amarillo,TX,poker_club,3600 I-40 E,806-444-8888,,,https://www.pokeratlas.com/poker-room/amarillo-poker,24/7,NLH,$1/$2,4,Yes,3.3,No
+McAllen Poker,McAllen,TX,poker_club,2700 N 10th St,956-555-7777,,,https://www.pokeratlas.com/poker-room/mcallen-poker,24/7,NLH,$1/$2,4,Yes,3.3,No
+Borgata,Atlantic City,NJ,casino,1 Borgata Way,609-317-1000,https://theborgata.com,,https://www.pokeratlas.com/poker-room/borgata,24/7,"NLH, PLO, Mixed","$1/$2, $2/$5, $5/$10, $10/$25",85,Yes,4.6,Yes
+Harrahs AC,Atlantic City,NJ,casino,777 Harrahs Blvd,609-441-5000,https://caesars.com/harrahs-ac,,https://www.pokeratlas.com/poker-room/harrahs-ac,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,4.2,No
+Tropicana AC,Atlantic City,NJ,casino,2831 Boardwalk,609-340-4000,https://tropicana.net,,https://www.pokeratlas.com/poker-room/tropicana-ac,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Golden Nugget AC,Atlantic City,NJ,casino,600 Huron Ave,609-441-2000,https://goldennugget.com/atlantic-city,,https://www.pokeratlas.com/poker-room/golden-nugget-ac,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.0,No
+Ocean Casino,Atlantic City,NJ,casino,500 Boardwalk,609-783-8000,https://theoceanac.com,,https://www.pokeratlas.com/poker-room/ocean-casino,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",18,Yes,4.1,No
+Hard Rock AC,Atlantic City,NJ,casino,1000 Boardwalk,609-449-1000,https://hardrockhotelatlanticcity.com,,https://www.pokeratlas.com/poker-room/hard-rock-ac,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,4.2,No
+Resorts Casino,Atlantic City,NJ,casino,1133 Boardwalk,609-344-6000,https://resortsac.com,,https://www.pokeratlas.com/poker-room/resorts-casino,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Bally AC,Atlantic City,NJ,casino,1900 Boardwalk,609-340-2000,https://caesars.com/ballys-ac,,https://www.pokeratlas.com/poker-room/bally-ac,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.7,No
+Caesars AC,Atlantic City,NJ,casino,2100 Boardwalk,609-348-4411,https://caesars.com/caesars-ac,,https://www.pokeratlas.com/poker-room/caesars-ac,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.9,No
+Parx Casino,Bensalem,PA,casino,2999 Street Rd,215-639-9000,https://parxcasino.com,,https://www.pokeratlas.com/poker-room/parx-casino,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",45,Yes,4.4,Yes
+Rivers Pittsburgh,Pittsburgh,PA,casino,777 Casino Dr,412-231-7777,https://riverscasino.com/pittsburgh,,https://www.pokeratlas.com/poker-room/rivers-pittsburgh,24/7,"NLH, PLO","$1/$2, $2/$5",30,Yes,4.3,No
+Sands Bethlehem,Bethlehem,PA,casino,77 Sands Blvd,877-726-3777,https://windcreekbethlehem.com,,https://www.pokeratlas.com/poker-room/sands-bethlehem,24/7,"NLH, PLO","$1/$2, $2/$5",28,Yes,4.2,No
+SugarHouse Philadelphia,Philadelphia,PA,casino,1001 N Delaware Ave,877-477-3715,https://playsugarhouse.com,,https://www.pokeratlas.com/poker-room/sugarhouse-philadelphia,24/7,"NLH, PLO","$1/$2, $2/$5",25,Yes,4.1,No
+Harrahs Philadelphia,Chester,PA,casino,777 Harrahs Blvd,800-480-8020,https://caesars.com/harrahs-philadelphia,,https://www.pokeratlas.com/poker-room/harrahs-philadelphia,24/7,"NLH, PLO","$1/$2, $2/$5",25,Yes,4.1,No
+Valley Forge Casino,King of Prussia,PA,casino,1160 1st Ave,610-354-8118,https://vfrpoker.com,,https://www.pokeratlas.com/poker-room/valley-forge-casino,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,4.0,No
+Mohegan Sun Pocono,Wilkes-Barre,PA,casino,1280 Hwy 315,570-831-2100,https://mohegansunpocono.com,,https://www.pokeratlas.com/poker-room/mohegan-sun-pocono,24/7,"NLH, PLO","$1/$2, $2/$5",18,Yes,4.0,No
+Hollywood Penn National,Grantville,PA,casino,777 Hollywood Blvd,717-469-2211,https://hollywoodpnrc.com,,https://www.pokeratlas.com/poker-room/hollywood-penn-national,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,3.9,No
+Meadows Casino,Washington,PA,casino,210 Racetrack Rd,724-503-1200,https://themmeaddows.com,,https://www.pokeratlas.com/poker-room/meadows-casino,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,4.0,No
+Mount Airy,Mount Pocono,PA,casino,312 Woodland Rd,570-243-4800,https://mountairycasino.com,,https://www.pokeratlas.com/poker-room/mount-airy,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Presque Isle Downs,Erie,PA,casino,8199 Perry Hwy,814-866-8379,https://presqueisledowns.com,,https://www.pokeratlas.com/poker-room/presque-isle-downs,24/7,NLH,"$1/$2, $2/$5",12,Yes,3.7,No
+Lady Luck Nemacolin,Farmington,PA,casino,4067 National Pike,866-344-6957,https://nemacolin.com,,https://www.pokeratlas.com/poker-room/lady-luck-nemacolin,24/7,NLH,$1/$2,8,Yes,3.6,No
+Foxwoods,Mashantucket,CT,casino,350 Trolley Line Blvd,860-312-3000,https://foxwoods.com,,https://www.pokeratlas.com/poker-room/foxwoods,24/7,"NLH, PLO, Stud","$1/$2, $2/$5, $5/$10, $10/$25",100,Yes,4.5,Yes
+Mohegan Sun,Uncasville,CT,casino,1 Mohegan Sun Blvd,860-862-8000,https://mohegansun.com,,https://www.pokeratlas.com/poker-room/mohegan-sun,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",42,Yes,4.4,Yes
+Rivers Chicago,Chicago,IL,casino,3000 S Halsted St,312-527-3700,https://riverscasino.com/chicago,,https://www.pokeratlas.com/poker-room/rivers-chicago,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",24,Yes,4.3,No
+Hollywood Aurora,Aurora,IL,casino,1 New York St Bridge,630-801-7000,https://hollywoodcasinoaurora.com,,https://www.pokeratlas.com/poker-room/hollywood-aurora,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Grand Victoria,Elgin,IL,casino,250 S Grove Ave,847-888-1000,https://grandvictoria-casino.com,,https://www.pokeratlas.com/poker-room/grand-victoria,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Harrahs Joliet,Joliet,IL,casino,151 N Joliet St,815-740-7800,https://caesars.com/harrahs-joliet,,https://www.pokeratlas.com/poker-room/harrahs-joliet,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.7,No
+Par-A-Dice,East Peoria,IL,casino,21 Blackjack Blvd,309-698-7711,https://paradicecasino.com,,https://www.pokeratlas.com/poker-room/par-a-dice,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.6,No
+Horseshoe Indiana,Elizabeth,IN,casino,11999 Ave of the Emperors,866-676-7463,https://caesars.com/horseshoe-indiana,,https://www.pokeratlas.com/poker-room/horseshoe-indiana,24/7,"NLH, PLO","$1/$2, $2/$5",30,Yes,4.1,No
+Harrahs Hoosier Park,Anderson,IN,casino,4500 Dan Patch Circle,765-642-8802,https://caesars.com/harrahs-hoosier-park,,https://www.pokeratlas.com/poker-room/harrahs-hoosier-park,24/7,NLH,"$1/$2, $2/$5",12,Yes,3.8,No
+Ameristar East Chicago,East Chicago,IN,casino,777 Ameristar Blvd,219-378-3000,https://ameristar.com,,https://www.pokeratlas.com/poker-room/ameristar-east-chicago,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,3.9,No
+Hollywood Lawrenceburg,Lawrenceburg,IN,casino,777 Hollywood Blvd,812-539-8000,https://hollywoodlawrenceburg.com,,https://www.pokeratlas.com/poker-room/hollywood-lawrenceburg,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.7,No
+Blue Chip,Michigan City,IN,casino,777 Blue Chip Dr,219-879-7711,https://bluechipcasino.com,,https://www.pokeratlas.com/poker-room/blue-chip,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.7,No
+Tropicana Evansville,Evansville,IN,casino,421 NW Riverside Dr,812-433-4000,https://tropevansville.com,,https://www.pokeratlas.com/poker-room/tropicana-evansville,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.6,No
+MGM Grand Detroit,Detroit,MI,casino,1777 3rd Ave,313-465-1777,https://mgmgranddetroit.com,,https://www.pokeratlas.com/poker-room/mgm-grand-detroit,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",20,Yes,4.2,No
+MotorCity Casino,Detroit,MI,casino,2901 Grand River Ave,313-237-7711,https://motorcitycasino.com,,https://www.pokeratlas.com/poker-room/motorcity-casino,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Greektown Casino,Detroit,MI,casino,555 E Lafayette Blvd,313-223-2999,https://greektowncasino.com,,https://www.pokeratlas.com/poker-room/greektown-casino,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,3.9,No
+FireKeepers,Battle Creek,MI,casino,11177 E Michigan Ave,269-962-0000,https://firekeeperscasino.com,,https://www.pokeratlas.com/poker-room/firekeepers,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.1,No
+Soaring Eagle,Mt Pleasant,MI,casino,6800 Soaring Eagle Blvd,989-775-7777,https://soaringeaglecasino.com,,https://www.pokeratlas.com/poker-room/soaring-eagle,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.9,No
+Four Winds New Buffalo,New Buffalo,MI,casino,11111 Wilson Rd,866-494-6371,https://fourwindscasino.com,,https://www.pokeratlas.com/poker-room/four-winds-new-buffalo,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.0,No
+JACK Cleveland,Cleveland,OH,casino,100 Public Square,216-297-4777,https://jackcleveland.com,,https://www.pokeratlas.com/poker-room/jack-cleveland,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",20,Yes,4.1,No
+JACK Thistledown,North Randall,OH,casino,21501 Emery Rd,216-662-8600,https://jackthistledown.com,,https://www.pokeratlas.com/poker-room/jack-thistledown,24/7,NLH,"$1/$2, $2/$5",12,Yes,3.8,No
+Hollywood Columbus,Columbus,OH,casino,200 Georgesville Rd,614-308-3333,https://hollywoodcolumbus.com,,https://www.pokeratlas.com/poker-room/hollywood-columbus,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Hollywood Toledo,Toledo,OH,casino,1968 Miami St,419-661-5200,https://hollywoodcasinotoledo.com,,https://www.pokeratlas.com/poker-room/hollywood-toledo,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Hard Rock Cincinnati,Cincinnati,OH,casino,1000 Broadway,513-250-3456,https://hardrockcasinocincinnati.com,,https://www.pokeratlas.com/poker-room/hard-rock-cincinnati,24/7,"NLH, PLO","$1/$2, $2/$5",18,Yes,4.1,No
+Canterbury Park,Shakopee,MN,card_room,1100 Canterbury Rd,952-496-6470,https://canterburypark.com,,https://www.pokeratlas.com/poker-room/canterbury-park,24/7,"NLH, PLO, Mixed","$1/$2, $2/$5, $5/$10",40,Yes,4.2,Yes
+Running Aces,Columbus,MN,card_room,15201 Running Aces Blvd,651-925-4600,https://runningacesharness.com,,https://www.pokeratlas.com/poker-room/running-aces,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,4.0,No
+Treasure Island,Welch,MN,casino,5734 Sturgeon Lake Rd,651-388-6300,https://treasureislandcasino.com,,https://www.pokeratlas.com/poker-room/treasure-island,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.7,No
+Mystic Lake,Prior Lake,MN,casino,2400 Mystic Lake Blvd NW,952-445-9000,https://mysticlake.com,,https://www.pokeratlas.com/poker-room/mystic-lake,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.9,No
+Horseshoe Council Bluffs,Council Bluffs,IA,casino,2701 23rd Ave,712-323-2500,https://caesars.com/horseshoe-council-bluffs,,https://www.pokeratlas.com/poker-room/horseshoe-council-bluffs,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Ameristar Council Bluffs,Council Bluffs,IA,casino,2200 River Rd,712-328-8888,https://ameristar.com/council-bluffs,,https://www.pokeratlas.com/poker-room/ameristar-council-bluffs,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Riverside Casino,Riverside,IA,casino,3184 Hwy 22,319-648-1234,https://riversidecasinoandresort.com,,https://www.pokeratlas.com/poker-room/riverside-casino,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.7,No
+Prairie Meadows,Altoona,IA,casino,1 Prairie Meadows Dr,515-967-1000,https://prairiemeadows.com,,https://www.pokeratlas.com/poker-room/prairie-meadows,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Hollywood St Louis,Maryland Heights,MO,casino,777 Casino Center Dr,314-770-8100,https://hollywoodcasinostlouis.com,,https://www.pokeratlas.com/poker-room/hollywood-st-louis,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+River City Casino,St. Louis,MO,casino,777 River City Casino Blvd,314-388-7777,https://rivercitystl.com,,https://www.pokeratlas.com/poker-room/river-city-casino,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Ameristar St Charles,St. Charles,MO,casino,1 Ameristar Blvd,636-949-7777,https://ameristar.com/st-charles,,https://www.pokeratlas.com/poker-room/ameristar-st-charles,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",15,Yes,4.1,No
+Ameristar Kansas City,Kansas City,MO,casino,3200 N Ameristar Dr,816-414-7000,https://ameristar.com/kansas-city,,https://www.pokeratlas.com/poker-room/ameristar-kansas-city,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Harrahs Kansas City,North Kansas City,MO,casino,1 Riverboat Dr,816-472-7777,https://caesars.com/harrahs-north-kansas-city,,https://www.pokeratlas.com/poker-room/harrahs-kansas-city,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Talking Stick,Scottsdale,AZ,casino,9800 E Indian Bend Rd,480-850-7777,https://talkingstickresort.com,,https://www.pokeratlas.com/poker-room/talking-stick,24/7,"NLH, PLO, Stud","$1/$2, $2/$5, $5/$10",50,Yes,4.4,Yes
+Gila River Wild Horse Pass,Chandler,AZ,casino,5040 Wild Horse Pass Blvd,520-796-7727,https://wingilariver.com,,https://www.pokeratlas.com/poker-room/gila-river-wild-horse-pass,24/7,"NLH, PLO","$1/$2, $2/$5",25,Yes,4.2,No
+Gila River Vee Quiva,Laveen,AZ,casino,15091 S Komatke Ln,520-796-7727,https://wingilariver.com,,https://www.pokeratlas.com/poker-room/gila-river-vee-quiva,24/7,NLH,"$1/$2, $2/$5",15,Yes,4.0,No
+Fort McDowell,Fort McDowell,AZ,casino,10424 N Fort McDowell Rd,480-837-1424,https://fortmcdowellcasino.com,,https://www.pokeratlas.com/poker-room/fort-mcdowell,24/7,NLH,"$1/$2, $2/$5",12,Yes,3.9,No
+Casino Arizona,Scottsdale,AZ,casino,524 N 92nd St,480-850-7777,https://casinoarizona.com,,https://www.pokeratlas.com/poker-room/casino-arizona,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Desert Diamond Tucson,Tucson,AZ,casino,7350 S Nogales Hwy,520-294-7777,https://ddcaz.com,,https://www.pokeratlas.com/poker-room/desert-diamond-tucson,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Desert Diamond Glendale,Glendale,AZ,casino,9431 W Northern Ave,623-877-7777,https://ddcaz.com,,https://www.pokeratlas.com/poker-room/desert-diamond-glendale,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.9,No
+We-Ko-Pa Casino,Fort McDowell,AZ,casino,10438 Wekopa Way,480-789-7600,https://wekopacasino.com,,https://www.pokeratlas.com/poker-room/we-ko-pa-casino,24/7,NLH,$1/$2,6,Yes,3.6,No
+Cliff Castle,Camp Verde,AZ,casino,555 Middle Verde Rd,928-567-7900,https://cliffcastlecasinohotel.com,,https://www.pokeratlas.com/poker-room/cliff-castle,24/7,NLH,$1/$2,4,Yes,3.4,No
+Apache Sky,Globe,AZ,casino,7777 US-70,928-475-7800,https://apacheskycasino.com,,https://www.pokeratlas.com/poker-room/apache-sky,24/7,NLH,$1/$2,4,Yes,3.3,No
+Ameristar Black Hawk,Black Hawk,CO,casino,111 Richman St,720-946-4000,https://ameristar.com/black-hawk,,https://www.pokeratlas.com/poker-room/ameristar-black-hawk,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",20,Yes,4.2,Yes
+Monarch Black Hawk,Black Hawk,CO,casino,488 Main St,303-582-1000,https://monarchblackhawk.com,,https://www.pokeratlas.com/poker-room/monarch-black-hawk,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.1,No
+Golden Gates,Black Hawk,CO,casino,261 Main St,303-582-5600,https://goldengatesblackhawk.com,,https://www.pokeratlas.com/poker-room/golden-gates,24/7,"NLH, PLO, Mixed","$1/$2, $2/$5, $5/$10",12,Yes,4.2,No
+Isle Casino,Black Hawk,CO,casino,401 Main St,303-998-7777,https://isleblackhawk.com,,https://www.pokeratlas.com/poker-room/isle-casino,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.9,No
+Lodge Casino,Black Hawk,CO,casino,240 Main St,303-582-1771,https://thelodgecasino.com,,https://www.pokeratlas.com/poker-room/lodge-casino,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.8,No
+Saratoga Casino,Black Hawk,CO,casino,101 Main St,303-582-6141,https://saratogacasinobh.com,,https://www.pokeratlas.com/poker-room/saratoga-casino,24/7,NLH,"$1/$2, $2/$5",6,Yes,3.6,No
+Sasquatch Casino,Black Hawk,CO,casino,200 Main St,303-582-8499,,,https://www.pokeratlas.com/poker-room/sasquatch-casino,24/7,NLH,$1/$2,4,Yes,3.4,No
+Sky Ute Casino,Ignacio,CO,casino,14324 Hwy 172 N,970-563-7777,https://skyutecasino.com,,https://www.pokeratlas.com/poker-room/sky-ute-casino,24/7,NLH,$1/$2,4,Yes,3.4,No
+Ute Mountain Casino,Towaoc,CO,casino,3 Weeminuche Dr,970-565-8800,https://utemountaincasino.com,,https://www.pokeratlas.com/poker-room/ute-mountain-casino,24/7,NLH,$1/$2,4,Yes,3.3,No
+Choctaw Durant,Durant,OK,casino,4216 US-69,580-920-0160,https://choctawcasinos.com,,https://www.pokeratlas.com/poker-room/choctaw-durant,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",30,Yes,4.3,Yes
+WinStar World Casino,Thackerville,OK,casino,777 Casino Ave,580-276-4229,https://winstar.com,,https://www.pokeratlas.com/poker-room/winstar-world-casino,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",46,Yes,4.5,Yes
+Hard Rock Tulsa,Catoosa,OK,casino,777 W Cherokee St,918-384-7800,https://hardrockcasinotulsa.com,,https://www.pokeratlas.com/poker-room/hard-rock-tulsa,24/7,"NLH, PLO","$1/$2, $2/$5",25,Yes,4.2,No
+River Spirit,Tulsa,OK,casino,8330 Riverside Pkwy,918-299-8518,https://riverspirittulsa.com,,https://www.pokeratlas.com/poker-room/river-spirit,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,4.1,No
+Downstream Casino,Quapaw,OK,casino,69300 E Nee Rd,918-919-6000,https://downstreamcasino.com,,https://www.pokeratlas.com/poker-room/downstream-casino,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Buffalo Run,Miami,OK,casino,1000 Buffalo Run Blvd,918-542-7140,https://buffalorun.com,,https://www.pokeratlas.com/poker-room/buffalo-run,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Grand Casino OKC,Oklahoma City,OK,casino,777 Grand Casino Blvd,405-964-7263,https://grandokcasino.com,,https://www.pokeratlas.com/poker-room/grand-casino-okc,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Newcastle Gaming,Newcastle,OK,casino,2457 State Hwy 39,405-387-2889,https://newcastle-gaming.com,,https://www.pokeratlas.com/poker-room/newcastle-gaming,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.7,No
+Riverwind Casino,Norman,OK,casino,1544 State Hwy 9 W,405-322-6000,https://riverwind.com,,https://www.pokeratlas.com/poker-room/riverwind-casino,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Firelake Casino,Shawnee,OK,casino,41207 Hardesty Rd,405-273-8355,https://firelakecasino.com,,https://www.pokeratlas.com/poker-room/firelake-casino,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.7,No
+Seven Clans Paradise,Red Rock,OK,casino,7500 Hwy 177,580-723-1020,https://7clanscasino.com,,https://www.pokeratlas.com/poker-room/seven-clans-paradise,24/7,NLH,$1/$2,6,Yes,3.5,No
+Osage Million Dollar Elm,Tulsa,OK,casino,951 W 36th St N,918-699-7777,https://milliondollarelm.com,,https://www.pokeratlas.com/poker-room/osage-million-dollar-elm,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.6,No
+Beau Rivage,Biloxi,MS,casino,875 Beach Blvd,228-386-7111,https://beaurivage.com,,https://www.pokeratlas.com/poker-room/beau-rivage,24/7,"NLH, PLO, Mixed","$1/$2, $2/$5, $5/$10",20,Yes,4.4,Yes
+Harrahs New Orleans,New Orleans,LA,casino,228 Poydras St,504-533-6000,https://caesars.com/harrahs-new-orleans,,https://www.pokeratlas.com/poker-room/harrahs-new-orleans,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",25,Yes,4.2,Yes
+LAuterge Baton Rouge,Baton Rouge,LA,casino,777 LAuterge Ave,225-215-7777,https://laubergecasinos.com,,https://www.pokeratlas.com/poker-room/lauterge-baton-rouge,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Golden Nugget Lake Charles,Lake Charles,LA,casino,2550 Golden Nugget Blvd,337-508-7777,https://goldennugget.com/lake-charles,,https://www.pokeratlas.com/poker-room/golden-nugget-lake-charles,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.1,No
+Isle of Capri Lake Charles,Westlake,LA,casino,100 Westlake Ave,337-430-0711,https://isleofcapri.com,,https://www.pokeratlas.com/poker-room/isle-of-capri-lake-charles,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Eldorado Shreveport,Shreveport,LA,casino,451 Clyde Fant Pkwy,318-220-0711,https://eldoradoshreveport.com,,https://www.pokeratlas.com/poker-room/eldorado-shreveport,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Horseshoe Bossier City,Bossier City,LA,casino,711 Horseshoe Blvd,318-742-0711,https://caesars.com/horseshoe-bossier-city,,https://www.pokeratlas.com/poker-room/horseshoe-bossier-city,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",18,Yes,4.1,No
+Margaritaville Bossier,Bossier City,LA,casino,777 Margaritaville Way,318-678-7777,https://margaritavillebossiercity.com,,https://www.pokeratlas.com/poker-room/margaritaville-bossier,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Coushatta Casino,Kinder,LA,casino,777 Coushatta Dr,337-738-1370,https://coushattacasinoresort.com,,https://www.pokeratlas.com/poker-room/coushatta-casino,24/7,NLH,"$1/$2, $2/$5",12,Yes,3.9,No
+Paragon Casino,Marksville,LA,casino,711 Paragon Pl,318-253-1255,https://paragoncasinoresort.com,,https://www.pokeratlas.com/poker-room/paragon-casino,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.7,No
+IP Casino,Biloxi,MS,casino,850 Bayview Ave,228-436-3000,https://ipbiloxi.com,,https://www.pokeratlas.com/poker-room/ip-casino,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.0,No
+Golden Nugget Biloxi,Biloxi,MS,casino,151 Beach Blvd,228-435-5400,https://goldennugget.com/biloxi,,https://www.pokeratlas.com/poker-room/golden-nugget-biloxi,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,4.0,No
+Scarlet Pearl,Diberville,MS,casino,9380 Central Ave,228-392-1000,https://scarletpearlcasino.com,,https://www.pokeratlas.com/poker-room/scarlet-pearl,24/7,NLH,"$1/$2, $2/$5",8,Yes,4.0,No
+Palace Casino,Biloxi,MS,casino,158 Howard Ave,228-432-8888,https://palacecasinoresort.com,,https://www.pokeratlas.com/poker-room/palace-casino,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.8,No
+Hollywood Gulf Coast,Bay St Louis,MS,casino,711 Hollywood Blvd,228-467-9257,https://hollywoodgulfcoast.com,,https://www.pokeratlas.com/poker-room/hollywood-gulf-coast,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.8,No
+Silver Star,Philadelphia,MS,casino,13541 Hwy 16 W,601-663-1000,https://pearlriverresort.com,,https://www.pokeratlas.com/poker-room/silver-star,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.7,No
+Gold Strike,Tunica,MS,casino,1010 Casino Center Dr,662-357-1111,https://goldstrike.com,,https://www.pokeratlas.com/poker-room/gold-strike,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.0,No
+Horseshoe Tunica,Tunica,MS,casino,1021 Casino Center Dr,662-357-5500,https://caesars.com/horseshoe-tunica,,https://www.pokeratlas.com/poker-room/horseshoe-tunica,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",15,Yes,4.2,No
+Sams Town Tunica,Tunica,MS,casino,1477 Casino Strip Blvd,662-363-0711,https://samstown.com,,https://www.pokeratlas.com/poker-room/sams-town-tunica,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.7,No
+Muckleshoot Casino,Auburn,WA,casino,2402 Auburn Way S,253-804-4444,https://muckleshootcasino.com,,https://www.pokeratlas.com/poker-room/muckleshoot-casino,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",30,Yes,4.3,Yes
+Snoqualmie Casino,Snoqualmie,WA,casino,37500 SE North Bend Way,425-888-1234,https://snocasino.com,,https://www.pokeratlas.com/poker-room/snoqualmie-casino,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,4.2,No
+Tulalip Resort Casino,Tulalip,WA,casino,10200 Quil Ceda Blvd,360-716-6000,https://tulalipresortcasino.com,,https://www.pokeratlas.com/poker-room/tulalip-resort-casino,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.1,No
+Emerald Queen Tacoma,Tacoma,WA,casino,2024 E 29th St,253-594-7777,https://emeraldqueen.com,,https://www.pokeratlas.com/poker-room/emerald-queen-tacoma,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.0,No
+Emerald Queen I-5,Tacoma,WA,casino,2920 E R St,253-922-2000,https://emeraldqueen.com,,https://www.pokeratlas.com/poker-room/emerald-queen-i-5,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.8,No
+Ilani Casino,Ridgefield,WA,casino,1 Cowlitz Way,360-887-4000,https://ilaniresort.com,,https://www.pokeratlas.com/poker-room/ilani-casino,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.2,No
+Northern Quest,Airway Heights,WA,casino,100 N Hayford Rd,509-242-7000,https://northernquest.com,,https://www.pokeratlas.com/poker-room/northern-quest,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.1,No
+Clearwater Casino,Suquamish,WA,casino,15347 Suquamish Way NE,360-598-8700,https://clearwatercasino.com,,https://www.pokeratlas.com/poker-room/clearwater-casino,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.8,No
+Little Creek Casino,Shelton,WA,casino,91 W State Rte 108,360-427-7711,https://little-creek.com,,https://www.pokeratlas.com/poker-room/little-creek-casino,24/7,NLH,$1/$2,6,Yes,3.6,No
+Lucky Eagle,Rochester,WA,casino,12888 188th Ave SW,360-273-2000,https://luckyeagle.com,,https://www.pokeratlas.com/poker-room/lucky-eagle,24/7,NLH,$1/$2,6,Yes,3.6,No
+Chinook Winds Casino,Lincoln City,OR,casino,1777 NW 44th St,541-996-5825,https://chinookwindscasino.com,,https://www.pokeratlas.com/poker-room/chinook-winds-casino,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,4.0,No
+Spirit Mountain,Grand Ronde,OR,casino,27100 SW Salmon River Hwy,503-879-2350,https://spiritmountain.com,,https://www.pokeratlas.com/poker-room/spirit-mountain,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.1,No
+The Still Card Room,Vancouver,WA,card_room,7326 NE Hazel Dell Ave,360-694-4100,,,https://www.pokeratlas.com/poker-room/the-still-card-room,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.8,No
+Wildhorse Resort,Pendleton,OR,casino,46510 Wildhorse Blvd,541-278-2274,https://wildhorseresort.com,,https://www.pokeratlas.com/poker-room/wildhorse-resort,24/7,NLH,"$1/$2, $2/$5",6,Yes,3.7,No
+Seven Feathers,Canyonville,OR,casino,146 Chief Miwaleta Ln,541-839-1111,https://sevenfeathers.com,,https://www.pokeratlas.com/poker-room/seven-feathers,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.8,No
+Elite Social Club,Houston,TX,poker_club,8055 Highway 6 N,281-888-9999,,,https://www.pokeratlas.com/poker-room/elite-social-club,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Empire Poker Club,Houston,TX,poker_club,10550 Westheimer Rd,713-850-0555,,,https://www.pokeratlas.com/poker-room/empire-poker-club,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,3.9,No
+Champions Club,Houston,TX,poker_club,10630 Cypresswood Dr,281-379-8888,,,https://www.pokeratlas.com/poker-room/champions-club,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.8,No
+Gin Mill Card Club Houston,Webster,TX,poker_club,101 E NASA Pkwy,281-554-4646,https://ginmillcardclub.com,,https://www.pokeratlas.com/poker-room/gin-mill-card-club-houston,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.1,No
+Offsuit Poker Lounge,Houston,TX,poker_club,3939 W Alabama St,713-961-0019,,,https://www.pokeratlas.com/poker-room/offsuit-poker-lounge,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.8,No
+Paramount Social Club,Houston,TX,poker_club,6550 Westheimer Rd,713-952-0444,,,https://www.pokeratlas.com/poker-room/paramount-social-club,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,3.9,No
+River Room Social Club,Houston,TX,poker_club,12603 Westheimer Rd,281-558-0200,,,https://www.pokeratlas.com/poker-room/river-room-social-club,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.8,No
+Spades Poker House,Webster,TX,poker_club,101 E NASA Pkwy,281-554-7777,,,https://www.pokeratlas.com/poker-room/spades-poker-house,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.0,No
+Stars Poker Club,Houston,TX,poker_club,8700 Richmond Ave,713-784-8888,,,https://www.pokeratlas.com/poker-room/stars-poker-club,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.7,No
+4 Suits Social,Spring,TX,poker_club,24802 Research Forest Dr,281-298-8888,,,https://www.pokeratlas.com/poker-room/4-suits-social,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.7,No
+9 Dragons Poker,Houston,TX,poker_club,9799 Bellaire Blvd,713-988-8889,,,https://www.pokeratlas.com/poker-room/9-dragons-poker,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.8,No
+Texas Card House Spring,Spring,TX,poker_club,23904 Hwy 59 N,281-288-2833,https://texascardhouse.com,,https://www.pokeratlas.com/poker-room/texas-card-house-spring,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",20,Yes,4.2,No
+Texas Card House Katy,Katy,TX,poker_club,24001 Kingsland Blvd,281-392-5500,https://texascardhouse.com,,https://www.pokeratlas.com/poker-room/texas-card-house-katy,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.1,No
+Royal Flush Social,Houston,TX,poker_club,12127 FM 1960 Rd W,281-469-5888,,,https://www.pokeratlas.com/poker-room/royal-flush-social,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.6,No
+Club 101 Poker,Houston,TX,poker_club,10100 Katy Fwy,713-464-0101,,,https://www.pokeratlas.com/poker-room/club-101-poker,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.8,No
+Aces High Houston,Houston,TX,poker_club,5200 FM 1960 Rd W,281-537-3777,,,https://www.pokeratlas.com/poker-room/aces-high-houston,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.6,No
+52 Social Austin,Austin,TX,poker_club,4615 N IH-35,512-407-7552,https://52social.com,,https://www.pokeratlas.com/poker-room/52-social-austin,24/7,"NLH, PLO, Mixed","$1/$2, $2/$5, $5/$10",25,Yes,4.3,No
+Red Star Social,Austin,TX,poker_club,1600 E Cesar Chavez St,512-524-2233,,,https://www.pokeratlas.com/poker-room/red-star-social,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,3.9,No
+Shuffle 512,Austin,TX,poker_club,7800 Shoal Creek Blvd,512-512-5125,,,https://www.pokeratlas.com/poker-room/shuffle-512,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+TCH Social Austin,Austin,TX,poker_club,3407 Wells Branch Pkwy,512-817-1111,https://texascardhouse.com,,https://www.pokeratlas.com/poker-room/tch-social-austin,24/7,"NLH, PLO","$1/$2, $2/$5",18,Yes,4.2,No
+Lodge Card Club San Antonio,San Antonio,TX,poker_club,7500 IH-10 W,210-558-5243,https://thelodgepokerclub.com,,https://www.pokeratlas.com/poker-room/lodge-card-club-san-antonio,24/7,"NLH, PLO, Mixed","$1/$3, $2/$5, $5/$10",35,Yes,4.5,Yes
+All In Poker Austin,Austin,TX,poker_club,2222 Rio Grande St,512-476-6565,,,https://www.pokeratlas.com/poker-room/all-in-poker-austin,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.7,No
+Round Rock Poker,Round Rock,TX,poker_club,2800 S IH-35,512-310-5555,,,https://www.pokeratlas.com/poker-room/round-rock-poker,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.6,No
+52 Pick Up Social,Dallas,TX,poker_club,11500 N Central Expy,214-987-5252,,,https://www.pokeratlas.com/poker-room/52-pick-up-social,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Poker House Dallas,Dallas,TX,poker_club,2727 Oak Lawn Ave,214-559-4444,,,https://www.pokeratlas.com/poker-room/poker-house-dallas,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,3.9,No
+TCH Social Las Colinas,Irving,TX,poker_club,6025 N MacArthur Blvd,972-373-1111,https://texascardhouse.com,,https://www.pokeratlas.com/poker-room/tch-social-las-colinas,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.1,No
+Palace Poker Grand Prairie,Grand Prairie,TX,poker_club,200 N Beltline Rd,972-660-7777,,,https://www.pokeratlas.com/poker-room/palace-poker-grand-prairie,24/7,"NLH, PLO, Mixed","$1/$2, $2/$5, $5/$10",30,Yes,4.3,Yes
+Oak Cliff Card Club,Dallas,TX,poker_club,4444 W Illinois Ave,214-371-5555,,,https://www.pokeratlas.com/poker-room/oak-cliff-card-club,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,3.9,No
+McKinney Poker Club,McKinney,TX,poker_club,200 E Louisiana St,469-952-8888,,,https://www.pokeratlas.com/poker-room/mckinney-poker-club,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.6,No
+Denton Poker Room,Denton,TX,poker_club,1812 S Loop 288,940-382-3333,,,https://www.pokeratlas.com/poker-room/denton-poker-room,24/7,"NLH, PLO","$1/$2, $2/$5",6,Yes,3.5,No
+Frisco All In,Frisco,TX,poker_club,6950 Main St,469-294-4444,,,https://www.pokeratlas.com/poker-room/frisco-all-in,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.6,No
+Rounders SA,San Antonio,TX,poker_club,5900 Babcock Rd,210-877-7777,,,https://www.pokeratlas.com/poker-room/rounders-sa,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,3.9,No
+210 Poker Club,San Antonio,TX,poker_club,4100 S New Braunfels Ave,210-533-2100,,,https://www.pokeratlas.com/poker-room/210-poker-club,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.7,No
+Alamo City Poker,San Antonio,TX,poker_club,14015 San Pedro Ave,210-495-4646,,,https://www.pokeratlas.com/poker-room/alamo-city-poker,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.6,No
+River Walk Poker,San Antonio,TX,poker_club,849 E Commerce St,210-227-8888,,,https://www.pokeratlas.com/poker-room/river-walk-poker,24/7,"NLH, PLO","$1/$2, $2/$5",6,Yes,3.5,No
+Kojacks Poker Club,Midland,TX,poker_club,3001 W Loop 250 N,432-699-5555,,,https://www.pokeratlas.com/poker-room/kojacks-poker-club,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.8,No
+Gin Mill Card Club Lubbock,Lubbock,TX,poker_club,5027 50th St,806-687-4646,https://ginmillcardclub.com,,https://www.pokeratlas.com/poker-room/gin-mill-card-club-lubbock,24/7,"NLH, PLO","$1/$2, $2/$5",10,Yes,3.9,No
+Texas Card House RGV,Edinburg,TX,poker_club,1000 N Sugar Rd,956-383-5500,https://texascardhouse.com,,https://www.pokeratlas.com/poker-room/texas-card-house-rgv,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.0,No
+Wichita Falls Poker,Wichita Falls,TX,poker_club,3800 Kemp Blvd,940-767-5555,,,https://www.pokeratlas.com/poker-room/wichita-falls-poker,24/7,"NLH, PLO","$1/$2, $2/$5",6,Yes,3.4,No
+Amarillo Aces,Amarillo,TX,poker_club,4200 Canyon Dr,806-353-8888,,,https://www.pokeratlas.com/poker-room/amarillo-aces,24/7,"NLH, PLO","$1/$2, $2/$5",8,Yes,3.5,No
+Texarkana Poker,Texarkana,TX,poker_club,4700 N State Line Ave,903-832-7777,,,https://www.pokeratlas.com/poker-room/texarkana-poker,24/7,"NLH, PLO",$1/$2,4,Yes,3.3,No
+Laredo Card Club,Laredo,TX,poker_club,4401 San Bernardo Ave,956-726-5555,,,https://www.pokeratlas.com/poker-room/laredo-card-club,24/7,"NLH, PLO","$1/$2, $2/$5",6,Yes,3.4,No
+Odessa Poker Room,Odessa,TX,poker_club,4201 E 42nd St,432-362-8888,,,https://www.pokeratlas.com/poker-room/odessa-poker-room,24/7,"NLH, PLO","$1/$2, $2/$5",6,Yes,3.4,No
+Tyler Poker Social,Tyler,TX,poker_club,3300 Troup Hwy,903-561-7777,,,https://www.pokeratlas.com/poker-room/tyler-poker-social,24/7,"NLH, PLO","$1/$2, $2/$5",6,Yes,3.4,No
+Beaumont Card Club,Beaumont,TX,poker_club,4100 IH-10 S,409-898-5555,,,https://www.pokeratlas.com/poker-room/beaumont-card-club,24/7,"NLH, PLO","$1/$2, $2/$5",6,Yes,3.4,No
+Killeen Poker Room,Killeen,TX,poker_club,2600 Veterans Memorial Blvd,254-628-8888,,,https://www.pokeratlas.com/poker-room/killeen-poker-room,24/7,"NLH, PLO","$1/$2, $2/$5",6,Yes,3.4,No
+Waco Poker Club,Waco,TX,poker_club,4800 W Waco Dr,254-752-7777,,,https://www.pokeratlas.com/poker-room/waco-poker-club,24/7,"NLH, PLO","$1/$2, $2/$5",6,Yes,3.4,No
+Harrahs Cherokee,Cherokee,NC,casino,777 Casino Dr,828-497-7777,https://caesars.com/harrahs-cherokee,,https://www.pokeratlas.com/poker-room/harrahs-cherokee,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",30,Yes,4.3,Yes
+Harrahs Cherokee Valley River,Murphy,NC,casino,777 Casino Pkwy,828-422-7777,https://caesars.com/harrahs-cherokee-valley-river,,https://www.pokeratlas.com/poker-room/harrahs-cherokee-valley-river,24/7,NLH,"$1/$2, $2/$5",15,Yes,4.0,No
+Live! Casino Maryland,Hanover,MD,casino,7002 Arundel Mills Cir,443-445-2929,https://marylandlivecasino.com,,https://www.pokeratlas.com/poker-room/live-casino-maryland,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",52,Yes,4.4,Yes
+Horseshoe Baltimore,Baltimore,MD,casino,1525 Russell St,844-777-7463,https://caesars.com/horseshoe-baltimore,,https://www.pokeratlas.com/poker-room/horseshoe-baltimore,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",25,Yes,4.2,No
+MGM National Harbor,Oxon Hill,MD,casino,101 MGM National Ave,844-346-4664,https://mgmnationalharbor.mgmresorts.com,,https://www.pokeratlas.com/poker-room/mgm-national-harbor,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",40,Yes,4.5,Yes
+Turning Stone,Verona,NY,casino,5218 Patrick Rd,315-361-7711,https://turningstone.com,,https://www.pokeratlas.com/poker-room/turning-stone,24/7,"NLH, PLO, Mixed","$1/$2, $2/$5, $5/$10",32,Yes,4.4,Yes
+Resorts World Catskills,Monticello,NY,casino,888 Resorts World Dr,833-586-9358,https://rwcatskills.com,,https://www.pokeratlas.com/poker-room/resorts-world-catskills,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Rivers Casino Schenectady,Schenectady,NY,casino,1 Rush St,518-579-8800,https://riverscasinoandresort.com,,https://www.pokeratlas.com/poker-room/rivers-casino-schenectady,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Del Lago Resort,Waterloo,NY,casino,1133 State Rte 414,315-946-1777,https://dellagoresort.com,,https://www.pokeratlas.com/poker-room/del-lago-resort,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Seneca Niagara,Niagara Falls,NY,casino,310 4th St,716-299-1100,https://senecacasinos.com,,https://www.pokeratlas.com/poker-room/seneca-niagara,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",20,Yes,4.2,No
+Seneca Allegany,Salamanca,NY,casino,777 Seneca Allegany Blvd,716-945-9300,https://senecacasinos.com,,https://www.pokeratlas.com/poker-room/seneca-allegany,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Seneca Buffalo Creek,Buffalo,NY,casino,1 Fulton St,716-312-7500,https://senecacasinos.com,,https://www.pokeratlas.com/poker-room/seneca-buffalo-creek,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.7,No
+Sandia Resort Casino,Albuquerque,NM,casino,30 Rainbow Rd NE,505-796-7500,https://sandiacasino.com,,https://www.pokeratlas.com/poker-room/sandia-resort-casino,24/7,"NLH, PLO","$1/$2, $2/$5",12,Yes,4.0,No
+Route 66 Casino,Albuquerque,NM,casino,14500 Central Ave SW,505-352-7866,https://rt66casino.com,,https://www.pokeratlas.com/poker-room/route-66-casino,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.7,No
+Buffalo Thunder,Santa Fe,NM,casino,20 Buffalo Thunder Trail,505-455-5555,https://buffalothunderresort.com,,https://www.pokeratlas.com/poker-room/buffalo-thunder,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.8,No
+Inn of the Mountain Gods,Mescalero,NM,casino,287 Carrizo Canyon Rd,575-464-7777,https://innofthemountaingods.com,,https://www.pokeratlas.com/poker-room/inn-of-the-mountain-gods,24/7,NLH,$1/$2,6,Yes,3.6,No
+Hollywood Casino Charles Town,Charles Town,WV,casino,750 Hollywood Dr,800-795-7001,https://hollywoodcasinocharlestown.com,,https://www.pokeratlas.com/poker-room/hollywood-casino-charles-town,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,4.1,No
+Wheeling Island,Wheeling,WV,casino,1 S Stone St,304-232-5050,https://wheelingisland.com,,https://www.pokeratlas.com/poker-room/wheeling-island,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.7,No
+Mardi Gras Casino,Cross Lanes,WV,casino,1 Greyhound Dr,304-776-1000,https://mardigrascasinowv.com,,https://www.pokeratlas.com/poker-room/mardi-gras-casino,24/7,NLH,$1/$2,6,Yes,3.5,No
+Hollywood Casino Kansas,Kansas City,KS,casino,777 Hollywood Casino Blvd,913-288-9300,https://hollywoodcasinokansas.com,,https://www.pokeratlas.com/poker-room/hollywood-casino-kansas,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Boot Hill Casino,Dodge City,KS,casino,4000 W Comanche St,877-906-0777,https://boothillcasino.com,,https://www.pokeratlas.com/poker-room/boot-hill-casino,24/7,NLH,$1/$2,6,Yes,3.5,No
+Deadwood Mountain Grand,Deadwood,SD,casino,1906 Deadwood Mountain Dr,605-559-0386,https://deadwoodmountaingrand.com,,https://www.pokeratlas.com/poker-room/deadwood-mountain-grand,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.8,No
+Tin Lizzie Gaming,Deadwood,SD,casino,555 Main St,605-578-1715,https://tinlizzie.com,,https://www.pokeratlas.com/poker-room/tin-lizzie-gaming,24/7,NLH,$1/$2,4,Yes,3.5,No
+Cadillac Jacks,Deadwood,SD,casino,360 Main St,605-578-1500,https://cadillacjacksdeadwood.com,,https://www.pokeratlas.com/poker-room/cadillac-jacks,24/7,NLH,$1/$2,4,Yes,3.5,No
+Potawatomi Milwaukee,Milwaukee,WI,casino,1721 W Canal St,414-847-7400,https://paysbig.com,,https://www.pokeratlas.com/poker-room/potawatomi-milwaukee,24/7,"NLH, PLO","$1/$2, $2/$5, $5/$10",25,Yes,4.3,Yes
+Ho-Chunk Gaming Madison,Madison,WI,casino,4002 Evan Acres Rd,608-223-9576,https://ho-chunkgaming.com,,https://www.pokeratlas.com/poker-room/ho-chunk-gaming-madison,24/7,NLH,"$1/$2, $2/$5",12,Yes,3.9,No
+Ho-Chunk Gaming Wisconsin Dells,Baraboo,WI,casino,S3214 County Rd BD,608-356-6210,https://ho-chunkgaming.com,,https://www.pokeratlas.com/poker-room/ho-chunk-gaming-wisconsin-dells,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Oneida Casino,Green Bay,WI,casino,2020 Airport Dr,920-494-4500,https://oneidacasino.net,,https://www.pokeratlas.com/poker-room/oneida-casino,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Coeur d Alene Casino,Worley,ID,casino,37914 S Nukwalqw Rd,800-523-2464,https://cdacasino.com,,https://www.pokeratlas.com/poker-room/coeur-d-alene-casino,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.7,No
+Gray Wolf Peak Casino,Missoula,MT,casino,20750 US-93,406-726-3778,,,https://www.pokeratlas.com/poker-room/gray-wolf-peak-casino,24/7,NLH,$1/$2,4,Yes,3.4,No
+4 Bears Casino,New Town,ND,casino,202 Frontage Rd,701-627-4018,https://4bearscasino.com,,https://www.pokeratlas.com/poker-room/4-bears-casino,24/7,NLH,$1/$2,4,Yes,3.4,No
+Spirit Lake Casino,St Michael,ND,casino,7889 Hwy 57,701-766-4747,https://spiritlakecasino.com,,https://www.pokeratlas.com/poker-room/spirit-lake-casino,24/7,NLH,$1/$2,4,Yes,3.3,No
+Hollywood Casino Bangor,Bangor,ME,casino,500 Main St,207-262-6146,https://hollywoodcasinobangor.com,,https://www.pokeratlas.com/poker-room/hollywood-casino-bangor,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Oxford Casino,Oxford,ME,casino,777 Casino Way,207-539-6700,https://oxfordcasino.com,,https://www.pokeratlas.com/poker-room/oxford-casino,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.7,No
+Bally Twin River,Lincoln,RI,casino,100 Twin River Rd,401-723-3200,https://twinriverri.com,,https://www.pokeratlas.com/poker-room/bally-twin-river,24/7,"NLH, PLO","$1/$2, $2/$5",20,Yes,4.1,No
+Bally Tiverton,Tiverton,RI,casino,777 Tiverton Casino Blvd,401-816-6000,https://tivertonri.com,,https://www.pokeratlas.com/poker-room/bally-tiverton,24/7,NLH,"$1/$2, $2/$5",8,Yes,3.8,No
+Delaware Park,Wilmington,DE,casino,777 Delaware Park Blvd,302-994-2521,https://delawarepark.com,,https://www.pokeratlas.com/poker-room/delaware-park,24/7,"NLH, PLO","$1/$2, $2/$5",15,Yes,4.0,No
+Dover Downs,Dover,DE,casino,1131 N Dupont Hwy,302-674-4600,https://doverdowns.com,,https://www.pokeratlas.com/poker-room/dover-downs,24/7,NLH,"$1/$2, $2/$5",10,Yes,3.8,No
+Harrington Raceway,Harrington,DE,casino,18500 S Dupont Hwy,302-398-4920,https://harringtonraceway.com,,https://www.pokeratlas.com/poker-room/harrington-raceway,24/7,NLH,$1/$2,6,Yes,3.5,No
