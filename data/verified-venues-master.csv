@@ -73,7 +73,7 @@ Grand Victoria Casino,caesars.com,250 S Grove Ave,Elgin,IL,(847) 468-7000,Casino
 Hollywood Casino Aurora,hollywoodcasinoaurora.com,1 W New York St,Aurora,IL,(630) 801-1234,Casino,No,https://www.pokeratlas.com/poker-room/hollywood-aurora,9:00am - 3:00am Sun-Thu; 9:00am - 5:00am Fri-Sat
 Bally's Quad Cities,casinos.ballys.com,777 Bally Blvd,Rock Island,IL,(309) 756-4600,Casino,No,https://www.pokeratlas.com/poker-room/quad-cities-rock-island,4:00pm - 12:00am Wed-Sat; closed Sun-Tue
 Horseshoe Hammond,caesars.com,777 Casino Center Dr,Hammond,IN,(219) 473-7000,Casino,No,https://www.pokeratlas.com/poker-room/horseshoe-hammond,24/7
-Hard Rock Northern Indiana,hardrockcasinonorthernindiana.com,5400 W 29th Ave,Gary,IN,(219) 228-2383,Casino,No,,Not available
+Hard Rock Northern Indiana,hardrockcasinonorthernindiana.com,5400 W 29th Ave,Gary,IN,(219) 228-2383,Casino,No,No poker room,Not available
 Caesars Southern Indiana,caesars.com,11999 Casino Center Dr,Elizabeth,IN,(866) 676-7463,Casino,No,https://www.pokeratlas.com/poker-room/caesars-s-indiana-elizabeth,Sun: All Day; Mon-Thu: 9:00am - 5:00am; Fri-Sat: All Day
 Horseshoe Indianapolis,caesars.com,4300 N Michigan Rd,Shelbyville,IN,(877) 386-4463,Casino,No,https://www.pokeratlas.com/poker-room/horseshoe-indy-shelbyville,24/7
 Bally's Evansville,casinos.ballys.com,421 NW Riverside Dr,Evansville,IN,(812) 433-4000,Casino,No,https://www.pokeratlas.com/poker-room/evansville,11:00am - 4:00am Mon-Thu; All Day Fri-Sun
@@ -185,10 +185,10 @@ Indigo Sky Casino,indigoskycasino.com,70220 US-60,Wyandotte,OK,(888) 992-7591,Ca
 Riverwind Casino,riverwind.com,1544 OK-9,Norman,OK,(405) 322-6000,Casino,No,https://www.pokeratlas.com/poker-room/riverwind-casino-norman,9:00am - 3:00am daily
 Osage Casino Tulsa,osagecasino.com,951 W 36th St N,Tulsa,OK,(877) 246-8777,Casino,No,https://www.pokeratlas.com/poker-room/osage-tulsa,Temporarily closed (check current status)
 Comanche Nation Casino,comanchenationcasinos.com,402 SE Interstate Dr,Lawton,OK,(580) 354-2000,Casino,No,https://www.pokeratlas.com/poker-room/comanche-nation-lawton,Not available
-Spirit Mountain Casino,spiritmountain.com,27100 SW Salmon River Hwy,Grand Ronde,OR,(503) 879-2350,Casino,No,https://www.pokeratlas.com/poker-room/spirit-mountain-grand-ronde,Not available
-Chinook Winds Casino,chinookwindscasino.com,1777 NW 44th St,Lincoln City,OR,(888) 244-6665,Casino,No,https://www.pokeratlas.com/poker-room/chinook-winds-lincoln-city,Not available
+Spirit Mountain Casino,spiritmountain.com,27100 SW Salmon River Hwy,Grand Ronde,OR,(503) 879-2350,Casino,Yes,https://www.pokeratlas.com/poker-room/spirit-mountain-grand-ronde,Not available
+Chinook Winds Casino,chinookwindscasino.com,1777 NW 44th St,Lincoln City,OR,(541) 996-5735,Casino,Yes,https://www.pokeratlas.com/poker-room/chinook-winds-lincoln-city,Not available
 Three Rivers Casino,threeriverscasino.com,5647 OR-126,Florence,OR,(541) 997-7529,Casino,No,https://www.pokeratlas.com/poker-room/three-rivers-florence,12:00pm - TBD Sun/Thu-Sat; closed Mon-Wed
-Seven Feathers Casino Resort,sevenfeathers.com,146 Chief Miwaleta Ln,Canyonville,OR,(800) 548-8461,Casino,No,https://www.pokeratlas.com/poker-room/seven-feathers-canyonville,Not available
+Seven Feathers Casino Resort,sevenfeathers.com,146 Chief Miwaleta Ln,Canyonville,OR,(800) 548-8461,Casino,Yes,https://www.pokeratlas.com/poker-room/seven-feathers-canyonville,Not available
 Parx Casino,parxcasino.com,2999 Street Rd,Bensalem,PA,(888) 588-7279,Casino,Yes,https://www.pokeratlas.com/poker-room/parx-casino-bensalem,24/7
 Rivers Casino Philadelphia,riverscasino.com,1001 N Delaware Ave,Philadelphia,PA,(877) 477-3715,Casino,Yes,https://www.pokeratlas.com/poker-room/rivers-philadelphia,24/7
 Live! Casino Philadelphia,philadelphia.livecasinohotel.com,900 Packer Ave,Philadelphia,PA,(833) 472-5483,Casino,Yes,https://www.pokeratlas.com/poker-room/live-casino-philadelphia,24/7
@@ -231,37 +231,37 @@ Wind River Casino,windriverhotelcasino.com,10269 WY-789,Riverton,WY,(307) 856-39
 101 Poker Club,101pokerclub.com,22410 Highland Knolls Dr,Katy,TX,(832) 913-6447,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/101-poker-club-katy,24/7
 52 Pick Up Social,-,-,Caddo Mills,TX,-,Standalone Card Room,No,,Not available
 9 Dragons,-,-,Houston,TX,-,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/9-dragons-houston,Not available
-Ace 1 Social Club,-,-,Corpus Christi,TX,-,Standalone Card Room,No,,Not available
+Ace 1 Social Club,ace1socialclub.com,5862 Everhart Rd,Corpus Christi,TX,-,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/ace-1-social-club-corpus-christi,Not available
 Ace Card Club,-,-,San Antonio,TX,-,Standalone Card Room,No,,Not available
 Ace High Social,-,-,Burleson,TX,-,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/ace-high-social-burleson,Not available
-Aggieland Poker Club,-,-,College Station,TX,-,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/aggieland-poker-club-college-station,Not available
+Aggieland Poker Club,aggieland-poker-club.com,12815 Wellborn Road,College Station,TX,(979) 450-7102,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/aggieland-poker-club-college-station,Sun 5pm-1am; Tue-Sat 6pm-2:30am; Mon closed
 Alamo Card House 2,alamocardhouse.com,3326 SE Military Dr,San Antonio,TX,(210) 900-2442,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/alamo-card-house-2-san-antonio,11:00am - 3:00am daily
-Alpha Social Card Club,-,-,Wichita Falls,TX,-,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/alpha-social-card-club-wichita-falls,Not available
-Amarillo Social Club,-,-,Amarillo,TX,-,Standalone Card Room,No,,Not available
+Alpha Social Card Club,alphacardclub.com,105 E Scott Ave,Wichita Falls,TX,-,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/alpha-social-card-club-wichita-falls,Not available
+Amarillo Social Club,-,"1619 S Kentucky Street, Suite D1330",Amarillo,TX,(806) 398-0130,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/amarillo-social-club,Not available
 Bluefelt El Paso Card Club,-,-,El Paso,TX,-,Standalone Card Room,No,,Not available
 Broadway Social Club,-,-,Richmond,TX,-,Standalone Card Room,No,,Not available
 Bullets Card Club,bulletscardclub.com,11900 Metric Blvd,Austin,TX,(512) 658-9488,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/bullets-card-club-austin,12:00pm - 5:00am daily
 Comal Card Haus,-,-,New Braunfels,TX,-,Standalone Card Room,No,,Not available
 Crossroads Card House,-,-,Victoria,TX,-,Standalone Card Room,No,,Not available
 Doghouse Poker Club,-,-,Cypress,TX,-,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress,10:00am - 4:00am daily
-Elite Poker Lounge,-,-,McAllen,TX,-,Standalone Card Room,No,,Not available
+Elite Poker Lounge,elitepokerlounge.com,"4037 W Expressway 83, Suite 100",McAllen,TX,(956) 899-8888,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/elite-poker-lounge-mcallen,Not available
 Empire Poker Club,empirepokerclub.com,10815 W Sam Houston Pkwy N,Houston,TX,(832) 539-6593,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/empire-poker-club-houston,24/7
 Fortune Poker Club,-,-,Houston,TX,-,Standalone Card Room,No,,Not available
 Gin Mill Card Club Farwell,-,-,Farwell,TX,-,Standalone Card Room,No,,Not available
 Gin Mill Card Club Lubbock,-,-,Lubbock,TX,-,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/gin-mill-card-club-lubbock,2:00pm - 4:00am Fri/Sat; 2:00pm - 12:00am Sun; 6:00pm - 2:00am Mon-Thu
 House of Kings Card Club,-,-,El Paso,TX,-,Standalone Card Room,No,,Not available
 Johny's Social Card Club,-,-,Wichita Falls,TX,-,Standalone Card Room,No,,Not available
-Jokers of Aggieland Poker Club,-,-,College Station,TX,-,Standalone Card Room,No,,Not available
+Jokers of Aggieland Poker Club,-,"2553 Texas Avenue South, Suite D",College Station,TX,(979) 446-2077,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/jokers-of-aggieland-poker-club-college-station,Sun/Sat 2pm-4am; Mon-Fri 6:30pm-4am
 JokerStars Social Club,-,-,Houston,TX,-,Standalone Card Room,No,,Not available
 Katy Poker,-,-,Katy,TX,-,Standalone Card Room,No,,Not available
-KoJack's Poker Club,-,-,Midland,TX,-,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/kojack-s-poker-club-midland,Not available
+KoJack's Poker Club,kojackspokerclub.com,"3205 West Cuthbert Ave, Suite B-9",Midland,TX,(432) 770-7038,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/kojacks-midland,2pm-TBD daily
 Lodge Card Club Austin,thelodgepokerclub.com,1401 S IH 35 Frontage Rd,Round Rock,TX,(512) 614-4340,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/lodge-card-club-austin-round-rock,24/7
-Lone Star Social,-,-,Cedar Park,TX,-,Standalone Card Room,No,,Not available
+Lone Star Social,lonestarsocial.com,"1525 Cypress Creek Road, Suite L",Cedar Park,TX,(512) 294-2647,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/lone-star-social-cedar-park,Not available
 Lucky J Social Club,-,-,Houston,TX,-,Standalone Card Room,No,,Not available
 Matador Poker House,-,-,Lubbock,TX,-,Standalone Card Room,No,,Not available
 Oak Cliff Card Club,-,-,Dallas,TX,-,Standalone Card Room,No,,Not available
-On The River Social Club,-,-,San Marcos,TX,-,Standalone Card Room,No,,Not available
-Palace Poker,-,-,Grand Prairie,TX,-,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/palace-poker-grand-prairie,Not available
+On The River Social Club,-,"700 N LBJ, Suite 103A",San Marcos,TX,(512) 210-8435,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/on-the-river-social-club-san-marcos,Not available
+Palace Poker,palacepoker.com,401 E Palace Pkwy,Grand Prairie,TX,(469) 912-2237,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/palace-poker-grand-prairie,24/7
 PH Social Club Dallas,-,-,Dallas,TX,-,Standalone Card Room,No,,Not available
 Poker 1,-,-,Odessa,TX,-,Standalone Card Room,No,,Not available
 Poker House Fort Worth,-,-,Burleson,TX,-,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/poker-house-fort-worth-burleson,9:00am - TBD daily
@@ -274,10 +274,10 @@ Shuffle 214,shuffle214.com,11411 E Northwest Hwy,Dallas,TX,(214) 295-8861,Standa
 Shuffle 512,shuffle512.com,-,Austin,TX,-,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/shuffle-512-austin,11:00am - TBD daily
 South Plains Social Club,-,-,Farwell,TX,-,Standalone Card Room,No,,Not available
 Spades Poker House,spadespoker.com,302 W Bay Area Blvd,Webster,TX,(832) 284-4112,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/spades-poker-house-webster,24/7
-Spades Poker House Baytown,-,-,Baytown,TX,-,Standalone Card Room,No,,Not available
+Spades Poker House Baytown,spadespokerhouse.com,6952 Garth Rd,Baytown,TX,(346) 977-6537,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/spades-poker-house-baytown,5pm-2am daily
 Sportsbook Bishop Arts,-,-,Dallas,TX,-,Standalone Card Room,No,,Not available
 Sun City Card Club,-,-,El Paso,TX,-,Standalone Card Room,No,,Not available
-TCH Social Austin,texascardhouse.com,-,Austin,TX,-,Standalone Card Room,Yes,,Not available
+TCH Social Austin,texascardhouse.com,"13530 US-183, Ste 100",Austin,TX,(512) 428-6393,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/tch-social-austin,Not available
 TCH Social Las Colinas,texascardhouse.com,955 W John Carpenter Fwy,Irving,TX,(469) 206-0810,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/tch-social-las-colinas-irving,24/7
 Texas Card House Dallas,texascardhouse.com,11824 Webb Chapel Rd,Dallas,TX,(214) 272-7808,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/texas-card-house-dallas,24/7
 Texas Card House Houston,texascardhouse.com,1411 Spring Cypress Rd,Spring,TX,(281) 645-0010,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/texas-card-house-houston,24/7
@@ -285,11 +285,11 @@ Texas Card House Rio Grande Valley,texascardhouse.com,403 W Trento Rd,Edinburg,T
 Texas Card House Spring,texascardhouse.com,-,Spring,TX,-,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/texas-card-house-spring,24/7
 Texas Double Deuce Social Club,-,-,Burleson,TX,-,Standalone Card Room,No,,Not available
 Texline Card House,-,-,Texarkana,TX,-,Standalone Card Room,No,,Not available
-The Big Blind,-,-,San Antonio,TX,-,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/big-blind-san-antonio,Not available
+The Big Blind,thebigblindsa.com,19314 US Hwy 281 N,San Antonio,TX,(210) 236-5722,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/big-blind-san-antonio,9am-4am daily
 The Club EPTX,-,-,El Paso,TX,-,Standalone Card Room,No,,Not available
 The Desperado Club,-,-,Fort Worth,TX,-,Standalone Card Room,No,,Not available
 The Fort Card Room,-,-,Aledo,TX,-,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/the-fort-card-room-aledo,9:00am - TBD daily
-The Hangar Poker House,-,-,Humble,TX,-,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/hangar-poker-house-humble,Not available
+The Hangar Poker House,hangarpokerhouse.com,244 First Street W,Humble,TX,(832) 777-6315,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/hangar-poker-house-humble,4pm-6am daily
 The Office Card Room,-,-,San Antonio,TX,-,Standalone Card Room,No,,Not available
 The River League,-,-,San Angelo,TX,-,Standalone Card Room,No,,Not available
 The River Poker Club,-,-,Spring,TX,-,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/the-river-poker-club-spring,3:00pm - TBD daily
@@ -298,7 +298,7 @@ The Royal Card House of San Antonio,-,-,San Antonio,TX,-,Standalone Card Room,No
 The Speakeasy Card Room,-,-,Gordon,TX,-,Standalone Card Room,No,,Not available
 The Wheel Social Club,-,-,Houston,TX,-,Standalone Card Room,No,,Not available
 The White Rabbit,-,-,San Antonio,TX,-,Standalone Card Room,No,,Not available
-VIP Social Club,-,-,Amarillo,TX,-,Standalone Card Room,No,,Not available
+VIP Social Club,-,"2300 Bell Street, Suite 21",Amarillo,TX,-,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/vip-social-club-amarillo,Not available
 West Texas Card House,-,-,Lubbock,TX,-,Standalone Card Room,No,,Not available
 Bankers Casino,bankerscasino.net,111 Monterey St,Salinas,CA,(831) 422-6666,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/bankers-casino-salinas,24/7
 Oceanview Casino,-,-,Santa Cruz,CA,-,Standalone Card Room,No,,Not available
@@ -341,12 +341,12 @@ Wild Goose Casino,wildgoosecasino.com,1620 Canyon Rd,Ellensburg,WA,(509) 925-562
 Silver Dollar Casino Renton,silverdollarcasino.com,3100 E Valley Rd,Renton,WA,(425) 226-2525,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/silver-dollar-renton,Not available
 Roman Casino,romancasinowa.com,12140 Tukwila International Blvd,Tukwila,WA,(206) 722-2260,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/roman-casino,Not available
 All Star Lanes & Casino,allstarlanescasino.com,10710 Silverdale Way NW,Silverdale,WA,(360) 692-5760,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/all-star-lanes-silverdale,10:00am - 4:00am daily
-Seat Open Poker Room,-,-,Bozeman,MT,-,Standalone Card Room,No,,Not available
+Seat Open Poker Room,seatopen.com,721 North 7th Avenue,Bozeman,MT,(406) 404-1968,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/seat-open-bozeman,3pm-1am daily
 The Silver Slipper,thesilverslipper.net,-,Missoula,MT,-,Standalone Card Room,No,,Not available
 Rimrock Lodge Poker Room,-,-,Thompson Falls,MT,-,Standalone Card Room,No,,Not available
-Doc & Eddy's Poker Room,-,5100 Southgate Dr,Billings,MT,(406) 248-8311,Standalone Card Room,No,,Not available
+Doc & Eddy's Poker Room,-,711 15th Street West,Billings,MT,(406) 259-0953,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/doc-eddys-billings,Not available
 Bugz's Cardroom,-,1323 Main St,Billings,MT,(406) 259-2712,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/bugzs-cardroom-billings,8:00pm - 2:00am Mon/Wed-Sat; 3:00pm - 2:00am Sun; closed Tue
-Shooters Poker Room,-,1600 Avenue D,Billings,MT,(406) 245-2122,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/shooters-poker-room-billings,Not available
+Shooters Poker Room,-,1600 Avenue D,Billings,MT,(406) 208-4648,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/shooters-poker-room-billings,Not available
 The Grandstand,-,905 Grand Ave,Billings,MT,(406) 252-8755,Standalone Card Room,No,,Not available
 Queen of Hearts Card Club,-,1421 Broadwater Ave,Billings,MT,-,Standalone Card Room,No,,Not available
 Red Door Lounge,-,3875 Grand Ave,Billings,MT,(406) 656-6410,Standalone Card Room,No,,Not available
@@ -361,16 +361,16 @@ Rialto Bar,-,52 N Last Chance Gulch,Helena,MT,(406) 442-2533,Standalone Card Roo
 Miller's Crossing,-,54 N Last Chance Gulch,Helena,MT,(406) 442-3290,Standalone Card Room,No,,Not available
 Derby Lane Poker Room,derbylane.com,10490 Gandy Blvd N,St. Petersburg,FL,(727) 812-3339,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/derby-lane-st-petersburg,All Day Sun/Fri/Sat; 10:00am - 4:00am Mon-Thu
 Oxford Downs Poker Room,oxforddowns.com,17996 US-301,Summerfield,FL,(352) 245-2999,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/oxford-downs-summerfield,24/7
-Orange City Racing & Card Club,orangecitypoker.com,822 Saxon Blvd,Orange City,FL,(386) 252-6484,Standalone Card Room,Yes,,Not available
-Daytona Racing & Card Club,daytonagreyhound.com,960 S Williamson Blvd,Daytona Beach,FL,(386) 252-6484,Standalone Card Room,Yes,,Not available
-Ebro Poker Room,goebro.com,5425 FL-79,Ebro,FL,(850) 234-3943,Standalone Card Room,Yes,,Not available
+Orange City Racing & Card Club,orangecitypoker.com,822 Saxon Blvd,Orange City,FL,(386) 252-6484,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/orange-city,24/7 Fri-Sun; 10am-6am Mon-Thu
+Daytona Racing & Card Club,daytonabeachpoker.com,960 S Williamson Blvd,Daytona Beach,FL,(386) 252-6484,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/daytona-beach,10am-4am daily
+Ebro Poker Room,goebro.com,6558 Dog Track Road,Ebro,FL,(850) 234-3943,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/ebro-poker-room,10am-4am daily
 Silks Poker Tampa Bay Downs,tampabaydowns.com,11225 Race Track Rd,Tampa,FL,(813) 855-4401,Standalone Card Room,Yes,,Not available
 TGT Poker & Racebook,tgtpoker.com,8300 N Nebraska Ave,Tampa,FL,(813) 932-4313,Standalone Card Room,Yes,,Not available
 One-Eyed Jacks Poker,skcpoker.com,5400 Bradenton Rd,Sarasota,FL,(941) 355-7744,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/one-eyed-jacks-sarasota,9:00am - 3:00am Fri/Sat; 10:00am - 2:00am Sun-Thu
-bestbet Jacksonville,bestbetjax.com,201 Monument Rd,Jacksonville,FL,(904) 646-0001,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/bestbet-jacksonville-jacksonville,Not available
+bestbet Jacksonville,bestbetjax.com,201 Monument Rd,Jacksonville,FL,(904) 646-0001,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/bestbet-jacksonville,10am-4am Sun-Thu; 24/7 Fri-Sat
 bestbet Orange Park,bestbetjax.com,455 Park Ave,Orange Park,FL,(904) 646-0001,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/bestbet-orange-park,24/7
 bestbet St. Augustine,bestbetjax.com,800 Marketplace Dr,St. Augustine,FL,(904) 646-0001,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/bestbet-st-augustine,10:00am - 4:00am daily
-Palm Beach Kennel Club,pbkennelclub.com,1111 N Congress Ave,West Palm Beach,FL,(561) 683-2222,Standalone Card Room,Yes,,Not available
+Palm Beach Kennel Club,pbkennelclub.com,1111 N Congress Ave,West Palm Beach,FL,(561) 683-2222,Standalone Card Room,Yes,https://www.pokeratlas.com/poker-room/palm-beach-kc-west-palm-beach,Mon-Thu 10am-4am; Fri-Sat 24/7; Sun 10am-4am
 Creek Entertainment,creekentertainment.com,449330 State Rd 12,Gretna,FL,(850) 875-6930,Standalone Card Room,Yes,,12:00pm - 4:00am Sun-Thu; 12:00pm - 6:00am Fri/Sat
 Pensacola Greyhound,pensacolagreyhoundtrack.com,951 Dog Track Rd,Pensacola,FL,(850) 455-8531,Standalone Card Room,Yes,,Not available
 The Last Frontier Casino,lastfrontiercasino.com,105 W 4th Ave,La Center,OR,(360) 575-1485,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/the-last-frontier-la-center,24/7
@@ -397,7 +397,7 @@ Filotimo Casino Manchester,filotimocasino.com,1279 S Willow St,Manchester,NH,(60
 Filotimo Casino Dover,filotimocasino.com,887 Central Ave,Dover,NH,(603) 742-9632,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/revo-casino-social-house-dover,10:00am - 1:00am Sun-Thu; 10:00am - 2:00am Fri-Sat
 The River Casino,therivercasino.com,53 High St,Nashua,NH,(603) 881-5555,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/the-river-casino-nashua,Not available
 Lakes Region Casino,lakesregioncasino.com,1265 Laconia Rd,Belmont,NH,(603) 527-8316,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/lakes-region-casino-belmont,12:00pm - 10:00pm Sun-Tue; 12:00pm - 1:00am Wed-Sat
-Concord Casino,concordcasinonh.com,67 S Main St,Concord,NH,(603) 228-2882,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/concord-casino,Not available
+Concord Casino,concordcasinonh.com,67 S Main St,Concord,NH,(603) 228-2882,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/concord-casino,4pm-1am Mon-Fri; 12:30pm-1am Sat-Sun
 Revo Casino - Conway,revocasino.com,1601 White Mountain Hwy,Conway,NH,(603) 447-6007,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/revo-casino-social-house-conway,8:00am - 1:00am Sun-Thu; 8:00am - 2:00am Fri-Sat
 Revo Casino - Keene,revocasino.com,172 Emerald St,Keene,NH,(603) 357-6033,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/revo-casino-social-house-keene,10:00am - 1:00am Sun-Thu; 10:00am - 2:00am Fri-Sat
 Revo Casino - Lebanon,revocasino.com,369 Miracle Mile,Lebanon,NH,(603) 448-7777,Standalone Card Room,No,https://www.pokeratlas.com/poker-room/lebanon-poker-room,8:00am - 1:00am daily
@@ -461,7 +461,7 @@ Revo Casino Conway,revocasino.com,1601 White Mountain Hwy,Conway,NH,(603) 447-60
 Revo Casino Keene,revocasino.com,172 Emerald St,Keene,NH,(603) 357-6033,Charity Poker,No,https://www.pokeratlas.com/poker-room/revo-casino-social-house-keene,Not available
 Revo Casino Lebanon,revocasino.com,369 Miracle Mile,Lebanon,NH,(603) 448-7777,Charity Poker,No,https://www.pokeratlas.com/poker-room/lebanon-poker-room,Not available
 Seabrook Poker Room,-,-,Seabrook,NH,-,Charity Poker,No,,Not available
-Canterbury Park Card Club,canterburypark.com,1100 Canterbury Rd,Shakopee,MN,(952) 445-6870,Charity Poker,No,,Not available
+Canterbury Park Card Club,canterburypark.com,1100 Canterbury Rd,Shakopee,MN,(866) 667-6537,Charity Poker,Yes,https://www.pokeratlas.com/poker-room/canterbury-park-shakopee,24/7
 American Legion East Grand Forks,-,-,East Grand Forks,MN,-,Charity Poker,No,,Not available
 Beef O' Brady's St Francis,beefs.com,23212 St Francis Blvd NW,St Francis,MN,(763) 753-8888,Charity Poker,No,,Not available
 Billy's Corner Bar & Grill,-,Various locations,Various,MN,-,Charity Poker,No,,Not available
