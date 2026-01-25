@@ -96,40 +96,56 @@ export default function UniversalHeader({
                 if (authUser) {
                     setUser(authUser);
 
-                    // Fetch profile data (XP, avatar, name, diamonds)
-                    const { data: profile, error: profileError } = await supabase
-                        .from('profiles')
-                        .select('username, full_name, avatar_url, xp_total, diamonds')
-                        .eq('id', authUser.id)
-                        .single();
+                    // 🛡️ ANTIGRAVITY FIX: Use API route to bypass RLS issues
+                    let profile = null;
+                    let profileError = null;
 
-                    // DEBUG: Log what we got from the database
-                    console.log('[UniversalHeader] Profile fetch:', {
-                        userId: authUser.id,
-                        profile,
-                        profileError,
-                        diamonds: profile?.diamonds,
-                        xp: profile?.xp_total
-                    });
-
-                    // Use diamonds from profile (user_diamond_balance has FK constraint issues)
-                    const diamondBalance = profile?.diamonds || 0;
-
-                    if (profile) {
-                        const xpTotal = profile.xp_total || 0;
-                        // Level formula: Level 55 at 700k XP → level = floor(sqrt(xp / 231))
-                        const level = Math.max(1, Math.floor(Math.sqrt(xpTotal / 231)));
-
-                        setStats({
-                            xp: xpTotal,
-                            diamonds: diamondBalance,
-                            level
+                    try {
+                        // First try API route (bypasses RLS)
+                        const response = await fetch('/api/user/get-header-stats', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId: authUser.id }),
                         });
-                        setUser(prev => ({
-                            ...prev,
-                            avatar: profile.avatar_url,
-                            name: profile.full_name || profile.username
-                        }));
+
+                        const result = await response.json();
+                        console.log('[UniversalHeader] API fetch result:', result);
+
+                        if (result.success && result.profile) {
+                            const { xp, diamonds, level, full_name, username, avatar_url } = result.profile;
+                            setStats({ xp, diamonds, level });
+                            setUser(prev => ({
+                                ...prev,
+                                avatar: avatar_url,
+                                name: full_name || username
+                            }));
+                        } else {
+                            // Fallback to direct Supabase query if API fails
+                            console.log('[UniversalHeader] API failed, trying direct query...');
+                            const { data: directProfile, error: directError } = await supabase
+                                .from('profiles')
+                                .select('username, full_name, avatar_url, xp_total, diamonds')
+                                .eq('id', authUser.id)
+                                .single();
+
+                            profile = directProfile;
+                            profileError = directError;
+
+                            console.log('[UniversalHeader] Direct fetch:', { profile, profileError });
+
+                            if (profile) {
+                                const xpTotal = profile.xp_total || 0;
+                                const level = Math.max(1, Math.floor(Math.sqrt(xpTotal / 231)));
+                                setStats({ xp: xpTotal, diamonds: profile.diamonds || 0, level });
+                                setUser(prev => ({
+                                    ...prev,
+                                    avatar: profile.avatar_url,
+                                    name: profile.full_name || profile.username
+                                }));
+                            }
+                        }
+                    } catch (fetchError) {
+                        console.error('[UniversalHeader] All fetches failed:', fetchError);
                     }
 
                     // FETCH NOTIFICATION COUNT (unread)

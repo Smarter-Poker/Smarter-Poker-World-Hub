@@ -96,6 +96,12 @@ export function ExternalLinkProvider({ children }) {
                 return;
             }
 
+            // CRITICAL: Skip video call URLs - Jitsi must open in new tab, not modal
+            if (lowerHref.includes('meet.jit.si')) {
+                // Let Jitsi calls open in new tab (target="_blank" already set on <a>)
+                return;
+            }
+
             // Also intercept links that explicitly should open externally
             const forceInternal = link.hasAttribute('data-internal');
 
