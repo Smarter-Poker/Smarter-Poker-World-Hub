@@ -304,7 +304,7 @@ export default function UserProfilePage() {
                 const [friendsRes, followingRes, followersRes, postsRes] = await Promise.all([
                     supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`user_id.eq.${data.id},friend_id.eq.${data.id}`),
                     supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', data.id),
-                    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('followed_id', data.id),
+                    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', data.id),
                     supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', data.id)
                 ]);
 
