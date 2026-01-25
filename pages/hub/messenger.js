@@ -1763,6 +1763,16 @@ export default function MessengerPage() {
 
     // End call - notify the other party
     const endCall = async () => {
+        // Clean up Jitsi API instance
+        if (window.jitsiApiInstance) {
+            try {
+                window.jitsiApiInstance.dispose();
+            } catch (e) {
+                console.warn('Error disposing Jitsi:', e);
+            }
+            window.jitsiApiInstance = null;
+        }
+
         // Notify the other user that call ended (subscribe, send, then cleanup)
         if (activeConversation?.otherUser?.id) {
             try {
@@ -2064,7 +2074,7 @@ export default function MessengerPage() {
                 </div>
             )}
 
-            {/* Jitsi Call Modal */}
+            {/* Jitsi Call Modal - Using External API for true auto-join (Snapchat/WhatsApp style) */}
             {showCall && callRoomName && (
                 <div style={{
                     position: 'fixed',
@@ -2082,6 +2092,7 @@ export default function MessengerPage() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         borderBottom: '1px solid #333',
+                        zIndex: 10,
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             {callType === 'video' ? <VideoIcon size={24} color="white" /> : <PhoneIcon size={24} color="white" />}
@@ -2110,15 +2121,75 @@ export default function MessengerPage() {
                             📵 End Call
                         </button>
                     </div>
-                    {/* Jitsi Iframe - Auto-join without prejoin screen (Snapchat/WhatsApp style) */}
-                    <iframe
-                        src={`https://meet.jit.si/${callRoomName}#jitsi_meet_external_api_id=1&config.prejoinPageEnabled=false&config.prejoinConfig.enabled=false&config.requireDisplayName=false&config.startWithAudioMuted=false&config.startWithVideoMuted=${callType === 'audio'}&config.disableDeepLinking=true&config.enableWelcomePage=false&userInfo.displayName=${encodeURIComponent(user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'User')}`}
-                        style={{
-                            flex: 1,
-                            width: '100%',
-                            border: 'none',
+                    {/* Jitsi Container - External API will render here */}
+                    <div
+                        id="jitsi-container"
+                        style={{ flex: 1, width: '100%' }}
+                        ref={(containerRef) => {
+                            if (!containerRef || window.jitsiApiInstance) return;
+
+                            // Load Jitsi External API script dynamically
+                            const loadJitsiScript = () => {
+                                return new Promise((resolve) => {
+                                    if (window.JitsiMeetExternalAPI) {
+                                        resolve();
+                                        return;
+                                    }
+                                    const script = document.createElement('script');
+                                    script.src = 'https://meet.jit.si/external_api.js';
+                                    script.onload = resolve;
+                                    document.head.appendChild(script);
+                                });
+                            };
+
+                            loadJitsiScript().then(() => {
+                                const displayName = user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'User';
+
+                                // Create Jitsi instance with proper config to skip prejoin
+                                window.jitsiApiInstance = new window.JitsiMeetExternalAPI('meet.jit.si', {
+                                    roomName: callRoomName,
+                                    parentNode: containerRef,
+                                    width: '100%',
+                                    height: '100%',
+                                    userInfo: {
+                                        displayName: displayName,
+                                    },
+                                    configOverwrite: {
+                                        // CRITICAL: Skip the prejoin page entirely
+                                        prejoinConfig: { enabled: false },
+                                        prejoinPageEnabled: false,
+                                        // Audio/video settings
+                                        startWithAudioMuted: false,
+                                        startWithVideoMuted: callType === 'audio',
+                                        // Disable unnecessary features
+                                        disableDeepLinking: true,
+                                        enableWelcomePage: false,
+                                        requireDisplayName: false,
+                                        enableClosePage: false,
+                                    },
+                                    interfaceConfigOverwrite: {
+                                        // Simplified UI for Snapchat/WhatsApp feel
+                                        TOOLBAR_BUTTONS: [
+                                            'microphone', 'camera', 'closedcaptions', 'desktop',
+                                            'fullscreen', 'fodeviceselection', 'hangup', 'chat',
+                                            'settings', 'videoquality', 'filmstrip', 'tileview',
+                                        ],
+                                        SHOW_JITSI_WATERMARK: false,
+                                        SHOW_WATERMARK_FOR_GUESTS: false,
+                                        SHOW_BRAND_WATERMARK: false,
+                                        BRAND_WATERMARK_LINK: '',
+                                        SHOW_POWERED_BY: false,
+                                        MOBILE_APP_PROMO: false,
+                                        HIDE_INVITE_MORE_HEADER: true,
+                                    },
+                                });
+
+                                // Handle Jitsi events
+                                window.jitsiApiInstance.addListener('readyToClose', () => {
+                                    endCall();
+                                });
+                            });
                         }}
-                        allow="camera; microphone; fullscreen; display-capture; autoplay"
                     />
                 </div>
             )}
