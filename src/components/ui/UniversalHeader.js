@@ -96,42 +96,54 @@ export default function UniversalHeader({
                 if (authUser) {
                     setUser(authUser);
 
-                    // 🛡️ ANTIGRAVITY FIX: Use API route to bypass RLS issues
-                    let profile = null;
-                    let profileError = null;
+                    // 🛡️ BULLETPROOF: Retry logic with exponential backoff
+                    const MAX_RETRIES = 3;
+                    const fetchProfileWithRetry = async (attempt = 1) => {
+                        try {
+                            const response = await fetch('/api/user/get-header-stats', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId: authUser.id }),
+                            });
 
-                    try {
-                        // First try API route (bypasses RLS)
-                        const response = await fetch('/api/user/get-header-stats', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: authUser.id }),
-                        });
+                            const result = await response.json();
+                            console.log(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
 
-                        const result = await response.json();
-                        console.log('[UniversalHeader] API fetch result:', result);
+                            if (result.success && result.profile) {
+                                const { xp, diamonds, level, full_name, username, avatar_url } = result.profile;
+                                setStats({ xp, diamonds, level });
+                                setUser(prev => ({
+                                    ...prev,
+                                    avatar: avatar_url,
+                                    name: full_name || username
+                                }));
+                                return true; // Success
+                            }
+                            return false; // API returned error
+                        } catch (e) {
+                            console.warn(`[UniversalHeader] Attempt ${attempt} failed:`, e.message);
+                            return false;
+                        }
+                    };
 
-                        if (result.success && result.profile) {
-                            const { xp, diamonds, level, full_name, username, avatar_url } = result.profile;
-                            setStats({ xp, diamonds, level });
-                            setUser(prev => ({
-                                ...prev,
-                                avatar: avatar_url,
-                                name: full_name || username
-                            }));
-                        } else {
-                            // Fallback to direct Supabase query if API fails
-                            console.log('[UniversalHeader] API failed, trying direct query...');
-                            const { data: directProfile, error: directError } = await supabase
+                    // Try up to MAX_RETRIES times with exponential backoff
+                    let success = await fetchProfileWithRetry(1);
+                    for (let attempt = 2; attempt <= MAX_RETRIES && !success; attempt++) {
+                        const delay = Math.pow(2, attempt - 1) * 500; // 500ms, 1000ms, 2000ms
+                        console.log(`[UniversalHeader] Retrying in ${delay}ms...`);
+                        await new Promise(r => setTimeout(r, delay));
+                        success = await fetchProfileWithRetry(attempt);
+                    }
+
+                    // Final fallback: direct Supabase query
+                    if (!success) {
+                        console.log('[UniversalHeader] All API retries failed, trying direct query...');
+                        try {
+                            const { data: profile } = await supabase
                                 .from('profiles')
                                 .select('username, full_name, avatar_url, xp_total, diamonds')
                                 .eq('id', authUser.id)
                                 .single();
-
-                            profile = directProfile;
-                            profileError = directError;
-
-                            console.log('[UniversalHeader] Direct fetch:', { profile, profileError });
 
                             if (profile) {
                                 const xpTotal = profile.xp_total || 0;
@@ -143,9 +155,9 @@ export default function UniversalHeader({
                                     name: profile.full_name || profile.username
                                 }));
                             }
+                        } catch (e) {
+                            console.error('[UniversalHeader] Final fallback failed:', e);
                         }
-                    } catch (fetchError) {
-                        console.error('[UniversalHeader] All fetches failed:', fetchError);
                     }
 
                     // FETCH NOTIFICATION COUNT (unread)
@@ -298,7 +310,7 @@ export default function UniversalHeader({
                     color: C.white
                 }}>
                     <span style={{ fontSize: 16 }}>💎</span>
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>{stats.diamonds.toLocaleString()}</span>
+                    <span data-testid="header-diamonds" style={{ fontWeight: 700, fontSize: 14 }}>{stats.diamonds.toLocaleString()}</span>
                     <span style={{
                         width: 18, height: 18, borderRadius: '50%',
                         background: 'rgba(0, 212, 255, 0.3)',
@@ -318,9 +330,9 @@ export default function UniversalHeader({
                     borderRadius: 20
                 }}>
                     <span style={{ color: C.gold, fontWeight: 700, fontSize: 14 }}>XP</span>
-                    <span style={{ color: C.white, fontWeight: 600, fontSize: 14 }}>{stats.xp.toLocaleString()}</span>
+                    <span data-testid="header-xp" style={{ color: C.white, fontWeight: 600, fontSize: 14 }}>{stats.xp.toLocaleString()}</span>
                     <span style={{ color: C.textSec, fontSize: 12 }}>•</span>
-                    <span style={{ color: C.cyan, fontWeight: 700, fontSize: 14 }}>LV {stats.level}</span>
+                    <span data-testid="header-level" style={{ color: C.cyan, fontWeight: 700, fontSize: 14 }}>LV {stats.level}</span>
                 </div>
             </div>
 

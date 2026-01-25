@@ -96,6 +96,17 @@ async function listGroups(req, res) {
 
       data.forEach(group => {
         group.my_membership = membershipMap[group.id] || null;
+        // DEFENSIVE: Ensure profile data is never null
+        if (!group.profiles) {
+          group.profiles = { id: group.owner_id, display_name: 'Unknown Host', avatar_url: null };
+        }
+      });
+    } else if (data?.length > 0) {
+      // Add fallback profiles even for non-authenticated requests
+      data.forEach(group => {
+        if (!group.profiles) {
+          group.profiles = { id: group.owner_id, display_name: 'Unknown Host', avatar_url: null };
+        }
       });
     }
 

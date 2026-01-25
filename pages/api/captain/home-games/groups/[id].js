@@ -112,6 +112,17 @@ async function getGroup(req, res, id) {
       members = members.filter(m => m.status === 'approved');
     }
 
+    // DEFENSIVE: Ensure all member profiles have required fields
+    members = members.map(m => ({
+      ...m,
+      profiles: m.profiles || { id: m.user_id, display_name: 'Unknown Member', avatar_url: null }
+    }));
+
+    // DEFENSIVE: Ensure owner profile exists
+    if (!group.profiles) {
+      group.profiles = { id: group.owner_id, display_name: 'Unknown Host', avatar_url: null };
+    }
+
     // Filter upcoming games
     const upcomingGames = (group.captain_home_games || [])
       .filter(g => g.status !== 'cancelled' && g.status !== 'completed')

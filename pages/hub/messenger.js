@@ -1168,7 +1168,7 @@ export default function MessengerPage() {
     }, [user, showCall, callingUser]);
 
     // Handle accepting incoming call
-    const handleAcceptCall = () => {
+    const handleAcceptCall = async () => {
         if (!incomingCall || !user) return;
 
         // Stop ringing
@@ -1178,12 +1178,25 @@ export default function MessengerPage() {
         }
         if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
 
-        // Notify caller that we accepted
-        supabase.channel(`call-signal:${incomingCall.callerId}`).send({
-            type: 'broadcast',
-            event: 'call_accepted',
-            payload: { accepterId: user.id }
-        });
+        // Notify caller that we accepted (subscribe, send, then cleanup)
+        try {
+            const channel = supabase.channel(`call-signal:${incomingCall.callerId}`);
+            await new Promise((resolve, reject) => {
+                channel.subscribe((status) => {
+                    if (status === 'SUBSCRIBED') resolve();
+                    else if (status === 'CHANNEL_ERROR') reject(new Error('Channel error'));
+                });
+            });
+            await channel.send({
+                type: 'broadcast',
+                event: 'call_accepted',
+                payload: { accepterId: user.id }
+            });
+            // Cleanup after a short delay
+            setTimeout(() => supabase.removeChannel(channel), 1000);
+        } catch (e) {
+            console.warn('Failed to send accept signal:', e);
+        }
 
         // Join the call
         setCallRoomName(incomingCall.roomName);
@@ -1193,7 +1206,7 @@ export default function MessengerPage() {
     };
 
     // Handle declining incoming call
-    const handleDeclineCall = (reason = 'declined') => {
+    const handleDeclineCall = async (reason = 'declined') => {
         if (!incomingCall) return;
 
         // Stop ringing
@@ -1203,12 +1216,25 @@ export default function MessengerPage() {
         }
         if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
 
-        // Notify caller that we declined
-        supabase.channel(`call-signal:${incomingCall.callerId}`).send({
-            type: 'broadcast',
-            event: 'call_declined',
-            payload: { declinerId: user.id, reason }
-        });
+        // Notify caller that we declined (subscribe, send, then cleanup)
+        try {
+            const channel = supabase.channel(`call-signal:${incomingCall.callerId}`);
+            await new Promise((resolve, reject) => {
+                channel.subscribe((status) => {
+                    if (status === 'SUBSCRIBED') resolve();
+                    else if (status === 'CHANNEL_ERROR') reject(new Error('Channel error'));
+                });
+            });
+            await channel.send({
+                type: 'broadcast',
+                event: 'call_declined',
+                payload: { declinerId: user?.id, reason }
+            });
+            // Cleanup after a short delay
+            setTimeout(() => supabase.removeChannel(channel), 1000);
+        } catch (e) {
+            console.warn('Failed to send decline signal:', e);
+        }
 
         setIncomingCall(null);
     };
@@ -1675,8 +1701,23 @@ export default function MessengerPage() {
         setCallType(type);
 
         // 📞 Send real-time call signal to the other user
+        // CRITICAL: Must subscribe before sending broadcast
         try {
-            await supabase.channel(`call-signal:${otherUser.id}`).send({
+            const channel = supabase.channel(`call-signal:${otherUser.id}`);
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => reject(new Error('Channel timeout')), 5000);
+                channel.subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        clearTimeout(timeout);
+                        resolve();
+                    } else if (status === 'CHANNEL_ERROR') {
+                        clearTimeout(timeout);
+                        reject(new Error('Channel error'));
+                    }
+                });
+            });
+
+            await channel.send({
                 type: 'broadcast',
                 event: 'incoming_call',
                 payload: {
@@ -1688,6 +1729,9 @@ export default function MessengerPage() {
                 }
             });
             console.log('📞 Call signal sent to:', otherUser.id);
+
+            // Cleanup channel after a delay (receiver has their own listener)
+            setTimeout(() => supabase.removeChannel(channel), 2000);
 
             // Also send push notification for users not on the page
             try {
@@ -1718,14 +1762,29 @@ export default function MessengerPage() {
     };
 
     // End call - notify the other party
-    const endCall = () => {
-        // Notify the other user that call ended
+    const endCall = async () => {
+        // Notify the other user that call ended (subscribe, send, then cleanup)
         if (activeConversation?.otherUser?.id) {
-            supabase.channel(`call-signal:${activeConversation.otherUser.id}`).send({
-                type: 'broadcast',
-                event: 'call_ended',
-                payload: { enderId: user?.id }
-            });
+            try {
+                const channel = supabase.channel(`call-signal:${activeConversation.otherUser.id}`);
+                await new Promise((resolve) => {
+                    const timeout = setTimeout(resolve, 2000); // Don't block UI for too long
+                    channel.subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            clearTimeout(timeout);
+                            resolve();
+                        }
+                    });
+                });
+                await channel.send({
+                    type: 'broadcast',
+                    event: 'call_ended',
+                    payload: { enderId: user?.id }
+                });
+                setTimeout(() => supabase.removeChannel(channel), 1000);
+            } catch (e) {
+                console.warn('Failed to send end call signal:', e);
+            }
         }
         setShowCall(false);
         setCallRoomName('');
