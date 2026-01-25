@@ -699,8 +699,51 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             );
                         }
 
-                        // Regular text content
-                        return content;
+                        // Regular text content - make URLs clickable
+                        // Check if it's a call invite
+                        const isCallInvite = content.includes('Call Started!') && content.includes('meet.jit.si');
+
+                        // Convert URLs to clickable links
+                        const urlRegex = /(https?:\/\/[^\s]+)/g;
+                        const parts = content.split(urlRegex);
+
+                        return (
+                            <div style={isCallInvite ? {
+                                background: isOwn ? 'rgba(255,255,255,0.15)' : 'rgba(0,132,255,0.1)',
+                                padding: 8,
+                                borderRadius: 12,
+                                margin: '-4px -8px',
+                            } : {}}>
+                                {parts.map((part, i) => {
+                                    if (urlRegex.test(part)) {
+                                        // Reset regex lastIndex
+                                        urlRegex.lastIndex = 0;
+                                        return (
+                                            <a
+                                                key={i}
+                                                href={part}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    color: isOwn ? '#90CAF9' : C.blue,
+                                                    textDecoration: 'underline',
+                                                    wordBreak: 'break-all',
+                                                }}
+                                            >
+                                                {part.includes('meet.jit.si') ? '🔗 Join Call' : part}
+                                            </a>
+                                        );
+                                    }
+                                    // Preserve newlines
+                                    return part.split('\n').map((line, j) => (
+                                        <span key={`${i}-${j}`}>
+                                            {j > 0 && <br />}
+                                            {line}
+                                        </span>
+                                    ));
+                                })}
+                            </div>
+                        );
                     })()}
                 </div>
 
@@ -1473,19 +1516,49 @@ export default function MessengerPage() {
     }, [conversations]);
 
     // Start a Jitsi call
-    const startCall = (type) => {
+    const startCall = async (type) => {
         if (!activeConversation || !user) return;
         // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
         const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;
+        const jitsiUrl = `https://meet.jit.si/${roomName}`;
+
+        // Send call invite message
+        const callTypeLabel = type === 'video' ? '📹 Video' : '📞 Voice';
+        const inviteMessage = `${callTypeLabel} Call Started!\n\n🔗 Join here: ${jitsiUrl}\n\nClick the link above to join the call.`;
+
+        try {
+            // Send the invite message
+            await supabase.rpc('fn_send_message', {
+                p_conversation_id: activeConversation.id,
+                p_sender_id: user.id,
+                p_content: inviteMessage,
+            });
+
+            // Add to local messages optimistically
+            const newMsg = {
+                id: `call-${Date.now()}`,
+                content: inviteMessage,
+                created_at: new Date().toISOString(),
+                sender_id: user.id,
+                status: 'sent',
+                profiles: { id: user.id, username: user.user_metadata?.username, avatar_url: user.user_metadata?.avatar_url },
+            };
+            setMessages(prev => [...prev, newMsg]);
+        } catch (e) {
+            console.error('Failed to send call invite:', e);
+        }
+
         setCallRoomName(roomName);
         setCallType(type);
         setShowCall(true);
+        setToast({ type: 'success', message: `${type === 'video' ? 'Video' : 'Voice'} call started! Invite sent.` });
     };
 
     // End call
     const endCall = () => {
         setShowCall(false);
         setCallRoomName('');
+        setToast({ type: 'info', message: 'Call ended' });
     };
 
     if (loading) {
