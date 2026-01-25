@@ -111,8 +111,15 @@ export function AvatarProvider({ children }) {
                         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
                         if (refreshError) {
                             console.error('[AvatarContext] Session refresh failed:', refreshError.message);
-                            // Session is invalid, clear it
+                            // Session is invalid, clear it AND remove corrupted localStorage key
+                            // This breaks the infinite SIGNED_OUT loop that causes 0/0/LV1 bug
                             setUser(null);
+                            try {
+                                localStorage.removeItem('smarter-poker-auth');
+                                console.log('[AvatarContext] Cleared corrupted auth key to break loop');
+                            } catch (e) {
+                                console.warn('[AvatarContext] Failed to clear auth key:', e);
+                            }
                         } else if (refreshData?.session?.user) {
                             console.log('[AvatarContext] Session refreshed successfully');
                             setUser(refreshData.session.user);
@@ -125,6 +132,11 @@ export function AvatarProvider({ children }) {
                     } catch (err) {
                         console.error('[AvatarContext] Refresh exception:', err);
                         setUser(null);
+                        // Clear corrupted auth key on exception too
+                        try {
+                            localStorage.removeItem('smarter-poker-auth');
+                            console.log('[AvatarContext] Cleared corrupted auth key after exception');
+                        } catch (e) { /* ignore */ }
                     }
                 } else {
                     // No session at all
