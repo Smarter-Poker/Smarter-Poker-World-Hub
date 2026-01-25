@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../../src/lib/supabase';
+import { getAuthUser } from '../../../src/lib/authUtils';
 
 // Components
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -255,8 +256,8 @@ export default function UserProfilePage() {
 
         const fetchProfile = async () => {
             try {
-                // Get current user
-                const { data: { user } } = await supabase.auth.getUser();
+                // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+                const user = getAuthUser();
                 if (user) setCurrentUser(user);
 
                 // Fetch the profile by username

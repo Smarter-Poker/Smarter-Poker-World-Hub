@@ -18,6 +18,7 @@ import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
+import { getAuthUser } from '../../src/lib/authUtils';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import {
     ARCADE_GAMES,
@@ -139,10 +140,11 @@ export default function DiamondArcade() {
     }, []);
 
     async function loadUser() {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            setUser(user);
-            loadUserStats(user.id);
+        // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+        const authUser = getAuthUser();
+        if (authUser) {
+            setUser(authUser);
+            loadUserStats(authUser.id);
         }
     }
 

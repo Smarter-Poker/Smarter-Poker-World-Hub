@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
+import { getAuthUser } from '../../src/lib/authUtils';
 import { getAll } from '../../src/data/AVATAR_LIBRARY';
 import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
 
@@ -35,15 +36,16 @@ export default function AvatarsComplete() {
 
     async function loadUser() {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
+            // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+            const authUser = getAuthUser();
+            setUser(authUser);
 
-            if (user) {
+            if (authUser) {
                 // Check VIP status from user metadata
-                setIsVip(user.user_metadata?.is_vip || false);
+                setIsVip(authUser.user_metadata?.is_vip || false);
 
                 // Load custom avatars
-                await loadCustomAvatars(user.id);
+                await loadCustomAvatars(authUser.id);
             }
         } catch (error) {
             console.error('Error loading user:', error);
