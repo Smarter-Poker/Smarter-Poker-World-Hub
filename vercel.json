@@ -2,6 +2,14 @@
   "framework": "nextjs",
   "crons": [
     {
+      "path": "/api/cron/daily-content",
+      "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/cron/horses-news",
+      "schedule": "30 * * * *"
+    },
+    {
       "path": "/api/cron/news-scraper",
       "schedule": "0 */2 * * *"
     },
