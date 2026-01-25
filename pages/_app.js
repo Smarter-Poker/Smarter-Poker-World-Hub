@@ -19,6 +19,7 @@ import { AvatarProvider } from '../src/contexts/AvatarContext';
 import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
 import { OneSignalProvider } from '../src/contexts/OneSignalContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
+import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CACHE BUSTER — Clears stale caches on new deploys
@@ -248,6 +249,7 @@ export default function App({ Component, pageProps }) {
                   <Component {...pageProps} />
                   <CelebrationManager />
                   <ToastContainer />
+                  <GlobalNotificationPrompt />
                 </NavigationGuard>
               </OneSignalProvider>
             </ExternalLinkProvider>
