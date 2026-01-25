@@ -7,8 +7,8 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Known test user with profile data
-const TEST_USER_ID = '47965354-d826-4f4b-8f16-fe0cefaf7563';
+// Known test user with profile data (Danny Bek)
+const TEST_USER_ID = '3bb71bfe-f723-427c-aac7-a853ba04a014';
 
 export default async function handler(req, res) {
     const startTime = Date.now();

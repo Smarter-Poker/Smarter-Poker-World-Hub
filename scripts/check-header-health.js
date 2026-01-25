@@ -12,8 +12,8 @@
 
 const https = require('https');
 
-// Known test user with data
-const TEST_USER_ID = '47965354-d826-4f4b-8f16-fe0cefaf7563'; // KingFish account
+// Known test user with data (Danny Bek)
+const TEST_USER_ID = process.env.TEST_USER_ID || '3bb71bfe-f723-427c-aac7-a853ba04a014';
 const BASE_URL = process.env.CHECK_URL || 'https://smarter.poker';
 
 async function checkHeaderHealth() {
