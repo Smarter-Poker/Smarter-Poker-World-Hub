@@ -108,7 +108,13 @@ export function AvatarProvider({ children }) {
                 if (session?.user) {
                     console.log('[AvatarContext] Session found, forcing refresh to renew tokens...');
                     try {
-                        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+                        // 🛡️ CRITICAL: Use timeout to prevent infinite hang on corrupted tokens
+                        const refreshPromise = supabase.auth.refreshSession();
+                        const timeoutPromise = new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error('Session refresh timeout - clearing corrupted auth')), 3000)
+                        );
+                        const { data: refreshData, error: refreshError } = await Promise.race([refreshPromise, timeoutPromise]);
+
                         if (refreshError) {
                             console.error('[AvatarContext] Session refresh failed:', refreshError.message);
                             // Session is invalid, clear it AND remove corrupted localStorage key
@@ -130,12 +136,14 @@ export function AvatarProvider({ children }) {
                             setUser(null);
                         }
                     } catch (err) {
-                        console.error('[AvatarContext] Refresh exception:', err);
+                        console.error('[AvatarContext] Refresh exception (likely timeout):', err.message);
                         setUser(null);
-                        // Clear corrupted auth key on exception too
+                        // Clear corrupted auth key on exception/timeout
                         try {
                             localStorage.removeItem('smarter-poker-auth');
-                            console.log('[AvatarContext] Cleared corrupted auth key after exception');
+                            // Also clear any sb-* legacy keys
+                            Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.includes('auth')).forEach(k => localStorage.removeItem(k));
+                            console.log('[AvatarContext] Cleared corrupted auth keys after timeout');
                         } catch (e) { /* ignore */ }
                     }
                 } else {

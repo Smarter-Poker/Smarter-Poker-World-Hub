@@ -22,9 +22,19 @@ export default function ResetAuthPage() {
     useEffect(() => {
         async function resetAuth() {
             try {
-                // Step 1: Sign out from Supabase (server-side)
+                // Step 1: Sign out from Supabase (server-side) - WITH TIMEOUT
+                // If corrupted session, signOut may hang forever. Use 2s timeout.
                 setStatus('Signing out from server...');
-                await supabase.auth.signOut();
+                try {
+                    const signOutPromise = supabase.auth.signOut();
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('timeout')), 2000)
+                    );
+                    await Promise.race([signOutPromise, timeoutPromise]);
+                } catch (signOutErr) {
+                    console.log('[Reset Auth] SignOut timed out or failed, proceeding anyway:', signOutErr.message);
+                    // Continue anyway - clearing localStorage will fix it
+                }
 
                 // Step 2: Clear ALL localStorage keys related to auth
                 setStatus('Clearing local storage...');
