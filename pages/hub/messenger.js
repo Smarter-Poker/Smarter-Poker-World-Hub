@@ -1145,7 +1145,17 @@ export default function MessengerPage() {
                         .eq('conversation_id', p.conversation_id)
                         .neq('user_id', userId);
 
-                    const otherUser = participants?.[0]?.profiles;
+                    let otherUser = participants?.[0]?.profiles;
+
+                    // FALLBACK: If FK join didn't return profile, fetch it directly
+                    if (!otherUser && participants?.[0]?.user_id) {
+                        const { data: directProfile } = await supabase
+                            .from('profiles')
+                            .select('id, username, avatar_url')
+                            .eq('id', participants[0].user_id)
+                            .single();
+                        otherUser = directProfile;
+                    }
 
                     // Count unread
                     const { count } = await supabase
