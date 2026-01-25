@@ -414,20 +414,46 @@ export default function FriendsPage() {
         }
         setUser(authUser);
 
-        // Fetch current friends (accepted)
-        const { data: friendships } = await supabase
+        // Fetch current friends (accepted) - CHECK BOTH DIRECTIONS
+        // Friendships can be stored where user_id = me OR friend_id = me
+        const { data: friendshipsAsUser } = await supabase
             .from('friendships')
             .select('friend_id, friend:profiles!friendships_friend_id_fkey(*)')
             .eq('user_id', authUser.id)
             .eq('status', 'accepted');
 
+        const { data: friendshipsAsFriend } = await supabase
+            .from('friendships')
+            .select('user_id, requester:profiles!friendships_user_id_fkey(*)')
+            .eq('friend_id', authUser.id)
+            .eq('status', 'accepted');
+
         let currentFriendIdsList = [];
-        if (friendships) {
-            setFriends(friendships.map(f => f.friend));
-            currentFriendIdsList = friendships.map(f => f.friend_id);
-            setFriendIds(new Set(currentFriendIdsList));
-            setMyFriendIds(currentFriendIdsList);
+        const allFriends = [];
+
+        // Friends where I am the user_id (I sent the request)
+        if (friendshipsAsUser) {
+            friendshipsAsUser.forEach(f => {
+                if (f.friend) {
+                    allFriends.push(f.friend);
+                    currentFriendIdsList.push(f.friend_id);
+                }
+            });
         }
+
+        // Friends where I am the friend_id (they sent the request)
+        if (friendshipsAsFriend) {
+            friendshipsAsFriend.forEach(f => {
+                if (f.requester && !currentFriendIdsList.includes(f.user_id)) {
+                    allFriends.push(f.requester);
+                    currentFriendIdsList.push(f.user_id);
+                }
+            });
+        }
+
+        setFriends(allFriends);
+        setFriendIds(new Set(currentFriendIdsList));
+        setMyFriendIds(currentFriendIdsList);
 
         // Fetch pending friend requests (where I am the receiver)
         const { data: incomingRequests } = await supabase
