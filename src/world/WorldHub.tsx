@@ -453,10 +453,12 @@ export default function WorldHub() {
     useEffect(() => {
         const fetchUserProfile = async () => {
             try {
-                // Use the shared singleton
-                const { supabase } = await import('../lib/supabase');
-                const { data: { user } } = await supabase.auth.getUser();
+                // 🛡️ BULLETPROOF: Use authUtils instead of getUser() to avoid AbortError
+                const { getAuthUser } = await import('../lib/authUtils');
+                const user = getAuthUser();
+
                 if (user) {
+                    const { supabase } = await import('../lib/supabase');
                     const { data: profile } = await supabase
                         .from('profiles')
                         .select('avatar_url')

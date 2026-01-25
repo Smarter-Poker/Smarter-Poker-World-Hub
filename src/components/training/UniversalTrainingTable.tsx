@@ -89,8 +89,10 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
-        supabase.auth.getUser().then(({ data }) => {
-            setUserId(data.user?.id || null);
+        // 🛡️ BULLETPROOF: Use authUtils instead of supabase.auth.getUser() to avoid AbortError
+        import('../../lib/authUtils').then(({ getAuthUser }) => {
+            const user = getAuthUser();
+            setUserId(user?.id || null);
         });
     }, []);
 

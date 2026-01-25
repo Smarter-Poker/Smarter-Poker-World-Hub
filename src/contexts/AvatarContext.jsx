@@ -7,6 +7,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import supabase from '../lib/supabase.ts';
 import { getUserAvatar, setPresetAvatar, generateCustomAvatar } from '../services/avatar-service';
+import { getAuthUser } from '../lib/authUtils';
 
 const AvatarContext = createContext();
 
@@ -46,16 +47,16 @@ export function AvatarProvider({ children }) {
             if (!error && data !== null) {
                 setIsVip(data === true);
             } else {
-                // Fallback: check session metadata
-                const { data: { user: freshUser } } = await supabase.auth.getUser();
-                setIsVip(freshUser?.user_metadata?.is_vip || false);
+                // 🛡️ BULLETPROOF: Fallback to localStorage instead of getUser()
+                const localUser = getAuthUser();
+                setIsVip(localUser?.user_metadata?.is_vip || false);
             }
         } catch (err) {
             console.error('Error fetching VIP status:', err);
-            // Fallback to metadata on any error
+            // 🛡️ BULLETPROOF: Fallback to localStorage on any error
             try {
-                const { data: { user: freshUser } } = await supabase.auth.getUser();
-                setIsVip(freshUser?.user_metadata?.is_vip || false);
+                const localUser = getAuthUser();
+                setIsVip(localUser?.user_metadata?.is_vip || false);
             } catch {
                 setIsVip(false);
             }
