@@ -221,21 +221,6 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
             alignItems: 'center',
             gap: 8,
         }}>
-            {/* Facebook-style action buttons with SVG icons */}
-            {/* Plus/Add button */}
-            <button
-                style={{
-                    width: 32, height: 32, borderRadius: '50%', border: 'none',
-                    background: C.blue, cursor: 'pointer', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', padding: 0,
-                }}
-                title="More actions"
-            >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                    <path d="M12 4v16m-8-8h16" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-                </svg>
-            </button>
-
             {/* Photo/Video Upload Button */}
             <input
                 type="file"

@@ -25,6 +25,18 @@ const C = {
     gradient3: 'linear-gradient(135deg, #22c55e 0%, #06b6d4 100%)',
 };
 
+// Time ago helper for last active status
+function timeAgo(date) {
+    if (!date) return null;
+    const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+    if (seconds < 300) return 'online'; // Within 5 minutes = online
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+    return `${Math.floor(seconds / 604800)}w ago`;
+}
+
 function Avatar({ src, name, size = 60, hasStory = false }) {
     return (
         <div style={{
@@ -225,6 +237,38 @@ function UserCard({
                         🃏 {user.favorite_game}
                     </div>
                 )}
+                {/* Last Active Status */}
+                {user.last_active && (() => {
+                    const status = timeAgo(user.last_active);
+                    const isOnline = status === 'online';
+                    return (
+                        <div style={{
+                            fontSize: 12,
+                            color: isOnline ? C.green : C.textSec,
+                            marginTop: 4,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                        }}>
+                            {isOnline ? (
+                                <>
+                                    <span style={{
+                                        width: 8, height: 8,
+                                        borderRadius: '50%',
+                                        background: C.green,
+                                        boxShadow: '0 0 6px rgba(34, 197, 94, 0.6)'
+                                    }} />
+                                    Online now
+                                </>
+                            ) : (
+                                <>
+                                    <span style={{ opacity: 0.6 }}>⏱️</span>
+                                    Active {status}
+                                </>
+                            )}
+                        </div>
+                    );
+                })()}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
                 {isFriend ? (
