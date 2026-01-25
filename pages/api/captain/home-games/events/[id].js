@@ -83,6 +83,19 @@ async function getEvent(req, res, id) {
     // Find user's RSVP
     const myRsvp = event.captain_home_rsvps?.find(r => r.user_id === user.id);
 
+    // DEFENSIVE: Ensure host profile exists
+    if (!event.profiles) {
+      event.profiles = { id: event.host_id, display_name: 'Unknown Host', avatar_url: null };
+    }
+
+    // DEFENSIVE: Ensure all RSVP profiles exist
+    if (event.captain_home_rsvps) {
+      event.captain_home_rsvps = event.captain_home_rsvps.map(rsvp => ({
+        ...rsvp,
+        profiles: rsvp.profiles || { id: rsvp.user_id, display_name: 'Guest', avatar_url: null }
+      }));
+    }
+
     // Check if user can see address
     let showAddress = false;
     if (event.address_visible_to === 'all') {
