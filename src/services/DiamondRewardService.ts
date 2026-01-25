@@ -219,9 +219,18 @@ export const PILLAR_EGGS = {
 
 export class DiamondRewardService {
     private supabase: SupabaseClient;
+    private userId: string | null;
 
-    constructor(supabase: SupabaseClient) {
+    // 🛡️ BULLETPROOF: Accept userId in constructor instead of calling getUser()
+    // This prevents AbortError that causes the 0/0/LV1 bug
+    constructor(supabase: SupabaseClient, userId?: string | null) {
         this.supabase = supabase;
+        this.userId = userId || null;
+    }
+
+    // Set userId after construction if needed
+    setUserId(userId: string): void {
+        this.userId = userId;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -229,8 +238,12 @@ export class DiamondRewardService {
     // ═══════════════════════════════════════════════════════════════════════
 
     async claimReward(rewardId: string, metadata: Record<string, unknown> = {}): Promise<ClaimResult> {
+        if (!this.userId) {
+            return { success: false, error: 'User not authenticated' };
+        }
+
         const { data, error } = await this.supabase.rpc('claim_reward', {
-            p_user_id: (await this.supabase.auth.getUser()).data.user?.id,
+            p_user_id: this.userId,
             p_reward_id: rewardId,
             p_metadata: metadata,
         });
@@ -248,8 +261,12 @@ export class DiamondRewardService {
     }
 
     async claimDailyLogin(): Promise<ClaimResult> {
+        if (!this.userId) {
+            return { success: false, error: 'User not authenticated' };
+        }
+
         await this.supabase.rpc('update_login_streak', {
-            p_user_id: (await this.supabase.auth.getUser()).data.user?.id,
+            p_user_id: this.userId,
         });
 
         // Check time-based easter eggs
@@ -276,9 +293,13 @@ export class DiamondRewardService {
     ): Promise<ClaimResult[]> {
         const results: ClaimResult[] = [];
 
+        if (!this.userId) {
+            return results;
+        }
+
         // Use the database function for complex logic
         const { data, error } = await this.supabase.rpc('track_training_action', {
-            p_user_id: (await this.supabase.auth.getUser()).data.user?.id,
+            p_user_id: this.userId,
             p_action_type: actionType,
             p_metadata: metadata,
         });
@@ -541,11 +562,10 @@ export class DiamondRewardService {
     // ═══════════════════════════════════════════════════════════════════════
 
     async getPendingCelebrations(): Promise<CelebrationData[]> {
-        const user = (await this.supabase.auth.getUser()).data.user;
-        if (!user) return [];
+        if (!this.userId) return [];
 
         const { data, error } = await this.supabase.rpc('get_pending_celebrations', {
-            p_user_id: user.id,
+            p_user_id: this.userId,
         });
 
         if (error) {
@@ -595,8 +615,10 @@ export class DiamondRewardService {
     // ═══════════════════════════════════════════════════════════════════════
 
     async getRewardSummary(): Promise<RewardSummary | null> {
+        if (!this.userId) return null;
+
         const { data, error } = await this.supabase.rpc('get_user_reward_summary', {
-            p_user_id: (await this.supabase.auth.getUser()).data.user?.id,
+            p_user_id: this.userId,
         });
 
         if (error) {

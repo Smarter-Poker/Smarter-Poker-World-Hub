@@ -3,6 +3,7 @@
  * Loads Club Engine iframe from club.smarter.poker
  * 
  * FIX: Proper cleanup on navigation to prevent page freeze
+ * SSO: Passes auth token to Club Arena via postMessage
  */
 
 import Head from 'next/head';
@@ -11,6 +12,7 @@ import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+import { supabase } from '../../src/lib/supabase';
 
 // God-Mode Stack
 import { useClubArenaStore } from '../../src/stores/clubArenaStore';
@@ -22,6 +24,55 @@ export default function ClubArenaPage() {
     const iframeRef = useRef(null);
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SSO HANDSHAKE — Send auth token to Club Arena iframe
+    // ══════════════════════════════════════════════════════════════════════════
+
+    // Send token when iframe loads
+    useEffect(() => {
+        const sendAuthToIframe = async () => {
+            if (!iframeLoaded || !iframeRef.current) return;
+
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                iframeRef.current.contentWindow?.postMessage({
+                    type: 'SMARTER_POKER_AUTH',
+                    payload: {
+                        access_token: session.access_token,
+                        refresh_token: session.refresh_token,
+                    }
+                }, 'https://club.smarter.poker');
+                console.log('[SSO] Sent auth token to Club Arena on iframe load');
+            }
+        };
+
+        sendAuthToIframe();
+    }, [iframeLoaded]);
+
+    // Also listen for CLUB_ARENA_READY and respond with token (bidirectional handshake)
+    useEffect(() => {
+        const handleMessage = async (event) => {
+            if (event.origin !== 'https://club.smarter.poker') return;
+
+            if (event.data?.type === 'CLUB_ARENA_READY' && iframeRef.current) {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    iframeRef.current.contentWindow?.postMessage({
+                        type: 'SMARTER_POKER_AUTH',
+                        payload: {
+                            access_token: session.access_token,
+                            refresh_token: session.refresh_token,
+                        }
+                    }, 'https://club.smarter.poker');
+                    console.log('[SSO] Responded to CLUB_ARENA_READY with auth token');
+                }
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
 
     // Cleanup iframe on unmount or navigation
     useEffect(() => {

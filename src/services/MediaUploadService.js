@@ -187,9 +187,22 @@ async function createThumbnail(file) {
 // 📤 MEDIA UPLOAD SERVICE CLASS
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { getAuthUser } from '../lib/authUtils';
+
 export class MediaUploadService {
-    constructor(supabaseClient) {
+    constructor(supabaseClient, userId = null) {
         this.supabase = supabaseClient;
+        // 🛡️ BULLETPROOF: Accept optional userId to avoid getUser() AbortError
+        // Falls back to authUtils if not provided (backwards compatible)
+        this.userId = userId;
+    }
+
+    // Helper to get userId safely
+    _getUserId() {
+        if (this.userId) return this.userId;
+        // Fallback to authUtils (synchronous, safe)
+        const user = getAuthUser();
+        return user?.id || null;
     }
 
     /**
@@ -206,9 +219,9 @@ export class MediaUploadService {
             throw new Error(validation.error);
         }
 
-        // Get current user
-        const { data: { user }, error: authError } = await this.supabase.auth.getUser();
-        if (authError || !user) {
+        // Get current user (using safe helper)
+        const userId = this._getUserId();
+        if (!userId) {
             throw new Error('User not authenticated');
         }
 
@@ -216,7 +229,7 @@ export class MediaUploadService {
         const { data: uploadData, error: uploadError } = await this.supabase.rpc(
             'fn_create_media_upload',
             {
-                p_user_id: user.id,
+                p_user_id: userId,
                 p_file_name: file.name,
                 p_mime_type: file.type,
                 p_file_size: file.size,
@@ -433,13 +446,13 @@ export class MediaUploadService {
      * @returns {Promise<{ used: number, limit: number, percentage: number }>}
      */
     async getStorageUsage() {
-        const { data: { user } } = await this.supabase.auth.getUser();
-        if (!user) return { used: 0, limit: 0, percentage: 0 };
+        const userId = this._getUserId();
+        if (!userId) return { used: 0, limit: 0, percentage: 0 };
 
         const { data, error } = await this.supabase
             .from('user_dna_profiles')
             .select('storage_used_bytes, storage_limit_bytes')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .single();
 
         if (error || !data) {
