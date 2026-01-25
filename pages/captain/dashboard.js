@@ -6,7 +6,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { LogOut, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import {
+  LogOut, RefreshCw, Wifi, WifiOff, Menu, X,
+  Trophy, Gift, BarChart3, Users, Settings, Home, Grid3X3
+} from 'lucide-react';
 import GameGrid from '../../src/components/captain/staff/GameGrid';
 import WaitlistManager from '../../src/components/captain/staff/WaitlistManager';
 import QuickActions from '../../src/components/captain/staff/QuickActions';
@@ -34,6 +37,17 @@ export default function CaptainDashboard() {
   const [showAddWalkInModal, setShowAddWalkInModal] = useState(false);
   const [showSeatPlayerModal, setShowSeatPlayerModal] = useState(false);
   const [playerToSeat, setPlayerToSeat] = useState(null);
+  const [showNav, setShowNav] = useState(false);
+
+  const navItems = [
+    { href: '/captain/dashboard', label: 'Dashboard', icon: Home, active: true },
+    { href: '/captain/tables', label: 'Tables', icon: Grid3X3 },
+    { href: '/captain/tournaments', label: 'Tournaments', icon: Trophy },
+    { href: '/captain/promotions', label: 'Promotions', icon: Gift },
+    { href: '/captain/analytics', label: 'Analytics', icon: BarChart3 },
+    { href: '/captain/staff', label: 'Staff', icon: Users },
+    { href: '/captain/settings', label: 'Settings', icon: Settings },
+  ];
 
   // Check staff session on mount
   useEffect(() => {
@@ -251,7 +265,7 @@ export default function CaptainDashboard() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 text-sm">
                 {online ? (
                   <Wifi className="w-4 h-4 text-[#10B981]" />
@@ -275,11 +289,11 @@ export default function CaptainDashboard() {
               </button>
 
               <button
-                onClick={handleLogout}
-                className="p-2 rounded-lg hover:bg-[#FEF2F2] text-[#6B7280] hover:text-[#EF4444] transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
-                title="Logout"
+                onClick={() => setShowNav(true)}
+                className="p-2 rounded-lg hover:bg-[#F9FAFB] transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
+                title="Menu"
               >
-                <LogOut className="w-5 h-5" />
+                <Menu className="w-5 h-5 text-[#6B7280]" />
               </button>
             </div>
           </div>
@@ -360,6 +374,52 @@ export default function CaptainDashboard() {
         player={playerToSeat}
         games={games}
       />
+
+      {/* Navigation Drawer */}
+      {showNav && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowNav(false)} />
+          <div className="absolute right-0 top-0 h-full w-72 bg-white shadow-xl">
+            <div className="p-4 border-b border-[#E5E7EB] flex items-center justify-between">
+              <h2 className="font-semibold text-[#1F2937]">Menu</h2>
+              <button
+                onClick={() => setShowNav(false)}
+                className="p-2 hover:bg-[#F3F4F6] rounded-lg"
+              >
+                <X className="w-5 h-5 text-[#6B7280]" />
+              </button>
+            </div>
+            <nav className="p-2">
+              {navItems.map(({ href, label, icon: Icon, active }) => (
+                <button
+                  key={href}
+                  onClick={() => {
+                    setShowNav(false);
+                    router.push(href);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                    active
+                      ? 'bg-[#1877F2]/10 text-[#1877F2]'
+                      : 'text-[#1F2937] hover:bg-[#F3F4F6]'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="font-medium">{label}</span>
+                </button>
+              ))}
+            </nav>
+            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#E5E7EB]">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#EF4444] hover:bg-[#FEF2F2] transition-colors"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Logout</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
