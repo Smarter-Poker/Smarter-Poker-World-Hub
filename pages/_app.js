@@ -20,6 +20,45 @@ import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
 import { OneSignalProvider } from '../src/contexts/OneSignalContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CACHE BUSTER — Clears stale caches on new deploys
+// Uses build timestamp to detect version changes
+// ═══════════════════════════════════════════════════════════════════════════
+const BUILD_VERSION = process.env.NEXT_PUBLIC_BUILD_ID || process.env.VERCEL_GIT_COMMIT_SHA || Date.now().toString();
+
+if (typeof window !== 'undefined') {
+  const CACHE_VERSION_KEY = 'smarter_poker_cache_version';
+  const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+
+  if (storedVersion && storedVersion !== BUILD_VERSION) {
+    console.log('[Cache Buster] New version detected! Clearing caches...');
+    console.log(`[Cache Buster] Old: ${storedVersion.slice(0, 8)}, New: ${BUILD_VERSION.slice(0, 8)}`);
+
+    // Clear all caches
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => {
+          console.log(`[Cache Buster] Deleting cache: ${name}`);
+          caches.delete(name);
+        });
+      });
+    }
+
+    // Unregister all service workers (except OneSignal will re-register itself)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          console.log('[Cache Buster] Unregistering service worker');
+          registration.unregister();
+        });
+      });
+    }
+  }
+
+  // Store current version
+  localStorage.setItem(CACHE_VERSION_KEY, BUILD_VERSION);
+}
+
 // Dynamic import to avoid SSR issues with celebration animations
 const CelebrationManager = dynamic(
   () => import('../src/components/diamonds/CelebrationManager').then(mod => mod.CelebrationManager),
