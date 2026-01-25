@@ -4,6 +4,8 @@ description: MANDATORY workflow before modifying ANY social media files. Prevent
 
 # 🚨 SOCIAL FEED PROTECTION WORKFLOW 🚨
 
+> **📖 REQUIRED READING**: First read the complete skill at `.agent/skills/social-community/SKILL.md` which documents ALL features and their locations.
+
 ## THIS IS MANDATORY BEFORE MODIFYING ANY SOCIAL MEDIA CODE
 
 **You MUST follow this workflow before touching ANY of these features:**
