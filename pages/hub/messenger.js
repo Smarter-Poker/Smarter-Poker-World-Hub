@@ -1184,21 +1184,24 @@ export default function MessengerPage() {
     const loadMessages = async (conversationId) => {
         setLoadingMessages(true);
         try {
-            const { data } = await supabase
-                .from('social_messages')
-                .select(`
-                    id,
-                    content,
-                    created_at,
-                    sender_id,
-                    profiles:sender_id (id, username, avatar_url)
-                `)
-                .eq('conversation_id', conversationId)
-                .eq('is_deleted', false)
-                .order('created_at', { ascending: true })
-                .limit(100);
+            console.log('[ANTIGRAVITY] Loading messages for conversation:', conversationId);
 
-            setMessages(data || []);
+            // Use API route to bypass RLS issues
+            const response = await fetch('/api/messenger/get-messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversationId, userId: user.id }),
+            });
+
+            const result = await response.json();
+            console.log('[ANTIGRAVITY] API result:', result);
+
+            if (result.success && result.messages) {
+                setMessages(result.messages);
+            } else {
+                console.warn('[ANTIGRAVITY] API failed, result:', result);
+                setMessages([]);
+            }
 
             // Mark as read
             await supabase
