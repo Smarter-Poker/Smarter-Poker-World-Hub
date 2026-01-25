@@ -36,7 +36,7 @@
     "openai": "^6.16.0",
     "phaser": "^3.90.0",
     "phaser3-rex-plugins": "^1.80.17",
-    "puppeteer": "^24.35.0",
+    "puppeteer": "^24.36.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "18.3.1",

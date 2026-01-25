@@ -16,6 +16,9 @@ on:
           - full
           - test
           - setup-only
+          - sync-urls-only
+          - verify-venues
+          - scrape-directory
       state:
         description: 'Filter by state (optional, e.g., TX, NV, FL)'
         required: false
@@ -39,6 +42,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Sync Verified URLs to Database
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.mode != 'setup-only' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🔄 Syncing verified PokerAtlas URLs to database..."
+          node scripts/sync-verified-urls.js
+
+      - name: Skip Scraping (URL Sync Only)
+        if: ${{ github.event.inputs.mode == 'sync-urls-only' }}
+        run: echo "✅ URL sync complete. Skipping scraping as requested."
+
       - name: Run Full Pipeline (Scheduled)
         if: ${{ github.event_name == 'schedule' }}
         env:
@@ -47,7 +63,15 @@ jobs:
         run: |
           echo "🎰 Running full venue tournament scraping pipeline..."
           echo "📅 Triggered: $(date -u)"
-          node scripts/run-full-pipeline.js
+          echo ""
+          echo "📍 Source 1: PokerAtlas"
+          node scripts/run-full-pipeline.js --scrape-only
+          echo ""
+          echo "📍 Source 2: Bravo Poker Live"
+          node scripts/scrape-bravo-poker.js || echo "⚠️ Bravo scraper had errors (non-fatal)"
+          echo ""
+          echo "📍 Source 3: CardPlayer"
+          node scripts/scrape-cardplayer.js || echo "⚠️ CardPlayer scraper had errors (non-fatal)"
 
       - name: Run Pipeline (Manual - Full)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full' }}
@@ -56,7 +80,18 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           echo "🎰 Running full pipeline (manual trigger)..."
-          node scripts/run-full-pipeline.js ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
+          echo ""
+          echo "📍 Source 1: PokerAtlas"
+          node scripts/run-full-pipeline.js --scrape-only ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
+          echo ""
+          echo "📍 Source 2: Bravo Poker Live"
+          node scripts/scrape-bravo-poker.js || echo "⚠️ Bravo scraper had errors (non-fatal)"
+          echo ""
+          echo "📍 Source 3: CardPlayer"
+          node scripts/scrape-cardplayer.js || echo "⚠️ CardPlayer scraper had errors (non-fatal)"
+          echo ""
+          echo "📍 Source 4: Hendon Mob"
+          node scripts/scrape-hendonmob.js 50 || echo "⚠️ Hendon Mob scraper had errors (non-fatal)"
 
       - name: Run Pipeline (Manual - Test)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'test' }}
@@ -65,7 +100,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           echo "🧪 Running test scrape (10 venues)..."
-          node scripts/run-full-pipeline.js --test ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
+          node scripts/run-full-pipeline.js --test --scrape-only ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
 
       - name: Run Pipeline (Manual - Setup Only)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'setup-only' }}
@@ -76,6 +111,24 @@ jobs:
           echo "📦 Running setup only..."
           node scripts/run-full-pipeline.js --setup-only
 
+      - name: Verify Unverified Venues
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'verify-venues' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🔍 Running venue verification (checking multiple sources)..."
+          node scripts/verify-all-venues.js 100
+
+      - name: Scrape PokerAtlas Directory
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'scrape-directory' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🗺️ Scraping PokerAtlas directory to get accurate venue URLs..."
+          node scripts/scrape-pokeratlas-directory.js
+
       - name: Upload scraper logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -84,6 +137,17 @@ jobs:
           path: |
             *.log
           retention-days: 7
+
+      - name: Upload debug artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-artifacts-${{ github.run_number }}
+          path: |
+            /tmp/venue-*.png
+            /tmp/venue-*.html
+          retention-days: 3
+          if-no-files-found: ignore
 
       - name: Report Summary
         if: always()

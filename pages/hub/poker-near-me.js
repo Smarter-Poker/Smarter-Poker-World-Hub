@@ -1,49 +1,54 @@
 /**
- * POKER NEAR ME - Live Discovery & Trust Engine
- * Find casinos, poker clubs, and tournament series
+ * POKER NEAR ME - Find Poker Rooms Near You
+ * Mobile-first design matching the Smarter.Poker design system
  * Part of Orb #9: Geo-Spatial Intelligence
  */
 
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-    MapPin, Calendar, Clock, DollarSign, Users, Trophy,
-    Search, Filter, ChevronRight, Star, Navigation, Loader,
-    Zap, ExternalLink, Phone, Globe, Building2, Shield,
-    Gamepad2, CreditCard, ChevronDown
-} from 'lucide-react';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
-// US States for filter
-const US_STATES = [
-    { code: 'NV', name: 'Nevada' },
-    { code: 'CA', name: 'California' },
-    { code: 'FL', name: 'Florida' },
-    { code: 'TX', name: 'Texas' },
-    { code: 'NJ', name: 'New Jersey' },
-    { code: 'CT', name: 'Connecticut' },
-    { code: 'PA', name: 'Pennsylvania' },
-    { code: 'AZ', name: 'Arizona' },
-    { code: 'CO', name: 'Colorado' },
-    { code: 'IL', name: 'Illinois' },
-    { code: 'IN', name: 'Indiana' },
-    { code: 'MI', name: 'Michigan' },
-    { code: 'MN', name: 'Minnesota' },
-    { code: 'OK', name: 'Oklahoma' },
-    { code: 'LA', name: 'Louisiana' },
-    { code: 'MS', name: 'Mississippi' },
+// Popular cities for quick filter
+const POPULAR_CITIES = [
+    { name: 'Las Vegas', state: 'NV' },
+    { name: 'Los Angeles', state: 'CA' },
+    { name: 'Miami', state: 'FL' },
+    { name: 'Atlantic City', state: 'NJ' },
+    { name: 'Austin', state: 'TX' },
 ];
 
-// Venue type icons
-const VENUE_ICONS = {
-    casino: '🎰',
-    card_room: '🃏',
-    poker_club: '♠️',
-    home_game: '🏠'
+// Popular rooms for sidebar
+const POPULAR_ROOMS = [
+    { name: 'The Lodge Poker Club', games: ['NLH', 'PLO', 'Mixed'], featured: true },
+    { name: 'Commerce Casino', games: ['NLH', 'PLO', 'Mixed'], featured: false },
+    { name: 'Bestbet Jacksonville', games: ['NLH', 'PLO', 'Mixed'], featured: false },
+];
+
+// Venue type labels without emojis
+const VENUE_TYPE_LABELS = {
+    casino: 'Casino',
+    card_room: 'Card Room',
+    poker_club: 'Poker Club',
+    home_game: 'Home Game'
 };
+
+// Trust level labels
+const TRUST_LEVELS = {
+    high: { label: 'High', color: '#22c55e' },
+    fresh: { label: 'Fresh', color: '#3b82f6' },
+    moderate: { label: 'Moderate', color: '#f59e0b' },
+    low: { label: 'Low', color: '#ef4444' }
+};
+
+function getTrustLevel(score) {
+    if (score >= 4.5) return 'high';
+    if (score >= 4.0) return 'fresh';
+    if (score >= 3.0) return 'moderate';
+    return 'low';
+}
 
 function formatMoney(amount) {
     if (!amount) return '-';
@@ -65,21 +70,27 @@ export default function PokerNearMe() {
     const [series, setSeries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedState, setSelectedState] = useState('');
-    const [selectedType, setSelectedType] = useState('all');
-    const [activeTab, setActiveTab] = useState('venues'); // 'venues' or 'series'
     const [userLocation, setUserLocation] = useState(null);
-    const [showStateDropdown, setShowStateDropdown] = useState(false);
-    const [useGpsSearch, setUseGpsSearch] = useState(false);
-    const [searchRadius, setSearchRadius] = useState(100); // km
     const [gpsLoading, setGpsLoading] = useState(false);
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [locationInput, setLocationInput] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
+    const [selectedCity, setSelectedCity] = useState(null);
+    const [showMap, setShowMap] = useState(false);
+    const [nearestDistance, setNearestDistance] = useState(null);
+    const [seriesTimeFilter, setSeriesTimeFilter] = useState('30');
+    const [seriesLocationFilter, setSeriesLocationFilter] = useState('near');
+
+    // Filters
+    const [filters, setFilters] = useState({
+        venueType: 'all',
+        hasNLH: false,
+        hasPLO: false,
+        hasMixed: false,
+        verifiedOnly: false
+    });
 
     useEffect(() => {
         fetchData();
-    }, [selectedState, selectedType, userLocation, useGpsSearch, searchRadius, startDate, endDate]);
+    }, [selectedCity, userLocation]);
 
     // Get GPS location on demand
     const requestGpsLocation = () => {
@@ -92,7 +103,6 @@ export default function PokerNearMe() {
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                setUseGpsSearch(true);
                 setGpsLoading(false);
             },
             (err) => {
@@ -101,16 +111,6 @@ export default function PokerNearMe() {
             },
             { enableHighAccuracy: true, timeout: 10000 }
         );
-    };
-
-    // Search by manual location
-    const searchByLocation = async () => {
-        if (!locationInput.trim()) return;
-
-        // Use a simple geocoding approach - search by city/state
-        setSelectedState('');
-        setSearchQuery(locationInput);
-        await fetchData();
     };
 
     const fetchData = async () => {
@@ -122,20 +122,50 @@ export default function PokerNearMe() {
     const fetchVenues = async () => {
         try {
             const params = new URLSearchParams({ limit: '200' });
-            if (selectedState) params.set('state', selectedState);
-            if (selectedType !== 'all') params.set('type', selectedType);
-            if (searchQuery) params.set('search', searchQuery);
 
-            // GPS-based search
-            if (useGpsSearch && userLocation) {
+            if (selectedCity) {
+                params.set('city', selectedCity.name);
+                params.set('state', selectedCity.state);
+            }
+
+            if (userLocation) {
                 params.set('lat', userLocation.lat.toString());
                 params.set('lng', userLocation.lng.toString());
-                params.set('radius', searchRadius.toString());
+                params.set('radius', '500');
+            }
+
+            if (searchQuery) {
+                params.set('search', searchQuery);
             }
 
             const res = await fetch(`/api/poker/venues?${params}`);
             const { data } = await res.json();
-            setVenues(data || []);
+
+            let filteredData = data || [];
+
+            // Apply client-side filters
+            if (filters.venueType !== 'all') {
+                filteredData = filteredData.filter(v => v.venue_type === filters.venueType);
+            }
+            if (filters.hasNLH) {
+                filteredData = filteredData.filter(v => v.games_offered?.includes('NLH'));
+            }
+            if (filters.hasPLO) {
+                filteredData = filteredData.filter(v => v.games_offered?.includes('PLO'));
+            }
+            if (filters.hasMixed) {
+                filteredData = filteredData.filter(v => v.games_offered?.includes('Mixed'));
+            }
+            if (filters.verifiedOnly) {
+                filteredData = filteredData.filter(v => v.is_verified);
+            }
+
+            setVenues(filteredData);
+
+            // Set nearest distance
+            if (filteredData.length > 0 && filteredData[0].distance_mi) {
+                setNearestDistance(filteredData[0].distance_mi);
+            }
         } catch (e) {
             setVenues([]);
         }
@@ -143,11 +173,7 @@ export default function PokerNearMe() {
 
     const fetchSeries = async () => {
         try {
-            const params = new URLSearchParams({ upcoming: 'true', limit: '50' });
-            if (startDate) params.set('start_date', startDate);
-            if (endDate) params.set('end_date', endDate);
-            if (searchQuery) params.set('search', searchQuery);
-
+            const params = new URLSearchParams({ upcoming: 'true', limit: '20' });
             const res = await fetch(`/api/poker/series?${params}`);
             const { data } = await res.json();
             setSeries(data || []);
@@ -156,608 +182,668 @@ export default function PokerNearMe() {
         }
     };
 
-    // Filter venues by search (client-side backup)
-    const filteredVenues = venues.filter(v =>
-        !searchQuery ||
-        v.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.city?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const handleSearch = (e) => {
+        e.preventDefault();
+        fetchVenues();
+    };
 
-    const filteredSeries = series.filter(s =>
-        !searchQuery ||
-        s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.location?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const handleCityClick = (city) => {
+        setSelectedCity(city);
+        setUserLocation(null);
+    };
+
+    const clearFilters = () => {
+        setSelectedCity(null);
+        setUserLocation(null);
+        setSearchQuery('');
+        setFilters({
+            venueType: 'all',
+            hasNLH: false,
+            hasPLO: false,
+            hasMixed: false,
+            verifiedOnly: false
+        });
+    };
 
     return (
         <>
             <Head>
                 <title>Poker Near Me | Smarter.Poker</title>
-                <meta name="description" content="Find poker casinos, card rooms, and tournament series near you. The most comprehensive poker venue database." />
+                <meta name="description" content="Find poker rooms, casinos, and card clubs near you. The most comprehensive poker venue database." />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
             </Head>
 
             <div className="poker-near-me">
-                {/* Header */}
-                {/* UniversalHeader */}
                 <UniversalHeader pageDepth={1} />
-                <header className="header">
-                    <h1><MapPin size={28} /> Poker Near Me</h1>
-                    <p>Find casinos, poker clubs, and tournament series</p>
 
-                    {/* Stats */}
-                    <div className="stats-bar">
-                        <span><Building2 size={14} /> {venues.length} Venues</span>
-                        <span><Trophy size={14} /> {series.length} Series</span>
-                    </div>
-                </header>
-
-                {/* Main Tabs */}
-                <div className="main-tabs">
-                    <button
-                        className={`main-tab ${activeTab === 'venues' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('venues')}
-                    >
-                        <Building2 size={16} /> Poker Rooms
-                    </button>
-                    <button
-                        className={`main-tab ${activeTab === 'series' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('series')}
-                    >
-                        <Trophy size={16} /> Tournament Series
-                    </button>
+                {/* Page Header */}
+                <div className="page-header">
+                    <h1>
+                        <span className="highlight">POKER</span>
+                        <span className="normal"> NEAR </span>
+                        <span className="highlight">ME</span>
+                        <span className="subtitle"> FIND POKER ROOMS NEAR YOU</span>
+                    </h1>
                 </div>
 
-                {/* Controls */}
-                <div className="controls">
-                    <div className="search-box">
-                        <Search size={18} />
+                {/* Search & Controls */}
+                <div className="search-controls">
+                    <form className="search-form" onSubmit={handleSearch}>
+                        <div className="search-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </div>
                         <input
                             type="text"
-                            placeholder={activeTab === 'venues' ? "Search venues, cities..." : "Search series..."}
+                            placeholder="Search city, casino or keyword"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
+                    </form>
+
+                    <div className="control-row">
+                        <button
+                            className={`control-btn gps-btn ${userLocation ? 'active' : ''}`}
+                            onClick={requestGpsLocation}
+                            disabled={gpsLoading}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                            </svg>
+                            {gpsLoading ? 'Getting Location...' : 'Use GPS'}
+                        </button>
+
+                        <button
+                            className={`control-btn filter-btn ${showFilters ? 'active' : ''}`}
+                            onClick={() => setShowFilters(!showFilters)}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="4" y1="21" x2="4" y2="14"/>
+                                <line x1="4" y1="10" x2="4" y2="3"/>
+                                <line x1="12" y1="21" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12" y2="3"/>
+                                <line x1="20" y1="21" x2="20" y2="16"/>
+                                <line x1="20" y1="12" x2="20" y2="3"/>
+                                <line x1="1" y1="14" x2="7" y2="14"/>
+                                <line x1="9" y1="8" x2="15" y2="8"/>
+                                <line x1="17" y1="16" x2="23" y2="16"/>
+                            </svg>
+                            Filters
+                        </button>
                     </div>
 
-                    {activeTab === 'venues' && (
-                        <>
-                            {/* GPS Location Search */}
-                            <button
-                                className={`gps-btn ${useGpsSearch ? 'active' : ''}`}
-                                onClick={requestGpsLocation}
-                                disabled={gpsLoading}
-                            >
-                                <MapPin size={16} />
-                                {gpsLoading ? 'Getting Location...' : useGpsSearch ? 'Near Me ✓' : 'Use GPS'}
-                            </button>
-
-                            {/* Radius Slider - only show when GPS is active */}
-                            {useGpsSearch && userLocation && (
-                                <div className="radius-control">
-                                    <label>Within {searchRadius} km ({Math.round(searchRadius * 0.621371)} mi)</label>
+                    {/* Distance & Map Toggle */}
+                    {(userLocation || nearestDistance) && (
+                        <div className="distance-bar">
+                            <div className="distance-info">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                                </svg>
+                                <span>~ {nearestDistance || '0'} miles away</span>
+                            </div>
+                            <div className="map-toggle">
+                                <label className="toggle">
                                     <input
-                                        type="range"
-                                        min="10"
-                                        max="500"
-                                        step="10"
-                                        value={searchRadius}
-                                        onChange={(e) => setSearchRadius(parseInt(e.target.value))}
+                                        type="checkbox"
+                                        checked={showMap}
+                                        onChange={(e) => setShowMap(e.target.checked)}
                                     />
-                                </div>
-                            )}
-
-                            {/* Manual Location Input */}
-                            <div className="location-input-wrap">
-                                <input
-                                    type="text"
-                                    placeholder="Enter city or zip..."
-                                    value={locationInput}
-                                    onChange={(e) => setLocationInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && searchByLocation()}
-                                />
-                                <button onClick={searchByLocation}>Go</button>
+                                    <span className="slider"></span>
+                                </label>
+                                <span>Map</span>
                             </div>
-
-                            {/* State Dropdown */}
-                            <div className="dropdown-wrap">
-                                <button className="dropdown-btn" onClick={() => setShowStateDropdown(!showStateDropdown)}>
-                                    {selectedState ? US_STATES.find(s => s.code === selectedState)?.name : 'All States'}
-                                    <ChevronDown size={16} />
-                                </button>
-                                {showStateDropdown && (
-                                    <div className="dropdown-menu">
-                                        <button onClick={() => { setSelectedState(''); setShowStateDropdown(false); }}>All States</button>
-                                        {US_STATES.map(s => (
-                                            <button key={s.code} onClick={() => { setSelectedState(s.code); setShowStateDropdown(false); }}>
-                                                {s.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Type Filter */}
-                            <div className="type-filters">
-                                {['all', 'casino', 'card_room', 'poker_club'].map(type => (
-                                    <button
-                                        key={type}
-                                        className={`filter-chip ${selectedType === type ? 'active' : ''}`}
-                                        onClick={() => setSelectedType(type)}
-                                    >
-                                        {type === 'all' ? 'All' :
-                                            type === 'casino' ? '🎰 Casinos' :
-                                                type === 'card_room' ? '🃏 Card Rooms' : '♠️ Clubs'}
-                                    </button>
-                                ))}
-                            </div>
-                        </>
-                    )}
-
-                    {activeTab === 'series' && (
-                        <div className="date-filters">
-                            <div className="date-input">
-                                <label>From</label>
-                                <input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                />
-                            </div>
-                            <div className="date-input">
-                                <label>To</label>
-                                <input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                />
-                            </div>
-                            {(startDate || endDate) && (
-                                <button className="clear-dates" onClick={() => { setStartDate(''); setEndDate(''); }}>
-                                    Clear Dates
-                                </button>
-                            )}
                         </div>
                     )}
                 </div>
 
-                {/* Loading */}
-                {loading && (
-                    <div className="loading">
-                        <Loader className="spinner" size={32} />
-                        <span>Loading venues...</span>
-                    </div>
-                )}
-
-                {/* VENUES VIEW */}
-                {!loading && activeTab === 'venues' && (
-                    <section className="venues-section">
-                        {filteredVenues.length === 0 ? (
-                            <div className="no-results">
-                                <p>No venues found</p>
-                                <button onClick={() => { setSearchQuery(''); setSelectedState(''); setSelectedType('all'); }}>
-                                    Clear Filters
-                                </button>
+                {/* Filter Panel */}
+                <AnimatePresence>
+                    {showFilters && (
+                        <motion.div
+                            className="filter-panel"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                        >
+                            <div className="filter-group">
+                                <label>Venue Type</label>
+                                <div className="filter-chips">
+                                    {['all', 'casino', 'card_room', 'poker_club'].map(type => (
+                                        <button
+                                            key={type}
+                                            className={`chip ${filters.venueType === type ? 'active' : ''}`}
+                                            onClick={() => setFilters({...filters, venueType: type})}
+                                        >
+                                            {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        ) : (
-                            <div className="venues-grid">
-                                {filteredVenues.map((venue, i) => (
-                                    <motion.div
-                                        key={venue.id || i}
-                                        className={`venue-card ${venue.is_featured ? 'featured' : ''}`}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: i * 0.03 }}
-                                        whileHover={{ y: -4 }}
+                            <div className="filter-group">
+                                <label>Games</label>
+                                <div className="filter-chips">
+                                    <button
+                                        className={`chip ${filters.hasNLH ? 'active' : ''}`}
+                                        onClick={() => setFilters({...filters, hasNLH: !filters.hasNLH})}
                                     >
-                                        {/* Header */}
-                                        <div className="venue-header">
-                                            <span className="venue-icon">{VENUE_ICONS[venue.venue_type] || '🎰'}</span>
-                                            <div className="venue-title">
-                                                <h3>{venue.name}</h3>
-                                                <span className="venue-type">{venue.venue_type?.replace('_', ' ')}</span>
-                                            </div>
-                                            <div className="trust-score">
-                                                <Star size={12} fill="#fbbf24" />
-                                                <span>{venue.trust_score?.toFixed(1) || '4.0'}</span>
-                                            </div>
-                                        </div>
+                                        NLH
+                                    </button>
+                                    <button
+                                        className={`chip ${filters.hasPLO ? 'active' : ''}`}
+                                        onClick={() => setFilters({...filters, hasPLO: !filters.hasPLO})}
+                                    >
+                                        PLO
+                                    </button>
+                                    <button
+                                        className={`chip ${filters.hasMixed ? 'active' : ''}`}
+                                        onClick={() => setFilters({...filters, hasMixed: !filters.hasMixed})}
+                                    >
+                                        Mixed
+                                    </button>
+                                </div>
+                            </div>
+                            <button className="apply-filters" onClick={() => { fetchVenues(); setShowFilters(false); }}>
+                                Apply Filters
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                                        {/* Location + Distance */}
-                                        <div className="venue-location">
-                                            <MapPin size={12} />
-                                            <span>{venue.city}, {venue.state}</span>
-                                            {venue.distance_mi && (
-                                                <span className="distance-badge">{venue.distance_mi} mi</span>
-                                            )}
-                                        </div>
-
-                                        {/* Games */}
-                                        {venue.games_offered?.length > 0 && (
-                                            <div className="venue-games">
-                                                <Gamepad2 size={12} />
-                                                <div className="game-tags">
-                                                    {venue.games_offered.slice(0, 4).map(g => (
-                                                        <span key={g} className={`game-tag ${g.toLowerCase()}`}>{g}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Stakes */}
-                                        {venue.stakes_cash?.length > 0 && (
-                                            <div className="venue-stakes">
-                                                <CreditCard size={12} />
-                                                <span>{venue.stakes_cash.slice(0, 3).join(' • ')}</span>
-                                            </div>
-                                        )}
-
-                                        {/* Footer */}
-                                        <div className="venue-footer">
-                                            <span className="tables"><Users size={12} /> {venue.poker_tables || '?'} tables</span>
-                                            <div className="venue-actions">
-                                                {venue.phone && (
-                                                    <a href={`tel:${venue.phone}`} className="action-btn" title="Call">
-                                                        <Phone size={14} />
-                                                    </a>
-                                                )}
-                                                {venue.website && (
-                                                    <a href={venue.website} target="_blank" rel="noopener noreferrer" className="action-btn" title="Website">
-                                                        <Globe size={14} />
-                                                    </a>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </motion.div>
+                {/* Main Content */}
+                <div className="main-layout">
+                    {/* Left Sidebar - Hidden on mobile, shown on desktop */}
+                    <aside className="left-sidebar">
+                        {/* Popular Cities */}
+                        <div className="sidebar-section">
+                            <h3>Popular Cities</h3>
+                            <div className="city-chips">
+                                {POPULAR_CITIES.map(city => (
+                                    <button
+                                        key={city.name}
+                                        className={`city-chip ${selectedCity?.name === city.name ? 'active' : ''}`}
+                                        onClick={() => handleCityClick(city)}
+                                    >
+                                        {city.name}
+                                    </button>
                                 ))}
                             </div>
-                        )}
-                    </section>
-                )}
+                        </div>
 
-                {/* SERIES VIEW */}
-                {!loading && activeTab === 'series' && (
-                    <section className="series-section">
-                        {filteredSeries.length === 0 ? (
+                        {/* Major Series Coming Soon */}
+                        <div className="sidebar-section series-preview">
+                            <h3>Major Series Coming Soon</h3>
+                            <div className="series-badge">
+                                <span className="series-logo">WSOP</span>
+                            </div>
+                            <div className="game-tags">
+                                <span className="tag star">NLH</span>
+                                <span className="tag">PLO</span>
+                                <span className="tag">Mixed</span>
+                            </div>
+                        </div>
+
+                        {/* Popular Rooms */}
+                        <div className="sidebar-section">
+                            <h3>Popular Rooms</h3>
+                            <div className="popular-rooms">
+                                {POPULAR_ROOMS.map((room, i) => (
+                                    <div key={i} className="room-item">
+                                        <span className="room-name">{room.name}</span>
+                                        <div className="room-games">
+                                            {room.featured && <span className="star-icon">*</span>}
+                                            {room.games.map(g => (
+                                                <span key={g} className="game-tag">{g}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </aside>
+
+                    {/* Center - Venue Cards */}
+                    <main className="venue-feed">
+                        {loading ? (
+                            <div className="loading">
+                                <div className="spinner"></div>
+                                <span>Finding poker rooms...</span>
+                            </div>
+                        ) : venues.length === 0 ? (
                             <div className="no-results">
-                                <p>No tournament series found</p>
+                                <p>No venues found</p>
+                                <button onClick={clearFilters}>Clear Filters</button>
                             </div>
                         ) : (
-                            <div className="series-grid">
-                                {filteredSeries.map((s, i) => (
+                            <div className="venue-list">
+                                {venues.slice(0, 20).map((venue, i) => (
                                     <motion.div
-                                        key={s.id || i}
-                                        className={`series-card ${s.is_featured ? 'featured' : ''}`}
+                                        key={venue.id || i}
+                                        className="venue-card"
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: i * 0.05 }}
-                                        whileHover={{ y: -4 }}
                                     >
-                                        {s.is_featured && <div className="featured-badge">Featured</div>}
-                                        <div className="series-header">
-                                            <span className="series-short">{s.short_name}</span>
-                                            <h3>{s.name}</h3>
-                                        </div>
-                                        <div className="series-meta">
-                                            <span><MapPin size={12} /> {s.location}</span>
-                                            <span><Calendar size={12} /> {formatDate(s.start_date)} - {formatDate(s.end_date)}</span>
-                                        </div>
-                                        <div className="series-stats">
-                                            <div className="stat">
-                                                <span>Main Event</span>
-                                                <strong>{formatMoney(s.main_event_buyin)}</strong>
+                                        <div className="venue-bg" style={{
+                                            backgroundImage: venue.image_url
+                                                ? `url(${venue.image_url})`
+                                                : 'linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95))'
+                                        }}></div>
+
+                                        <div className="venue-content">
+                                            <h4 className="venue-name">{venue.name}</h4>
+
+                                            <div className="venue-meta">
+                                                {venue.distance_mi && (
+                                                    <span className="distance">{venue.distance_mi} mi</span>
+                                                )}
+                                                {venue.games_offered?.slice(0, 2).map(g => (
+                                                    <span key={g} className="game">{g}</span>
+                                                ))}
+                                                {venue.stakes_cash?.[0] && (
+                                                    <span className="stakes">{venue.stakes_cash[0]}</span>
+                                                )}
                                             </div>
-                                            <div className="stat">
-                                                <span>GTD</span>
-                                                <strong>{formatMoney(s.main_event_guaranteed)}</strong>
+
+                                            <div className="venue-trust">
+                                                <span
+                                                    className="trust-badge"
+                                                    style={{ color: TRUST_LEVELS[getTrustLevel(venue.trust_score)]?.color }}
+                                                >
+                                                    Trust: {TRUST_LEVELS[getTrustLevel(venue.trust_score)]?.label}
+                                                </span>
+                                                {venue.is_verified && (
+                                                    <span className="verified-badge">Verified</span>
+                                                )}
                                             </div>
-                                            <div className="stat">
-                                                <span>Events</span>
-                                                <strong>{s.total_events}</strong>
+
+                                            <div className="venue-actions">
+                                                {venue.phone && (
+                                                    <a href={`tel:${venue.phone}`} className="action-btn call">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                                        </svg>
+                                                        Call
+                                                    </a>
+                                                )}
+                                                {venue.website && (
+                                                    <a href={venue.website} target="_blank" rel="noopener noreferrer" className="action-btn website">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <circle cx="12" cy="12" r="10"/>
+                                                            <line x1="2" y1="12" x2="22" y2="12"/>
+                                                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                                                        </svg>
+                                                        Website
+                                                    </a>
+                                                )}
+                                                <a
+                                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name + ' ' + venue.city + ' ' + venue.state)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="action-btn directions"
+                                                >
+                                                    Directions
+                                                </a>
                                             </div>
                                         </div>
-                                        {s.website && (
-                                            <a href={s.website} target="_blank" rel="noopener noreferrer" className="series-link">
-                                                View Schedule <ExternalLink size={12} />
-                                            </a>
-                                        )}
                                     </motion.div>
                                 ))}
                             </div>
                         )}
-                    </section>
-                )}
+                    </main>
 
-                {/* Location Notice */}
-                {userLocation && (
-                    <div className="location-notice">
-                        <Navigation size={16} />
-                        <span>Location detected</span>
-                    </div>
-                )}
+                    {/* Right Sidebar - Tournament Series */}
+                    <aside className="right-sidebar">
+                        <div className="series-header">
+                            <h3>MAJOR TOURNAMENT SERIES</h3>
+                            <div className="series-filters">
+                                <select
+                                    value={seriesTimeFilter}
+                                    onChange={(e) => setSeriesTimeFilter(e.target.value)}
+                                >
+                                    <option value="30">Next 30 Days</option>
+                                    <option value="60">Next 60 Days</option>
+                                    <option value="90">Next 90 Days</option>
+                                </select>
+                                <select
+                                    value={seriesLocationFilter}
+                                    onChange={(e) => setSeriesLocationFilter(e.target.value)}
+                                >
+                                    <option value="near">Near Me</option>
+                                    <option value="all">All Locations</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="series-list">
+                            {series.slice(0, 5).map((s, i) => (
+                                <motion.div
+                                    key={s.id || i}
+                                    className="series-card"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: i * 0.1 }}
+                                >
+                                    <div className="series-logo-wrap">
+                                        <span className="series-short">{s.short_name || 'SERIES'}</span>
+                                    </div>
+                                    <div className="series-info">
+                                        <h4>{s.name}</h4>
+                                        <p className="series-location">{s.location}</p>
+                                        <p className="series-dates">
+                                            {formatDate(s.start_date)} - {formatDate(s.end_date)}
+                                        </p>
+                                    </div>
+                                    <div className="series-details">
+                                        {s.total_events && (
+                                            <span>{s.total_events} Events</span>
+                                        )}
+                                        {s.main_event_guaranteed && (
+                                            <span>{formatMoney(s.main_event_guaranteed)}+ Guaranteed</span>
+                                        )}
+                                        {s.main_event_buyin && (
+                                            <span>Main Event {formatMoney(s.main_event_buyin)} Buy-In</span>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </aside>
+                </div>
 
                 <style jsx>{`
                     .poker-near-me {
                         min-height: 100vh;
-                        background: linear-gradient(180deg, #0a0a12 0%, #0f1a2e 100%);
+                        background: linear-gradient(180deg, #0a0e1a 0%, #0f1629 50%, #0a0e1a 100%);
                         color: #fff;
-                        font-family: 'Inter', -apple-system, sans-serif;
-                        padding-bottom: 60px;
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
                     }
 
-                    .header {
-                        padding: 24px;
-                        text-align: center;
-                        border-bottom: 1px solid rgba(255,255,255,0.06);
+                    /* Page Header */
+                    .page-header {
+                        padding: 20px 16px 16px;
+                        border-bottom: 1px solid rgba(255,255,255,0.08);
                     }
 
-                    .back-link {
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 8px;
-                        color: #00d4ff;
-                        font-size: 13px;
-                        margin-bottom: 16px;
-                        cursor: pointer;
+                    .page-header h1 {
+                        font-size: 20px;
+                        font-weight: 700;
+                        margin: 0;
+                        line-height: 1.3;
                     }
 
-                    .header h1 {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 12px;
-                        font-size: 28px;
-                        margin-bottom: 8px;
+                    .page-header .highlight {
+                        color: #f59e0b;
                     }
 
-                    .header h1 :global(svg) { color: #22c55e; }
-                    .header p { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 12px; }
+                    .page-header .normal {
+                        color: #fff;
+                    }
 
-                    .stats-bar {
-                        display: flex;
-                        justify-content: center;
-                        gap: 24px;
-                        font-size: 13px;
+                    .page-header .subtitle {
+                        display: block;
+                        font-size: 12px;
+                        font-weight: 400;
                         color: rgba(255,255,255,0.5);
+                        margin-top: 4px;
                     }
-                    .stats-bar span { display: flex; align-items: center; gap: 6px; }
 
-                    /* Main Tabs */
-                    .main-tabs {
+                    /* Search Controls */
+                    .search-controls {
+                        padding: 16px;
+                        border-bottom: 1px solid rgba(255,255,255,0.08);
+                    }
+
+                    .search-form {
+                        position: relative;
+                        margin-bottom: 12px;
+                    }
+
+                    .search-icon {
+                        position: absolute;
+                        left: 14px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        color: rgba(255,255,255,0.4);
+                    }
+
+                    .search-form input {
+                        width: 100%;
+                        padding: 14px 14px 14px 44px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 12px;
+                        color: #fff;
+                        font-size: 15px;
+                        outline: none;
+                        transition: border-color 0.2s;
+                    }
+
+                    .search-form input:focus {
+                        border-color: rgba(0, 212, 255, 0.5);
+                    }
+
+                    .search-form input::placeholder {
+                        color: rgba(255,255,255,0.4);
+                    }
+
+                    .control-row {
                         display: flex;
+                        gap: 10px;
+                    }
+
+                    .control-btn {
+                        flex: 1;
+                        display: flex;
+                        align-items: center;
                         justify-content: center;
                         gap: 8px;
-                        padding: 16px 24px;
-                        background: rgba(0,0,0,0.2);
+                        padding: 12px 16px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 10px;
+                        color: rgba(255,255,255,0.8);
+                        font-size: 14px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
                     }
 
-                    .main-tab {
+                    .control-btn:hover {
+                        background: rgba(255,255,255,0.1);
+                    }
+
+                    .control-btn.active {
+                        background: rgba(0, 212, 255, 0.15);
+                        border-color: rgba(0, 212, 255, 0.4);
+                        color: #00d4ff;
+                    }
+
+                    .gps-btn.active {
+                        background: rgba(34, 197, 94, 0.15);
+                        border-color: rgba(34, 197, 94, 0.4);
+                        color: #22c55e;
+                    }
+
+                    /* Distance Bar */
+                    .distance-bar {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-top: 12px;
+                        padding: 10px 14px;
+                        background: rgba(255,255,255,0.03);
+                        border-radius: 10px;
+                    }
+
+                    .distance-info {
                         display: flex;
                         align-items: center;
                         gap: 8px;
-                        padding: 12px 24px;
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-radius: 10px;
                         color: rgba(255,255,255,0.6);
+                        font-size: 13px;
+                    }
+
+                    .map-toggle {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        color: rgba(255,255,255,0.6);
+                        font-size: 13px;
+                    }
+
+                    .toggle {
+                        position: relative;
+                        width: 44px;
+                        height: 24px;
+                    }
+
+                    .toggle input {
+                        opacity: 0;
+                        width: 0;
+                        height: 0;
+                    }
+
+                    .slider {
+                        position: absolute;
+                        cursor: pointer;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(255,255,255,0.1);
+                        border-radius: 24px;
+                        transition: 0.3s;
+                    }
+
+                    .slider:before {
+                        position: absolute;
+                        content: "";
+                        height: 18px;
+                        width: 18px;
+                        left: 3px;
+                        bottom: 3px;
+                        background: #fff;
+                        border-radius: 50%;
+                        transition: 0.3s;
+                    }
+
+                    .toggle input:checked + .slider {
+                        background: #00d4ff;
+                    }
+
+                    .toggle input:checked + .slider:before {
+                        transform: translateX(20px);
+                    }
+
+                    /* Filter Panel */
+                    .filter-panel {
+                        padding: 16px;
+                        background: rgba(0,0,0,0.3);
+                        border-bottom: 1px solid rgba(255,255,255,0.08);
+                        overflow: hidden;
+                    }
+
+                    .filter-group {
+                        margin-bottom: 16px;
+                    }
+
+                    .filter-group label {
+                        display: block;
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.5);
+                        margin-bottom: 8px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+
+                    .filter-chips {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
+
+                    .chip {
+                        padding: 8px 14px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 20px;
+                        color: rgba(255,255,255,0.7);
+                        font-size: 13px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+
+                    .chip:hover {
+                        background: rgba(255,255,255,0.1);
+                    }
+
+                    .chip.active {
+                        background: rgba(0, 212, 255, 0.15);
+                        border-color: rgba(0, 212, 255, 0.4);
+                        color: #00d4ff;
+                    }
+
+                    .apply-filters {
+                        width: 100%;
+                        padding: 12px;
+                        background: linear-gradient(135deg, #00d4ff, #0088ff);
+                        border: none;
+                        border-radius: 10px;
+                        color: #fff;
                         font-size: 14px;
                         font-weight: 600;
                         cursor: pointer;
-                        transition: all 0.2s;
                     }
 
-                    .main-tab:hover { color: #fff; background: rgba(255,255,255,0.1); }
-                    .main-tab.active { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; border-color: transparent; }
-
-                    /* Controls */
-                    .controls {
+                    /* Main Layout */
+                    .main-layout {
                         display: flex;
-                        flex-wrap: wrap;
-                        align-items: center;
-                        gap: 12px;
-                        padding: 16px 24px;
-                        border-bottom: 1px solid rgba(255,255,255,0.06);
+                        min-height: calc(100vh - 200px);
                     }
 
-                    .search-box {
+                    /* Left Sidebar - Hidden on mobile */
+                    .left-sidebar {
+                        display: none;
+                    }
+
+                    /* Right Sidebar - Hidden on mobile */
+                    .right-sidebar {
+                        display: none;
+                    }
+
+                    /* Venue Feed */
+                    .venue-feed {
                         flex: 1;
-                        min-width: 200px;
-                        display: flex;
-                        align-items: center;
-                        gap: 10px;
-                        padding: 10px 14px;
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-radius: 10px;
-                    }
-
-                    .search-box :global(svg) { color: rgba(255,255,255,0.4); }
-                    .search-box input { flex: 1; background: none; border: none; color: #fff; font-size: 14px; outline: none; }
-
-                    .dropdown-wrap { position: relative; }
-                    .dropdown-btn {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        padding: 10px 14px;
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-radius: 8px;
-                        color: #fff;
-                        font-size: 13px;
-                        cursor: pointer;
-                    }
-
-                    .dropdown-menu {
-                        position: absolute;
-                        top: 100%;
-                        left: 0;
-                        margin-top: 4px;
-                        background: #1a1a2e;
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 8px;
-                        min-width: 180px;
-                        max-height: 300px;
-                        overflow-y: auto;
-                        z-index: 100;
-                    }
-
-                    .dropdown-menu button {
-                        display: block;
-                        width: 100%;
-                        padding: 10px 14px;
-                        background: none;
-                        border: none;
-                        color: rgba(255,255,255,0.8);
-                        font-size: 13px;
-                        text-align: left;
-                        cursor: pointer;
-                    }
-
-                    .dropdown-menu button:hover { background: rgba(255,255,255,0.1); }
-
-                    .type-filters { display: flex; gap: 6px; }
-                    .filter-chip {
-                        padding: 8px 12px;
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-radius: 20px;
-                        color: rgba(255,255,255,0.6);
-                        font-size: 12px;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .filter-chip:hover { color: #fff; }
-                    .filter-chip.active { background: rgba(0,212,255,0.2); color: #00d4ff; border-color: rgba(0,212,255,0.3); }
-
-                    /* GPS Search Button */
-                    .gps-btn {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        padding: 10px 16px;
-                        background: linear-gradient(135deg, #22c55e, #16a34a);
-                        border: none;
-                        border-radius: 10px;
-                        color: #fff;
-                        font-size: 13px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .gps-btn:hover { transform: scale(1.02); box-shadow: 0 4px 16px rgba(34,197,94,0.3); }
-                    .gps-btn.active { background: linear-gradient(135deg, #16a34a, #15803d); }
-                    .gps-btn:disabled { opacity: 0.7; cursor: not-allowed; }
-
-                    /* Radius Control */
-                    .radius-control {
-                        display: flex;
-                        flex-direction: column;
-                        gap: 4px;
-                        padding: 8px 12px;
-                        background: rgba(34,197,94,0.1);
-                        border: 1px solid rgba(34,197,94,0.2);
-                        border-radius: 10px;
-                    }
-                    .radius-control label { font-size: 11px; color: #22c55e; }
-                    .radius-control input[type="range"] {
-                        width: 120px;
-                        height: 4px;
-                        -webkit-appearance: none;
-                        background: rgba(34,197,94,0.3);
-                        border-radius: 2px;
-                        outline: none;
-                    }
-                    .radius-control input[type="range"]::-webkit-slider-thumb {
-                        -webkit-appearance: none;
-                        width: 14px;
-                        height: 14px;
-                        background: #22c55e;
-                        border-radius: 50%;
-                        cursor: pointer;
-                    }
-
-                    /* Location Input */
-                    .location-input-wrap {
-                        display: flex;
-                        gap: 4px;
-                    }
-                    .location-input-wrap input {
-                        width: 140px;
-                        padding: 10px 12px;
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-radius: 8px;
-                        color: #fff;
-                        font-size: 13px;
-                        outline: none;
-                    }
-                    .location-input-wrap button {
-                        padding: 10px 14px;
-                        background: rgba(0,212,255,0.2);
-                        border: 1px solid rgba(0,212,255,0.3);
-                        border-radius: 8px;
-                        color: #00d4ff;
-                        font-size: 13px;
-                        font-weight: 600;
-                        cursor: pointer;
-                    }
-                    .location-input-wrap button:hover { background: rgba(0,212,255,0.3); }
-
-                    /* Date Filters */
-                    .date-filters {
-                        display: flex;
-                        align-items: center;
-                        gap: 12px;
-                    }
-                    .date-input {
-                        display: flex;
-                        flex-direction: column;
-                        gap: 4px;
-                    }
-                    .date-input label { font-size: 11px; color: rgba(255,255,255,0.5); }
-                    .date-input input[type="date"] {
-                        padding: 8px 12px;
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 8px;
-                        color: #fff;
-                        font-size: 13px;
-                        outline: none;
-                    }
-                    .clear-dates {
-                        padding: 8px 12px;
-                        background: rgba(239,68,68,0.2);
-                        border: 1px solid rgba(239,68,68,0.3);
-                        border-radius: 8px;
-                        color: #ef4444;
-                        font-size: 12px;
-                        cursor: pointer;
-                    }
-
-                    /* Distance Badge */
-                    .distance-badge {
-                        padding: 2px 8px;
-                        background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(16,163,74,0.15));
-                        border-radius: 12px;
-                        font-size: 11px;
-                        font-weight: 600;
-                        color: #22c55e;
-                        margin-left: auto;
+                        padding: 16px;
                     }
 
                     .loading, .no-results {
                         display: flex;
                         flex-direction: column;
                         align-items: center;
-                        gap: 12px;
-                        padding: 60px;
+                        justify-content: center;
+                        padding: 60px 20px;
                         color: rgba(255,255,255,0.5);
                     }
 
-                    .spinner { animation: spin 1s linear infinite; }
-                    @keyframes spin { to { transform: rotate(360deg); } }
+                    .spinner {
+                        width: 32px;
+                        height: 32px;
+                        border: 3px solid rgba(255,255,255,0.1);
+                        border-top-color: #00d4ff;
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                        margin-bottom: 16px;
+                    }
+
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
 
                     .no-results button {
+                        margin-top: 16px;
                         padding: 10px 20px;
                         background: rgba(255,255,255,0.1);
                         border: none;
@@ -766,211 +852,373 @@ export default function PokerNearMe() {
                         cursor: pointer;
                     }
 
-                    /* Venues Grid */
-                    .venues-section, .series-section { padding: 24px; }
-
-                    .venues-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+                    /* Venue Cards */
+                    .venue-list {
+                        display: flex;
+                        flex-direction: column;
                         gap: 16px;
                     }
 
                     .venue-card {
-                        background: rgba(255,255,255,0.03);
-                        border: 1px solid rgba(255,255,255,0.06);
-                        border-radius: 14px;
-                        padding: 16px;
-                        cursor: pointer;
-                        transition: all 0.2s;
+                        position: relative;
+                        border-radius: 16px;
+                        overflow: hidden;
+                        min-height: 180px;
                     }
 
-                    .venue-card:hover { border-color: rgba(0,212,255,0.3); }
-                    .venue-card.featured { border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.05); }
+                    .venue-bg {
+                        position: absolute;
+                        inset: 0;
+                        background-size: cover;
+                        background-position: center;
+                        filter: brightness(0.4);
+                    }
 
-                    .venue-header {
+                    .venue-content {
+                        position: relative;
+                        padding: 16px;
                         display: flex;
-                        align-items: flex-start;
-                        gap: 12px;
+                        flex-direction: column;
+                        height: 100%;
+                        min-height: 180px;
+                    }
+
+                    .venue-name {
+                        font-size: 18px;
+                        font-weight: 600;
+                        margin: 0 0 8px;
+                    }
+
+                    .venue-meta {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                        margin-bottom: 8px;
+                    }
+
+                    .venue-meta span {
+                        font-size: 12px;
+                        padding: 4px 10px;
+                        background: rgba(255,255,255,0.15);
+                        border-radius: 6px;
+                    }
+
+                    .venue-meta .distance {
+                        background: rgba(34, 197, 94, 0.2);
+                        color: #22c55e;
+                    }
+
+                    .venue-meta .game {
+                        background: rgba(0, 212, 255, 0.2);
+                        color: #00d4ff;
+                    }
+
+                    .venue-trust {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
                         margin-bottom: 12px;
                     }
 
-                    .venue-icon { font-size: 24px; }
-                    .venue-title { flex: 1; }
-                    .venue-title h3 { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
-                    .venue-type { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: capitalize; }
-
-                    .trust-score {
-                        display: flex;
-                        align-items: center;
-                        gap: 4px;
-                        padding: 4px 8px;
-                        background: rgba(251,191,36,0.15);
-                        border-radius: 6px;
-                        font-size: 12px;
-                        font-weight: 600;
-                        color: #fbbf24;
-                    }
-
-                    .venue-location, .venue-games, .venue-stakes {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        margin-bottom: 8px;
-                        font-size: 12px;
-                        color: rgba(255,255,255,0.6);
-                    }
-
-                    .game-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-                    .game-tag {
-                        padding: 2px 6px;
-                        background: rgba(0,212,255,0.15);
-                        border-radius: 4px;
-                        font-size: 10px;
-                        font-weight: 600;
-                        color: #00d4ff;
-                    }
-                    .game-tag.plo { background: rgba(236,72,153,0.15); color: #ec4899; }
-                    .game-tag.mixed { background: rgba(168,85,247,0.15); color: #a855f7; }
-
-                    .venue-footer {
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        margin-top: 12px;
-                        padding-top: 12px;
-                        border-top: 1px solid rgba(255,255,255,0.06);
-                    }
-
-                    .tables { font-size: 11px; color: rgba(255,255,255,0.5); display: flex; align-items: center; gap: 4px; }
-
-                    .venue-actions { display: flex; gap: 6px; }
-                    .action-btn {
-                        width: 32px;
-                        height: 32px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 8px;
-                        color: rgba(255,255,255,0.6);
-                        transition: all 0.2s;
-                    }
-
-                    .action-btn:hover { background: rgba(0,212,255,0.2); color: #00d4ff; }
-
-                    /* Series Grid */
-                    .series-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-                        gap: 16px;
-                    }
-
-                    .series-card {
-                        position: relative;
-                        background: linear-gradient(135deg, rgba(124,58,237,0.1) 0%, rgba(168,85,247,0.05) 100%);
-                        border: 1px solid rgba(124,58,237,0.2);
-                        border-radius: 14px;
-                        padding: 20px;
-                    }
-
-                    .series-card.featured { border-color: rgba(251,191,36,0.4); }
-
-                    .featured-badge {
-                        position: absolute;
-                        top: 12px;
-                        right: 12px;
-                        padding: 4px 10px;
-                        background: linear-gradient(135deg, #fbbf24, #d97706);
-                        border-radius: 6px;
-                        font-size: 10px;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        color: #000;
-                    }
-
-                    .series-header { margin-bottom: 12px; }
-                    .series-short {
-                        display: inline-block;
-                        padding: 4px 8px;
-                        background: rgba(124,58,237,0.2);
-                        border-radius: 4px;
-                        font-size: 11px;
-                        font-weight: 700;
-                        color: #a855f7;
-                        margin-bottom: 8px;
-                    }
-
-                    .series-header h3 { font-size: 16px; font-weight: 600; }
-
-                    .series-meta {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 16px;
-                        margin-bottom: 16px;
-                        font-size: 12px;
-                        color: rgba(255,255,255,0.6);
-                    }
-
-                    .series-meta span { display: flex; align-items: center; gap: 4px; }
-
-                    .series-stats {
-                        display: flex;
-                        gap: 12px;
-                        margin-bottom: 16px;
-                    }
-
-                    .series-stats .stat {
-                        flex: 1;
-                        padding: 10px;
-                        background: rgba(0,0,0,0.2);
-                        border-radius: 8px;
-                        text-align: center;
-                    }
-
-                    .series-stats .stat span { display: block; font-size: 10px; color: rgba(255,255,255,0.5); margin-bottom: 2px; }
-                    .series-stats .stat strong { font-size: 14px; color: #22c55e; }
-
-                    .series-link {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 8px;
-                        padding: 10px;
-                        background: rgba(255,255,255,0.05);
-                        border-radius: 8px;
-                        color: #00d4ff;
-                        font-size: 12px;
-                        font-weight: 600;
-                        text-decoration: none;
-                        transition: background 0.2s;
-                    }
-
-                    .series-link:hover { background: rgba(0,212,255,0.1); }
-
-                    .location-notice {
-                        position: fixed;
-                        bottom: 20px;
-                        left: 50%;
-                        transform: translateX(-50%);
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        padding: 10px 20px;
-                        background: rgba(34,197,94,0.9);
-                        border-radius: 20px;
+                    .trust-badge {
                         font-size: 12px;
                         font-weight: 500;
                     }
 
-                    @media (max-width: 600px) {
-                        .controls { flex-direction: column; }
-                        .type-filters { flex-wrap: wrap; }
-                        .venues-grid, .series-grid { grid-template-columns: 1fr; }
+                    .verified-badge {
+                        font-size: 11px;
+                        padding: 3px 8px;
+                        background: rgba(34, 197, 94, 0.2);
+                        color: #22c55e;
+                        border-radius: 4px;
+                    }
+
+                    .venue-actions {
+                        display: flex;
+                        gap: 8px;
+                        margin-top: auto;
+                    }
+
+                    .action-btn {
+                        flex: 1;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 6px;
+                        padding: 10px 12px;
+                        border-radius: 8px;
+                        font-size: 13px;
+                        font-weight: 500;
+                        text-decoration: none;
+                        transition: all 0.2s;
+                    }
+
+                    .action-btn.call {
+                        background: rgba(34, 197, 94, 0.2);
+                        color: #22c55e;
+                    }
+
+                    .action-btn.website {
+                        background: rgba(0, 212, 255, 0.2);
+                        color: #00d4ff;
+                    }
+
+                    .action-btn.directions {
+                        background: rgba(251, 191, 36, 0.2);
+                        color: #fbbf24;
+                    }
+
+                    /* Sidebar Sections */
+                    .sidebar-section {
+                        padding: 16px;
+                        border-bottom: 1px solid rgba(255,255,255,0.08);
+                    }
+
+                    .sidebar-section h3 {
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: rgba(255,255,255,0.5);
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        margin: 0 0 12px;
+                    }
+
+                    .city-chips {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
+
+                    .city-chip {
+                        padding: 8px 14px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 8px;
+                        color: rgba(255,255,255,0.8);
+                        font-size: 13px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+
+                    .city-chip:hover, .city-chip.active {
+                        background: rgba(0, 212, 255, 0.15);
+                        border-color: rgba(0, 212, 255, 0.4);
+                        color: #00d4ff;
+                    }
+
+                    .series-preview {
+                        background: linear-gradient(135deg, rgba(30, 58, 138, 0.3), rgba(15, 23, 42, 0.5));
+                    }
+
+                    .series-badge {
+                        margin-bottom: 12px;
+                    }
+
+                    .series-logo {
+                        display: inline-block;
+                        padding: 8px 16px;
+                        background: linear-gradient(135deg, #fbbf24, #d97706);
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-weight: 800;
+                        color: #000;
+                        letter-spacing: 1px;
+                    }
+
+                    .game-tags {
+                        display: flex;
+                        gap: 8px;
+                    }
+
+                    .game-tags .tag {
+                        padding: 6px 12px;
+                        background: rgba(255,255,255,0.1);
+                        border-radius: 6px;
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.7);
+                    }
+
+                    .game-tags .tag.star {
+                        background: rgba(251, 191, 36, 0.2);
+                        color: #fbbf24;
+                    }
+
+                    .popular-rooms {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 12px;
+                    }
+
+                    .room-item {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                    }
+
+                    .room-name {
+                        font-size: 14px;
+                        font-weight: 500;
+                    }
+
+                    .room-games {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                    }
+
+                    .star-icon {
+                        color: #fbbf24;
+                        font-size: 14px;
+                    }
+
+                    .room-games .game-tag {
+                        font-size: 11px;
+                        color: rgba(255,255,255,0.5);
+                    }
+
+                    /* Right Sidebar - Series */
+                    .series-header {
+                        padding: 16px;
+                        border-bottom: 1px solid rgba(255,255,255,0.08);
+                    }
+
+                    .series-header h3 {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: rgba(255,255,255,0.9);
+                        margin: 0 0 12px;
+                    }
+
+                    .series-filters {
+                        display: flex;
+                        gap: 8px;
+                    }
+
+                    .series-filters select {
+                        flex: 1;
+                        padding: 8px 12px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 8px;
+                        color: #fff;
+                        font-size: 12px;
+                        outline: none;
+                        cursor: pointer;
+                    }
+
+                    .series-list {
+                        padding: 16px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 16px;
+                    }
+
+                    .series-card {
+                        background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 12px;
+                        padding: 14px;
+                    }
+
+                    .series-logo-wrap {
+                        margin-bottom: 10px;
+                    }
+
+                    .series-short {
+                        display: inline-block;
+                        padding: 6px 12px;
+                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 136, 255, 0.2));
+                        border: 1px solid rgba(0, 212, 255, 0.3);
+                        border-radius: 6px;
+                        font-size: 12px;
+                        font-weight: 700;
+                        color: #00d4ff;
+                    }
+
+                    .series-info h4 {
+                        font-size: 15px;
+                        font-weight: 600;
+                        margin: 0 0 4px;
+                    }
+
+                    .series-location {
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.6);
+                        margin: 0 0 2px;
+                    }
+
+                    .series-dates {
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.5);
+                        margin: 0;
+                    }
+
+                    .series-details {
+                        margin-top: 10px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                    }
+
+                    .series-details span {
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.7);
+                    }
+
+                    /* Desktop Styles */
+                    @media (min-width: 768px) {
+                        .page-header h1 {
+                            font-size: 26px;
+                        }
+
+                        .page-header .subtitle {
+                            display: inline;
+                            font-size: 14px;
+                            margin-left: 8px;
+                        }
+
+                        .venue-list {
+                            display: grid;
+                            grid-template-columns: repeat(2, 1fr);
+                            gap: 16px;
+                        }
+                    }
+
+                    @media (min-width: 1024px) {
+                        .main-layout {
+                            display: grid;
+                            grid-template-columns: 240px 1fr 300px;
+                            gap: 0;
+                        }
+
+                        .left-sidebar {
+                            display: block;
+                            border-right: 1px solid rgba(255,255,255,0.08);
+                            background: rgba(0,0,0,0.2);
+                        }
+
+                        .right-sidebar {
+                            display: block;
+                            border-left: 1px solid rgba(255,255,255,0.08);
+                            background: rgba(0,0,0,0.2);
+                        }
+
+                        .venue-list {
+                            grid-template-columns: 1fr;
+                        }
+                    }
+
+                    @media (min-width: 1280px) {
+                        .main-layout {
+                            grid-template-columns: 280px 1fr 340px;
+                        }
+
+                        .venue-list {
+                            grid-template-columns: repeat(2, 1fr);
+                        }
                     }
                 `}</style>
             </div>
         </>
     );
 }
-
