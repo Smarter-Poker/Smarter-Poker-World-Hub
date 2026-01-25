@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { getAuthUser } from '../lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // useAssistantStats — Fetch user's assistant statistics
@@ -24,7 +25,8 @@ export function useAssistantStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+        const user = getAuthUser();
         const userId = user?.id;
 
         const response = await fetch(`/api/assistant/stats?userId=${userId || ''}`);
@@ -59,7 +61,8 @@ export function useLeaks(statusFilter = null) {
   const fetchLeaks = useCallback(async () => {
     try {
       setIsLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+      const user = getAuthUser();
       const userId = user?.id;
 
       let url = `/api/assistant/leaks?userId=${userId || 'demo'}`;
@@ -186,7 +189,8 @@ export function useSandboxAnalysis() {
       setIsAnalyzing(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+      const user = getAuthUser();
 
       const response = await fetch('/api/assistant/sandbox/analyze', {
         method: 'POST',
@@ -243,7 +247,8 @@ export function useRecentSessions(limit = 10) {
   useEffect(() => {
     async function fetchSessions() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+        const user = getAuthUser();
         if (!user) {
           // Return demo sessions for non-logged-in users
           setSessions([
@@ -315,7 +320,8 @@ export function useLeakDetection() {
       setIsDetecting(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+      const user = getAuthUser();
       if (!user) {
         setError('Must be logged in to run leak detection');
         return { success: false, error: 'Not logged in' };
@@ -368,7 +374,8 @@ export function useLeakHandExamples(leakId) {
       setIsLoading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+      const user = getAuthUser();
       if (!user) return;
 
       const { data, error: fetchError } = await supabase
