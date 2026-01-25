@@ -73,6 +73,31 @@ export function AvatarProvider({ children }) {
 
     // Load user on mount - WAIT for INITIAL_SESSION before concluding user is null
     useEffect(() => {
+        // 🛡️ ANTIGRAVITY: Ensure user has profile (catches orphaned users)
+        async function ensureUserProfile(user) {
+            if (!user) return;
+            try {
+                const res = await fetch('/api/auth/ensure-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: user.id,
+                        email: user.email,
+                        full_name: user.user_metadata?.full_name || user.user_metadata?.poker_alias,
+                        username: user.user_metadata?.poker_alias,
+                        avatar_url: user.user_metadata?.avatar_url,
+                        metadata: user.user_metadata
+                    })
+                });
+                const data = await res.json();
+                if (data.created) {
+                    console.log('[ANTIGRAVITY] Profile was missing - created:', data.profile?.username);
+                }
+            } catch (err) {
+                console.error('[ANTIGRAVITY] ensure-profile failed:', err);
+            }
+        }
+
         // Listen for auth changes - this includes INITIAL_SESSION event
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('[AvatarContext] Auth event:', event, session?.user?.email || 'no session');
@@ -91,6 +116,8 @@ export function AvatarProvider({ children }) {
                         } else if (refreshData?.session?.user) {
                             console.log('[AvatarContext] Session refreshed successfully');
                             setUser(refreshData.session.user);
+                            // 🛡️ ANTIGRAVITY: Ensure profile exists
+                            await ensureUserProfile(refreshData.session.user);
                             await fetchVipStatus(refreshData.session.user.id);
                         } else {
                             setUser(null);
@@ -110,6 +137,10 @@ export function AvatarProvider({ children }) {
             // For other events (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, etc.)
             setUser(session?.user ?? null);
             if (session?.user) {
+                // 🛡️ ANTIGRAVITY: Ensure profile exists on EVERY sign-in event
+                if (event === 'SIGNED_IN') {
+                    await ensureUserProfile(session.user);
+                }
                 await fetchVipStatus(session.user.id);
             }
         });

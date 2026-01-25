@@ -412,7 +412,7 @@ export default function UserProfilePage() {
     };
 
     const handleMessage = () => {
-        router.push(`/hub/messages?user=${profile.username}`);
+        router.push(`/hub/messenger?user=${profile.username}`);
     };
 
     if (loading) {

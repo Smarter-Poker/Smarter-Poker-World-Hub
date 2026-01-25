@@ -29,6 +29,7 @@ import {
 
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 
 // Fallback data
 const FALLBACK_NEWS = [
@@ -521,10 +522,11 @@ function getReelThumbnail(reel) {
 }
 
 // Reel Card Component - Vertical Video for Social Reels
-function ReelCard({ reel, onClick }) {
+function ReelCard({ reel, onClick, openExternal }) {
     const openReel = () => {
         if (reel.video_url) {
-            window.open(reel.video_url, '_blank');
+            // Use link containment - stay inside smarter.poker
+            openExternal(reel.video_url, reel.title || 'Poker Reel');
         }
     };
 
@@ -708,7 +710,7 @@ function MSPTBox({ msptNews, onOpenMSPT }) {
 }
 
 // Placeholder Box for sources without articles yet
-function SourcePlaceholderBox({ sourceName, sourceUrl, index }) {
+function SourcePlaceholderBox({ sourceName, sourceUrl, index, openExternal }) {
     const sourceInfo = {
         'PokerNews': { icon: '🃏', color: '#2374E1', url: 'https://www.pokernews.com' },
         'MSPT': { icon: '🎰', color: '#dc2626', url: 'https://msptpoker.com' },
@@ -723,7 +725,7 @@ function SourcePlaceholderBox({ sourceName, sourceUrl, index }) {
     return (
         <div
             className="news-box placeholder-box"
-            onClick={() => window.open(sourceUrl || info.url, '_blank')}
+            onClick={() => openExternal(sourceUrl || info.url, `${sourceName} News`)}
         >
             <div className="box-image">
                 <div className="placeholder-content">
@@ -1030,7 +1032,10 @@ export default function NewsHub() {
         }
     };
 
-    // Article navigation
+    // Link containment - stay inside smarter.poker
+    const { openExternal } = useExternalLink();
+
+    // Article navigation - uses link containment
     const openArticle = async (article) => {
         try {
             await fetch('/api/news/articles', {
@@ -1043,18 +1048,19 @@ export default function NewsHub() {
         markAsRead(article.id);
 
         if (article.source_url) {
-            window.open(article.source_url, '_blank');
+            // Use link containment - stay inside smarter.poker
+            openExternal(article.source_url, article.title || 'News Article');
         } else {
             router.push(`/hub/article?id=${article.id}`);
         }
     };
 
-    // Video navigation - supports YouTube and direct URLs
+    // Video navigation - uses link containment for YouTube and direct URLs
     const openVideo = (video) => {
         if (video.youtube_id) {
-            window.open(`https://www.youtube.com/watch?v=${video.youtube_id}`, '_blank');
+            openExternal(`https://www.youtube.com/watch?v=${video.youtube_id}`, video.title || 'Poker Video');
         } else if (video.url) {
-            window.open(video.url, '_blank');
+            openExternal(video.url, video.title || 'Poker Video');
         }
     };
 
@@ -1321,11 +1327,11 @@ export default function NewsHub() {
                                     {reels.length > 0 ? (
                                         <div className="reels-carousel">
                                             {reels.slice(0, 6).map(reel => (
-                                                <ReelCard key={reel.id} reel={reel} />
+                                                <ReelCard key={reel.id} reel={reel} openExternal={openExternal} />
                                             ))}
                                         </div>
                                     ) : (
-                                        <p style={{color: '#888', padding: '20px', textAlign: 'center'}}>Loading reels...</p>
+                                        <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading reels...</p>
                                     )}
                                 </section>
 
@@ -1349,7 +1355,7 @@ export default function NewsHub() {
                                             ))}
                                         </div>
                                     ) : (
-                                        <p style={{color: '#888', padding: '20px', textAlign: 'center'}}>Loading videos...</p>
+                                        <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading videos...</p>
                                     )}
                                 </section>
                             </>
@@ -1398,6 +1404,7 @@ export default function NewsHub() {
                                             <ReelCard
                                                 key={reel.id || reel.youtube_id}
                                                 reel={reel}
+                                                openExternal={openExternal}
                                             />
                                         ))}
                                     </div>
