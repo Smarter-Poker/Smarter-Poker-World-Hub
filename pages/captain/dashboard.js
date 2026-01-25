@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
   LogOut, RefreshCw, Wifi, WifiOff, Menu, X,
-  Trophy, Gift, BarChart3, Users, Settings, Home, Grid3X3, QrCode, FileText
+  Trophy, Gift, BarChart3, Users, Settings, Home, Grid3X3, QrCode, FileText, AlertTriangle
 } from 'lucide-react';
 import GameGrid from '../../src/components/captain/staff/GameGrid';
 import WaitlistManager from '../../src/components/captain/staff/WaitlistManager';
@@ -46,6 +46,7 @@ export default function CaptainDashboard() {
     { href: '/captain/promotions', label: 'Promotions', icon: Gift },
     { href: '/captain/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/captain/reports', label: 'Daily Reports', icon: FileText },
+    { href: '/captain/incidents', label: 'Incidents', icon: AlertTriangle },
     { href: '/captain/qr-code', label: 'Check-In QR', icon: QrCode },
     { href: '/captain/staff', label: 'Staff', icon: Users },
     { href: '/captain/settings', label: 'Settings', icon: Settings },
