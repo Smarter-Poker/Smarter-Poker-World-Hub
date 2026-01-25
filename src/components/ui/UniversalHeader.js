@@ -87,18 +87,46 @@ export default function UniversalHeader({
     useEffect(() => {
         let notifChannel = null;
         let messageChannel = null;
+        let mounted = true; // Prevent state updates after unmount
 
         const loadUser = async () => {
             try {
-                // Use Supabase client directly for reliable auth
-                const { data: { user: authUser } } = await supabase.auth.getUser();
+                // 🛡️ BULLETPROOF: Bypass Supabase client entirely to avoid AbortError
+                // Read user directly from localStorage instead of calling getUser()
+                let authUser = null;
+                if (typeof window !== 'undefined') {
+                    try {
+                        // Check explicit storage key first
+                        const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                        if (explicitAuth) {
+                            const tokenData = JSON.parse(explicitAuth);
+                            authUser = tokenData?.user || null;
+                        }
+                        // Fallback to legacy sb-* keys
+                        if (!authUser) {
+                            const sbKeys = Object.keys(localStorage).filter(
+                                k => k.startsWith('sb-') && k.endsWith('-auth-token')
+                            );
+                            if (sbKeys.length > 0) {
+                                const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                                authUser = tokenData?.user || null;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[UniversalHeader] Error reading localStorage:', e);
+                    }
+                }
+
+                if (!mounted) return;
 
                 if (authUser) {
                     setUser(authUser);
+                    console.log('[UniversalHeader] User found in localStorage:', authUser.email);
 
                     // 🛡️ BULLETPROOF: Retry logic with exponential backoff
                     const MAX_RETRIES = 3;
                     const fetchProfileWithRetry = async (attempt = 1) => {
+                        if (!mounted) return false;
                         try {
                             const response = await fetch('/api/user/get-header-stats', {
                                 method: 'POST',
@@ -109,7 +137,7 @@ export default function UniversalHeader({
                             const result = await response.json();
                             console.log(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
 
-                            if (result.success && result.profile) {
+                            if (result.success && result.profile && mounted) {
                                 const { xp, diamonds, level, full_name, username, avatar_url } = result.profile;
                                 setStats({ xp, diamonds, level });
                                 setUser(prev => ({
@@ -128,24 +156,41 @@ export default function UniversalHeader({
 
                     // Try up to MAX_RETRIES times with exponential backoff
                     let success = await fetchProfileWithRetry(1);
-                    for (let attempt = 2; attempt <= MAX_RETRIES && !success; attempt++) {
+                    for (let attempt = 2; attempt <= MAX_RETRIES && !success && mounted; attempt++) {
                         const delay = Math.pow(2, attempt - 1) * 500; // 500ms, 1000ms, 2000ms
                         console.log(`[UniversalHeader] Retrying in ${delay}ms...`);
                         await new Promise(r => setTimeout(r, delay));
                         success = await fetchProfileWithRetry(attempt);
                     }
 
-                    // Final fallback: direct Supabase query
-                    if (!success) {
-                        console.log('[UniversalHeader] All API retries failed, trying direct query...');
+                    // Final fallback: direct REST API call (not Supabase client)
+                    if (!success && mounted) {
+                        console.log('[UniversalHeader] All API retries failed, trying direct REST...');
                         try {
-                            const { data: profile } = await supabase
-                                .from('profiles')
-                                .select('username, full_name, avatar_url, xp_total, diamonds')
-                                .eq('id', authUser.id)
-                                .single();
+                            const SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
+                            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
 
-                            if (profile) {
+                            // Get access token for authenticated query
+                            let accessToken = SUPABASE_ANON_KEY;
+                            try {
+                                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                                if (authData.access_token) accessToken = authData.access_token;
+                            } catch (e) { }
+
+                            const response = await fetch(
+                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,xp_total,diamonds`,
+                                {
+                                    headers: {
+                                        'apikey': SUPABASE_ANON_KEY,
+                                        'Authorization': `Bearer ${accessToken}`,
+                                        'Content-Type': 'application/json'
+                                    }
+                                }
+                            );
+                            const profiles = await response.json();
+                            const profile = profiles?.[0];
+
+                            if (profile && mounted) {
                                 const xpTotal = profile.xp_total || 0;
                                 const level = Math.max(1, Math.floor(Math.sqrt(xpTotal / 231)));
                                 setStats({ xp: xpTotal, diamonds: profile.diamonds || 0, level });
@@ -154,9 +199,10 @@ export default function UniversalHeader({
                                     avatar: profile.avatar_url,
                                     name: profile.full_name || profile.username
                                 }));
+                                console.log('[UniversalHeader] Direct REST fallback SUCCESS:', { xpTotal, diamonds: profile.diamonds });
                             }
                         } catch (e) {
-                            console.error('[UniversalHeader] Final fallback failed:', e);
+                            console.error('[UniversalHeader] Direct REST fallback failed:', e);
                         }
                     }
 
@@ -234,6 +280,7 @@ export default function UniversalHeader({
 
         // Cleanup subscriptions
         return () => {
+            mounted = false;
             if (notifChannel) supabase.removeChannel(notifChannel);
             if (messageChannel) supabase.removeChannel(messageChannel);
         };
