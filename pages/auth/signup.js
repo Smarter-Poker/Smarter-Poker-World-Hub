@@ -599,7 +599,7 @@ export default function SignUpPage() {
                                         type={showPassword ? 'text' : 'password'}
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        placeholder="••••••••"
+                                        placeholder=""
                                         style={styles.inputSingle}
                                         minLength={6}
                                         required
@@ -633,7 +633,7 @@ export default function SignUpPage() {
                                         type={showConfirmPassword ? 'text' : 'password'}
                                         value={formData.confirmPassword}
                                         onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                        placeholder="••••••••"
+                                        placeholder=""
                                         style={styles.inputSingle}
                                         minLength={6}
                                         required
@@ -798,7 +798,7 @@ export default function SignUpPage() {
                                             type="tel"
                                             value={formatPhone(formData.phone)}
                                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                            placeholder="(555) 123-4567"
+                                            placeholder=""
                                             style={{
                                                 ...styles.input,
                                                 borderColor: phoneVerified ? '#00ff66' : 'rgba(0, 212, 255, 0.3)',
