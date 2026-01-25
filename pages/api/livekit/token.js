@@ -17,10 +17,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing roomName or participantName' });
     }
 
-    // LiveKit credentials from environment
-    const apiKey = process.env.LIVEKIT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET;
-    const wsUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://smarter-poker-xxx.livekit.cloud';
+    // LiveKit credentials from environment (trim to remove any newlines)
+    const apiKey = (process.env.LIVEKIT_API_KEY || '').trim();
+    const apiSecret = (process.env.LIVEKIT_API_SECRET || '').trim();
+    const wsUrl = (process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://smarter-poker-lovt9xq0.livekit.cloud').trim();
 
     if (!apiKey || !apiSecret) {
         console.error('LiveKit API credentials not configured');
