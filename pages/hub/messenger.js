@@ -2158,6 +2158,12 @@ export default function MessengerPage() {
                                         // CRITICAL: Skip the prejoin page entirely
                                         prejoinConfig: { enabled: false },
                                         prejoinPageEnabled: false,
+                                        // Try to bypass lobby/waiting room
+                                        enableLobby: false,
+                                        lobby: { autoKnock: true, enableChat: false },
+                                        autoKnockLobby: true,
+                                        hideLobbyButton: true,
+                                        startSilent: false,
                                         // Audio/video settings
                                         startWithAudioMuted: false,
                                         startWithVideoMuted: callType === 'audio',
@@ -2166,6 +2172,13 @@ export default function MessengerPage() {
                                         enableWelcomePage: false,
                                         requireDisplayName: false,
                                         enableClosePage: false,
+                                        // Additional settings for seamless experience
+                                        disableModeratorIndicator: true,
+                                        disableReactions: true,
+                                        disablePolls: true,
+                                        disableRemoteMute: false,
+                                        enableNoAudioDetection: false,
+                                        enableNoisyMicDetection: false,
                                     },
                                     interfaceConfigOverwrite: {
                                         // Simplified UI for Snapchat/WhatsApp feel
