@@ -12,7 +12,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
-import { getAuthUser } from '../../src/lib/authUtils';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
@@ -1021,8 +1020,7 @@ export default function MessengerPage() {
     useEffect(() => {
         async function init() {
             try {
-                // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
-                const authUser = getAuthUser();
+                const { data: { user: authUser } } = await supabase.auth.getUser();
                 if (authUser) {
                     const { data: profile } = await supabase
                         .from('profiles')
