@@ -217,8 +217,8 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
     // Calculate viewport-based positioning
     const halfVW = viewport.width / 2;
 
-    // Vertical offset to shift carousel up (336px ≈ 2.8 units in 3D space)
-    const verticalOffset = 2.8;
+    // Vertical offset to shift carousel down for better centering
+    const verticalOffset = -1.0;
 
     return (
         <group ref={groupRef} position={[0, verticalOffset, 0]}>
