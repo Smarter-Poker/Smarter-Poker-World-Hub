@@ -39,15 +39,10 @@ const CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// POKER NEWS RSS FEEDS - Updated with working endpoints
+// POKER NEWS RSS FEEDS - Updated with working endpoints (Jan 2026)
+// Note: PokerNews, PokerListings, Poker.org feeds are broken/returning errors
 // ═══════════════════════════════════════════════════════════════════════════
 const NEWS_SOURCES = [
-    {
-        name: 'PokerNews',
-        rss: 'https://www.pokernews.com/rss.php?sub=news',
-        icon: '🃏',
-        categories: ['tournaments', 'strategy', 'industry', 'lifestyle']
-    },
     {
         name: 'CardPlayer',
         rss: 'https://www.cardplayer.com/poker-news.rss',
@@ -55,16 +50,16 @@ const NEWS_SOURCES = [
         categories: ['tournaments', 'results', 'industry']
     },
     {
-        name: 'PokerListings',
-        rss: 'https://www.pokerlistings.com/feed',
-        icon: '🎰',
-        categories: ['news', 'strategy', 'lifestyle']
+        name: 'Upswing Poker',
+        rss: 'https://upswingpoker.com/feed/',
+        icon: '📈',
+        categories: ['strategy', 'tips', 'training']
     },
     {
-        name: 'Poker.org',
-        rss: 'https://poker.org/feed/',
-        icon: '♦️',
-        categories: ['news', 'legal', 'industry']
+        name: 'WPT',
+        rss: 'https://www.worldpokertour.com/feed/',
+        icon: '🏆',
+        categories: ['tournaments', 'results', 'live']
     }
 ];
 
