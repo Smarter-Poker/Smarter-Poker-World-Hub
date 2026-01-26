@@ -486,7 +486,19 @@ export default function WorldHub() {
         triggerHaptic('medium');
         recordCardVisit(cardId);
         selectOrb(cardId as any);
-        router.push(`/hub/${cardId}`);
+
+        // Intro video config - same as handleOrbSelect
+        const introVideos: Record<string, string> = {
+            'trivia': '/videos/trivia-intro.mp4',
+            'club-arena': '/videos/club-arena-intro.mp4',
+        };
+
+        if (introVideos[cardId]) {
+            // Show intro video before navigating
+            setIntroVideo({ videoUrl: introVideos[cardId], targetRoute: `/hub/${cardId}` });
+        } else {
+            router.push(`/hub/${cardId}`);
+        }
     };
 
     // Handle main carousel card click → Navigate to that world page
