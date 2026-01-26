@@ -152,38 +152,25 @@ export default function LoginPage() {
             {/* Logo - Clean Text Brand */}
             <div style={{
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                gap: 12,
                 marginBottom: 40,
             }}>
-                {/* Brain Icon */}
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" stroke="url(#gradient1)" strokeWidth="1.5" fill="none" />
-                    <path d="M12 6C10.5 6 9.5 7 9.5 8.5C9.5 9.5 10 10 10 11C9 11 8 11.5 8 13C8 14.5 9 15 10 15C10 16.5 11 18 12 18C13 18 14 16.5 14 15C15 15 16 14.5 16 13C16 11.5 15 11 14 11C14 10 14.5 9.5 14.5 8.5C14.5 7 13.5 6 12 6Z" fill="url(#gradient1)" />
-                    <defs>
-                        <linearGradient id="gradient1" x1="0" y1="0" x2="24" y2="24">
-                            <stop offset="0%" stopColor="#00d4ff" />
-                            <stop offset="100%" stopColor="#0088ff" />
-                        </linearGradient>
-                    </defs>
-                </svg>
-                {/* Brand Text */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                    <span style={{
-                        fontSize: 28,
-                        fontWeight: 700,
-                        color: '#ffffff',
-                        letterSpacing: '-0.02em',
-                        lineHeight: 1.1,
-                    }}>SMARTER.POKER</span>
-                    <span style={{
-                        fontSize: 11,
-                        fontWeight: 500,
-                        color: 'rgba(0, 212, 255, 0.8)',
-                        letterSpacing: '0.15em',
-                        textTransform: 'uppercase',
-                    }}>Train Smarter, Win More</span>
-                </div>
+                <span style={{
+                    fontSize: 32,
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.1,
+                }}>SMARTER.POKER</span>
+                <span style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: 'rgba(0, 212, 255, 0.8)',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    marginTop: 6,
+                }}>Train Smarter, Win More</span>
             </div>
 
             {/* Title */}
