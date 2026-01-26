@@ -148,13 +148,34 @@ export function OneSignalProvider({ children }) {
     // Set external user ID (links to your database user)
     const setExternalUserId = async (userId) => {
         if (!isInitialized) return false;
+        if (!userId) {
+            console.warn('[OneSignal] setExternalUserId called without userId');
+            return false;
+        }
 
         try {
             const OneSignal = (await import('react-onesignal')).default;
-            await OneSignal.login(userId);
+
+            console.log('[OneSignal] Linking user ID:', userId);
+
+            // Try login first (preferred method for OneSignal v16+)
+            try {
+                await OneSignal.login(userId);
+                console.log('[OneSignal] login() successful for:', userId);
+            } catch (loginError) {
+                console.warn('[OneSignal] login() failed, trying addAlias:', loginError);
+                // Fallback: try adding external_id alias
+                try {
+                    await OneSignal.User.addAlias('external_id', userId);
+                    console.log('[OneSignal] addAlias() successful for:', userId);
+                } catch (aliasError) {
+                    console.error('[OneSignal] addAlias() also failed:', aliasError);
+                }
+            }
+
             return true;
         } catch (error) {
-            console.error('OneSignal setExternalUserId error:', error);
+            console.error('[OneSignal] setExternalUserId error:', error);
             return false;
         }
     };

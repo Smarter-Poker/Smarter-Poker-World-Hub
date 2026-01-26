@@ -27,12 +27,14 @@ export default function NotificationPrompt({ userId, onDismiss }) {
         }
     }, [isInitialized, isSubscribed, permission, userId]);
 
-    // Link user ID when initialized
+    // Link user ID when initialized - ALWAYS try to link if subscribed
     useEffect(() => {
         if (isInitialized && userId) {
+            // Always try to link, even if already subscribed (fixes users who subscribed before linking was added)
+            console.log('[NotificationPrompt] Attempting to link user:', userId, 'isSubscribed:', isSubscribed);
             setExternalUserId(userId);
         }
-    }, [isInitialized, userId, setExternalUserId]);
+    }, [isInitialized, userId, isSubscribed, setExternalUserId]);
 
     const handleEnable = async () => {
         setLoading(true);
