@@ -1400,7 +1400,30 @@ export default function MessengerPage() {
         try {
             console.log('[MESSENGER] Loading conversations for userId:', userId);
 
-            // Get conversations through participants
+            // PRIMARY: Use API with service_role - bypasses all RLS issues reliably
+            try {
+                const resp = await fetch('/api/messenger/get-conversations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId }),
+                });
+                const apiResult = await resp.json();
+                console.log('[MESSENGER] API result:', apiResult);
+                if (apiResult.success && apiResult.conversations?.length > 0) {
+                    setConversations(apiResult.conversations);
+                    return; // Success - done!
+                }
+                // If API returns empty, that's valid - user has no conversations
+                if (apiResult.success && apiResult.conversations?.length === 0) {
+                    console.log('[MESSENGER] User has no conversations');
+                    setConversations([]);
+                    return;
+                }
+            } catch (apiErr) {
+                console.warn('[MESSENGER] API call failed, falling back to direct query:', apiErr);
+            }
+
+            // FALLBACK: Try direct Supabase query if API fails
             const { data: participations, error: partError } = await supabase
                 .from('social_conversation_participants')
                 .select(`
@@ -1417,26 +1440,6 @@ export default function MessengerPage() {
                 .order('social_conversations(last_message_at)', { ascending: false });
 
             console.log('[MESSENGER] Direct query result:', { participations, error: partError });
-
-            // If RLS returns empty, try API fallback with service_role
-            if ((!participations || participations.length === 0) && !partError) {
-                console.log('[MESSENGER] No participations from direct query, trying API fallback...');
-                try {
-                    const resp = await fetch('/api/messenger/get-conversations', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId }),
-                    });
-                    const apiResult = await resp.json();
-                    console.log('[MESSENGER] API fallback result:', apiResult);
-                    if (apiResult.success && apiResult.conversations?.length > 0) {
-                        setConversations(apiResult.conversations);
-                        return;
-                    }
-                } catch (apiErr) {
-                    console.warn('[MESSENGER] API fallback failed:', apiErr);
-                }
-            }
 
             if (!participations || participations.length === 0) {
                 console.log('[MESSENGER] No participations found for user');
