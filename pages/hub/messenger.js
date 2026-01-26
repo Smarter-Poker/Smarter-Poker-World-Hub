@@ -1015,7 +1015,7 @@ export default function MessengerPage() {
     const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
     const [callingUser, setCallingUser] = useState(null); // Track who we're calling
     const incomingCallAudioRef = useRef(null);
-    const outgoingCallAudioRef = useRef(null); // Backup audio element
+    // outgoingCallAudioRef removed - using Web Audio API createRingTone() instead
     const outgoingRingToneRef = useRef(null); // Web Audio API ring tone (more reliable)
     const callTimeoutRef = useRef(null);
     const callStartTimeRef = useRef(null); // Track call start for duration
@@ -1306,12 +1306,8 @@ export default function MessengerPage() {
                     const reason = payload.payload.reason === 'timeout' ? 'No answer' : 'Call declined';
                     setToast({ type: 'info', message: reason });
                     setCallingUser(null);
-                    // Stop outgoing ring (Web Audio + audio element)
+                    // Stop outgoing ring (Web Audio only now)
                     if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
-                    if (outgoingCallAudioRef.current) {
-                        outgoingCallAudioRef.current.pause();
-                        outgoingCallAudioRef.current.currentTime = 0;
-                    }
                 }
             })
             .on('broadcast', { event: 'call_accepted' }, (payload) => {
@@ -1320,24 +1316,16 @@ export default function MessengerPage() {
                 setCallingUser(null);
                 // Track call start time for call receipt
                 callStartTimeRef.current = Date.now();
-                // Stop outgoing ring - call connected! (Web Audio + audio element)
+                // Stop outgoing ring - call connected! (Web Audio only now)
                 if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
-                if (outgoingCallAudioRef.current) {
-                    outgoingCallAudioRef.current.pause();
-                    outgoingCallAudioRef.current.currentTime = 0;
-                }
             })
             .on('broadcast', { event: 'call_ended' }, (payload) => {
                 console.log('📞 Call ended by other party:', payload);
                 setShowCall(false);
                 setCallRoomName('');
                 setToast({ type: 'info', message: 'Call ended' });
-                // Stop any ringing (Web Audio + audio element)
+                // Stop any ringing (Web Audio only now)
                 if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
-                if (outgoingCallAudioRef.current) {
-                    outgoingCallAudioRef.current.pause();
-                    outgoingCallAudioRef.current.currentTime = 0;
-                }
             })
             .subscribe();
 
@@ -2328,13 +2316,8 @@ export default function MessengerPage() {
             />
 
 
-            {/* Outgoing Ring Audio - plays while calling */}
-            {/* Using a reliable CDN source for phone ring tone */}
-            <audio
-                ref={outgoingCallAudioRef}
-                src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
-                preload="auto"
-            />
+
+            {/* Outgoing Ring: Using Web Audio API createRingTone() instead */}
 
             {/* ════════════════════════════════════════════════════════
                 INCOMING CALL POPUP - Shows when someone calls you
