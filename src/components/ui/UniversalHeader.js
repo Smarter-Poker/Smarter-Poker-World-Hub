@@ -341,6 +341,7 @@ export default function UniversalHeader({
                 .header-right {
                     display: flex;
                     align-items: center;
+                    align-self: center;
                     gap: 8px;
                     flex-shrink: 0;
                     flex-grow: 1;
@@ -603,10 +604,12 @@ export default function UniversalHeader({
                         </div>
                     </Link>
 
-                    {/* Notifications */}
+                    {/* Notifications - SVG bell matching message size */}
                     <Link href="/hub/notifications" style={{ background: 'none', border: 'none', padding: 0, textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            🔔
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="#FFD700">
+                                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+                            </svg>
                             {notificationCount > 0 && (
                                 <span className="orb-badge">{notificationCount > 99 ? '99+' : notificationCount}</span>
                             )}
@@ -622,11 +625,6 @@ export default function UniversalHeader({
                             <div className="orb-btn">🔍</div>
                         </button>
                     )}
-
-                    {/* Settings */}
-                    <Link href="/hub/settings" style={{ textDecoration: 'none' }}>
-                        <div className="orb-btn">⚙️</div>
-                    </Link>
                 </div>
             </header>
         </>

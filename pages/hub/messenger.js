@@ -24,6 +24,7 @@ const LiveKitCall = dynamic(
 // God-Mode Stack
 import { useMessengerStore } from '../../src/stores/messengerStore';
 import { useOneSignal } from '../../src/contexts/OneSignalContext';
+import { createRingTone } from '../../src/utils/ringTone';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 COLOR PALETTE - Premium Poker Theme
@@ -997,7 +998,8 @@ export default function MessengerPage() {
     const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
     const [callingUser, setCallingUser] = useState(null); // Track who we're calling
     const incomingCallAudioRef = useRef(null);
-    const outgoingCallAudioRef = useRef(null); // Ringing sound when YOU make a call
+    const outgoingCallAudioRef = useRef(null); // Backup audio element
+    const outgoingRingToneRef = useRef(null); // Web Audio API ring tone (more reliable)
     const callTimeoutRef = useRef(null);
 
     // OneSignal Push Notifications
@@ -2036,10 +2038,13 @@ export default function MessengerPage() {
                 src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleR0tRXFuYz0mFTNNaWxofmh+YKStoJd/aGtbL09OYUFRYWOHeoKK"
             />
 
-            {/* Outgoing Ring Audio - plays while calling (USA phone ring tone) */}
+
+            {/* Outgoing Ring Audio - plays while calling */}
+            {/* Using a reliable CDN source for phone ring tone */}
             <audio
                 ref={outgoingCallAudioRef}
-                src="https://cdn.pixabay.com/audio/2022/03/24/audio_d1718ab41b.mp3"
+                src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+                preload="auto"
             />
 
             {/* ════════════════════════════════════════════════════════
