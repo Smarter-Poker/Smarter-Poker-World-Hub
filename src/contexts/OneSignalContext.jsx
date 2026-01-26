@@ -146,34 +146,37 @@ export function OneSignalProvider({ children }) {
     };
 
     // Set external user ID (links to your database user)
+    // Uses server-side API because OneSignal.login() JS SDK is broken
     const setExternalUserId = async (userId) => {
         if (!isInitialized) return false;
         if (!userId) {
             console.warn('[OneSignal] setExternalUserId called without userId');
             return false;
         }
+        if (!playerId) {
+            console.warn('[OneSignal] setExternalUserId called without playerId - user may not be subscribed');
+            return false;
+        }
 
         try {
-            const OneSignal = (await import('react-onesignal')).default;
+            console.log('[OneSignal] Linking user ID via API:', userId, 'playerId:', playerId);
 
-            console.log('[OneSignal] Linking user ID:', userId);
+            // Call server-side API to link user (bypasses broken JS SDK)
+            const response = await fetch('/api/notifications/link-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ playerId, userId }),
+            });
 
-            // Try login first (preferred method for OneSignal v16+)
-            try {
-                await OneSignal.login(userId);
-                console.log('[OneSignal] login() successful for:', userId);
-            } catch (loginError) {
-                console.warn('[OneSignal] login() failed, trying addAlias:', loginError);
-                // Fallback: try adding external_id alias
-                try {
-                    await OneSignal.User.addAlias('external_id', userId);
-                    console.log('[OneSignal] addAlias() successful for:', userId);
-                } catch (aliasError) {
-                    console.error('[OneSignal] addAlias() also failed:', aliasError);
-                }
+            const result = await response.json();
+
+            if (result.success) {
+                console.log('[OneSignal] User linked successfully via API');
+                return true;
+            } else {
+                console.error('[OneSignal] API link failed:', result);
+                return false;
             }
-
-            return true;
         } catch (error) {
             console.error('[OneSignal] setExternalUserId error:', error);
             return false;
