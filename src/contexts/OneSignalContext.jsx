@@ -29,6 +29,23 @@ export function OneSignalProvider({ children }) {
                         enable: false, // We'll use our own UI
                     },
                     serviceWorkerPath: '/OneSignalSDKWorker.js',
+                    promptOptions: {
+                        slidedown: {
+                            prompts: [{
+                                type: 'push',
+                                autoPrompt: true,
+                                text: {
+                                    actionMessage: 'Allow Notifications',
+                                    acceptButton: 'Allow',
+                                    cancelButton: 'Later',
+                                },
+                                delay: {
+                                    pageViews: 1,
+                                    timeDelay: 3,
+                                },
+                            }],
+                        },
+                    },
                 });
 
                 setIsInitialized(true);
