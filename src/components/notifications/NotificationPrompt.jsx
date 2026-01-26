@@ -67,16 +67,15 @@ export default function NotificationPrompt({ userId, onDismiss }) {
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 9999,
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-            border: '1px solid rgba(0, 212, 255, 0.3)',
-            borderRadius: 16,
-            padding: '16px 24px',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.5), 0 0 20px rgba(0,212,255,0.1)',
+            background: 'rgba(20, 25, 40, 0.95)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 12,
+            padding: '12px 20px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
             display: 'flex',
             alignItems: 'center',
             gap: 16,
-            maxWidth: '90vw',
-            width: 'fit-content',
             animation: 'slideUp 0.3s ease-out',
         }}>
             <style>{`
@@ -86,63 +85,47 @@ export default function NotificationPrompt({ userId, onDismiss }) {
                 }
             `}</style>
 
-            {/* Icon */}
-            <div style={{ fontSize: 32 }}>🔔</div>
-
             {/* Text */}
-            <div style={{ flex: 1 }}>
-                <div style={{
-                    color: 'white',
-                    fontWeight: 600,
-                    fontSize: 15,
-                    marginBottom: 4,
-                }}>
-                    Enable Push Notifications
-                </div>
-                <div style={{
-                    color: 'rgba(255,255,255,0.6)',
-                    fontSize: 13,
-                }}>
-                    Get alerts for messages, calls & tournaments
-                </div>
+            <div style={{
+                color: 'white',
+                fontSize: 14,
+                fontWeight: 500,
+            }}>
+                🔔 Allow Notifications?
             </div>
 
-            {/* Buttons */}
+            {/* Yes/No Buttons */}
             <div style={{ display: 'flex', gap: 8 }}>
                 <button
                     onClick={handleDismiss}
                     style={{
-                        padding: '8px 16px',
+                        padding: '6px 16px',
                         background: 'rgba(255,255,255,0.1)',
                         border: 'none',
-                        borderRadius: 8,
+                        borderRadius: 6,
                         color: 'rgba(255,255,255,0.7)',
                         fontSize: 13,
                         cursor: 'pointer',
+                        fontWeight: 500,
                     }}
                 >
-                    Not now
+                    No
                 </button>
                 <button
                     onClick={handleEnable}
                     disabled={loading}
                     style={{
-                        padding: '8px 20px',
-                        background: loading
-                            ? 'rgba(0,212,255,0.5)'
-                            : 'linear-gradient(135deg, #00D4FF 0%, #0084FF 100%)',
+                        padding: '6px 16px',
+                        background: loading ? 'rgba(0,150,255,0.5)' : '#0096FF',
                         border: 'none',
-                        borderRadius: 8,
+                        borderRadius: 6,
                         color: 'white',
                         fontSize: 13,
                         fontWeight: 600,
                         cursor: loading ? 'wait' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
                     }}
                 >
-                    {loading ? 'Enabling...' : 'Enable'}
+                    {loading ? '...' : 'Yes'}
                 </button>
             </div>
         </div>
