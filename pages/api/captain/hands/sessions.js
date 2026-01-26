@@ -1,0 +1,112 @@
+/**
+ * Player Hand History Sessions API
+ * GET /api/captain/hands/sessions
+ * Returns sessions where player has hand history
+ */
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({
+      success: false,
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
+    });
+  }
+
+  // Require authentication
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({
+      success: false,
+      error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
+    });
+  }
+
+  try {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Invalid token' }
+      });
+    }
+
+    // Get games where player participated and has hand history
+    const { data: sessions, error } = await supabase
+      .from('captain_games')
+      .select(`
+        id,
+        table_id,
+        game_type,
+        stakes,
+        started_at,
+        ended_at,
+        captain_tables!inner(
+          id,
+          table_number,
+          venue_id,
+          poker_venues(id, name)
+        )
+      `)
+      .eq('status', 'completed')
+      .order('started_at', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error('Sessions error:', error);
+      throw error;
+    }
+
+    // Get hand counts for each game
+    const gameIds = sessions?.map(s => s.id) || [];
+
+    const { data: handCounts } = await supabase
+      .from('captain_hand_history')
+      .select('game_id')
+      .in('game_id', gameIds);
+
+    const countMap = {};
+    handCounts?.forEach(h => {
+      countMap[h.game_id] = (countMap[h.game_id] || 0) + 1;
+    });
+
+    // Format response
+    const formattedSessions = sessions
+      ?.filter(s => countMap[s.id] > 0)
+      .map(session => {
+        const duration = session.ended_at && session.started_at
+          ? Math.round((new Date(session.ended_at) - new Date(session.started_at)) / 3600000)
+          : 0;
+
+        return {
+          id: session.id,
+          game_id: session.id,
+          venue_name: session.captain_tables?.poker_venues?.name || 'Unknown Venue',
+          game_type: `${session.stakes || ''} ${session.game_type || 'NLH'}`.trim(),
+          hands_played: countMap[session.id] || 0,
+          profit: 0, // Would need session tracking for actual profit
+          duration_hours: duration,
+          date: session.started_at
+        };
+      }) || [];
+
+    return res.status(200).json({
+      success: true,
+      data: { sessions: formattedSessions }
+    });
+
+  } catch (error) {
+    console.error('Sessions API error:', error);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to fetch sessions' }
+    });
+  }
+}
