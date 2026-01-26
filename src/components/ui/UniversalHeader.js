@@ -341,8 +341,10 @@ export default function UniversalHeader({
                 .header-right {
                     display: flex;
                     align-items: center;
-                    gap: 6px;
+                    gap: 8px;
                     flex-shrink: 0;
+                    flex-grow: 1;
+                    justify-content: flex-end;
                 }
                 
                 .nav-btn {
@@ -443,55 +445,63 @@ export default function UniversalHeader({
                     background-position: center;
                 }
                 
-                /* MOBILE: ALL icons visible, just smaller and more compact */
+                /* MOBILE: Compact layout with all icons visible */
                 @media (max-width: 600px) {
                     .universal-header {
-                        padding: 4px 6px;
-                        gap: 2px;
+                        padding: 6px 10px;
+                        gap: 6px;
                     }
                     
-                    .header-left, .header-center, .header-right {
-                        gap: 3px;
+                    .header-left {
+                        gap: 4px;
+                    }
+                    
+                    .header-center {
+                        gap: 6px;
+                        flex-shrink: 0;
+                    }
+                    
+                    .header-right {
+                        gap: 8px;
+                        flex-grow: 1;
+                        justify-content: flex-end;
                     }
                     
                     .brand-text {
-                        display: none; /* Hide brand text on mobile to save space */
+                        display: none; /* Hide brand text on mobile */
                     }
                     
+                    /* BIGGER Hub button with text visible */
                     .nav-btn {
-                        padding: 8px 12px;
+                        padding: 10px 14px;
                         font-size: 14px;
-                        gap: 2px;
+                        font-weight: 700;
+                        gap: 4px;
+                        border-radius: 8px;
                     }
                     
+                    /* SHOW the Hub/Back text on mobile */
                     .nav-btn span:last-child {
-                        display: none; /* Hide "Hub"/"Back" text, just arrow */
+                        display: inline; /* Keep Hub/Back text visible */
                     }
                     
-                    .diamond-wallet {
+                    /* Diamond and XP boxes - SAME SIZE */
+                    .diamond-wallet, .xp-display {
+                        min-width: 65px;
+                        height: 36px;
                         padding: 4px 8px;
-                        font-size: 11px;
-                        gap: 2px;
-                        min-width: 60px;
-                        height: 32px;
-                    }
-                    
-                    .xp-display {
-                        padding: 3px 8px;
-                        font-size: 9px;
-                        min-width: 50px;
-                        height: 32px;
+                        font-size: 10px;
                     }
                     
                     .hide-mobile {
                         display: none !important;
                     }
                     
-                    /* ALL orbs visible, just smaller */
+                    /* Bigger icons on mobile for touch */
                     .orb-btn, .profile-orb {
-                        width: 26px;
-                        height: 26px;
-                        font-size: 12px;
+                        width: 32px;
+                        height: 32px;
+                        font-size: 14px;
                     }
                     
                     .orb-badge {

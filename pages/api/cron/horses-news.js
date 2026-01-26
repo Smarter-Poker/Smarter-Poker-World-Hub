@@ -23,7 +23,15 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABAS
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const rssParser = new Parser();
+
+// Configure RSS Parser with realistic User-Agent to avoid 403 blocks
+const rssParser = new Parser({
+    headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+    },
+    timeout: 10000
+});
 
 const CONFIG = {
     HORSES_PER_TRIGGER: 2,
@@ -31,18 +39,18 @@ const CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// POKER NEWS RSS FEEDS
+// POKER NEWS RSS FEEDS - Updated with working endpoints
 // ═══════════════════════════════════════════════════════════════════════════
 const NEWS_SOURCES = [
     {
         name: 'PokerNews',
-        rss: 'https://www.pokernews.com/news.rss',
+        rss: 'https://www.pokernews.com/rss.php?sub=news',
         icon: '🃏',
         categories: ['tournaments', 'strategy', 'industry', 'lifestyle']
     },
     {
         name: 'CardPlayer',
-        rss: 'https://www.cardplayer.com/poker-news/rss',
+        rss: 'https://www.cardplayer.com/poker-news.rss',
         icon: '♠️',
         categories: ['tournaments', 'results', 'industry']
     },
@@ -54,7 +62,7 @@ const NEWS_SOURCES = [
     },
     {
         name: 'Poker.org',
-        rss: 'https://www.poker.org/feed/',
+        rss: 'https://poker.org/feed/',
         icon: '♦️',
         categories: ['news', 'legal', 'industry']
     }
