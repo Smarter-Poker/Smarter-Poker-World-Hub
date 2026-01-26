@@ -43,6 +43,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Chrome for Puppeteer
+        run: |
+          echo "Installing Chrome for headless scraping..."
+          npx puppeteer browsers install chrome
+          echo "Chrome installed successfully"
+
       - name: Sync Verified URLs to Database
         if: ${{ github.event_name == 'schedule' || github.event.inputs.mode != 'setup-only' }}
         env:
@@ -66,10 +72,10 @@ jobs:
           echo "POKERATLAS DAILY TOURNAMENT SCRAPER"
           echo "Source: data/tournament-venues.json (178 verified venues)"
           echo "Target: venue_daily_tournaments table"
+          echo "Using: Puppeteer + Stealth Plugin (Cloudflare bypass)"
           echo "=========================================="
           echo ""
-          # Try HTTP scraper first (lighter, no Chrome needed)
-          node scripts/pokeratlas-http-scraper.js || node scripts/pokeratlas-daily-scraper.js
+          node scripts/run-full-pipeline.js --scrape-only
 
       - name: Run PokerAtlas Daily Scraper (Manual)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'pokeratlas-daily' }}
@@ -79,8 +85,9 @@ jobs:
         run: |
           echo "=========================================="
           echo "POKERATLAS DAILY TOURNAMENT SCRAPER"
+          echo "Using: Puppeteer + Stealth Plugin"
           echo "=========================================="
-          node scripts/pokeratlas-http-scraper.js ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
+          node scripts/run-full-pipeline.js --scrape-only ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
 
       - name: Run Full Pipeline (Manual - Full)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full' }}
