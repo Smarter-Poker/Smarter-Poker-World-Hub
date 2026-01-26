@@ -27,8 +27,27 @@ export default function ClubArenaPage() {
     const [authSent, setAuthSent] = useState(false);
 
     // ══════════════════════════════════════════════════════════════════════════
-    // SSO HANDSHAKE — Send auth token to Club Arena iframe with retry
+    // SSO HANDSHAKE — Send auth token to Club Arena iframe
     // ══════════════════════════════════════════════════════════════════════════
+
+    // Helper to get session from localStorage (bypasses getSession() AbortError issues)
+    const getSessionFromStorage = () => {
+        try {
+            const stored = localStorage.getItem('smarter-poker-auth');
+            if (!stored) return null;
+            const data = JSON.parse(stored);
+            if (data?.access_token && data?.refresh_token) {
+                return {
+                    access_token: data.access_token,
+                    refresh_token: data.refresh_token,
+                };
+            }
+            return null;
+        } catch (err) {
+            console.error('[SSO-PARENT] Error reading localStorage:', err);
+            return null;
+        }
+    };
 
     // Poll and send auth token until successful
     useEffect(() => {
@@ -39,36 +58,28 @@ export default function ClubArenaPage() {
         let attempts = 0;
         const maxAttempts = 10;
 
-        const tryToSendAuth = async () => {
+        const tryToSendAuth = () => {
             if (authSent || attempts >= maxAttempts) return;
             attempts++;
 
             console.log(`[SSO-PARENT] Attempt ${attempts} to send auth token`);
 
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                console.log('[SSO-PARENT] Session found:', !!session);
+            const session = getSessionFromStorage();
+            console.log('[SSO-PARENT] Session from localStorage:', !!session);
 
-                if (session && iframeRef.current?.contentWindow) {
-                    iframeRef.current.contentWindow.postMessage({
-                        type: 'SMARTER_POKER_AUTH',
-                        payload: {
-                            access_token: session.access_token,
-                            refresh_token: session.refresh_token,
-                        }
-                    }, 'https://club.smarter.poker');
-                    console.log('[SSO-PARENT] ✅ Auth token sent to Club Arena!');
-                    setAuthSent(true);
-                } else if (attempts < maxAttempts) {
-                    // Retry after delay
-                    setTimeout(tryToSendAuth, 500);
-                }
-            } catch (err) {
-                console.error('[SSO-PARENT] Error getting session:', err);
+            if (session && iframeRef.current?.contentWindow) {
+                iframeRef.current.contentWindow.postMessage({
+                    type: 'SMARTER_POKER_AUTH',
+                    payload: session
+                }, 'https://club.smarter.poker');
+                console.log('[SSO-PARENT] ✅ Auth token sent to Club Arena!');
+                setAuthSent(true);
+            } else if (attempts < maxAttempts) {
+                setTimeout(tryToSendAuth, 500);
             }
         };
 
-        // Start after a small delay to ensure iframe is ready
+        // Start after a small delay
         setTimeout(tryToSendAuth, 300);
     }, [iframeLoaded, authSent]);
 
@@ -76,24 +87,23 @@ export default function ClubArenaPage() {
     useEffect(() => {
         console.log('[SSO-PARENT] Message listener mounted');
 
-        const handleMessage = async (event) => {
+        const handleMessage = (event) => {
             console.log('[SSO-PARENT] Received message from:', event.origin, event.data?.type);
 
             if (event.origin !== 'https://club.smarter.poker') return;
 
             if (event.data?.type === 'CLUB_ARENA_READY' && iframeRef.current) {
                 console.log('[SSO-PARENT] CLUB_ARENA_READY received, sending auth...');
-                const { data: { session } } = await supabase.auth.getSession();
+                const session = getSessionFromStorage();
                 if (session) {
                     iframeRef.current.contentWindow?.postMessage({
                         type: 'SMARTER_POKER_AUTH',
-                        payload: {
-                            access_token: session.access_token,
-                            refresh_token: session.refresh_token,
-                        }
+                        payload: session
                     }, 'https://club.smarter.poker');
                     console.log('[SSO-PARENT] ✅ Responded to CLUB_ARENA_READY');
                     setAuthSent(true);
+                } else {
+                    console.log('[SSO-PARENT] ⚠️ No session in localStorage');
                 }
             }
         };

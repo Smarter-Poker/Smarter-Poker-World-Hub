@@ -1499,25 +1499,39 @@ export default function SocialMediaPage() {
                 // NEW APPROACH: Read session directly from localStorage to bypass AbortError
                 let authUser = null;
 
-                // Find the Supabase auth token in localStorage
-                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                console.log('[Social] Looking for auth token, found keys:', sbKeys);
-
-                if (sbKeys.length > 0) {
+                // PRIMARY: Check explicit smarter-poker-auth key (new auth system)
+                const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                if (explicitAuth) {
                     try {
-                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        const tokenData = JSON.parse(explicitAuth);
                         if (tokenData?.user) {
                             authUser = tokenData.user;
-                            console.log('[Social] ✅ Got user from localStorage:', authUser.email);
-                            // Note: We don't call setSession here as it can cause AbortError
-                            // The user data from localStorage is sufficient for displaying the UI
+                            console.log('[Social] ✅ Got user from smarter-poker-auth:', authUser.email);
                         }
                     } catch (parseError) {
-                        console.error('[Social] Failed to parse token:', parseError);
+                        console.error('[Social] Failed to parse smarter-poker-auth:', parseError);
                     }
                 }
 
-                // Fallback: try getSession if localStorage approach failed
+                // FALLBACK: Legacy sb-*-auth-token keys (backwards compatibility)
+                if (!authUser) {
+                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    console.log('[Social] Looking for legacy auth token, found keys:', sbKeys);
+
+                    if (sbKeys.length > 0) {
+                        try {
+                            const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                            if (tokenData?.user) {
+                                authUser = tokenData.user;
+                                console.log('[Social] ✅ Got user from legacy localStorage:', authUser.email);
+                            }
+                        } catch (parseError) {
+                            console.error('[Social] Failed to parse legacy token:', parseError);
+                        }
+                    }
+                }
+
+                // Final fallback: try getSession if localStorage approach failed
                 if (!authUser) {
                     console.log('[Social] No user from localStorage, trying getSession...');
                     try {
@@ -1673,10 +1687,19 @@ export default function SocialMediaPage() {
             // Read user from localStorage to avoid getSession AbortError
             let authUser = null;
             try {
-                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                if (sbKeys.length > 0) {
-                    const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                // PRIMARY: Check smarter-poker-auth key first  
+                const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                if (explicitAuth) {
+                    const tokenData = JSON.parse(explicitAuth);
                     authUser = tokenData?.user || null;
+                }
+                // FALLBACK: Legacy sb-* keys
+                if (!authUser) {
+                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    if (sbKeys.length > 0) {
+                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        authUser = tokenData?.user || null;
+                    }
                 }
             } catch (e) { /* ignore parse errors */ }
 
