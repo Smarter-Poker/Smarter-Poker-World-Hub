@@ -293,8 +293,8 @@ export default function DiamondArcade() {
                         0%, 100% { box-shadow: inset 0 0 20px rgba(251, 191, 36, 0.3), 0 0 20px rgba(251, 191, 36, 0.2); }
                         50% { box-shadow: inset 0 0 30px rgba(251, 191, 36, 0.5), 0 0 30px rgba(251, 191, 36, 0.4); }
                     }
-                    .arcade-container { width: 800px; max-width: 800px; margin: 0 auto; }
-                    @media (max-width: 500px) { .arcade-container { zoom: 0.5; } }
+                    .arcade-container { width: 100%; max-width: 100%; margin: 0 auto; }
+                    
                     @media (min-width: 501px) and (max-width: 700px) { .arcade-container { zoom: 0.7; } }
                     @media (min-width: 701px) and (max-width: 900px) { .arcade-container { zoom: 0.9; } }
                     @media (min-width: 901px) { .arcade-container { zoom: 1.1; } }

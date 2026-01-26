@@ -114,17 +114,17 @@ export default function TriviaHubPage() {
                     background: linear-gradient(135deg, #0a1628 0%, #1a2744 50%, #0f1d32 100%);
                     font-family: 'Inter', -apple-system, sans-serif;
                     position: relative;
-                    width: 800px;
-                    max-width: 800px;
+                    width: 100%;
+                    max-width: 100%;
                     margin: 0 auto;
                     overflow-x: hidden;
                 }
 
-                @media (max-width: 500px) { .trivia-page { zoom: 0.5; } }
-                @media (min-width: 501px) and (max-width: 700px) { .trivia-page { zoom: 0.75; } }
-                @media (min-width: 701px) and (max-width: 900px) { .trivia-page { zoom: 0.95; } }
-                @media (min-width: 901px) { .trivia-page { zoom: 1.2; } }
-                @media (min-width: 1400px) { .trivia-page { zoom: 1.5; } }
+                
+                
+                
+                
+                
 
                 .bg-overlay {
                     position: fixed;

@@ -851,12 +851,12 @@ export default function VirtualSandboxPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
         <style>{`
-          .sandbox-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
-          @media (max-width: 500px) { .sandbox-page { zoom: 0.5; } }
-          @media (min-width: 501px) and (max-width: 700px) { .sandbox-page { zoom: 0.75; } }
-          @media (min-width: 701px) and (max-width: 900px) { .sandbox-page { zoom: 0.95; } }
-          @media (min-width: 901px) { .sandbox-page { zoom: 1.2; } }
-          @media (min-width: 1400px) { .sandbox-page { zoom: 1.5; } }
+          .sandbox-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
+          
+          
+          
+          
+          
         `}</style>
       </Head>
 

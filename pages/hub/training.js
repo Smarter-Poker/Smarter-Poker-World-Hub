@@ -637,39 +637,13 @@ export default function TrainingPage() {
                     ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
                     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
                     
-                    /* ═══════════════════════════════════════════════════════════════════
-                       SMARTER.POKER 800px DESIGN - Fixed breakpoints for stability
-                       ═══════════════════════════════════════════════════════════════════ */
+                    /* MOBILE RESPONSIVE - No zoom scaling */
                     .training-page {
-                        width: 800px;
-                        max-width: 800px;
+                        width: 100%;
+                        max-width: 100%;
                         margin: 0 auto;
                         overflow-x: hidden;
-                    }
-                    
-                    /* Mobile phones (390-450px) - zoom to ~50% */
-                    @media (max-width: 500px) {
-                        .training-page { zoom: 0.5; }
-                    }
-                    
-                    /* Large phones / small tablets (501-700px) */
-                    @media (min-width: 501px) and (max-width: 700px) {
-                        .training-page { zoom: 0.75; }
-                    }
-                    
-                    /* Tablets (701-900px) */
-                    @media (min-width: 701px) and (max-width: 900px) {
-                        .training-page { zoom: 0.95; }
-                    }
-                    
-                    /* Desktop (901px+) - native size or slight scale up */
-                    @media (min-width: 901px) {
-                        .training-page { zoom: 1.2; }
-                    }
-                    
-                    /* Large desktop (1400px+) - cap at 1.5x */
-                    @media (min-width: 1400px) {
-                        .training-page { zoom: 1.5; }
+                        box-sizing: border-box;
                     }
                 `}</style>
             </Head>

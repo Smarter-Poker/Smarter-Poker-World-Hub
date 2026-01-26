@@ -449,12 +449,12 @@ export default function UserProfilePage() {
                 <title>{displayName} | Smarter.Poker</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
-                    .fb-profile-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
-                    @media (max-width: 500px) { .fb-profile-page { zoom: 0.5; } }
-                    @media (min-width: 501px) and (max-width: 700px) { .fb-profile-page { zoom: 0.75; } }
-                    @media (min-width: 701px) and (max-width: 900px) { .fb-profile-page { zoom: 0.95; } }
-                    @media (min-width: 901px) { .fb-profile-page { zoom: 1.2; } }
-                    @media (min-width: 1400px) { .fb-profile-page { zoom: 1.5; } }
+                    .fb-profile-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
+                    
+                    
+                    
+                    
+                    
                 `}</style>
             </Head>
 
