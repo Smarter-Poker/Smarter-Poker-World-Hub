@@ -840,13 +840,15 @@ export default function WorldHub() {
                         <div
                             style={{
                                 position: 'absolute',
-                                bottom: 64,
+                                bottom: 80,
                                 left: 32,
                                 right: 32,
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'flex-end',
                                 gap: 16,
+                                overflow: 'visible',
+                                paddingBottom: 20,
                             }}
                         >
                             {footerCards.map((orb, index) => (
