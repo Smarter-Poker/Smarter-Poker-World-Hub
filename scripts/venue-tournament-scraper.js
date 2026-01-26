@@ -2,27 +2,32 @@
 /**
  * Venue Daily Tournament Scraper
  *
- * Scrapes daily/nightly tournament schedules from 777 poker venues
- * Primary source: PokerAtlas.com
+ * Scrapes daily/nightly tournament schedules from 483 poker venues
+ *
+ * Sources:
+ *   - PokerAtlas (364 venues) - primary source with stored URLs
+ *   - Direct venue websites (46 venues) - fallback for non-PokerAtlas
+ *   - Manual (73 venues) - no auto-scraping available
  *
  * Usage:
  *   node scripts/venue-tournament-scraper.js                  # Scrape all venues
  *   node scripts/venue-tournament-scraper.js --state NV       # Scrape Nevada only
  *   node scripts/venue-tournament-scraper.js --venue "Bellagio" # Single venue
  *   node scripts/venue-tournament-scraper.js --limit 50       # First 50 venues
+ *   node scripts/venue-tournament-scraper.js --source pokeratlas # Only PokerAtlas venues
+ *   node scripts/venue-tournament-scraper.js --force          # Re-scrape even if recent
  *
  * Schedule: Run daily via GitHub Actions at 4am UTC
  */
 
 const { createClient } = require('@supabase/supabase-js');
 const https = require('https');
+const http = require('http');
 
 // Load environment variables
 require('dotenv').config({ path: '.env.local' });
 
-const POKERATLAS_BASE = 'https://www.pokeratlas.com/poker-room';
-
-// Rate limiting: 1 request per 2 seconds to be respectful
+// Rate limiting: 2 seconds between requests
 const RATE_LIMIT_MS = 2000;
 
 class VenueTournamentScraper {
@@ -37,7 +42,12 @@ class VenueTournamentScraper {
             tournamentsFound: 0,
             tournamentsInserted: 0,
             errors: [],
-            skipped: 0
+            skipped: 0,
+            bySource: {
+                pokeratlas: { processed: 0, found: 0 },
+                direct_website: { processed: 0, found: 0 },
+                manual: { skipped: 0 }
+            }
         };
     }
 
@@ -45,17 +55,25 @@ class VenueTournamentScraper {
      * Fetch HTML from URL with retry logic
      */
     async fetchUrl(url, retries = 3) {
+        const protocol = url.startsWith('https') ? https : http;
+
         return new Promise((resolve, reject) => {
-            const request = https.get(url, {
+            const request = protocol.get(url, {
                 headers: {
-                    'User-Agent': 'SmarterPoker/1.0 (Tournament Aggregator; contact@smarter.poker)',
-                    'Accept': 'text/html,application/xhtml+xml',
-                    'Accept-Language': 'en-US,en;q=0.9'
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Accept-Encoding': 'identity'
                 }
             }, (response) => {
                 // Handle redirects
                 if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-                    return this.fetchUrl(response.headers.location, retries).then(resolve).catch(reject);
+                    let redirectUrl = response.headers.location;
+                    if (!redirectUrl.startsWith('http')) {
+                        const urlObj = new URL(url);
+                        redirectUrl = `${urlObj.protocol}//${urlObj.host}${redirectUrl}`;
+                    }
+                    return this.fetchUrl(redirectUrl, retries).then(resolve).catch(reject);
                 }
 
                 if (response.statusCode !== 200) {
@@ -77,7 +95,7 @@ class VenueTournamentScraper {
                 }
             });
 
-            request.setTimeout(10000, () => {
+            request.setTimeout(15000, () => {
                 request.destroy();
                 reject(new Error('Timeout'));
             });
@@ -86,107 +104,219 @@ class VenueTournamentScraper {
 
     /**
      * Parse PokerAtlas tournament schedule HTML
-     * Returns array of daily tournament objects
      */
-    parseTournamentSchedule(html, venueName) {
+    parsePokerAtlasTournaments(html, venueName) {
         const tournaments = [];
 
-        // PokerAtlas uses structured tables for tournament schedules
-        // Pattern: <tr> with tournament data in <td> cells
+        // PokerAtlas tournament page structure:
+        // Look for tournament schedule tables and rows
 
-        // Match tournament rows - look for buy-in patterns
-        const buyinPattern = /\$(\d{1,3}(?:,\d{3})*)/g;
-        const timePattern = /(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm))/gi;
-        const dayPattern = /(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Daily)/gi;
-        const guaranteePattern = /(?:GTD|Guaranteed)[:\s]*\$?([\d,]+)/gi;
-
-        // Split by table rows
+        // Common patterns for tournament data
         const rows = html.split(/<tr[^>]*>/gi);
 
         for (const row of rows) {
+            // Skip rows without dollar amounts (not tournament data)
+            if (!row.includes('$')) continue;
+
             // Skip header rows
-            if (row.includes('<th') || !row.includes('$')) continue;
+            if (row.includes('<th')) continue;
 
-            // Extract cells
-            const cellMatches = row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || [];
-            if (cellMatches.length < 3) continue;
+            // Extract cell contents
+            const cells = [];
+            const cellMatches = row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi);
+            for (const match of cellMatches) {
+                cells.push(match[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+            }
 
-            const cellText = cellMatches.map(cell =>
-                cell.replace(/<[^>]+>/g, '').trim()
-            );
+            if (cells.length < 2) continue;
 
-            // Try to extract tournament data
-            const timeMatch = row.match(timePattern);
-            const buyinMatch = row.match(buyinPattern);
-            const dayMatch = row.match(dayPattern);
-            const gtdMatch = row.match(guaranteePattern);
+            // Try to parse tournament info
+            const fullText = cells.join(' ');
 
-            if (timeMatch && buyinMatch) {
-                const buyinStr = buyinMatch[0].replace(/[$,]/g, '');
-                const buyin = parseInt(buyinStr);
+            // Extract buy-in (required)
+            const buyinMatch = fullText.match(/\$(\d{1,3}(?:,\d{3})*)/);
+            if (!buyinMatch) continue;
 
-                if (buyin > 0 && buyin < 100000) { // Sanity check
-                    const tournament = {
-                        venue_name: venueName,
-                        start_time: timeMatch[0].toUpperCase(),
-                        buy_in: buyin,
-                        day_of_week: dayMatch ? dayMatch[0] : 'Daily',
-                        game_type: row.toLowerCase().includes('plo') ? 'PLO' :
-                                  row.toLowerCase().includes('omaha') ? 'Omaha' : 'NLH',
-                        guaranteed: gtdMatch ? parseInt(gtdMatch[1].replace(/,/g, '')) : null,
-                        tournament_name: this.extractTournamentName(cellText)
-                    };
+            const buyin = parseInt(buyinMatch[1].replace(/,/g, ''));
+            if (buyin < 10 || buyin > 50000) continue; // Sanity check
 
-                    tournaments.push(tournament);
+            // Extract time
+            const timeMatch = fullText.match(/(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)/i);
+            const startTime = timeMatch ? timeMatch[1].toUpperCase().replace(/\s/g, '') : null;
+            if (!startTime) continue;
+
+            // Extract day of week
+            const dayMatch = fullText.match(/(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun|Daily)/i);
+            let dayOfWeek = 'Daily';
+            if (dayMatch) {
+                const dayMap = {
+                    'mon': 'Monday', 'tue': 'Tuesday', 'wed': 'Wednesday',
+                    'thu': 'Thursday', 'fri': 'Friday', 'sat': 'Saturday', 'sun': 'Sunday'
+                };
+                dayOfWeek = dayMap[dayMatch[1].toLowerCase().substring(0, 3)] || dayMatch[1];
+            }
+
+            // Extract guarantee
+            const gtdMatch = fullText.match(/(?:GTD|Guaranteed|G\s*=)[:\s]*\$?([\d,]+)/i);
+            const guaranteed = gtdMatch ? parseInt(gtdMatch[1].replace(/,/g, '')) : null;
+
+            // Extract game type
+            let gameType = 'NLH';
+            if (/\bPLO\b/i.test(fullText)) gameType = 'PLO';
+            else if (/\bOmaha\b/i.test(fullText)) gameType = 'Omaha';
+            else if (/\bLimit\b/i.test(fullText) && !/No.?Limit/i.test(fullText)) gameType = 'Limit';
+
+            // Extract format
+            let format = null;
+            if (/turbo/i.test(fullText)) format = 'Turbo';
+            else if (/deep\s*stack/i.test(fullText)) format = 'Deep Stack';
+            else if (/bounty|knockout/i.test(fullText)) format = 'Bounty';
+            else if (/rebuy/i.test(fullText)) format = 'Rebuy';
+
+            // Extract tournament name (first non-numeric cell or descriptive text)
+            let tournamentName = null;
+            for (const cell of cells) {
+                if (cell.length > 5 &&
+                    !/^\$?\d/.test(cell) &&
+                    !/^\d{1,2}:\d{2}/.test(cell) &&
+                    !/(Mon|Tue|Wed|Thu|Fri|Sat|Sun|Daily)/i.test(cell)) {
+                    tournamentName = cell.substring(0, 100);
+                    break;
                 }
             }
+
+            tournaments.push({
+                venue_name: venueName,
+                day_of_week: dayOfWeek,
+                start_time: startTime,
+                buy_in: buyin,
+                game_type: gameType,
+                format: format,
+                guaranteed: guaranteed,
+                tournament_name: tournamentName
+            });
         }
 
-        return tournaments;
+        // Dedupe by day/time/buyin
+        const seen = new Set();
+        return tournaments.filter(t => {
+            const key = `${t.day_of_week}-${t.start_time}-${t.buy_in}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
     }
 
     /**
-     * Extract tournament name from cell text
+     * Parse generic venue website for tournaments
+     * This is a best-effort parser for various website formats
      */
-    extractTournamentName(cells) {
-        // Look for descriptive text that's not just a number or time
-        for (const cell of cells) {
-            if (cell.length > 5 &&
-                !cell.match(/^\$?\d/) &&
-                !cell.match(/^\d{1,2}:\d{2}/) &&
-                !cell.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/i)) {
-                return cell.substring(0, 100); // Limit length
-            }
+    parseDirectWebsiteTournaments(html, venueName, url) {
+        const tournaments = [];
+
+        // Look for common tournament patterns in any HTML
+        const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+        // Pattern: "$XX buy-in" or "Buy-in: $XX" with time and day
+        const tournamentBlocks = text.split(/(?=\$\d)/);
+
+        for (const block of tournamentBlocks) {
+            if (block.length > 500) continue; // Skip huge blocks
+
+            const buyinMatch = block.match(/\$(\d{1,3}(?:,\d{3})*)/);
+            if (!buyinMatch) continue;
+
+            const buyin = parseInt(buyinMatch[1].replace(/,/g, ''));
+            if (buyin < 10 || buyin > 50000) continue;
+
+            const timeMatch = block.match(/(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i);
+            if (!timeMatch) continue;
+
+            const dayMatch = block.match(/(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Daily)/i);
+
+            tournaments.push({
+                venue_name: venueName,
+                day_of_week: dayMatch ? dayMatch[1] : 'Daily',
+                start_time: timeMatch[1].toUpperCase().replace(/\s/g, ''),
+                buy_in: buyin,
+                game_type: /PLO|Omaha/i.test(block) ? 'PLO' : 'NLH',
+                format: /turbo/i.test(block) ? 'Turbo' : null,
+                guaranteed: null,
+                tournament_name: null
+            });
         }
-        return null;
+
+        // Dedupe
+        const seen = new Set();
+        return tournaments.filter(t => {
+            const key = `${t.day_of_week}-${t.start_time}-${t.buy_in}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
     }
 
     /**
-     * Generate PokerAtlas URL slug from venue name
-     */
-    generateSlug(name) {
-        return name
-            .toLowerCase()
-            .replace(/['']/g, '')
-            .replace(/&/g, 'and')
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
-    }
-
-    /**
-     * Scrape a single venue
+     * Scrape a single venue based on its scrape source
      */
     async scrapeVenue(venue) {
-        const slug = venue.pokeratlas_slug || this.generateSlug(venue.name);
-        const url = `${POKERATLAS_BASE}/${slug}/tournaments`;
+        const source = venue.scrape_source || 'manual';
+
+        // Skip manual-only venues
+        if (source === 'manual' || !venue.scrape_url) {
+            console.log(`  -- Skipped (no scrape URL)`);
+            this.stats.skipped++;
+            this.stats.bySource.manual.skipped++;
+            return;
+        }
+
+        let url = venue.scrape_url;
+        let tournaments = [];
 
         try {
-            console.log(`  📡 Fetching: ${url}`);
-            const html = await this.fetchUrl(url);
+            if (source === 'pokeratlas') {
+                // PokerAtlas: append /tournaments to get schedule page
+                url = venue.pokeratlas_url || venue.scrape_url;
+                if (!url.endsWith('/tournaments')) {
+                    url = url.replace(/\/$/, '') + '/tournaments';
+                }
 
-            const tournaments = this.parseTournamentSchedule(html, venue.name);
+                console.log(`  [PokerAtlas] ${url}`);
+                const html = await this.fetchUrl(url);
+                tournaments = this.parsePokerAtlasTournaments(html, venue.name);
+                this.stats.bySource.pokeratlas.processed++;
+                this.stats.bySource.pokeratlas.found += tournaments.length;
+
+            } else if (source === 'direct_website') {
+                // Direct website scraping
+                url = venue.scrape_url;
+                if (!url.startsWith('http')) {
+                    url = 'https://' + url;
+                }
+
+                // Try common poker/tournament paths
+                const paths = ['', '/poker', '/poker/tournaments', '/tournaments', '/poker-room'];
+
+                for (const path of paths) {
+                    try {
+                        const tryUrl = url.replace(/\/$/, '') + path;
+                        console.log(`  [Direct] Trying: ${tryUrl}`);
+                        const html = await this.fetchUrl(tryUrl);
+                        tournaments = this.parseDirectWebsiteTournaments(html, venue.name, tryUrl);
+
+                        if (tournaments.length > 0) {
+                            url = tryUrl;
+                            break;
+                        }
+                    } catch (e) {
+                        // Try next path
+                    }
+                }
+
+                this.stats.bySource.direct_website.processed++;
+                this.stats.bySource.direct_website.found += tournaments.length;
+            }
+
             this.stats.tournamentsFound += tournaments.length;
 
             if (tournaments.length > 0) {
@@ -195,6 +325,7 @@ class VenueTournamentScraper {
                     tournament.venue_id = venue.id;
                     tournament.source_url = url;
                     tournament.last_scraped = new Date().toISOString();
+                    tournament.is_active = true;
 
                     const { error } = await this.supabase
                         .from('venue_daily_tournaments')
@@ -208,9 +339,9 @@ class VenueTournamentScraper {
                     }
                 }
 
-                console.log(`  ✅ Found ${tournaments.length} tournaments`);
+                console.log(`  ++ Found ${tournaments.length} tournaments`);
             } else {
-                console.log(`  ⚠️  No tournaments found (may need manual verification)`);
+                console.log(`  ?? No tournaments found`);
                 this.stats.skipped++;
             }
 
@@ -218,18 +349,15 @@ class VenueTournamentScraper {
             await this.supabase
                 .from('poker_venues')
                 .update({
-                    pokeratlas_url: url,
-                    pokeratlas_slug: slug,
                     last_scraped: new Date().toISOString(),
                     scrape_status: tournaments.length > 0 ? 'complete' : 'no_tournaments'
                 })
                 .eq('id', venue.id);
 
         } catch (error) {
-            console.log(`  ❌ Error: ${error.message}`);
-            this.stats.errors.push({ venue: venue.name, error: error.message });
+            console.log(`  !! Error: ${error.message}`);
+            this.stats.errors.push({ venue: venue.name, error: error.message, url });
 
-            // Update venue with error status
             await this.supabase
                 .from('poker_venues')
                 .update({
@@ -240,25 +368,20 @@ class VenueTournamentScraper {
         }
     }
 
-    /**
-     * Sleep helper for rate limiting
-     */
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    /**
-     * Main execution
-     */
     async run(options = {}) {
-        console.log('🎰 Venue Daily Tournament Scraper');
-        console.log(`📅 ${new Date().toISOString()}`);
-        console.log('═'.repeat(50));
+        console.log('='.repeat(60));
+        console.log('VENUE DAILY TOURNAMENT SCRAPER');
+        console.log(`Started: ${new Date().toISOString()}`);
+        console.log('='.repeat(60));
 
         // Build query
         let query = this.supabase
             .from('poker_venues')
-            .select('id, name, city, state, pokeratlas_url, pokeratlas_slug, last_scraped')
+            .select('id, name, city, state, scrape_source, scrape_url, pokeratlas_url, last_scraped')
             .eq('is_active', true)
             .order('name');
 
@@ -269,6 +392,10 @@ class VenueTournamentScraper {
 
         if (options.venue) {
             query = query.ilike('name', `%${options.venue}%`);
+        }
+
+        if (options.source) {
+            query = query.eq('scrape_source', options.source);
         }
 
         if (options.limit) {
@@ -284,11 +411,21 @@ class VenueTournamentScraper {
         const { data: venues, error } = await query;
 
         if (error) {
-            console.error('❌ Failed to fetch venues:', error.message);
+            console.error('Failed to fetch venues:', error.message);
             process.exit(1);
         }
 
-        console.log(`\n📍 Found ${venues.length} venues to scrape\n`);
+        // Count by source
+        const sourceCount = { pokeratlas: 0, direct_website: 0, manual: 0 };
+        venues.forEach(v => {
+            sourceCount[v.scrape_source || 'manual']++;
+        });
+
+        console.log(`\nFound ${venues.length} venues to process:`);
+        console.log(`  - PokerAtlas:     ${sourceCount.pokeratlas}`);
+        console.log(`  - Direct Website: ${sourceCount.direct_website}`);
+        console.log(`  - Manual (skip):  ${sourceCount.manual}`);
+        console.log('');
 
         // Process each venue with rate limiting
         for (let i = 0; i < venues.length; i++) {
@@ -305,33 +442,36 @@ class VenueTournamentScraper {
             }
         }
 
-        // Print report
         this.printReport();
-
         return this.stats;
     }
 
     printReport() {
-        console.log('\n' + '═'.repeat(50));
-        console.log('📊 SCRAPER REPORT');
-        console.log('═'.repeat(50));
+        console.log('\n' + '='.repeat(60));
+        console.log('SCRAPER REPORT');
+        console.log('='.repeat(60));
         console.log(`Venues Processed:      ${this.stats.venuesProcessed}`);
         console.log(`Tournaments Found:     ${this.stats.tournamentsFound}`);
         console.log(`Tournaments Inserted:  ${this.stats.tournamentsInserted}`);
         console.log(`Skipped (no data):     ${this.stats.skipped}`);
         console.log(`Errors:                ${this.stats.errors.length}`);
+        console.log('');
+        console.log('By Source:');
+        console.log(`  PokerAtlas:     ${this.stats.bySource.pokeratlas.processed} processed, ${this.stats.bySource.pokeratlas.found} tournaments`);
+        console.log(`  Direct Website: ${this.stats.bySource.direct_website.processed} processed, ${this.stats.bySource.direct_website.found} tournaments`);
+        console.log(`  Manual:         ${this.stats.bySource.manual.skipped} skipped`);
 
         if (this.stats.errors.length > 0) {
-            console.log('\n⚠️  Errors:');
+            console.log('\nErrors (first 10):');
             this.stats.errors.slice(0, 10).forEach(e => {
-                console.log(`   - ${e.venue}: ${e.error}`);
+                console.log(`  - ${e.venue}: ${e.error}`);
             });
             if (this.stats.errors.length > 10) {
-                console.log(`   ... and ${this.stats.errors.length - 10} more`);
+                console.log(`  ... and ${this.stats.errors.length - 10} more`);
             }
         }
 
-        console.log('═'.repeat(50));
+        console.log('='.repeat(60));
     }
 }
 
@@ -347,6 +487,8 @@ function parseArgs() {
             options.venue = args[++i];
         } else if (args[i] === '--limit' && args[i + 1]) {
             options.limit = args[++i];
+        } else if (args[i] === '--source' && args[i + 1]) {
+            options.source = args[++i];
         } else if (args[i] === '--force') {
             options.force = true;
         }
