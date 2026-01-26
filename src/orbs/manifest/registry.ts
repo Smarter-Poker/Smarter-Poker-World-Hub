@@ -18,7 +18,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     { id: 'diamond-arena', color: '#ffee00', label: 'Diamond Arena', gradient: ['#fff176', '#c9b000'], imageUrl: '/cards/diamond-arena.jpg', description: 'HIGH STAKES ACTION — PLAY FOR DIAMONDS AGAINST ELITE COMPETITION' },
     { id: 'trivia', color: '#00ccff', label: 'Trivia', gradient: ['#4dd0e1', '#0097a7'], imageUrl: '/cards/trivia.jpg', description: 'TEST YOUR KNOWLEDGE — POKER HISTORY, STRATEGY, AND FUN FACTS' },
     { id: 'training', color: '#00ff66', label: 'Training', gradient: ['#69f0ae', '#00c853'], imageUrl: '/cards/training.jpg', description: '100 GAMES TO MASTER — LEVEL UP YOUR POKER IQ ONE DRILL AT A TIME' },
-    { id: 'news', color: '#ff6600', label: 'News', gradient: ['#ff8c42', '#e55812'], imageUrl: '/images/news_card_art.png', description: 'BREAKING POKER NEWS — TOURNAMENTS, DRAMA, AND LEGEND STORIES' },
+    { id: 'news', color: '#ff6600', label: 'News', gradient: ['#ff8c42', '#e55812'], imageUrl: '/cards/news.jpg', description: 'BREAKING POKER NEWS — TOURNAMENTS, DRAMA, AND LEGEND STORIES' },
     { id: 'diamond-arcade', color: '#9900ff', label: 'Diamond Arcade', gradient: ['#ce93d8', '#7b1fa2'], imageUrl: '/cards/diamond-arcade.jpg', description: 'ARCADE ACTION — WIN DIAMONDS IN FAST-PACED POKER CHALLENGES' },
     { id: 'personal-assistant', color: '#0088ff', label: 'Personal Assistant', gradient: ['#64b5f6', '#1565c0'], imageUrl: '/cards/personal-assistant.jpg', description: 'YOUR AI COACH — FINDS YOUR LEAKS AND LEVELS UP YOUR GAME' },
     { id: 'memory-games', color: '#00ffff', label: 'Memory Games', gradient: ['#84ffff', '#00bcd4'], imageUrl: '/cards/memory-games.jpg', description: 'TRAIN YOUR POKER BRAIN — CONDITION GTO MEMORY FOR LIVE DECISIONS' },
