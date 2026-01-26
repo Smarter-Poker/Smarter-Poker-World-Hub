@@ -25,7 +25,7 @@ const LiveKitCall = dynamic(
 import { useMessengerStore } from '../../src/stores/messengerStore';
 import { useOneSignal } from '../../src/contexts/OneSignalContext';
 import { createRingTone } from '../../src/utils/ringTone';
-import { createMultiDeviceAuthListener, withRetry } from '../../src/utils/authGuard';
+import { createMultiDeviceAuthListener, withRetry, safeAsync, getCircuit, isOnline, persistSession, getPersistedSession } from '../../src/utils/authGuard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 COLOR PALETTE - Premium Poker Theme
@@ -1450,105 +1450,143 @@ export default function MessengerPage() {
     };
 
     const loadConversations = async (userId) => {
+        // 🛡️ HARDENED: Circuit breaker + offline detection + retry + guaranteed fallback
+        const circuit = getCircuit('messenger-conversations', { failureThreshold: 3, resetTimeout: 30000 });
+
+        console.log('[MESSENGER] Loading conversations for userId:', userId, 'Online:', isOnline());
+
+        // Check offline - return cached data if available
+        if (!isOnline()) {
+            console.warn('[MESSENGER] Offline - using cached conversations');
+            // Keep existing conversations if we have them
+            return;
+        }
+
         try {
-            console.log('[MESSENGER] Loading conversations for userId:', userId);
+            // PRIMARY: Use API with service_role + circuit breaker
+            const result = await circuit.execute(
+                async () => {
+                    const resp = await fetch('/api/messenger/get-conversations', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId }),
+                    });
+                    if (!resp.ok) throw new Error(`API returned ${resp.status}`);
+                    return await resp.json();
+                },
+                // Fallback when circuit is OPEN - use empty (don't crash)
+                async () => ({ success: true, conversations: conversations || [] })
+            );
 
-            // PRIMARY: Use API with service_role - bypasses all RLS issues reliably
-            try {
-                const resp = await fetch('/api/messenger/get-conversations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId }),
-                });
-                const apiResult = await resp.json();
-                console.log('[MESSENGER] API result:', apiResult);
-                if (apiResult.success && apiResult.conversations?.length > 0) {
-                    setConversations(apiResult.conversations);
-                    return; // Success - done!
-                }
-                // If API returns empty, that's valid - user has no conversations
-                if (apiResult.success && apiResult.conversations?.length === 0) {
-                    console.log('[MESSENGER] User has no conversations');
-                    setConversations([]);
-                    return;
-                }
-            } catch (apiErr) {
-                console.warn('[MESSENGER] API call failed, falling back to direct query:', apiErr);
+            console.log('[MESSENGER] API result:', result);
+            if (result.success && Array.isArray(result.conversations)) {
+                setConversations(result.conversations);
+                return;
             }
+        } catch (apiErr) {
+            console.warn('[MESSENGER] API with circuit breaker failed:', apiErr);
+        }
 
-            // FALLBACK: Try direct Supabase query if API fails
-            const { data: participations, error: partError } = await supabase
-                .from('social_conversation_participants')
-                .select(`
-                    conversation_id,
-                    last_read_at,
-                    social_conversations (
-                        id,
-                        last_message_at,
-                        last_message_preview,
-                        is_group
-                    )
-                `)
-                .eq('user_id', userId)
-                .order('social_conversations(last_message_at)', { ascending: false });
+        // FALLBACK 1: Try direct Supabase query with retry
+        try {
+            const { data, error } = await withRetry(
+                async () => {
+                    const { data: participations, error: partError } = await supabase
+                        .from('social_conversation_participants')
+                        .select(`
+                            conversation_id,
+                            last_read_at,
+                            social_conversations (
+                                id,
+                                last_message_at,
+                                last_message_preview,
+                                is_group
+                            )
+                        `)
+                        .eq('user_id', userId)
+                        .order('social_conversations(last_message_at)', { ascending: false });
 
-            console.log('[MESSENGER] Direct query result:', { participations, error: partError });
+                    if (partError) throw partError;
+                    return { data: participations, error: null };
+                },
+                { maxAttempts: 2, baseDelayMs: 500, circuitName: 'supabase-conversations' }
+            );
 
-            if (!participations || participations.length === 0) {
+            if (!data || data.length === 0) {
                 console.log('[MESSENGER] No participations found for user');
+                setConversations([]);
                 return;
             }
 
-            // Enrich with other participant info
+            // Enrich with other participant info (with safeAsync to prevent crash)
             const enriched = await Promise.all(
-                participations.map(async (p) => {
-                    const { data: participants } = await supabase
-                        .from('social_conversation_participants')
-                        .select('user_id, profiles(id, username, avatar_url)')
-                        .eq('conversation_id', p.conversation_id)
-                        .neq('user_id', userId);
+                data.map(async (p) => {
+                    try {
+                        const { data: participants } = await supabase
+                            .from('social_conversation_participants')
+                            .select('user_id, profiles(id, username, avatar_url)')
+                            .eq('conversation_id', p.conversation_id)
+                            .neq('user_id', userId);
 
-                    let otherUser = participants?.[0]?.profiles;
+                        let otherUser = participants?.[0]?.profiles;
 
-                    // FALLBACK: If FK join didn't return profile, fetch it directly
-                    if (!otherUser && participants?.[0]?.user_id) {
-                        const { data: directProfile } = await supabase
-                            .from('profiles')
-                            .select('id, username, avatar_url')
-                            .eq('id', participants[0].user_id)
-                            .single();
-                        otherUser = directProfile;
+                        // FALLBACK: If FK join didn't return profile, fetch it directly
+                        if (!otherUser && participants?.[0]?.user_id) {
+                            const { data: directProfile } = await supabase
+                                .from('profiles')
+                                .select('id, username, avatar_url')
+                                .eq('id', participants[0].user_id)
+                                .single();
+                            otherUser = directProfile || { id: participants[0].user_id, username: 'User', avatar_url: null };
+                        }
+
+                        // Count unread (don't crash if this fails)
+                        let unreadCount = 0;
+                        try {
+                            const { count } = await supabase
+                                .from('social_messages')
+                                .select('id', { count: 'exact', head: true })
+                                .eq('conversation_id', p.conversation_id)
+                                .neq('sender_id', userId)
+                                .gt('created_at', p.last_read_at || '1970-01-01');
+                            unreadCount = count || 0;
+                        } catch (e) { }
+
+                        return {
+                            id: p.conversation_id,
+                            ...p.social_conversations,
+                            otherUser,
+                            unreadCount,
+                            last_read_at: p.last_read_at,
+                        };
+                    } catch (e) {
+                        // Individual enrichment failed - return partial data
+                        return {
+                            id: p.conversation_id,
+                            ...p.social_conversations,
+                            otherUser: null,
+                            unreadCount: 0,
+                            last_read_at: p.last_read_at,
+                        };
                     }
-
-                    // Count unread
-                    const { count } = await supabase
-                        .from('social_messages')
-                        .select('id', { count: 'exact', head: true })
-                        .eq('conversation_id', p.conversation_id)
-                        .neq('sender_id', userId)
-                        .gt('created_at', p.last_read_at || '1970-01-01');
-
-                    return {
-                        id: p.conversation_id,
-                        ...p.social_conversations,
-                        otherUser,
-                        unreadCount: count || 0,
-                        last_read_at: p.last_read_at,
-                    };
                 })
             );
 
-            // Sort by last_message_at (most recent first) then set state
+            // Sort and set - filter out conversations without other users
             const sorted = enriched
                 .filter(c => c.otherUser)
                 .sort((a, b) => {
                     const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
                     const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-                    return timeB - timeA; // Descending - most recent first
+                    return timeB - timeA;
                 });
             setConversations(sorted);
         } catch (e) {
-            console.error('Load conversations error:', e);
+            console.error('[MESSENGER] All fallbacks failed:', e);
+            // FINAL FALLBACK: Don't crash - keep existing conversations or set empty
+            if (!conversations || conversations.length === 0) {
+                setConversations([]);
+            }
         }
     };
 
