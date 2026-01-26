@@ -1020,14 +1020,3 @@ function TournamentCard({ tournament }) {
         </div>
     );
 }
-
-function formatMoney(amount) {
-    if (!amount) return '';
-    if (amount >= 1000) return `$${(amount / 1000).toFixed(0)}K`;
-    return `$${amount.toLocaleString()}`;
-}
-
-function formatTime(timeStr) {
-    if (!timeStr) return '';
-    return timeStr.replace(/([AP])M$/i, ' $1M');
-}
