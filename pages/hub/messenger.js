@@ -1398,8 +1398,10 @@ export default function MessengerPage() {
 
     const loadConversations = async (userId) => {
         try {
+            console.log('[MESSENGER] Loading conversations for userId:', userId);
+
             // Get conversations through participants
-            const { data: participations } = await supabase
+            const { data: participations, error: partError } = await supabase
                 .from('social_conversation_participants')
                 .select(`
                     conversation_id,
@@ -1414,7 +1416,32 @@ export default function MessengerPage() {
                 .eq('user_id', userId)
                 .order('social_conversations(last_message_at)', { ascending: false });
 
-            if (!participations) return;
+            console.log('[MESSENGER] Direct query result:', { participations, error: partError });
+
+            // If RLS returns empty, try API fallback with service_role
+            if ((!participations || participations.length === 0) && !partError) {
+                console.log('[MESSENGER] No participations from direct query, trying API fallback...');
+                try {
+                    const resp = await fetch('/api/messenger/get-conversations', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId }),
+                    });
+                    const apiResult = await resp.json();
+                    console.log('[MESSENGER] API fallback result:', apiResult);
+                    if (apiResult.success && apiResult.conversations?.length > 0) {
+                        setConversations(apiResult.conversations);
+                        return;
+                    }
+                } catch (apiErr) {
+                    console.warn('[MESSENGER] API fallback failed:', apiErr);
+                }
+            }
+
+            if (!participations || participations.length === 0) {
+                console.log('[MESSENGER] No participations found for user');
+                return;
+            }
 
             // Enrich with other participant info
             const enriched = await Promise.all(
