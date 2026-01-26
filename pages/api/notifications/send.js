@@ -43,6 +43,10 @@ export default async function handler(req, res) {
             contents: { en: message },
             headings: title ? { en: title } : undefined,
             url: url || undefined,
+            // iOS Safari requires web_url for PWA clicks
+            web_url: url || undefined,
+            // Chrome also uses this
+            chrome_web_link: url || undefined,
             data: data || undefined,
             buttons: buttons || undefined,
             big_picture: image || undefined,
