@@ -5,7 +5,8 @@
  */
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { MapPin, Search, RefreshCw, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, ChevronRight } from 'lucide-react';
 import VenueCard from '../../../src/components/captain/player/VenueCard';
 import WaitlistCard from '../../../src/components/captain/player/WaitlistCard';
 
@@ -122,6 +123,34 @@ export default function CaptainHub() {
         </header>
 
         <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+          {/* Quick Links */}
+          <section className="grid grid-cols-3 gap-3">
+            <Link
+              href="/hub/captain/leagues"
+              className="bg-white border border-[#E5E7EB] rounded-xl p-4 hover:border-[#1877F2] transition-colors group"
+            >
+              <Trophy className="w-6 h-6 text-[#1877F2] mb-2" />
+              <p className="font-medium text-[#1F2937] group-hover:text-[#1877F2]">Leagues</p>
+              <p className="text-xs text-[#6B7280]">Compete</p>
+            </Link>
+            <Link
+              href="/hub/captain/hand-history"
+              className="bg-white border border-[#E5E7EB] rounded-xl p-4 hover:border-[#1877F2] transition-colors group"
+            >
+              <FileText className="w-6 h-6 text-[#1877F2] mb-2" />
+              <p className="font-medium text-[#1F2937] group-hover:text-[#1877F2]">Hands</p>
+              <p className="text-xs text-[#6B7280]">Review</p>
+            </Link>
+            <Link
+              href="/hub/captain/responsible-gaming"
+              className="bg-white border border-[#E5E7EB] rounded-xl p-4 hover:border-[#1877F2] transition-colors group"
+            >
+              <Shield className="w-6 h-6 text-[#1877F2] mb-2" />
+              <p className="font-medium text-[#1F2937] group-hover:text-[#1877F2]">Limits</p>
+              <p className="text-xs text-[#6B7280]">Settings</p>
+            </Link>
+          </section>
+
           {/* My Waitlists */}
           {myWaitlists.length > 0 && (
             <section>

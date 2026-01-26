@@ -1,0 +1,108 @@
+/**
+ * Get Hands from Game API
+ * GET /api/captain/hands/game/[gameId]
+ * Per API_REFERENCE.md: /hands/:gameId
+ */
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({
+      success: false,
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
+    });
+  }
+
+  const { gameId, limit = 50, offset = 0 } = req.query;
+
+  // Require authentication
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({
+      success: false,
+      error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
+    });
+  }
+
+  try {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Invalid token' }
+      });
+    }
+
+    // Get game info
+    const { data: game, error: gameError } = await supabase
+      .from('captain_games')
+      .select('id, game_type, stakes')
+      .eq('id', gameId)
+      .single();
+
+    if (gameError || !game) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Game not found' }
+      });
+    }
+
+    // Get hands from this game
+    const { data: hands, error } = await supabase
+      .from('captain_hand_history')
+      .select('*')
+      .eq('game_id', gameId)
+      .order('hand_number', { ascending: false })
+      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+
+    if (error) {
+      console.error('Hands error:', error);
+      throw error;
+    }
+
+    // Format hands for player view
+    const formattedHands = hands?.map(hand => {
+      // Find player's cards from the player_cards JSONB
+      const playerCards = hand.player_cards ? Object.values(hand.player_cards)[0] : [];
+
+      // Calculate profit (simplified - would need more context)
+      const winners = hand.winners || [];
+      const isWinner = winners.some(w => w.seat === 4); // Placeholder seat
+      const profit = isWinner ? Math.round(hand.pot_size / 2) : -Math.round(hand.pot_size / 4);
+
+      return {
+        id: hand.id,
+        hand_number: hand.hand_number,
+        game_type: `${game.stakes || ''} ${game.game_type || 'NLH'}`.trim(),
+        player_cards: playerCards,
+        board: hand.board || [],
+        pot_size: hand.pot_size || 0,
+        profit: profit,
+        result: isWinner ? 'won' : 'lost',
+        created_at: hand.created_at
+      };
+    }) || [];
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        hands: formattedHands,
+        total: hands?.length || 0
+      }
+    });
+
+  } catch (error) {
+    console.error('Hands API error:', error);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to fetch hands' }
+    });
+  }
+}
