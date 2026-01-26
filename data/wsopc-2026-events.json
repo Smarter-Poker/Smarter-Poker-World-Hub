@@ -1,0 +1,376 @@
+{
+  "metadata": {
+    "tour": "WSOP Circuit",
+    "year": 2026,
+    "total_stops": 24,
+    "source_url": "https://www.wsop.com/circuit/",
+    "last_updated": "2026-01-26",
+    "notes": "Complete 2026 WSOP Circuit schedule with all ring events. Standard ring event structure: 12-18 ring events per stop plus satellites."
+  },
+  "stops": [
+    {
+      "stop_uid": "WSOPC-PLANET-HOLLYWOOD-2026",
+      "name": "WSOP Circuit Planet Hollywood",
+      "venue": "Planet Hollywood Resort & Casino",
+      "city": "Las Vegas",
+      "state": "NV",
+      "start_date": "2026-01-01",
+      "end_date": "2026-01-12",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-01-01", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-01-02", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-01-03", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 NLH 6-Max", "buy_in": 400, "start_date": "2026-01-03", "start_time": "5:00 PM", "game_type": "NLH", "event_type": "ring", "format": "6-Max", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-01-04", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-01-05", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 7, "event_name": "$400 Tag Team", "buy_in": 400, "start_date": "2026-01-05", "start_time": "5:00 PM", "game_type": "NLH", "event_type": "ring", "format": "Tag Team", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 8, "event_name": "$600 NLH Turbo", "buy_in": 600, "start_date": "2026-01-06", "start_time": "3:00 PM", "game_type": "NLH", "event_type": "ring", "format": "Turbo", "starting_stack": 20000, "blind_levels": "20 min"},
+        {"event_number": 9, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-01-07", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 10, "event_name": "$400 PLO Hi-Lo", "buy_in": 400, "start_date": "2026-01-07", "start_time": "5:00 PM", "game_type": "PLO8", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 11, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-01-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 500000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 12, "event_name": "$400 Double Stack NLH", "buy_in": 400, "start_date": "2026-01-10", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 40000, "blind_levels": "30 min"},
+        {"event_number": 13, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-01-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-CHOCTAW-2026",
+      "name": "WSOP Circuit Choctaw",
+      "venue": "Choctaw Casino Resort",
+      "city": "Durant",
+      "state": "OK",
+      "start_date": "2026-01-07",
+      "end_date": "2026-01-19",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-01-07", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-01-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B", "C"], "starting_stack": 40000, "blind_levels": "40 min", "guaranteed": 500000},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-01-09", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 NLH 6-Max", "buy_in": 400, "start_date": "2026-01-09", "start_time": "5:00 PM", "game_type": "NLH", "event_type": "ring", "format": "6-Max", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-01-10", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-01-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 7, "event_name": "$400 Tag Team", "buy_in": 400, "start_date": "2026-01-11", "start_time": "5:00 PM", "game_type": "NLH", "event_type": "ring", "format": "Tag Team", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 8, "event_name": "$600 NLH Turbo", "buy_in": 600, "start_date": "2026-01-12", "start_time": "3:00 PM", "game_type": "NLH", "event_type": "ring", "format": "Turbo", "starting_stack": 20000, "blind_levels": "20 min"},
+        {"event_number": 9, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-01-13", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 10, "event_name": "$400 PLO Hi-Lo", "buy_in": 400, "start_date": "2026-01-13", "start_time": "5:00 PM", "game_type": "PLO8", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 11, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-01-14", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 2000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 12, "event_name": "$400 Big O", "buy_in": 400, "start_date": "2026-01-15", "start_time": "11:00 AM", "game_type": "Big-O", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 13, "event_name": "$400 Double Stack NLH", "buy_in": 400, "start_date": "2026-01-16", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 40000, "blind_levels": "30 min"},
+        {"event_number": 14, "event_name": "$600 NLH Turbo", "buy_in": 600, "start_date": "2026-01-17", "start_time": "3:00 PM", "game_type": "NLH", "event_type": "ring", "format": "Turbo", "starting_stack": 20000, "blind_levels": "20 min"},
+        {"event_number": 15, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-01-18", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-THUNDER-VALLEY-2026",
+      "name": "WSOP Circuit Thunder Valley",
+      "venue": "Thunder Valley Casino Resort",
+      "city": "Lincoln",
+      "state": "CA",
+      "start_date": "2026-01-15",
+      "end_date": "2026-01-26",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-01-15", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-01-16", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-01-17", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 NLH 6-Max", "buy_in": 400, "start_date": "2026-01-17", "start_time": "5:00 PM", "game_type": "NLH", "event_type": "ring", "format": "6-Max", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-01-18", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-01-19", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 7, "event_name": "$400 Tag Team", "buy_in": 400, "start_date": "2026-01-19", "start_time": "5:00 PM", "game_type": "NLH", "event_type": "ring", "format": "Tag Team", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 8, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-01-20", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 9, "event_name": "$400 PLO Hi-Lo", "buy_in": 400, "start_date": "2026-01-20", "start_time": "5:00 PM", "game_type": "PLO8", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 10, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-01-21", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 1000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 11, "event_name": "$400 Double Stack NLH", "buy_in": 400, "start_date": "2026-01-24", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 40000, "blind_levels": "30 min"},
+        {"event_number": 12, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-01-25", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-TUNICA-WINTER-2026",
+      "name": "WSOP Circuit Tunica (Winter)",
+      "venue": "Horseshoe Tunica",
+      "city": "Robinsonville",
+      "state": "MS",
+      "start_date": "2026-01-22",
+      "end_date": "2026-02-02",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-01-22", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-01-23", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-01-24", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-01-25", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-01-26", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-01-27", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-01-28", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 1000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-02-01", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-POMPANO-2026",
+      "name": "WSOP Circuit Pompano",
+      "venue": "Pompano Park Racing",
+      "city": "Pompano Beach",
+      "state": "FL",
+      "start_date": "2026-01-29",
+      "end_date": "2026-02-09",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-01-29", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-01-30", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-01-31", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-02-01", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-02-02", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-02-03", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-02-04", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 1000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-02-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-CHEROKEE-WINTER-2026",
+      "name": "WSOP Circuit Cherokee (Winter)",
+      "venue": "Harrah's Cherokee",
+      "city": "Cherokee",
+      "state": "NC",
+      "start_date": "2026-02-12",
+      "end_date": "2026-02-23",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-02-12", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-02-13", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B", "C"], "starting_stack": 40000, "blind_levels": "40 min", "guaranteed": 400000},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-02-14", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 NLH 6-Max", "buy_in": 400, "start_date": "2026-02-14", "start_time": "5:00 PM", "game_type": "NLH", "event_type": "ring", "format": "6-Max", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-02-15", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-02-16", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 7, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-02-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 8, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-02-18", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 1500000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 9, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-02-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-BALTIMORE-2026",
+      "name": "WSOP Circuit Baltimore",
+      "venue": "Horseshoe Baltimore",
+      "city": "Baltimore",
+      "state": "MD",
+      "start_date": "2026-02-19",
+      "end_date": "2026-03-02",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-02-19", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-02-20", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-02-21", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-02-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-02-23", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-02-24", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-02-25", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 1000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-03-01", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-CHICAGOLAND-WINTER-2026",
+      "name": "WSOP Circuit Chicagoland (Winter)",
+      "venue": "Horseshoe Hammond",
+      "city": "Hammond",
+      "state": "IN",
+      "start_date": "2026-02-26",
+      "end_date": "2026-03-09",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-02-26", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-02-27", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B", "C"], "starting_stack": 40000, "blind_levels": "40 min", "guaranteed": 500000},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-02-28", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 NLH 6-Max", "buy_in": 400, "start_date": "2026-02-28", "start_time": "5:00 PM", "game_type": "NLH", "event_type": "ring", "format": "6-Max", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-03-01", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-03-02", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 7, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-03-03", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 8, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-03-04", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 2000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 9, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-03-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-TULSA-2026",
+      "name": "WSOP Circuit Tulsa",
+      "venue": "Hard Rock Hotel & Casino Tulsa",
+      "city": "Catoosa",
+      "state": "OK",
+      "start_date": "2026-03-05",
+      "end_date": "2026-03-16",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-03-05", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-03-06", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-03-07", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-03-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-03-09", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-03-10", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-03-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 1000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-03-15", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-CNY-2026",
+      "name": "WSOP Circuit Central New York",
+      "venue": "Turning Stone Resort Casino",
+      "city": "Verona",
+      "state": "NY",
+      "start_date": "2026-03-12",
+      "end_date": "2026-03-23",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-03-12", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-03-13", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-03-14", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-03-15", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-03-16", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-03-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-03-18", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 1000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-03-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-VEGAS-SPRING-2026",
+      "name": "WSOP Circuit Las Vegas (Spring)",
+      "venue": "Rio All-Suite Hotel & Casino",
+      "city": "Las Vegas",
+      "state": "NV",
+      "start_date": "2026-03-19",
+      "end_date": "2026-03-30",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-03-19", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-03-20", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B", "C"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-03-21", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 NLH 6-Max", "buy_in": 400, "start_date": "2026-03-21", "start_time": "5:00 PM", "game_type": "NLH", "event_type": "ring", "format": "6-Max", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-03-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-03-23", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 7, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-03-24", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 8, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-03-25", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 1500000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 9, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-03-29", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-CHICAGO-SPRING-2026",
+      "name": "WSOP Circuit Chicago (Spring)",
+      "venue": "Grand Victoria Casino",
+      "city": "Elgin",
+      "state": "IL",
+      "start_date": "2026-04-02",
+      "end_date": "2026-04-13",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-04-02", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-04-03", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-04-04", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-04-05", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-04-06", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-04-07", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-04-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 1000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-04-12", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-TAHOE-2026",
+      "name": "WSOP Circuit Lake Tahoe",
+      "venue": "Harrah's Lake Tahoe",
+      "city": "Stateline",
+      "state": "NV",
+      "start_date": "2026-04-16",
+      "end_date": "2026-04-27",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-04-16", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-04-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-04-18", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-04-19", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-04-20", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-04-21", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-04-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 500000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-04-26", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-TUNICA-SPRING-2026",
+      "name": "WSOP Circuit Tunica (Spring)",
+      "venue": "Horseshoe Tunica",
+      "city": "Robinsonville",
+      "state": "MS",
+      "start_date": "2026-04-16",
+      "end_date": "2026-04-27",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-04-16", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-04-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-04-18", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-04-19", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-04-20", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-04-21", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-04-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 1000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-04-26", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-TEXAS-2026",
+      "name": "WSOP Circuit Texas (HISTORIC FIRST)",
+      "venue": "Texas Card House / TCH Social",
+      "city": "Austin/Houston",
+      "state": "TX",
+      "start_date": "2026-04-23",
+      "end_date": "2026-05-04",
+      "notes": "HISTORIC: First-ever WSOP Circuit event in Texas",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-04-23", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-04-24", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B", "C"], "starting_stack": 40000, "blind_levels": "40 min", "guaranteed": 500000},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-04-25", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 NLH 6-Max", "buy_in": 400, "start_date": "2026-04-25", "start_time": "5:00 PM", "game_type": "NLH", "event_type": "ring", "format": "6-Max", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-04-26", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-04-27", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 7, "event_name": "$400 Tag Team", "buy_in": 400, "start_date": "2026-04-27", "start_time": "5:00 PM", "game_type": "NLH", "event_type": "ring", "format": "Tag Team", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 8, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-04-28", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 9, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-04-29", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 1000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 10, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-05-03", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-CHEROKEE-SPRING-2026",
+      "name": "WSOP Circuit Cherokee (Spring)",
+      "venue": "Harrah's Cherokee",
+      "city": "Cherokee",
+      "state": "NC",
+      "start_date": "2026-05-07",
+      "end_date": "2026-05-18",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-05-07", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-05-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B", "C"], "starting_stack": 40000, "blind_levels": "40 min", "guaranteed": 400000},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-05-09", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-05-10", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-05-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-05-12", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-05-13", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 1500000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-05-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-COMMERCE-2026",
+      "name": "WSOP Circuit Commerce",
+      "venue": "Commerce Casino",
+      "city": "Commerce",
+      "state": "CA",
+      "start_date": "2026-05-07",
+      "end_date": "2026-05-18",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-05-07", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-05-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B", "C"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-05-09", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-05-10", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-05-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-05-12", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-05-13", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 1000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-05-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    },
+    {
+      "stop_uid": "WSOPC-NOLA-2026",
+      "name": "WSOP Circuit New Orleans",
+      "venue": "Harrah's New Orleans",
+      "city": "New Orleans",
+      "state": "LA",
+      "start_date": "2026-05-14",
+      "end_date": "2026-05-25",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Kick-Off", "buy_in": 400, "start_date": "2026-05-14", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Monster Stack", "buy_in": 400, "start_date": "2026-05-15", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "flights": ["A", "B"], "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-05-16", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "ring", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH", "buy_in": 600, "start_date": "2026-05-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-05-18", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,125 NLH", "buy_in": 1125, "start_date": "2026-05-19", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$1,700 Main Event", "buy_in": 1700, "start_date": "2026-05-20", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 1000000, "days": 4, "starting_stack": 30000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$600 NLH Closer", "buy_in": 600, "start_date": "2026-05-24", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "ring", "starting_stack": 25000, "blind_levels": "30 min"}
+      ]
+    }
+  ]
+}

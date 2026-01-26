@@ -1,0 +1,260 @@
+{
+  "metadata": {
+    "tour": "Mid-States Poker Tour",
+    "year": 2026,
+    "total_stops": 16,
+    "source_url": "https://msptpoker.com/schedule/",
+    "last_updated": "2026-01-26",
+    "notes": "Complete 2026 MSPT schedule. Standard format: $1,100 main events with $300K-$1M guarantees."
+  },
+  "stops": [
+    {
+      "stop_uid": "MSPT-GOLDEN-STATE-2026",
+      "name": "MSPT Golden State Poker Championship",
+      "venue": "Sycuan Casino Resort",
+      "city": "El Cajon",
+      "state": "CA",
+      "start_date": "2026-01-08",
+      "end_date": "2026-01-19",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-01-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-01-09", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-01-10", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-01-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-01-15", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 500000, "days": 4, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$600 Turbo", "buy_in": 600, "start_date": "2026-01-18", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 20000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-COLORADO-2026",
+      "name": "MSPT Colorado Showdown Series",
+      "venue": "Monarch Casino Resort Spa",
+      "city": "Black Hawk",
+      "state": "CO",
+      "start_date": "2026-01-14",
+      "end_date": "2026-01-25",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-01-14", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-01-15", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-01-16", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 Bounty NLH", "buy_in": 400, "start_date": "2026-01-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "bounty", "bounty": 100, "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-01-18", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-01-21", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 300000, "days": 4, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$600 Turbo", "buy_in": 600, "start_date": "2026-01-24", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 20000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-DIAMOND-2026",
+      "name": "MSPT Diamond Poker Championship",
+      "venue": "Talking Stick Resort",
+      "city": "Scottsdale",
+      "state": "AZ",
+      "start_date": "2026-01-24",
+      "end_date": "2026-02-01",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-01-24", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-01-25", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-01-28", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 200000, "days": 3, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$600 Turbo", "buy_in": 600, "start_date": "2026-01-31", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 20000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-POKER-BOWL-2026",
+      "name": "MSPT Poker Bowl X",
+      "venue": "The Venetian Resort",
+      "city": "Las Vegas",
+      "state": "NV",
+      "start_date": "2026-02-04",
+      "end_date": "2026-02-07",
+      "events": [
+        {"event_number": 1, "event_name": "$600 Warm-Up NLH", "buy_in": 600, "start_date": "2026-02-04", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$1,600 Poker Bowl Main Event", "buy_in": 1600, "start_date": "2026-02-05", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 1000000, "days": 3, "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$1,100 Turbo", "buy_in": 1100, "start_date": "2026-02-07", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 20000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-OHIO-2026",
+      "name": "MSPT Ohio State Poker Championship",
+      "venue": "Jack Cleveland Casino",
+      "city": "Cleveland",
+      "state": "OH",
+      "start_date": "2026-02-10",
+      "end_date": "2026-02-16",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-02-10", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-02-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-02-12", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 400000, "days": 4, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$600 Turbo", "buy_in": 600, "start_date": "2026-02-15", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 20000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-CLUB-2026",
+      "name": "MSPT Club Poker Championship",
+      "venue": "Potawatomi Casino",
+      "city": "Milwaukee",
+      "state": "WI",
+      "start_date": "2026-02-17",
+      "end_date": "2026-02-22",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-02-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-02-18", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 300000, "days": 3, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$600 Turbo", "buy_in": 600, "start_date": "2026-02-21", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 20000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-GRAND-FALLS-SPRING-2026",
+      "name": "MSPT Grand Falls Spring",
+      "venue": "Grand Falls Casino",
+      "city": "Larchwood",
+      "state": "IA",
+      "start_date": "2026-03-11",
+      "end_date": "2026-03-15",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-03-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-03-12", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 200000, "days": 3, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$400 Turbo", "buy_in": 400, "start_date": "2026-03-14", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-RIVERSIDE-SPRING-2026",
+      "name": "MSPT Festival Spring Riverside",
+      "venue": "Riverside Casino & Golf Resort",
+      "city": "Riverside",
+      "state": "IA",
+      "start_date": "2026-03-17",
+      "end_date": "2026-03-22",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-03-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-03-18", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-03-19", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 300000, "days": 3, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$400 Turbo", "buy_in": 400, "start_date": "2026-03-21", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-POTAWATOMI-SPRING-2026",
+      "name": "MSPT Festival Spring Potawatomi",
+      "venue": "Potawatomi Casino",
+      "city": "Milwaukee",
+      "state": "WI",
+      "start_date": "2026-04-28",
+      "end_date": "2026-05-03",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-04-28", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-04-29", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-04-30", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 300000, "days": 3, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$400 Turbo", "buy_in": 400, "start_date": "2026-05-02", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-MICHIGAN-2026",
+      "name": "MSPT Michigan Poker State Championship",
+      "venue": "FireKeepers Casino Hotel",
+      "city": "Battle Creek",
+      "state": "MI",
+      "start_date": "2026-05-12",
+      "end_date": "2026-05-17",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-05-12", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-05-13", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-05-14", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 400000, "days": 3, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$400 Turbo", "buy_in": 400, "start_date": "2026-05-16", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-IOWA-2026",
+      "name": "MSPT Iowa Poker State Championship",
+      "venue": "Riverside Casino & Golf Resort",
+      "city": "Riverside",
+      "state": "IA",
+      "start_date": "2026-07-21",
+      "end_date": "2026-07-26",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-07-21", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-07-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-07-23", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 400000, "days": 3, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$400 Turbo", "buy_in": 400, "start_date": "2026-07-25", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-COLORADO-SUMMER-2026",
+      "name": "MSPT Colorado Poker State Championship",
+      "venue": "Monarch Casino Resort Spa",
+      "city": "Black Hawk",
+      "state": "CO",
+      "start_date": "2026-07-22",
+      "end_date": "2026-08-02",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-07-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-07-23", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-07-24", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 Bounty NLH", "buy_in": 400, "start_date": "2026-07-25", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "bounty", "bounty": 100, "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-07-29", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 400000, "days": 4, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$600 Turbo", "buy_in": 600, "start_date": "2026-08-01", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 20000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-WISCONSIN-2026",
+      "name": "MSPT Wisconsin Poker State Championship",
+      "venue": "Potawatomi Casino",
+      "city": "Milwaukee",
+      "state": "WI",
+      "start_date": "2026-09-22",
+      "end_date": "2026-09-27",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-09-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-09-23", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-09-24", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 400000, "days": 3, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$400 Turbo", "buy_in": 400, "start_date": "2026-09-26", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-SPADE-2026",
+      "name": "MSPT Spade Poker Championship",
+      "venue": "FireKeepers Casino Hotel",
+      "city": "Battle Creek",
+      "state": "MI",
+      "start_date": "2026-10-13",
+      "end_date": "2026-10-18",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-10-13", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-10-14", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-10-15", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 300000, "days": 3, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$400 Turbo", "buy_in": 400, "start_date": "2026-10-17", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-FALL-FESTIVAL-2026",
+      "name": "MSPT Fall Festival",
+      "venue": "Riverside Casino & Golf Resort",
+      "city": "Riverside",
+      "state": "IA",
+      "start_date": "2026-11-03",
+      "end_date": "2026-11-08",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-11-03", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-11-04", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$1,100 MSPT Main Event", "buy_in": 1100, "start_date": "2026-11-05", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 300000, "days": 3, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$400 Turbo", "buy_in": 400, "start_date": "2026-11-07", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "MSPT-RRPO-2026",
+      "name": "MSPT Rock N Roll Poker Open (Season Championship)",
+      "venue": "Seminole Hard Rock Hotel & Casino",
+      "city": "Hollywood",
+      "state": "FL",
+      "start_date": "2026-11-18",
+      "end_date": "2026-12-02",
+      "events": [
+        {"event_number": 1, "event_name": "$600 NLH Opener", "buy_in": 600, "start_date": "2026-11-18", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$1,100 NLH Deep Stack", "buy_in": 1100, "start_date": "2026-11-19", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$600 PLO", "buy_in": 600, "start_date": "2026-11-20", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$1,100 Bounty NLH", "buy_in": 1100, "start_date": "2026-11-21", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "bounty", "bounty": 250, "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$600 Seniors (50+)", "buy_in": 600, "start_date": "2026-11-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "age_req": "50+", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$3,500 MSPT Season Championship Main Event", "buy_in": 3500, "start_date": "2026-11-25", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C", "D"], "guaranteed": 2000000, "days": 5, "starting_stack": 50000, "blind_levels": "60 min"},
+        {"event_number": 7, "event_name": "$5,250 High Roller", "buy_in": 5250, "start_date": "2026-11-28", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 50000, "blind_levels": "40 min"},
+        {"event_number": 8, "event_name": "$1,100 Turbo", "buy_in": 1100, "start_date": "2026-12-01", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 25000, "blind_levels": "15 min"}
+      ]
+    }
+  ]
+}

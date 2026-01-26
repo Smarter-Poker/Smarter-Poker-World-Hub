@@ -86,7 +86,7 @@ function parseCSV(content) {
         }
         fields.push(current.trim());
 
-        const [venue, website, address, city, state, phone, type, tournaments] = fields;
+        const [venue, website, address, city, state, phone, type, tournaments, pokeratlasUrl, hours] = fields;
 
         if (!venue || !city || !state) continue;
 
@@ -101,9 +101,30 @@ function parseCSV(content) {
         const venueType = typeMap[type] || 'card_room';
         const hasTournaments = tournaments === 'Yes';
 
+        // Parse PokerAtlas URL
+        const hasPokerAtlas = pokeratlasUrl && pokeratlasUrl.includes('pokeratlas.com');
+        const cleanPokerAtlasUrl = hasPokerAtlas ? pokeratlasUrl.trim() : null;
+
+        // Parse website
+        const cleanWebsite = website && website !== '-' && website !== 'Not available' ? website : null;
+
+        // Determine scrape source
+        let scrapeSource = 'manual';
+        let scrapeUrl = null;
+        if (hasPokerAtlas) {
+            scrapeSource = 'pokeratlas';
+            scrapeUrl = cleanPokerAtlasUrl;
+        } else if (cleanWebsite) {
+            scrapeSource = 'direct_website';
+            scrapeUrl = cleanWebsite.startsWith('http') ? cleanWebsite : `https://${cleanWebsite}`;
+        }
+
+        // Parse hours
+        const cleanHours = hours && hours !== 'Not available' && hours !== '-' ? hours.trim() : null;
+
         venues.push({
             name: venue,
-            website: website && website !== '-' && website !== 'Not available' ? website : null,
+            website: cleanWebsite,
             address: address && address !== '-' && address !== 'Not available' ? address : null,
             city: city,
             state: state,
@@ -113,7 +134,13 @@ function parseCSV(content) {
             stakes_cash: ['$1/$2', '$2/$5'],
             trust_score: 4.0 + Math.random() * 0.9, // 4.0-4.9 random score
             is_featured: false,
-            is_active: true
+            is_active: true,
+            // Scraper fields
+            pokeratlas_url: cleanPokerAtlasUrl,
+            scrape_url: scrapeUrl,
+            scrape_source: scrapeSource,
+            scrape_status: 'pending',
+            hours_weekday: cleanHours
         });
     }
 

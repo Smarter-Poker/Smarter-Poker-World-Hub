@@ -1,0 +1,288 @@
+{
+  "metadata": {
+    "description": "Comprehensive 2026 regional poker series events",
+    "last_updated": "2026-01-26",
+    "sources": [
+      "https://www.wynnlasvegas.com/casino/poker",
+      "https://www.theborgata.com/casino/poker/tournaments",
+      "https://www.seminolehardrockpokeropen.com",
+      "https://thelodgepokerclub.com/austin/lcs/",
+      "https://www.commercecasino.com/lapc/",
+      "https://www.pokergo.com/pgt/",
+      "https://www.bestbetjax.com/poker/tournaments",
+      "https://www.bay101.com/poker"
+    ]
+  },
+  "series": [
+    {
+      "series_uid": "WYNN-MILLIONS-2026",
+      "name": "Wynn Millions 2026",
+      "venue": "Wynn Las Vegas",
+      "city": "Las Vegas",
+      "state": "NV",
+      "start_date": "2026-02-16",
+      "end_date": "2026-03-22",
+      "source_url": "https://www.wynnlasvegas.com/casino/poker",
+      "events": [
+        {"event_number": 1, "event_name": "$600 NLH Opener", "buy_in": 600, "start_date": "2026-02-16", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$1,100 NLH Deep Stack", "buy_in": 1100, "start_date": "2026-02-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$600 PLO", "buy_in": 600, "start_date": "2026-02-18", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$1,600 Mystery Bounty", "buy_in": 1600, "start_date": "2026-02-19", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "mystery_bounty", "flights": ["A", "B", "C"], "guaranteed": 750000, "starting_stack": 40000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$600 Seniors (50+)", "buy_in": 600, "start_date": "2026-02-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "seniors", "age_req": "50+", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,600 NLH 6-Max", "buy_in": 1600, "start_date": "2026-02-23", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "format": "6-Max", "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$2,200 NLH", "buy_in": 2200, "start_date": "2026-02-25", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 50000, "blind_levels": "40 min"},
+        {"event_number": 8, "event_name": "$1,100 PLO", "buy_in": 1100, "start_date": "2026-02-27", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 9, "event_name": "$3,500 Wynn Millions Main Event", "buy_in": 3500, "start_date": "2026-03-04", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C", "D"], "guaranteed": 2000000, "days": 5, "starting_stack": 50000, "blind_levels": "60 min"},
+        {"event_number": 10, "event_name": "$10,000 High Roller", "buy_in": 10000, "start_date": "2026-03-10", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 60000, "blind_levels": "40 min"},
+        {"event_number": 11, "event_name": "$25,000 Super High Roller", "buy_in": 25000, "start_date": "2026-03-15", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "super_high_roller", "days": 2, "starting_stack": 100000, "blind_levels": "60 min"},
+        {"event_number": 12, "event_name": "$1,100 Turbo Closer", "buy_in": 1100, "start_date": "2026-03-21", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 30000, "blind_levels": "20 min"}
+      ]
+    },
+    {
+      "series_uid": "BWPO-2026",
+      "name": "Borgata Winter Poker Open 2026",
+      "venue": "Borgata Hotel Casino & Spa",
+      "city": "Atlantic City",
+      "state": "NJ",
+      "start_date": "2026-01-02",
+      "end_date": "2026-01-18",
+      "source_url": "https://www.theborgata.com/casino/poker/tournaments",
+      "events": [
+        {"event_number": 1, "event_name": "$600 NLH Opener", "buy_in": 600, "start_date": "2026-01-02", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 NLH Deep Stack", "buy_in": 400, "start_date": "2026-01-03", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "flights": ["A", "B"], "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$600 PLO", "buy_in": 600, "start_date": "2026-01-04", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-01-05", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "seniors", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$1,100 NLH", "buy_in": 1100, "start_date": "2026-01-06", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$600 NLH Bounty", "buy_in": 600, "start_date": "2026-01-07", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "bounty", "bounty": 150, "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 7, "event_name": "$1,100 Mystery Bounty", "buy_in": 1100, "start_date": "2026-01-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "mystery_bounty", "flights": ["A", "B", "C"], "guaranteed": 500000, "starting_stack": 35000, "blind_levels": "30 min"},
+        {"event_number": 8, "event_name": "$2,700 Winter Open Main Event", "buy_in": 2700, "start_date": "2026-01-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C", "D"], "guaranteed": 2000000, "days": 5, "starting_stack": 50000, "blind_levels": "60 min"},
+        {"event_number": 9, "event_name": "$5,300 High Roller", "buy_in": 5300, "start_date": "2026-01-15", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 50000, "blind_levels": "40 min"},
+        {"event_number": 10, "event_name": "$600 NLH Turbo Closer", "buy_in": 600, "start_date": "2026-01-17", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 25000, "blind_levels": "20 min"}
+      ]
+    },
+    {
+      "series_uid": "WPT-LHPO-2026",
+      "name": "WPT Lucky Hearts Poker Open 2026",
+      "venue": "Seminole Hard Rock Hotel & Casino",
+      "city": "Hollywood",
+      "state": "FL",
+      "start_date": "2026-01-06",
+      "end_date": "2026-01-20",
+      "source_url": "https://www.seminolehardrockpokeropen.com",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Deep Stack", "buy_in": 400, "start_date": "2026-01-06", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "deepstack", "flights": ["A", "B"], "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH 6-Max", "buy_in": 600, "start_date": "2026-01-07", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "format": "6-Max", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$1,100 NLH", "buy_in": 1100, "start_date": "2026-01-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-01-08", "start_time": "6:00 PM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$1,600 Mystery Bounty NLH", "buy_in": 1600, "start_date": "2026-01-09", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "mystery_bounty", "flights": ["A", "B", "C"], "guaranteed": 500000, "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$600 Seniors NLH (50+)", "buy_in": 600, "start_date": "2026-01-10", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "seniors", "age_requirement": "50+", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 7, "event_name": "$3,500 WPT Main Event", "buy_in": 3500, "start_date": "2026-01-13", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 2000000, "days": 5, "starting_stack": 50000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$10,000 High Roller NLH", "buy_in": 10000, "start_date": "2026-01-16", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 3, "starting_stack": 60000, "blind_levels": "60 min"},
+        {"event_number": 9, "event_name": "$1,100 Turbo NLH", "buy_in": 1100, "start_date": "2026-01-17", "start_time": "2:00 PM", "game_type": "NLH", "event_type": "turbo", "format": "Turbo", "starting_stack": 20000, "blind_levels": "15 min"},
+        {"event_number": 10, "event_name": "$25,000 Super High Roller NLH", "buy_in": 25000, "start_date": "2026-01-18", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "super_high_roller", "days": 2, "starting_stack": 100000, "blind_levels": "60 min"}
+      ]
+    },
+    {
+      "series_uid": "WINTER-POKER-OPEN-TAMPA-2026",
+      "name": "Seminole Hard Rock Tampa Winter Poker Open 2026",
+      "venue": "Seminole Hard Rock Tampa",
+      "city": "Tampa",
+      "state": "FL",
+      "start_date": "2026-01-21",
+      "end_date": "2026-02-02",
+      "source_url": "https://www.shrtpoker.com",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-01-21", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-01-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 35000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-01-23", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-01-24", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "seniors", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$1,100 Tampa Winter Open Main Event", "buy_in": 1100, "start_date": "2026-01-28", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 600000, "days": 4, "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$600 NLH Turbo Closer", "buy_in": 600, "start_date": "2026-02-01", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 25000, "blind_levels": "20 min"}
+      ]
+    },
+    {
+      "series_uid": "LCS-2026",
+      "name": "Lodge Championship Series 2026",
+      "venue": "The Lodge Card Club",
+      "city": "Round Rock (Austin)",
+      "state": "TX",
+      "start_date": "2026-02-22",
+      "end_date": "2026-03-09",
+      "source_url": "https://thelodgepokerclub.com/austin/lcs/",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-02-22", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-02-23", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 35000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-02-24", "start_time": "12:00 PM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH Bounty", "buy_in": 600, "start_date": "2026-02-25", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "bounty", "bounty": 150, "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-02-26", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "seniors", "age_req": "50+", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,100 NLH", "buy_in": 1100, "start_date": "2026-02-27", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$600 PLO Hi-Lo", "buy_in": 600, "start_date": "2026-02-28", "start_time": "12:00 PM", "game_type": "PLO8", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 8, "event_name": "$1,700 Lodge Championship Main Event", "buy_in": 1700, "start_date": "2026-03-02", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C", "D"], "guaranteed": 1000000, "days": 5, "starting_stack": 50000, "blind_levels": "60 min"},
+        {"event_number": 9, "event_name": "$5,000 High Roller", "buy_in": 5000, "start_date": "2026-03-06", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 50000, "blind_levels": "40 min"},
+        {"event_number": 10, "event_name": "$600 NLH Turbo Closer", "buy_in": 600, "start_date": "2026-03-08", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 25000, "blind_levels": "20 min"}
+      ]
+    },
+    {
+      "series_uid": "LAPC-2026",
+      "name": "L.A. Poker Classic 2026",
+      "venue": "Commerce Casino",
+      "city": "Los Angeles",
+      "state": "CA",
+      "start_date": "2026-01-07",
+      "end_date": "2026-03-01",
+      "source_url": "https://www.commercecasino.com/lapc/",
+      "events": [
+        {"event_number": 1, "event_name": "$350 NLH Opener", "buy_in": 350, "start_date": "2026-01-07", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$570 NLH", "buy_in": 570, "start_date": "2026-01-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$350 PLO", "buy_in": 350, "start_date": "2026-01-09", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$1,100 NLH", "buy_in": 1100, "start_date": "2026-01-10", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$570 Seniors (50+)", "buy_in": 570, "start_date": "2026-01-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "seniors", "age_req": "50+", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$2,100 NLH", "buy_in": 2100, "start_date": "2026-01-15", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$1,100 PLO", "buy_in": 1100, "start_date": "2026-01-18", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 8, "event_name": "$1,100 Mystery Bounty", "buy_in": 1100, "start_date": "2026-01-22", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "mystery_bounty", "flights": ["A", "B", "C"], "guaranteed": 750000, "starting_stack": 35000, "blind_levels": "30 min"},
+        {"event_number": 9, "event_name": "$5,250 WPT LAPC Championship", "buy_in": 5250, "start_date": "2026-02-01", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "championship", "flights": ["A", "B", "C", "D"], "guaranteed": 3000000, "days": 5, "starting_stack": 50000, "blind_levels": "60 min"},
+        {"event_number": 10, "event_name": "$10,400 WPT Main Event", "buy_in": 10400, "start_date": "2026-02-15", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 5000000, "days": 5, "starting_stack": 60000, "blind_levels": "90 min"},
+        {"event_number": 11, "event_name": "$25,000 High Roller", "buy_in": 25000, "start_date": "2026-02-22", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 3, "starting_stack": 100000, "blind_levels": "60 min"},
+        {"event_number": 12, "event_name": "$1,100 Turbo Closer", "buy_in": 1100, "start_date": "2026-02-28", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 30000, "blind_levels": "20 min"}
+      ]
+    },
+    {
+      "series_uid": "PGT-KICKOFF-2026",
+      "name": "PokerGO Tour Kickoff 2026",
+      "venue": "PokerGO Studio at ARIA",
+      "city": "Las Vegas",
+      "state": "NV",
+      "start_date": "2026-01-26",
+      "end_date": "2026-01-31",
+      "source_url": "https://www.pokergo.com/pgt/",
+      "events": [
+        {"event_number": 1, "event_name": "$10,000 NLH", "buy_in": 10000, "start_date": "2026-01-26", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 60000, "blind_levels": "40 min"},
+        {"event_number": 2, "event_name": "$15,000 NLH", "buy_in": 15000, "start_date": "2026-01-28", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 75000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$25,000 NLH Championship", "buy_in": 25000, "start_date": "2026-01-30", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "championship", "days": 2, "starting_stack": 100000, "blind_levels": "60 min"}
+      ]
+    },
+    {
+      "series_uid": "PGT-MIXED-2026",
+      "name": "PokerGO Tour Mixed Games 2026",
+      "venue": "PokerGO Studio at ARIA",
+      "city": "Las Vegas",
+      "state": "NV",
+      "start_date": "2026-02-03",
+      "end_date": "2026-02-10",
+      "source_url": "https://www.pokergo.com/pgt/",
+      "events": [
+        {"event_number": 1, "event_name": "$10,000 8-Game Mix", "buy_in": 10000, "start_date": "2026-02-03", "start_time": "1:00 PM", "game_type": "Mixed", "event_type": "high_roller", "days": 2, "starting_stack": 60000, "blind_levels": "40 min"},
+        {"event_number": 2, "event_name": "$10,000 PLO", "buy_in": 10000, "start_date": "2026-02-05", "start_time": "1:00 PM", "game_type": "PLO", "event_type": "high_roller", "days": 2, "starting_stack": 60000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$10,000 Big Bet Mix", "buy_in": 10000, "start_date": "2026-02-07", "start_time": "1:00 PM", "game_type": "Mixed", "event_type": "high_roller", "days": 2, "starting_stack": 60000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$25,000 Mixed Games Championship", "buy_in": 25000, "start_date": "2026-02-09", "start_time": "1:00 PM", "game_type": "Mixed", "event_type": "championship", "days": 2, "starting_stack": 100000, "blind_levels": "60 min"}
+      ]
+    },
+    {
+      "series_uid": "SHRB-MIXED-2026",
+      "name": "Super High Roller Bowl Mixed Games 2026",
+      "venue": "PokerGO Studio at ARIA",
+      "city": "Las Vegas",
+      "state": "NV",
+      "start_date": "2026-02-12",
+      "end_date": "2026-02-14",
+      "source_url": "https://www.pokergo.com/pgt/",
+      "events": [
+        {"event_number": 1, "event_name": "$50,000 Short Deck", "buy_in": 50000, "start_date": "2026-02-12", "start_time": "1:00 PM", "game_type": "Short Deck", "event_type": "super_high_roller", "days": 1, "starting_stack": 100000, "blind_levels": "60 min"},
+        {"event_number": 2, "event_name": "$100,000 SHRB Mixed Games", "buy_in": 100000, "start_date": "2026-02-13", "start_time": "1:00 PM", "game_type": "Mixed", "event_type": "super_high_roller", "days": 2, "starting_stack": 200000, "blind_levels": "60 min"}
+      ]
+    },
+    {
+      "series_uid": "PGT-POKERGO-CUP-2026",
+      "name": "PokerGO Cup 2026",
+      "venue": "PokerGO Studio at ARIA",
+      "city": "Las Vegas",
+      "state": "NV",
+      "start_date": "2026-03-01",
+      "end_date": "2026-03-14",
+      "source_url": "https://www.pokergo.com/pgt/",
+      "events": [
+        {"event_number": 1, "event_name": "$10,000 NLH Event #1", "buy_in": 10000, "start_date": "2026-03-01", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 60000, "blind_levels": "40 min"},
+        {"event_number": 2, "event_name": "$10,000 NLH Event #2", "buy_in": 10000, "start_date": "2026-03-03", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 60000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$15,000 NLH", "buy_in": 15000, "start_date": "2026-03-05", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 75000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$25,000 NLH", "buy_in": 25000, "start_date": "2026-03-07", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 100000, "blind_levels": "60 min"},
+        {"event_number": 5, "event_name": "$50,000 NLH", "buy_in": 50000, "start_date": "2026-03-09", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "super_high_roller", "days": 2, "starting_stack": 150000, "blind_levels": "60 min"},
+        {"event_number": 6, "event_name": "$15,100 PokerGO Cup Championship", "buy_in": 15100, "start_date": "2026-03-12", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "championship", "days": 3, "starting_stack": 75000, "blind_levels": "60 min"}
+      ]
+    },
+    {
+      "series_uid": "BLIZZARD-BEACH-2026",
+      "name": "Blizzard on the Beach 2026",
+      "venue": "bestbet Jacksonville",
+      "city": "Jacksonville",
+      "state": "FL",
+      "start_date": "2026-02-05",
+      "end_date": "2026-02-16",
+      "source_url": "https://www.bestbetjax.com/poker/tournaments",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-02-05", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$250 NLH", "buy_in": 250, "start_date": "2026-02-06", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-02-07", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-02-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "seniors", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$1,100 Blizzard Main Event", "buy_in": 1100, "start_date": "2026-02-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 400000, "days": 4, "starting_stack": 35000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$400 NLH Turbo Closer", "buy_in": 400, "start_date": "2026-02-15", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 20000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "series_uid": "RISING-STAR-2026",
+      "name": "Rising Star 2026",
+      "venue": "Bay 101 Casino",
+      "city": "San Jose",
+      "state": "CA",
+      "start_date": "2026-02-20",
+      "end_date": "2026-03-02",
+      "source_url": "https://www.bay101.com/poker",
+      "events": [
+        {"event_number": 1, "event_name": "$600 NLH Opener", "buy_in": 600, "start_date": "2026-02-20", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$1,100 NLH", "buy_in": 1100, "start_date": "2026-02-21", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 35000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$600 PLO", "buy_in": 600, "start_date": "2026-02-22", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$1,650 Rising Star Main Event", "buy_in": 1650, "start_date": "2026-02-25", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 500000, "days": 4, "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$5,300 High Roller", "buy_in": 5300, "start_date": "2026-02-28", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 50000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$600 NLH Turbo Closer", "buy_in": 600, "start_date": "2026-03-01", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 25000, "blind_levels": "20 min"}
+      ]
+    },
+    {
+      "series_uid": "TPC-2026",
+      "name": "Tampa Poker Classic 2026",
+      "venue": "Seminole Hard Rock Tampa",
+      "city": "Tampa",
+      "state": "FL",
+      "start_date": "2026-03-04",
+      "end_date": "2026-03-16",
+      "source_url": "https://www.seminolehardrocktampa.com/poker/",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-03-04", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-03-05", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 35000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-03-06", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$600 NLH Bounty", "buy_in": 600, "start_date": "2026-03-07", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "bounty", "bounty": 150, "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$400 Seniors (50+)", "buy_in": 400, "start_date": "2026-03-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "seniors", "age_req": "50+", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,100 Tampa Poker Classic Main Event", "buy_in": 1100, "start_date": "2026-03-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 500000, "days": 4, "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$600 NLH Turbo Closer", "buy_in": 600, "start_date": "2026-03-15", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 25000, "blind_levels": "20 min"}
+      ]
+    },
+    {
+      "series_uid": "SHRPO-2026",
+      "name": "Seminole Hard Rock Poker Open 2026",
+      "venue": "Seminole Hard Rock Hotel & Casino",
+      "city": "Hollywood",
+      "state": "FL",
+      "start_date": "2026-07-29",
+      "end_date": "2026-08-11",
+      "source_url": "https://www.seminolehardrockpokeropen.com",
+      "events": [
+        {"event_number": 1, "event_name": "$600 NLH Opener", "buy_in": 600, "start_date": "2026-07-29", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$1,100 NLH Deep Stack", "buy_in": 1100, "start_date": "2026-07-30", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 50000, "blind_levels": "40 min"},
+        {"event_number": 3, "event_name": "$600 PLO", "buy_in": 600, "start_date": "2026-07-31", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$1,100 Mystery Bounty", "buy_in": 1100, "start_date": "2026-08-01", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "mystery_bounty", "flights": ["A", "B", "C"], "guaranteed": 750000, "starting_stack": 40000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$600 Seniors (50+)", "buy_in": 600, "start_date": "2026-08-03", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "seniors", "age_req": "50+", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$5,250 SHRPO Main Event", "buy_in": 5250, "start_date": "2026-08-05", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C", "D"], "guaranteed": 3000000, "days": 5, "starting_stack": 60000, "blind_levels": "60 min"},
+        {"event_number": 7, "event_name": "$25,000 High Roller", "buy_in": 25000, "start_date": "2026-08-08", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 100000, "blind_levels": "60 min"},
+        {"event_number": 8, "event_name": "$1,100 NLH Turbo Closer", "buy_in": 1100, "start_date": "2026-08-10", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 30000, "blind_levels": "20 min"}
+      ]
+    }
+  ]
+}
