@@ -1959,10 +1959,27 @@ export default function MessengerPage() {
     const startCall = async (type) => {
         if (!activeConversation || !user) return;
         const otherUser = activeConversation?.otherUser;
+
+        // 🔒 CRITICAL VALIDATION: Ensure we're calling the right person
         if (!otherUser?.id) {
             setToast({ type: 'error', message: 'Cannot start call - user not found' });
+            console.error('❌ CALL ERROR: otherUser is missing!', { activeConversation });
             return;
         }
+
+        // NEVER call yourself - this would be a bug
+        if (otherUser.id === user.id) {
+            setToast({ type: 'error', message: 'Cannot call yourself' });
+            console.error('❌ CALL ERROR: Attempted to call self!', { otherUser, currentUser: user.id });
+            return;
+        }
+
+        console.log('📞 INITIATING CALL:', {
+            callingUser: otherUser.id,
+            callingUsername: otherUser.username,
+            currentUser: user.id,
+            conversationId: activeConversation.id,
+        });
 
         // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
         const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;
