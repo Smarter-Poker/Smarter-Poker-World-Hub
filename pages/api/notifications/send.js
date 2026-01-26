@@ -69,7 +69,7 @@ export default async function handler(req, res) {
             notification.priority = 10; // Highest priority
             notification.android_visibility = 1; // Show on lock screen
             notification.android_sound = 'ringtone'; // Use ringtone sound
-            notification.android_channel_id = 'calls'; // Dedicated call channel
+            notification.android_channel_id = '80694c07-ed3b-4016-9525-083b5f59d812'; // OneSignal "Incoming Calls" channel
             notification.ttl = 120; // Expire after 2 minutes (call timeout)
 
             // iOS: Critical alert style for calls
