@@ -1801,7 +1801,7 @@ export default function MessengerPage() {
 
         // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
         const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;
-        const callerName = user.user_metadata?.username || user.user_metadata?.poker_alias || 'Someone';
+        const callerName = user.user_metadata?.full_name || user.user_metadata?.username || user.user_metadata?.poker_alias || 'Someone';
         const callerAvatar = user.user_metadata?.avatar_url || null;
 
         // Set calling state to show "Calling..." UI
@@ -1886,7 +1886,7 @@ export default function MessengerPage() {
             outgoingCallAudioRef.current.play().catch(() => { });
         }
 
-        setToast({ type: 'info', message: `Calling ${otherUser.username}...` });
+        setToast({ type: 'info', message: `Calling ${otherUser.full_name || otherUser.username}...` });
     };
 
     // End call - notify the other party
