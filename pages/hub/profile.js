@@ -645,7 +645,7 @@ export default function ProfilePage() {
         <>
             <Head>
                 <title>My Profile | Smarter.Poker</title>
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
                     /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
                     .profile-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }

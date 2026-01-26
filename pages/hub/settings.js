@@ -176,7 +176,7 @@ export default function SettingsPage() {
             <Head>
                 <title>Settings — Smarter.Poker</title>
                 <meta name="description" content="Configure your Smarter.Poker experience" />
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
                 <style>{`
                     /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */

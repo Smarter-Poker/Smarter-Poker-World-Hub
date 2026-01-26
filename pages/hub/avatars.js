@@ -33,7 +33,7 @@ export default function AvatarsPage() {
             <Head>
                 <title>Avatar Selection | Smarter Poker</title>
                 <meta name="description" content="Choose your poker avatar from preset options or create a custom AI-generated avatar" />
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
                     .avatars-page-wrapper { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
                     @media (max-width: 500px) { .avatars-page-wrapper { zoom: 0.5; } }

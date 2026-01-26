@@ -62,7 +62,7 @@ export default function TrainingPlayPage() {
         <>
             <Head>
                 <title>Select Level | Smarter.Poker Training</title>
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
                     .training-play-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
                     @media (max-width: 500px) { .training-play-page { zoom: 0.5; } }

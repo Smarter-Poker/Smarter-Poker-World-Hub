@@ -100,7 +100,7 @@ export default function CategoryPage() {
         <PageTransition>
             <Head>
                 <title>{categoryMeta.title} — PokerIQ Training</title>
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
                     * { box-sizing: border-box; margin: 0; padding: 0; }
                     body {

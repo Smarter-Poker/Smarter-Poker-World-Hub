@@ -848,7 +848,7 @@ export default function VirtualSandboxPage() {
       <Head>
         <title>Virtual Sandbox — Smarter.Poker</title>
         <meta name="description" content="Theoretical hand exploration with GTO analysis" />
-        <meta name="viewport" content="width=800, user-scalable=no" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
         <style>{`
           .sandbox-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }

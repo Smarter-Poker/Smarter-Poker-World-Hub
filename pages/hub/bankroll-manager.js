@@ -193,7 +193,7 @@ export default function BankrollManagerPage() {
       <Head>
         <title>Bankroll Manager — Smarter.Poker</title>
         <meta name="description" content="Professional bankroll tracking and financial truth engine" />
-        <meta name="viewport" content="width=800, user-scalable=no" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
         <style>{`
           .bankroll-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }

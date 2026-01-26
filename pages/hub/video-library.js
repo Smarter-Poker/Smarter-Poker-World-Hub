@@ -414,7 +414,7 @@ export default function VideoLibraryPage() {
             <Head>
                 <title>Video Library | Smarter Poker</title>
                 <meta name="description" content="Watch full poker videos from HCL, The Lodge, Triton, and more" />
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
                     /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
                     .video-library-page {

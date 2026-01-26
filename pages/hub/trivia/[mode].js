@@ -375,7 +375,7 @@ export default function TriviaModePage() {
             <Head>
                 <title>{modeConfig.name} - Smarter.Poker Trivia</title>
                 <meta name="description" content={modeConfig.description} />
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
             </Head>
 
             <div className="trivia-mode-page">

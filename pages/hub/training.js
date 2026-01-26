@@ -630,7 +630,7 @@ export default function TrainingPage() {
                     - iPad (768px): zoom = 768/800 = 0.96x (96% of desktop size)
                     - Desktop (1440px): zoom = 1440/800 = 1.8x (180% of desktop size - capped)
                 */}
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
                     /* Scrollbar styling */
                     ::-webkit-scrollbar { height: 6px; }

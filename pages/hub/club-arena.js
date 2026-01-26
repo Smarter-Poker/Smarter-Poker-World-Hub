@@ -159,7 +159,7 @@ export default function ClubArenaPage() {
             <Head>
                 <title>Club Arena | Smarter.Poker</title>
                 <meta name="description" content="Private poker clubs, better than PokerBros" />
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
                     .club-arena-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
                     @media (max-width: 500px) { .club-arena-page { zoom: 0.5; } }
