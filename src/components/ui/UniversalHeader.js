@@ -405,15 +405,14 @@ export default function UniversalHeader({
                     width: 36px;
                     height: 36px;
                     border-radius: 50%;
-                    background: linear-gradient(135deg, rgba(0, 136, 255, 0.15) 0%, rgba(0, 245, 255, 0.08) 100%);
-                    border: 1px solid rgba(0, 245, 255, 0.3);
+                    background: transparent;
+                    border: none;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 16px;
+                    font-size: 24px;
                     cursor: pointer;
                     position: relative;
-                    box-shadow: 0 0 10px rgba(0, 245, 255, 0.15);
                     flex-shrink: 0;
                 }
                 
@@ -591,11 +590,11 @@ export default function UniversalHeader({
                         </div>
                     </Link>
 
-                    {/* Messages - Facebook Messenger style icon */}
+                    {/* Messages - Facebook Messenger style FILLED icon */}
                     <Link href="/hub/messenger" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#00d4ff' }}>
-                                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="#00d4ff">
+                                <path d="M12 2C6.48 2 2 6.04 2 11c0 2.52 1.17 4.77 3 6.35V22l4.46-2.46c.8.23 1.66.36 2.54.36 5.52 0 10-4.04 10-9s-4.48-9-10-9zm1 12h-2v-2h2v2zm0-4h-2V6h2v4z" fill="#00d4ff" />
                             </svg>
                             {unreadMessages > 0 && (
                                 <span className="orb-badge">{unreadMessages > 99 ? '99+' : unreadMessages}</span>

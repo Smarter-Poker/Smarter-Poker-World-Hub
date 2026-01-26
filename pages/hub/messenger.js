@@ -997,6 +997,7 @@ export default function MessengerPage() {
     const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
     const [callingUser, setCallingUser] = useState(null); // Track who we're calling
     const incomingCallAudioRef = useRef(null);
+    const outgoingCallAudioRef = useRef(null); // Ringing sound when YOU make a call
     const callTimeoutRef = useRef(null);
 
     // OneSignal Push Notifications
