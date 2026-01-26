@@ -522,7 +522,7 @@ export default function UserProfilePage() {
                     <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                         {isOwnProfile ? (
                             <>
-                                <Link href="/hub/profile" style={{
+                                <Link href="/hub/profile-edit" style={{
                                     flex: 1, padding: '10px 16px', background: '#e4e6eb', color: C.text,
                                     borderRadius: 8, textDecoration: 'none', fontWeight: 600, textAlign: 'center', fontSize: 14
                                 }}>✏️ Edit Profile</Link>
