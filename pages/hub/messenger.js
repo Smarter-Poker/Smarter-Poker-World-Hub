@@ -1985,17 +1985,12 @@ export default function MessengerPage() {
         setShowCall(true);
 
         // 🔔 Play outgoing ring sound while waiting for answer
-        // Use Web Audio API ring tone (more reliable than audio elements)
+        // Use Web Audio API ring tone only (removed backup audio element to prevent double ringtone)
         if (!outgoingRingToneRef.current) {
             outgoingRingToneRef.current = createRingTone();
         }
         if (outgoingRingToneRef.current) {
             outgoingRingToneRef.current.start();
-        }
-        // Also try audio element as backup
-        if (outgoingCallAudioRef.current) {
-            outgoingCallAudioRef.current.loop = true;
-            outgoingCallAudioRef.current.play().catch(() => { });
         }
 
         setToast({ type: 'info', message: `Calling ${otherUser.full_name || otherUser.username}...` });
