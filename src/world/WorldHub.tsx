@@ -178,8 +178,8 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                         borderRadius: 8,
                         overflow: 'visible',
                         background: 'linear-gradient(135deg, rgba(10, 30, 60, 0.85), rgba(5, 20, 40, 0.9))',
-                        border: '2px solid rgba(0, 212, 255, 0.85)',
-                        boxShadow: `0 0 20px rgba(0, 180, 255, 0.3), 0 20px 40px rgba(0, 0, 0, 0.5)`,
+                        border: 'none',
+                        boxShadow: `0 20px 40px rgba(0, 0, 0, 0.5)`,
                     }}
                 >
                     {/* Card image - Static for footer cards (marketplace fills edge-to-edge) */}
@@ -849,8 +849,8 @@ export default function WorldHub() {
                                             background: orb.imageUrl
                                                 ? `url('${orb.imageUrl}') center/cover`
                                                 : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                                            border: '2px solid rgba(0, 212, 255, 0.6)',
-                                            boxShadow: '0 0 15px rgba(0, 212, 255, 0.3)',
+                                            border: 'none',
+                                            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
                                             position: 'relative',
                                         }}
                                     >

@@ -111,29 +111,7 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
                 )}
             </mesh>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                THIN BRIGHT BORDER - All 4 edges
-                ═══════════════════════════════════════════════════════════════ */}
-            {/* Top border */}
-            <mesh position={[0, cardHeight / 2 - 0.005, 0.035]}>
-                <planeGeometry args={[cardWidth - 0.02, 0.006]} />
-                <meshBasicMaterial color="#00d4ff" transparent opacity={0.85} />
-            </mesh>
-            {/* Bottom border */}
-            <mesh position={[0, -(cardHeight / 2 - 0.005), 0.035]}>
-                <planeGeometry args={[cardWidth - 0.02, 0.006]} />
-                <meshBasicMaterial color="#00d4ff" transparent opacity={0.85} />
-            </mesh>
-            {/* Left border */}
-            <mesh position={[-(cardWidth / 2 - 0.005), 0, 0.035]}>
-                <planeGeometry args={[0.006, cardHeight - 0.02]} />
-                <meshBasicMaterial color="#00d4ff" transparent opacity={0.85} />
-            </mesh>
-            {/* Right border */}
-            <mesh position={[(cardWidth / 2 - 0.005), 0, 0.035]}>
-                <planeGeometry args={[0.006, cardHeight - 0.02]} />
-                <meshBasicMaterial color="#00d4ff" transparent opacity={0.85} />
-            </mesh>
+            {/* BORDERS REMOVED — Clean card edges per user request */}
 
             {/* ═══════════════════════════════════════════════════════════════
                 INNER WHITE BORDER FRAME - Hidden for marketplace (full image)
