@@ -6,7 +6,7 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -37,7 +37,7 @@ export default function TriviaModePage() {
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [error, setError] = useState(null);
 
-    const supabase = createClientComponentClient();
+    // Using existing supabase instance from lib
     const modeConfig = mode ? TRIVIA_MODES[mode] : null;
 
     // Load questions and user data
@@ -111,7 +111,7 @@ export default function TriviaModePage() {
         }
 
         initialize();
-    }, [mode, supabase]);
+    }, [mode, modeConfig]);
 
     async function getUserDiamonds(userId) {
         if (!userId) return 0;

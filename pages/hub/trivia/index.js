@@ -5,7 +5,7 @@
 
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -18,7 +18,7 @@ export default function TriviaHubPage() {
     const [currentStreak, setCurrentStreak] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
 
-    const supabase = createClientComponentClient();
+    // Using existing supabase instance from lib
 
     useEffect(() => {
         async function loadUserData() {
@@ -67,7 +67,7 @@ export default function TriviaHubPage() {
         }
 
         loadUserData();
-    }, [supabase]);
+    }, []);
 
     function getTodayCST() {
         const now = new Date();
