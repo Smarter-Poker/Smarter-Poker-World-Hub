@@ -374,20 +374,28 @@ export default function UniversalHeader({
                     gap: 4px;
                     background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.2) 100%);
                     border: 1px solid rgba(0, 212, 255, 0.4);
-                    padding: 4px 10px;
+                    padding: 6px 12px;
                     border-radius: 16px;
                     text-decoration: none;
                     color: white;
+                    min-width: 70px;
+                    height: 36px;
+                    box-sizing: border-box;
                 }
                 
                 .xp-display {
                     display: flex;
+                    flex-direction: column;
                     align-items: center;
-                    gap: 6px;
+                    justify-content: center;
                     background: rgba(255, 255, 255, 0.05);
                     border: 1px solid rgba(255, 255, 255, 0.1);
-                    padding: 4px 10px;
+                    padding: 4px 12px;
                     border-radius: 16px;
+                    min-width: 70px;
+                    height: 36px;
+                    box-sizing: border-box;
+                    line-height: 1.1;
                 }
                 
                 .orb-btn {
@@ -451,8 +459,8 @@ export default function UniversalHeader({
                     }
                     
                     .nav-btn {
-                        padding: 4px 6px;
-                        font-size: 11px;
+                        padding: 8px 12px;
+                        font-size: 14px;
                         gap: 2px;
                     }
                     
@@ -461,15 +469,22 @@ export default function UniversalHeader({
                     }
                     
                     .diamond-wallet {
-                        padding: 2px 6px;
+                        padding: 4px 8px;
                         font-size: 11px;
                         gap: 2px;
+                        min-width: 60px;
+                        height: 32px;
                     }
                     
                     .xp-display {
-                        padding: 2px 5px;
-                        font-size: 10px;
-                        gap: 3px;
+                        padding: 3px 8px;
+                        font-size: 9px;
+                        min-width: 50px;
+                        height: 32px;
+                    }
+                    
+                    .hide-mobile {
+                        display: none !important;
                     }
                     
                     /* ALL orbs visible, just smaller */
@@ -537,14 +552,15 @@ export default function UniversalHeader({
                         }}>+</span>
                     </Link>
 
-                    {/* XP + Level - click to toggle full/compact */}
+                    {/* XP + Level - click to toggle full/compact - STACKED layout */}
                     <div className="xp-display" onClick={() => stats.xp >= 1000 && setShowFullXP(!showFullXP)} style={{ cursor: stats.xp >= 1000 ? 'pointer' : 'default' }}>
-                        <span style={{ color: C.gold, fontWeight: 700, fontSize: 12 }}>XP</span>
-                        <span data-testid="header-xp" style={{ color: C.white, fontWeight: 600, fontSize: 12 }} title={stats.xp.toLocaleString() + ' XP'}>
-                            {showFullXP ? stats.xp.toLocaleString() : formatCompact(stats.xp)}
-                        </span>
-                        <span style={{ color: C.textSec, fontSize: 10 }}>•</span>
-                        <span data-testid="header-level" style={{ color: C.cyan, fontWeight: 700, fontSize: 12 }}>LV {stats.level}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <span style={{ color: C.gold, fontWeight: 700, fontSize: 11 }}>XP</span>
+                            <span data-testid="header-xp" style={{ color: C.white, fontWeight: 600, fontSize: 11 }} title={stats.xp.toLocaleString() + ' XP'}>
+                                {showFullXP ? stats.xp.toLocaleString() : formatCompact(stats.xp)}
+                            </span>
+                        </div>
+                        <span data-testid="header-level" style={{ color: C.cyan, fontWeight: 700, fontSize: 10 }}>LV {stats.level}</span>
                     </div>
                 </div>
 
@@ -564,10 +580,12 @@ export default function UniversalHeader({
                         </div>
                     </Link>
 
-                    {/* Messages */}
+                    {/* Messages - Facebook Messenger style icon */}
                     <Link href="/hub/messenger" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            ✉️
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#00d4ff' }}>
+                                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                            </svg>
                             {unreadMessages > 0 && (
                                 <span className="orb-badge">{unreadMessages > 99 ? '99+' : unreadMessages}</span>
                             )}
@@ -587,9 +605,9 @@ export default function UniversalHeader({
                     {/* Push Notification Bell */}
                     <PushNotificationBell />
 
-                    {/* Search */}
+                    {/* Search - HIDE on mobile */}
                     {showSearch && (
-                        <button onClick={onSearchClick} style={{ background: 'none', border: 'none', padding: 0 }}>
+                        <button onClick={onSearchClick} className="hide-mobile" style={{ background: 'none', border: 'none', padding: 0 }}>
                             <div className="orb-btn">🔍</div>
                         </button>
                     )}
