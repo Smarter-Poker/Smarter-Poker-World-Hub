@@ -1,16 +1,18 @@
 /**
- * POKER NEAR ME - Find Poker Rooms Near You
- * Redesigned to match Smarter.Poker visual design system
+ * POKER NEAR ME - Unified Search for Venues, Tours, Series, and Daily Events
+ * Complete poker discovery platform
  */
 
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 const POPULAR_CITIES = [
     { name: 'Las Vegas', state: 'NV' },
     { name: 'Los Angeles', state: 'CA' },
     { name: 'Miami', state: 'FL' },
+    { name: 'Atlantic City', state: 'NJ' },
+    { name: 'Austin', state: 'TX' },
 ];
 
 const VENUE_TYPE_LABELS = {
@@ -20,14 +22,37 @@ const VENUE_TYPE_LABELS = {
     home_game: 'Home Game'
 };
 
+const TOUR_TYPE_LABELS = {
+    major: 'Major Tour',
+    circuit: 'Circuit',
+    high_roller: 'High Roller',
+    regional: 'Regional',
+    grassroots: 'Grassroots',
+    charity: 'Charity',
+    cruise: 'Cruise'
+};
+
+const TOUR_COLORS = {
+    'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
+    'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626' },
+    'WSOPC': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
+    'MSPT': { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6' },
+    'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981' },
+    'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6' },
+    'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563' }
+};
+
+const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
 function getTrustLevel(score) {
     if (score >= 4.5) return { label: 'High', color: '#22c55e' };
-    if (score >= 4.0) return { label: 'Fresh', color: '#3b82f6' };
+    if (score >= 4.0) return { label: 'Good', color: '#3b82f6' };
     if (score >= 3.0) return { label: 'Moderate', color: '#f59e0b' };
     return { label: 'Low', color: '#ef4444' };
 }
 
 function formatDate(dateStr) {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
@@ -39,61 +64,74 @@ function formatMoney(amount) {
     return `$${amount.toLocaleString()}`;
 }
 
-// Series logo component with proper branding
-function SeriesLogo({ shortName }) {
-    const logos = {
-        'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
-        'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626' },
-        'MSPT': { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6' },
-        'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6' },
-        'WSOPC': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
-    };
-    const style = logos[shortName] || { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563' };
+function getCurrentDay() {
+    return DAYS_OF_WEEK[new Date().getDay()];
+}
+
+// Tour Badge Component
+function TourBadge({ tourCode, size = 'normal' }) {
+    const style = TOUR_COLORS[tourCode] || TOUR_COLORS.default;
+    const padding = size === 'small' ? '4px 10px' : '8px 16px';
+    const fontSize = size === 'small' ? '11px' : '14px';
 
     return (
-        <div className="series-logo-badge" style={{ background: style.bg, borderColor: style.border }}>
-            <span style={{ color: style.text }}>{shortName || 'SERIES'}</span>
-            <style jsx>{`
-                .series-logo-badge {
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 8px 16px;
-                    border-radius: 6px;
-                    border: 1px solid;
-                    min-width: 70px;
-                }
-                .series-logo-badge span {
-                    font-size: 14px;
-                    font-weight: 800;
-                    letter-spacing: 0.5px;
-                }
-            `}</style>
+        <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding,
+            borderRadius: '6px',
+            background: style.bg,
+            border: `1px solid ${style.border}`,
+            minWidth: size === 'small' ? '50px' : '70px'
+        }}>
+            <span style={{ color: style.text, fontSize, fontWeight: 800, letterSpacing: '0.5px' }}>
+                {tourCode || 'TOUR'}
+            </span>
         </div>
     );
 }
 
 export default function PokerNearMe() {
+    // Active tab state
+    const [activeTab, setActiveTab] = useState('venues');
+
+    // Data states
     const [venues, setVenues] = useState([]);
+    const [tours, setTours] = useState([]);
     const [series, setSeries] = useState([]);
+    const [dailyTournaments, setDailyTournaments] = useState([]);
+
+    // UI states
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [userLocation, setUserLocation] = useState(null);
     const [gpsLoading, setGpsLoading] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [selectedCity, setSelectedCity] = useState(null);
-    const [showMap, setShowMap] = useState(false);
     const [nearestDistance, setNearestDistance] = useState(null);
 
+    // Filter states
     const [filters, setFilters] = useState({
+        // Venue filters
         venueType: 'all',
         hasNLH: false,
         hasPLO: false,
         hasMixed: false,
+        // Tour filters
+        tourType: 'all',
+        // Series filters
+        seriesTimeframe: 90,
+        seriesType: 'all',
+        // Daily tournament filters
+        selectedDay: getCurrentDay(),
+        minBuyin: '',
+        maxBuyin: ''
     });
 
+    // Fetch all data on mount and when filters change
     useEffect(() => {
-        fetchData();
+        fetchAllData();
     }, [selectedCity, userLocation]);
 
     const requestGpsLocation = () => {
@@ -107,7 +145,7 @@ export default function PokerNearMe() {
                 setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
                 setGpsLoading(false);
             },
-            (err) => {
+            () => {
                 alert('Unable to get your location. Please enable location services.');
                 setGpsLoading(false);
             },
@@ -115,9 +153,14 @@ export default function PokerNearMe() {
         );
     };
 
-    const fetchData = async () => {
+    const fetchAllData = async () => {
         setLoading(true);
-        await Promise.all([fetchVenues(), fetchSeries()]);
+        await Promise.all([
+            fetchVenues(),
+            fetchTours(),
+            fetchSeries(),
+            fetchDailyTournaments()
+        ]);
         setLoading(false);
     };
 
@@ -164,9 +207,42 @@ export default function PokerNearMe() {
         }
     };
 
+    const fetchTours = async () => {
+        try {
+            const params = new URLSearchParams({ include_series: 'true', limit: '30' });
+            if (filters.tourType !== 'all') {
+                params.set('type', filters.tourType);
+            }
+            if (searchQuery) {
+                params.set('search', searchQuery);
+            }
+
+            const res = await fetch(`/api/poker/tours?${params}`);
+            const { data } = await res.json();
+            setTours(data || []);
+        } catch (e) {
+            console.error('Fetch tours error:', e);
+            setTours([]);
+        }
+    };
+
     const fetchSeries = async () => {
         try {
-            const params = new URLSearchParams({ upcoming: 'true', limit: '20' });
+            const params = new URLSearchParams({ upcoming: 'true', limit: '50' });
+
+            // Add date range filter
+            const today = new Date();
+            const endDate = new Date();
+            endDate.setDate(today.getDate() + filters.seriesTimeframe);
+            params.set('end_date', endDate.toISOString().split('T')[0]);
+
+            if (filters.seriesType !== 'all') {
+                params.set('type', filters.seriesType);
+            }
+            if (searchQuery) {
+                params.set('search', searchQuery);
+            }
+
             const res = await fetch(`/api/poker/series?${params}`);
             const { data } = await res.json();
             setSeries(data || []);
@@ -176,9 +252,36 @@ export default function PokerNearMe() {
         }
     };
 
+    const fetchDailyTournaments = async () => {
+        try {
+            const params = new URLSearchParams({ limit: '100' });
+            params.set('day', filters.selectedDay);
+
+            if (selectedCity?.state) {
+                params.set('state', selectedCity.state);
+            }
+            if (searchQuery) {
+                params.set('venue', searchQuery);
+            }
+            if (filters.minBuyin) {
+                params.set('minBuyin', filters.minBuyin);
+            }
+            if (filters.maxBuyin) {
+                params.set('maxBuyin', filters.maxBuyin);
+            }
+
+            const res = await fetch(`/api/poker/daily-tournaments?${params}`);
+            const { tournaments } = await res.json();
+            setDailyTournaments(tournaments || []);
+        } catch (e) {
+            console.error('Fetch daily tournaments error:', e);
+            setDailyTournaments([]);
+        }
+    };
+
     const handleSearch = (e) => {
         e.preventDefault();
-        fetchVenues();
+        fetchAllData();
     };
 
     const handleCityClick = (city) => {
@@ -190,24 +293,261 @@ export default function PokerNearMe() {
         setSelectedCity(null);
         setUserLocation(null);
         setSearchQuery('');
-        setFilters({ venueType: 'all', hasNLH: false, hasPLO: false, hasMixed: false });
+        setFilters({
+            venueType: 'all',
+            hasNLH: false,
+            hasPLO: false,
+            hasMixed: false,
+            tourType: 'all',
+            seriesTimeframe: 90,
+            seriesType: 'all',
+            selectedDay: getCurrentDay(),
+            minBuyin: '',
+            maxBuyin: ''
+        });
     };
 
-    // Get popular rooms from venues
-    const popularRooms = venues.filter(v => v.is_featured || v.trust_score >= 4.5).slice(0, 5);
+    // Get counts for tabs
+    const getCounts = () => ({
+        venues: venues.length,
+        tours: tours.length,
+        series: series.length,
+        daily: dailyTournaments.length
+    });
 
-    // Get next major series for sidebar preview
-    const nextMajorSeries = series.find(s => ['WSOP', 'WPT', 'WSOPC'].includes(s.short_name));
+    const counts = getCounts();
+
+    // Render content based on active tab
+    const renderContent = () => {
+        if (loading) {
+            return (
+                <div className="loading-state">
+                    <div className="spinner"></div>
+                    <span>Loading poker data...</span>
+                </div>
+            );
+        }
+
+        switch (activeTab) {
+            case 'venues':
+                return renderVenues();
+            case 'tours':
+                return renderTours();
+            case 'series':
+                return renderSeries();
+            case 'daily':
+                return renderDailyTournaments();
+            default:
+                return renderVenues();
+        }
+    };
+
+    const renderVenues = () => {
+        if (venues.length === 0) {
+            return (
+                <div className="empty-state">
+                    <p>No venues found</p>
+                    <button onClick={clearFilters}>Clear Filters</button>
+                </div>
+            );
+        }
+
+        return (
+            <div className="card-grid">
+                {venues.slice(0, 30).map((venue, i) => {
+                    const trust = getTrustLevel(venue.trust_score);
+                    return (
+                        <div key={venue.id || i} className="entity-card venue-card">
+                            <div className="card-header">
+                                <h4>{venue.name}</h4>
+                                <span className="badge venue-type">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
+                            </div>
+                            <p className="card-location">{venue.city}, {venue.state}</p>
+                            <div className="card-tags">
+                                {venue.distance_mi && <span className="tag distance">{venue.distance_mi} mi</span>}
+                                {venue.games_offered?.slice(0, 3).map(g => (
+                                    <span key={g} className="tag game">{g}</span>
+                                ))}
+                            </div>
+                            {venue.stakes_cash?.length > 0 && (
+                                <p className="card-detail">Stakes: {venue.stakes_cash.slice(0, 3).join(', ')}</p>
+                            )}
+                            <div className="card-footer">
+                                <span className="trust-badge" style={{ color: trust.color }}>Trust: {trust.label}</span>
+                                <div className="card-actions">
+                                    {venue.phone && <a href={`tel:${venue.phone}`} className="action-btn">Call</a>}
+                                    {venue.website && (
+                                        <a href={venue.website.startsWith('http') ? venue.website : `https://${venue.website}`}
+                                            target="_blank" rel="noopener noreferrer" className="action-btn">Web</a>
+                                    )}
+                                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name + ' ' + venue.city + ' ' + venue.state)}`}
+                                        target="_blank" rel="noopener noreferrer" className="action-btn primary">Map</a>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    const renderTours = () => {
+        if (tours.length === 0) {
+            return (
+                <div className="empty-state">
+                    <p>No tours found</p>
+                    <button onClick={clearFilters}>Clear Filters</button>
+                </div>
+            );
+        }
+
+        return (
+            <div className="card-grid tours-grid">
+                {tours.map((tour, i) => (
+                    <div key={tour.tour_code || i} className="entity-card tour-card">
+                        <div className="card-header">
+                            <TourBadge tourCode={tour.tour_code} />
+                            <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || tour.tour_type}</span>
+                        </div>
+                        <h4 className="tour-name">{tour.tour_name}</h4>
+                        <p className="card-location">{tour.headquarters}</p>
+                        {tour.typical_buyins && (
+                            <p className="card-detail">
+                                Buy-ins: {formatMoney(tour.typical_buyins.min)} - {formatMoney(tour.typical_buyins.max)}
+                            </p>
+                        )}
+                        {tour.regions && tour.regions.length > 0 && (
+                            <div className="card-tags">
+                                {tour.regions.map(r => <span key={r} className="tag region">{r}</span>)}
+                            </div>
+                        )}
+                        {tour.upcoming_series && tour.upcoming_series.length > 0 && (
+                            <div className="upcoming-series">
+                                <span className="upcoming-label">Next: {tour.upcoming_series[0].short_name || tour.upcoming_series[0].name}</span>
+                                <span className="upcoming-date">{formatDate(tour.upcoming_series[0].start_date)}</span>
+                            </div>
+                        )}
+                        <div className="card-footer">
+                            <span className="established">Est. {tour.established}</span>
+                            {tour.official_website && (
+                                <a href={tour.official_website} target="_blank" rel="noopener noreferrer" className="action-btn primary">
+                                    Website
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    const renderSeries = () => {
+        if (series.length === 0) {
+            return (
+                <div className="empty-state">
+                    <p>No tournament series found</p>
+                    <button onClick={clearFilters}>Clear Filters</button>
+                </div>
+            );
+        }
+
+        return (
+            <div className="card-grid">
+                {series.slice(0, 30).map((s, i) => (
+                    <div key={s.id || i} className="entity-card series-card">
+                        <div className="card-header">
+                            <TourBadge tourCode={s.short_name} size="small" />
+                            <span className="badge series-type">{s.series_type}</span>
+                        </div>
+                        <h4>{s.name}</h4>
+                        <p className="card-location">{s.location || `${s.city || s.venue}, ${s.state || ''}`}</p>
+                        <p className="card-dates">{formatDate(s.start_date)} - {formatDate(s.end_date)}</p>
+                        <div className="card-tags">
+                            {s.total_events && <span className="tag events">{s.total_events} Events</span>}
+                            {s.main_event_buyin && <span className="tag buyin">{formatMoney(s.main_event_buyin)} Main</span>}
+                        </div>
+                        {s.main_event_guaranteed && (
+                            <p className="card-detail guaranteed">{formatMoney(s.main_event_guaranteed)}+ GTD</p>
+                        )}
+                        <div className="card-footer">
+                            {s.source_url && (
+                                <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="action-btn primary">
+                                    Details
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    const renderDailyTournaments = () => {
+        if (dailyTournaments.length === 0) {
+            return (
+                <div className="empty-state">
+                    <p>No daily tournaments found for {filters.selectedDay}</p>
+                    <button onClick={clearFilters}>Clear Filters</button>
+                </div>
+            );
+        }
+
+        return (
+            <>
+                <div className="day-selector">
+                    {DAYS_OF_WEEK.map(day => (
+                        <button
+                            key={day}
+                            className={`day-btn ${filters.selectedDay === day ? 'active' : ''}`}
+                            onClick={() => {
+                                setFilters({ ...filters, selectedDay: day });
+                                setTimeout(() => fetchDailyTournaments(), 0);
+                            }}
+                        >
+                            {day.slice(0, 3)}
+                        </button>
+                    ))}
+                </div>
+                <div className="card-grid daily-grid">
+                    {dailyTournaments.slice(0, 50).map((t, i) => (
+                        <div key={t.id || i} className="entity-card daily-card">
+                            <div className="card-header">
+                                <span className="time-badge">{t.start_time}</span>
+                                <span className="badge game-type">{t.game_type || 'NLH'}</span>
+                            </div>
+                            <h4>{t.venue_name}</h4>
+                            <p className="card-location">{t.city}, {t.state}</p>
+                            <div className="card-tags">
+                                <span className="tag buyin">${t.buy_in}</span>
+                                {t.guaranteed && <span className="tag gtd">{formatMoney(t.guaranteed)} GTD</span>}
+                                {t.format && <span className="tag format">{t.format}</span>}
+                            </div>
+                            {t.tournament_name && (
+                                <p className="card-detail">{t.tournament_name}</p>
+                            )}
+                            <div className="card-footer">
+                                <span className="venue-type">{t.venueType}</span>
+                                {t.pokerAtlasUrl && (
+                                    <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="action-btn primary">
+                                        Info
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </>
+        );
+    };
 
     return (
         <>
             <Head>
                 <title>Poker Near Me | Smarter.Poker</title>
-                <meta name="description" content="Find poker rooms, casinos, and card clubs near you." />
+                <meta name="description" content="Find poker rooms, tours, tournament series, and daily events near you." />
             </Head>
 
             <div className="pnm-page">
-                {/* Space Background */}
                 <div className="space-bg"></div>
                 <div className="space-overlay"></div>
 
@@ -216,7 +556,7 @@ export default function PokerNearMe() {
                 {/* Page Header */}
                 <div className="pnm-header">
                     <h1><span className="white">POKER</span> <span className="gold">NEAR</span> <span className="white">ME</span></h1>
-                    <span className="subtitle">FIND POKER ROOMS NEAR YOU</span>
+                    <span className="subtitle">VENUES | TOURS | SERIES | DAILY EVENTS</span>
                 </div>
 
                 {/* Search Section */}
@@ -228,10 +568,11 @@ export default function PokerNearMe() {
                             </svg>
                             <input
                                 type="text"
-                                placeholder="Search city, casino or keyword"
+                                placeholder="Search venues, tours, series, or events..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
+                            <button type="submit" className="search-btn">Search</button>
                         </form>
 
                         <div className="search-controls">
@@ -252,19 +593,25 @@ export default function PokerNearMe() {
                                 </button>
                             </div>
 
+                            {/* Popular Cities */}
+                            <div className="city-chips">
+                                {POPULAR_CITIES.map(city => (
+                                    <button key={city.name} className={`city-chip ${selectedCity?.name === city.name ? 'active' : ''}`}
+                                        onClick={() => handleCityClick(city)}>
+                                        {city.name}
+                                    </button>
+                                ))}
+                                {selectedCity && (
+                                    <button className="city-chip clear" onClick={() => setSelectedCity(null)}>Clear</button>
+                                )}
+                            </div>
+
                             {(userLocation || nearestDistance) && (
                                 <div className="distance-display">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <polygon points="3 11 22 2 13 21 11 13 3 11"/>
                                     </svg>
-                                    <span>~ {nearestDistance || '0'} miles away:</span>
-                                    <div className="map-toggle">
-                                        <label className="toggle-switch">
-                                            <input type="checkbox" checked={showMap} onChange={(e) => setShowMap(e.target.checked)} />
-                                            <span className="toggle-slider"></span>
-                                        </label>
-                                        <span className="toggle-label">Map</span>
-                                    </div>
+                                    <span>Nearest: ~{nearestDistance || '0'} miles</span>
                                 </div>
                             )}
                         </div>
@@ -274,173 +621,141 @@ export default function PokerNearMe() {
                 {/* Filter Panel */}
                 {showFilters && (
                     <div className="filter-panel">
-                        <div className="filter-group">
-                            <label>Venue Type</label>
-                            <div className="filter-chips">
-                                {['all', 'casino', 'card_room', 'poker_club'].map(type => (
-                                    <button key={type} className={`chip ${filters.venueType === type ? 'active' : ''}`}
-                                        onClick={() => setFilters({...filters, venueType: type})}>
-                                        {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
-                                    </button>
-                                ))}
+                        {activeTab === 'venues' && (
+                            <>
+                                <div className="filter-group">
+                                    <label>Venue Type</label>
+                                    <div className="filter-chips">
+                                        {['all', 'casino', 'card_room', 'poker_club'].map(type => (
+                                            <button key={type} className={`chip ${filters.venueType === type ? 'active' : ''}`}
+                                                onClick={() => setFilters({...filters, venueType: type})}>
+                                                {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="filter-group">
+                                    <label>Games</label>
+                                    <div className="filter-chips">
+                                        <button className={`chip ${filters.hasNLH ? 'active' : ''}`}
+                                            onClick={() => setFilters({...filters, hasNLH: !filters.hasNLH})}>NLH</button>
+                                        <button className={`chip ${filters.hasPLO ? 'active' : ''}`}
+                                            onClick={() => setFilters({...filters, hasPLO: !filters.hasPLO})}>PLO</button>
+                                        <button className={`chip ${filters.hasMixed ? 'active' : ''}`}
+                                            onClick={() => setFilters({...filters, hasMixed: !filters.hasMixed})}>Mixed</button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {activeTab === 'tours' && (
+                            <div className="filter-group">
+                                <label>Tour Type</label>
+                                <div className="filter-chips">
+                                    {['all', 'major', 'circuit', 'high_roller', 'regional'].map(type => (
+                                        <button key={type} className={`chip ${filters.tourType === type ? 'active' : ''}`}
+                                            onClick={() => setFilters({...filters, tourType: type})}>
+                                            {type === 'all' ? 'All' : TOUR_TYPE_LABELS[type]}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                        <div className="filter-group">
-                            <label>Games</label>
-                            <div className="filter-chips">
-                                <button className={`chip ${filters.hasNLH ? 'active' : ''}`} onClick={() => setFilters({...filters, hasNLH: !filters.hasNLH})}>NLH</button>
-                                <button className={`chip ${filters.hasPLO ? 'active' : ''}`} onClick={() => setFilters({...filters, hasPLO: !filters.hasPLO})}>PLO</button>
-                                <button className={`chip ${filters.hasMixed ? 'active' : ''}`} onClick={() => setFilters({...filters, hasMixed: !filters.hasMixed})}>Mixed</button>
+                        )}
+
+                        {activeTab === 'series' && (
+                            <>
+                                <div className="filter-group">
+                                    <label>Timeframe</label>
+                                    <div className="filter-chips">
+                                        {[30, 60, 90, 180].map(days => (
+                                            <button key={days} className={`chip ${filters.seriesTimeframe === days ? 'active' : ''}`}
+                                                onClick={() => setFilters({...filters, seriesTimeframe: days})}>
+                                                {days} Days
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="filter-group">
+                                    <label>Series Type</label>
+                                    <div className="filter-chips">
+                                        {['all', 'major', 'circuit', 'regional'].map(type => (
+                                            <button key={type} className={`chip ${filters.seriesType === type ? 'active' : ''}`}
+                                                onClick={() => setFilters({...filters, seriesType: type})}>
+                                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {activeTab === 'daily' && (
+                            <div className="filter-group">
+                                <label>Buy-in Range</label>
+                                <div className="filter-inputs">
+                                    <input
+                                        type="number"
+                                        placeholder="Min $"
+                                        value={filters.minBuyin}
+                                        onChange={(e) => setFilters({...filters, minBuyin: e.target.value})}
+                                    />
+                                    <span>to</span>
+                                    <input
+                                        type="number"
+                                        placeholder="Max $"
+                                        value={filters.maxBuyin}
+                                        onChange={(e) => setFilters({...filters, maxBuyin: e.target.value})}
+                                    />
+                                </div>
                             </div>
-                        </div>
-                        <button className="btn-apply" onClick={() => { fetchVenues(); setShowFilters(false); }}>Apply Filters</button>
+                        )}
+
+                        <button className="btn-apply" onClick={() => { fetchAllData(); setShowFilters(false); }}>
+                            Apply Filters
+                        </button>
                     </div>
                 )}
 
-                {/* Main 3-Column Layout */}
-                <div className="pnm-layout">
-                    {/* Left Sidebar */}
-                    <aside className="sidebar-left">
-                        <div className="sidebar-section">
-                            <h3>Popular Cities</h3>
-                            <div className="city-chips">
-                                {POPULAR_CITIES.map(city => (
-                                    <button key={city.name} className={`city-chip ${selectedCity?.name === city.name ? 'active' : ''}`}
-                                        onClick={() => handleCityClick(city)}>
-                                        {city.name}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="sidebar-section series-preview">
-                            <h3>Major Series Coming Soon</h3>
-                            {nextMajorSeries ? (
-                                <>
-                                    <div className="series-preview-logo">
-                                        <SeriesLogo shortName={nextMajorSeries.short_name} />
-                                    </div>
-                                    <div className="game-tags">
-                                        <span className="tag primary">NLH</span>
-                                        <span className="tag">PLO</span>
-                                        <span className="tag">Mixed</span>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="series-preview-logo">
-                                        <SeriesLogo shortName="WSOP" />
-                                    </div>
-                                    <div className="game-tags">
-                                        <span className="tag primary">NLH</span>
-                                        <span className="tag">PLO</span>
-                                        <span className="tag">Mixed</span>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-
-                        <div className="sidebar-section">
-                            <h3>Popular Rooms</h3>
-                            <div className="popular-rooms">
-                                {(popularRooms.length > 0 ? popularRooms : venues.slice(0, 5)).map((room, i) => (
-                                    <div key={room.id || i} className="room-item">
-                                        <span className="room-name">{room.name}</span>
-                                        <div className="room-games">
-                                            {room.is_featured && <span className="star">*</span>}
-                                            {room.games_offered?.slice(0, 3).join(' ') || 'NLH PLO'}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </aside>
-
-                    {/* Center - Venue Cards */}
-                    <main className="venue-feed">
-                        {loading ? (
-                            <div className="loading-state">
-                                <div className="spinner"></div>
-                                <span>Finding poker rooms...</span>
-                            </div>
-                        ) : venues.length === 0 ? (
-                            <div className="empty-state">
-                                <p>No venues found</p>
-                                <button onClick={clearFilters}>Clear Filters</button>
-                            </div>
-                        ) : (
-                            <div className="venue-list">
-                                {venues.slice(0, 20).map((venue, i) => {
-                                    const trust = getTrustLevel(venue.trust_score);
-                                    return (
-                                        <div key={venue.id || i} className="venue-card">
-                                            <h4 className="venue-name">{venue.name}</h4>
-                                            <p className="venue-location">{venue.city}, {venue.state}</p>
-                                            <div className="venue-meta">
-                                                {venue.distance_mi && <span className="meta-distance">{venue.distance_mi} mi</span>}
-                                                {venue.games_offered?.slice(0, 3).map(g => (
-                                                    <span key={g} className="meta-game">{g}</span>
-                                                ))}
-                                            </div>
-                                            {venue.stakes_cash?.length > 0 && (
-                                                <p className="venue-stakes">Stakes: {venue.stakes_cash.slice(0, 3).join(', ')}</p>
-                                            )}
-                                            <div className="venue-footer">
-                                                <span className="trust-badge" style={{ color: trust.color }}>Trust: {trust.label}</span>
-                                                <div className="venue-actions">
-                                                    {venue.phone && (
-                                                        <a href={`tel:${venue.phone}`} className="action-btn">Call</a>
-                                                    )}
-                                                    {venue.website && (
-                                                        <a href={venue.website.startsWith('http') ? venue.website : `https://${venue.website}`} target="_blank" rel="noopener noreferrer" className="action-btn">Website</a>
-                                                    )}
-                                                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name + ' ' + venue.city + ' ' + venue.state)}`} target="_blank" rel="noopener noreferrer" className="action-btn primary">Directions</a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </main>
-
-                    {/* Right Sidebar - Tournament Series */}
-                    <aside className="sidebar-right">
-                        <div className="series-header">
-                            <h3>MAJOR TOURNAMENT SERIES</h3>
-                            <div className="series-filters">
-                                <select defaultValue="30">
-                                    <option value="30">Next 30 Days</option>
-                                    <option value="60">Next 60 Days</option>
-                                    <option value="90">Next 90 Days</option>
-                                </select>
-                                <select defaultValue="near">
-                                    <option value="near">Near Me</option>
-                                    <option value="all">All Locations</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div className="series-list">
-                            {series.slice(0, 5).map((s, i) => (
-                                <div key={s.id || i} className="series-card">
-                                    <div className="series-card-logo">
-                                        <SeriesLogo shortName={s.short_name} />
-                                    </div>
-                                    <div className="series-card-info">
-                                        <h4>{s.name}</h4>
-                                        <p className="series-location">{s.location}</p>
-                                        <p className="series-dates">{formatDate(s.start_date)} - {formatDate(s.end_date)}</p>
-                                    </div>
-                                    <div className="series-card-details">
-                                        {s.total_events && <span>{s.total_events} Events</span>}
-                                        {s.main_event_guaranteed && <span>{formatMoney(s.main_event_guaranteed)}+ Guaranteed</span>}
-                                        {s.main_event_buyin && <span>Main Event {formatMoney(s.main_event_buyin)} Buy-In</span>}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </aside>
+                {/* Tab Navigation */}
+                <div className="tab-navigation">
+                    <button className={`tab ${activeTab === 'venues' ? 'active' : ''}`} onClick={() => setActiveTab('venues')}>
+                        <span className="tab-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                        </span>
+                        Venues <span className="tab-count">{counts.venues}</span>
+                    </button>
+                    <button className={`tab ${activeTab === 'tours' ? 'active' : ''}`} onClick={() => setActiveTab('tours')}>
+                        <span className="tab-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                            </svg>
+                        </span>
+                        Tours <span className="tab-count">{counts.tours}</span>
+                    </button>
+                    <button className={`tab ${activeTab === 'series' ? 'active' : ''}`} onClick={() => setActiveTab('series')}>
+                        <span className="tab-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </span>
+                        Series <span className="tab-count">{counts.series}</span>
+                    </button>
+                    <button className={`tab ${activeTab === 'daily' ? 'active' : ''}`} onClick={() => setActiveTab('daily')}>
+                        <span className="tab-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </span>
+                        Daily <span className="tab-count">{counts.daily}</span>
+                    </button>
                 </div>
+
+                {/* Main Content */}
+                <main className="pnm-content">
+                    {renderContent()}
+                </main>
 
                 <style jsx>{`
                     .pnm-page {
@@ -449,6 +764,7 @@ export default function PokerNearMe() {
                         color: #fff;
                         font-family: 'Inter', -apple-system, sans-serif;
                         overflow-x: hidden;
+                        padding-bottom: 40px;
                     }
 
                     /* Space Background */
@@ -471,11 +787,7 @@ export default function PokerNearMe() {
                             radial-gradient(1px 1px at 40px 70px, rgba(255,255,255,0.3), transparent),
                             radial-gradient(1px 1px at 50px 160px, rgba(255,255,255,0.4), transparent),
                             radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.3), transparent),
-                            radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.2), transparent),
-                            radial-gradient(2px 2px at 160px 120px, rgba(255,255,255,0.5), transparent),
-                            radial-gradient(1px 1px at 200px 50px, rgba(255,255,255,0.3), transparent),
-                            radial-gradient(1px 1px at 250px 90px, rgba(255,255,255,0.4), transparent),
-                            radial-gradient(1px 1px at 300px 130px, rgba(255,255,255,0.3), transparent);
+                            radial-gradient(2px 2px at 160px 120px, rgba(255,255,255,0.5), transparent);
                         background-repeat: repeat;
                         background-size: 350px 200px;
                         animation: twinkle 8s ease-in-out infinite alternate;
@@ -487,41 +799,36 @@ export default function PokerNearMe() {
                     .space-overlay {
                         position: fixed;
                         inset: 0;
-                        background: linear-gradient(180deg,
-                            rgba(3,7,18,0.3) 0%,
-                            transparent 20%,
-                            transparent 80%,
-                            rgba(3,7,18,0.5) 100%
-                        );
+                        background: linear-gradient(180deg, rgba(3,7,18,0.3) 0%, transparent 20%, transparent 80%, rgba(3,7,18,0.5) 100%);
                         z-index: -1;
                     }
 
                     /* Header */
                     .pnm-header {
                         padding: 24px 20px;
-                        display: flex;
-                        align-items: baseline;
-                        gap: 16px;
-                        flex-wrap: wrap;
+                        text-align: center;
                     }
                     .pnm-header h1 {
-                        font-size: 28px;
+                        font-size: 32px;
                         font-weight: 700;
                         margin: 0;
-                        letter-spacing: 1px;
+                        letter-spacing: 2px;
                     }
                     .pnm-header .white { color: #fff; }
                     .pnm-header .gold { color: #d4a853; }
                     .pnm-header .subtitle {
-                        font-size: 14px;
+                        display: block;
+                        font-size: 12px;
                         color: rgba(255,255,255,0.5);
-                        font-weight: 400;
-                        letter-spacing: 1px;
+                        margin-top: 8px;
+                        letter-spacing: 3px;
                     }
 
                     /* Search Section */
                     .pnm-search-section {
                         padding: 0 20px 20px;
+                        max-width: 900px;
+                        margin: 0 auto;
                     }
                     .search-container {
                         background: rgba(15, 23, 42, 0.6);
@@ -532,6 +839,8 @@ export default function PokerNearMe() {
                     }
                     .search-form {
                         position: relative;
+                        display: flex;
+                        gap: 10px;
                         margin-bottom: 12px;
                     }
                     .search-icon {
@@ -542,7 +851,7 @@ export default function PokerNearMe() {
                         color: rgba(255,255,255,0.4);
                     }
                     .search-form input {
-                        width: 100%;
+                        flex: 1;
                         padding: 14px 16px 14px 48px;
                         background: rgba(0,0,0,0.3);
                         border: 1px solid rgba(255,255,255,0.15);
@@ -550,13 +859,20 @@ export default function PokerNearMe() {
                         color: #fff;
                         font-size: 15px;
                         outline: none;
-                        transition: all 0.2s;
                     }
                     .search-form input:focus {
                         border-color: rgba(212,168,83,0.5);
-                        box-shadow: 0 0 0 3px rgba(212,168,83,0.1);
                     }
                     .search-form input::placeholder { color: rgba(255,255,255,0.4); }
+                    .search-btn {
+                        padding: 14px 24px;
+                        background: linear-gradient(135deg, #d4a853, #b8860b);
+                        border: none;
+                        border-radius: 12px;
+                        color: #000;
+                        font-weight: 600;
+                        cursor: pointer;
+                    }
 
                     .search-controls {
                         display: flex;
@@ -585,7 +901,6 @@ export default function PokerNearMe() {
                     }
                     .btn-gps:hover, .btn-filters:hover {
                         background: rgba(255,255,255,0.1);
-                        border-color: rgba(255,255,255,0.25);
                     }
                     .btn-gps.active {
                         background: rgba(34,197,94,0.2);
@@ -598,61 +913,61 @@ export default function PokerNearMe() {
                         color: #d4a853;
                     }
 
+                    .city-chips {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
+                    .city-chip {
+                        padding: 8px 14px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 20px;
+                        color: rgba(255,255,255,0.7);
+                        font-size: 13px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .city-chip:hover {
+                        background: rgba(255,255,255,0.1);
+                    }
+                    .city-chip.active {
+                        background: rgba(212,168,83,0.2);
+                        border-color: rgba(212,168,83,0.5);
+                        color: #d4a853;
+                    }
+                    .city-chip.clear {
+                        background: rgba(239,68,68,0.2);
+                        border-color: rgba(239,68,68,0.4);
+                        color: #ef4444;
+                    }
+
                     .distance-display {
                         display: flex;
                         align-items: center;
-                        gap: 10px;
-                        padding: 10px 14px;
-                        background: rgba(0,0,0,0.2);
-                        border-radius: 10px;
-                        color: rgba(255,255,255,0.6);
+                        gap: 8px;
+                        padding: 8px 12px;
+                        background: rgba(34,197,94,0.1);
+                        border-radius: 8px;
+                        color: #4ade80;
                         font-size: 13px;
                     }
-                    .map-toggle {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        margin-left: auto;
-                    }
-                    .toggle-switch {
-                        position: relative;
-                        width: 44px;
-                        height: 24px;
-                    }
-                    .toggle-switch input { opacity: 0; width: 0; height: 0; }
-                    .toggle-slider {
-                        position: absolute;
-                        cursor: pointer;
-                        top: 0; left: 0; right: 0; bottom: 0;
-                        background: rgba(255,255,255,0.15);
-                        border-radius: 24px;
-                        transition: 0.3s;
-                    }
-                    .toggle-slider:before {
-                        position: absolute;
-                        content: "";
-                        height: 18px;
-                        width: 18px;
-                        left: 3px;
-                        bottom: 3px;
-                        background: #fff;
-                        border-radius: 50%;
-                        transition: 0.3s;
-                    }
-                    .toggle-switch input:checked + .toggle-slider { background: #d4a853; }
-                    .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
-                    .toggle-label { font-size: 13px; }
 
                     /* Filter Panel */
                     .filter-panel {
-                        margin: 0 20px 20px;
+                        max-width: 900px;
+                        margin: 0 auto 20px;
                         padding: 16px;
                         background: rgba(15, 23, 42, 0.8);
                         backdrop-filter: blur(12px);
                         border: 1px solid rgba(255,255,255,0.1);
                         border-radius: 12px;
+                        margin-left: 20px;
+                        margin-right: 20px;
                     }
-                    .filter-group { margin-bottom: 16px; }
+                    .filter-group {
+                        margin-bottom: 16px;
+                    }
                     .filter-group label {
                         display: block;
                         font-size: 11px;
@@ -661,7 +976,11 @@ export default function PokerNearMe() {
                         text-transform: uppercase;
                         letter-spacing: 1px;
                     }
-                    .filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+                    .filter-chips {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
                     .chip {
                         padding: 8px 14px;
                         background: rgba(0,0,0,0.3);
@@ -670,13 +989,28 @@ export default function PokerNearMe() {
                         color: rgba(255,255,255,0.7);
                         font-size: 13px;
                         cursor: pointer;
-                        transition: all 0.2s;
                     }
-                    .chip:hover { background: rgba(255,255,255,0.1); }
                     .chip.active {
                         background: rgba(212,168,83,0.2);
                         border-color: rgba(212,168,83,0.5);
                         color: #d4a853;
+                    }
+                    .filter-inputs {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    .filter-inputs input {
+                        width: 100px;
+                        padding: 10px 12px;
+                        background: rgba(0,0,0,0.3);
+                        border: 1px solid rgba(255,255,255,0.15);
+                        border-radius: 8px;
+                        color: #fff;
+                        font-size: 14px;
+                    }
+                    .filter-inputs span {
+                        color: rgba(255,255,255,0.5);
                     }
                     .btn-apply {
                         width: 100%;
@@ -688,88 +1022,59 @@ export default function PokerNearMe() {
                         font-size: 14px;
                         font-weight: 600;
                         cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .btn-apply:hover {
-                        transform: translateY(-1px);
-                        box-shadow: 0 4px 12px rgba(212,168,83,0.3);
                     }
 
-                    /* 3-Column Layout */
-                    .pnm-layout {
+                    /* Tab Navigation */
+                    .tab-navigation {
                         display: flex;
-                        flex-direction: column;
-                        min-height: calc(100vh - 280px);
+                        justify-content: center;
+                        gap: 8px;
                         padding: 0 20px;
+                        margin-bottom: 20px;
+                        flex-wrap: wrap;
                     }
-                    .sidebar-left, .sidebar-right { display: none; }
-                    .venue-feed { flex: 1; }
-
-                    /* Left Sidebar */
-                    .sidebar-section {
-                        padding: 20px;
-                        border-bottom: 1px solid rgba(255,255,255,0.08);
-                    }
-                    .sidebar-section h3 {
-                        font-size: 11px;
-                        font-weight: 600;
-                        color: rgba(255,255,255,0.5);
-                        text-transform: uppercase;
-                        letter-spacing: 1px;
-                        margin: 0 0 14px;
-                    }
-                    .city-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-                    .city-chip {
-                        padding: 10px 16px;
-                        background: rgba(255,255,255,0.05);
+                    .tab {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 12px 20px;
+                        background: rgba(15, 23, 42, 0.6);
                         border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 8px;
-                        color: rgba(255,255,255,0.8);
-                        font-size: 13px;
+                        border-radius: 10px;
+                        color: rgba(255,255,255,0.7);
+                        font-size: 14px;
+                        font-weight: 500;
                         cursor: pointer;
                         transition: all 0.2s;
                     }
-                    .city-chip:hover {
+                    .tab:hover {
                         background: rgba(255,255,255,0.1);
-                        border-color: rgba(255,255,255,0.2);
                     }
-                    .city-chip.active {
-                        background: rgba(212,168,83,0.15);
-                        border-color: rgba(212,168,83,0.4);
-                        color: #d4a853;
-                    }
-
-                    .series-preview {
-                        background: linear-gradient(180deg, rgba(30,58,138,0.2) 0%, rgba(15,23,42,0.4) 100%);
-                        border: 1px solid rgba(59,130,246,0.2);
-                        border-radius: 12px;
-                        margin: 0;
-                    }
-                    .series-preview-logo { margin-bottom: 14px; }
-                    .game-tags { display: flex; gap: 8px; flex-wrap: wrap; }
-                    .game-tags .tag {
-                        padding: 6px 12px;
-                        background: rgba(255,255,255,0.08);
-                        border-radius: 6px;
-                        font-size: 12px;
-                        color: rgba(255,255,255,0.7);
-                    }
-                    .game-tags .tag.primary {
+                    .tab.active {
                         background: rgba(212,168,83,0.2);
+                        border-color: rgba(212,168,83,0.5);
                         color: #d4a853;
                     }
-
-                    .popular-rooms { display: flex; flex-direction: column; gap: 14px; }
-                    .room-item {
-                        padding: 10px 12px;
-                        background: rgba(255,255,255,0.03);
-                        border-radius: 8px;
-                        transition: all 0.2s;
+                    .tab-icon {
+                        display: flex;
+                        align-items: center;
                     }
-                    .room-item:hover { background: rgba(255,255,255,0.06); }
-                    .room-name { font-size: 14px; font-weight: 500; display: block; margin-bottom: 4px; }
-                    .room-games { font-size: 11px; color: rgba(255,255,255,0.5); }
-                    .room-games .star { color: #d4a853; margin-right: 4px; }
+                    .tab-count {
+                        background: rgba(255,255,255,0.1);
+                        padding: 2px 8px;
+                        border-radius: 10px;
+                        font-size: 12px;
+                    }
+                    .tab.active .tab-count {
+                        background: rgba(212,168,83,0.3);
+                    }
+
+                    /* Main Content */
+                    .pnm-content {
+                        padding: 0 20px;
+                        max-width: 1400px;
+                        margin: 0 auto;
+                    }
 
                     /* Loading / Empty State */
                     .loading-state, .empty-state {
@@ -798,79 +1103,163 @@ export default function PokerNearMe() {
                         border-radius: 8px;
                         color: #d4a853;
                         cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .empty-state button:hover {
-                        background: rgba(212,168,83,0.3);
                     }
 
-                    /* Venue Cards - Clean Sleek Style */
-                    .venue-list {
-                        display: flex;
-                        flex-direction: column;
-                        gap: 12px;
+                    /* Card Grid */
+                    .card-grid {
+                        display: grid;
+                        grid-template-columns: 1fr;
+                        gap: 16px;
                     }
-                    .venue-card {
-                        padding: 16px 20px;
-                        background: rgba(15, 23, 42, 0.4);
-                        border: 1px solid rgba(255, 255, 255, 0.12);
+                    @media (min-width: 640px) {
+                        .card-grid {
+                            grid-template-columns: repeat(2, 1fr);
+                        }
+                    }
+                    @media (min-width: 1024px) {
+                        .card-grid {
+                            grid-template-columns: repeat(3, 1fr);
+                        }
+                    }
+                    @media (min-width: 1280px) {
+                        .card-grid {
+                            grid-template-columns: repeat(4, 1fr);
+                        }
+                    }
+
+                    /* Entity Cards */
+                    .entity-card {
+                        background: rgba(15, 23, 42, 0.5);
+                        border: 1px solid rgba(255,255,255,0.1);
                         border-radius: 12px;
-                        transition: all 0.2s ease;
+                        padding: 16px;
+                        transition: all 0.2s;
                     }
-                    .venue-card:hover {
-                        border-color: rgba(255, 255, 255, 0.25);
-                        background: rgba(15, 23, 42, 0.6);
+                    .entity-card:hover {
+                        border-color: rgba(255,255,255,0.2);
+                        background: rgba(15, 23, 42, 0.7);
                     }
-                    .venue-name {
-                        font-size: 17px;
+                    .card-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-start;
+                        margin-bottom: 10px;
+                    }
+                    .entity-card h4 {
+                        font-size: 16px;
                         font-weight: 600;
                         margin: 0 0 4px;
                         color: #fff;
                     }
-                    .venue-location {
+                    .card-location {
                         font-size: 13px;
-                        color: rgba(255, 255, 255, 0.5);
-                        margin: 0 0 12px;
+                        color: rgba(255,255,255,0.5);
+                        margin: 0 0 10px;
                     }
-                    .venue-meta {
+                    .card-dates {
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.6);
+                        margin: 0 0 10px;
+                    }
+                    .card-detail {
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.6);
+                        margin: 8px 0;
+                    }
+                    .card-detail.guaranteed {
+                        color: #4ade80;
+                        font-weight: 600;
+                    }
+
+                    /* Badges */
+                    .badge {
+                        padding: 4px 10px;
+                        border-radius: 6px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                    }
+                    .badge.venue-type {
+                        background: rgba(59,130,246,0.2);
+                        color: #60a5fa;
+                    }
+                    .badge.tour-type {
+                        background: rgba(139,92,246,0.2);
+                        color: #a78bfa;
+                    }
+                    .badge.series-type {
+                        background: rgba(34,197,94,0.2);
+                        color: #4ade80;
+                    }
+                    .badge.game-type {
+                        background: rgba(212,168,83,0.2);
+                        color: #d4a853;
+                    }
+
+                    /* Tags */
+                    .card-tags {
                         display: flex;
                         flex-wrap: wrap;
-                        gap: 8px;
+                        gap: 6px;
                         margin-bottom: 10px;
                     }
-                    .meta-distance {
-                        font-size: 12px;
-                        padding: 4px 10px;
-                        background: rgba(34, 197, 94, 0.15);
+                    .tag {
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                        font-size: 11px;
+                        background: rgba(255,255,255,0.08);
+                        color: rgba(255,255,255,0.7);
+                    }
+                    .tag.distance {
+                        background: rgba(34,197,94,0.15);
                         color: #4ade80;
-                        border-radius: 4px;
                     }
-                    .meta-game {
-                        font-size: 12px;
-                        padding: 4px 10px;
-                        background: rgba(255, 255, 255, 0.08);
-                        color: rgba(255, 255, 255, 0.7);
-                        border-radius: 4px;
+                    .tag.game {
+                        background: rgba(255,255,255,0.08);
                     }
-                    .venue-stakes {
-                        font-size: 13px;
-                        color: rgba(255, 255, 255, 0.6);
-                        margin: 0 0 12px;
+                    .tag.region {
+                        background: rgba(59,130,246,0.15);
+                        color: #60a5fa;
                     }
-                    .venue-footer {
+                    .tag.events {
+                        background: rgba(139,92,246,0.15);
+                        color: #a78bfa;
+                    }
+                    .tag.buyin {
+                        background: rgba(212,168,83,0.15);
+                        color: #d4a853;
+                    }
+                    .tag.gtd {
+                        background: rgba(34,197,94,0.15);
+                        color: #4ade80;
+                    }
+                    .tag.format {
+                        background: rgba(239,68,68,0.15);
+                        color: #f87171;
+                    }
+
+                    /* Card Footer */
+                    .card-footer {
                         display: flex;
-                        align-items: center;
                         justify-content: space-between;
-                        flex-wrap: wrap;
-                        gap: 12px;
+                        align-items: center;
                         padding-top: 12px;
-                        border-top: 1px solid rgba(255, 255, 255, 0.06);
+                        border-top: 1px solid rgba(255,255,255,0.06);
+                        margin-top: 12px;
                     }
                     .trust-badge {
                         font-size: 12px;
                         font-weight: 500;
                     }
-                    .venue-actions {
+                    .established {
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.4);
+                    }
+                    .venue-type {
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.5);
+                    }
+                    .card-actions {
                         display: flex;
                         gap: 8px;
                     }
@@ -878,174 +1267,92 @@ export default function PokerNearMe() {
                         padding: 6px 12px;
                         font-size: 12px;
                         font-weight: 500;
-                        color: rgba(255, 255, 255, 0.7);
+                        color: rgba(255,255,255,0.7);
                         text-decoration: none;
-                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        border: 1px solid rgba(255,255,255,0.15);
                         border-radius: 6px;
                         transition: all 0.2s;
                     }
                     .action-btn:hover {
-                        color: #fff;
-                        border-color: rgba(255, 255, 255, 0.3);
-                        background: rgba(255, 255, 255, 0.05);
+                        background: rgba(255,255,255,0.05);
                     }
                     .action-btn.primary {
-                        background: rgba(212, 168, 83, 0.15);
-                        border-color: rgba(212, 168, 83, 0.3);
+                        background: rgba(212,168,83,0.15);
+                        border-color: rgba(212,168,83,0.3);
                         color: #d4a853;
                     }
-                    .action-btn.primary:hover {
-                        background: rgba(212, 168, 83, 0.25);
-                    }
 
-                    /* Right Sidebar */
-                    .series-header {
-                        padding: 20px;
-                        border-bottom: 1px solid rgba(255,255,255,0.08);
+                    /* Tour-specific */
+                    .tour-name {
+                        margin-top: 10px;
                     }
-                    .series-header h3 {
-                        font-size: 13px;
-                        font-weight: 600;
-                        color: rgba(255,255,255,0.9);
-                        margin: 0 0 14px;
-                        letter-spacing: 0.5px;
-                    }
-                    .series-filters { display: flex; gap: 8px; }
-                    .series-filters select {
-                        flex: 1;
-                        padding: 10px 12px;
-                        background: rgba(0,0,0,0.3);
-                        border: 1px solid rgba(255,255,255,0.15);
-                        border-radius: 8px;
-                        color: #fff;
-                        font-size: 12px;
-                        outline: none;
-                        cursor: pointer;
-                    }
-                    .series-filters select:focus {
-                        border-color: rgba(212,168,83,0.5);
-                    }
-                    .series-list {
-                        padding: 16px;
+                    .upcoming-series {
                         display: flex;
-                        flex-direction: column;
-                        gap: 14px;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 8px 10px;
+                        background: rgba(255,255,255,0.05);
+                        border-radius: 6px;
+                        margin-top: 10px;
                     }
-                    .series-card {
-                        background: linear-gradient(135deg, rgba(30,41,59,0.6), rgba(15,23,42,0.8));
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 12px;
-                        padding: 16px;
-                        transition: all 0.2s;
-                    }
-                    .series-card:hover {
-                        border-color: rgba(255,255,255,0.2);
-                        background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.9));
-                    }
-                    .series-card-logo {
-                        margin-bottom: 12px;
-                    }
-                    .series-card-info h4 {
-                        font-size: 16px;
-                        font-weight: 600;
-                        margin: 0 0 4px;
-                    }
-                    .series-location {
-                        font-size: 13px;
-                        color: rgba(255,255,255,0.6);
-                        margin: 0 0 2px;
-                    }
-                    .series-dates {
-                        font-size: 12px;
-                        color: rgba(255,255,255,0.5);
-                        margin: 0;
-                    }
-                    .series-card-details {
-                        margin-top: 12px;
-                        display: flex;
-                        flex-direction: column;
-                        gap: 4px;
-                    }
-                    .series-card-details span {
+                    .upcoming-label {
                         font-size: 12px;
                         color: rgba(255,255,255,0.7);
                     }
-
-                    /* Tablet */
-                    @media (min-width: 768px) {
-                        .pnm-header h1 { font-size: 32px; }
-                        .venue-list {
-                            display: grid;
-                            grid-template-columns: repeat(2, 1fr);
-                            gap: 16px;
-                        }
-                        .search-controls {
-                            flex-direction: row;
-                            align-items: center;
-                        }
-                        .search-buttons { flex: 0 0 auto; }
-                        .distance-display { flex: 1; }
+                    .upcoming-date {
+                        font-size: 12px;
+                        color: #d4a853;
                     }
 
-                    /* Desktop */
-                    @media (min-width: 1024px) {
-                        .pnm-layout {
-                            display: grid;
-                            grid-template-columns: 260px 1fr 320px;
-                            gap: 0;
-                            padding: 0;
+                    /* Daily tournaments */
+                    .day-selector {
+                        display: flex;
+                        justify-content: center;
+                        gap: 6px;
+                        margin-bottom: 20px;
+                        flex-wrap: wrap;
+                    }
+                    .day-btn {
+                        padding: 10px 16px;
+                        background: rgba(15, 23, 42, 0.6);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 8px;
+                        color: rgba(255,255,255,0.7);
+                        font-size: 13px;
+                        font-weight: 500;
+                        cursor: pointer;
+                    }
+                    .day-btn.active {
+                        background: rgba(212,168,83,0.2);
+                        border-color: rgba(212,168,83,0.5);
+                        color: #d4a853;
+                    }
+                    .time-badge {
+                        padding: 4px 10px;
+                        background: rgba(59,130,246,0.2);
+                        border-radius: 6px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: #60a5fa;
+                    }
+
+                    /* Mobile */
+                    @media (max-width: 640px) {
+                        .pnm-header h1 {
+                            font-size: 24px;
                         }
-                        .sidebar-left {
-                            display: flex;
+                        .search-form {
                             flex-direction: column;
-                            border-right: 1px solid rgba(255,255,255,0.08);
-                            background: rgba(0,0,0,0.2);
-                            backdrop-filter: blur(8px);
                         }
-                        .sidebar-right {
-                            display: block;
-                            border-left: 1px solid rgba(255,255,255,0.08);
-                            background: rgba(0,0,0,0.2);
-                            backdrop-filter: blur(8px);
+                        .search-btn {
+                            width: 100%;
                         }
-                        .venue-feed {
-                            padding: 20px;
+                        .tab {
+                            padding: 10px 14px;
+                            font-size: 12px;
                         }
-                        .venue-list {
-                            grid-template-columns: 1fr;
-                        }
-                        .pnm-search-section {
-                            padding: 0 20px 20px;
-                            margin-left: 260px;
-                            margin-right: 320px;
-                        }
-                        .pnm-header {
-                            margin-left: 260px;
-                        }
-                        .filter-panel {
-                            margin-left: calc(260px + 20px);
-                            margin-right: calc(320px + 20px);
-                        }
-                    }
-
-                    /* Large Desktop */
-                    @media (min-width: 1280px) {
-                        .pnm-layout {
-                            grid-template-columns: 300px 1fr 360px;
-                        }
-                        .venue-list {
-                            grid-template-columns: repeat(2, 1fr);
-                        }
-                        .pnm-search-section {
-                            margin-left: 300px;
-                            margin-right: 360px;
-                        }
-                        .pnm-header {
-                            margin-left: 300px;
-                        }
-                        .filter-panel {
-                            margin-left: calc(300px + 20px);
-                            margin-right: calc(360px + 20px);
+                        .tab-icon {
+                            display: none;
                         }
                     }
                 `}</style>
