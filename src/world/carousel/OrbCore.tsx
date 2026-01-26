@@ -49,6 +49,11 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
         if (imageUrl) {
             const loader = new TextureLoader();
             const tex = loader.load(imageUrl, (loadedTex) => {
+                // Required for repeat/offset to work
+                loadedTex.wrapS = THREE.ClampToEdgeWrapping;
+                loadedTex.wrapT = THREE.ClampToEdgeWrapping;
+                loadedTex.needsUpdate = true;
+
                 // Once loaded, calculate aspect ratio and adjust UV mapping
                 const imgAspect = loadedTex.image.width / loadedTex.image.height;
                 const cardAspect = 2 / 3; // Our card is 2:3 (portrait)
