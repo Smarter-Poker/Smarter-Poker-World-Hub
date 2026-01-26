@@ -612,11 +612,11 @@ export default function UniversalHeader({
                         </div>
                     </Link>
 
-                    {/* Messages - Clean filled chat bubble */}
+                    {/* Messages - Facebook-style Messenger icon */}
                     <Link href="/hub/messenger" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="#00d4ff">
-                                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+                                <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.17.16.13.26.35.27.57l.05 1.78c.04.57.61.94 1.13.71l1.98-.87c.17-.07.36-.09.53-.05.86.23 1.81.36 2.9.36 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm6.07 7.56l-2.96 4.69c-.47.75-1.48.93-2.18.38l-2.35-1.76a.75.75 0 00-.9 0l-3.17 2.41c-.42.32-.98-.18-.7-.63l2.96-4.69c.47-.75 1.48-.93 2.18-.38l2.35 1.76c.27.2.65.2.9 0l3.17-2.41c.42-.32.98.18.7.63z" />
                             </svg>
                             {unreadMessages > 0 && (
                                 <span className="orb-badge">{unreadMessages > 99 ? '99+' : unreadMessages}</span>
@@ -624,10 +624,10 @@ export default function UniversalHeader({
                         </div>
                     </Link>
 
-                    {/* Notifications - SVG bell matching message size */}
-                    <Link href="/hub/notifications" style={{ background: 'none', border: 'none', padding: 0, textDecoration: 'none' }}>
+                    {/* Notifications - Facebook-style bell icon */}
+                    <Link href="/hub/notifications" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="#FFD700">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
                                 <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
                             </svg>
                             {notificationCount > 0 && (
