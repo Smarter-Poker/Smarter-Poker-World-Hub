@@ -63,6 +63,7 @@ import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader'
 // God-Mode Stack
 import { useSocialStore } from '../../src/stores/socialStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import toast from '../../src/stores/toastStore';
 
 // Light Theme Colors (Facebook-style)
 const C = {
@@ -2022,6 +2023,9 @@ export default function SocialMediaPage() {
 
             // Scroll to top of feed so user sees their new post immediately (Facebook behavior)
             window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Show success toast
+            toast.success('Posted Successfully!', 2000);
 
             return true;
         } catch (e) { console.error('Post error:', e); return false; }
