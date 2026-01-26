@@ -99,35 +99,7 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
 
             {/* BORDERS REMOVED — Clean card edges per user request */}
 
-            {/* ═══════════════════════════════════════════════════════════════
-                INNER WHITE BORDER FRAME - Hidden for marketplace (full image)
-                ═══════════════════════════════════════════════════════════════ */}
-            {!isMarketplace && (() => {
-                const inset = 0.05;
-                const left = -(cardWidth / 2) + inset;
-                const right = (cardWidth / 2) - inset;
-                const top = (cardHeight / 2) - inset;
-                const bottom = -(cardHeight / 2) + inset;
-
-                // Points forming a closed rectangle
-                const points: [number, number, number][] = [
-                    [left, top, 0.04],      // Top-left
-                    [right, top, 0.04],     // Top-right
-                    [right, bottom, 0.04],  // Bottom-right
-                    [left, bottom, 0.04],   // Bottom-left
-                    [left, top, 0.04],      // Back to top-left (close the loop)
-                ];
-
-                return (
-                    <Line
-                        points={points}
-                        color="#ffffff"
-                        lineWidth={2}
-                        transparent
-                        opacity={0.95}
-                    />
-                );
-            })()}
+            {/* WHITE BORDERS REMOVED — Clean card look per user request */}
 
             {/* ═══════════════════════════════════════════════════════════════
                 TITLES AND DESCRIPTIONS REMOVED — Cards now show only the image

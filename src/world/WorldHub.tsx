@@ -201,45 +201,11 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                         }}
                     />
 
-                    {/* ═══════════════════════════════════════════════════════════════
-                        INNER WHITE BORDER FRAME - Hidden for marketplace (full image), shown for others
-                        ═══════════════════════════════════════════════════════════════ */}
-                    {orb.id !== 'marketplace' && (
-                        <>
-                            <div style={{ position: 'absolute', top: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
-                            <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, height: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
-                            <div style={{ position: 'absolute', top: 8, bottom: 8, left: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
-                            <div style={{ position: 'absolute', top: 8, bottom: 8, right: 8, width: 2, background: 'rgba(255, 255, 255, 0.95)' }} />
-                        </>
-                    )}
+                    {/* WHITE BORDERS REMOVED — Clean card look per user request */}
                 </div>
             </div>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                CARD TITLE - Neon glow positioned ABOVE the card
-                ═══════════════════════════════════════════════════════════════ */}
-            <div
-                style={{
-                    position: 'absolute',
-                    top: -20,
-                    left: 0,
-                    right: 0,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: '#00ffff',
-                    textAlign: 'center',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1.5,
-                    textShadow: '0 0 10px #00ffff, 0 0 20px #00d4ff, 0 0 4px rgba(0, 212, 255, 0.8)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                }}
-            >
-                {orb.label}
-            </div>
-
-            {/* Card descriptions removed for cleaner look */}
+            {/* CARD TITLE REMOVED — Clean card look per user request */}
         </div>
     );
 }
