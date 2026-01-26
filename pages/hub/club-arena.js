@@ -239,10 +239,10 @@ const styles = {
     },
     iframe: {
         position: 'absolute',
-        top: 60,
+        top: 0,
         left: 0,
         width: '100%',
-        height: 'calc(100% - 60px)',
+        height: '100%',
         border: 'none',
         transition: 'opacity 0.3s ease',
     },
