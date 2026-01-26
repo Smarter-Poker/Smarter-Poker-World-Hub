@@ -2,19 +2,18 @@
 /**
  * Venue Daily Tournament Scraper
  *
- * Scrapes daily/nightly tournament schedules from 483 poker venues
+ * SOURCE OF TRUTH: data/tournament-venues.json
+ * Only scrapes from 163 venues with confirmed daily tournaments
  *
  * Sources:
- *   - PokerAtlas (364 venues) - primary source with stored URLs
- *   - Direct venue websites (46 venues) - fallback for non-PokerAtlas
- *   - Manual (73 venues) - no auto-scraping available
+ *   - PokerAtlas (primary) - URLs stored in tournament-venues.json
+ *   - Direct venue websites (fallback)
  *
  * Usage:
- *   node scripts/venue-tournament-scraper.js                  # Scrape all venues
- *   node scripts/venue-tournament-scraper.js --state NV       # Scrape Nevada only
- *   node scripts/venue-tournament-scraper.js --venue "Bellagio" # Single venue
+ *   node scripts/venue-tournament-scraper.js                  # Scrape all tournament venues
+ *   node scripts/venue-tournament-scraper.js --state TX       # Scrape Texas only
+ *   node scripts/venue-tournament-scraper.js --venue "Lodge"  # Single venue
  *   node scripts/venue-tournament-scraper.js --limit 50       # First 50 venues
- *   node scripts/venue-tournament-scraper.js --source pokeratlas # Only PokerAtlas venues
  *   node scripts/venue-tournament-scraper.js --force          # Re-scrape even if recent
  *
  * Schedule: Run daily via GitHub Actions at 4am UTC
@@ -23,9 +22,21 @@
 const { createClient } = require('@supabase/supabase-js');
 const https = require('https');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 // Load environment variables
 require('dotenv').config({ path: '.env.local' });
+
+// Load Source of Truth: Tournament venues
+const TOURNAMENT_VENUES_PATH = path.join(__dirname, '../data/tournament-venues.json');
+let TOURNAMENT_VENUES = { venues: [] };
+try {
+    TOURNAMENT_VENUES = JSON.parse(fs.readFileSync(TOURNAMENT_VENUES_PATH, 'utf8'));
+    console.log(`Loaded ${TOURNAMENT_VENUES.venues.length} tournament venues from source of truth`);
+} catch (e) {
+    console.warn('Warning: Could not load tournament-venues.json, will use database');
+}
 
 // Rate limiting: 2 seconds between requests
 const RATE_LIMIT_MS = 2000;
@@ -375,8 +386,19 @@ class VenueTournamentScraper {
     async run(options = {}) {
         console.log('='.repeat(60));
         console.log('VENUE DAILY TOURNAMENT SCRAPER');
+        console.log(`Source of Truth: data/tournament-venues.json`);
         console.log(`Started: ${new Date().toISOString()}`);
         console.log('='.repeat(60));
+
+        // Create set of tournament venue names for filtering
+        const tournamentVenueNames = new Set(
+            TOURNAMENT_VENUES.venues.map(v => v.name.toLowerCase())
+        );
+        const tournamentVenuesByName = new Map(
+            TOURNAMENT_VENUES.venues.map(v => [v.name.toLowerCase(), v])
+        );
+
+        console.log(`\nFiltering to ${tournamentVenueNames.size} venues with confirmed tournaments`);
 
         // Build query
         let query = this.supabase
@@ -398,17 +420,36 @@ class VenueTournamentScraper {
             query = query.eq('scrape_source', options.source);
         }
 
-        if (options.limit) {
-            query = query.limit(parseInt(options.limit));
-        }
-
         // Only scrape venues not scraped in last 24 hours (unless forced)
         if (!options.force) {
             const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
             query = query.or(`last_scraped.is.null,last_scraped.lt.${yesterday}`);
         }
 
-        const { data: venues, error } = await query;
+        let { data: venues, error } = await query;
+
+        // Filter to only tournament venues from source of truth
+        if (venues && TOURNAMENT_VENUES.venues.length > 0) {
+            const beforeCount = venues.length;
+            venues = venues.filter(v => {
+                const match = tournamentVenueNames.has(v.name.toLowerCase());
+                if (match) {
+                    // Enrich with PokerAtlas URL from source of truth if missing
+                    const sourceVenue = tournamentVenuesByName.get(v.name.toLowerCase());
+                    if (sourceVenue?.pokerAtlasUrl && !v.pokeratlas_url) {
+                        v.pokeratlas_url = sourceVenue.pokerAtlasUrl;
+                        v.scrape_source = 'pokeratlas';
+                    }
+                }
+                return match;
+            });
+            console.log(`Filtered from ${beforeCount} to ${venues.length} tournament venues`);
+        }
+
+        // Apply limit after filtering
+        if (options.limit) {
+            venues = venues.slice(0, parseInt(options.limit));
+        }
 
         if (error) {
             console.error('Failed to fetch venues:', error.message);
