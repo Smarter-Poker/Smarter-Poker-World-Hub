@@ -414,30 +414,42 @@ export default function UniversalHeader({
                     width: 40px;
                     height: 40px;
                     border-radius: 50%;
-                    background: transparent;
+                    background: rgba(255, 255, 255, 0.1);
                     border: none;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 28px;
+                    font-size: 20px;
                     cursor: pointer;
                     position: relative;
                     flex-shrink: 0;
                     line-height: 1;
+                    transition: background 0.15s ease, transform 0.1s ease;
+                }
+
+                .orb-btn:hover {
+                    background: rgba(255, 255, 255, 0.2);
+                    transform: scale(1.05);
+                }
+
+                .orb-btn:active {
+                    transform: scale(0.95);
                 }
                 
                 .orb-badge {
                     position: absolute;
-                    top: -4px;
-                    right: -4px;
-                    background: #ff3b3b;
+                    top: -2px;
+                    right: -2px;
+                    background: #e41e3f;
                     color: white;
-                    border-radius: 8px;
-                    padding: 1px 5px;
-                    font-size: 9px;
+                    border-radius: 10px;
+                    padding: 2px 6px;
+                    font-size: 11px;
                     font-weight: 700;
-                    min-width: 14px;
+                    min-width: 18px;
                     text-align: center;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    border: 2px solid #0a0e1a;
                 }
                 
                 .profile-orb {
