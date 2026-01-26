@@ -1,18 +1,19 @@
-name: Venue Tournament Scraper (Every 3 Days)
+name: Venue Tournament Scraper (Daily)
 
 on:
   schedule:
-    # Run every 3 days at 6am UTC (midnight CST)
-    - cron: '0 6 */3 * *'
+    # Run daily at 6am UTC (midnight CST)
+    - cron: '0 6 * * *'
   workflow_dispatch:
     # Allow manual trigger with options
     inputs:
       mode:
         description: 'Scraping mode'
         required: true
-        default: 'full'
+        default: 'pokeratlas-daily'
         type: choice
         options:
+          - pokeratlas-daily
           - full
           - test
           - setup-only
@@ -55,43 +56,48 @@ jobs:
         if: ${{ github.event.inputs.mode == 'sync-urls-only' }}
         run: echo "✅ URL sync complete. Skipping scraping as requested."
 
-      - name: Run Full Pipeline (Scheduled)
+      - name: Run PokerAtlas Daily Scraper (Scheduled)
         if: ${{ github.event_name == 'schedule' }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          echo "🎰 Running full venue tournament scraping pipeline..."
-          echo "📅 Triggered: $(date -u)"
+          echo "=========================================="
+          echo "POKERATLAS DAILY TOURNAMENT SCRAPER"
+          echo "Source: data/tournament-venues.json (178 verified venues)"
+          echo "Target: venue_daily_tournaments table"
+          echo "=========================================="
           echo ""
-          echo "📍 Source 1: PokerAtlas"
-          node scripts/run-full-pipeline.js --scrape-only
-          echo ""
-          echo "📍 Source 2: Bravo Poker Live"
-          node scripts/scrape-bravo-poker.js || echo "⚠️ Bravo scraper had errors (non-fatal)"
-          echo ""
-          echo "📍 Source 3: CardPlayer"
-          node scripts/scrape-cardplayer.js || echo "⚠️ CardPlayer scraper had errors (non-fatal)"
+          node scripts/pokeratlas-daily-scraper.js
 
-      - name: Run Pipeline (Manual - Full)
+      - name: Run PokerAtlas Daily Scraper (Manual)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'pokeratlas-daily' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "=========================================="
+          echo "POKERATLAS DAILY TOURNAMENT SCRAPER"
+          echo "=========================================="
+          node scripts/pokeratlas-daily-scraper.js ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
+
+      - name: Run Full Pipeline (Manual - Full)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full' }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          echo "🎰 Running full pipeline (manual trigger)..."
+          echo "Running full venue tournament scraping pipeline..."
+          echo "Triggered: $(date -u)"
           echo ""
-          echo "📍 Source 1: PokerAtlas"
-          node scripts/run-full-pipeline.js --scrape-only ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
+          echo "Source 1: PokerAtlas"
+          node scripts/run-full-pipeline.js --scrape-only
           echo ""
-          echo "📍 Source 2: Bravo Poker Live"
-          node scripts/scrape-bravo-poker.js || echo "⚠️ Bravo scraper had errors (non-fatal)"
+          echo "Source 2: Bravo Poker Live"
+          node scripts/scrape-bravo-poker.js || echo "Bravo scraper had errors (non-fatal)"
           echo ""
-          echo "📍 Source 3: CardPlayer"
-          node scripts/scrape-cardplayer.js || echo "⚠️ CardPlayer scraper had errors (non-fatal)"
-          echo ""
-          echo "📍 Source 4: Hendon Mob"
-          node scripts/scrape-hendonmob.js 50 || echo "⚠️ Hendon Mob scraper had errors (non-fatal)"
+          echo "Source 3: CardPlayer"
+          node scripts/scrape-cardplayer.js || echo "CardPlayer scraper had errors (non-fatal)"
 
       - name: Run Pipeline (Manual - Test)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'test' }}
