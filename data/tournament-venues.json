@@ -2,8 +2,8 @@
   "metadata": {
     "description": "Source of Truth: Venues with confirmed daily/nightly tournaments",
     "lastUpdated": "2026-01-26",
-    "totalVenues": 163,
-    "source": "verified-venues-master.csv (TOURNAMENTS=Yes)",
+    "totalVenues": 178,
+    "source": "verified-venues-master.csv (TOURNAMENTS=Yes) + Nevada venues",
     "notes": "Only scrape from these venues for daily tournament data"
   },
   "venues": [
@@ -154,7 +154,22 @@
     {"name": "Legends Poker Place of Metamora", "city": "Metamora", "state": "MI", "type": "Charity", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/legends-poker-place-of-metamora"},
     {"name": "Momo's Poker Room", "city": "Taylor", "state": "MI", "type": "Charity", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/momo-s-poker-room-taylor"},
     {"name": "Ace High Poker Club", "city": "Oxford", "state": "MI", "type": "Charity", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/ace-high-poker-club-oxford"},
-    {"name": "Canterbury Park Card Club", "city": "Shakopee", "state": "MN", "type": "Card Room", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee"}
+    {"name": "Canterbury Park Card Club", "city": "Shakopee", "state": "MN", "type": "Card Room", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee"},
+    {"name": "Bellagio", "city": "Las Vegas", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas"},
+    {"name": "Aria Resort & Casino", "city": "Las Vegas", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/aria-las-vegas"},
+    {"name": "Wynn Las Vegas", "city": "Las Vegas", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/wynn-las-vegas"},
+    {"name": "The Venetian Resort", "city": "Las Vegas", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/venetian-las-vegas"},
+    {"name": "WSOP Room at Paris", "city": "Las Vegas", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas"},
+    {"name": "Resorts World Las Vegas", "city": "Las Vegas", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas"},
+    {"name": "MGM Grand Poker Room", "city": "Las Vegas", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/mgm-grand-las-vegas"},
+    {"name": "South Point Casino", "city": "Las Vegas", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/south-point-casino-las-vegas"},
+    {"name": "Orleans Casino", "city": "Las Vegas", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/orleans-las-vegas"},
+    {"name": "Station Casinos Red Rock", "city": "Las Vegas", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/red-rock-las-vegas"},
+    {"name": "Station Casinos Green Valley Ranch", "city": "Henderson", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/green-valley-ranch-henderson"},
+    {"name": "Sunset Station", "city": "Henderson", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/sunset-station-henderson"},
+    {"name": "Atlantis Casino Resort", "city": "Reno", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/atlantis-reno"},
+    {"name": "Peppermill Resort Spa Casino", "city": "Reno", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/peppermill-reno"},
+    {"name": "Grand Sierra Resort", "city": "Reno", "state": "NV", "type": "Casino", "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/grand-sierra-reno"}
   ],
   "byState": {
     "AZ": 3,
@@ -170,6 +185,7 @@
     "MT": 2,
     "NC": 1,
     "NH": 1,
+    "NV": 15,
     "NY": 3,
     "OH": 3,
     "OK": 4,
@@ -181,7 +197,7 @@
     "WI": 2
   },
   "byType": {
-    "Casino": 60,
+    "Casino": 75,
     "Card Room": 76,
     "Charity": 27
   }
