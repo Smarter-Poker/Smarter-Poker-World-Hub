@@ -1906,8 +1906,39 @@ export default function MessengerPage() {
                         width: 100%; 
                         max-width: 100%; 
                         margin: 0 auto; 
-                        overflow-x: hidden; 
+                        overflow-x: hidden;
+                        /* Account for UniversalHeader height */
+                        height: calc(100vh - 54px);
+                        height: calc(100dvh - 54px);
                     }
+                    
+                    /* Mobile-specific messenger styles */
+                    @media (max-width: 768px) {
+                        .messenger-page {
+                            height: calc(100vh - 54px);
+                            height: calc(100dvh - 54px);
+                        }
+                        
+                        /* Smaller avatars on mobile */
+                        .messenger-page img[src*="avatar"],
+                        .messenger-page [style*="borderRadius: '50%'"] {
+                            max-width: 44px;
+                            max-height: 44px;
+                        }
+                        
+                        /* Conversation list - tighter padding */
+                        .messenger-page aside {
+                            padding: 0;
+                        }
+                        
+                        /* Message bubbles - wider on mobile */
+                        .messenger-page [style*="paddingLeft: 60px"],
+                        .messenger-page [style*="paddingRight: 60px"] {
+                            padding-left: 8px !important;
+                            padding-right: 8px !important;
+                        }
+                    }
+                    
                     @keyframes bounce {
                         0%, 60%, 100% { transform: translateY(0); }
                         30% { transform: translateY(-4px); }
@@ -2175,7 +2206,6 @@ export default function MessengerPage() {
 
             <div className="messenger-page" style={{
                 display: 'flex',
-                height: '100vh',
                 background: C.bg,
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
             }}>
@@ -2188,7 +2218,7 @@ export default function MessengerPage() {
                     borderRight: `1px solid ${C.border}`,
                     display: (isMobile && !showSidebar) ? 'none' : 'flex',
                     flexDirection: 'column',
-                    height: '100vh',
+                    height: '100%',
                 }}>
                     {/* Header - Facebook Messenger Style */}
                     <div style={{
