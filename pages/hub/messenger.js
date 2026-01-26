@@ -1516,16 +1516,29 @@ export default function MessengerPage() {
                             .eq('conversation_id', p.conversation_id)
                             .neq('user_id', userId);
 
-                        let otherUser = participants?.[0]?.profiles;
+                        // 🔒 FIX: Handle group chats vs 1-on-1 properly
+                        // For 1-on-1: exactly 1 other participant
+                        // For groups: multiple participants - can't call (would need to pick one)
+                        let otherUser = null;
+                        const otherParticipants = participants || [];
 
-                        // FALLBACK: If FK join didn't return profile, fetch it directly
-                        if (!otherUser && participants?.[0]?.user_id) {
-                            const { data: directProfile } = await supabase
-                                .from('profiles')
-                                .select('id, username, avatar_url')
-                                .eq('id', participants[0].user_id)
-                                .single();
-                            otherUser = directProfile || { id: participants[0].user_id, username: 'User', avatar_url: null };
+                        if (otherParticipants.length === 1) {
+                            // 1-on-1 conversation - clear who to call
+                            otherUser = otherParticipants[0]?.profiles;
+                            if (!otherUser && otherParticipants[0]?.user_id) {
+                                const { data: directProfile } = await supabase
+                                    .from('profiles')
+                                    .select('id, username, avatar_url')
+                                    .eq('id', otherParticipants[0].user_id)
+                                    .single();
+                                otherUser = directProfile || { id: otherParticipants[0].user_id, username: 'User', avatar_url: null };
+                            }
+                        } else if (otherParticipants.length > 1) {
+                            // Group chat - for display, show first user but mark as group
+                            otherUser = otherParticipants[0]?.profiles;
+                            if (otherUser) {
+                                otherUser = { ...otherUser, isGroupChat: true, participantCount: otherParticipants.length + 1 };
+                            }
                         }
 
                         // Count unread (don't crash if this fails)
@@ -1964,6 +1977,12 @@ export default function MessengerPage() {
         if (!otherUser?.id) {
             setToast({ type: 'error', message: 'Cannot start call - user not found' });
             console.error('❌ CALL ERROR: otherUser is missing!', { activeConversation });
+            return;
+        }
+
+        // Block calls in group chats - only 1-on-1 calls are supported
+        if (otherUser.isGroupChat) {
+            setToast({ type: 'error', message: 'Calls are only available in 1-on-1 conversations' });
             return;
         }
 
