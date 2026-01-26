@@ -15,9 +15,9 @@ export interface OrbConfig {
 
 export const POKER_IQ_ORBS: OrbConfig[] = [
     { id: 'social-media', color: '#ff4d4d', label: 'Social Media', gradient: ['#ff6b6b', '#c73d3d'], imageUrl: '/images/social_media_card_art.png', description: 'STAY CONNECTED TO THE POKER WORLD — SHARE YOUR WINS, FOLLOW YOUR HEROES' },
-    { id: 'training', color: '#00ff66', label: 'Training', gradient: ['#69f0ae', '#00c853'], imageUrl: '/cards/training.jpg', description: '100 GAMES TO MASTER — LEVEL UP YOUR POKER IQ ONE DRILL AT A TIME' },
-    { id: 'club-arena', color: '#ff9900', label: 'Club Arena', gradient: ['#ffb347', '#cc7722'], imageUrl: '/cards/club-arena.jpg', description: 'JOIN PRIVATE CLUBS — COMPETE WITH PLAYERS FROM AROUND THE WORLD' },
     { id: 'diamond-arena', color: '#ffee00', label: 'Diamond Arena', gradient: ['#fff176', '#c9b000'], imageUrl: '/cards/diamond-arena.jpg', description: 'HIGH STAKES ACTION — PLAY FOR DIAMONDS AGAINST ELITE COMPETITION' },
+    { id: 'club-arena', color: '#ff9900', label: 'Club Arena', gradient: ['#ffb347', '#cc7722'], imageUrl: '/cards/club-arena.jpg', description: 'JOIN PRIVATE CLUBS — COMPETE WITH PLAYERS FROM AROUND THE WORLD' },
+    { id: 'training', color: '#00ff66', label: 'Training', gradient: ['#69f0ae', '#00c853'], imageUrl: '/cards/training.jpg', description: '100 GAMES TO MASTER — LEVEL UP YOUR POKER IQ ONE DRILL AT A TIME' },
     { id: 'news', color: '#ff6600', label: 'News', gradient: ['#ff8c42', '#e55812'], imageUrl: '/images/news_card_art.png', description: 'BREAKING POKER NEWS — TOURNAMENTS, DRAMA, AND LEGEND STORIES' },
     { id: 'memory-games', color: '#00ffff', label: 'Memory Games', gradient: ['#84ffff', '#00bcd4'], imageUrl: '/cards/memory-games.jpg', description: 'TRAIN YOUR POKER BRAIN — CONDITION GTO MEMORY FOR LIVE DECISIONS' },
     { id: 'personal-assistant', color: '#0088ff', label: 'Personal Assistant', gradient: ['#64b5f6', '#1565c0'], imageUrl: '/cards/personal-assistant.jpg', description: 'YOUR AI COACH — FINDS YOUR LEAKS AND LEVELS UP YOUR GAME' },
