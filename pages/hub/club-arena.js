@@ -33,7 +33,15 @@ export default function ClubArenaPage() {
     // Helper to get session from localStorage (bypasses getSession() AbortError issues)
     const getSessionFromStorage = () => {
         try {
-            const stored = localStorage.getItem('smarter-poker-auth');
+            // PRIMARY: Check new unified key
+            let stored = localStorage.getItem('smarter-poker-auth');
+
+            // FALLBACK: Legacy sb-* keys for older users
+            if (!stored) {
+                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                if (sbKeys.length > 0) stored = localStorage.getItem(sbKeys[0]);
+            }
+
             if (!stored) return null;
             const data = JSON.parse(stored);
             if (data?.access_token && data?.refresh_token) {

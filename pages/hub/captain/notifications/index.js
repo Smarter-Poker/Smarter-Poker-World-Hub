@@ -113,7 +113,13 @@ export default function PlayerNotificationsPage() {
   const [filter, setFilter] = useState('all'); // 'all', 'unread'
 
   useEffect(() => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    // PRIMARY: Check new unified key
+    let token = localStorage.getItem('smarter-poker-auth');
+    // FALLBACK: Legacy sb-* keys for older users
+    if (!token) {
+      const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+      if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
+    }
     if (!token) {
       router.push('/login?redirect=/hub/captain/notifications');
       return;
@@ -124,7 +130,13 @@ export default function PlayerNotificationsPage() {
   async function fetchNotifications() {
     setLoading(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      // PRIMARY: Check new unified key
+      let token = localStorage.getItem('smarter-poker-auth');
+      // FALLBACK: Legacy sb-* keys for older users  
+      if (!token) {
+        const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
+      }
       const res = await fetch('/api/captain/notifications/my', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -216,11 +228,10 @@ export default function PlayerNotificationsPage() {
               <button
                 key={value}
                 onClick={() => setFilter(value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  filter === value
-                    ? 'bg-[#1877F2] text-white'
-                    : 'bg-white border border-[#E5E7EB] text-[#1F2937] hover:bg-[#F3F4F6]'
-                }`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === value
+                  ? 'bg-[#1877F2] text-white'
+                  : 'bg-white border border-[#E5E7EB] text-[#1F2937] hover:bg-[#F3F4F6]'
+                  }`}
               >
                 {label}
               </button>
