@@ -373,15 +373,16 @@ export default function UniversalHeader({
                 .diamond-wallet {
                     display: flex;
                     align-items: center;
+                    justify-content: center;
                     gap: 4px;
                     background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.2) 100%);
                     border: 1px solid rgba(0, 212, 255, 0.4);
-                    padding: 6px 12px;
-                    border-radius: 16px;
+                    padding: 0 10px;
+                    border-radius: 12px;
                     text-decoration: none;
                     color: white;
-                    min-width: 70px;
-                    height: 36px;
+                    width: 90px;
+                    height: 40px;
                     box-sizing: border-box;
                 }
                 
@@ -390,12 +391,12 @@ export default function UniversalHeader({
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    background: rgba(255, 255, 255, 0.05);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    padding: 4px 12px;
-                    border-radius: 16px;
-                    min-width: 70px;
-                    height: 36px;
+                    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.2) 100%);
+                    border: 1px solid rgba(0, 212, 255, 0.4);
+                    padding: 0 10px;
+                    border-radius: 12px;
+                    width: 90px;
+                    height: 40px;
                     box-sizing: border-box;
                     line-height: 1.1;
                 }
@@ -485,11 +486,11 @@ export default function UniversalHeader({
                         display: inline; /* Keep Hub/Back text visible */
                     }
                     
-                    /* Diamond and XP boxes - SAME SIZE */
+                    /* Diamond and XP boxes - EXACT SAME SIZE */
                     .diamond-wallet, .xp-display {
-                        min-width: 65px;
+                        width: 75px;
                         height: 36px;
-                        padding: 4px 8px;
+                        padding: 0 6px;
                         font-size: 10px;
                     }
                     
