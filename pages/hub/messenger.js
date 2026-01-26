@@ -1234,6 +1234,24 @@ export default function MessengerPage() {
                 // Don't show incoming call if we're already in a call
                 if (showCall) return;
 
+                // 🔒 TAB CLAIM: Only one tab should handle the call
+                // Use localStorage to prevent multiple tabs from all ringing
+                const claimKey = `call_claim_${roomName}`;
+                const existingClaim = localStorage.getItem(claimKey);
+                const now = Date.now();
+
+                // If another tab claimed this call within the last 30 seconds, ignore
+                if (existingClaim && (now - parseInt(existingClaim)) < 30000) {
+                    console.log('📞 Call already claimed by another tab, ignoring');
+                    return;
+                }
+
+                // Claim this call for this tab
+                localStorage.setItem(claimKey, now.toString());
+
+                // Clean up old claims after 35 seconds
+                setTimeout(() => localStorage.removeItem(claimKey), 35000);
+
                 setIncomingCall({ callerId, callerName, callerAvatar, callType, roomName });
 
                 // Play ringing sound
