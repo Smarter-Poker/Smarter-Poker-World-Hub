@@ -402,18 +402,19 @@ export default function UniversalHeader({
                 }
                 
                 .orb-btn {
-                    width: 36px;
-                    height: 36px;
+                    width: 40px;
+                    height: 40px;
                     border-radius: 50%;
                     background: transparent;
                     border: none;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 24px;
+                    font-size: 28px;
                     cursor: pointer;
                     position: relative;
                     flex-shrink: 0;
+                    line-height: 1;
                 }
                 
                 .orb-badge {
@@ -431,15 +432,15 @@ export default function UniversalHeader({
                 }
                 
                 .profile-orb {
-                    width: 36px;
-                    height: 36px;
+                    width: 40px;
+                    height: 40px;
                     border-radius: 50%;
                     border: 2px solid rgba(0, 245, 255, 0.5);
                     box-shadow: 0 0 12px rgba(0, 245, 255, 0.3);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 16px;
+                    font-size: 18px;
                     flex-shrink: 0;
                     background-size: cover;
                     background-position: center;
@@ -590,11 +591,11 @@ export default function UniversalHeader({
                         </div>
                     </Link>
 
-                    {/* Messages - Facebook Messenger style FILLED icon */}
+                    {/* Messages - Clean filled chat bubble */}
                     <Link href="/hub/messenger" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="#00d4ff">
-                                <path d="M12 2C6.48 2 2 6.04 2 11c0 2.52 1.17 4.77 3 6.35V22l4.46-2.46c.8.23 1.66.36 2.54.36 5.52 0 10-4.04 10-9s-4.48-9-10-9zm1 12h-2v-2h2v2zm0-4h-2V6h2v4z" fill="#00d4ff" />
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="#00d4ff">
+                                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
                             </svg>
                             {unreadMessages > 0 && (
                                 <span className="orb-badge">{unreadMessages > 99 ? '99+' : unreadMessages}</span>
