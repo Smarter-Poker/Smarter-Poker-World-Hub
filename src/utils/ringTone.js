@@ -1,6 +1,6 @@
 /**
- * PHONE RING TONE - Simple ring sound generator
- * Uses Web Audio API to create a phone ring tone
+ * PHONE RING TONE - Soft beep-beep sound for outgoing calls
+ * Uses Web Audio API to create a gentle, pleasant ring tone
  */
 
 export function createRingTone() {
@@ -10,8 +10,6 @@ export function createRingTone() {
     if (!AudioContext) return null;
 
     let audioContext = null;
-    let oscillator = null;
-    let gainNode = null;
     let isPlaying = false;
     let ringInterval = null;
 
@@ -20,33 +18,43 @@ export function createRingTone() {
 
         try {
             audioContext = new AudioContext();
-            gainNode = audioContext.createGain();
-            gainNode.connect(audioContext.destination);
-            gainNode.gain.value = 0;
-
             isPlaying = true;
 
-            // Ring pattern: 2 seconds on, 4 seconds off (US phone ring)
-            const playRing = () => {
-                if (!isPlaying) return;
+            // Soft beep-beep pattern
+            const playBeep = () => {
+                if (!isPlaying || !audioContext) return;
 
-                oscillator = audioContext.createOscillator();
-                oscillator.type = 'sine';
-                oscillator.frequency.value = 440; // A4 note
-                oscillator.connect(gainNode);
-                oscillator.start();
+                // First beep
+                const osc1 = audioContext.createOscillator();
+                const gain1 = audioContext.createGain();
+                osc1.connect(gain1);
+                gain1.connect(audioContext.destination);
 
-                // Ring for 0.4 seconds, stop for 0.2, ring for 0.4 (double ring)
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.4);
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 0.6);
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime + 1.0);
+                osc1.type = 'sine';
+                osc1.frequency.value = 800; // Higher, softer pitch
+                gain1.gain.value = 0.15; // Quiet volume
 
-                oscillator.stop(audioContext.currentTime + 1.1);
+                osc1.start(audioContext.currentTime);
+                gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                osc1.stop(audioContext.currentTime + 0.15);
+
+                // Second beep (after short pause)
+                const osc2 = audioContext.createOscillator();
+                const gain2 = audioContext.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioContext.destination);
+
+                osc2.type = 'sine';
+                osc2.frequency.value = 800;
+                gain2.gain.setValueAtTime(0.15, audioContext.currentTime + 0.25);
+
+                osc2.start(audioContext.currentTime + 0.25);
+                gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                osc2.stop(audioContext.currentTime + 0.4);
             };
 
-            playRing();
-            ringInterval = setInterval(playRing, 3000); // Repeat every 3 seconds
+            playBeep();
+            ringInterval = setInterval(playBeep, 2000); // Repeat every 2 seconds
 
         } catch (e) {
             console.error('Ring tone error:', e);
@@ -59,11 +67,9 @@ export function createRingTone() {
             clearInterval(ringInterval);
             ringInterval = null;
         }
-        if (oscillator) {
-            try { oscillator.stop(); } catch (e) { }
-        }
         if (audioContext) {
             try { audioContext.close(); } catch (e) { }
+            audioContext = null;
         }
     };
 
