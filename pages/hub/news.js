@@ -1094,6 +1094,7 @@ export default function NewsHub() {
         <PageTransition>
             <Head>
                 <title>News | Smarter.Poker</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <meta name="description" content="Latest poker news, tournament updates, strategy tips, and industry insights" />
             </Head>
 
@@ -1530,6 +1531,9 @@ export default function NewsHub() {
                         background: #18191A;
                         color: #E4E6EB;
                         font-family: 'Inter', -apple-system, sans-serif;
+                        max-width: 100%;
+                        overflow-x: hidden;
+                        box-sizing: border-box;
                     }
 
                     /* Header */
