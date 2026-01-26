@@ -33,6 +33,15 @@ const C = {
     textSec: 'rgba(255,255,255,0.6)'
 };
 
+// Format numbers compactly: 1.1k, 10.1k, 100.1k, 1.1M
+const formatCompact = (num) => {
+    if (num < 1000) return num.toString();
+    if (num < 10000) return (num / 1000).toFixed(1) + 'k';   // 1.1k - 9.9k
+    if (num < 100000) return (num / 1000).toFixed(1) + 'k'; // 10.1k - 99.9k
+    if (num < 1000000) return (num / 1000).toFixed(0) + 'k'; // 100k - 999k
+    return (num / 1000000).toFixed(1) + 'M'; // 1.1M+
+};
+
 // Neon orb icon button
 const OrbButton = ({ href, icon, badge = 0, onClick }) => {
     const content = (
@@ -83,6 +92,8 @@ export default function UniversalHeader({
     const [isLoading, setIsLoading] = useState(true);
     const [notificationCount, setNotificationCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
+    const [showFullDiamonds, setShowFullDiamonds] = useState(false);
+    const [showFullXP, setShowFullXP] = useState(false);
 
     useEffect(() => {
         let notifChannel = null;
@@ -507,10 +518,17 @@ export default function UniversalHeader({
 
                 {/* CENTER: Diamond Wallet + XP */}
                 <div className="header-center">
-                    {/* Diamond Wallet */}
-                    <Link href="/hub/diamond-store" className="diamond-wallet">
+                    {/* Diamond Wallet - click to toggle full/compact */}
+                    <Link href="/hub/diamond-store" className="diamond-wallet" onClick={(e) => {
+                        if (stats.diamonds >= 1000) {
+                            e.preventDefault();
+                            setShowFullDiamonds(!showFullDiamonds);
+                        }
+                    }}>
                         <span>💎</span>
-                        <span data-testid="header-diamonds" style={{ fontWeight: 700 }}>{stats.diamonds.toLocaleString()}</span>
+                        <span data-testid="header-diamonds" style={{ fontWeight: 700 }} title={stats.diamonds.toLocaleString() + ' diamonds'}>
+                            {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
+                        </span>
                         <span style={{
                             width: 16, height: 16, borderRadius: '50%',
                             background: 'rgba(0, 212, 255, 0.3)',
@@ -519,10 +537,12 @@ export default function UniversalHeader({
                         }}>+</span>
                     </Link>
 
-                    {/* XP + Level */}
-                    <div className="xp-display">
+                    {/* XP + Level - click to toggle full/compact */}
+                    <div className="xp-display" onClick={() => stats.xp >= 1000 && setShowFullXP(!showFullXP)} style={{ cursor: stats.xp >= 1000 ? 'pointer' : 'default' }}>
                         <span style={{ color: C.gold, fontWeight: 700, fontSize: 12 }}>XP</span>
-                        <span data-testid="header-xp" style={{ color: C.white, fontWeight: 600, fontSize: 12 }}>{stats.xp.toLocaleString()}</span>
+                        <span data-testid="header-xp" style={{ color: C.white, fontWeight: 600, fontSize: 12 }} title={stats.xp.toLocaleString() + ' XP'}>
+                            {showFullXP ? stats.xp.toLocaleString() : formatCompact(stats.xp)}
+                        </span>
                         <span style={{ color: C.textSec, fontSize: 10 }}>•</span>
                         <span data-testid="header-level" style={{ color: C.cyan, fontWeight: 700, fontSize: 12 }}>LV {stats.level}</span>
                     </div>
