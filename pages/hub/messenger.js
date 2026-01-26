@@ -1125,12 +1125,20 @@ export default function MessengerPage() {
                     return [...prev, { ...newMsg, profiles: profile }];
                 });
 
-                // Update conversation preview
-                setConversations(prev => prev.map(c =>
-                    c.id === activeConversation.id
-                        ? { ...c, last_message_preview: newMsg.content, last_message_at: newMsg.created_at }
-                        : c
-                ));
+                // Update conversation preview and re-sort to move to top
+                setConversations(prev => {
+                    const updated = prev.map(c =>
+                        c.id === activeConversation.id
+                            ? { ...c, last_message_preview: newMsg.content, last_message_at: newMsg.created_at }
+                            : c
+                    );
+                    // Re-sort by last_message_at (most recent first)
+                    return updated.sort((a, b) => {
+                        const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+                        const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+                        return timeB - timeA;
+                    });
+                });
             })
             .subscribe();
 
@@ -1371,7 +1379,15 @@ export default function MessengerPage() {
                 })
             );
 
-            setConversations(enriched.filter(c => c.otherUser));
+            // Sort by last_message_at (most recent first) then set state
+            const sorted = enriched
+                .filter(c => c.otherUser)
+                .sort((a, b) => {
+                    const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+                    const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+                    return timeB - timeA; // Descending - most recent first
+                });
+            setConversations(sorted);
         } catch (e) {
             console.error('Load conversations error:', e);
         }

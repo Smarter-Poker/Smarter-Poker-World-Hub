@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { useOneSignal } from '../../contexts/OneSignalContext';
 
 export default function NotificationPrompt({ userId, onDismiss }) {
-    const { isInitialized, isSubscribed, subscribe, setExternalUserId, permission } = useOneSignal();
+    const { isInitialized, isSubscribed, subscribe, setExternalUserId, permission, playerId } = useOneSignal();
     const [visible, setVisible] = useState(false);
     const [loading, setLoading] = useState(false);
     const [dismissed, setDismissed] = useState(false);
@@ -27,14 +27,14 @@ export default function NotificationPrompt({ userId, onDismiss }) {
         }
     }, [isInitialized, isSubscribed, permission, userId]);
 
-    // Link user ID when initialized - ALWAYS try to link if subscribed
+    // Link user ID when initialized AND we have a playerId - ALWAYS try to link if subscribed
     useEffect(() => {
-        if (isInitialized && userId) {
+        if (isInitialized && userId && playerId && isSubscribed) {
             // Always try to link, even if already subscribed (fixes users who subscribed before linking was added)
-            console.log('[NotificationPrompt] Attempting to link user:', userId, 'isSubscribed:', isSubscribed);
+            console.log('[NotificationPrompt] Attempting to link user:', userId, 'playerId:', playerId);
             setExternalUserId(userId);
         }
-    }, [isInitialized, userId, isSubscribed, setExternalUserId]);
+    }, [isInitialized, userId, isSubscribed, playerId, setExternalUserId]);
 
     const handleEnable = async () => {
         setLoading(true);
