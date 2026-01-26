@@ -1777,7 +1777,7 @@ export default function MessengerPage() {
 
             // Also send push notification for users not on the page
             try {
-                await fetch('/api/notifications/send', {
+                const pushRes = await fetch('/api/notifications/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1787,6 +1787,11 @@ export default function MessengerPage() {
                         externalUserIds: [otherUser.id],
                     }),
                 });
+                const pushResult = await pushRes.json();
+                console.log('📞 Push notification result:', pushResult);
+                if (!pushRes.ok || pushResult.error) {
+                    console.warn('Push notification issue:', pushResult);
+                }
             } catch (pushError) {
                 console.warn('Push notification failed:', pushError);
             }
