@@ -29,6 +29,10 @@ export function OneSignalProvider({ children }) {
                         enable: false, // We'll use our own UI
                     },
                     serviceWorkerPath: '/OneSignalSDKWorker.js',
+                    // CRITICAL: Default URL when notification is clicked (prevents going to non-existent pages)
+                    welcomeNotification: {
+                        url: '/hub',
+                    },
                     promptOptions: {
                         slidedown: {
                             prompts: [{
@@ -46,6 +50,16 @@ export function OneSignalProvider({ children }) {
                             }],
                         },
                     },
+                });
+
+                // Handle notification clicks - redirect to /hub if no URL specified
+                OneSignal.Notifications.addEventListener('click', (event) => {
+                    const url = event.notification?.launchURL || event.result?.url || '/hub';
+                    console.log('[OneSignal] Notification clicked, navigating to:', url);
+                    // If it's a relative URL, navigate properly
+                    if (url.startsWith('/')) {
+                        window.location.href = url;
+                    }
                 });
 
                 setIsInitialized(true);
