@@ -218,17 +218,40 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
         // Generate caption using template
         const templateCaption = getRandomCaption ? getRandomCaption(clip.category || 'funny') : 'Check out this hand! 🔥';
 
+        // Determine this horse's voice archetype based on their profile_id hash
+        let hash = 0;
+        const horseId = horse.profile_id || '';
+        for (let i = 0; i < horseId.length; i++) {
+            hash = ((hash << 5) - hash) + horseId.charCodeAt(i);
+            hash = hash & hash;
+        }
+        const archetype = VOICE_ARCHETYPES[Math.abs(hash) % VOICE_ARCHETYPES.length];
+
         let caption = templateCaption;
         try {
             const response = await openai.chat.completions.create({
                 model: 'gpt-4o',
                 messages: [{
+                    role: 'system',
+                    content: `You are posting a poker clip.
+
+YOUR VOICE: ${archetype.type.toUpperCase()}
+${archetype.style}
+
+STRICT RULES:
+1. MAX 6 words. Shorter = better. 1-3 words ideal.
+2. NEVER start with: "Check out", "Look at", "Watch", "This is"
+3. NO quotation marks. NO colons. NO em-dashes.
+4. Sound like texting, not a news headline.
+5. Match the ${archetype.type} vibe EXACTLY.`
+                }, {
                     role: 'user',
-                    content: `Write 1 short poker clip caption (10 words max). RULES: NO quotation marks. NO em-dashes (—). NO colons. Just casual text like a real person would post. Reference: ${templateCaption}`
+                    content: `Caption for: ${clip.description || templateCaption}`
                 }],
-                max_tokens: 30
+                max_tokens: 25,
+                temperature: 1.0
             });
-            caption = response.choices[0].message.content;
+            caption = response.choices[0].message.content || templateCaption;
             // Clean up any quotes/dashes that slip through - strip ALL quote variants
             caption = caption
                 .replace(/[\"""''`]/g, '')  // All quote types
@@ -237,8 +260,12 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 .replace(/:/g, '')          // Colons
                 .replace(/\s+/g, ' ')       // Multiple spaces to single
                 .trim();
+            
+            // Apply horse's unique writing style
+            caption = applyWritingStyle(caption, horse.profile_id);
         } catch (e) {
             console.log(`   Using template caption (OpenAI error: ${e.message})`);
+            caption = applyWritingStyle(templateCaption, horse.profile_id);
         }
 
         // Create the post (matches debug endpoint exactly)
