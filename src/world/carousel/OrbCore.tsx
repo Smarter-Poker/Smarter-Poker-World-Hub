@@ -44,7 +44,7 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
     }), []);
 
     // Load texture if imageUrl is provided
-    // Configure texture to maintain aspect ratio (center-cropped like CSS background-size: cover)
+    // Configure texture to show FULL image (contain mode - no cropping)
     const texture = useMemo(() => {
         if (imageUrl) {
             const loader = new TextureLoader();
@@ -54,20 +54,21 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
                 loadedTex.wrapT = THREE.ClampToEdgeWrapping;
                 loadedTex.needsUpdate = true;
 
-                // Once loaded, calculate aspect ratio and adjust UV mapping
+                // CONTAIN MODE: Show full image, fit within card bounds
+                // No cropping - image scales to fit entirely inside card
                 const imgAspect = loadedTex.image.width / loadedTex.image.height;
                 const cardAspect = 2 / 3; // Our card is 2:3 (portrait)
 
                 if (imgAspect > cardAspect) {
-                    // Image is wider than card - crop sides (show full height)
-                    const scale = cardAspect / imgAspect;
-                    loadedTex.repeat.set(scale, 1);
-                    loadedTex.offset.set((1 - scale) / 2, 0);
-                } else {
-                    // Image is taller than card - crop top/bottom (show full width)
+                    // Image is wider than card - letterbox (black bars top/bottom)
                     const scale = imgAspect / cardAspect;
-                    loadedTex.repeat.set(1, scale);
-                    loadedTex.offset.set(0, (1 - scale) / 2);
+                    loadedTex.repeat.set(1, 1 / scale);
+                    loadedTex.offset.set(0, (1 - 1 / scale) / 2);
+                } else {
+                    // Image is taller than card - pillarbox (black bars left/right)
+                    const scale = cardAspect / imgAspect;
+                    loadedTex.repeat.set(1 / scale, 1);
+                    loadedTex.offset.set((1 - 1 / scale) / 2, 0);
                 }
             });
             tex.colorSpace = THREE.SRGBColorSpace;
