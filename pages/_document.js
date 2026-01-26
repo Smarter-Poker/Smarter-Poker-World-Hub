@@ -11,7 +11,9 @@ export default function Document() {
             <Head>
                 {/* PWA Manifest — Required for iOS Safari Push Notifications */}
                 <link rel="manifest" href="/manifest.json" />
-                <link rel="apple-touch-icon" href="/brain-icon.png" />
+                <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
+                <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+                <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
 
                 {/* PWA / Mobile App settings */}
                 <meta name="mobile-web-app-capable" content="yes" />
