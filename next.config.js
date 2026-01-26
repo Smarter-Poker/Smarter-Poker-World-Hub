@@ -17,11 +17,11 @@ module.exports = {
         // Club Arena - served from club.smarter.poker
         {
           source: '/hub/club-arena',
-          destination: 'https://club.smarter.poker/',
+          destination: 'https://club-arena.vercel.app/',
         },
         {
           source: '/hub/club-arena/:path*',
-          destination: 'https://club.smarter.poker/:path*',
+          destination: 'https://club-arena.vercel.app/:path*',
         },
       ],
     };

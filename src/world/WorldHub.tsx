@@ -113,8 +113,8 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                 alignItems: 'center',
                 cursor: 'pointer',
                 transform: hasAnimatedIn
-                    ? `translateY(0px) perspective(800px) rotateX(8deg) rotateY(0deg) scale(1)`
-                    : `translateY(150px) perspective(800px) rotateX(-20deg) scale(0.5)`,
+                    ? `translateY(0px) scale(1)`
+                    : `translateY(150px) scale(0.5)`,
                 opacity: hasAnimatedIn ? 1 : 0,
                 flex: 1,
                 maxWidth: `clamp(140px, 17vw, 186px)`,  // Viewport-scaled card width
@@ -124,10 +124,10 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
             onClick={() => onSelect(orb.id)}
             title={orb.label}
             onMouseEnter={(e) => {
-                e.currentTarget.style.transform = `translateY(-8px) perspective(800px) rotateX(5deg) rotateY(0deg) scale(1.1)`;
+                e.currentTarget.style.transform = `translateY(-8px) scale(1.1)`;
             }}
             onMouseLeave={(e) => {
-                e.currentTarget.style.transform = `translateY(0px) perspective(800px) rotateX(8deg) rotateY(0deg) scale(1)`;
+                e.currentTarget.style.transform = `translateY(0px) scale(1)`;
             }}
         >
             {/* Holographic pedestal glow */}
@@ -490,7 +490,7 @@ export default function WorldHub() {
         // Intro video config - same as handleOrbSelect
         const introVideos: Record<string, string> = {
             'trivia': '/videos/trivia-intro.mp4',
-            'club-arena': '/videos/club-arena-intro.mp4',
+            'diamond-arena': '/videos/diamond-arena-intro.mp4',
         };
 
         if (introVideos[cardId]) {
@@ -511,7 +511,7 @@ export default function WorldHub() {
         // Intro video config - add videos for specific orbs here
         const introVideos: Record<string, string> = {
             'trivia': '/videos/trivia-intro.mp4',
-            'club-arena': '/videos/club-arena-intro.mp4',
+            'diamond-arena': '/videos/diamond-arena-intro.mp4',
         };
 
         if (introVideos[orbId]) {
