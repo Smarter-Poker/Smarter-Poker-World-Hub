@@ -18,6 +18,7 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import Parser from 'rss-parser';
+import { applyWritingStyle, getHorseWritingStyle } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -168,36 +169,113 @@ async function isArticleRecentlyShared(link) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// BANNED PHRASES - Patterns that make posts look robotic/samey
+// ═══════════════════════════════════════════════════════════════════════════
+const BANNED_PHRASES = [
+    'thoughts on how',
+    'been thinking about this',
+    'this might change',
+    'what do you think about',
+    'this could impact',
+    'interesting to see how',
+    'curious how this will',
+    'wondering how this',
+    'this is worth noting',
+    'important news for',
+    'big news for',
+    'this is huge for',
+    'can\'t wait to see how'
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VOICE ARCHETYPES - Extremely different personality types
+// ═══════════════════════════════════════════════════════════════════════════
+const VOICE_ARCHETYPES = [
+    { type: 'deadpan', style: 'Respond with dry, minimal words. No excitement. Example: "huh. okay." or "neat"' },
+    { type: 'hyped', style: 'EXTREMELY excited caps energy. Example: "YOOO THIS IS FIRE" or "BRO FINALLY"' },
+    { type: 'skeptic', style: 'Doubt and cynicism. Example: "we\'ll see about that" or "doubt it tbh"' },
+    { type: 'simp', style: 'Fan behavior. Pick a specific player to hype. Example: "my GOAT never misses" or "legend status"' },
+    { type: 'degen', style: 'Gambler brain. Make it about action. Example: "more action please" or "inject this into my veins"' },
+    { type: 'analyst', style: 'Strategic lens. Example: "interesting spot" or "meta shift incoming"' },
+    { type: 'nostalgic', style: 'Reference the old days. Example: "reminds me of 2010" or "back in my day..."' },
+    { type: 'zoomer', style: 'Gen-Z speak. Example: "no cap fr fr" or "this hits different" or "lowkey based"' },
+    { type: 'boomer', style: 'Old school vibe. Example: "now we\'re talking" or "thats what im talking about"' },
+    { type: 'lurker', style: 'Barely engaged. Just emojis or single words. Example: "👀" or "📈" or "yep"' },
+    { type: 'contrarian', style: 'Disagree or offer hot take. Example: "actually overrated" or "unpopular opinion but..."' },
+    { type: 'supportive', style: 'Pure positivity. Example: "love to see it" or "good for them" or "W"' }
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
 // GENERATE HORSE COMMENTARY
 // ═══════════════════════════════════════════════════════════════════════════
 async function generateCommentary(horse, article) {
-    // Get template for category
+    // Get template for category (used as fallback and inspiration)
     const templates = CAPTION_TEMPLATES[article.category] || CAPTION_TEMPLATES.default;
     const template = templates[Math.floor(Math.random() * templates.length)];
 
+    // Assign this horse a consistent voice archetype based on their ID hash
+    let hash = 0;
+    const horseId = horse.profile_id || horse.id || '';
+    for (let i = 0; i < horseId.length; i++) {
+        hash = ((hash << 5) - hash) + horseId.charCodeAt(i);
+        hash = hash & hash;
+    }
+    const archetypeIndex = Math.abs(hash) % VOICE_ARCHETYPES.length;
+    const archetype = VOICE_ARCHETYPES[archetypeIndex];
+
     try {
-        // Use GPT to make it more personalized
+        // Use GPT to make it more personalized with STRICT anti-repetition rules
         const response = await openai.chat.completions.create({
             model: 'gpt-4o',
             messages: [{
                 role: 'system',
-                content: `You are ${horse.name}, a ${horse.stakes || '2/5'} poker player. 
-                         Style: ${horse.voice || 'casual'}. 
-                         Write a VERY brief (1 sentence max) reaction to sharing this poker news article.
-                         Reference style: "${template}"
-                         Be authentic, not promotional. No hashtags.`
+                content: `You are ${horse.name}, a poker player sharing news.
+
+YOUR VOICE: ${archetype.type.toUpperCase()}
+${archetype.style}
+
+STRICT RULES:
+1. MAX 8 words. Shorter is better. 1-3 words ideal.
+2. NEVER start with: "Thoughts on", "Been thinking", "Interesting", "This is", "What do you"
+3. NEVER ask questions.
+4. NEVER use hashtags.
+5. NEVER use quotation marks.
+6. Sound like a real person texting, not a news anchor.
+7. Match the ${archetype.type} vibe EXACTLY.
+
+Fallback style if stuck: "${template}"`
             }, {
                 role: 'user',
-                content: `Article title: "${article.title}" from ${article.source}`
+                content: `React to: "${article.title}"`
             }],
-            max_tokens: 50,
-            temperature: 0.9
+            max_tokens: 30,
+            temperature: 1.0 // High randomness for variety
         });
 
-        return response.choices[0].message.content;
-    } catch {
-        // Fallback to template
-        return template.replace('{source}', article.source);
+        let commentary = response.choices[0].message.content || template;
+
+        // Remove any quotes GPT might have added
+        commentary = commentary.replace(/^["']|["']$/g, '').trim();
+
+        // Check for banned phrases and use fallback if detected
+        const lowerCommentary = commentary.toLowerCase();
+        for (const banned of BANNED_PHRASES) {
+            if (lowerCommentary.includes(banned)) {
+                console.log(`   ⚠️ Banned phrase detected: "${banned}" - using template fallback`);
+                commentary = template.replace('{source}', article.source);
+                break;
+            }
+        }
+
+        // Apply the horse's unique writing style (caps, emoji, fillers, punctuation)
+        commentary = applyWritingStyle(commentary, horse.profile_id);
+
+        return commentary;
+    } catch (err) {
+        console.error(`   GPT error: ${err.message}`);
+        // Fallback to template with writing style applied
+        const fallback = template.replace('{source}', article.source);
+        return applyWritingStyle(fallback, horse.profile_id);
     }
 }
 

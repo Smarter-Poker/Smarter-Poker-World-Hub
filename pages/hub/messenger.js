@@ -1105,6 +1105,43 @@ export default function MessengerPage() {
         init();
     }, []);
 
+    // Check for pending calls when messenger opens (for users coming from push notification)
+    useEffect(() => {
+        if (!user?.id) return;
+
+        async function checkPendingCalls() {
+            try {
+                const res = await fetch(`/api/calls/pending?userId=${user.id}`);
+                const result = await res.json();
+
+                if (result.success && result.pendingCall) {
+                    const call = result.pendingCall;
+                    console.log('📞 Found pending call:', call);
+
+                    // Show incoming call UI
+                    setIncomingCall({
+                        callerId: call.callerId,
+                        callerName: call.callerName,
+                        callerAvatar: call.callerAvatar,
+                        callType: call.callType,
+                        roomName: call.roomName,
+                        pendingCallId: call.id, // Store ID for cleanup
+                    });
+
+                    // Play incoming call sound
+                    if (incomingCallAudioRef.current) {
+                        incomingCallAudioRef.current.loop = true;
+                        incomingCallAudioRef.current.play().catch(() => { });
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to check pending calls:', e);
+            }
+        }
+
+        checkPendingCalls();
+    }, [user?.id]);
+
     // Scroll to bottom when messages change
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1293,6 +1330,16 @@ export default function MessengerPage() {
         setCallRoomName(incomingCall.roomName);
         setCallType(incomingCall.callType);
         setShowCall(true);
+
+        // Cancel pending call in database
+        if (incomingCall.pendingCallId) {
+            fetch('/api/calls/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ callId: incomingCall.pendingCallId }),
+            }).catch(() => { });
+        }
+
         setIncomingCall(null);
     };
 
@@ -1325,6 +1372,15 @@ export default function MessengerPage() {
             setTimeout(() => supabase.removeChannel(channel), 1000);
         } catch (e) {
             console.warn('Failed to send decline signal:', e);
+        }
+
+        // Cancel pending call in database
+        if (incomingCall.pendingCallId) {
+            fetch('/api/calls/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ callId: incomingCall.pendingCallId }),
+            }).catch(() => { });
         }
 
         setIncomingCall(null);
@@ -1841,6 +1897,26 @@ export default function MessengerPage() {
             // Cleanup channel after a delay (receiver has their own listener)
             setTimeout(() => supabase.removeChannel(channel), 2000);
 
+            // 📱 Create pending call in database (for offline users)
+            try {
+                await fetch('/api/calls/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        callerId: user.id,
+                        calleeId: otherUser.id,
+                        callerName: callerName,
+                        callerAvatar: callerAvatar,
+                        callType: type,
+                        roomName: roomName,
+                    }),
+                });
+                console.log('📱 Pending call created in database');
+            } catch (e) {
+                console.warn('Failed to create pending call:', e);
+            }
+
+
             // Also send push notification for users not on the page
             try {
                 const pushRes = await fetch('/api/notifications/send', {
@@ -1936,6 +2012,18 @@ export default function MessengerPage() {
             }
         }
         callStartTimeRef.current = null;
+
+        // Cancel any pending call in database (in case call wasn't answered)
+        if (activeConversation?.otherUser?.id && user?.id) {
+            fetch('/api/calls/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    callerId: user.id,
+                    calleeId: activeConversation.otherUser.id
+                }),
+            }).catch(() => { });
+        }
 
         setShowCall(false);
         setCallRoomName('');

@@ -19,7 +19,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
-import { shouldHorseBeActive, isHorseActiveHour, getHorseActivityRate } from '../../../src/content-engine/pipeline/HorseScheduler.js';
+import { shouldHorseBeActive, isHorseActiveHour, getHorseActivityRate, applyWritingStyle } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
 // ClipLibrary functions - loaded dynamically in handler
 let getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES, getHorsePreferredSources;
@@ -58,6 +58,24 @@ const CONFIG = {
 
 // Track clips used in this session to prevent duplicates within same cron run
 const usedClipsThisSession = new Set();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VOICE ARCHETYPES - Extremely different personality types for variety
+// ═══════════════════════════════════════════════════════════════════════════
+const VOICE_ARCHETYPES = [
+    { type: 'deadpan', style: 'Dry, minimal words. No excitement. Example: "ok this is actually insane" or "yep"' },
+    { type: 'hyped', style: 'CAPS LOCK energy. Example: "YOOOO" or "BANGER" or "THIS IS NUTS"' },
+    { type: 'skeptic', style: 'Doubt. Example: "still dont believe it" or "had to be rigged"' },
+    { type: 'simp', style: 'Fan behavior. Example: "GOAT move" or "built different"' },
+    { type: 'degen', style: 'Gambler brain. Example: "inject this into my veins" or "more pls"' },
+    { type: 'analyst', style: 'Strategic lens. Example: "interesting line" or "solver approved"' },
+    { type: 'nostalgic', style: 'Old school. Example: "this takes me back" or "golden era vibes"' },
+    { type: 'zoomer', style: 'Gen-Z speak. Example: "no cap" or "sheesh" or "lowkey fire"' },
+    { type: 'boomer', style: 'Old school vibe. Example: "thats poker baby" or "thats how its done"' },
+    { type: 'lurker', style: 'Just emojis or single reaction. Example: "👀" or "🔥" or "bruh"' },
+    { type: 'contrarian', style: 'Hot take. Example: "overrated but ok" or "seen better"' },
+    { type: 'supportive', style: 'Pure hype. Example: "love to see it" or "W" or "legendary"' }
+];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VIDEO ID VALIDATION - Ensure only real YouTube videos are posted
