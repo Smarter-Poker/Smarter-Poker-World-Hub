@@ -68,7 +68,8 @@ jobs:
           echo "Target: venue_daily_tournaments table"
           echo "=========================================="
           echo ""
-          node scripts/pokeratlas-daily-scraper.js
+          # Try HTTP scraper first (lighter, no Chrome needed)
+          node scripts/pokeratlas-http-scraper.js || node scripts/pokeratlas-daily-scraper.js
 
       - name: Run PokerAtlas Daily Scraper (Manual)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'pokeratlas-daily' }}
@@ -79,7 +80,7 @@ jobs:
           echo "=========================================="
           echo "POKERATLAS DAILY TOURNAMENT SCRAPER"
           echo "=========================================="
-          node scripts/pokeratlas-daily-scraper.js ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
+          node scripts/pokeratlas-http-scraper.js ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }}
 
       - name: Run Full Pipeline (Manual - Full)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full' }}
