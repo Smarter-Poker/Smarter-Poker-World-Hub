@@ -295,133 +295,292 @@ export default function UniversalHeader({
     };
 
     return (
-        <header style={{
-            background: C.bg,
-            padding: '8px 16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderBottom: `1px solid ${C.border}`,
-            position: 'sticky',
-            top: 0,
-            zIndex: 100
-        }}>
-            {/* LEFT: Back/Hub Button + "Smarter.Poker" */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {/* Navigation Button */}
-                <button
-                    onClick={pageDepth > 1 ? handleBack : () => router.push('/hub')}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        padding: '8px 14px',
-                        borderRadius: 8,
-                        background: 'linear-gradient(135deg, rgba(0, 136, 255, 0.2) 0%, rgba(0, 102, 204, 0.3) 100%)',
-                        border: '1px solid rgba(0, 136, 255, 0.4)',
-                        color: C.white,
-                        fontWeight: 600,
-                        fontSize: 14,
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0,136,255,0.2)',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    <span style={{ fontSize: 16 }}>←</span>
-                    {pageDepth > 1 ? 'Back' : 'Hub'}
-                </button>
+        <>
+            {/* Mobile-responsive CSS */}
+            <style jsx global>{`
+                .universal-header {
+                    background: ${C.bg};
+                    padding: 8px 12px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-bottom: 1px solid ${C.border};
+                    position: sticky;
+                    top: 0;
+                    z-index: 100;
+                    gap: 8px;
+                    flex-wrap: nowrap;
+                }
+                
+                .header-left {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    flex-shrink: 0;
+                }
+                
+                .header-center {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    flex-shrink: 1;
+                    justify-content: center;
+                }
+                
+                .header-right {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    flex-shrink: 0;
+                }
+                
+                .nav-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 6px 10px;
+                    border-radius: 6px;
+                    background: linear-gradient(135deg, rgba(0, 136, 255, 0.2) 0%, rgba(0, 102, 204, 0.3) 100%);
+                    border: 1px solid rgba(0, 136, 255, 0.4);
+                    color: white;
+                    font-weight: 600;
+                    font-size: 13px;
+                    cursor: pointer;
+                    box-shadow: 0 2px 8px rgba(0,136,255,0.2);
+                }
+                
+                .brand-text {
+                    color: white;
+                    font-size: 16px;
+                    font-weight: 700;
+                    letter-spacing: 0.3px;
+                    white-space: nowrap;
+                }
+                
+                .diamond-wallet {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.2) 100%);
+                    border: 1px solid rgba(0, 212, 255, 0.4);
+                    padding: 4px 10px;
+                    border-radius: 16px;
+                    text-decoration: none;
+                    color: white;
+                }
+                
+                .xp-display {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    padding: 4px 10px;
+                    border-radius: 16px;
+                }
+                
+                .orb-btn {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    background: linear-gradient(135deg, rgba(0, 136, 255, 0.15) 0%, rgba(0, 245, 255, 0.08) 100%);
+                    border: 1px solid rgba(0, 245, 255, 0.3);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 16px;
+                    cursor: pointer;
+                    position: relative;
+                    box-shadow: 0 0 10px rgba(0, 245, 255, 0.15);
+                    flex-shrink: 0;
+                }
+                
+                .orb-badge {
+                    position: absolute;
+                    top: -4px;
+                    right: -4px;
+                    background: #ff3b3b;
+                    color: white;
+                    border-radius: 8px;
+                    padding: 1px 5px;
+                    font-size: 9px;
+                    font-weight: 700;
+                    min-width: 14px;
+                    text-align: center;
+                }
+                
+                .profile-orb {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    border: 2px solid rgba(0, 245, 255, 0.5);
+                    box-shadow: 0 0 12px rgba(0, 245, 255, 0.3);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 16px;
+                    flex-shrink: 0;
+                    background-size: cover;
+                    background-position: center;
+                }
+                
+                /* MOBILE: ALL icons visible, just smaller and more compact */
+                @media (max-width: 600px) {
+                    .universal-header {
+                        padding: 4px 6px;
+                        gap: 2px;
+                    }
+                    
+                    .header-left, .header-center, .header-right {
+                        gap: 3px;
+                    }
+                    
+                    .brand-text {
+                        display: none; /* Hide brand text on mobile to save space */
+                    }
+                    
+                    .nav-btn {
+                        padding: 4px 6px;
+                        font-size: 11px;
+                        gap: 2px;
+                    }
+                    
+                    .nav-btn span:last-child {
+                        display: none; /* Hide "Hub"/"Back" text, just arrow */
+                    }
+                    
+                    .diamond-wallet {
+                        padding: 2px 6px;
+                        font-size: 11px;
+                        gap: 2px;
+                    }
+                    
+                    .xp-display {
+                        padding: 2px 5px;
+                        font-size: 10px;
+                        gap: 3px;
+                    }
+                    
+                    /* ALL orbs visible, just smaller */
+                    .orb-btn, .profile-orb {
+                        width: 26px;
+                        height: 26px;
+                        font-size: 12px;
+                    }
+                    
+                    .orb-badge {
+                        top: -3px;
+                        right: -3px;
+                        padding: 0 3px;
+                        font-size: 8px;
+                        min-width: 10px;
+                    }
+                }
+                
+                /* Larger tablets/desktops */
+                @media (min-width: 601px) {
+                    .universal-header {
+                        padding: 8px 16px;
+                        gap: 12px;
+                    }
+                    
+                    .orb-btn, .profile-orb {
+                        width: 40px;
+                        height: 40px;
+                        font-size: 18px;
+                    }
+                }
+            `}</style>
 
-                {/* Smarter.Poker text */}
-                <span style={{
-                    color: C.white,
-                    fontSize: 18,
-                    fontWeight: 700,
-                    letterSpacing: 0.5
-                }}>
-                    Smarter.Poker
-                </span>
-            </div>
-
-            {/* CENTER: Diamond Wallet + XP */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                {/* Diamond Wallet */}
-                <Link href="/hub/diamond-store" style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.2) 100%)',
-                    border: '1px solid rgba(0, 212, 255, 0.4)',
-                    padding: '6px 14px',
-                    borderRadius: 20,
-                    textDecoration: 'none',
-                    color: C.white
-                }}>
-                    <span style={{ fontSize: 16 }}>💎</span>
-                    <span data-testid="header-diamonds" style={{ fontWeight: 700, fontSize: 14 }}>{stats.diamonds.toLocaleString()}</span>
-                    <span style={{
-                        width: 18, height: 18, borderRadius: '50%',
-                        background: 'rgba(0, 212, 255, 0.3)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 12, fontWeight: 700, marginLeft: 4
-                    }}>+</span>
-                </Link>
-
-                {/* XP + Level */}
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    padding: '6px 14px',
-                    borderRadius: 20
-                }}>
-                    <span style={{ color: C.gold, fontWeight: 700, fontSize: 14 }}>XP</span>
-                    <span data-testid="header-xp" style={{ color: C.white, fontWeight: 600, fontSize: 14 }}>{stats.xp.toLocaleString()}</span>
-                    <span style={{ color: C.textSec, fontSize: 12 }}>•</span>
-                    <span data-testid="header-level" style={{ color: C.cyan, fontWeight: 700, fontSize: 14 }}>LV {stats.level}</span>
+            <header className="universal-header">
+                {/* LEFT: Back/Hub Button + "Smarter.Poker" */}
+                <div className="header-left">
+                    <button
+                        onClick={pageDepth > 1 ? handleBack : () => router.push('/hub')}
+                        className="nav-btn"
+                    >
+                        <span>←</span>
+                        <span>{pageDepth > 1 ? 'Back' : 'Hub'}</span>
+                    </button>
+                    <span className="brand-text">Smarter.Poker</span>
                 </div>
-            </div>
 
-            {/* RIGHT: Orb Icons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {/* Avatar/Profile */}
-                <Link href="/hub/profile" style={{ textDecoration: 'none' }}>
-                    <div style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: '50%',
-                        background: user?.avatar
-                            ? `url(${user.avatar}) center/cover`
-                            : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)',
-                        border: '2px solid rgba(0, 245, 255, 0.5)',
-                        boxShadow: '0 0 15px rgba(0, 245, 255, 0.3), inset 0 0 10px rgba(0, 245, 255, 0.1)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 20
-                    }}>
-                        {!user?.avatar && '👤'}
+                {/* CENTER: Diamond Wallet + XP */}
+                <div className="header-center">
+                    {/* Diamond Wallet */}
+                    <Link href="/hub/diamond-store" className="diamond-wallet">
+                        <span>💎</span>
+                        <span data-testid="header-diamonds" style={{ fontWeight: 700 }}>{stats.diamonds.toLocaleString()}</span>
+                        <span style={{
+                            width: 16, height: 16, borderRadius: '50%',
+                            background: 'rgba(0, 212, 255, 0.3)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 10, fontWeight: 700
+                        }}>+</span>
+                    </Link>
+
+                    {/* XP + Level */}
+                    <div className="xp-display">
+                        <span style={{ color: C.gold, fontWeight: 700, fontSize: 12 }}>XP</span>
+                        <span data-testid="header-xp" style={{ color: C.white, fontWeight: 600, fontSize: 12 }}>{stats.xp.toLocaleString()}</span>
+                        <span style={{ color: C.textSec, fontSize: 10 }}>•</span>
+                        <span data-testid="header-level" style={{ color: C.cyan, fontWeight: 700, fontSize: 12 }}>LV {stats.level}</span>
                     </div>
-                </Link>
+                </div>
 
-                {/* Messages */}
-                <OrbButton href="/hub/messenger" icon="✉️" badge={unreadMessages} />
+                {/* RIGHT: Orb Icons */}
+                <div className="header-right">
+                    {/* Avatar/Profile */}
+                    <Link href="/hub/profile" style={{ textDecoration: 'none' }}>
+                        <div
+                            className="profile-orb"
+                            style={{
+                                background: user?.avatar
+                                    ? `url(${user.avatar}) center/cover`
+                                    : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)'
+                            }}
+                        >
+                            {!user?.avatar && '👤'}
+                        </div>
+                    </Link>
 
-                {/* Notifications */}
-                <OrbButton href="/hub/notifications" icon="🔔" badge={notificationCount} />
+                    {/* Messages */}
+                    <Link href="/hub/messenger" style={{ textDecoration: 'none' }}>
+                        <div className="orb-btn">
+                            ✉️
+                            {unreadMessages > 0 && (
+                                <span className="orb-badge">{unreadMessages > 99 ? '99+' : unreadMessages}</span>
+                            )}
+                        </div>
+                    </Link>
 
-                {/* Push Notification Bell */}
-                <PushNotificationBell />
+                    {/* Notifications */}
+                    <Link href="/hub/notifications" style={{ background: 'none', border: 'none', padding: 0, textDecoration: 'none' }}>
+                        <div className="orb-btn">
+                            🔔
+                            {notificationCount > 0 && (
+                                <span className="orb-badge">{notificationCount > 99 ? '99+' : notificationCount}</span>
+                            )}
+                        </div>
+                    </Link>
 
-                {/* Search */}
-                {showSearch && (
-                    <OrbButton onClick={onSearchClick} icon="🔍" />
-                )}
+                    {/* Push Notification Bell */}
+                    <PushNotificationBell />
 
-                {/* Settings */}
-                <OrbButton href="/hub/settings" icon="⚙️" />
-            </div>
-        </header>
+                    {/* Search */}
+                    {showSearch && (
+                        <button onClick={onSearchClick} style={{ background: 'none', border: 'none', padding: 0 }}>
+                            <div className="orb-btn">🔍</div>
+                        </button>
+                    )}
+
+                    {/* Settings */}
+                    <Link href="/hub/settings" style={{ textDecoration: 'none' }}>
+                        <div className="orb-btn">⚙️</div>
+                    </Link>
+                </div>
+            </header>
+        </>
     );
 }
+

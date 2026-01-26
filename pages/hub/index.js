@@ -3,6 +3,7 @@
    Empire Hub Synchronization Protocol | Next.js Unified
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
@@ -28,6 +29,10 @@ const WorldHub = dynamic(() => import('../../src/world/WorldHub'), {
 export default function HubPage() {
     return (
         <>
+            <Head>
+                <title>World Hub | Smarter.Poker</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+            </Head>
             <UniversalHeader pageDepth={1} />
             <WorldHub />
         </>
