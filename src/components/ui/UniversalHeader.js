@@ -346,6 +346,7 @@ export default function UniversalHeader({
                     flex-shrink: 0;
                     flex-grow: 1;
                     justify-content: flex-end;
+                    margin-top: 2px;
                 }
                 
                 .nav-btn {
