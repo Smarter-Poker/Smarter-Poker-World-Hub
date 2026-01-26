@@ -44,10 +44,27 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
     }), []);
 
     // Load texture if imageUrl is provided
+    // Configure texture to maintain aspect ratio (center-cropped like CSS background-size: cover)
     const texture = useMemo(() => {
         if (imageUrl) {
             const loader = new TextureLoader();
-            const tex = loader.load(imageUrl);
+            const tex = loader.load(imageUrl, (loadedTex) => {
+                // Once loaded, calculate aspect ratio and adjust UV mapping
+                const imgAspect = loadedTex.image.width / loadedTex.image.height;
+                const cardAspect = 2 / 3; // Our card is 2:3 (portrait)
+
+                if (imgAspect > cardAspect) {
+                    // Image is wider than card - crop sides (show full height)
+                    const scale = cardAspect / imgAspect;
+                    loadedTex.repeat.set(scale, 1);
+                    loadedTex.offset.set((1 - scale) / 2, 0);
+                } else {
+                    // Image is taller than card - crop top/bottom (show full width)
+                    const scale = imgAspect / cardAspect;
+                    loadedTex.repeat.set(1, scale);
+                    loadedTex.offset.set(0, (1 - scale) / 2);
+                }
+            });
             tex.colorSpace = THREE.SRGBColorSpace;
             return tex;
         }

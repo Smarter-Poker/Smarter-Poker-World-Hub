@@ -584,12 +584,15 @@ export default function UniversalHeader({
                     {/* XP + Level - click to toggle full/compact - STACKED layout */}
                     <div className="xp-display" onClick={() => stats.xp >= 1000 && setShowFullXP(!showFullXP)} style={{ cursor: stats.xp >= 1000 ? 'pointer' : 'default' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                            <span style={{ color: C.gold, fontWeight: 700, fontSize: 11 }}>XP</span>
-                            <span data-testid="header-xp" style={{ color: C.white, fontWeight: 600, fontSize: 11 }} title={stats.xp.toLocaleString() + ' XP'}>
+                            <span style={{ color: C.white, fontWeight: 700, fontSize: 11 }}>XP</span>
+                            <span data-testid="header-xp" style={{ color: C.white, fontWeight: 700, fontSize: 11 }} title={stats.xp.toLocaleString() + ' XP'}>
                                 {showFullXP ? stats.xp.toLocaleString() : formatCompact(stats.xp)}
                             </span>
                         </div>
-                        <span data-testid="header-level" style={{ color: C.cyan, fontWeight: 700, fontSize: 10 }}>LV {stats.level}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <span style={{ color: C.white, fontWeight: 700, fontSize: 11 }}>LV</span>
+                            <span data-testid="header-level" style={{ color: C.white, fontWeight: 700, fontSize: 11 }}>{stats.level}</span>
+                        </div>
                     </div>
                 </div>
 

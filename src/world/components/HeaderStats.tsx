@@ -225,9 +225,9 @@ export function XPStat() {
             <span
                 style={{
                     fontFamily: 'Orbitron, monospace',
-                    fontSize: 11,
+                    fontSize: FONT_SIZE,
                     fontWeight: 600,
-                    color: 'rgba(255, 255, 255, 0.6)',
+                    color: '#ffffff',
                     textTransform: 'uppercase',
                 }}
             >
