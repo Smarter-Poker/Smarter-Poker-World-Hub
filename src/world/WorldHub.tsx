@@ -412,6 +412,7 @@ export default function WorldHub() {
     // ═══════════════════════════════════════════════════════════════════════
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+    const [introVideo, setIntroVideo] = useState<{ videoUrl: string; targetRoute: string } | null>(null);
     const profileOrbRef = useRef<HTMLDivElement>(null);
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -528,7 +529,18 @@ export default function WorldHub() {
         triggerHaptic('heavy');
         recordCardVisit(orbId);
         selectOrb(orbId as any);
-        router.push(`/hub/${orbId}`);
+
+        // Intro video config - add videos for specific orbs here
+        const introVideos: Record<string, string> = {
+            'trivia': '/videos/trivia-intro.mp4',
+        };
+
+        if (introVideos[orbId]) {
+            // Show intro video before navigating
+            setIntroVideo({ videoUrl: introVideos[orbId], targetRoute: `/hub/${orbId}` });
+        } else {
+            router.push(`/hub/${orbId}`);
+        }
     };
 
     // Handle HUD icon navigation
@@ -554,6 +566,63 @@ export default function WorldHub() {
         <>
             {/* EPIC CINEMATIC INTRO - Shows ONLY on login (Authentication Handshake Exception) */}
             {CinematicIntroComponent}
+
+            {/* INTRO VIDEO OVERLAY - Plays before navigating to specific pages */}
+            {introVideo && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    background: '#000',
+                    zIndex: 99999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}>
+                    <video
+                        autoPlay
+                        playsInline
+                        onEnded={() => {
+                            const targetRoute = introVideo.targetRoute;
+                            setIntroVideo(null);
+                            router.push(targetRoute);
+                        }}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                        }}
+                    >
+                        <source src={introVideo.videoUrl} type="video/mp4" />
+                    </video>
+                    {/* Skip button */}
+                    <button
+                        onClick={() => {
+                            const targetRoute = introVideo.targetRoute;
+                            setIntroVideo(null);
+                            router.push(targetRoute);
+                        }}
+                        style={{
+                            position: 'absolute',
+                            bottom: 40,
+                            right: 40,
+                            padding: '12px 24px',
+                            background: 'rgba(0, 212, 255, 0.2)',
+                            border: '1px solid rgba(0, 212, 255, 0.6)',
+                            borderRadius: 8,
+                            color: '#00d4ff',
+                            fontSize: 16,
+                            fontFamily: 'Orbitron, sans-serif',
+                            cursor: 'pointer',
+                            backdropFilter: 'blur(10px)',
+                        }}
+                    >
+                        SKIP ▶
+                    </button>
+                </div>
+            )}
 
             <div style={{
                 position: 'fixed',
