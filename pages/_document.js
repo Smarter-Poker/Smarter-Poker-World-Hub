@@ -9,6 +9,9 @@ export default function Document() {
     return (
         <Html lang="en">
             <Head>
+                {/* GLOBAL VIEWPORT — Facebook-style, applies to ALL pages */}
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
                 {/* PWA Manifest — Required for iOS Safari Push Notifications */}
                 <link rel="manifest" href="/manifest.json" />
                 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
