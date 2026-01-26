@@ -27,7 +27,7 @@ if (!CONFIG.supabaseUrl || !CONFIG.supabaseKey) {
 
 const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
 
-function generateSlug(name, city, state) {
+function generateSlug(name, city) {
     const base = `${name}-${city}`;
     return base
         .toLowerCase()
@@ -35,6 +35,17 @@ function generateSlug(name, city, state) {
         .replace(/&/g, 'and')
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
+}
+
+function mapVenueType(type) {
+    // Map JSON types to database enum values
+    const typeMap = {
+        'Casino': 'casino',
+        'Card Room': 'card_room',
+        'Poker Club': 'poker_club',
+        'Home Game': 'home_game'
+    };
+    return typeMap[type] || 'casino';
 }
 
 async function main() {
@@ -56,67 +67,61 @@ async function main() {
     let errors = 0;
 
     for (const venue of venues) {
-        const slug = generateSlug(venue.name, venue.city, venue.state);
+        const pokeratlasSlug = generateSlug(venue.name, venue.city);
 
         const venueData = {
             name: venue.name,
             city: venue.city,
             state: venue.state,
-            type: venue.type || 'Casino',
-            slug: slug,
+            venue_type: mapVenueType(venue.type),
+            pokeratlas_slug: pokeratlasSlug,
             pokeratlas_url: venue.pokerAtlasUrl,
             scrape_url: venue.pokerAtlasUrl ? `${venue.pokerAtlasUrl}/tournaments` : null,
             scrape_source: 'pokeratlas',
             scrape_status: venue.pokerAtlasUrl ? 'ready' : 'no_url',
-            is_active: true,
-            has_daily_tournaments: true
+            is_active: true
         };
 
-        // Try to upsert (insert or update on conflict)
-        const { data: result, error } = await supabase
+        // Try to find existing venue by name and state
+        const { data: existing } = await supabase
             .from('poker_venues')
-            .upsert(venueData, {
-                onConflict: 'slug',
-                ignoreDuplicates: false
-            })
-            .select();
+            .select('id')
+            .eq('name', venue.name)
+            .eq('state', venue.state)
+            .single();
 
-        if (error) {
-            // If upsert fails, try insert
-            const { data: insertResult, error: insertError } = await supabase
+        if (existing) {
+            // Update existing venue with scraper data
+            const { error: updateError } = await supabase
                 .from('poker_venues')
-                .insert(venueData)
-                .select();
+                .update({
+                    pokeratlas_url: venueData.pokeratlas_url,
+                    pokeratlas_slug: venueData.pokeratlas_slug,
+                    scrape_url: venueData.scrape_url,
+                    scrape_source: venueData.scrape_source,
+                    scrape_status: venueData.scrape_status,
+                    is_active: true
+                })
+                .eq('id', existing.id);
+
+            if (updateError) {
+                console.log(`  [ERROR] ${venue.name}: ${updateError.message}`);
+                errors++;
+            } else {
+                updated++;
+            }
+        } else {
+            // Insert new venue
+            const { error: insertError } = await supabase
+                .from('poker_venues')
+                .insert(venueData);
 
             if (insertError) {
-                if (insertError.code === '23505') {
-                    // Duplicate - try update instead
-                    const { error: updateError } = await supabase
-                        .from('poker_venues')
-                        .update({
-                            pokeratlas_url: venueData.pokeratlas_url,
-                            scrape_url: venueData.scrape_url,
-                            scrape_status: venueData.scrape_status,
-                            is_active: true,
-                            has_daily_tournaments: true
-                        })
-                        .eq('slug', slug);
-
-                    if (updateError) {
-                        console.log(`  [ERROR] ${venue.name}: ${updateError.message}`);
-                        errors++;
-                    } else {
-                        updated++;
-                    }
-                } else {
-                    console.log(`  [ERROR] ${venue.name}: ${insertError.message}`);
-                    errors++;
-                }
+                console.log(`  [ERROR] ${venue.name}: ${insertError.message}`);
+                errors++;
             } else {
                 inserted++;
             }
-        } else {
-            inserted++;
         }
     }
 
