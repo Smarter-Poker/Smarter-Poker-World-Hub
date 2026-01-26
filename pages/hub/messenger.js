@@ -1453,11 +1453,20 @@ export default function MessengerPage() {
             status: 'sending',
         };
         setMessages(prev => [...prev, optimisticMsg]);
-        setConversations(prev => prev.map(c =>
-            c.id === activeConversation.id
-                ? { ...c, last_message_preview: content, last_message_at: new Date().toISOString() }
-                : c
-        ));
+        // Update conversation preview and re-sort to move to top
+        setConversations(prev => {
+            const updated = prev.map(c =>
+                c.id === activeConversation.id
+                    ? { ...c, last_message_preview: content, last_message_at: new Date().toISOString() }
+                    : c
+            );
+            // Re-sort by last_message_at (most recent first)
+            return updated.sort((a, b) => {
+                const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+                const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+                return timeB - timeA;
+            });
+        });
 
         try {
             const { data, error } = await supabase.rpc('fn_send_message', {
