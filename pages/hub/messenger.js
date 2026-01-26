@@ -1918,15 +1918,21 @@ export default function MessengerPage() {
 
 
             // Also send push notification for users not on the page
+            // This will make their phone RING like a real call!
             try {
                 const pushRes = await fetch('/api/notifications/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         title: `${type === 'video' ? '📹' : '📞'} Incoming ${type === 'video' ? 'Video' : 'Voice'} Call`,
-                        message: `${callerName} is calling you on Smarter.Poker`,
+                        message: `${callerName} is calling you`,
                         url: `https://smarter.poker/hub/messenger`,
                         externalUserIds: [otherUser.id],
+                        // 📞 CALL-SPECIFIC: Makes the phone ring like a real call!
+                        isCall: true,
+                        callType: type,
+                        roomName: roomName,
+                        callerId: user.id,
                     }),
                 });
                 const pushResult = await pushRes.json();

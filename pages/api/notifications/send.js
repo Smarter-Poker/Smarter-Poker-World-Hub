@@ -31,6 +31,10 @@ export default async function handler(req, res) {
             data,            // Custom data payload
             buttons,         // Action buttons
             image,           // Image URL
+            isCall,          // NEW: Is this a call notification?
+            callType,        // NEW: 'voice' or 'video'
+            roomName,        // NEW: Room to join if accepted
+            callerId,        // NEW: Who is calling
         } = req.body;
 
         if (!message) {
@@ -43,22 +47,59 @@ export default async function handler(req, res) {
             contents: { en: message },
             headings: title ? { en: title } : undefined,
             url: url || undefined,
-            // iOS Safari requires web_url for PWA clicks
             web_url: url || undefined,
-            // Chrome also uses this
             chrome_web_link: url || undefined,
             data: data || undefined,
             buttons: buttons || undefined,
             big_picture: image || undefined,
-            // 🔔 SOUND & VIBRATION - Make the phone actually ring!
-            ios_sound: 'default', // Use phone's default notification sound
-            android_sound: 'default',
-            android_channel_id: null, // Use default channel
-            priority: 10, // High priority for immediate delivery
-            android_visibility: 1, // Show on lock screen
-            ios_badgeType: 'Increase',
-            ios_badgeCount: 1,
         };
+
+        // 📞 SPECIAL HANDLING FOR CALLS - Make it ring like a real call!
+        if (isCall) {
+            // Custom data for the call
+            notification.data = {
+                ...notification.data,
+                isCall: true,
+                callType: callType || 'voice',
+                roomName: roomName || '',
+                callerId: callerId || '',
+            };
+
+            // Android: High priority + ringtone sound + persistent
+            notification.priority = 10; // Highest priority
+            notification.android_visibility = 1; // Show on lock screen
+            notification.android_sound = 'ringtone'; // Use ringtone sound
+            notification.android_channel_id = 'calls'; // Dedicated call channel
+            notification.ttl = 120; // Expire after 2 minutes (call timeout)
+
+            // iOS: Critical alert style for calls
+            notification.ios_sound = 'ringtone.wav'; // Custom ringtone (if uploaded)
+            notification.ios_interruption_level = 'time-sensitive'; // Bypass Do Not Disturb
+            notification.ios_relevance_score = 1.0; // Highest relevance
+
+            // Web: Require interaction (don't auto-dismiss)
+            notification.web_push_topic = `call-${callerId}`; // Replace previous call notifs
+            notification.chrome_web_badge = '/icons/call-badge.png';
+
+            // Action buttons for call
+            notification.buttons = [
+                { id: 'accept', text: '✓ Accept', icon: 'ic_call_accept' },
+                { id: 'decline', text: '✗ Decline', icon: 'ic_call_decline' },
+            ];
+            notification.web_buttons = [
+                { id: 'accept', text: '✓ Accept', url: url || 'https://smarter.poker/hub/messenger' },
+                { id: 'decline', text: '✗ Decline', url: 'https://smarter.poker/hub' },
+            ];
+        } else {
+            // Regular notification settings
+            notification.ios_sound = 'default';
+            notification.android_sound = 'default';
+            notification.android_channel_id = null;
+            notification.priority = 10;
+            notification.android_visibility = 1;
+            notification.ios_badgeType = 'Increase';
+            notification.ios_badgeCount = 1;
+        }
 
         // Set targeting
         if (playerIds && playerIds.length > 0) {
@@ -71,7 +112,6 @@ export default async function handler(req, res) {
         } else if (segments && segments.length > 0) {
             notification.included_segments = segments;
         } else {
-            // Default: send to all subscribed users
             notification.included_segments = ['Subscribed Users'];
         }
 
