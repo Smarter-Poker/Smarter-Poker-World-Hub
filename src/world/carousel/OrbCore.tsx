@@ -44,32 +44,17 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
     }), []);
 
     // Load texture if imageUrl is provided
-    // Configure texture to show FULL image (contain mode - no cropping)
+    // Show FULL image without any cropping or scaling adjustments
     const texture = useMemo(() => {
         if (imageUrl) {
             const loader = new TextureLoader();
             const tex = loader.load(imageUrl, (loadedTex) => {
-                // Required for repeat/offset to work
                 loadedTex.wrapS = THREE.ClampToEdgeWrapping;
                 loadedTex.wrapT = THREE.ClampToEdgeWrapping;
+                // Show full image - no repeat/offset adjustments
+                loadedTex.repeat.set(1, 1);
+                loadedTex.offset.set(0, 0);
                 loadedTex.needsUpdate = true;
-
-                // CONTAIN MODE: Show full image, fit within card bounds
-                // No cropping - image scales to fit entirely inside card
-                const imgAspect = loadedTex.image.width / loadedTex.image.height;
-                const cardAspect = 2 / 3; // Our card is 2:3 (portrait)
-
-                if (imgAspect > cardAspect) {
-                    // Image is wider than card - letterbox (black bars top/bottom)
-                    const scale = imgAspect / cardAspect;
-                    loadedTex.repeat.set(1, 1 / scale);
-                    loadedTex.offset.set(0, (1 - 1 / scale) / 2);
-                } else {
-                    // Image is taller than card - pillarbox (black bars left/right)
-                    const scale = cardAspect / imgAspect;
-                    loadedTex.repeat.set(1 / scale, 1);
-                    loadedTex.offset.set((1 - 1 / scale) / 2, 0);
-                }
             });
             tex.colorSpace = THREE.SRGBColorSpace;
             return tex;
