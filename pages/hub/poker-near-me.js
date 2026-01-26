@@ -20,20 +20,6 @@ const VENUE_TYPE_LABELS = {
     home_game: 'Home Game'
 };
 
-// Venue background images based on location/type
-const VENUE_IMAGES = {
-    'Las Vegas': 'https://images.unsplash.com/photo-1605833556294-ea5c7a74f57d?w=600&q=80',
-    'Los Angeles': 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=600&q=80',
-    'Atlantic City': 'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=600&q=80',
-    'Hollywood': 'https://images.unsplash.com/photo-1515896769750-31548aa180ed?w=600&q=80',
-    'Tampa': 'https://images.unsplash.com/photo-1605723517503-3cadb5818a0c?w=600&q=80',
-    'default': 'https://images.unsplash.com/photo-1517232115160-ff93364542dd?w=600&q=80'
-};
-
-function getVenueImage(venue) {
-    return VENUE_IMAGES[venue.city] || VENUE_IMAGES['default'];
-}
-
 function getTrustLevel(score) {
     if (score >= 4.5) return { label: 'High', color: '#22c55e' };
     if (score >= 4.0) return { label: 'Fresh', color: '#3b82f6' };
@@ -386,54 +372,29 @@ export default function PokerNearMe() {
                             <div className="venue-list">
                                 {venues.slice(0, 20).map((venue, i) => {
                                     const trust = getTrustLevel(venue.trust_score);
-                                    const bgImage = getVenueImage(venue);
                                     return (
                                         <div key={venue.id || i} className="venue-card">
-                                            <div className="venue-card-image" style={{ backgroundImage: `url(${bgImage})` }}></div>
-                                            <div className="venue-card-gradient"></div>
-                                            <div className="venue-card-content">
-                                                <h4 className="venue-name">{venue.name}</h4>
-                                                <div className="venue-meta">
-                                                    {venue.distance_mi && <span className="meta-item">{venue.distance_mi} mi</span>}
-                                                    {venue.games_offered?.slice(0, 2).map((g, idx) => (
-                                                        <span key={g}>
-                                                            {idx > 0 && <span className="dot">*</span>}
-                                                            <span className="meta-item">{g}</span>
-                                                        </span>
-                                                    ))}
-                                                    {venue.stakes_cash?.[0] && (
-                                                        <>
-                                                            <span className="dot">*</span>
-                                                            <span className="meta-item">{venue.stakes_cash[0]}</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                                <div className="venue-trust">
-                                                    <span className="trust-label" style={{ color: trust.color }}>Trust: {trust.label}</span>
-                                                    <span className="dot">*</span>
-                                                    <span className="verified-badge">Verified</span>
-                                                </div>
+                                            <h4 className="venue-name">{venue.name}</h4>
+                                            <p className="venue-location">{venue.city}, {venue.state}</p>
+                                            <div className="venue-meta">
+                                                {venue.distance_mi && <span className="meta-distance">{venue.distance_mi} mi</span>}
+                                                {venue.games_offered?.slice(0, 3).map(g => (
+                                                    <span key={g} className="meta-game">{g}</span>
+                                                ))}
+                                            </div>
+                                            {venue.stakes_cash?.length > 0 && (
+                                                <p className="venue-stakes">Stakes: {venue.stakes_cash.slice(0, 3).join(', ')}</p>
+                                            )}
+                                            <div className="venue-footer">
+                                                <span className="trust-badge" style={{ color: trust.color }}>Trust: {trust.label}</span>
                                                 <div className="venue-actions">
                                                     {venue.phone && (
-                                                        <a href={`tel:${venue.phone}`} className="action-btn call">
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                                                            </svg>
-                                                            Call
-                                                        </a>
+                                                        <a href={`tel:${venue.phone}`} className="action-btn">Call</a>
                                                     )}
                                                     {venue.website && (
-                                                        <a href={venue.website.startsWith('http') ? venue.website : `https://${venue.website}`} target="_blank" rel="noopener noreferrer" className="action-btn website">
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-                                                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                                                            </svg>
-                                                            Website
-                                                        </a>
+                                                        <a href={venue.website.startsWith('http') ? venue.website : `https://${venue.website}`} target="_blank" rel="noopener noreferrer" className="action-btn">Website</a>
                                                     )}
-                                                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name + ' ' + venue.city + ' ' + venue.state)}`} target="_blank" rel="noopener noreferrer" className="action-btn directions">
-                                                        Directions
-                                                    </a>
+                                                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name + ' ' + venue.city + ' ' + venue.state)}`} target="_blank" rel="noopener noreferrer" className="action-btn primary">Directions</a>
                                                 </div>
                                             </div>
                                         </div>
@@ -843,116 +804,99 @@ export default function PokerNearMe() {
                         background: rgba(212,168,83,0.3);
                     }
 
-                    /* Venue Cards */
+                    /* Venue Cards - Clean Sleek Style */
                     .venue-list {
                         display: flex;
                         flex-direction: column;
-                        gap: 16px;
+                        gap: 12px;
                     }
                     .venue-card {
-                        position: relative;
-                        border-radius: 16px;
-                        overflow: hidden;
-                        min-height: 200px;
-                        border: 1px solid rgba(255,255,255,0.1);
-                        transition: all 0.3s;
+                        padding: 16px 20px;
+                        background: rgba(15, 23, 42, 0.4);
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        border-radius: 12px;
+                        transition: all 0.2s ease;
                     }
                     .venue-card:hover {
-                        border-color: rgba(212,168,83,0.3);
-                        transform: translateY(-2px);
-                        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-                    }
-                    .venue-card-image {
-                        position: absolute;
-                        inset: 0;
-                        background-size: cover;
-                        background-position: center;
-                        opacity: 0.6;
-                    }
-                    .venue-card-gradient {
-                        position: absolute;
-                        inset: 0;
-                        background: linear-gradient(180deg,
-                            rgba(15,23,42,0.3) 0%,
-                            rgba(15,23,42,0.7) 50%,
-                            rgba(15,23,42,0.95) 100%
-                        );
-                    }
-                    .venue-card-content {
-                        position: relative;
-                        padding: 20px;
-                        display: flex;
-                        flex-direction: column;
-                        min-height: 200px;
+                        border-color: rgba(255, 255, 255, 0.25);
+                        background: rgba(15, 23, 42, 0.6);
                     }
                     .venue-name {
-                        font-size: 20px;
+                        font-size: 17px;
                         font-weight: 600;
-                        margin: 0 0 10px;
-                        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                        margin: 0 0 4px;
+                        color: #fff;
+                    }
+                    .venue-location {
+                        font-size: 13px;
+                        color: rgba(255, 255, 255, 0.5);
+                        margin: 0 0 12px;
                     }
                     .venue-meta {
                         display: flex;
                         flex-wrap: wrap;
-                        align-items: center;
-                        gap: 4px;
-                        margin-bottom: 8px;
+                        gap: 8px;
+                        margin-bottom: 10px;
+                    }
+                    .meta-distance {
+                        font-size: 12px;
+                        padding: 4px 10px;
+                        background: rgba(34, 197, 94, 0.15);
+                        color: #4ade80;
+                        border-radius: 4px;
+                    }
+                    .meta-game {
+                        font-size: 12px;
+                        padding: 4px 10px;
+                        background: rgba(255, 255, 255, 0.08);
+                        color: rgba(255, 255, 255, 0.7);
+                        border-radius: 4px;
+                    }
+                    .venue-stakes {
                         font-size: 13px;
-                        color: rgba(255,255,255,0.8);
+                        color: rgba(255, 255, 255, 0.6);
+                        margin: 0 0 12px;
                     }
-                    .meta-item { }
-                    .dot {
-                        color: rgba(255,255,255,0.3);
-                        margin: 0 4px;
-                    }
-                    .venue-trust {
+                    .venue-footer {
                         display: flex;
                         align-items: center;
-                        gap: 4px;
-                        margin-bottom: 16px;
-                        font-size: 13px;
+                        justify-content: space-between;
+                        flex-wrap: wrap;
+                        gap: 12px;
+                        padding-top: 12px;
+                        border-top: 1px solid rgba(255, 255, 255, 0.06);
                     }
-                    .trust-label { font-weight: 500; }
-                    .verified-badge {
-                        color: #22c55e;
+                    .trust-badge {
+                        font-size: 12px;
+                        font-weight: 500;
                     }
                     .venue-actions {
                         display: flex;
-                        gap: 10px;
-                        margin-top: auto;
-                        flex-wrap: wrap;
+                        gap: 8px;
                     }
                     .action-btn {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 6px;
-                        padding: 10px 16px;
-                        border-radius: 8px;
-                        font-size: 13px;
+                        padding: 6px 12px;
+                        font-size: 12px;
                         font-weight: 500;
+                        color: rgba(255, 255, 255, 0.7);
                         text-decoration: none;
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        border-radius: 6px;
                         transition: all 0.2s;
-                        border: 1px solid transparent;
                     }
-                    .action-btn.call {
-                        background: rgba(34,197,94,0.2);
-                        color: #22c55e;
-                        border-color: rgba(34,197,94,0.3);
+                    .action-btn:hover {
+                        color: #fff;
+                        border-color: rgba(255, 255, 255, 0.3);
+                        background: rgba(255, 255, 255, 0.05);
                     }
-                    .action-btn.call:hover { background: rgba(34,197,94,0.3); }
-                    .action-btn.website {
-                        background: rgba(59,130,246,0.2);
-                        color: #60a5fa;
-                        border-color: rgba(59,130,246,0.3);
-                    }
-                    .action-btn.website:hover { background: rgba(59,130,246,0.3); }
-                    .action-btn.directions {
-                        background: rgba(212,168,83,0.2);
+                    .action-btn.primary {
+                        background: rgba(212, 168, 83, 0.15);
+                        border-color: rgba(212, 168, 83, 0.3);
                         color: #d4a853;
-                        border-color: rgba(212,168,83,0.3);
                     }
-                    .action-btn.directions:hover { background: rgba(212,168,83,0.3); }
+                    .action-btn.primary:hover {
+                        background: rgba(212, 168, 83, 0.25);
+                    }
 
                     /* Right Sidebar */
                     .series-header {
