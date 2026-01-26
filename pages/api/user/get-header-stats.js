@@ -44,6 +44,35 @@ export default async function handler(req, res) {
         const xpTotal = profile.xp_total || 0;
         const level = Math.max(1, Math.floor(Math.sqrt(xpTotal / 231)));
 
+        // Count unread notifications
+        const { count: notificationCount } = await supabase
+            .from('notifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('read', false);
+
+        // Count unread messages - messages in user's conversations where sender is not user and not read
+        // First get user's conversations
+        const { data: conversations } = await supabase
+            .from('conversation_participants')
+            .select('conversation_id')
+            .eq('user_id', userId);
+
+        let unreadMessages = 0;
+        if (conversations && conversations.length > 0) {
+            const convIds = conversations.map(c => c.conversation_id);
+
+            // Count messages in these conversations that are unread and not sent by this user
+            const { count: msgCount } = await supabase
+                .from('messages')
+                .select('*', { count: 'exact', head: true })
+                .in('conversation_id', convIds)
+                .neq('sender_id', userId)
+                .eq('is_read', false);
+
+            unreadMessages = msgCount || 0;
+        }
+
         return res.json({
             success: true,
             profile: {
@@ -53,7 +82,9 @@ export default async function handler(req, res) {
                 xp: xpTotal,
                 diamonds: profile.diamonds || 0,
                 level
-            }
+            },
+            notificationCount: notificationCount || 0,
+            unreadMessages
         });
     } catch (e) {
         console.error('[get-header-stats] Exception:', e);

@@ -156,6 +156,13 @@ export default function UniversalHeader({
                                     avatar: avatar_url,
                                     name: full_name || username
                                 }));
+                                // Set notification and message counts from API
+                                if (typeof result.notificationCount === 'number') {
+                                    setNotificationCount(result.notificationCount);
+                                }
+                                if (typeof result.unreadMessages === 'number') {
+                                    setUnreadMessages(result.unreadMessages);
+                                }
                                 return true; // Success
                             }
                             return false; // API returned error
