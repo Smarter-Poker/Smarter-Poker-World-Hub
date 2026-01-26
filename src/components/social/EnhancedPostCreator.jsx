@@ -9,6 +9,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { SocialService } from '../../services/SocialService';
 import { validatePostContent } from '../../services/social-types';
+import toast from '../../stores/toastStore';
 
 // Simple file validation since MediaUploadService may not exist
 const validateFile = (file, mediaType) => {
@@ -291,6 +292,9 @@ export const EnhancedPostCreator = ({
       // Show success animation
       setShowSuccess(true);
       triggerSuccessParticles();
+
+      // Show toast notification
+      toast.success('Posted Successfully!', 2000);
 
       setTimeout(() => {
         setContent('');

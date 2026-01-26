@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import toast from '../../stores/toastStore';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -594,6 +595,7 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
 
             // Show success toast, then close after 2 seconds
             setShowSuccess(true);
+            toast.success('Posted Successfully!', 2000);
             setTimeout(() => {
                 onCreated();
             }, 2000);
