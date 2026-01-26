@@ -212,6 +212,30 @@ export class UnifiedSocialService {
     // ═══════════════════════════════════════════════════════════════════════
 
     async getConversations(userId) {
+        // 🛡️ MULTI-DEVICE RESILIENT: Try API first (bypasses RLS), fallback to direct
+        try {
+            // PRIMARY: Use API with service_role - bypasses all RLS issues
+            const resp = await fetch('/api/messenger/get-conversations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId }),
+            });
+            const apiResult = await resp.json();
+            if (apiResult.success && Array.isArray(apiResult.conversations)) {
+                return apiResult.conversations.map(conv => ({
+                    id: conv.id,
+                    ...conv,
+                    lastMessage: {
+                        text: conv.last_message_preview,
+                        time: this.formatTime(conv.last_message_at)
+                    }
+                }));
+            }
+        } catch (apiErr) {
+            console.warn('[UnifiedSocialService] API fallback failed:', apiErr.message);
+        }
+
+        // FALLBACK: Direct Supabase query
         const { data, error } = await this.supabase
             .from('social_conversation_participants')
             .select(`

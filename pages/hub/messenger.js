@@ -25,6 +25,7 @@ const LiveKitCall = dynamic(
 import { useMessengerStore } from '../../src/stores/messengerStore';
 import { useOneSignal } from '../../src/contexts/OneSignalContext';
 import { createRingTone } from '../../src/utils/ringTone';
+import { createMultiDeviceAuthListener, withRetry } from '../../src/utils/authGuard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 COLOR PALETTE - Premium Poker Theme
@@ -1104,6 +1105,40 @@ export default function MessengerPage() {
         }
         init();
     }, []);
+
+    // 🛡️ MULTI-DEVICE RESILIENCE: Listen for auth changes from ANY device
+    // This handles: token refresh, login from another device, session recovery
+    useEffect(() => {
+        const cleanup = createMultiDeviceAuthListener(supabase, async (authUser, event) => {
+            console.log('[MESSENGER] Multi-device auth event:', event, 'User:', authUser?.id?.slice(0, 8) || 'none');
+
+            if (!authUser) {
+                // User signed out - clear state
+                setUser(null);
+                setConversations([]);
+                setMessages([]);
+                setActiveConversation(null);
+                return;
+            }
+
+            // User is authenticated (from any device) - ensure we have latest data
+            if (authUser.id !== user?.id || event === 'TOKEN_REFRESHED') {
+                // Update user state
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url')
+                    .eq('id', authUser.id)
+                    .single();
+
+                setUser({ ...authUser, ...profile });
+
+                // Reload conversations (uses API-first approach, resilient to RLS)
+                await loadConversations(authUser.id);
+            }
+        }, 500); // 500ms debounce to handle rapid token events
+
+        return cleanup;
+    }, [user?.id]); // Re-subscribe if user changes
 
     // Check for pending calls when messenger opens (for users coming from push notification)
     useEffect(() => {
