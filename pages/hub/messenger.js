@@ -1191,7 +1191,8 @@ export default function MessengerPage() {
                     const reason = payload.payload.reason === 'timeout' ? 'No answer' : 'Call declined';
                     setToast({ type: 'info', message: reason });
                     setCallingUser(null);
-                    // Stop outgoing ring
+                    // Stop outgoing ring (Web Audio + audio element)
+                    if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
                     if (outgoingCallAudioRef.current) {
                         outgoingCallAudioRef.current.pause();
                         outgoingCallAudioRef.current.currentTime = 0;
@@ -1202,7 +1203,8 @@ export default function MessengerPage() {
                 console.log('📞 Call accepted:', payload);
                 // The caller's call is already showing, just clear the "calling" state
                 setCallingUser(null);
-                // Stop outgoing ring - call connected!
+                // Stop outgoing ring - call connected! (Web Audio + audio element)
+                if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
                 if (outgoingCallAudioRef.current) {
                     outgoingCallAudioRef.current.pause();
                     outgoingCallAudioRef.current.currentTime = 0;
@@ -1213,7 +1215,8 @@ export default function MessengerPage() {
                 setShowCall(false);
                 setCallRoomName('');
                 setToast({ type: 'info', message: 'Call ended' });
-                // Stop any ringing
+                // Stop any ringing (Web Audio + audio element)
+                if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
                 if (outgoingCallAudioRef.current) {
                     outgoingCallAudioRef.current.pause();
                     outgoingCallAudioRef.current.currentTime = 0;
@@ -1825,6 +1828,14 @@ export default function MessengerPage() {
         setShowCall(true);
 
         // 🔔 Play outgoing ring sound while waiting for answer
+        // Use Web Audio API ring tone (more reliable than audio elements)
+        if (!outgoingRingToneRef.current) {
+            outgoingRingToneRef.current = createRingTone();
+        }
+        if (outgoingRingToneRef.current) {
+            outgoingRingToneRef.current.start();
+        }
+        // Also try audio element as backup
         if (outgoingCallAudioRef.current) {
             outgoingCallAudioRef.current.loop = true;
             outgoingCallAudioRef.current.play().catch(() => { });
