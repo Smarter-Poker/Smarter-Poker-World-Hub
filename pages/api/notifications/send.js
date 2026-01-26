@@ -50,6 +50,14 @@ export default async function handler(req, res) {
             data: data || undefined,
             buttons: buttons || undefined,
             big_picture: image || undefined,
+            // 🔔 SOUND & VIBRATION - Make the phone actually ring!
+            ios_sound: 'default', // Use phone's default notification sound
+            android_sound: 'default',
+            android_channel_id: null, // Use default channel
+            priority: 10, // High priority for immediate delivery
+            android_visibility: 1, // Show on lock screen
+            ios_badgeType: 'Increase',
+            ios_badgeCount: 1,
         };
 
         // Set targeting

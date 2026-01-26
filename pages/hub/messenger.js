@@ -1189,18 +1189,33 @@ export default function MessengerPage() {
                     const reason = payload.payload.reason === 'timeout' ? 'No answer' : 'Call declined';
                     setToast({ type: 'info', message: reason });
                     setCallingUser(null);
+                    // Stop outgoing ring
+                    if (outgoingCallAudioRef.current) {
+                        outgoingCallAudioRef.current.pause();
+                        outgoingCallAudioRef.current.currentTime = 0;
+                    }
                 }
             })
             .on('broadcast', { event: 'call_accepted' }, (payload) => {
                 console.log('📞 Call accepted:', payload);
                 // The caller's call is already showing, just clear the "calling" state
                 setCallingUser(null);
+                // Stop outgoing ring - call connected!
+                if (outgoingCallAudioRef.current) {
+                    outgoingCallAudioRef.current.pause();
+                    outgoingCallAudioRef.current.currentTime = 0;
+                }
             })
             .on('broadcast', { event: 'call_ended' }, (payload) => {
                 console.log('📞 Call ended by other party:', payload);
                 setShowCall(false);
                 setCallRoomName('');
                 setToast({ type: 'info', message: 'Call ended' });
+                // Stop any ringing
+                if (outgoingCallAudioRef.current) {
+                    outgoingCallAudioRef.current.pause();
+                    outgoingCallAudioRef.current.currentTime = 0;
+                }
             })
             .subscribe();
 
@@ -1806,6 +1821,13 @@ export default function MessengerPage() {
         // Start the call immediately for the caller
         setCallRoomName(roomName);
         setShowCall(true);
+
+        // 🔔 Play outgoing ring sound while waiting for answer
+        if (outgoingCallAudioRef.current) {
+            outgoingCallAudioRef.current.loop = true;
+            outgoingCallAudioRef.current.play().catch(() => { });
+        }
+
         setToast({ type: 'info', message: `Calling ${otherUser.username}...` });
     };
 
@@ -2012,6 +2034,12 @@ export default function MessengerPage() {
             <audio
                 ref={incomingCallAudioRef}
                 src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleR0tRXFuYz0mFTNNaWxofmh+YKStoJd/aGtbL09OYUFRYWOHeoKK"
+            />
+
+            {/* Outgoing Ring Audio - plays while calling (USA phone ring tone) */}
+            <audio
+                ref={outgoingCallAudioRef}
+                src="https://cdn.pixabay.com/audio/2022/03/24/audio_d1718ab41b.mp3"
             />
 
             {/* ════════════════════════════════════════════════════════
