@@ -8,4 +8,23 @@ module.exports = {
   generateBuildId: async () => {
     return 'build-v19-2-baked-assets-' + Date.now();
   },
+
+  // Club Arena rewrites - MUST be in next.config.js with beforeFiles
+  // to take precedence over dynamic [orbId].js route
+  async rewrites() {
+    return {
+      beforeFiles: [
+        // Club Arena - served from club.smarter.poker
+        {
+          source: '/hub/club-arena',
+          destination: 'https://club.smarter.poker/',
+        },
+        {
+          source: '/hub/club-arena/:path*',
+          destination: 'https://club.smarter.poker/:path*',
+        },
+      ],
+    };
+  },
 }
+
