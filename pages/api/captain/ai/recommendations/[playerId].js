@@ -1,0 +1,219 @@
+/**
+ * AI Player Recommendations API
+ * GET /api/captain/ai/recommendations/[playerId]
+ * Returns personalized game recommendations for player
+ * Per API_REFERENCE.md
+ */
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({
+      success: false,
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
+    });
+  }
+
+  const { playerId } = req.query;
+
+  if (!playerId) {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'VALIDATION_ERROR', message: 'player_id required' }
+    });
+  }
+
+  try {
+    // Get player's session history
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('captain_player_sessions')
+      .select('venue_id, games_played, total_minutes, check_in_at')
+      .eq('player_id', playerId)
+      .order('check_in_at', { ascending: false })
+      .limit(50);
+
+    if (sessionsError) {
+      console.error('Sessions fetch error:', sessionsError);
+    }
+
+    // Get player's waitlist history
+    const { data: waitlistHistory, error: waitlistError } = await supabase
+      .from('captain_waitlist_history')
+      .select('venue_id, game_type, stakes, wait_time_minutes, was_seated')
+      .eq('player_id', playerId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (waitlistError) {
+      console.error('Waitlist history error:', waitlistError);
+    }
+
+    // Get player preferences if they exist
+    const { data: preferences } = await supabase
+      .from('captain_player_preferences')
+      .select('*')
+      .eq('player_id', playerId)
+      .single();
+
+    // Analyze player patterns
+    const gameTypeCount = {};
+    const stakesCount = {};
+    const venueCount = {};
+    let totalSessions = 0;
+    let totalMinutes = 0;
+
+    // Process session data
+    (sessions || []).forEach(session => {
+      totalSessions++;
+      totalMinutes += session.total_minutes || 0;
+
+      if (session.venue_id) {
+        venueCount[session.venue_id] = (venueCount[session.venue_id] || 0) + 1;
+      }
+
+      // Parse games_played JSON
+      const games = session.games_played || [];
+      games.forEach(game => {
+        if (game.game_type) {
+          gameTypeCount[game.game_type] = (gameTypeCount[game.game_type] || 0) + 1;
+        }
+        if (game.stakes) {
+          stakesCount[game.stakes] = (stakesCount[game.stakes] || 0) + 1;
+        }
+      });
+    });
+
+    // Also process waitlist history
+    (waitlistHistory || []).forEach(entry => {
+      if (entry.game_type) {
+        gameTypeCount[entry.game_type] = (gameTypeCount[entry.game_type] || 0) + 0.5;
+      }
+      if (entry.stakes) {
+        stakesCount[entry.stakes] = (stakesCount[entry.stakes] || 0) + 0.5;
+      }
+    });
+
+    // Determine player's preferred game type and stakes
+    const preferredGameType = Object.keys(gameTypeCount).sort(
+      (a, b) => gameTypeCount[b] - gameTypeCount[a]
+    )[0] || 'nlhe';
+
+    const preferredStakes = Object.keys(stakesCount).sort(
+      (a, b) => stakesCount[b] - stakesCount[a]
+    )[0] || '1/3';
+
+    const favoriteVenue = Object.keys(venueCount).sort(
+      (a, b) => venueCount[b] - venueCount[a]
+    )[0];
+
+    // Generate recommendations
+    const recommendations = [];
+
+    // Primary game recommendation
+    recommendations.push({
+      type: 'game',
+      data: {
+        game_type: preferredGameType,
+        stakes: preferredStakes
+      },
+      reason: `Based on your ${totalSessions} sessions, you prefer ${preferredGameType.toUpperCase()} at ${preferredStakes}`,
+      score: 0.95
+    });
+
+    // Stakes upgrade recommendation (if they play enough)
+    if (totalSessions >= 10 && preferredStakes === '1/3') {
+      recommendations.push({
+        type: 'stakes',
+        data: {
+          current_stakes: '1/3',
+          suggested_stakes: '2/5',
+          game_type: preferredGameType
+        },
+        reason: 'With your experience level, consider moving up to 2/5 for potentially better game quality',
+        score: 0.72
+      });
+    }
+
+    // Alternative game type recommendation
+    const altGameType = preferredGameType === 'nlhe' ? 'plo' : 'nlhe';
+    recommendations.push({
+      type: 'game',
+      data: {
+        game_type: altGameType,
+        stakes: altGameType === 'plo' ? '1/2' : preferredStakes
+      },
+      reason: `Try ${altGameType.toUpperCase()} for variety - many ${preferredGameType.toUpperCase()} players enjoy it`,
+      score: 0.65
+    });
+
+    // Venue recommendation if they have a favorite
+    if (favoriteVenue) {
+      recommendations.push({
+        type: 'venue',
+        data: {
+          venue_id: favoriteVenue,
+          visits: venueCount[favoriteVenue]
+        },
+        reason: `Your most visited venue with ${venueCount[favoriteVenue]} sessions`,
+        score: 0.88
+      });
+    }
+
+    // Training recommendation based on session patterns
+    const avgSessionMinutes = totalSessions > 0 ? totalMinutes / totalSessions : 0;
+    if (avgSessionMinutes < 120) {
+      recommendations.push({
+        type: 'training',
+        data: {
+          module: 'session_management',
+          topic: 'Optimal Session Length'
+        },
+        reason: 'Your average session is under 2 hours - learn optimal session management',
+        score: 0.58
+      });
+    }
+
+    // Table vibe recommendation based on preferences
+    if (preferences?.table_vibe) {
+      recommendations.push({
+        type: 'game',
+        data: {
+          table_vibe: preferences.table_vibe,
+          game_type: preferredGameType
+        },
+        reason: `Look for ${preferences.table_vibe} tables that match your play style`,
+        score: 0.70
+      });
+    }
+
+    // Sort by score
+    recommendations.sort((a, b) => b.score - a.score);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        recommendations: recommendations.slice(0, 5), // Top 5 recommendations
+        player_profile: {
+          total_sessions: totalSessions,
+          total_hours: Math.round(totalMinutes / 60),
+          preferred_game_type: preferredGameType,
+          preferred_stakes: preferredStakes,
+          favorite_venue: favoriteVenue
+        },
+        generated_at: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('AI recommendations error:', error);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to generate recommendations' }
+    });
+  }
+}
