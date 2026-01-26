@@ -130,41 +130,8 @@ export function OrbCore({ id, color, label, gradient, active, imageUrl, descript
             })()}
 
             {/* ═══════════════════════════════════════════════════════════════
-                CARD TITLE - Neon glow positioned ABOVE the card
+                TITLES AND DESCRIPTIONS REMOVED — Cards now show only the image
                 ═══════════════════════════════════════════════════════════════ */}
-            <Text
-                position={[0, (cardHeight / 2) + 0.02, 0.02]}
-                fontSize={0.07}
-                color="#00ffff"
-                anchorX="center"
-                anchorY="bottom"
-                outlineWidth={0.004}
-                outlineColor="#00d4ff"
-                letterSpacing={0.08}
-            >
-                {label.toUpperCase()}
-            </Text>
-
-            {/* ═══════════════════════════════════════════════════════════════
-                CARD DESCRIPTION - Neon glow positioned BELOW the card (2 lines max)
-                ═══════════════════════════════════════════════════════════════ */}
-            {description && (
-                <Text
-                    position={[0, -(cardHeight / 2) - 0.03, 0.02]}
-                    fontSize={0.04}
-                    color="#ffffff"
-                    anchorX="center"
-                    anchorY="top"
-                    textAlign="center"
-                    maxWidth={cardWidth}
-                    lineHeight={1.3}
-                    outlineWidth={0.001}
-                    outlineColor="#00d4ff"
-                    letterSpacing={0.02}
-                >
-                    {description}
-                </Text>
-            )}
         </group>
     );
 }
