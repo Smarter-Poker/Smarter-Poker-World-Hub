@@ -40,7 +40,7 @@ const CONFIG = {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // POKER NEWS RSS FEEDS - Updated with working endpoints (Jan 2026)
-// Note: PokerNews, PokerListings, Poker.org feeds are broken/returning errors
+// Note: PokerNews, PokerListings, Poker.org, WPT feeds are broken/returning errors
 // ═══════════════════════════════════════════════════════════════════════════
 const NEWS_SOURCES = [
     {
@@ -54,12 +54,6 @@ const NEWS_SOURCES = [
         rss: 'https://upswingpoker.com/feed/',
         icon: '📈',
         categories: ['strategy', 'tips', 'training']
-    },
-    {
-        name: 'WPT',
-        rss: 'https://www.worldpokertour.com/feed/',
-        icon: '🏆',
-        categories: ['tournaments', 'results', 'live']
     }
 ];
 
@@ -225,10 +219,7 @@ async function postNewsArticle(horse, article) {
             author_id: horse.profile_id,
             content: postContent,
             content_type: 'link', // Link type for news articles
-            visibility: 'public',
-            link_url: article.link,
-            link_title: article.title,
-            link_source: article.source
+            visibility: 'public'
         })
         .select()
         .single();
