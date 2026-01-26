@@ -413,23 +413,20 @@ export default function UniversalHeader({
                 .orb-btn {
                     width: 36px;
                     height: 36px;
-                    border-radius: 50%;
-                    background: rgba(255, 255, 255, 0.1);
+                    background: transparent;
                     border: none;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 18px;
                     cursor: pointer;
                     position: relative;
                     flex-shrink: 0;
-                    line-height: 1;
-                    transition: background 0.15s ease, transform 0.1s ease;
+                    transition: transform 0.1s ease, opacity 0.15s ease;
                 }
 
                 .orb-btn:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                    transform: scale(1.05);
+                    opacity: 0.8;
+                    transform: scale(1.1);
                 }
 
                 .orb-btn:active {
@@ -615,7 +612,7 @@ export default function UniversalHeader({
                     {/* Messages - Facebook-style Messenger icon */}
                     <Link href="/hub/messenger" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
                                 <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.17.16.13.26.35.27.57l.05 1.78c.04.57.61.94 1.13.71l1.98-.87c.17-.07.36-.09.53-.05.86.23 1.81.36 2.9.36 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm6.07 7.56l-2.96 4.69c-.47.75-1.48.93-2.18.38l-2.35-1.76a.75.75 0 00-.9 0l-3.17 2.41c-.42.32-.98-.18-.7-.63l2.96-4.69c.47-.75 1.48-.93 2.18-.38l2.35 1.76c.27.2.65.2.9 0l3.17-2.41c.42-.32.98.18.7.63z" />
                             </svg>
                             {unreadMessages > 0 && (
@@ -627,7 +624,7 @@ export default function UniversalHeader({
                     {/* Notifications - Facebook-style bell icon */}
                     <Link href="/hub/notifications" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
                                 <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
                             </svg>
                             {notificationCount > 0 && (
@@ -639,7 +636,7 @@ export default function UniversalHeader({
                     {/* Settings */}
                     <Link href="/hub/settings" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
                                 <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
                             </svg>
                         </div>
