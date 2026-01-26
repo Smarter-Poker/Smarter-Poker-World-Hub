@@ -1,5 +1,15 @@
 {
   "framework": "nextjs",
+  "rewrites": [
+    {
+      "source": "/hub/club-arena",
+      "destination": "https://club.smarter.poker/"
+    },
+    {
+      "source": "/hub/club-arena/:path*",
+      "destination": "https://club.smarter.poker/:path*"
+    }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",
