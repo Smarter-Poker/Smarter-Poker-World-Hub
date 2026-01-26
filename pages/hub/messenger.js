@@ -650,6 +650,22 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                     {(() => {
                         const content = message.content || message.text || '';
 
+                        // Check for call receipt: [CALL_RECEIPT]📹 Video call • 2m 15s
+                        if (content.startsWith('[CALL_RECEIPT]')) {
+                            const callInfo = content.replace('[CALL_RECEIPT]', '');
+                            return (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '4px 8px',
+                                    color: C.muted,
+                                    fontSize: 13,
+                                    opacity: 0.9,
+                                }}>
+                                    {callInfo}
+                                </div>
+                            );
+                        }
+
                         // Check for image markdown: 📷 [Image](url) or direct image URLs
                         const imageMatch = content.match(/📷\s*\[Image\]\(([^)]+)\)/);
                         const imageUrl = imageMatch?.[1] || message.media_url;
@@ -1001,6 +1017,7 @@ export default function MessengerPage() {
     const outgoingCallAudioRef = useRef(null); // Backup audio element
     const outgoingRingToneRef = useRef(null); // Web Audio API ring tone (more reliable)
     const callTimeoutRef = useRef(null);
+    const callStartTimeRef = useRef(null); // Track call start for duration
 
     // OneSignal Push Notifications
     const { isInitialized: pushReady, isSubscribed: pushSubscribed, subscribe: subscribePush, setExternalUserId } = useOneSignal();
@@ -1211,6 +1228,8 @@ export default function MessengerPage() {
                 console.log('📞 Call accepted:', payload);
                 // The caller's call is already showing, just clear the "calling" state
                 setCallingUser(null);
+                // Track call start time for call receipt
+                callStartTimeRef.current = Date.now();
                 // Stop outgoing ring - call connected! (Web Audio + audio element)
                 if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
                 if (outgoingCallAudioRef.current) {
@@ -1270,6 +1289,7 @@ export default function MessengerPage() {
         }
 
         // Join the call
+        callStartTimeRef.current = Date.now(); // Track start time for receipt
         setCallRoomName(incomingCall.roomName);
         setCallType(incomingCall.callType);
         setShowCall(true);
@@ -1894,6 +1914,29 @@ export default function MessengerPage() {
                 console.warn('Failed to send end call signal:', e);
             }
         }
+
+        // Save call receipt if call was actually connected (not just ringing)
+        if (callStartTimeRef.current && activeConversation?.id && user?.id) {
+            const callDuration = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
+            const durationStr = callDuration >= 60
+                ? `${Math.floor(callDuration / 60)}m ${callDuration % 60}s`
+                : `${callDuration}s`;
+            const callTypeIcon = callType === 'video' ? '📹' : '📞';
+            const callMessage = `${callTypeIcon} ${callType === 'video' ? 'Video' : 'Voice'} call • ${durationStr}`;
+
+            // Save call receipt as a message
+            try {
+                await supabase.rpc('fn_send_message', {
+                    p_conversation_id: activeConversation.id,
+                    p_sender_id: user.id,
+                    p_content: `[CALL_RECEIPT]${callMessage}`,
+                });
+            } catch (e) {
+                console.warn('Failed to save call receipt:', e);
+            }
+        }
+        callStartTimeRef.current = null;
+
         setShowCall(false);
         setCallRoomName('');
         setCallingUser(null);
