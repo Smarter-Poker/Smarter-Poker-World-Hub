@@ -499,6 +499,7 @@ export default function WorldHub() {
         // Intro video config - add videos for specific orbs here
         const introVideos: Record<string, string> = {
             'trivia': '/videos/trivia-intro.mp4',
+            'club-arena': '/videos/club-arena-intro.mp4',
         };
 
         if (introVideos[orbId]) {
