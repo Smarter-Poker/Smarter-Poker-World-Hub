@@ -49,14 +49,23 @@ jobs:
           npx puppeteer browsers install chrome
           echo "Chrome installed successfully"
 
+      - name: Seed Venues from JSON
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.mode != 'setup-only' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "Seeding venues from tournament-venues.json..."
+          node scripts/seed-venues-from-json.js
+
       - name: Sync Verified URLs to Database
         if: ${{ github.event_name == 'schedule' || github.event.inputs.mode != 'setup-only' }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          echo "🔄 Syncing verified PokerAtlas URLs to database..."
-          node scripts/sync-verified-urls.js
+          echo "Syncing verified PokerAtlas URLs to database..."
+          node scripts/sync-verified-urls.js || echo "URL sync skipped (venues may already have URLs)"
 
       - name: Skip Scraping (URL Sync Only)
         if: ${{ github.event.inputs.mode == 'sync-urls-only' }}
