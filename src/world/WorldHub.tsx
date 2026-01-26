@@ -558,7 +558,7 @@ export default function WorldHub() {
                         style={{
                             width: '100%',
                             height: '100%',
-                            objectFit: 'cover',
+                            objectFit: 'contain',
                         }}
                     >
                         <source src={introVideo.videoUrl} type="video/mp4" />
