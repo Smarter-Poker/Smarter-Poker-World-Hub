@@ -99,7 +99,7 @@ export default async function handler(req, res) {
     // Verify game exists and is running
     const { data: game, error: gameError } = await supabase
       .from('captain_games')
-      .select('id, status, venue_id')
+      .select('id, status, venue_id, current_players')
       .eq('id', game_id)
       .single();
 
@@ -175,6 +175,19 @@ export default async function handler(req, res) {
     if (entryUpdateError) {
       console.error('Captain waitlist update error:', entryUpdateError);
     }
+
+    // Update game player count and status
+    const gameUpdates = {
+      current_players: (game.current_players || 0) + 1
+    };
+    if (game.status === 'waiting') {
+      gameUpdates.status = 'running';
+      gameUpdates.started_at = now;
+    }
+    await supabase
+      .from('captain_games')
+      .update(gameUpdates)
+      .eq('id', game_id);
 
     // Calculate wait time and log to history
     const waitTimeMinutes = Math.round(
