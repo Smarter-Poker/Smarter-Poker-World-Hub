@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       .from('captain_self_exclusions')
       .select('*')
       .eq('player_id', playerId)
-      .eq('status', 'active')
+      .eq('exclusion_status', 'active')
       .gte('end_date', new Date().toISOString());
 
     // Check venue-specific or global exclusions

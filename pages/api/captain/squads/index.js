@@ -48,7 +48,7 @@ async function handleCreate(req, res) {
         name: name || `Squad ${invite_code}`,
         invite_code,
         max_size,
-        status: 'forming'
+        group_status: 'forming'
       })
       .select()
       .single();
@@ -62,7 +62,7 @@ async function handleCreate(req, res) {
         group_id: squad.id,
         player_id: leader_id,
         is_leader: true,
-        status: 'confirmed'
+        member_status: 'confirmed'
       });
 
     return res.status(201).json({
@@ -90,14 +90,14 @@ async function handleList(req, res) {
           id,
           player_id,
           is_leader,
-          status,
+          member_status,
           profiles (id, display_name, avatar_url)
         )
       `)
       .order('created_at', { ascending: false });
 
     if (venue_id) query = query.eq('venue_id', venue_id);
-    if (status) query = query.eq('status', status);
+    if (status) query = query.eq('group_status', status);
 
     const { data: squads, error } = await query;
 

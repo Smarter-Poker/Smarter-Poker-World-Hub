@@ -80,7 +80,7 @@ export default async function handler(req, res) {
         group_id: id,
         player_id,
         is_leader: false,
-        status: 'confirmed'
+        member_status: 'confirmed'
       })
       .select()
       .single();

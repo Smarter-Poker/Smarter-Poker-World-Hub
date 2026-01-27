@@ -46,7 +46,7 @@ async function handleCreate(req, res) {
         start_date: start_date.toISOString(),
         end_date: end_date.toISOString(),
         reason,
-        status: 'active',
+        exclusion_status: 'active',
         requested_by: 'player'
       })
       .select()
@@ -111,7 +111,7 @@ async function handleRemove(req, res) {
     const { error } = await supabase
       .from('captain_self_exclusions')
       .update({
-        status: 'lifted',
+        exclusion_status: 'lifted',
         lifted_at: new Date().toISOString()
       })
       .eq('id', exclusion_id);

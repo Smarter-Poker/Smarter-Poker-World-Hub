@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     const { data: incident, error } = await supabase
       .from('captain_incidents')
       .update({
-        status: 'resolved',
+        incident_status: 'resolved',
         resolved_by,
         resolution_notes,
         follow_up_required,
