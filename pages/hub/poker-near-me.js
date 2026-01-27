@@ -4,7 +4,7 @@
  */
 
 import Head from 'next/head';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 const POPULAR_CITIES = [
@@ -110,6 +110,22 @@ export default function PokerNearMe() {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedCity, setSelectedCity] = useState(null);
     const [nearestDistance, setNearestDistance] = useState(null);
+
+    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+    // Only show once per session (not on every reload)
+    const [showIntro, setShowIntro] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return !sessionStorage.getItem('poker-near-me-intro-seen');
+        }
+        return false;
+    });
+    const introVideoRef = useRef(null);
+
+    // Mark intro as seen when it ends
+    const handleIntroEnd = useCallback(() => {
+        sessionStorage.setItem('poker-near-me-intro-seen', 'true');
+        setShowIntro(false);
+    }, []);
 
     // Filter states
     const [filters, setFilters] = useState({
@@ -542,6 +558,57 @@ export default function PokerNearMe() {
 
     return (
         <>
+            {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {showIntro && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 99999,
+                    background: '#000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <video
+                        ref={introVideoRef}
+                        src="/videos/poker-near-me-intro.mp4"
+                        autoPlay
+                        muted
+                        playsInline
+                        onEnded={handleIntroEnd}
+                        onError={handleIntroEnd}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                        }}
+                    />
+                    {/* Skip button */}
+                    <button
+                        onClick={handleIntroEnd}
+                        style={{
+                            position: 'absolute',
+                            top: 20,
+                            right: 20,
+                            padding: '8px 20px',
+                            background: 'rgba(255,255,255,0.2)',
+                            backdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            borderRadius: 20,
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            zIndex: 100000
+                        }}
+                    >
+                        Skip
+                    </button>
+                </div>
+            )}
             <Head>
                 <title>Poker Near Me | Smarter.Poker</title>
                 <meta name="description" content="Find poker rooms, tours, tournament series, and daily events near you." />
@@ -564,7 +631,7 @@ export default function PokerNearMe() {
                     <div className="search-container">
                         <form className="search-form" onSubmit={handleSearch}>
                             <svg className="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
                             </svg>
                             <input
                                 type="text"
@@ -579,15 +646,15 @@ export default function PokerNearMe() {
                             <div className="search-buttons">
                                 <button className={`btn-gps ${userLocation ? 'active' : ''}`} onClick={requestGpsLocation} disabled={gpsLoading}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                                        <polygon points="3 11 22 2 13 21 11 13 3 11" />
                                     </svg>
                                     {gpsLoading ? 'Locating...' : 'Use GPS'}
                                 </button>
                                 <button className={`btn-filters ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(!showFilters)}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
-                                        <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
-                                        <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+                                        <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                                        <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                                        <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
                                     </svg>
                                     Filters
                                 </button>
@@ -609,7 +676,7 @@ export default function PokerNearMe() {
                             {(userLocation || nearestDistance) && (
                                 <div className="distance-display">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                                        <polygon points="3 11 22 2 13 21 11 13 3 11" />
                                     </svg>
                                     <span>Nearest: ~{nearestDistance || '0'} miles</span>
                                 </div>
@@ -628,7 +695,7 @@ export default function PokerNearMe() {
                                     <div className="filter-chips">
                                         {['all', 'casino', 'card_room', 'poker_club'].map(type => (
                                             <button key={type} className={`chip ${filters.venueType === type ? 'active' : ''}`}
-                                                onClick={() => setFilters({...filters, venueType: type})}>
+                                                onClick={() => setFilters({ ...filters, venueType: type })}>
                                                 {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
                                             </button>
                                         ))}
@@ -638,11 +705,11 @@ export default function PokerNearMe() {
                                     <label>Games</label>
                                     <div className="filter-chips">
                                         <button className={`chip ${filters.hasNLH ? 'active' : ''}`}
-                                            onClick={() => setFilters({...filters, hasNLH: !filters.hasNLH})}>NLH</button>
+                                            onClick={() => setFilters({ ...filters, hasNLH: !filters.hasNLH })}>NLH</button>
                                         <button className={`chip ${filters.hasPLO ? 'active' : ''}`}
-                                            onClick={() => setFilters({...filters, hasPLO: !filters.hasPLO})}>PLO</button>
+                                            onClick={() => setFilters({ ...filters, hasPLO: !filters.hasPLO })}>PLO</button>
                                         <button className={`chip ${filters.hasMixed ? 'active' : ''}`}
-                                            onClick={() => setFilters({...filters, hasMixed: !filters.hasMixed})}>Mixed</button>
+                                            onClick={() => setFilters({ ...filters, hasMixed: !filters.hasMixed })}>Mixed</button>
                                     </div>
                                 </div>
                             </>
@@ -654,7 +721,7 @@ export default function PokerNearMe() {
                                 <div className="filter-chips">
                                     {['all', 'major', 'circuit', 'high_roller', 'regional'].map(type => (
                                         <button key={type} className={`chip ${filters.tourType === type ? 'active' : ''}`}
-                                            onClick={() => setFilters({...filters, tourType: type})}>
+                                            onClick={() => setFilters({ ...filters, tourType: type })}>
                                             {type === 'all' ? 'All' : TOUR_TYPE_LABELS[type]}
                                         </button>
                                     ))}
@@ -669,7 +736,7 @@ export default function PokerNearMe() {
                                     <div className="filter-chips">
                                         {[30, 60, 90, 180].map(days => (
                                             <button key={days} className={`chip ${filters.seriesTimeframe === days ? 'active' : ''}`}
-                                                onClick={() => setFilters({...filters, seriesTimeframe: days})}>
+                                                onClick={() => setFilters({ ...filters, seriesTimeframe: days })}>
                                                 {days} Days
                                             </button>
                                         ))}
@@ -680,7 +747,7 @@ export default function PokerNearMe() {
                                     <div className="filter-chips">
                                         {['all', 'major', 'circuit', 'regional'].map(type => (
                                             <button key={type} className={`chip ${filters.seriesType === type ? 'active' : ''}`}
-                                                onClick={() => setFilters({...filters, seriesType: type})}>
+                                                onClick={() => setFilters({ ...filters, seriesType: type })}>
                                                 {type.charAt(0).toUpperCase() + type.slice(1)}
                                             </button>
                                         ))}
@@ -697,14 +764,14 @@ export default function PokerNearMe() {
                                         type="number"
                                         placeholder="Min $"
                                         value={filters.minBuyin}
-                                        onChange={(e) => setFilters({...filters, minBuyin: e.target.value})}
+                                        onChange={(e) => setFilters({ ...filters, minBuyin: e.target.value })}
                                     />
                                     <span>to</span>
                                     <input
                                         type="number"
                                         placeholder="Max $"
                                         value={filters.maxBuyin}
-                                        onChange={(e) => setFilters({...filters, maxBuyin: e.target.value})}
+                                        onChange={(e) => setFilters({ ...filters, maxBuyin: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -721,7 +788,7 @@ export default function PokerNearMe() {
                     <button className={`tab ${activeTab === 'venues' ? 'active' : ''}`} onClick={() => setActiveTab('venues')}>
                         <span className="tab-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                             </svg>
                         </span>
                         Venues <span className="tab-count">{counts.venues}</span>
@@ -729,7 +796,7 @@ export default function PokerNearMe() {
                     <button className={`tab ${activeTab === 'tours' ? 'active' : ''}`} onClick={() => setActiveTab('tours')}>
                         <span className="tab-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                                <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
                             </svg>
                         </span>
                         Tours <span className="tab-count">{counts.tours}</span>
@@ -737,7 +804,7 @@ export default function PokerNearMe() {
                     <button className={`tab ${activeTab === 'series' ? 'active' : ''}`} onClick={() => setActiveTab('series')}>
                         <span className="tab-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
                             </svg>
                         </span>
                         Series <span className="tab-count">{counts.series}</span>
@@ -745,7 +812,7 @@ export default function PokerNearMe() {
                     <button className={`tab ${activeTab === 'daily' ? 'active' : ''}`} onClick={() => setActiveTab('daily')}>
                         <span className="tab-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                             </svg>
                         </span>
                         Daily <span className="tab-count">{counts.daily}</span>
