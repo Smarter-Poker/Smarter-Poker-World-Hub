@@ -45,22 +45,34 @@ async function subscribe(req, res) {
       });
     }
 
-    const { subscription, platform, device_id, venue_id } = req.body;
+    const { subscription, platform, device_id, venue_id, onesignal_player_id } = req.body;
 
-    if (!subscription) {
+    if (!subscription && !onesignal_player_id) {
       return res.status(400).json({
         success: false,
-        error: { code: 'MISSING_FIELDS', message: 'subscription object required' }
+        error: { code: 'MISSING_FIELDS', message: 'subscription object or onesignal_player_id required' }
       });
     }
 
-    // Check for existing subscription with this endpoint
-    const endpoint = subscription.endpoint;
-    const { data: existing } = await supabase
+    // Check for existing subscription with this endpoint or OneSignal player ID
+    const endpoint = subscription?.endpoint || onesignal_player_id;
+    let query = supabase
       .from('captain_push_subscriptions')
-      .select('id')
-      .eq('endpoint', endpoint)
-      .single();
+      .select('id');
+
+    if (subscription?.endpoint) {
+      query = query.eq('endpoint', subscription.endpoint);
+    } else if (onesignal_player_id) {
+      query = query.eq('endpoint', onesignal_player_id);
+    }
+
+    const { data: existing } = await query.single();
+
+    // Build subscription data with OneSignal player ID
+    const subscriptionData = subscription || {};
+    if (onesignal_player_id) {
+      subscriptionData.playerId = onesignal_player_id;
+    }
 
     if (existing) {
       // Update existing subscription
@@ -68,7 +80,7 @@ async function subscribe(req, res) {
         .from('captain_push_subscriptions')
         .update({
           user_id: user.id,
-          subscription_data: subscription,
+          subscription_data: subscriptionData,
           platform: platform || 'web',
           device_id,
           venue_id: venue_id ? parseInt(venue_id) : null,
@@ -93,7 +105,7 @@ async function subscribe(req, res) {
       .insert({
         user_id: user.id,
         endpoint,
-        subscription_data: subscription,
+        subscription_data: subscriptionData,
         platform: platform || 'web',
         device_id,
         venue_id: venue_id ? parseInt(venue_id) : null,
