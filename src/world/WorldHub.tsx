@@ -182,22 +182,22 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                         boxShadow: `0 20px 40px rgba(0, 0, 0, 0.5)`,
                     }}
                 >
-                    {/* Card image - Static for footer cards (marketplace fills edge-to-edge) */}
+                    {/* Card image - Static for footer cards (full image, no cropping) */}
                     <div
                         style={{
                             position: 'absolute',
-                            top: orb.id === 'marketplace' ? 0 : 0,
-                            left: orb.id === 'marketplace' ? 0 : 0,
-                            right: orb.id === 'marketplace' ? 0 : 0,
-                            bottom: orb.id === 'marketplace' ? 0 : 0,
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
                             width: '100%',
                             height: '100%',
                             backgroundImage: orb.imageUrl
                                 ? `url('${orb.imageUrl}')`
                                 : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
-                            backgroundSize: orb.id === 'marketplace' ? '100% 100%' : 'cover',
+                            backgroundSize: '100% 100%',
                             backgroundPosition: 'center',
-                            borderRadius: orb.id === 'marketplace' ? 6 : 6,
+                            borderRadius: 6,
                         }}
                     />
 
