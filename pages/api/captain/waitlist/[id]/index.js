@@ -54,12 +54,39 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check authorization: user can only remove their own entry
-    // TODO: Add staff check (Step 1.3) - staff can remove any entry
-    if (user && entry.player_id && entry.player_id !== user.id) {
+    // Check authorization: user can only remove their own entry, or staff can remove any
+    let isStaff = false;
+    const staffSession = req.headers['x-staff-session'];
+    if (staffSession) {
+      try {
+        const sessionData = JSON.parse(staffSession);
+        const { data: staff } = await supabase
+          .from('captain_staff')
+          .select('id, venue_id, is_active')
+          .eq('id', sessionData.id)
+          .eq('is_active', true)
+          .single();
+
+        if (staff && staff.venue_id === entry.venue_id) {
+          isStaff = true;
+        }
+      } catch {
+        // Invalid staff session, continue with user check
+      }
+    }
+
+    if (!isStaff && user && entry.player_id && entry.player_id !== user.id) {
       return res.status(403).json({
         success: false,
         error: { code: 'FORBIDDEN', message: 'Cannot remove another player\'s entry' }
+      });
+    }
+
+    // Must be either the player or staff
+    if (!isStaff && !user) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
       });
     }
 

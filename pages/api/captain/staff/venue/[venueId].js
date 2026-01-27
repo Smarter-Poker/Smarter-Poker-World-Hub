@@ -28,7 +28,53 @@ export default async function handler(req, res) {
   }
 
   try {
-    // TODO: Add manager authentication check (Step 1.3)
+    // Verify manager authentication
+    const staffSession = req.headers['x-staff-session'];
+    if (!staffSession) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Staff authentication required' }
+      });
+    }
+
+    let sessionData;
+    try {
+      sessionData = JSON.parse(staffSession);
+    } catch {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_SESSION', message: 'Invalid session format' }
+      });
+    }
+
+    const { data: authStaff, error: staffError } = await supabase
+      .from('captain_staff')
+      .select('id, venue_id, role, is_active')
+      .eq('id', sessionData.id)
+      .eq('is_active', true)
+      .single();
+
+    if (staffError || !authStaff) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_STAFF', message: 'Staff member not found or inactive' }
+      });
+    }
+
+    // Verify staff belongs to this venue and has manager role
+    if (authStaff.venue_id !== parseInt(venueId)) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Not authorized for this venue' }
+      });
+    }
+
+    if (!['owner', 'manager'].includes(authStaff.role)) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Manager role required' }
+      });
+    }
 
     const { data: staff, error } = await supabase
       .from('captain_staff')
