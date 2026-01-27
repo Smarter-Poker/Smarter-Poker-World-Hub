@@ -34,6 +34,10 @@ async function handleList(req, res) {
     });
   }
 
+  // Require staff auth
+  const staff = await requireStaff(req, res, venue_id);
+  if (!staff) return;
+
   try {
     let query = supabase
       .from('captain_dealers')
@@ -84,6 +88,10 @@ async function handleCreate(req, res) {
       error: { code: 'MISSING_FIELDS', message: 'venue_id and name required' }
     });
   }
+
+  // Require manager auth to create dealers
+  const staff = await requireStaff(req, res, venue_id, ['owner', 'manager']);
+  if (!staff) return;
 
   // Verify venue exists
   const { data: venue } = await supabase

@@ -4,6 +4,7 @@
  * PATCH /api/captain/settings - Update venue settings
  */
 import { createClient } from '@supabase/supabase-js';
+import { requireStaff } from '../../../../src/lib/captain/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -21,8 +22,14 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
+    // Staff can view settings
+    const staff = await requireStaff(req, res, venue_id);
+    if (!staff) return;
     return getSettings(req, res, venue_id);
   } else if (req.method === 'PATCH') {
+    // Only managers can update settings
+    const staff = await requireStaff(req, res, venue_id, ['owner', 'manager']);
+    if (!staff) return;
     return updateSettings(req, res, venue_id);
   }
 

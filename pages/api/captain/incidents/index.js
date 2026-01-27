@@ -4,6 +4,7 @@
  * POST /api/captain/incidents - Report incident
  */
 import { createClient } from '@supabase/supabase-js';
+import { requireStaff } from '../../../../src/lib/captain/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -32,6 +33,10 @@ async function handleList(req, res) {
       error: { code: 'MISSING_FIELDS', message: 'venue_id required' }
     });
   }
+
+  // Require staff auth to view incidents
+  const staff = await requireStaff(req, res, venue_id);
+  if (!staff) return;
 
   try {
     let query = supabase
@@ -71,7 +76,6 @@ async function handleList(req, res) {
 async function handleCreate(req, res) {
   const {
     venue_id,
-    reported_by,
     player_id,
     table_id,
     incident_type,
@@ -80,12 +84,16 @@ async function handleCreate(req, res) {
     action_taken
   } = req.body;
 
-  if (!venue_id || !reported_by || !incident_type || !description) {
+  if (!venue_id || !incident_type || !description) {
     return res.status(400).json({
       success: false,
-      error: { code: 'MISSING_FIELDS', message: 'venue_id, reported_by, incident_type, and description required' }
+      error: { code: 'MISSING_FIELDS', message: 'venue_id, incident_type, and description required' }
     });
   }
+
+  // Require staff auth to create incidents
+  const staff = await requireStaff(req, res, venue_id);
+  if (!staff) return;
 
   // Verify venue exists
   const { data: venue } = await supabase
@@ -101,27 +109,12 @@ async function handleCreate(req, res) {
     });
   }
 
-  // Verify staff member exists
-  const { data: staff } = await supabase
-    .from('captain_staff')
-    .select('id')
-    .eq('id', reported_by)
-    .eq('venue_id', venue_id)
-    .single();
-
-  if (!staff) {
-    return res.status(403).json({
-      success: false,
-      error: { code: 'FORBIDDEN', message: 'Invalid staff member' }
-    });
-  }
-
   try {
     const { data: incident, error } = await supabase
       .from('captain_incidents')
       .insert({
         venue_id,
-        reported_by,
+        reported_by: staff.id,
         player_id,
         table_id,
         incident_type,

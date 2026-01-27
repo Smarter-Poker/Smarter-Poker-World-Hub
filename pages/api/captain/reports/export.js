@@ -3,6 +3,7 @@
  * GET /api/captain/reports/export - Export daily report as CSV or PDF
  */
 import { createClient } from '@supabase/supabase-js';
+import { requireStaff } from '../../../../src/lib/captain/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -25,6 +26,10 @@ export default async function handler(req, res) {
       error: { code: 'MISSING_FIELDS', message: 'venue_id and date are required' }
     });
   }
+
+  // Require manager auth to export reports
+  const staff = await requireStaff(req, res, venue_id, ['owner', 'manager']);
+  if (!staff) return;
 
   try {
     // Get venue info

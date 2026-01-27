@@ -4,6 +4,7 @@
  * DELETE /api/captain/responsible-gaming/exclusion
  */
 import { createClient } from '@supabase/supabase-js';
+import { requireAuth } from '../../../../src/lib/captain/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -24,12 +25,16 @@ export default async function handler(req, res) {
 }
 
 async function handleCreate(req, res) {
-  const { player_id, venue_id, duration_days, reason } = req.body;
+  // Require auth - players can only self-exclude themselves
+  const user = await requireAuth(req, res);
+  if (!user) return;
 
-  if (!player_id || !duration_days) {
+  const { venue_id, duration_days, reason } = req.body;
+
+  if (!duration_days) {
     return res.status(400).json({
       success: false,
-      error: { code: 'MISSING_FIELDS', message: 'player_id and duration_days required' }
+      error: { code: 'MISSING_FIELDS', message: 'duration_days required' }
     });
   }
 
@@ -41,7 +46,7 @@ async function handleCreate(req, res) {
     const { data: exclusion, error } = await supabase
       .from('captain_self_exclusions')
       .insert({
-        player_id,
+        player_id: user.id,
         venue_id, // null for all venues
         start_date: start_date.toISOString(),
         end_date: end_date.toISOString(),
@@ -68,7 +73,11 @@ async function handleCreate(req, res) {
 }
 
 async function handleRemove(req, res) {
-  const { player_id, exclusion_id } = req.body;
+  // Require auth - players can only lift their own exclusions
+  const user = await requireAuth(req, res);
+  if (!user) return;
+
+  const { exclusion_id } = req.body;
 
   if (!exclusion_id) {
     return res.status(400).json({
@@ -78,11 +87,12 @@ async function handleRemove(req, res) {
   }
 
   try {
-    // Check if exclusion allows early removal
+    // Check if exclusion allows early removal and belongs to this user
     const { data: exclusion } = await supabase
       .from('captain_self_exclusions')
       .select('*')
       .eq('id', exclusion_id)
+      .eq('player_id', user.id)
       .single();
 
     if (!exclusion) {
