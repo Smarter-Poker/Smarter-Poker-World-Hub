@@ -87,6 +87,7 @@ export default function PlayerRewardsPage() {
   const [hoursPlayed, setHoursPlayed] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [comingSoonMessage, setComingSoonMessage] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
@@ -124,26 +125,20 @@ export default function PlayerRewardsPage() {
         setEarnRate(ratesData.data?.rate_per_hour || 1);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Set mock data for demo
-      setBalance(125);
-      setLifetimeEarned(850);
-      setHoursPlayed(425);
-      setEarnRate(2);
-      setTransactions([
-        { id: 1, type: 'earn', amount: 8, description: '4 hours at $1/$2 NLHE', created_at: new Date().toISOString() },
-        { id: 2, type: 'redeem', amount: 15, description: 'Food voucher', created_at: new Date(Date.now() - 86400000).toISOString() },
-        { id: 3, type: 'earn', amount: 12, description: '6 hours at $2/$5 NLHE', created_at: new Date(Date.now() - 172800000).toISOString() },
-        { id: 4, type: 'earn', amount: 6, description: '3 hours at $1/$2 NLHE', created_at: new Date(Date.now() - 259200000).toISOString() },
-      ]);
+      console.error('Fetch rewards failed:', err);
+      setBalance(0);
+      setLifetimeEarned(0);
+      setHoursPlayed(0);
+      setEarnRate(1);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
   }
 
   async function handleRedeem(category) {
-    // In production, this would open a redemption flow
-    alert(`Redemption for ${category.label} coming soon!`);
+    setComingSoonMessage(`Redemption for ${category.label} coming soon!`);
+    setTimeout(() => setComingSoonMessage(null), 3000);
   }
 
   if (loading) {
@@ -162,6 +157,13 @@ export default function PlayerRewardsPage() {
       </Head>
 
       <div className="min-h-screen bg-[#F9FAFB]">
+        {/* Coming Soon Banner */}
+        {comingSoonMessage && (
+          <div className="fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium bg-[#1877F2]">
+            {comingSoonMessage}
+          </div>
+        )}
+
         {/* Header */}
         <header className="bg-[#1877F2] text-white">
           <div className="max-w-lg mx-auto px-4 py-6">

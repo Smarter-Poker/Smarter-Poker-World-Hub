@@ -143,25 +143,10 @@ export default function LeaderboardPage() {
         setVenue(venueData.venue || venueData.data?.venue);
       }
     } catch (error) {
-      console.error('Fetch failed:', error);
-      // Mock data for demo
-      setLeaderboard([
-        { id: 1, display_name: 'PokerPro123', sessions: 28, total_hours: 112, total_buyins: 14500, points: 2800 },
-        { id: 2, display_name: 'AceHunter', sessions: 24, total_hours: 96, total_buyins: 12000, points: 2400 },
-        { id: 3, display_name: 'RiverRat', sessions: 22, total_hours: 88, total_buyins: 11000, points: 2200 },
-        { id: 4, display_name: 'ChipStacker', sessions: 19, total_hours: 76, total_buyins: 9500, points: 1900 },
-        { id: 5, display_name: 'BluffMaster', sessions: 17, total_hours: 68, total_buyins: 8500, points: 1700 },
-        { id: 6, display_name: 'NittyNate', sessions: 15, total_hours: 60, total_buyins: 7500, points: 1500 },
-        { id: 7, display_name: 'ActionJack', sessions: 14, total_hours: 56, total_buyins: 7000, points: 1400 },
-        { id: 8, display_name: 'TiltMaster', sessions: 12, total_hours: 48, total_buyins: 6000, points: 1200 },
-        { id: 9, display_name: 'FishCatcher', sessions: 11, total_hours: 44, total_buyins: 5500, points: 1100 },
-        { id: 10, display_name: 'GrinderGary', sessions: 10, total_hours: 40, total_buyins: 5000, points: 1000 }
-      ]);
-      setPromotions([
-        { id: 1, name: 'High Hand Bonus', prize_amount: 500, frequency: 'hourly', start_time: '10:00', end_time: '02:00', is_active: true },
-        { id: 2, name: 'Bad Beat Jackpot', prize_amount: 25000, frequency: 'progressive', is_active: true, description: 'Quad 8s or better beaten' }
-      ]);
-      setVenue({ name: 'Demo Poker Room' });
+      console.error('Fetch leaderboard failed:', error);
+      setLeaderboard([]);
+      setPromotions([]);
+      setVenue(null);
     } finally {
       setLoading(false);
     }

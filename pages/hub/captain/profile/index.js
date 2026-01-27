@@ -123,43 +123,11 @@ export default function PlayerProfilePage() {
         setFavoriteVenues(statsData.data?.favoriteVenues || []);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Mock data for demo
-      setProfile({
-        id: 1,
-        display_name: 'John Player',
-        email: 'john@example.com',
-        phone: '+1 (555) 123-4567',
-        member_since: '2024-01-15',
-        notification_preferences: {
-          seat_alerts: true,
-          promotions: true,
-          tournaments: true
-        }
-      });
-      setStats({
-        totalSessions: 47,
-        totalHours: 186,
-        totalBuyins: 24500,
-        avgSession: 4.0,
-        longestSession: 12,
-        currentStreak: 3,
-        compBalance: 245,
-        memberLevel: 'Gold'
-      });
-      setAchievements([
-        { id: 1, name: 'First Check-In', description: 'Complete your first venue check-in', unlocked: true },
-        { id: 2, name: 'Regular', description: 'Play 10 sessions in one month', unlocked: true },
-        { id: 3, name: 'Night Owl', description: 'Play a session past midnight', unlocked: true },
-        { id: 4, name: 'High Roller', description: 'Play $10/$20 or higher stakes', unlocked: false },
-        { id: 5, name: 'Tournament Winner', description: 'Win a live tournament', unlocked: false },
-        { id: 6, name: 'Century Club', description: 'Log 100 hours of play', unlocked: true }
-      ]);
-      setFavoriteVenues([
-        { id: 1, name: 'Bellagio Poker Room', sessions: 18, hours: 72 },
-        { id: 2, name: 'Aria Poker Room', sessions: 12, hours: 48 },
-        { id: 3, name: 'Wynn Poker Room', sessions: 9, hours: 36 }
-      ]);
+      console.error('Fetch profile failed:', err);
+      setProfile(null);
+      setStats(null);
+      setAchievements([]);
+      setFavoriteVenues([]);
     } finally {
       setLoading(false);
     }

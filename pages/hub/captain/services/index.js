@@ -322,28 +322,8 @@ export default function ServicesPage() {
       }
     } catch (err) {
       console.error('Fetch failed:', err);
-      // Mock data
-      setSession({
-        id: 1,
-        venue_id: 1,
-        venue_name: 'Bellagio Poker Room',
-        table_id: 5,
-        table_number: 5,
-        seat_number: 3,
-        game_type: 'nlhe',
-        stakes: '$2/$5'
-      });
-      setRequests([
-        {
-          id: 1,
-          request_type: 'food',
-          status: 'in_progress',
-          details: 'Coffee, black',
-          table_number: 5,
-          seat_number: 3,
-          created_at: new Date(Date.now() - 10 * 60000).toISOString()
-        }
-      ]);
+      setSession(null);
+      setRequests([]);
     } finally {
       setLoading(false);
     }
@@ -371,14 +351,6 @@ export default function ServicesPage() {
       }
     } catch (err) {
       console.error('Submit failed:', err);
-      // Mock success
-      setRequests(prev => [{
-        id: Date.now(),
-        ...request,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      }, ...prev]);
-      setSelectedType(null);
     }
   }
 

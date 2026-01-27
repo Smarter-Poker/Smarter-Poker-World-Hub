@@ -27,6 +27,7 @@ export default function VenueDetail() {
   const [waitlists, setWaitlists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(null);
+  const [message, setMessage] = useState(null);
 
   // Fetch venue data
   async function fetchData() {
@@ -89,15 +90,19 @@ export default function VenueDetail() {
       const data = await res.json();
 
       if (data.success) {
-        alert(`Joined waitlist! Position: ${data.data.position}, Est. wait: ${data.data.estimated_wait} minutes`);
+        setMessage({
+          type: 'success',
+          text: `Joined waitlist! Position: ${data.data.position}, Est. wait: ${data.data.estimated_wait} minutes`
+        });
         fetchData();
       } else {
-        alert(data.error?.message || 'Failed to join waitlist');
+        setMessage({ type: 'error', text: data.error?.message || 'Failed to join waitlist' });
       }
     } catch (error) {
       console.error('Failed to join waitlist:', error);
-      alert('Failed to join waitlist');
+      setMessage({ type: 'error', text: 'Failed to join waitlist' });
     } finally {
+      setTimeout(() => setMessage(null), 4000);
       setJoining(null);
     }
   }
@@ -133,6 +138,17 @@ export default function VenueDetail() {
       </Head>
 
       <div className="min-h-screen bg-[#F9FAFB]">
+        {/* Notification Banner */}
+        {message && (
+          <div
+            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${
+              message.type === 'success' ? 'bg-[#10B981]' : 'bg-[#EF4444]'
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
+
         {/* Header */}
         <header className="bg-white border-b border-[#E5E7EB]">
           <div className="max-w-3xl mx-auto px-4 py-4">

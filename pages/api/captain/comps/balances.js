@@ -44,7 +44,27 @@ export default async function handler(req, res) {
 
       if (error) throw error;
 
-      return res.status(200).json({ balances });
+      // Calculate totals
+      const totalBalance = balances?.reduce((sum, b) => sum + parseFloat(b.current_balance || 0), 0) || 0;
+      const totalLifetime = balances?.reduce((sum, b) => sum + parseFloat(b.lifetime_earned || 0), 0) || 0;
+
+      // Get total hours from sessions
+      const { data: sessions } = await supabase
+        .from('captain_player_sessions')
+        .select('total_minutes')
+        .eq('player_id', user.id);
+
+      const totalHours = sessions?.reduce((sum, s) => sum + ((s.total_minutes || 0) / 60), 0) || 0;
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          balances,
+          balance: Math.round(totalBalance * 100) / 100,
+          lifetime_earned: Math.round(totalLifetime * 100) / 100,
+          total_hours: Math.round(totalHours * 10) / 10
+        }
+      });
     }
 
     // Check if user is staff at this venue

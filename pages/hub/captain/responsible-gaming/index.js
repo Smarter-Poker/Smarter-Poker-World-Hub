@@ -88,6 +88,7 @@ export default function ResponsibleGamingPage() {
   const [exclusion, setExclusion] = useState(null);
   const [activeExclusion, setActiveExclusion] = useState(null);
   const [showExclusionConfirm, setShowExclusionConfirm] = useState(false);
+  const [saveMessage, setSaveMessage] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
@@ -143,13 +144,16 @@ export default function ResponsibleGamingPage() {
 
       const data = await res.json();
       if (data.success) {
-        alert('Limits saved successfully');
+        setSaveMessage({ type: 'success', text: 'Limits saved successfully' });
+      } else {
+        setSaveMessage({ type: 'error', text: 'Failed to save limits' });
       }
     } catch (err) {
       console.error('Save failed:', err);
-      alert('Limits saved successfully'); // Mock success
+      setSaveMessage({ type: 'error', text: 'Failed to save limits' });
     } finally {
       setSaving(false);
+      setTimeout(() => setSaveMessage(null), 4000);
     }
   }
 
@@ -185,15 +189,6 @@ export default function ResponsibleGamingPage() {
       }
     } catch (err) {
       console.error('Exclusion failed:', err);
-      // Mock success
-      setShowExclusionConfirm(false);
-      setActiveExclusion({
-        type: exclusion === 'permanent' ? 'permanent' : 'temporary',
-        duration_days: exclusion,
-        expires_at: exclusion !== 'permanent'
-          ? new Date(Date.now() + exclusion * 24 * 60 * 60 * 1000).toISOString()
-          : null
-      });
     } finally {
       setSaving(false);
     }
@@ -215,6 +210,17 @@ export default function ResponsibleGamingPage() {
       </Head>
 
       <div className="min-h-screen bg-[#F9FAFB]">
+        {/* Save Message */}
+        {saveMessage && (
+          <div
+            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${
+              saveMessage.type === 'success' ? 'bg-[#10B981]' : 'bg-[#EF4444]'
+            }`}
+          >
+            {saveMessage.text}
+          </div>
+        )}
+
         {/* Header */}
         <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
           <div className="max-w-lg mx-auto px-4 py-4">

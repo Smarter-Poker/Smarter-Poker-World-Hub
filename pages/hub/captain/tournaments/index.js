@@ -119,6 +119,7 @@ export default function PlayerTournamentsHub() {
   const [myRegistrations, setMyRegistrations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, upcoming, live, registered
+  const [message, setMessage] = useState(null); // { type: 'success'|'error', text: '' }
 
   useEffect(() => {
     loadTournaments();
@@ -174,13 +175,16 @@ export default function PlayerTournamentsHub() {
       const data = await res.json();
       if (data.entry) {
         setMyRegistrations([...myRegistrations, tournament.id]);
-        alert('Successfully registered for ' + tournament.name);
+        setMessage({ type: 'success', text: `Successfully registered for ${tournament.name}` });
+        setTimeout(() => setMessage(null), 4000);
       } else {
-        alert(data.error || 'Registration failed');
+        setMessage({ type: 'error', text: data.error || 'Registration failed' });
+        setTimeout(() => setMessage(null), 4000);
       }
     } catch (err) {
       console.error('Register error:', err);
-      alert('Registration failed');
+      setMessage({ type: 'error', text: 'Registration failed' });
+      setTimeout(() => setMessage(null), 4000);
     }
   };
 
@@ -199,6 +203,17 @@ export default function PlayerTournamentsHub() {
       </Head>
 
       <div className="min-h-screen" style={{ backgroundColor: '#F9FAFB', fontFamily: 'Inter, sans-serif' }}>
+        {/* Notification Banner */}
+        {message && (
+          <div
+            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${
+              message.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
+
         {/* Header */}
         <header className="bg-white border-b" style={{ borderColor: '#E5E7EB' }}>
           <div className="max-w-6xl mx-auto px-4 py-4">

@@ -121,6 +121,7 @@ export default function PlayerHomeGamesHub() {
   const [filter, setFilter] = useState('all');
   const [joinCode, setJoinCode] = useState('');
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [message, setMessage] = useState(null);
 
   useEffect(() => {
     loadGames();
@@ -161,17 +162,18 @@ export default function PlayerHomeGamesHub() {
       const data = await res.json();
 
       if (data.membership) {
-        alert('Successfully joined ' + data.group?.name);
+        setMessage({ type: 'success', text: 'Successfully joined ' + (data.group?.name || 'the group') });
         setShowJoinModal(false);
         setJoinCode('');
         loadGames();
       } else {
-        alert(data.error || 'Failed to join');
+        setMessage({ type: 'error', text: data.error || 'Failed to join' });
       }
     } catch (err) {
       console.error('Join error:', err);
-      alert('Failed to join game');
+      setMessage({ type: 'error', text: 'Failed to join game' });
     }
+    setTimeout(() => setMessage(null), 4000);
   };
 
   const handleJoinGame = (game) => {
@@ -191,6 +193,17 @@ export default function PlayerHomeGamesHub() {
       </Head>
 
       <div className="min-h-screen" style={{ backgroundColor: '#F9FAFB', fontFamily: 'Inter, sans-serif' }}>
+        {/* Notification Banner */}
+        {message && (
+          <div
+            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${
+              message.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
+
         {/* Header */}
         <header className="bg-white border-b" style={{ borderColor: '#E5E7EB' }}>
           <div className="max-w-6xl mx-auto px-4 py-4">

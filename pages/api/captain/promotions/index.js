@@ -61,14 +61,20 @@ async function listPromotions(req, res) {
     if (error) throw error;
 
     return res.status(200).json({
-      promotions: data,
-      total: count,
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      success: true,
+      data: {
+        promotions: data,
+        total: count,
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      }
     });
   } catch (error) {
     console.error('List promotions error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: error.message }
+    });
   }
 }
 

@@ -181,35 +181,16 @@ export default function AnalyticsPage() {
       });
     } catch (error) {
       console.error('Fetch analytics failed:', error);
-      // Set mock data for demo
       setStats({
-        totalPlayers: 156,
-        totalSessions: 423,
-        totalHours: 1847,
-        totalBuyins: 89500,
-        avgSessionLength: 4.4,
-        peakHour: '7 PM',
-        dailyData: [
-          { label: 'Mon', value: 45 },
-          { label: 'Tue', value: 52 },
-          { label: 'Wed', value: 49 },
-          { label: 'Thu', value: 63 },
-          { label: 'Fri', value: 78 },
-          { label: 'Sat', value: 92 },
-          { label: 'Sun', value: 44 }
-        ],
-        topPlayers: [
-          { id: 1, name: 'Player 1', sessions: 28, hours: 112, buyins: 14500 },
-          { id: 2, name: 'Player 2', sessions: 24, hours: 96, buyins: 12000 },
-          { id: 3, name: 'Player 3', sessions: 22, hours: 88, buyins: 11000 },
-          { id: 4, name: 'Player 4', sessions: 19, hours: 76, buyins: 9500 },
-          { id: 5, name: 'Player 5', sessions: 17, hours: 68, buyins: 8500 }
-        ],
-        gameTypeBreakdown: [
-          { label: 'NLHE', value: 296 },
-          { label: 'PLO', value: 85 },
-          { label: 'Mixed', value: 42 }
-        ]
+        totalPlayers: 0,
+        totalSessions: 0,
+        totalHours: 0,
+        totalBuyins: 0,
+        avgSessionLength: 0,
+        peakHour: 'N/A',
+        dailyData: [],
+        topPlayers: [],
+        gameTypeBreakdown: []
       });
     } finally {
       setLoading(false);

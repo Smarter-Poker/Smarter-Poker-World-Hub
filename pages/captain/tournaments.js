@@ -21,6 +21,8 @@ export default function TournamentsPage() {
   const [activeTournament, setActiveTournament] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEliminateModal, setShowEliminateModal] = useState(false);
+  const [showPayoutsModal, setShowPayoutsModal] = useState(false);
 
   useEffect(() => {
     if (venue_id) loadTournaments();
@@ -161,6 +163,7 @@ export default function TournamentsPage() {
                     Next Level
                   </button>
                   <button
+                    onClick={() => setShowEliminateModal(true)}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border"
                     style={{ borderColor: '#E5E7EB' }}
                   >
@@ -168,6 +171,7 @@ export default function TournamentsPage() {
                     Eliminate Player
                   </button>
                   <button
+                    onClick={() => setShowPayoutsModal(true)}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border"
                     style={{ borderColor: '#E5E7EB' }}
                   >
@@ -254,6 +258,279 @@ export default function TournamentsPage() {
           </div>
         </div>
       </div>
+
+      {/* Eliminate Player Modal */}
+      {showEliminateModal && activeTournament && (
+        <EliminateModal
+          tournament={activeTournament}
+          onClose={() => setShowEliminateModal(false)}
+          onEliminate={() => {
+            setShowEliminateModal(false);
+            loadTournaments();
+          }}
+        />
+      )}
+
+      {/* Payouts Modal */}
+      {showPayoutsModal && activeTournament && (
+        <PayoutsModal
+          tournament={activeTournament}
+          onClose={() => setShowPayoutsModal(false)}
+          onSave={() => {
+            setShowPayoutsModal(false);
+            loadTournaments();
+          }}
+        />
+      )}
     </>
+  );
+}
+
+function EliminateModal({ tournament, onClose, onEliminate }) {
+  const [entries, setEntries] = useState([]);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [eliminatedBy, setEliminatedBy] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadEntries();
+  }, []);
+
+  async function loadEntries() {
+    try {
+      const res = await fetch(`/api/captain/tournaments/${tournament.id}/entries`);
+      const data = await res.json();
+      if (data.entries) {
+        setEntries(data.entries.filter(e => e.status === 'seated'));
+      }
+    } catch (err) {
+      console.error('Load entries error:', err);
+    }
+  }
+
+  async function handleEliminate() {
+    if (!selectedPlayer) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      await fetch(`/api/captain/tournaments/${tournament.id}/eliminate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          entry_id: selectedPlayer,
+          eliminated_by: eliminatedBy
+        })
+      });
+      onEliminate();
+    } catch (err) {
+      console.error('Eliminate error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl w-full max-w-md p-6">
+        <h2 className="text-xl font-bold mb-4" style={{ color: '#1F2937' }}>Eliminate Player</h2>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+              Player to Eliminate
+            </label>
+            <select
+              value={selectedPlayer || ''}
+              onChange={(e) => setSelectedPlayer(e.target.value)}
+              className="w-full h-12 px-3 border rounded-lg"
+              style={{ borderColor: '#E5E7EB' }}
+            >
+              <option value="">Select player...</option>
+              {entries.map(entry => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.player_name || entry.profiles?.display_name || 'Unknown'} - Seat {entry.seat_number}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+              Eliminated By (optional)
+            </label>
+            <select
+              value={eliminatedBy || ''}
+              onChange={(e) => setEliminatedBy(e.target.value)}
+              className="w-full h-12 px-3 border rounded-lg"
+              style={{ borderColor: '#E5E7EB' }}
+            >
+              <option value="">Select player...</option>
+              {entries.filter(e => e.id !== selectedPlayer).map(entry => (
+                <option key={entry.id} value={entry.player_id}>
+                  {entry.player_name || entry.profiles?.display_name || 'Unknown'}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 h-12 border rounded-xl font-medium"
+            style={{ borderColor: '#E5E7EB', color: '#6B7280' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleEliminate}
+            disabled={!selectedPlayer || loading}
+            className="flex-1 h-12 text-white rounded-xl font-medium disabled:opacity-50"
+            style={{ backgroundColor: '#EF4444' }}
+          >
+            {loading ? 'Eliminating...' : 'Eliminate'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PayoutsModal({ tournament, onClose, onSave }) {
+  const [entries, setEntries] = useState([]);
+  const [payouts, setPayouts] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadEntries();
+  }, []);
+
+  async function loadEntries() {
+    try {
+      const res = await fetch(`/api/captain/tournaments/${tournament.id}/entries`);
+      const data = await res.json();
+      if (data.entries) {
+        // Get eliminated/cashed players for payouts
+        const eligibleEntries = data.entries.filter(e =>
+          e.status === 'eliminated' || e.status === 'cashed'
+        ).sort((a, b) => (a.finish_position || 999) - (b.finish_position || 999));
+        setEntries(eligibleEntries);
+
+        // Initialize payouts from payout structure
+        if (tournament.payout_structure) {
+          setPayouts(tournament.payout_structure.map((p, i) => ({
+            place: i + 1,
+            percentage: p.percentage,
+            amount: Math.round((tournament.prize_pool || 0) * (p.percentage / 100)),
+            entry_id: eligibleEntries[i]?.id || null
+          })));
+        }
+      }
+    } catch (err) {
+      console.error('Load entries error:', err);
+    }
+  }
+
+  async function handleSavePayouts() {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      for (const payout of payouts) {
+        if (payout.entry_id && payout.amount > 0) {
+          await fetch(`/api/captain/tournaments/${tournament.id}/payout`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              entry_id: payout.entry_id,
+              finish_position: payout.place,
+              payout_amount: payout.amount
+            })
+          });
+        }
+      }
+      onSave();
+    } catch (err) {
+      console.error('Save payouts error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto">
+        <h2 className="text-xl font-bold mb-2" style={{ color: '#1F2937' }}>Tournament Payouts</h2>
+        <p className="text-sm mb-4" style={{ color: '#6B7280' }}>
+          Prize Pool: ${tournament.prize_pool?.toLocaleString() || 0}
+        </p>
+
+        <div className="space-y-3">
+          {payouts.map((payout, index) => (
+            <div key={index} className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: '#F9FAFB' }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white"
+                   style={{ backgroundColor: index === 0 ? '#F59E0B' : index === 1 ? '#9CA3AF' : index === 2 ? '#B45309' : '#6B7280' }}>
+                {payout.place}
+              </div>
+              <div className="flex-1">
+                <select
+                  value={payout.entry_id || ''}
+                  onChange={(e) => {
+                    const newPayouts = [...payouts];
+                    newPayouts[index].entry_id = e.target.value;
+                    setPayouts(newPayouts);
+                  }}
+                  className="w-full h-10 px-2 border rounded"
+                  style={{ borderColor: '#E5E7EB' }}
+                >
+                  <option value="">Select player...</option>
+                  {entries.map(entry => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.player_name || entry.profiles?.display_name || 'Unknown'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="text-right">
+                <input
+                  type="number"
+                  value={payout.amount}
+                  onChange={(e) => {
+                    const newPayouts = [...payouts];
+                    newPayouts[index].amount = parseInt(e.target.value) || 0;
+                    setPayouts(newPayouts);
+                  }}
+                  className="w-24 h-10 px-2 border rounded text-right font-medium"
+                  style={{ borderColor: '#E5E7EB' }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 h-12 border rounded-xl font-medium"
+            style={{ borderColor: '#E5E7EB', color: '#6B7280' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSavePayouts}
+            disabled={loading}
+            className="flex-1 h-12 text-white rounded-xl font-medium disabled:opacity-50"
+            style={{ backgroundColor: '#10B981' }}
+          >
+            {loading ? 'Saving...' : 'Save Payouts'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

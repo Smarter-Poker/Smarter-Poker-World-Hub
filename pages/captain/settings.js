@@ -60,11 +60,28 @@ export default function CaptainSettingsPage() {
     setSuccess(null);
 
     try {
-      // In a real implementation, this would save to the API
-      // For now, just simulate a save
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setSuccess('Settings saved successfully');
-      setTimeout(() => setSuccess(null), 3000);
+      const res = await fetch(`/api/captain/settings?venue_id=${venueId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          waitlist_settings: {
+            auto_refresh_interval: settings.auto_refresh_interval,
+            default_wait_time_per_player: settings.default_wait_time_per_player,
+            max_waitlist_size: settings.max_waitlist_size,
+            call_timeout_minutes: settings.call_timeout_minutes,
+            show_player_names_on_display: settings.show_player_names_on_display
+          },
+          auto_text_enabled: settings.sms_notifications_enabled
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setSuccess('Settings saved successfully');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(data.error?.message || 'Failed to save settings');
+      }
     } catch (err) {
       setError('Failed to save settings');
     } finally {

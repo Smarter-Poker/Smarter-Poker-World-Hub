@@ -135,18 +135,13 @@ export default function PlayerHistoryPage() {
         });
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Mock data for demo
-      setSessions([
-        { id: 1, venue_name: 'Bellagio Poker Room', check_in_at: new Date().toISOString(), status: 'active', total_time_minutes: 180, total_buyin: 500, games_played: 1, stakes: '$2/$5', game_type: 'nlhe' },
-        { id: 2, venue_name: 'Aria Poker Room', check_in_at: new Date(Date.now() - 86400000).toISOString(), check_out_at: new Date(Date.now() - 72000000).toISOString(), status: 'completed', total_time_minutes: 240, total_buyin: 400, games_played: 2, stakes: '$1/$3', game_type: 'nlhe' },
-        { id: 3, venue_name: 'Bellagio Poker Room', check_in_at: new Date(Date.now() - 172800000).toISOString(), check_out_at: new Date(Date.now() - 158400000).toISOString(), status: 'completed', total_time_minutes: 360, total_buyin: 1000, games_played: 1, stakes: '$5/$10', game_type: 'nlhe' },
-      ]);
+      console.error('Fetch history failed:', err);
+      setSessions([]);
       setStats({
-        totalSessions: 15,
-        totalHours: 68,
-        totalBuyins: 8500,
-        avgSession: 4.5
+        totalSessions: 0,
+        totalHours: 0,
+        totalBuyins: 0,
+        avgSession: 0
       });
     } finally {
       setLoading(false);

@@ -33,6 +33,7 @@ export default function CreateSquadPage() {
   const [venues, setVenues] = useState([]);
   const [friends, setFriends] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [errorMessage, setErrorMessage] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -62,12 +63,8 @@ export default function CreateSquadPage() {
         setVenues(data.data?.venues || []);
       }
     } catch (err) {
-      // Mock data
-      setVenues([
-        { id: '1', name: 'Bellagio Poker Room', city: 'Las Vegas' },
-        { id: '2', name: 'Aria Poker Room', city: 'Las Vegas' },
-        { id: '3', name: 'Wynn Poker Room', city: 'Las Vegas' }
-      ]);
+      console.error('Failed to fetch venues:', err);
+      setVenues([]);
     }
   }
 
@@ -82,14 +79,8 @@ export default function CreateSquadPage() {
         setFriends(data.data?.friends || []);
       }
     } catch (err) {
-      // Mock data
-      setFriends([
-        { id: '1', name: 'Mike Johnson', username: 'mikej' },
-        { id: '2', name: 'Sarah Williams', username: 'sarahw' },
-        { id: '3', name: 'Tom Davis', username: 'tomd' },
-        { id: '4', name: 'Alex Chen', username: 'alexc' },
-        { id: '5', name: 'Chris Lee', username: 'chrisl' }
-      ]);
+      console.error('Failed to fetch friends:', err);
+      setFriends([]);
     }
   }
 
@@ -133,12 +124,13 @@ export default function CreateSquadPage() {
       if (data.success) {
         router.push(`/hub/captain/squads/${data.data?.squad?.id || ''}`);
       } else {
-        alert(data.error?.message || 'Failed to create squad');
+        setErrorMessage(data.error?.message || 'Failed to create squad');
+        setTimeout(() => setErrorMessage(null), 4000);
       }
     } catch (err) {
       console.error('Create failed:', err);
-      // Mock success
-      router.push('/hub/captain/squads');
+      setErrorMessage('Failed to create squad. Please try again.');
+      setTimeout(() => setErrorMessage(null), 4000);
     } finally {
       setLoading(false);
     }
@@ -158,6 +150,13 @@ export default function CreateSquadPage() {
       </Head>
 
       <div className="min-h-screen bg-[#F9FAFB]">
+        {/* Error Banner */}
+        {errorMessage && (
+          <div className="fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium bg-[#EF4444]">
+            {errorMessage}
+          </div>
+        )}
+
         {/* Header */}
         <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
           <div className="max-w-lg mx-auto px-4 py-4">

@@ -91,6 +91,7 @@ export default function StaffReportsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [report, setReport] = useState(null);
+  const [exportMessage, setExportMessage] = useState(null);
 
   useEffect(() => {
     const storedStaff = localStorage.getItem('captain_staff');
@@ -129,52 +130,8 @@ export default function StaffReportsPage() {
         setReport(data.data?.report);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Mock data
-      setReport({
-        date: selectedDate.toISOString().split('T')[0],
-        venue_name: 'Bellagio Poker Room',
-        summary: {
-          totalGames: 18,
-          totalHours: 156,
-          uniquePlayers: 89,
-          newPlayers: 12,
-          peakConcurrent: 14,
-          avgWaitTime: 18,
-          totalCheckIns: 142,
-          compsIssued: 450
-        },
-        comparisons: {
-          gamesChange: 12,
-          playersChange: 8,
-          hoursChange: -5
-        },
-        gamesByStakes: [
-          { stakes: '$1/$3', game_type: 'nlhe', table_number: 1, hours_running: 16, unique_players: 32 },
-          { stakes: '$2/$5', game_type: 'nlhe', table_number: 3, hours_running: 14, unique_players: 28 },
-          { stakes: '$5/$10', game_type: 'nlhe', table_number: 5, hours_running: 10, unique_players: 18 },
-          { stakes: '$1/$2', game_type: 'plo', table_number: 7, hours_running: 8, unique_players: 14 }
-        ],
-        promotions: [
-          { name: 'High Hand Bonus', winners: 12, total_paid: 6000 },
-          { name: 'Bad Beat Jackpot', winners: 0, total_paid: 0 },
-          { name: 'Splash Pot', winners: 8, total_paid: 400 }
-        ],
-        hourlyBreakdown: [
-          { hour: '6 AM', games: 4, players: 28 },
-          { hour: '9 AM', games: 6, players: 42 },
-          { hour: '12 PM', games: 10, players: 68 },
-          { hour: '3 PM', games: 12, players: 82 },
-          { hour: '6 PM', games: 14, players: 96 },
-          { hour: '9 PM', games: 12, players: 84 },
-          { hour: '12 AM', games: 8, players: 54 }
-        ],
-        staffOnDuty: [
-          { name: 'Mike Johnson', role: 'Floor Manager', hours: 8 },
-          { name: 'Sarah Williams', role: 'Brush', hours: 8 },
-          { name: 'Tom Davis', role: 'Brush', hours: 6 }
-        ]
-      });
+      console.error('Fetch report failed:', err);
+      setReport(null);
     } finally {
       setLoading(false);
     }
@@ -188,9 +145,30 @@ export default function StaffReportsPage() {
     }
   }
 
-  function handleExport() {
-    // In production, this would generate a PDF or CSV
-    alert('Report export functionality would be implemented here');
+  async function handleExport() {
+    try {
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      const res = await fetch(`/api/captain/reports/export?venue_id=${venueId}&date=${dateStr}&format=csv`);
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `report-${dateStr}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        setExportMessage({ type: 'success', text: 'Report downloaded successfully' });
+      } else {
+        setExportMessage({ type: 'error', text: 'Failed to export report' });
+      }
+    } catch (err) {
+      console.error('Export failed:', err);
+      setExportMessage({ type: 'error', text: 'Export failed' });
+    }
+    setTimeout(() => setExportMessage(null), 3000);
   }
 
   const isToday = selectedDate.toDateString() === new Date().toDateString();
@@ -217,6 +195,17 @@ export default function StaffReportsPage() {
       </Head>
 
       <div className="min-h-screen bg-[#F9FAFB]">
+        {/* Export Message */}
+        {exportMessage && (
+          <div
+            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${
+              exportMessage.type === 'success' ? 'bg-[#10B981]' : 'bg-[#EF4444]'
+            }`}
+          >
+            {exportMessage.text}
+          </div>
+        )}
+
         {/* Header */}
         <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-4">

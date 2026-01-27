@@ -89,15 +89,28 @@ async function listTransactions(req, res) {
 
     if (error) throw error;
 
+    // Transform transactions for frontend
+    const formattedTransactions = data?.map(t => ({
+      ...t,
+      type: t.transaction_type === 'earn' || t.transaction_type === 'bonus' ? 'earn' : 'redeem',
+      amount: parseFloat(t.amount || 0)
+    })) || [];
+
     return res.status(200).json({
-      transactions: data,
-      total: count,
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      success: true,
+      data: {
+        transactions: formattedTransactions,
+        total: count,
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      }
     });
   } catch (error) {
     console.error('List transactions error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: error.message }
+    });
   }
 }
 
