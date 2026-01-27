@@ -90,14 +90,30 @@ async function handlePatch(req, res, sessionId) {
 
     // Handle checkout action
     if (action === 'checkout') {
-      if (session.status !== 'active') {
+      if (session.check_out_at) {
         return res.status(400).json({
           success: false,
-          error: { code: 'VALIDATION_ERROR', message: 'Session is not active' }
+          error: { code: 'VALIDATION_ERROR', message: 'Session already checked out' }
         });
       }
-      updates.check_out_at = new Date().toISOString();
-      // status and total_time_minutes will be set by trigger
+
+      const checkoutTime = new Date();
+      const checkInTime = new Date(session.check_in_at);
+      const totalMinutes = Math.round((checkoutTime - checkInTime) / (1000 * 60));
+      const hoursPlayed = Math.floor(totalMinutes / 60);
+
+      updates.check_out_at = checkoutTime.toISOString();
+      updates.total_minutes = totalMinutes;
+
+      // Award XP for session completion
+      // 50 XP base + 10 XP per hour played
+      if (session.player_id && totalMinutes >= 30) {
+        const XP_FOR_SESSION_COMPLETE = 50;
+        const XP_PER_HOUR = 10;
+        const bonusXP = XP_FOR_SESSION_COMPLETE + (hoursPlayed * XP_PER_HOUR);
+
+        updates.xp_earned = (session.xp_earned || 0) + bonusXP;
+      }
     }
 
     // Handle abandon action

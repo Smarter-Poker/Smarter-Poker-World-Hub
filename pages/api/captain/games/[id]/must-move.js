@@ -1,6 +1,8 @@
 /**
  * Captain Must-Move API - POST/DELETE /api/captain/games/:id/must-move
  * Link or unlink must-move game relationships
+ * POST: Set this game as a must-move that feeds into a main game
+ * DELETE: Remove the must-move link
  * Reference: Phase 2 - Must-Move Games
  */
 import { createClient } from '@supabase/supabase-js';
@@ -9,6 +11,34 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
+
+// Helper to verify staff auth
+async function verifyStaffAuth(req) {
+  const staffSession = req.headers['x-staff-session'];
+  if (!staffSession) {
+    return { error: { status: 401, code: 'AUTH_REQUIRED', message: 'Staff authentication required' } };
+  }
+
+  let sessionData;
+  try {
+    sessionData = JSON.parse(staffSession);
+  } catch {
+    return { error: { status: 401, code: 'INVALID_SESSION', message: 'Invalid session format' } };
+  }
+
+  const { data: staff, error: staffError } = await supabase
+    .from('captain_staff')
+    .select('id, venue_id, role, is_active')
+    .eq('id', sessionData.id)
+    .eq('is_active', true)
+    .single();
+
+  if (staffError || !staff) {
+    return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff member not found or inactive' } };
+  }
+
+  return { staff };
+}
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -35,90 +65,102 @@ export default async function handler(req, res) {
 
 async function handlePost(req, res, gameId) {
   try {
-    const { must_move_to } = req.body;
+    // Verify staff authentication
+    const authResult = await verifyStaffAuth(req);
+    if (authResult.error) {
+      return res.status(authResult.error.status).json({
+        success: false,
+        error: { code: authResult.error.code, message: authResult.error.message }
+      });
+    }
 
-    if (!must_move_to) {
+    const { parent_game_id } = req.body;
+
+    if (!parent_game_id) {
       return res.status(400).json({
         success: false,
-        error: { code: 'VALIDATION_ERROR', message: 'must_move_to game ID required' }
+        error: { code: 'VALIDATION_ERROR', message: 'parent_game_id (main game) is required' }
       });
     }
 
-    // Verify main game exists and is active
-    const { data: mainGame, error: mainError } = await supabase
-      .from('captain_games')
-      .select('id, venue_id, game_type, stakes, status, must_move_to')
-      .eq('id', gameId)
-      .single();
-
-    if (mainError || !mainGame) {
-      return res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Main game not found' }
-      });
-    }
-
-    if (!['waiting', 'running'].includes(mainGame.status)) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'GAME_CLOSED', message: 'Cannot link closed games' }
-      });
-    }
-
-    if (mainGame.must_move_to) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'ALREADY_LINKED', message: 'This game already has a must-move link' }
-      });
-    }
-
-    // Verify must-move game exists, is compatible, and active
+    // Verify this game exists and is active
     const { data: mustMoveGame, error: mmError } = await supabase
       .from('captain_games')
-      .select('id, venue_id, game_type, stakes, status, must_move_to')
-      .eq('id', must_move_to)
+      .select('id, venue_id, game_type, stakes, status, is_must_move, parent_game_id')
+      .eq('id', gameId)
       .single();
 
     if (mmError || !mustMoveGame) {
       return res.status(404).json({
         success: false,
-        error: { code: 'NOT_FOUND', message: 'Must-move game not found' }
-      });
-    }
-
-    // Validate compatibility
-    if (mustMoveGame.venue_id !== mainGame.venue_id) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'INCOMPATIBLE', message: 'Games must be at the same venue' }
-      });
-    }
-
-    if (mustMoveGame.game_type !== mainGame.game_type || mustMoveGame.stakes !== mainGame.stakes) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'INCOMPATIBLE', message: 'Games must have same type and stakes' }
+        error: { code: 'NOT_FOUND', message: 'Game not found' }
       });
     }
 
     if (!['waiting', 'running'].includes(mustMoveGame.status)) {
       return res.status(400).json({
         success: false,
-        error: { code: 'GAME_CLOSED', message: 'Must-move game is not active' }
+        error: { code: 'GAME_CLOSED', message: 'Cannot link closed games' }
       });
     }
 
-    if (mustMoveGame.must_move_to) {
+    if (mustMoveGame.is_must_move && mustMoveGame.parent_game_id) {
       return res.status(400).json({
         success: false,
-        error: { code: 'CHAIN_ERROR', message: 'Cannot chain must-move games' }
+        error: { code: 'ALREADY_LINKED', message: 'This game is already a must-move game' }
       });
     }
 
-    // Link the games
+    // Verify parent game exists, is compatible, and active
+    const { data: mainGame, error: mainError } = await supabase
+      .from('captain_games')
+      .select('id, venue_id, game_type, stakes, status, is_must_move')
+      .eq('id', parent_game_id)
+      .single();
+
+    if (mainError || !mainGame) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Parent game not found' }
+      });
+    }
+
+    // Validate compatibility
+    if (mainGame.venue_id !== mustMoveGame.venue_id) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INCOMPATIBLE', message: 'Games must be at the same venue' }
+      });
+    }
+
+    if (mainGame.game_type !== mustMoveGame.game_type || mainGame.stakes !== mustMoveGame.stakes) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INCOMPATIBLE', message: 'Games must have same type and stakes' }
+      });
+    }
+
+    if (!['waiting', 'running'].includes(mainGame.status)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'GAME_CLOSED', message: 'Parent game is not active' }
+      });
+    }
+
+    if (mainGame.is_must_move) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'CHAIN_ERROR', message: 'Cannot use a must-move game as a parent' }
+      });
+    }
+
+    // Set this game as a must-move linked to the parent
     const { data: updated, error: updateError } = await supabase
       .from('captain_games')
-      .update({ must_move_to: must_move_to })
+      .update({
+        is_must_move: true,
+        parent_game_id: parent_game_id
+      })
       .eq('id', gameId)
       .select()
       .single();
@@ -135,7 +177,7 @@ async function handlePost(req, res, gameId) {
       success: true,
       data: {
         game: updated,
-        message: 'Games linked successfully'
+        message: 'Game set as must-move successfully'
       }
     });
   } catch (error) {
@@ -149,10 +191,19 @@ async function handlePost(req, res, gameId) {
 
 async function handleDelete(req, res, gameId) {
   try {
+    // Verify staff authentication
+    const authResult = await verifyStaffAuth(req);
+    if (authResult.error) {
+      return res.status(authResult.error.status).json({
+        success: false,
+        error: { code: authResult.error.code, message: authResult.error.message }
+      });
+    }
+
     // Verify game exists
     const { data: game, error: fetchError } = await supabase
       .from('captain_games')
-      .select('id, must_move_to')
+      .select('id, is_must_move, parent_game_id')
       .eq('id', gameId)
       .single();
 
@@ -163,17 +214,20 @@ async function handleDelete(req, res, gameId) {
       });
     }
 
-    if (!game.must_move_to) {
+    if (!game.is_must_move || !game.parent_game_id) {
       return res.status(400).json({
         success: false,
-        error: { code: 'NOT_LINKED', message: 'Game has no must-move link' }
+        error: { code: 'NOT_LINKED', message: 'Game is not a must-move game' }
       });
     }
 
-    // Unlink the games
+    // Remove the must-move link
     const { data: updated, error: updateError } = await supabase
       .from('captain_games')
-      .update({ must_move_to: null })
+      .update({
+        is_must_move: false,
+        parent_game_id: null
+      })
       .eq('id', gameId)
       .select()
       .single();
@@ -190,7 +244,7 @@ async function handleDelete(req, res, gameId) {
       success: true,
       data: {
         game: updated,
-        message: 'Games unlinked successfully'
+        message: 'Must-move link removed successfully'
       }
     });
   } catch (error) {

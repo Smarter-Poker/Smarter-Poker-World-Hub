@@ -145,6 +145,39 @@ export default async function handler(req, res) {
       });
     }
 
+    // Award XP for joining waitlist (5 XP)
+    if (player_id) {
+      const XP_FOR_WAITLIST_JOIN = 5;
+
+      // Get or create player session for XP tracking
+      const { data: existingSession } = await supabase
+        .from('captain_player_sessions')
+        .select('id, xp_earned')
+        .eq('venue_id', venue_id)
+        .eq('player_id', player_id)
+        .is('check_out_at', null)
+        .single();
+
+      if (existingSession) {
+        await supabase
+          .from('captain_player_sessions')
+          .update({
+            xp_earned: (existingSession.xp_earned || 0) + XP_FOR_WAITLIST_JOIN
+          })
+          .eq('id', existingSession.id);
+      } else {
+        await supabase
+          .from('captain_player_sessions')
+          .insert({
+            venue_id,
+            player_id,
+            check_in_at: new Date().toISOString(),
+            xp_earned: XP_FOR_WAITLIST_JOIN,
+            games_played: []
+          });
+      }
+    }
+
     return res.status(201).json({
       success: true,
       data: {
