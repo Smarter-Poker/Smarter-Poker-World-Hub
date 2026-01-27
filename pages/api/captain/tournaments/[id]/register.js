@@ -4,6 +4,7 @@
  * DELETE /api/captain/tournaments/:id/register
  */
 import { createClient } from '@supabase/supabase-js';
+import { awardXP } from '../../../../../src/lib/captain/xp';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -119,6 +120,28 @@ async function handleRegister(req, res, tournamentId) {
       .single();
 
     if (error) throw error;
+
+    // Update tournament entry count
+    await supabase.rpc('increment', {
+      table_name: 'captain_tournaments',
+      row_id: tournamentId,
+      column_name: 'total_entries'
+    }).catch(() => {
+      // Fallback if RPC doesn't exist
+      supabase
+        .from('captain_tournaments')
+        .update({ total_entries: (tournament.total_entries || 0) + 1 })
+        .eq('id', tournamentId);
+    });
+
+    // Award XP for tournament registration
+    if (player_id) {
+      await awardXP(player_id, 'tournament.registered', {
+        tournament_id: tournamentId,
+        tournament_name: tournament.name,
+        buyin: tournament.buyin_amount
+      });
+    }
 
     return res.status(201).json({
       success: true,
