@@ -4,6 +4,7 @@
  * POST /api/captain/home-games/events/:id/reviews
  */
 import { createClient } from '@supabase/supabase-js';
+import { awardXP } from '../../../../../../src/lib/captain/xp';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -121,6 +122,12 @@ async function handleCreate(req, res, eventId) {
       .single();
 
     if (error) throw error;
+
+    // Award XP for leaving a review (10 XP)
+    await awardXP(player_id, 'review.left', {
+      event_id: eventId,
+      rating
+    });
 
     return res.status(201).json({
       success: true,
