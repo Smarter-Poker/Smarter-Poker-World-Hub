@@ -321,39 +321,8 @@ export default function StreamingPage() {
         setStreams(data.data?.streams || []);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Mock data
-      setStreams([
-        {
-          table_id: '1',
-          table_number: 1,
-          game_info: '$5/$10 NLH Feature Table',
-          status: 'live',
-          platforms: ['youtube', 'twitch'],
-          delay_minutes: 15,
-          viewer_count: 234,
-          started_at: new Date(Date.now() - 45 * 60000).toISOString(),
-          overlay_config: { showPotSize: true, showPlayerNames: true, showChipCounts: true }
-        },
-        {
-          table_id: '2',
-          table_number: 2,
-          game_info: '$2/$5 NLH',
-          status: 'offline',
-          platforms: ['youtube'],
-          delay_minutes: 10,
-          overlay_config: { showPotSize: true, showPlayerNames: false, showChipCounts: true }
-        },
-        {
-          table_id: '3',
-          table_number: 3,
-          game_info: '$1/$2 PLO',
-          status: 'offline',
-          platforms: [],
-          delay_minutes: 15,
-          overlay_config: { showPotSize: true, showPlayerNames: true, showChipCounts: true }
-        }
-      ]);
+      console.error('Fetch streams failed:', err);
+      setStreams([]);
     } finally {
       setLoading(false);
     }
@@ -368,12 +337,7 @@ export default function StreamingPage() {
       });
       fetchStreams();
     } catch (err) {
-      // Mock success
-      setStreams(prev => prev.map(s =>
-        s.table_id === tableId
-          ? { ...s, status: 'live', started_at: new Date().toISOString(), viewer_count: 0 }
-          : s
-      ));
+      console.error('Start stream failed:', err);
     }
   }
 
@@ -386,12 +350,7 @@ export default function StreamingPage() {
       });
       fetchStreams();
     } catch (err) {
-      // Mock success
-      setStreams(prev => prev.map(s =>
-        s.table_id === tableId
-          ? { ...s, status: 'offline', started_at: null, viewer_count: 0 }
-          : s
-      ));
+      console.error('Stop stream failed:', err);
     }
   }
 
@@ -405,13 +364,7 @@ export default function StreamingPage() {
       setConfiguring(null);
       fetchStreams();
     } catch (err) {
-      // Mock success
-      setStreams(prev => prev.map(s =>
-        s.table_id === tableId
-          ? { ...s, ...config }
-          : s
-      ));
-      setConfiguring(null);
+      console.error('Save config failed:', err);
     }
   }
 

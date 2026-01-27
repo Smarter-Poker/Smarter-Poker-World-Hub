@@ -85,6 +85,20 @@ async function handleCreate(req, res) {
     });
   }
 
+  // Verify venue exists
+  const { data: venue } = await supabase
+    .from('poker_venues')
+    .select('id')
+    .eq('id', venue_id)
+    .single();
+
+  if (!venue) {
+    return res.status(404).json({
+      success: false,
+      error: { code: 'NOT_FOUND', message: 'Venue not found' }
+    });
+  }
+
   try {
     const { data: dealer, error } = await supabase
       .from('captain_dealers')

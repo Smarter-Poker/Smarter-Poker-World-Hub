@@ -362,37 +362,8 @@ export default function DealersPage() {
         setDealers(data.data?.dealers || []);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Mock data
-      setDealers([
-        {
-          id: 1,
-          name: 'Mike Thompson',
-          employee_id: 'D001',
-          skill_level: 5,
-          certified_games: ['nlhe', 'plo', 'mixed'],
-          current_table: 3,
-          rotation_started: new Date(Date.now() - 25 * 60000).toISOString()
-        },
-        {
-          id: 2,
-          name: 'Sarah Johnson',
-          employee_id: 'D002',
-          skill_level: 4,
-          certified_games: ['nlhe', 'plo'],
-          current_table: 1,
-          rotation_started: new Date(Date.now() - 15 * 60000).toISOString()
-        },
-        {
-          id: 3,
-          name: 'Tom Williams',
-          employee_id: 'D003',
-          skill_level: 3,
-          certified_games: ['nlhe'],
-          current_table: null,
-          rotation_started: null
-        }
-      ]);
+      console.error('Fetch dealers failed:', err);
+      setDealers([]);
     } finally {
       setLoading(false);
     }
@@ -406,14 +377,8 @@ export default function DealersPage() {
         setTables(data.data?.tables || []);
       }
     } catch (err) {
-      // Mock data
-      setTables([
-        { id: 1, table_number: 1, current_game: '1/3 NLH' },
-        { id: 2, table_number: 2, current_game: '1/3 NLH' },
-        { id: 3, table_number: 3, current_game: '2/5 NLH' },
-        { id: 4, table_number: 4, current_game: null },
-        { id: 5, table_number: 5, current_game: '1/2 PLO' }
-      ]);
+      console.error('Fetch tables failed:', err);
+      setTables([]);
     }
   }
 
@@ -430,9 +395,7 @@ export default function DealersPage() {
         fetchDealers();
       }
     } catch (err) {
-      // Mock success
-      setDealers(prev => [...prev, { id: Date.now(), ...data }]);
-      setShowAddModal(false);
+      console.error('Add dealer failed:', err);
     }
   }
 
@@ -446,9 +409,7 @@ export default function DealersPage() {
       setEditingDealer(null);
       fetchDealers();
     } catch (err) {
-      // Mock success
-      setDealers(prev => prev.map(d => d.id === editingDealer.id ? { ...d, ...data } : d));
-      setEditingDealer(null);
+      console.error('Edit dealer failed:', err);
     }
   }
 
@@ -462,14 +423,7 @@ export default function DealersPage() {
       setRotatingDealer(null);
       fetchDealers();
     } catch (err) {
-      // Mock success
-      const table = tables.find(t => t.id === tableId);
-      setDealers(prev => prev.map(d =>
-        d.id === dealerId
-          ? { ...d, current_table: table?.table_number, rotation_started: new Date().toISOString() }
-          : d
-      ));
-      setRotatingDealer(null);
+      console.error('Rotate dealer failed:', err);
     }
   }
 

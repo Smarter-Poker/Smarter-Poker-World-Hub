@@ -111,54 +111,8 @@ export default function VenueDiscoveryPage() {
         setVenues(data.data?.venues || []);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Mock data for demo
-      setVenues([
-        {
-          id: 1,
-          name: 'Bellagio Poker Room',
-          city: 'Las Vegas',
-          state: 'NV',
-          active_games: 12,
-          waitlist_count: 24,
-          stakes_spread: ['$1/$3', '$2/$5', '$5/$10', '$10/$20'],
-          rating: 4.8,
-          distance: 2.3
-        },
-        {
-          id: 2,
-          name: 'Aria Poker Room',
-          city: 'Las Vegas',
-          state: 'NV',
-          active_games: 8,
-          waitlist_count: 15,
-          stakes_spread: ['$1/$3', '$2/$5', '$5/$10'],
-          rating: 4.7,
-          distance: 2.5
-        },
-        {
-          id: 3,
-          name: 'Wynn Poker Room',
-          city: 'Las Vegas',
-          state: 'NV',
-          active_games: 6,
-          waitlist_count: 10,
-          stakes_spread: ['$1/$3', '$2/$5', '$5/$10', '$10/$20', '$25/$50'],
-          rating: 4.9,
-          distance: 3.1
-        },
-        {
-          id: 4,
-          name: 'The Venetian Poker Room',
-          city: 'Las Vegas',
-          state: 'NV',
-          active_games: 0,
-          waitlist_count: 0,
-          stakes_spread: ['$1/$2', '$1/$3', '$2/$5'],
-          rating: 4.5,
-          distance: 3.4
-        }
-      ]);
+      console.error('Fetch venues failed:', err);
+      setVenues([]);
     } finally {
       setLoading(false);
     }

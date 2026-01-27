@@ -440,44 +440,8 @@ export default function IncidentsPage() {
         setIncidents(data.data?.incidents || []);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Mock data
-      setIncidents([
-        {
-          id: 1,
-          incident_type: 'dispute',
-          severity: 'medium',
-          description: 'Two players argued about pot size on table 5. Dealer confirmed the correct amount.',
-          table_number: 5,
-          players_involved: ['John D.', 'Mike S.'],
-          reported_by_name: 'Sarah (Floor)',
-          resolved: false,
-          created_at: new Date(Date.now() - 30 * 60000).toISOString()
-        },
-        {
-          id: 2,
-          incident_type: 'behavior',
-          severity: 'high',
-          description: 'Player using inappropriate language towards dealer after losing a hand.',
-          table_number: 3,
-          players_involved: ['Tom W.'],
-          reported_by_name: 'Mike (Brush)',
-          resolved: true,
-          resolution: 'Player received warning. Apologized to dealer.',
-          resolved_at: new Date(Date.now() - 60 * 60000).toISOString(),
-          created_at: new Date(Date.now() - 90 * 60000).toISOString()
-        },
-        {
-          id: 3,
-          incident_type: 'equipment',
-          severity: 'low',
-          description: 'Card protector found on floor near table 7. Held at front desk.',
-          table_number: 7,
-          reported_by_name: 'Alex (Brush)',
-          resolved: false,
-          created_at: new Date(Date.now() - 120 * 60000).toISOString()
-        }
-      ]);
+      console.error('Fetch incidents failed:', err);
+      setIncidents([]);
     } finally {
       setLoading(false);
     }
@@ -501,16 +465,7 @@ export default function IncidentsPage() {
         fetchIncidents();
       }
     } catch (err) {
-      console.error('Create failed:', err);
-      // Mock success
-      setIncidents(prev => [{
-        id: Date.now(),
-        ...data,
-        reported_by_name: staff.name || 'Staff',
-        resolved: false,
-        created_at: new Date().toISOString()
-      }, ...prev]);
-      setShowCreateModal(false);
+      console.error('Create incident failed:', err);
     }
   }
 
@@ -524,14 +479,7 @@ export default function IncidentsPage() {
       setSelectedIncident(null);
       fetchIncidents();
     } catch (err) {
-      console.error('Resolve failed:', err);
-      // Mock success
-      setIncidents(prev => prev.map(i =>
-        i.id === incidentId
-          ? { ...i, resolved: true, resolution, resolved_at: new Date().toISOString() }
-          : i
-      ));
-      setSelectedIncident(null);
+      console.error('Resolve incident failed:', err);
     }
   }
 

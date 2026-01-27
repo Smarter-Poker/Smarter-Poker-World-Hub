@@ -129,52 +129,8 @@ export default function StaffReportsPage() {
         setReport(data.data?.report);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Mock data
-      setReport({
-        date: selectedDate.toISOString().split('T')[0],
-        venue_name: 'Bellagio Poker Room',
-        summary: {
-          totalGames: 18,
-          totalHours: 156,
-          uniquePlayers: 89,
-          newPlayers: 12,
-          peakConcurrent: 14,
-          avgWaitTime: 18,
-          totalCheckIns: 142,
-          compsIssued: 450
-        },
-        comparisons: {
-          gamesChange: 12,
-          playersChange: 8,
-          hoursChange: -5
-        },
-        gamesByStakes: [
-          { stakes: '$1/$3', game_type: 'nlhe', table_number: 1, hours_running: 16, unique_players: 32 },
-          { stakes: '$2/$5', game_type: 'nlhe', table_number: 3, hours_running: 14, unique_players: 28 },
-          { stakes: '$5/$10', game_type: 'nlhe', table_number: 5, hours_running: 10, unique_players: 18 },
-          { stakes: '$1/$2', game_type: 'plo', table_number: 7, hours_running: 8, unique_players: 14 }
-        ],
-        promotions: [
-          { name: 'High Hand Bonus', winners: 12, total_paid: 6000 },
-          { name: 'Bad Beat Jackpot', winners: 0, total_paid: 0 },
-          { name: 'Splash Pot', winners: 8, total_paid: 400 }
-        ],
-        hourlyBreakdown: [
-          { hour: '6 AM', games: 4, players: 28 },
-          { hour: '9 AM', games: 6, players: 42 },
-          { hour: '12 PM', games: 10, players: 68 },
-          { hour: '3 PM', games: 12, players: 82 },
-          { hour: '6 PM', games: 14, players: 96 },
-          { hour: '9 PM', games: 12, players: 84 },
-          { hour: '12 AM', games: 8, players: 54 }
-        ],
-        staffOnDuty: [
-          { name: 'Mike Johnson', role: 'Floor Manager', hours: 8 },
-          { name: 'Sarah Williams', role: 'Brush', hours: 8 },
-          { name: 'Tom Davis', role: 'Brush', hours: 6 }
-        ]
-      });
+      console.error('Fetch report failed:', err);
+      setReport(null);
     } finally {
       setLoading(false);
     }

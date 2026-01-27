@@ -185,15 +185,6 @@ export default function ResponsibleGamingPage() {
       }
     } catch (err) {
       console.error('Exclusion failed:', err);
-      // Mock success
-      setShowExclusionConfirm(false);
-      setActiveExclusion({
-        type: exclusion === 'permanent' ? 'permanent' : 'temporary',
-        duration_days: exclusion,
-        expires_at: exclusion !== 'permanent'
-          ? new Date(Date.now() + exclusion * 24 * 60 * 60 * 1000).toISOString()
-          : null
-      });
     } finally {
       setSaving(false);
     }

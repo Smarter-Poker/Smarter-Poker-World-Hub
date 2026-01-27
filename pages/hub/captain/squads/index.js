@@ -124,51 +124,9 @@ export default function SquadsPage() {
         setInvitations(data.data?.invitations || []);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Mock data
-      setSquads([
-        {
-          id: 1,
-          name: 'Friday Night Crew',
-          venue_id: 1,
-          venue_name: 'Bellagio Poker Room',
-          game_type: 'nlhe',
-          stakes: '$2/$5',
-          status: 'waiting',
-          position: 3,
-          estimated_wait: 25,
-          prefer_same_table: true,
-          members: [
-            { id: 1, name: 'You', status: 'confirmed', is_leader: true },
-            { id: 2, name: 'Mike', status: 'confirmed' },
-            { id: 3, name: 'Sarah', status: 'confirmed' }
-          ]
-        },
-        {
-          id: 2,
-          name: 'PLO Group',
-          venue_id: 2,
-          venue_name: 'Aria Poker Room',
-          game_type: 'plo',
-          stakes: '$1/$2',
-          status: 'forming',
-          members: [
-            { id: 1, name: 'You', status: 'confirmed', is_leader: true },
-            { id: 4, name: 'Tom', status: 'pending' }
-          ]
-        }
-      ]);
-      setInvitations([
-        {
-          id: 3,
-          name: 'Tournament Warmup',
-          venue_name: 'Wynn Poker Room',
-          game_type: 'nlhe',
-          stakes: '$1/$3',
-          leader_name: 'Alex',
-          member_count: 4
-        }
-      ]);
+      console.error('Fetch squads failed:', err);
+      setSquads([]);
+      setInvitations([]);
     } finally {
       setLoading(false);
     }
@@ -183,12 +141,7 @@ export default function SquadsPage() {
       });
       fetchSquads();
     } catch (err) {
-      console.error('Action failed:', err);
-      // Update mock data
-      setInvitations(prev => prev.filter(i => i.id !== invitationId));
-      if (accept) {
-        fetchSquads();
-      }
+      console.error('Invitation action failed:', err);
     }
   }
 

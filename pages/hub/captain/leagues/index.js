@@ -130,55 +130,9 @@ export default function LeaguesPage() {
         setMyLeagues(myData.data?.leagues || []);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Mock data
-      setLeagues([
-        {
-          id: 1,
-          name: 'Texas Poker Championship',
-          description: 'Monthly tournament series across Texas card rooms with points-based standings.',
-          organizer_name: 'Texas Poker Tour',
-          status: 'active',
-          player_count: 156,
-          events_count: 12,
-          prize_pool: 50000,
-          season_start: '2026-01-01',
-          season_end: '2026-06-30'
-        },
-        {
-          id: 2,
-          name: 'Las Vegas Grinders League',
-          description: 'Weekly cash game leaderboard for hours played and session wins.',
-          organizer_name: 'LV Poker Club',
-          status: 'active',
-          player_count: 89,
-          events_count: 24,
-          prize_pool: 25000,
-          season_start: '2026-01-01',
-          season_end: '2026-03-31'
-        },
-        {
-          id: 3,
-          name: 'Spring Freeroll Series',
-          description: 'Free entry tournaments with guaranteed prize pools.',
-          organizer_name: 'Smarter Poker',
-          status: 'upcoming',
-          player_count: 42,
-          events_count: 8,
-          prize_pool: 10000,
-          season_start: '2026-03-01',
-          season_end: '2026-05-31'
-        }
-      ]);
-      setMyLeagues([
-        {
-          id: 1,
-          name: 'Texas Poker Championship',
-          my_rank: 23,
-          my_points: 1250,
-          events_played: 5
-        }
-      ]);
+      console.error('Fetch leagues failed:', err);
+      setLeagues([]);
+      setMyLeagues([]);
     } finally {
       setLoading(false);
     }

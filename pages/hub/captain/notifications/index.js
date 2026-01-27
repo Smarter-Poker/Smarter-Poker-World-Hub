@@ -134,14 +134,8 @@ export default function PlayerNotificationsPage() {
         setNotifications(data.data?.notifications || []);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Mock data for demo
-      setNotifications([
-        { id: 1, type: 'seat_available', title: 'Seat Available', message: 'A seat is now available at your $1/$3 NLHE game', venue_name: 'Bellagio Poker Room', created_at: new Date().toISOString(), read_at: null },
-        { id: 2, type: 'promotion', title: 'High Hand Bonus', message: '$500 high hand bonus now active until 2 AM', venue_name: 'Bellagio Poker Room', created_at: new Date(Date.now() - 3600000).toISOString(), read_at: null },
-        { id: 3, type: 'tournament', title: 'Tournament Starting', message: 'The $200 NLH tournament starts in 30 minutes', venue_name: 'Aria Poker Room', created_at: new Date(Date.now() - 7200000).toISOString(), read_at: new Date().toISOString() },
-        { id: 4, type: 'announcement', title: 'Room Update', message: 'New tables added - now running 15 games!', venue_name: 'Wynn Poker Room', created_at: new Date(Date.now() - 86400000).toISOString(), read_at: new Date().toISOString() },
-      ]);
+      console.error('Fetch notifications failed:', err);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }

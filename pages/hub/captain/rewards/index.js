@@ -124,18 +124,12 @@ export default function PlayerRewardsPage() {
         setEarnRate(ratesData.data?.rate_per_hour || 1);
       }
     } catch (err) {
-      console.error('Fetch failed:', err);
-      // Set mock data for demo
-      setBalance(125);
-      setLifetimeEarned(850);
-      setHoursPlayed(425);
-      setEarnRate(2);
-      setTransactions([
-        { id: 1, type: 'earn', amount: 8, description: '4 hours at $1/$2 NLHE', created_at: new Date().toISOString() },
-        { id: 2, type: 'redeem', amount: 15, description: 'Food voucher', created_at: new Date(Date.now() - 86400000).toISOString() },
-        { id: 3, type: 'earn', amount: 12, description: '6 hours at $2/$5 NLHE', created_at: new Date(Date.now() - 172800000).toISOString() },
-        { id: 4, type: 'earn', amount: 6, description: '3 hours at $1/$2 NLHE', created_at: new Date(Date.now() - 259200000).toISOString() },
-      ]);
+      console.error('Fetch rewards failed:', err);
+      setBalance(0);
+      setLifetimeEarned(0);
+      setHoursPlayed(0);
+      setEarnRate(1);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }

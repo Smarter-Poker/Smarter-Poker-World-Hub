@@ -87,6 +87,35 @@ async function handleCreate(req, res) {
     });
   }
 
+  // Verify venue exists
+  const { data: venue } = await supabase
+    .from('poker_venues')
+    .select('id')
+    .eq('id', venue_id)
+    .single();
+
+  if (!venue) {
+    return res.status(404).json({
+      success: false,
+      error: { code: 'NOT_FOUND', message: 'Venue not found' }
+    });
+  }
+
+  // Verify staff member exists
+  const { data: staff } = await supabase
+    .from('captain_staff')
+    .select('id')
+    .eq('id', reported_by)
+    .eq('venue_id', venue_id)
+    .single();
+
+  if (!staff) {
+    return res.status(403).json({
+      success: false,
+      error: { code: 'FORBIDDEN', message: 'Invalid staff member' }
+    });
+  }
+
   try {
     const { data: incident, error } = await supabase
       .from('captain_incidents')
