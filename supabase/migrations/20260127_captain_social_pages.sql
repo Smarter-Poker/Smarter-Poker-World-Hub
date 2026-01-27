@@ -12,7 +12,7 @@
 
 CREATE TABLE IF NOT EXISTS captain_venue_posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
 
   -- Author (staff member)
   author_id UUID REFERENCES profiles(id),
@@ -86,7 +86,7 @@ CREATE INDEX IF NOT EXISTS idx_home_posts_group ON captain_home_posts(group_id, 
 
 CREATE TABLE IF NOT EXISTS captain_venue_photos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
 
   -- Uploader
   uploaded_by UUID REFERENCES profiles(id),
@@ -118,7 +118,7 @@ CREATE INDEX IF NOT EXISTS idx_venue_photos_venue ON captain_venue_photos(venue_
 
 CREATE TABLE IF NOT EXISTS captain_venue_reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
   reviewer_id UUID REFERENCES profiles(id),
 
   -- Rating
@@ -164,7 +164,7 @@ CREATE INDEX IF NOT EXISTS idx_venue_reviews_rating ON captain_venue_reviews(ven
 
 CREATE TABLE IF NOT EXISTS captain_venue_followers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
 
   -- Notification preferences
