@@ -610,7 +610,7 @@ export default function WorldHub() {
                 width: '100vw',
                 height: '100vh',
                 background: 'linear-gradient(180deg, #0a0a12 0%, #050510 50%, #0a1218 100%)',
-                overflow: 'hidden',
+                overflow: 'visible',
                 opacity: showIntro ? 0 : 1,
                 transition: 'opacity 0.5s ease-out',
                 pointerEvents: showIntro ? 'none' : 'auto',
