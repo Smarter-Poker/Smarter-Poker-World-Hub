@@ -12,6 +12,33 @@ const supabase = createClient(
 
 const VALID_STATUSES = ['available', 'in_use', 'reserved', 'maintenance'];
 
+async function verifyStaffAuth(req, res) {
+  const staffSession = req.headers['x-staff-session'];
+  if (!staffSession) {
+    return { error: { status: 401, code: 'AUTH_REQUIRED', message: 'Staff authentication required' } };
+  }
+
+  let sessionData;
+  try {
+    sessionData = JSON.parse(staffSession);
+  } catch {
+    return { error: { status: 401, code: 'INVALID_SESSION', message: 'Invalid session format' } };
+  }
+
+  const { data: staff, error: staffError } = await supabase
+    .from('captain_staff')
+    .select('id, venue_id, role, is_active')
+    .eq('id', sessionData.id)
+    .eq('is_active', true)
+    .single();
+
+  if (staffError || !staff) {
+    return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff member not found or inactive' } };
+  }
+
+  return { staff };
+}
+
 export default async function handler(req, res) {
   const { id } = req.query;
 
@@ -85,7 +112,14 @@ async function handleGet(req, res, tableId) {
 
 async function handlePatch(req, res, tableId) {
   try {
-    // TODO: Add staff authentication check
+    // Verify staff authentication
+    const authResult = await verifyStaffAuth(req, res);
+    if (authResult.error) {
+      return res.status(authResult.error.status).json({
+        success: false,
+        error: { code: authResult.error.code, message: authResult.error.message }
+      });
+    }
 
     const { table_name, max_seats, status, features, position_x, position_y } = req.body;
 
@@ -165,7 +199,14 @@ async function handlePatch(req, res, tableId) {
 
 async function handleDelete(req, res, tableId) {
   try {
-    // TODO: Add staff authentication check
+    // Verify staff authentication
+    const authResult = await verifyStaffAuth(req, res);
+    if (authResult.error) {
+      return res.status(authResult.error.status).json({
+        success: false,
+        error: { code: authResult.error.code, message: authResult.error.message }
+      });
+    }
 
     // Verify table exists and is not in use
     const { data: table, error: fetchError } = await supabase

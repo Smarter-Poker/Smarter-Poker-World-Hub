@@ -80,7 +80,39 @@ async function handleGet(req, res) {
 
 async function handlePost(req, res) {
   try {
-    // TODO: Add staff authentication check
+    // Verify staff authentication
+    const staffSession = req.headers['x-staff-session'];
+    if (!staffSession) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Staff authentication required' }
+      });
+    }
+
+    let sessionData;
+    try {
+      sessionData = JSON.parse(staffSession);
+    } catch {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_SESSION', message: 'Invalid session format' }
+      });
+    }
+
+    // Verify staff exists and is active
+    const { data: staff, error: staffError } = await supabase
+      .from('captain_staff')
+      .select('id, venue_id, role, is_active')
+      .eq('id', sessionData.id)
+      .eq('is_active', true)
+      .single();
+
+    if (staffError || !staff) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_STAFF', message: 'Staff member not found or inactive' }
+      });
+    }
 
     const {
       venue_id,
