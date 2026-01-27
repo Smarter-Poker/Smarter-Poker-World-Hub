@@ -4,6 +4,7 @@
  * GET /api/captain/dealers/rotations - Get current rotations
  */
 import { createClient } from '@supabase/supabase-js';
+import { requireStaff } from '../../../../src/lib/captain/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -27,16 +28,20 @@ export default async function handler(req, res) {
 }
 
 async function getRotations(req, res) {
+  const { venue_id } = req.query;
+
+  if (!venue_id) {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'MISSING_FIELDS', message: 'venue_id is required' }
+    });
+  }
+
+  // Require staff auth
+  const staff = await requireStaff(req, res, venue_id);
+  if (!staff) return;
+
   try {
-    const { venue_id } = req.query;
-
-    if (!venue_id) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'MISSING_FIELDS', message: 'venue_id is required' }
-      });
-    }
-
     // Get active dealer assignments
     const { data: rotations, error } = await supabase
       .from('captain_dealer_assignments')
@@ -68,16 +73,20 @@ async function getRotations(req, res) {
 }
 
 async function createRotation(req, res) {
+  const { venue_id, dealer_id, table_id, game_id, action } = req.body;
+
+  if (!venue_id || !dealer_id) {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'MISSING_FIELDS', message: 'venue_id and dealer_id are required' }
+    });
+  }
+
+  // Require floor staff or higher to manage rotations
+  const staff = await requireStaff(req, res, venue_id, ['owner', 'manager', 'floor']);
+  if (!staff) return;
+
   try {
-    const { venue_id, dealer_id, table_id, game_id, action } = req.body;
-
-    if (!venue_id || !dealer_id) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'MISSING_FIELDS', message: 'venue_id and dealer_id are required' }
-      });
-    }
-
     // Verify dealer belongs to venue
     const { data: dealer, error: dealerError } = await supabase
       .from('captain_dealers')

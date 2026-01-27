@@ -5,6 +5,7 @@
  * Per API_REFERENCE.md
  */
 import { createClient } from '@supabase/supabase-js';
+import { requireStaff } from '../../../../../src/lib/captain/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -27,6 +28,10 @@ export default async function handler(req, res) {
       error: { code: 'VALIDATION_ERROR', message: 'venue_id required' }
     });
   }
+
+  // Require floor staff or higher for table balance suggestions
+  const staff = await requireStaff(req, res, venueId, ['owner', 'manager', 'floor']);
+  if (!staff) return;
 
   try {
     // Get all running games at this venue

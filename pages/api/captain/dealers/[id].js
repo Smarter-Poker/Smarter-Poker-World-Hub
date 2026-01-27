@@ -5,6 +5,7 @@
  * DELETE /api/captain/dealers/:id
  */
 import { createClient } from '@supabase/supabase-js';
+import { requireStaff } from '../../../../src/lib/captain/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -30,6 +31,24 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, id) {
   try {
+    // First get dealer to find venue_id
+    const { data: dealerCheck } = await supabase
+      .from('captain_dealers')
+      .select('venue_id')
+      .eq('id', id)
+      .single();
+
+    if (!dealerCheck) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Dealer not found' }
+      });
+    }
+
+    // Require staff auth at this venue
+    const staff = await requireStaff(req, res, dealerCheck.venue_id);
+    if (!staff) return;
+
     const { data: dealer, error } = await supabase
       .from('captain_dealers')
       .select(`
@@ -67,6 +86,24 @@ async function handleGet(req, res, id) {
 }
 
 async function handleUpdate(req, res, id) {
+  // First get dealer to find venue_id
+  const { data: dealerCheck } = await supabase
+    .from('captain_dealers')
+    .select('venue_id')
+    .eq('id', id)
+    .single();
+
+  if (!dealerCheck) {
+    return res.status(404).json({
+      success: false,
+      error: { code: 'NOT_FOUND', message: 'Dealer not found' }
+    });
+  }
+
+  // Require manager auth to update dealers
+  const staff = await requireStaff(req, res, dealerCheck.venue_id, ['owner', 'manager']);
+  if (!staff) return;
+
   const updates = req.body;
 
   try {
@@ -96,6 +133,24 @@ async function handleUpdate(req, res, id) {
 }
 
 async function handleDelete(req, res, id) {
+  // First get dealer to find venue_id
+  const { data: dealerCheck } = await supabase
+    .from('captain_dealers')
+    .select('venue_id')
+    .eq('id', id)
+    .single();
+
+  if (!dealerCheck) {
+    return res.status(404).json({
+      success: false,
+      error: { code: 'NOT_FOUND', message: 'Dealer not found' }
+    });
+  }
+
+  // Require manager auth to delete dealers
+  const staff = await requireStaff(req, res, dealerCheck.venue_id, ['owner', 'manager']);
+  if (!staff) return;
+
   try {
     const { error } = await supabase
       .from('captain_dealers')
