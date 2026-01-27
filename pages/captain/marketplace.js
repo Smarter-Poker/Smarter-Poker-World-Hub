@@ -27,6 +27,151 @@ import {
 
 const GAME_TYPES = ['nlhe', 'plo', 'plo8', 'mixed', 'stud', 'razz', 'omaha'];
 
+function RentEquipmentModal({ isOpen, onClose, equipment, venueId }) {
+  const [formData, setFormData] = useState({
+    start_date: '',
+    end_date: '',
+    notes: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  // Calculate days
+  const days = formData.start_date && formData.end_date
+    ? Math.max(1, Math.ceil((new Date(formData.end_date) - new Date(formData.start_date)) / (1000 * 60 * 60 * 24)) + 1)
+    : 1;
+
+  async function handleSubmit() {
+    if (!formData.start_date || !formData.end_date) return;
+
+    setSubmitting(true);
+    try {
+      const staffSession = localStorage.getItem('captain_staff');
+      const res = await fetch(`/api/captain/marketplace/equipment/${equipment.id}/rent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-staff-session': staffSession
+        },
+        body: JSON.stringify({
+          venue_id: venueId,
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          notes: formData.notes
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setSuccess(true);
+        setTimeout(() => {
+          onClose();
+          setSuccess(false);
+          setFormData({ start_date: '', end_date: '', notes: '' });
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Rent equipment failed:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!isOpen || !equipment) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB]">
+          <h3 className="text-lg font-semibold text-[#1F2937]">Request Equipment Rental</h3>
+          <button onClick={onClose} className="p-2 hover:bg-[#F3F4F6] rounded-lg">
+            <X className="w-5 h-5 text-[#6B7280]" />
+          </button>
+        </div>
+
+        {success ? (
+          <div className="p-8 text-center">
+            <CheckCircle className="w-12 h-12 text-[#10B981] mx-auto mb-3" />
+            <p className="font-semibold text-[#1F2937]">Rental Request Sent</p>
+            <p className="text-sm text-[#6B7280]">The equipment owner will be notified</p>
+          </div>
+        ) : (
+          <>
+            <div className="p-4 space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-[#F3F4F6] rounded-lg">
+                <div className="w-12 h-12 bg-[#10B981]/10 rounded-lg flex items-center justify-center">
+                  <Package className="w-6 h-6 text-[#10B981]" />
+                </div>
+                <div>
+                  <p className="font-semibold text-[#1F2937]">{equipment.name}</p>
+                  <p className="text-sm text-[#6B7280]">${equipment.daily_rate}/day</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#1F2937] mb-2">Start Date</label>
+                <input
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#1F2937] mb-2">End Date</label>
+                <input
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
+                  min={formData.start_date || new Date().toISOString().split('T')[0]}
+                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981]"
+                />
+              </div>
+
+              <div className="p-3 bg-[#F9FAFB] rounded-lg">
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#6B7280]">Duration</span>
+                  <span className="font-medium text-[#1F2937]">{days} day{days > 1 ? 's' : ''}</span>
+                </div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-[#6B7280]">Estimated Cost</span>
+                  <span className="font-semibold text-[#1F2937]">
+                    ${(equipment.daily_rate || 50) * days}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#1F2937] mb-2">Notes (Optional)</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Pickup location, special requirements..."
+                  rows={2}
+                  className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981] resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-[#E5E7EB]">
+              <button
+                onClick={handleSubmit}
+                disabled={!formData.start_date || !formData.end_date || submitting}
+                className="w-full h-12 bg-[#10B981] text-white font-semibold rounded-lg hover:bg-[#059669] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Package className="w-5 h-5" />}
+                Send Rental Request
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function BookDealerModal({ isOpen, onClose, dealer, venueId }) {
   const [formData, setFormData] = useState({
     date: '',
@@ -310,6 +455,8 @@ export default function MarketplacePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDealer, setSelectedDealer] = useState(null);
   const [showBookModal, setShowBookModal] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [showRentModal, setShowRentModal] = useState(false);
 
   useEffect(() => {
     const storedStaff = localStorage.getItem('captain_staff');
@@ -362,8 +509,8 @@ export default function MarketplacePage() {
   }
 
   function handleRentEquipment(item) {
-    // For now, just alert - could open a modal similar to book dealer
-    alert(`Request to rent "${item.name}" - Feature coming soon!`);
+    setSelectedEquipment(item);
+    setShowRentModal(true);
   }
 
   const filteredDealers = dealers.filter(d =>
@@ -500,6 +647,16 @@ export default function MarketplacePage() {
           setSelectedDealer(null);
         }}
         dealer={selectedDealer}
+        venueId={venueId}
+      />
+
+      <RentEquipmentModal
+        isOpen={showRentModal}
+        onClose={() => {
+          setShowRentModal(false);
+          setSelectedEquipment(null);
+        }}
+        equipment={selectedEquipment}
         venueId={venueId}
       />
     </>
