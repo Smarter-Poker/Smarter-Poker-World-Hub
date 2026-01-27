@@ -173,26 +173,11 @@ async function processNotification(notification, channel, phone) {
   try {
     switch (channel) {
       case 'sms':
-        // TODO: Integrate with Twilio (Step 1.6)
-        // For now, just mark as sent
-        await supabase
-          .from('captain_notifications')
-          .update({
-            status: 'sent',
-            sent_at: new Date().toISOString()
-          })
-          .eq('id', notification.id);
+        await sendSmsNotification(notification, phone);
         break;
 
       case 'push':
-        // TODO: Integrate with FCM
-        await supabase
-          .from('captain_notifications')
-          .update({
-            status: 'sent',
-            sent_at: new Date().toISOString()
-          })
-          .eq('id', notification.id);
+        await sendPushNotification(notification);
         break;
 
       case 'in_app':
@@ -207,10 +192,257 @@ async function processNotification(notification, channel, phone) {
         break;
 
       case 'email':
-        // TODO: Integrate with email service
+        // TODO: Integrate with email service (SendGrid/Resend)
+        await supabase
+          .from('captain_notifications')
+          .update({
+            status: 'pending',
+            metadata: { ...notification.metadata, email_pending: true }
+          })
+          .eq('id', notification.id);
         break;
     }
   } catch (error) {
     console.error(`Error processing ${channel} notification:`, error);
+    await supabase
+      .from('captain_notifications')
+      .update({
+        status: 'failed',
+        metadata: { ...notification.metadata, error: error.message }
+      })
+      .eq('id', notification.id);
+  }
+}
+
+async function sendSmsNotification(notification, phone) {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+
+  if (!accountSid || !authToken || !fromNumber) {
+    console.log('Twilio not configured, marking SMS as pending');
+    await supabase
+      .from('captain_notifications')
+      .update({ status: 'pending' })
+      .eq('id', notification.id);
+    return;
+  }
+
+  // Get phone number from notification or player profile
+  let toPhone = phone;
+  if (!toPhone && notification.player_id) {
+    const { data: player } = await supabase
+      .from('captain_players')
+      .select('phone')
+      .eq('player_id', notification.player_id)
+      .eq('venue_id', notification.venue_id)
+      .single();
+    toPhone = player?.phone;
+  }
+
+  if (!toPhone) {
+    await supabase
+      .from('captain_notifications')
+      .update({
+        status: 'failed',
+        metadata: { ...notification.metadata, error: 'No phone number available' }
+      })
+      .eq('id', notification.id);
+    return;
+  }
+
+  try {
+    const client = require('twilio')(accountSid, authToken);
+    const result = await client.messages.create({
+      body: notification.message,
+      from: fromNumber,
+      to: toPhone,
+      statusCallback: `${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/captain/webhooks/twilio/status`
+    });
+
+    await supabase
+      .from('captain_notifications')
+      .update({
+        status: 'sent',
+        sent_at: new Date().toISOString(),
+        metadata: { ...notification.metadata, message_sid: result.sid }
+      })
+      .eq('id', notification.id);
+  } catch (error) {
+    console.error('Twilio SMS error:', error);
+    await supabase
+      .from('captain_notifications')
+      .update({
+        status: 'failed',
+        metadata: { ...notification.metadata, error: error.message }
+      })
+      .eq('id', notification.id);
+  }
+}
+
+async function sendPushNotification(notification) {
+  const appId = process.env.ONESIGNAL_APP_ID;
+  const apiKey = process.env.ONESIGNAL_REST_API_KEY;
+
+  if (!appId || !apiKey) {
+    console.log('OneSignal not configured, marking push as pending');
+    await supabase
+      .from('captain_notifications')
+      .update({ status: 'pending' })
+      .eq('id', notification.id);
+    return;
+  }
+
+  // Get player's push subscriptions
+  const { data: subscriptions } = await supabase
+    .from('captain_push_subscriptions')
+    .select('subscription_data, endpoint')
+    .eq('user_id', notification.player_id)
+    .eq('is_active', true);
+
+  if (!subscriptions || subscriptions.length === 0) {
+    // No push subscription, try sending by external_user_id (player_id)
+    try {
+      const response = await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${apiKey}`
+        },
+        body: JSON.stringify({
+          app_id: appId,
+          include_external_user_ids: [notification.player_id],
+          headings: { en: notification.title },
+          contents: { en: notification.message },
+          data: {
+            notification_id: notification.id,
+            type: notification.notification_type,
+            venue_id: notification.venue_id,
+            ...notification.metadata
+          }
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.id) {
+        await supabase
+          .from('captain_notifications')
+          .update({
+            status: 'sent',
+            sent_at: new Date().toISOString(),
+            metadata: { ...notification.metadata, onesignal_id: result.id }
+          })
+          .eq('id', notification.id);
+      } else {
+        await supabase
+          .from('captain_notifications')
+          .update({
+            status: 'failed',
+            metadata: { ...notification.metadata, error: result.errors?.[0] || 'No recipients' }
+          })
+          .eq('id', notification.id);
+      }
+    } catch (error) {
+      console.error('OneSignal push error:', error);
+      await supabase
+        .from('captain_notifications')
+        .update({
+          status: 'failed',
+          metadata: { ...notification.metadata, error: error.message }
+        })
+        .eq('id', notification.id);
+    }
+    return;
+  }
+
+  // Send to all active subscriptions
+  try {
+    const playerIds = subscriptions
+      .map(s => s.subscription_data?.playerId)
+      .filter(Boolean);
+
+    if (playerIds.length === 0) {
+      // Fallback to external_user_id
+      const response = await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${apiKey}`
+        },
+        body: JSON.stringify({
+          app_id: appId,
+          include_external_user_ids: [notification.player_id],
+          headings: { en: notification.title },
+          contents: { en: notification.message },
+          data: {
+            notification_id: notification.id,
+            type: notification.notification_type,
+            venue_id: notification.venue_id,
+            ...notification.metadata
+          }
+        })
+      });
+
+      const result = await response.json();
+
+      await supabase
+        .from('captain_notifications')
+        .update({
+          status: result.id ? 'sent' : 'failed',
+          sent_at: result.id ? new Date().toISOString() : null,
+          metadata: {
+            ...notification.metadata,
+            onesignal_id: result.id,
+            error: result.errors?.[0]
+          }
+        })
+        .eq('id', notification.id);
+      return;
+    }
+
+    const response = await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${apiKey}`
+      },
+      body: JSON.stringify({
+        app_id: appId,
+        include_player_ids: playerIds,
+        headings: { en: notification.title },
+        contents: { en: notification.message },
+        data: {
+          notification_id: notification.id,
+          type: notification.notification_type,
+          venue_id: notification.venue_id,
+          ...notification.metadata
+        }
+      })
+    });
+
+    const result = await response.json();
+
+    await supabase
+      .from('captain_notifications')
+      .update({
+        status: result.id ? 'sent' : 'failed',
+        sent_at: result.id ? new Date().toISOString() : null,
+        metadata: {
+          ...notification.metadata,
+          onesignal_id: result.id,
+          recipients: result.recipients
+        }
+      })
+      .eq('id', notification.id);
+  } catch (error) {
+    console.error('OneSignal push error:', error);
+    await supabase
+      .from('captain_notifications')
+      .update({
+        status: 'failed',
+        metadata: { ...notification.metadata, error: error.message }
+      })
+      .eq('id', notification.id);
   }
 }
