@@ -13,7 +13,7 @@
    - Bottom navigation icons
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -121,6 +121,22 @@ export default function DiamondArcade() {
     const [gameResult, setGameResult] = useState(null);
     const timerRef = useRef(null);
     const questionStartTime = useRef(0);
+
+    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+    // Only show once per session (not on every reload)
+    const [showIntro, setShowIntro] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return !sessionStorage.getItem('diamond-arcade-intro-seen');
+        }
+        return false;
+    });
+    const introVideoRef = useRef(null);
+
+    // Mark intro as seen when it ends
+    const handleIntroEnd = useCallback(() => {
+        sessionStorage.setItem('diamond-arcade-intro-seen', 'true');
+        setShowIntro(false);
+    }, []);
 
     // Today's featured games matching mockup
     const todaysFeatured = [
@@ -268,6 +284,57 @@ export default function DiamondArcade() {
 
     return (
         <>
+            {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {showIntro && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 99999,
+                    background: '#000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <video
+                        ref={introVideoRef}
+                        src="/videos/diamond-arcade-intro.mp4"
+                        autoPlay
+                        muted
+                        playsInline
+                        onEnded={handleIntroEnd}
+                        onError={handleIntroEnd}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                        }}
+                    />
+                    {/* Skip button */}
+                    <button
+                        onClick={handleIntroEnd}
+                        style={{
+                            position: 'absolute',
+                            top: 20,
+                            right: 20,
+                            padding: '8px 20px',
+                            background: 'rgba(255,255,255,0.2)',
+                            backdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            borderRadius: 20,
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            zIndex: 100000
+                        }}
+                    >
+                        Skip
+                    </button>
+                </div>
+            )}
             <Head>
                 <title>Diamond Arcade - Smarter.Poker</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
