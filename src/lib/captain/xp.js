@@ -47,6 +47,18 @@ export const CAPTAIN_XP_EVENTS = {
   'review.left': {
     xp: 10,
     description: 'Left a review'
+  },
+  'promotion_win': {
+    xp: 50,
+    description: 'Won a promotion'
+  },
+  'high_hand': {
+    xp: 75,
+    description: 'Hit a high hand'
+  },
+  'leaderboard.placed': {
+    xp: 25,
+    description: 'Placed on leaderboard'
   }
 };
 
