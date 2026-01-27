@@ -87,30 +87,9 @@ export default function VenueDetailPage() {
       }
     } catch (err) {
       console.error('Fetch failed:', err);
-      // Mock data
-      setVenue({
-        id: 1,
-        name: 'Bellagio Poker Room',
-        city: 'Las Vegas',
-        state: 'NV',
-        address: '3600 S Las Vegas Blvd',
-        phone: '702-693-7111',
-        website: 'https://bellagio.mgmresorts.com/poker',
-        hours: '24/7',
-        rating: 4.8,
-        total_tables: 40,
-        description: 'World-famous poker room featuring high stakes action and regular tournaments.'
-      });
-      setGames([
-        { id: 1, stakes: '$1/$3', game_type: 'nlhe', table_number: 1, player_count: 9, max_players: 9, waitlist_count: 5 },
-        { id: 2, stakes: '$2/$5', game_type: 'nlhe', table_number: 3, player_count: 8, max_players: 9, waitlist_count: 3 },
-        { id: 3, stakes: '$5/$10', game_type: 'nlhe', table_number: 5, player_count: 6, max_players: 9, waitlist_count: 0 },
-        { id: 4, stakes: '$1/$2', game_type: 'plo', table_number: 7, player_count: 7, max_players: 9, waitlist_count: 2 },
-      ]);
-      setPromotions([
-        { id: 1, name: 'High Hand Bonus', prize_amount: 500, frequency: 'hourly', is_active: true },
-        { id: 2, name: 'Bad Beat Jackpot', prize_amount: 150000, frequency: 'progressive', is_active: true }
-      ]);
+      setVenue(null);
+      setGames([]);
+      setPromotions([]);
     } finally {
       setLoading(false);
     }

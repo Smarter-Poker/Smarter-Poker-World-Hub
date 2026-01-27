@@ -156,45 +156,7 @@ export default function HandDetailPage() {
       }
     } catch (err) {
       console.error('Fetch failed:', err);
-      // Mock data
-      setHand({
-        id: handId,
-        hand_number: 47,
-        game_type: '$2/$5 NLH',
-        venue_name: 'Bellagio Poker Room',
-        player_seat: 4,
-        player_cards: ['As', 'Kh'],
-        board: ['Ah', '7c', '2d', 'Kd', '9s'],
-        pot_size: 450,
-        profit: 225,
-        result: 'won',
-        winning_hand: 'Two Pair - Aces and Kings',
-        created_at: new Date().toISOString(),
-        actions_by_street: {
-          preflop: [
-            { seat: 1, action: 'Fold' },
-            { seat: 2, action: 'Raise', amount: 15, pot_after: 22 },
-            { seat: 3, action: 'Call', amount: 15, pot_after: 37 },
-            { seat: 4, action: 'Raise', amount: 50, pot_after: 87 },
-            { seat: 2, action: 'Call', amount: 35, pot_after: 122 },
-            { seat: 3, action: 'Fold' }
-          ],
-          flop: [
-            { seat: 2, action: 'Check' },
-            { seat: 4, action: 'Bet', amount: 75, pot_after: 197 },
-            { seat: 2, action: 'Call', amount: 75, pot_after: 272 }
-          ],
-          turn: [
-            { seat: 2, action: 'Check' },
-            { seat: 4, action: 'Bet', amount: 125, pot_after: 397 },
-            { seat: 2, action: 'Call', amount: 125, pot_after: 522 }
-          ],
-          river: [
-            { seat: 2, action: 'Check' },
-            { seat: 4, action: 'Check' }
-          ]
-        }
-      });
+      setHand(null);
     } finally {
       setLoading(false);
     }

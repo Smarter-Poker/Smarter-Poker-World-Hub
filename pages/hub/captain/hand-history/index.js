@@ -190,53 +190,7 @@ export default function HandHistoryPage() {
       }
     } catch (err) {
       console.error('Fetch hands failed:', err);
-      // Mock data
-      setHands([
-        {
-          id: 'h1',
-          hand_number: 47,
-          game_type: '$2/$5 NLH',
-          player_cards: ['As', 'Kh'],
-          board: ['Ah', '7c', '2d', 'Kd', '9s'],
-          pot_size: 450,
-          profit: 225,
-          result: 'won',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'h2',
-          hand_number: 46,
-          game_type: '$2/$5 NLH',
-          player_cards: ['Qh', 'Qd'],
-          board: ['Ks', 'Jc', '5h'],
-          pot_size: 85,
-          profit: -40,
-          result: 'lost',
-          created_at: new Date(Date.now() - 120000).toISOString()
-        },
-        {
-          id: 'h3',
-          hand_number: 45,
-          game_type: '$2/$5 NLH',
-          player_cards: ['9c', '9h'],
-          board: ['9s', '4c', '2d', 'Jh', 'Ac'],
-          pot_size: 320,
-          profit: 160,
-          result: 'won',
-          created_at: new Date(Date.now() - 300000).toISOString()
-        },
-        {
-          id: 'h4',
-          hand_number: 44,
-          game_type: '$2/$5 NLH',
-          player_cards: ['Jd', 'Td'],
-          board: [],
-          pot_size: 20,
-          profit: -10,
-          result: 'fold',
-          created_at: new Date(Date.now() - 420000).toISOString()
-        }
-      ]);
+      setHands([]);
     } finally {
       setHandsLoading(false);
     }

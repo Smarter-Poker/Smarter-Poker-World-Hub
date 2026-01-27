@@ -127,39 +127,9 @@ export default function LeagueDetailPage() {
       }
     } catch (err) {
       console.error('Fetch failed:', err);
-      // Mock data
-      setLeague({
-        id: id,
-        name: 'Texas Poker Championship',
-        description: 'Monthly tournament series across Texas card rooms. Earn points based on finishes and compete for the season championship and prize pool.',
-        organizer_name: 'Texas Poker Tour',
-        status: 'active',
-        player_count: 156,
-        events_count: 12,
-        prize_pool: 50000,
-        season_start: '2026-01-01',
-        season_end: '2026-06-30',
-        scoring_system: {
-          '1st': 100,
-          '2nd': 70,
-          '3rd': 50,
-          '4th-5th': 30,
-          '6th-10th': 20
-        }
-      });
-      setStandings([
-        { player_id: '1', player_name: 'Mike Johnson', points: 2450, events_played: 8, earnings: 5200, wins: 2 },
-        { player_id: '2', player_name: 'Sarah Williams', points: 2180, events_played: 7, earnings: 3800, wins: 1 },
-        { player_id: '3', player_name: 'Tom Davis', points: 1950, events_played: 9, earnings: 2500, wins: 1 },
-        { player_id: 'me', player_name: 'You', points: 1250, events_played: 5, earnings: 800, wins: 0 },
-        { player_id: '4', player_name: 'Alex Chen', points: 1100, events_played: 6, earnings: 600, wins: 0 }
-      ]);
-      setEvents([
-        { id: 1, name: 'Event #7 - NLH $200', venue_name: 'The Lodge', date: '2026-02-15', time: '7:00 PM', buyin: '$200' },
-        { id: 2, name: 'Event #8 - PLO $300', venue_name: 'TCH Houston', date: '2026-02-22', time: '6:00 PM', buyin: '$300' },
-        { id: 3, name: 'Event #6 - NLH $150', venue_name: 'The Lodge', date: '2026-02-01', time: '7:00 PM', buyin: '$150' }
-      ]);
-      setIsJoined(true);
+      setLeague(null);
+      setStandings([]);
+      setEvents([]);
     } finally {
       setLoading(false);
     }
@@ -186,7 +156,6 @@ export default function LeagueDetailPage() {
       }
     } catch (err) {
       console.error('Join failed:', err);
-      setIsJoined(true); // Mock success
     } finally {
       setJoining(false);
     }

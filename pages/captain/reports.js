@@ -91,6 +91,7 @@ export default function StaffReportsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [report, setReport] = useState(null);
+  const [exportMessage, setExportMessage] = useState(null);
 
   useEffect(() => {
     const storedStaff = localStorage.getItem('captain_staff');
@@ -144,9 +145,30 @@ export default function StaffReportsPage() {
     }
   }
 
-  function handleExport() {
-    // In production, this would generate a PDF or CSV
-    alert('Report export functionality would be implemented here');
+  async function handleExport() {
+    try {
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      const res = await fetch(`/api/captain/reports/export?venue_id=${venueId}&date=${dateStr}&format=csv`);
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `report-${dateStr}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        setExportMessage({ type: 'success', text: 'Report downloaded successfully' });
+      } else {
+        setExportMessage({ type: 'error', text: 'Failed to export report' });
+      }
+    } catch (err) {
+      console.error('Export failed:', err);
+      setExportMessage({ type: 'error', text: 'Export failed' });
+    }
+    setTimeout(() => setExportMessage(null), 3000);
   }
 
   const isToday = selectedDate.toDateString() === new Date().toDateString();
@@ -173,6 +195,17 @@ export default function StaffReportsPage() {
       </Head>
 
       <div className="min-h-screen bg-[#F9FAFB]">
+        {/* Export Message */}
+        {exportMessage && (
+          <div
+            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${
+              exportMessage.type === 'success' ? 'bg-[#10B981]' : 'bg-[#EF4444]'
+            }`}
+          >
+            {exportMessage.text}
+          </div>
+        )}
+
         {/* Header */}
         <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-4">
