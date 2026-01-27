@@ -3,7 +3,16 @@
  * POST /api/captain/webhooks/stripe/events - Handle Stripe webhook events
  */
 import { createClient } from '@supabase/supabase-js';
-import { buffer } from 'micro';
+
+// Helper to read raw body from request stream
+async function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -22,7 +31,7 @@ export default async function handler(req, res) {
 
   try {
     // Get raw body for signature verification
-    const rawBody = await buffer(req);
+    const rawBody = await getRawBody(req);
 
     // If Stripe is configured, verify signature
     if (endpointSecret && sig) {

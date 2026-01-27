@@ -12,7 +12,7 @@
 
 CREATE TABLE IF NOT EXISTS captain_venue_posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
 
   -- Author (staff member)
   author_id UUID REFERENCES profiles(id),
@@ -86,7 +86,7 @@ CREATE INDEX IF NOT EXISTS idx_home_posts_group ON captain_home_posts(group_id, 
 
 CREATE TABLE IF NOT EXISTS captain_venue_photos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
 
   -- Uploader
   uploaded_by UUID REFERENCES profiles(id),
@@ -118,7 +118,7 @@ CREATE INDEX IF NOT EXISTS idx_venue_photos_venue ON captain_venue_photos(venue_
 
 CREATE TABLE IF NOT EXISTS captain_venue_reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
   reviewer_id UUID REFERENCES profiles(id),
 
   -- Rating
@@ -164,7 +164,7 @@ CREATE INDEX IF NOT EXISTS idx_venue_reviews_rating ON captain_venue_reviews(ven
 
 CREATE TABLE IF NOT EXISTS captain_venue_followers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
 
   -- Notification preferences
@@ -291,22 +291,20 @@ CREATE POLICY "Users delete own follows" ON captain_venue_followers
 -- UPDATE poker_venues with social fields
 -- ===================
 
-ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS
-  cover_photo_url TEXT,
-  profile_photo_url TEXT,
-  tagline TEXT,
-  about TEXT,
-  follower_count INTEGER DEFAULT 0,
-  social_links JSONB DEFAULT '{}'; -- { "facebook": "...", "twitter": "...", "instagram": "..." }
+ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS cover_photo_url TEXT;
+ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS profile_photo_url TEXT;
+ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS tagline TEXT;
+ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS about TEXT;
+ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS follower_count INTEGER DEFAULT 0;
+ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}';
 
 -- ===================
 -- UPDATE captain_home_groups with social fields
 -- ===================
 
-ALTER TABLE captain_home_groups ADD COLUMN IF NOT EXISTS
-  cover_photo_url TEXT,
-  profile_photo_url TEXT,
-  tagline TEXT;
+ALTER TABLE captain_home_groups ADD COLUMN IF NOT EXISTS cover_photo_url TEXT;
+ALTER TABLE captain_home_groups ADD COLUMN IF NOT EXISTS profile_photo_url TEXT;
+ALTER TABLE captain_home_groups ADD COLUMN IF NOT EXISTS tagline TEXT;
 
 -- ===================
 -- FUNCTIONS
