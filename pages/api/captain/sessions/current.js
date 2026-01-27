@@ -1,6 +1,7 @@
 /**
  * Current Session API
  * GET /api/captain/sessions/current - Get player's active session
+ * Returns the player's current seat location if they are seated at a game
  */
 import { createClient } from '@supabase/supabase-js';
 
@@ -36,53 +37,73 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Find active session for this player
-    const { data: session, error } = await supabase
-      .from('captain_sessions')
+    // Find player's current seat (where they are actively seated in a running game)
+    const { data: seats, error } = await supabase
+      .from('captain_seats')
       .select(`
         id,
-        venue_id,
+        seat_number,
+        seated_at,
         game_id,
-        check_in_time,
-        check_out_time,
-        poker_venues:venue_id (id, name),
-        captain_games:game_id (
+        captain_games (
           id,
+          venue_id,
           game_type,
           stakes,
-          captain_tables:table_id (id, table_number)
-        ),
-        captain_seats:seat_id (id, seat_number)
+          status,
+          table_id
+        )
       `)
       .eq('player_id', user.id)
-      .is('check_out_time', null)
-      .order('check_in_time', { ascending: false })
-      .limit(1)
-      .single();
+      .eq('status', 'occupied')
+      .order('seated_at', { ascending: false });
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       throw error;
     }
 
-    if (!session) {
+    // Filter for active games
+    const activeSeat = seats?.find(s =>
+      s.captain_games && ['waiting', 'running'].includes(s.captain_games.status)
+    );
+
+    if (!activeSeat) {
       return res.status(200).json({
         success: true,
         data: { session: null }
       });
     }
 
+    // Get table info
+    let tableInfo = null;
+    if (activeSeat.captain_games.table_id) {
+      const { data: table } = await supabase
+        .from('captain_tables')
+        .select('id, table_number, table_name')
+        .eq('id', activeSeat.captain_games.table_id)
+        .single();
+      tableInfo = table;
+    }
+
+    // Get venue info
+    const { data: venue } = await supabase
+      .from('poker_venues')
+      .select('id, name')
+      .eq('id', activeSeat.captain_games.venue_id)
+      .single();
+
     // Format response
     const formattedSession = {
-      id: session.id,
-      venue_id: session.venue_id,
-      venue_name: session.poker_venues?.name || 'Unknown Venue',
-      game_id: session.game_id,
-      game_type: session.captain_games?.game_type || 'nlhe',
-      stakes: session.captain_games?.stakes || 'Unknown',
-      table_id: session.captain_games?.captain_tables?.id,
-      table_number: session.captain_games?.captain_tables?.table_number,
-      seat_number: session.captain_seats?.seat_number,
-      check_in_time: session.check_in_time
+      id: activeSeat.id,
+      venue_id: activeSeat.captain_games.venue_id,
+      venue_name: venue?.name || 'Unknown Venue',
+      game_id: activeSeat.captain_games.id,
+      game_type: activeSeat.captain_games.game_type,
+      stakes: activeSeat.captain_games.stakes,
+      table_id: tableInfo?.id,
+      table_number: tableInfo?.table_number,
+      seat_number: activeSeat.seat_number,
+      check_in_time: activeSeat.seated_at
     };
 
     return res.status(200).json({

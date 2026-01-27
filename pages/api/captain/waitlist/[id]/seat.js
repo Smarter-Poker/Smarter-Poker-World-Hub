@@ -193,7 +193,48 @@ export default async function handler(req, res) {
         signup_method: entry.signup_method
       });
 
-    // TODO: Award XP to player (Phase 2 - Step 2.6)
+    // Award XP to player for getting seated
+    if (entry.player_id) {
+      const XP_FOR_SEATED = 25; // Base XP for getting seated
+      const DIAMOND_FOR_SEATED = 1; // Bonus diamond for using Captain
+
+      // Create or update player session
+      const { data: existingSession } = await supabase
+        .from('captain_player_sessions')
+        .select('id, xp_earned, diamonds_earned')
+        .eq('venue_id', entry.venue_id)
+        .eq('player_id', entry.player_id)
+        .is('check_out_at', null)
+        .single();
+
+      if (existingSession) {
+        // Update existing session with XP
+        await supabase
+          .from('captain_player_sessions')
+          .update({
+            xp_earned: (existingSession.xp_earned || 0) + XP_FOR_SEATED,
+            diamonds_earned: (existingSession.diamonds_earned || 0) + DIAMOND_FOR_SEATED
+          })
+          .eq('id', existingSession.id);
+      } else {
+        // Create new session with XP
+        await supabase
+          .from('captain_player_sessions')
+          .insert({
+            venue_id: entry.venue_id,
+            player_id: entry.player_id,
+            check_in_at: now,
+            xp_earned: XP_FOR_SEATED,
+            diamonds_earned: DIAMOND_FOR_SEATED,
+            games_played: [{
+              game_id,
+              game_type: entry.game_type,
+              stakes: entry.stakes,
+              started_at: now
+            }]
+          });
+      }
+    }
 
     return res.status(200).json({
       success: true,
