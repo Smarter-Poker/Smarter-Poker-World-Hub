@@ -28,8 +28,26 @@ async function listRates(req, res) {
   try {
     const { venue_id, active_only = 'true' } = req.query;
 
+    // If no venue_id, return a default rate for display purposes
     if (!venue_id) {
-      return res.status(400).json({ error: 'Venue ID required' });
+      // Get any default rates for display
+      const { data: defaultRates } = await supabase
+        .from('captain_comp_rates')
+        .select('comp_value')
+        .eq('is_default', true)
+        .eq('is_active', true)
+        .eq('rate_type', 'hourly')
+        .limit(1);
+
+      const ratePerHour = defaultRates?.[0]?.comp_value || 1;
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          rates: [],
+          rate_per_hour: ratePerHour
+        }
+      });
     }
 
     let query = supabase
@@ -47,10 +65,23 @@ async function listRates(req, res) {
 
     if (error) throw error;
 
-    return res.status(200).json({ rates: data });
+    // Find the default hourly rate
+    const defaultRate = data?.find(r => r.is_default && r.rate_type === 'hourly');
+    const ratePerHour = defaultRate?.comp_value || 1;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        rates: data,
+        rate_per_hour: ratePerHour
+      }
+    });
   } catch (error) {
     console.error('List comp rates error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: error.message }
+    });
   }
 }
 
