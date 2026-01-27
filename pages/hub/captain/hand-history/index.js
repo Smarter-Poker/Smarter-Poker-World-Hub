@@ -171,39 +171,7 @@ export default function HandHistoryPage() {
       }
     } catch (err) {
       console.error('Fetch failed:', err);
-      // Mock data for demo
-      setSessions([
-        {
-          id: '1',
-          game_id: 'game-1',
-          venue_name: 'Bellagio Poker Room',
-          game_type: '$2/$5 NLH',
-          hands_played: 47,
-          profit: 385,
-          duration_hours: 4,
-          date: new Date().toISOString()
-        },
-        {
-          id: '2',
-          game_id: 'game-2',
-          venue_name: 'Aria Poker Room',
-          game_type: '$1/$2 NLH',
-          hands_played: 62,
-          profit: -120,
-          duration_hours: 5,
-          date: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          id: '3',
-          game_id: 'game-3',
-          venue_name: 'Wynn Poker Room',
-          game_type: '$5/$10 PLO',
-          hands_played: 31,
-          profit: 890,
-          duration_hours: 3,
-          date: new Date(Date.now() - 172800000).toISOString()
-        }
-      ]);
+      setSessions([]);
     } finally {
       setLoading(false);
     }
