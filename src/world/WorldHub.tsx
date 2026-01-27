@@ -493,11 +493,16 @@ export default function WorldHub() {
             'diamond-arena': '/videos/diamond-arena-intro.mp4',
         };
 
+        const targetRoute = `/hub/${cardId}`;
+
+        // Immediately start prefetching the page while video plays
+        router.prefetch(targetRoute);
+
         if (introVideos[cardId]) {
-            // Show intro video before navigating
-            setIntroVideo({ videoUrl: introVideos[cardId], targetRoute: `/hub/${cardId}` });
+            // Show intro video before navigating (page preloads in hidden iframe + prefetch)
+            setIntroVideo({ videoUrl: introVideos[cardId], targetRoute });
         } else {
-            router.push(`/hub/${cardId}`);
+            router.push(targetRoute);
         }
     };
 
@@ -514,11 +519,16 @@ export default function WorldHub() {
             'diamond-arena': '/videos/diamond-arena-intro.mp4',
         };
 
+        const targetRoute = `/hub/${orbId}`;
+
+        // Immediately start prefetching the page while video plays
+        router.prefetch(targetRoute);
+
         if (introVideos[orbId]) {
-            // Show intro video before navigating
-            setIntroVideo({ videoUrl: introVideos[orbId], targetRoute: `/hub/${orbId}` });
+            // Show intro video before navigating (page preloads in hidden iframe + prefetch)
+            setIntroVideo({ videoUrl: introVideos[orbId], targetRoute });
         } else {
-            router.push(`/hub/${orbId}`);
+            router.push(targetRoute);
         }
     };
 
@@ -560,6 +570,19 @@ export default function WorldHub() {
                     alignItems: 'center',
                     justifyContent: 'center',
                 }}>
+                    {/* Hidden iframe to preload the target page while video plays */}
+                    <iframe
+                        src={introVideo.targetRoute}
+                        style={{
+                            position: 'absolute',
+                            width: 1,
+                            height: 1,
+                            opacity: 0,
+                            pointerEvents: 'none',
+                            border: 'none',
+                        }}
+                        aria-hidden="true"
+                    />
                     <video
                         autoPlay
                         playsInline
