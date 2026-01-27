@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import {
   Users, Clock, Trophy, DollarSign, Smartphone, Monitor,
   Check, ChevronRight, Play, Star, ArrowRight, Zap,
@@ -140,7 +141,7 @@ function FeatureCard({ icon: Icon, title, description }) {
   );
 }
 
-function PricingCard({ plan, highlighted }) {
+function PricingCard({ plan, highlighted, onAction }) {
   return (
     <div
       className={`p-6 rounded-2xl border ${
@@ -169,6 +170,7 @@ function PricingCard({ plan, highlighted }) {
         ))}
       </ul>
       <button
+        onClick={() => onAction?.(plan)}
         className={`w-full py-3 rounded-xl font-medium transition-colors ${
           highlighted
             ? 'bg-blue-600 text-white hover:bg-blue-700'
@@ -182,7 +184,55 @@ function PricingCard({ plan, highlighted }) {
 }
 
 export default function CaptainLanding() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
+  const [showDemo, setShowDemo] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  function handleGetStarted() {
+    router.push('/captain/onboarding');
+  }
+
+  function handleFreeTrial() {
+    router.push('/captain/onboarding?plan=pro');
+  }
+
+  function handleContactSales() {
+    window.location.href = 'mailto:sales@smarter.poker?subject=Captain Enterprise Inquiry';
+  }
+
+  function handleWatchDemo() {
+    setShowDemo(true);
+  }
+
+  function handlePricingAction(plan) {
+    if (plan.name === 'Starter') {
+      handleGetStarted();
+    } else if (plan.name === 'Professional') {
+      handleFreeTrial();
+    } else if (plan.name === 'Enterprise') {
+      handleContactSales();
+    }
+  }
+
+  async function handleEmailSubmit() {
+    if (!email.trim()) return;
+    setSubmitting(true);
+    try {
+      // Store lead email
+      await fetch('/api/captain/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'landing_page' })
+      });
+      router.push(`/captain/onboarding?email=${encodeURIComponent(email)}`);
+    } catch (err) {
+      console.error('Submit error:', err);
+      router.push('/captain/onboarding');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <>
@@ -215,6 +265,7 @@ export default function CaptainLanding() {
                 Staff Login
               </Link>
               <button
+                onClick={handleGetStarted}
                 className="px-4 py-2 rounded-xl text-white font-medium"
                 style={{ backgroundColor: '#1877F2' }}
               >
@@ -238,13 +289,17 @@ export default function CaptainLanding() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
               <button
+                onClick={handleFreeTrial}
                 className="px-8 py-4 rounded-xl text-white font-semibold text-lg flex items-center gap-2"
                 style={{ backgroundColor: '#1877F2' }}
               >
                 Start Free Trial
                 <ArrowRight size={20} />
               </button>
-              <button className="px-8 py-4 rounded-xl border-2 border-gray-300 text-gray-700 font-semibold text-lg flex items-center gap-2 hover:border-gray-400">
+              <button
+                onClick={handleWatchDemo}
+                className="px-8 py-4 rounded-xl border-2 border-gray-300 text-gray-700 font-semibold text-lg flex items-center gap-2 hover:border-gray-400"
+              >
                 <Play size={20} />
                 Watch Demo
               </button>
@@ -310,7 +365,7 @@ export default function CaptainLanding() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               {PRICING.map((plan, i) => (
-                <PricingCard key={i} plan={plan} highlighted={plan.highlighted} />
+                <PricingCard key={i} plan={plan} highlighted={plan.highlighted} onAction={handlePricingAction} />
               ))}
             </div>
           </div>
@@ -359,10 +414,15 @@ export default function CaptainLanding() {
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleEmailSubmit()}
                 className="w-full sm:w-80 px-4 py-3 rounded-xl text-gray-900"
               />
-              <button className="w-full sm:w-auto px-8 py-3 rounded-xl bg-white text-blue-600 font-semibold hover:bg-gray-100">
-                Get Started
+              <button
+                onClick={handleEmailSubmit}
+                disabled={submitting}
+                className="w-full sm:w-auto px-8 py-3 rounded-xl bg-white text-blue-600 font-semibold hover:bg-gray-100 disabled:opacity-50"
+              >
+                {submitting ? 'Loading...' : 'Get Started'}
               </button>
             </div>
           </div>
@@ -379,15 +439,50 @@ export default function CaptainLanding() {
                 <span className="font-bold text-white">Smarter Captain</span>
               </div>
               <div className="flex items-center gap-6 text-sm">
-                <a href="#" className="hover:text-white">Privacy</a>
-                <a href="#" className="hover:text-white">Terms</a>
-                <a href="#" className="hover:text-white">Support</a>
-                <a href="#" className="hover:text-white">Contact</a>
+                <Link href="/privacy" className="hover:text-white">Privacy</Link>
+                <Link href="/terms" className="hover:text-white">Terms</Link>
+                <a href="mailto:support@smarter.poker" className="hover:text-white">Support</a>
+                <a href="mailto:contact@smarter.poker" className="hover:text-white">Contact</a>
               </div>
               <p className="text-sm">Part of Smarter.Poker</p>
             </div>
           </div>
         </footer>
+
+        {/* Demo Modal */}
+        {showDemo && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-4xl">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Smarter Captain Demo</h3>
+                <button
+                  onClick={() => setShowDemo(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="aspect-video bg-gray-900 flex items-center justify-center">
+                <div className="text-center text-white">
+                  <Play size={64} className="mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">Demo video coming soon</p>
+                  <p className="text-sm text-gray-400 mt-2">In the meantime, start your free trial to explore the platform</p>
+                  <button
+                    onClick={() => {
+                      setShowDemo(false);
+                      handleFreeTrial();
+                    }}
+                    className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+                  >
+                    Start Free Trial
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

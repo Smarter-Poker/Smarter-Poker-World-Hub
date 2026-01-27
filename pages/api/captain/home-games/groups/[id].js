@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     return getGroup(req, res, id);
   }
 
-  if (req.method === 'PUT') {
+  if (req.method === 'PUT' || req.method === 'PATCH') {
     return updateGroup(req, res, id);
   }
 
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     return deleteGroup(req, res, id);
   }
 
-  res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
+  res.setHeader('Allow', ['GET', 'PUT', 'PATCH', 'DELETE']);
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
@@ -193,7 +193,7 @@ async function updateGroup(req, res, id) {
 
     if (error) throw error;
 
-    return res.status(200).json({ group: updated });
+    return res.status(200).json({ success: true, group: updated });
   } catch (error) {
     console.error('Update group error:', error);
     return res.status(500).json({ error: error.message });

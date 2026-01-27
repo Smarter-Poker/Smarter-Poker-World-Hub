@@ -16,39 +16,46 @@ import AuditLogViewer from '../../../src/components/captain/admin/AuditLogViewer
 import ExportManager from '../../../src/components/captain/admin/ExportManager';
 
 // API Keys Modal
-function ApiKeysModal({ isOpen, onClose }) {
+function ApiKeysModal({ isOpen, onClose, venueId }) {
   const [apiKeys, setApiKeys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [showKey, setShowKey] = useState({});
   const [copiedKey, setCopiedKey] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (isOpen) loadApiKeys();
-  }, [isOpen]);
+    if (isOpen && venueId) loadApiKeys();
+  }, [isOpen, venueId]);
 
   async function loadApiKeys() {
+    if (!venueId) return;
     setLoading(true);
+    setError(null);
     try {
       const token = localStorage.getItem('smarter-poker-auth');
-      const res = await fetch('/api/captain/admin/api-keys', {
+      const res = await fetch(`/api/captain/admin/api-keys?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.success) {
         setApiKeys(data.data?.keys || []);
+      } else {
+        setError(data.error?.message || 'Failed to load API keys');
       }
     } catch (err) {
       console.error('Load API keys error:', err);
+      setError('Failed to load API keys');
     } finally {
       setLoading(false);
     }
   }
 
   async function handleCreateKey() {
-    if (!newKeyName.trim()) return;
+    if (!newKeyName.trim() || !venueId) return;
     setCreating(true);
+    setError(null);
     try {
       const token = localStorage.getItem('smarter-poker-auth');
       const res = await fetch('/api/captain/admin/api-keys', {
@@ -57,7 +64,7 @@ function ApiKeysModal({ isOpen, onClose }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ name: newKeyName })
+        body: JSON.stringify({ name: newKeyName, venue_id: venueId })
       });
       const data = await res.json();
       if (data.success) {
@@ -65,9 +72,12 @@ function ApiKeysModal({ isOpen, onClose }) {
         setNewKeyName('');
         // Show the new key briefly
         setShowKey({ [data.data.key.id]: true });
+      } else {
+        setError(data.error?.message || 'Failed to create API key');
       }
     } catch (err) {
       console.error('Create API key error:', err);
+      setError('Failed to create API key');
     } finally {
       setCreating(false);
     }
@@ -75,15 +85,22 @@ function ApiKeysModal({ isOpen, onClose }) {
 
   async function handleDeleteKey(keyId) {
     if (!confirm('Are you sure you want to delete this API key?')) return;
+    setError(null);
     try {
       const token = localStorage.getItem('smarter-poker-auth');
-      await fetch(`/api/captain/admin/api-keys/${keyId}`, {
+      const res = await fetch(`/api/captain/admin/api-keys/${keyId}?venue_id=${venueId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      setApiKeys(apiKeys.filter(k => k.id !== keyId));
+      const data = await res.json();
+      if (data.success) {
+        setApiKeys(apiKeys.filter(k => k.id !== keyId));
+      } else {
+        setError(data.error?.message || 'Failed to delete API key');
+      }
     } catch (err) {
       console.error('Delete API key error:', err);
+      setError('Failed to delete API key');
     }
   }
 
@@ -106,6 +123,11 @@ function ApiKeysModal({ isOpen, onClose }) {
         </div>
 
         <div className="p-4">
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+              {error}
+            </div>
+          )}
           <p className="text-sm text-gray-400 mb-4">
             API keys allow external systems to access Captain data. Keep your keys secure.
           </p>
@@ -698,6 +720,7 @@ export default function AdminDashboard() {
       <ApiKeysModal
         isOpen={showApiKeysModal}
         onClose={() => setShowApiKeysModal(false)}
+        venueId={selectedVenue?.id || venues[0]?.id}
       />
 
       <VenueSettingsModal

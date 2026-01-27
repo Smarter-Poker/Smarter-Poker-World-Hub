@@ -51,6 +51,216 @@ const HAND_RANKS = [
   { value: 1, label: 'High Card' }
 ];
 
+function EditPromoModal({ isOpen, onClose, onSubmit, promo, venueId }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    promo_type: 'high_hand',
+    description: '',
+    prize_amount: 500,
+    frequency: 'hourly',
+    start_time: '10:00',
+    end_time: '02:00',
+    days_active: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+    requirements: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+  useEffect(() => {
+    if (promo) {
+      setFormData({
+        name: promo.name || '',
+        promo_type: promo.promo_type || 'high_hand',
+        description: promo.description || '',
+        prize_amount: promo.prize_amount || 500,
+        frequency: promo.frequency || 'hourly',
+        start_time: promo.start_time?.slice(0, 5) || '10:00',
+        end_time: promo.end_time?.slice(0, 5) || '02:00',
+        days_active: promo.days_active || DAYS,
+        requirements: promo.requirements || ''
+      });
+    }
+  }, [promo]);
+
+  function toggleDay(day) {
+    setFormData(prev => ({
+      ...prev,
+      days_active: prev.days_active.includes(day)
+        ? prev.days_active.filter(d => d !== day)
+        : [...prev.days_active, day]
+    }));
+  }
+
+  async function handleSubmit() {
+    if (!formData.name.trim()) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/captain/promotions/${promo.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        onSubmit?.(data.data?.promotion);
+        onClose();
+      }
+    } catch (error) {
+      console.error('Update promo failed:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!isOpen || !promo) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB]">
+          <h3 className="text-lg font-semibold text-[#1F2937]">Edit Promotion</h3>
+          <button onClick={onClose} className="p-2 hover:bg-[#F3F4F6] rounded-lg">
+            <X className="w-5 h-5 text-[#6B7280]" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[#1F2937] mb-2">Promotion Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="e.g., High Hand Bonus"
+              className="w-full h-11 px-4 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#1F2937] mb-2">Type</label>
+            <div className="grid grid-cols-3 gap-2">
+              {PROMO_TYPES.map(({ value, label, icon: Icon, color }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, promo_type: value }))}
+                  className={`p-3 rounded-lg border text-center transition-colors ${
+                    formData.promo_type === value
+                      ? 'border-[#1877F2] bg-[#1877F2]/5'
+                      : 'border-[#E5E7EB] hover:bg-[#F3F4F6]'
+                  }`}
+                >
+                  <Icon className="w-5 h-5 mx-auto mb-1" style={{ color }} />
+                  <span className="text-xs font-medium text-[#1F2937]">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#1F2937] mb-2">Prize Amount</label>
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6B7280]" />
+              <input
+                type="number"
+                value={formData.prize_amount}
+                onChange={(e) => setFormData(prev => ({ ...prev, prize_amount: parseInt(e.target.value) || 0 }))}
+                className="w-full h-11 pl-10 pr-4 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#1F2937] mb-2">Frequency</label>
+            <div className="flex gap-2">
+              {['hourly', 'daily', 'weekly', 'once'].map((freq) => (
+                <button
+                  key={freq}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, frequency: freq }))}
+                  className={`flex-1 h-10 rounded-lg border font-medium text-sm capitalize transition-colors ${
+                    formData.frequency === freq
+                      ? 'border-[#1877F2] bg-[#1877F2] text-white'
+                      : 'border-[#E5E7EB] text-[#1F2937] hover:bg-[#F3F4F6]'
+                  }`}
+                >
+                  {freq}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[#1F2937] mb-2">Start Time</label>
+              <input
+                type="time"
+                value={formData.start_time}
+                onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
+                className="w-full h-11 px-4 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#1F2937] mb-2">End Time</label>
+              <input
+                type="time"
+                value={formData.end_time}
+                onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
+                className="w-full h-11 px-4 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#1F2937] mb-2">Active Days</label>
+            <div className="flex flex-wrap gap-2">
+              {DAYS.map((day) => (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleDay(day)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
+                    formData.days_active.includes(day)
+                      ? 'bg-[#1877F2] text-white'
+                      : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
+                  }`}
+                >
+                  {day.slice(0, 3)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#1F2937] mb-2">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Promotion details and rules..."
+              rows={2}
+              className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] resize-none"
+            />
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-[#E5E7EB]">
+          <button
+            onClick={handleSubmit}
+            disabled={!formData.name.trim() || submitting}
+            className="w-full h-12 bg-[#1877F2] text-white font-semibold rounded-lg hover:bg-[#1664d9] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CreatePromoModal({ isOpen, onClose, onSubmit, venueId }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -574,6 +784,8 @@ export default function PromotionsPage() {
   const [currentHighHand, setCurrentHighHand] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPromo, setEditingPromo] = useState(null);
   const [showHighHandModal, setShowHighHandModal] = useState(false);
   const [filter, setFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('promotions');
@@ -667,6 +879,11 @@ export default function PromotionsPage() {
     } catch (error) {
       console.error('Delete failed:', error);
     }
+  }
+
+  function handleEdit(promo) {
+    setEditingPromo(promo);
+    setShowEditModal(true);
   }
 
   const filteredPromos = promotions.filter(p => {
@@ -793,6 +1010,7 @@ export default function PromotionsPage() {
                       key={promo.id}
                       promo={promo}
                       onToggle={handleToggle}
+                      onEdit={handleEdit}
                       onDelete={handleDelete}
                     />
                   ))}
@@ -839,6 +1057,17 @@ export default function PromotionsPage() {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSubmit={() => fetchPromotions()}
+        venueId={venueId}
+      />
+
+      <EditPromoModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingPromo(null);
+        }}
+        onSubmit={() => fetchPromotions()}
+        promo={editingPromo}
         venueId={venueId}
       />
 

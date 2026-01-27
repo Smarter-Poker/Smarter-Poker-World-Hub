@@ -117,15 +117,60 @@ function HomeGameCard({ game, onJoin }) {
 export default function PlayerHomeGamesHub() {
   const router = useRouter();
   const [games, setGames] = useState([]);
+  const [filteredGames, setFilteredGames] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showFiltersModal, setShowFiltersModal] = useState(false);
+  const [filters, setFilters] = useState({
+    gameType: 'all',
+    maxBuyin: '',
+    daysAhead: 30
+  });
   const [message, setMessage] = useState(null);
 
   useEffect(() => {
     loadGames();
   }, []);
+
+  // Filter games when search or filters change
+  useEffect(() => {
+    let result = games;
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(game =>
+        game.name?.toLowerCase().includes(query) ||
+        game.city?.toLowerCase().includes(query) ||
+        game.state?.toLowerCase().includes(query) ||
+        game.host_name?.toLowerCase().includes(query) ||
+        game.game_type?.toLowerCase().includes(query) ||
+        game.stakes?.toLowerCase().includes(query)
+      );
+    }
+
+    // Game type filter
+    if (filters.gameType !== 'all') {
+      result = result.filter(game => game.game_type?.toLowerCase() === filters.gameType.toLowerCase());
+    }
+
+    // Max buyin filter
+    if (filters.maxBuyin) {
+      result = result.filter(game => !game.max_buyin || game.max_buyin <= parseInt(filters.maxBuyin));
+    }
+
+    // Days ahead filter
+    if (filters.daysAhead) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() + filters.daysAhead);
+      result = result.filter(game => new Date(game.scheduled_date) <= cutoffDate);
+    }
+
+    setFilteredGames(result);
+  }, [games, searchQuery, filters]);
 
   const loadGames = async () => {
     setIsLoading(true);
@@ -246,13 +291,22 @@ export default function PlayerHomeGamesHub() {
                 <input
                   type="text"
                   placeholder="Search by city, game type, or host..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 rounded-lg border"
                   style={{ borderColor: '#E5E7EB' }}
                 />
               </div>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg border" style={{ borderColor: '#E5E7EB' }}>
+              <button
+                onClick={() => setShowFiltersModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border"
+                style={{ borderColor: '#E5E7EB' }}
+              >
                 <Filter size={18} className="text-gray-600" />
                 Filters
+                {(filters.gameType !== 'all' || filters.maxBuyin) && (
+                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                )}
               </button>
             </div>
           </div>
@@ -270,22 +324,42 @@ export default function PlayerHomeGamesHub() {
                 />
               ))}
             </div>
-          ) : games.length === 0 ? (
+          ) : filteredGames.length === 0 ? (
             <div className="text-center py-12">
               <Home size={48} className="mx-auto text-gray-400 mb-3" />
-              <h3 className="text-lg font-medium text-gray-900">No home games found</h3>
-              <p className="text-gray-500 mt-1">Be the first to host a game in your area!</p>
-              <button
-                onClick={() => router.push('/hub/captain/home-games/create')}
-                className="mt-4 px-4 py-2 rounded-lg text-sm font-medium text-white"
-                style={{ backgroundColor: '#1877F2' }}
-              >
-                Host a Game
-              </button>
+              <h3 className="text-lg font-medium text-gray-900">
+                {searchQuery || filters.gameType !== 'all' ? 'No matching games found' : 'No home games found'}
+              </h3>
+              <p className="text-gray-500 mt-1">
+                {searchQuery || filters.gameType !== 'all'
+                  ? 'Try adjusting your search or filters'
+                  : 'Be the first to host a game in your area!'
+                }
+              </p>
+              {searchQuery || filters.gameType !== 'all' ? (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setFilters({ gameType: 'all', maxBuyin: '', daysAhead: 30 });
+                  }}
+                  className="mt-4 px-4 py-2 rounded-lg text-sm font-medium border"
+                  style={{ borderColor: '#E5E7EB' }}
+                >
+                  Clear Filters
+                </button>
+              ) : (
+                <button
+                  onClick={() => router.push('/hub/captain/home-games/create')}
+                  className="mt-4 px-4 py-2 rounded-lg text-sm font-medium text-white"
+                  style={{ backgroundColor: '#1877F2' }}
+                >
+                  Host a Game
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {games.map(game => (
+              {filteredGames.map(game => (
                 <HomeGameCard
                   key={game.id}
                   game={game}
@@ -328,6 +402,83 @@ export default function PlayerHomeGamesHub() {
                   style={{ backgroundColor: '#1877F2' }}
                 >
                   Join
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filters Modal */}
+        {showFiltersModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Filter Games</h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Game Type</label>
+                  <select
+                    value={filters.gameType}
+                    onChange={(e) => setFilters(prev => ({ ...prev, gameType: e.target.value }))}
+                    className="w-full px-4 py-2 rounded-lg border"
+                    style={{ borderColor: '#E5E7EB' }}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="nlhe">No Limit Hold'em</option>
+                    <option value="plo">Pot Limit Omaha</option>
+                    <option value="mixed">Mixed Games</option>
+                    <option value="limit">Limit Hold'em</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Buy-in</label>
+                  <select
+                    value={filters.maxBuyin}
+                    onChange={(e) => setFilters(prev => ({ ...prev, maxBuyin: e.target.value }))}
+                    className="w-full px-4 py-2 rounded-lg border"
+                    style={{ borderColor: '#E5E7EB' }}
+                  >
+                    <option value="">Any Amount</option>
+                    <option value="100">Up to $100</option>
+                    <option value="200">Up to $200</option>
+                    <option value="500">Up to $500</option>
+                    <option value="1000">Up to $1,000</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Days Ahead</label>
+                  <select
+                    value={filters.daysAhead}
+                    onChange={(e) => setFilters(prev => ({ ...prev, daysAhead: parseInt(e.target.value) }))}
+                    className="w-full px-4 py-2 rounded-lg border"
+                    style={{ borderColor: '#E5E7EB' }}
+                  >
+                    <option value="7">Next 7 days</option>
+                    <option value="14">Next 14 days</option>
+                    <option value="30">Next 30 days</option>
+                    <option value="90">Next 90 days</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={() => {
+                    setFilters({ gameType: 'all', maxBuyin: '', daysAhead: 30 });
+                  }}
+                  className="flex-1 py-3 rounded-lg text-sm font-medium border"
+                  style={{ borderColor: '#E5E7EB' }}
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={() => setShowFiltersModal(false)}
+                  className="flex-1 py-3 rounded-lg text-sm font-medium text-white"
+                  style={{ backgroundColor: '#1877F2' }}
+                >
+                  Apply Filters
                 </button>
               </div>
             </div>
