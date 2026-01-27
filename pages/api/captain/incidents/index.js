@@ -46,7 +46,7 @@ async function handleList(req, res) {
       .order('created_at', { ascending: false })
       .limit(parseInt(limit));
 
-    if (status) query = query.eq('status', status);
+    if (status) query = query.eq('incident_status', status);
     if (severity) query = query.eq('severity', severity);
     if (date_from) query = query.gte('created_at', date_from);
     if (date_to) query = query.lte('created_at', date_to);
@@ -99,7 +99,7 @@ async function handleCreate(req, res) {
         severity,
         description,
         action_taken,
-        status: 'open'
+        incident_status: 'open'
       })
       .select()
       .single();
