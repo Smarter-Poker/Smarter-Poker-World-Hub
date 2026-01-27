@@ -22,7 +22,12 @@ import {
   Edit,
   Loader2,
   X,
-  Check
+  Check,
+  Wallet,
+  ArrowUpRight,
+  ArrowDownLeft,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 
 function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
@@ -235,9 +240,11 @@ export default function ManageHomeGamePage() {
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
   const [events, setEvents] = useState([]);
+  const [escrowTransactions, setEscrowTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [activeTab, setActiveTab] = useState('events');
+  const [processingEscrow, setProcessingEscrow] = useState(null);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -246,10 +253,11 @@ export default function ManageHomeGamePage() {
       const token = localStorage.getItem('smarter-poker-auth');
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [groupRes, membersRes, eventsRes] = await Promise.all([
+      const [groupRes, membersRes, eventsRes, escrowRes] = await Promise.all([
         fetch(`/api/captain/home-games/groups/${id}`, { headers }),
         fetch(`/api/captain/home-games/groups/${id}/members`, { headers }),
-        fetch(`/api/captain/home-games/events?group_id=${id}`, { headers })
+        fetch(`/api/captain/home-games/events?group_id=${id}`, { headers }),
+        fetch(`/api/captain/escrow?group_id=${id}`, { headers }).catch(() => ({ ok: false }))
       ]);
 
       const groupData = await groupRes.json();
@@ -264,6 +272,14 @@ export default function ManageHomeGamePage() {
       }
       if (eventsData.events || eventsData.data?.events) {
         setEvents(eventsData.events || eventsData.data.events || []);
+      }
+
+      // Escrow data (may not exist yet)
+      if (escrowRes.ok) {
+        const escrowData = await escrowRes.json();
+        if (escrowData.success) {
+          setEscrowTransactions(escrowData.data?.transactions || []);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -328,6 +344,61 @@ export default function ManageHomeGamePage() {
     }
   }
 
+  async function handleReleaseEscrow(transaction) {
+    if (!confirm(`Release $${transaction.amount} to ${transaction.player_name || 'player'}?`)) return;
+
+    setProcessingEscrow(transaction.id);
+    try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      const res = await fetch(`/api/captain/escrow/${transaction.id}/release`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Release failed:', error);
+    } finally {
+      setProcessingEscrow(null);
+    }
+  }
+
+  async function handleRefundEscrow(transaction) {
+    if (!confirm(`Refund $${transaction.amount} to ${transaction.player_name || 'player'}?`)) return;
+
+    setProcessingEscrow(transaction.id);
+    try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      const res = await fetch(`/api/captain/escrow/${transaction.id}/refund`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ reason: 'Host initiated refund' })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Refund failed:', error);
+    } finally {
+      setProcessingEscrow(null);
+    }
+  }
+
+  const pendingEscrow = escrowTransactions.filter(t => t.status === 'pending' || t.status === 'held');
+  const completedEscrow = escrowTransactions.filter(t => t.status === 'released' || t.status === 'refunded');
+  const totalHeld = pendingEscrow.reduce((sum, t) => sum + (t.amount || 0), 0);
+
   const pendingMembers = members.filter(m => m.status === 'pending');
   const approvedMembers = members.filter(m => m.status !== 'pending');
 
@@ -380,8 +451,9 @@ export default function ManageHomeGamePage() {
               {[
                 { id: 'events', label: 'Upcoming Games', icon: Calendar },
                 { id: 'members', label: `Members (${members.length})`, icon: Users },
+                { id: 'finances', label: 'Finances', icon: Wallet, badge: pendingEscrow.length > 0 ? pendingEscrow.length : null },
                 { id: 'settings', label: 'Settings', icon: Settings }
-              ].map(({ id: tabId, label, icon: Icon }) => (
+              ].map(({ id: tabId, label, icon: Icon, badge }) => (
                 <button
                   key={tabId}
                   onClick={() => setActiveTab(tabId)}
@@ -396,6 +468,11 @@ export default function ManageHomeGamePage() {
                   {tabId === 'members' && pendingMembers.length > 0 && (
                     <span className="px-1.5 py-0.5 bg-[#EF4444] text-white text-xs rounded-full">
                       {pendingMembers.length}
+                    </span>
+                  )}
+                  {badge && (
+                    <span className="px-1.5 py-0.5 bg-[#10B981] text-white text-xs rounded-full">
+                      {badge}
                     </span>
                   )}
                 </button>
@@ -496,6 +573,136 @@ export default function ManageHomeGamePage() {
                     onRemove={handleRemoveMember}
                   />
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Finances Tab */}
+          {activeTab === 'finances' && (
+            <div className="space-y-4">
+              {/* Balance Overview */}
+              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-[#1F2937]">Escrow Balance</h3>
+                  <div className="flex items-center gap-2">
+                    <Wallet className="w-5 h-5 text-[#10B981]" />
+                    <span className="text-2xl font-bold text-[#10B981]">${totalHeld.toFixed(2)}</span>
+                  </div>
+                </div>
+                <p className="text-sm text-[#6B7280]">
+                  Funds held in escrow for upcoming games. Release after games are completed.
+                </p>
+              </div>
+
+              {/* Pending Transactions */}
+              {pendingEscrow.length > 0 && (
+                <div className="bg-white rounded-xl border border-[#E5E7EB]">
+                  <div className="p-4 border-b border-[#E5E7EB]">
+                    <h3 className="font-semibold text-[#1F2937]">Pending Transactions ({pendingEscrow.length})</h3>
+                  </div>
+                  <div className="divide-y divide-[#E5E7EB]">
+                    {pendingEscrow.map((transaction) => (
+                      <div key={transaction.id} className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-[#F59E0B]/10 flex items-center justify-center">
+                            <ArrowDownLeft className="w-5 h-5 text-[#F59E0B]" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-[#1F2937]">
+                              {transaction.player_name || 'Player'} - Buy-in
+                            </p>
+                            <p className="text-sm text-[#6B7280]">
+                              {new Date(transaction.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-[#1F2937]">${transaction.amount}</span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleReleaseEscrow(transaction)}
+                              disabled={processingEscrow === transaction.id}
+                              className="px-3 py-1.5 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#059669] transition-colors disabled:opacity-50"
+                            >
+                              {processingEscrow === transaction.id ? (
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                              ) : (
+                                'Release'
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleRefundEscrow(transaction)}
+                              disabled={processingEscrow === transaction.id}
+                              className="px-3 py-1.5 bg-[#EF4444] text-white text-sm font-medium rounded-lg hover:bg-[#DC2626] transition-colors disabled:opacity-50"
+                            >
+                              Refund
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Transaction History */}
+              <div className="bg-white rounded-xl border border-[#E5E7EB]">
+                <div className="p-4 border-b border-[#E5E7EB]">
+                  <h3 className="font-semibold text-[#1F2937]">Transaction History</h3>
+                </div>
+                {completedEscrow.length === 0 && pendingEscrow.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <Wallet className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
+                    <p className="text-[#6B7280]">No transactions yet</p>
+                    <p className="text-sm text-[#9CA3AF] mt-1">
+                      Player buy-ins will appear here when escrow is enabled
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#E5E7EB]">
+                    {completedEscrow.map((transaction) => (
+                      <div key={transaction.id} className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            transaction.status === 'released'
+                              ? 'bg-[#10B981]/10'
+                              : 'bg-[#EF4444]/10'
+                          }`}>
+                            {transaction.status === 'released' ? (
+                              <ArrowUpRight className="w-5 h-5 text-[#10B981]" />
+                            ) : (
+                              <ArrowDownLeft className="w-5 h-5 text-[#EF4444]" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-[#1F2937]">
+                              {transaction.player_name || 'Player'}
+                            </p>
+                            <p className="text-sm text-[#6B7280]">
+                              {transaction.status === 'released' ? 'Released' : 'Refunded'} - {new Date(transaction.updated_at || transaction.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`font-semibold ${
+                          transaction.status === 'released' ? 'text-[#10B981]' : 'text-[#EF4444]'
+                        }`}>
+                          {transaction.status === 'released' ? '+' : '-'}${transaction.amount}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Info Note */}
+              <div className="bg-[#FEF3C7] rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-[#F59E0B] flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-[#92400E]">How Escrow Works</p>
+                  <p className="text-sm text-[#A16207] mt-1">
+                    Players deposit buy-ins before the game. After the game ends, release funds to pay winners or refund if a player couldn't attend.
+                  </p>
+                </div>
               </div>
             </div>
           )}

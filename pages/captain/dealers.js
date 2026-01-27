@@ -20,7 +20,11 @@ import {
   Calendar,
   Star,
   Check,
-  X
+  X,
+  History,
+  ArrowRight,
+  Timer,
+  AlertCircle
 } from 'lucide-react';
 
 const GAME_CERTIFICATIONS = [
@@ -321,10 +325,12 @@ export default function DealersPage() {
   const [loading, setLoading] = useState(true);
   const [dealers, setDealers] = useState([]);
   const [tables, setTables] = useState([]);
+  const [rotations, setRotations] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingDealer, setEditingDealer] = useState(null);
   const [rotatingDealer, setRotatingDealer] = useState(null);
+  const [activeTab, setActiveTab] = useState('dealers');
 
   useEffect(() => {
     const storedStaff = localStorage.getItem('captain_staff');
@@ -350,6 +356,7 @@ export default function DealersPage() {
     if (venueId) {
       fetchDealers();
       fetchTables();
+      fetchRotations();
     }
   }, [venueId]);
 
@@ -379,6 +386,22 @@ export default function DealersPage() {
     } catch (err) {
       console.error('Fetch tables failed:', err);
       setTables([]);
+    }
+  }
+
+  async function fetchRotations() {
+    try {
+      const staffSession = localStorage.getItem('captain_staff');
+      const res = await fetch(`/api/captain/dealers/rotations?venue_id=${venueId}&limit=50`, {
+        headers: { 'x-staff-session': staffSession }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRotations(data.data?.rotations || []);
+      }
+    } catch (err) {
+      console.error('Fetch rotations failed:', err);
+      setRotations([]);
     }
   }
 
@@ -472,87 +495,195 @@ export default function DealersPage() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-lg hover:bg-[#1665D8] transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Add Dealer
-              </button>
+              {activeTab === 'dealers' && (
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-lg hover:bg-[#1665D8] transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Dealer
+                </button>
+              )}
             </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#E5E7EB]">
+            <button
+              onClick={() => setActiveTab('dealers')}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'dealers'
+                  ? 'border-[#1877F2] text-[#1877F2]'
+                  : 'border-transparent text-[#6B7280] hover:text-[#1F2937]'
+              }`}
+            >
+              <Users className="w-4 h-4 inline-block mr-2" />
+              Dealers
+            </button>
+            <button
+              onClick={() => setActiveTab('rotations')}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'rotations'
+                  ? 'border-[#10B981] text-[#10B981]'
+                  : 'border-transparent text-[#6B7280] hover:text-[#1F2937]'
+              }`}
+            >
+              <History className="w-4 h-4 inline-block mr-2" />
+              Rotation History
+            </button>
           </div>
         </header>
 
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search dealers..."
-              className="w-full h-12 pl-12 pr-4 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
-            />
-          </div>
+          {activeTab === 'dealers' ? (
+            <>
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search dealers..."
+                  className="w-full h-12 pl-12 pr-4 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                />
+              </div>
 
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
-            </div>
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+                </div>
+              ) : (
+                <>
+                  {/* Active Dealers */}
+                  {activeDealers.length > 0 && (
+                    <section>
+                      <h2 className="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-[#10B981]" />
+                        On Tables ({activeDealers.length})
+                      </h2>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {activeDealers.map(dealer => (
+                          <DealerCard
+                            key={dealer.id}
+                            dealer={dealer}
+                            onEdit={setEditingDealer}
+                            onRotate={setRotatingDealer}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Available Dealers */}
+                  {availableDealers.length > 0 && (
+                    <section>
+                      <h2 className="font-semibold text-[#1F2937] mb-3">
+                        Available ({availableDealers.length})
+                      </h2>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {availableDealers.map(dealer => (
+                          <DealerCard
+                            key={dealer.id}
+                            dealer={dealer}
+                            onEdit={setEditingDealer}
+                            onRotate={setRotatingDealer}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {filteredDealers.length === 0 && (
+                    <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
+                      <Users className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
+                      <p className="text-[#6B7280]">No dealers found</p>
+                      <button
+                        onClick={() => setShowAddModal(true)}
+                        className="mt-4 px-6 py-2 bg-[#1877F2] text-white rounded-lg font-medium hover:bg-[#1665D8] transition-colors"
+                      >
+                        Add First Dealer
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
           ) : (
             <>
-              {/* Active Dealers */}
-              {activeDealers.length > 0 && (
-                <section>
-                  <h2 className="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-[#10B981]" />
-                    On Tables ({activeDealers.length})
-                  </h2>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {activeDealers.map(dealer => (
-                      <DealerCard
-                        key={dealer.id}
-                        dealer={dealer}
-                        onEdit={setEditingDealer}
-                        onRotate={setRotatingDealer}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Available Dealers */}
-              {availableDealers.length > 0 && (
-                <section>
-                  <h2 className="font-semibold text-[#1F2937] mb-3">
-                    Available ({availableDealers.length})
-                  </h2>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {availableDealers.map(dealer => (
-                      <DealerCard
-                        key={dealer.id}
-                        dealer={dealer}
-                        onEdit={setEditingDealer}
-                        onRotate={setRotatingDealer}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {filteredDealers.length === 0 && (
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-                  <Users className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                  <p className="text-[#6B7280]">No dealers found</p>
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="mt-4 px-6 py-2 bg-[#1877F2] text-white rounded-lg font-medium hover:bg-[#1665D8] transition-colors"
-                  >
-                    Add First Dealer
-                  </button>
+              {/* Rotation History */}
+              <div className="bg-white rounded-xl border border-[#E5E7EB]">
+                <div className="p-4 border-b border-[#E5E7EB] flex items-center justify-between">
+                  <h2 className="font-semibold text-[#1F2937]">Recent Rotations</h2>
+                  <span className="text-sm text-[#6B7280]">{rotations.length} total</span>
                 </div>
-              )}
+
+                {rotations.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <RotateCw className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
+                    <p className="text-[#6B7280]">No rotation history yet</p>
+                    <p className="text-sm text-[#9CA3AF] mt-1">
+                      Rotations will appear here when dealers are moved between tables
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#E5E7EB]">
+                    {rotations.map((rotation) => {
+                      const dealer = dealers.find(d => d.id === rotation.dealer_id);
+                      const fromTable = tables.find(t => t.id === rotation.from_table_id);
+                      const toTable = tables.find(t => t.id === rotation.to_table_id);
+
+                      return (
+                        <div key={rotation.id} className="p-4 flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-[#10B981]/10 flex items-center justify-center">
+                            <RotateCw className="w-5 h-5 text-[#10B981]" />
+                          </div>
+
+                          <div className="flex-1">
+                            <p className="font-medium text-[#1F2937]">
+                              {dealer?.name || rotation.dealer_name || 'Unknown Dealer'}
+                            </p>
+                            <div className="flex items-center gap-2 text-sm text-[#6B7280]">
+                              <span>
+                                {fromTable ? `Table ${fromTable.table_number}` : rotation.from_table_id ? 'Previous Table' : 'Off'}
+                              </span>
+                              <ArrowRight className="w-4 h-4" />
+                              <span>
+                                {toTable ? `Table ${toTable.table_number}` : rotation.to_table_id ? 'New Table' : 'Off'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <p className="text-sm text-[#1F2937]">
+                              {new Date(rotation.rotated_at || rotation.created_at).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                            <p className="text-xs text-[#6B7280]">
+                              {new Date(rotation.rotated_at || rotation.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Rotation Tips */}
+              <div className="bg-[#EFF6FF] rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-[#1877F2] flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-[#1E40AF]">Rotation Best Practices</p>
+                  <ul className="text-sm text-[#1E3A8A] mt-1 space-y-1">
+                    <li>Rotate dealers every 30 minutes to keep games fresh</li>
+                    <li>Match dealer certifications to game types</li>
+                    <li>Track down-time to ensure fair distribution</li>
+                  </ul>
+                </div>
+              </div>
             </>
           )}
         </main>

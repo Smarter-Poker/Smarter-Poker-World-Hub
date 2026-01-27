@@ -8,7 +8,8 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
   LogOut, RefreshCw, Wifi, WifiOff, Menu, X,
-  Trophy, Gift, BarChart3, Users, Settings, Home, Grid3X3, QrCode, FileText, AlertTriangle, UserCog, Video
+  Trophy, Gift, BarChart3, Users, Settings, Home, Grid3X3, QrCode, FileText, AlertTriangle, UserCog, Video,
+  Lightbulb, Clock, ArrowRightLeft, ChevronRight
 } from 'lucide-react';
 import GameGrid from '../../src/components/captain/staff/GameGrid';
 import WaitlistManager from '../../src/components/captain/staff/WaitlistManager';
@@ -38,12 +39,15 @@ export default function CaptainDashboard() {
   const [showSeatPlayerModal, setShowSeatPlayerModal] = useState(false);
   const [playerToSeat, setPlayerToSeat] = useState(null);
   const [showNav, setShowNav] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [waitTimePredictions, setWaitTimePredictions] = useState([]);
 
   const navItems = [
     { href: '/captain/dashboard', label: 'Dashboard', icon: Home, active: true },
     { href: '/captain/tables', label: 'Tables', icon: Grid3X3 },
     { href: '/captain/tournaments', label: 'Tournaments', icon: Trophy },
     { href: '/captain/promotions', label: 'Promotions', icon: Gift },
+    { href: '/captain/marketplace', label: 'Marketplace', icon: Users },
     { href: '/captain/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/captain/reports', label: 'Daily Reports', icon: FileText },
     { href: '/captain/incidents', label: 'Incidents', icon: AlertTriangle },
@@ -90,11 +94,18 @@ export default function CaptainDashboard() {
     if (showRefreshing) setRefreshing(true);
 
     try {
-      const [venueRes, gamesRes, waitlistRes, tablesRes] = await Promise.all([
+      const storedStaff = localStorage.getItem('captain_staff');
+      const staffSession = storedStaff || '{}';
+
+      const [venueRes, gamesRes, waitlistRes, tablesRes, balanceRes, waitTimeRes] = await Promise.all([
         fetch(`/api/captain/venues/${venueId}`),
         fetch(`/api/captain/games/venue/${venueId}`),
         fetch(`/api/captain/waitlist/venue/${venueId}`),
-        fetch(`/api/captain/tables/venue/${venueId}`)
+        fetch(`/api/captain/tables/venue/${venueId}`),
+        fetch(`/api/captain/ai/table-balance/${venueId}`, {
+          headers: { 'x-staff-session': staffSession }
+        }).catch(() => ({ ok: false })),
+        fetch(`/api/captain/ai/wait-time/${venueId}`).catch(() => ({ ok: false }))
       ]);
 
       const [venueData, gamesData, waitlistData, tablesData] = await Promise.all([
@@ -103,6 +114,25 @@ export default function CaptainDashboard() {
         waitlistRes.json(),
         tablesRes.json()
       ]);
+
+      // Parse AI data separately (non-critical)
+      if (balanceRes.ok) {
+        try {
+          const balanceData = await balanceRes.json();
+          if (balanceData.success) {
+            setAiSuggestions(balanceData.data?.suggestions || []);
+          }
+        } catch (e) { /* ignore */ }
+      }
+
+      if (waitTimeRes.ok) {
+        try {
+          const waitTimeData = await waitTimeRes.json();
+          if (waitTimeData.success) {
+            setWaitTimePredictions(waitTimeData.data?.predictions || []);
+          }
+        } catch (e) { /* ignore */ }
+      }
 
       if (venueData.success) {
         setVenue(venueData.data.venue);
@@ -337,6 +367,92 @@ export default function CaptainDashboard() {
               <ActivityFeed activities={activities} />
             </section>
           </div>
+
+          {/* AI Insights Panel */}
+          {(aiSuggestions.length > 0 || waitTimePredictions.length > 0) && (
+            <section className="bg-gradient-to-r from-[#1877F2]/5 to-[#8B5CF6]/5 rounded-xl border border-[#1877F2]/20 p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Lightbulb className="w-5 h-5 text-[#1877F2]" />
+                <h2 className="text-lg font-semibold text-[#1F2937]">AI Insights</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Table Balance Suggestions */}
+                {aiSuggestions.length > 0 && (
+                  <div className="bg-white rounded-lg border border-[#E5E7EB] p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <ArrowRightLeft className="w-4 h-4 text-[#8B5CF6]" />
+                      <h3 className="font-medium text-[#1F2937]">Table Balance</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {aiSuggestions.slice(0, 3).map((suggestion, idx) => (
+                        <div key={idx} className={`p-3 rounded-lg ${
+                          suggestion.priority === 'high' ? 'bg-[#FEF2F2]' : 'bg-[#F9FAFB]'
+                        }`}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium text-[#1F2937]">
+                              Move {suggestion.player?.name || 'player'}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              suggestion.priority === 'high'
+                                ? 'bg-[#EF4444]/10 text-[#EF4444]'
+                                : 'bg-[#F59E0B]/10 text-[#F59E0B]'
+                            }`}>
+                              {suggestion.priority}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#6B7280]">
+                            Table {suggestion.fromTable?.number} ({suggestion.fromTable?.current_players}p)
+                            <ChevronRight className="w-3 h-3 inline mx-1" />
+                            Table {suggestion.toTable?.number} ({suggestion.toTable?.current_players}p)
+                          </p>
+                          <p className="text-xs text-[#6B7280] mt-1">{suggestion.reason}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Wait Time Predictions */}
+                {waitTimePredictions.length > 0 && (
+                  <div className="bg-white rounded-lg border border-[#E5E7EB] p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Clock className="w-4 h-4 text-[#10B981]" />
+                      <h3 className="font-medium text-[#1F2937]">Wait Time Estimates</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {waitTimePredictions
+                        .filter(p => p.current_waitlist > 0)
+                        .slice(0, 5)
+                        .map((prediction, idx) => (
+                          <div key={idx} className="flex items-center justify-between py-2 border-b border-[#E5E7EB] last:border-0">
+                            <div>
+                              <span className="text-sm font-medium text-[#1F2937]">
+                                {prediction.stakes} {prediction.game_type?.toUpperCase()}
+                              </span>
+                              <span className="text-xs text-[#6B7280] ml-2">
+                                ({prediction.current_waitlist} waiting)
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-sm font-semibold text-[#1F2937]">
+                                ~{prediction.estimated_minutes} min
+                              </span>
+                              <span className="text-xs text-[#6B7280] ml-1">
+                                ({Math.round(prediction.confidence * 100)}%)
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      {waitTimePredictions.every(p => p.current_waitlist === 0) && (
+                        <p className="text-sm text-[#6B7280] text-center py-2">No players waiting</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* Waitlist Manager */}
           <section id="waitlist-section">
