@@ -291,22 +291,20 @@ CREATE POLICY "Users delete own follows" ON captain_venue_followers
 -- UPDATE poker_venues with social fields
 -- ===================
 
-ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS
-  cover_photo_url TEXT,
-  profile_photo_url TEXT,
-  tagline TEXT,
-  about TEXT,
-  follower_count INTEGER DEFAULT 0,
-  social_links JSONB DEFAULT '{}'; -- { "facebook": "...", "twitter": "...", "instagram": "..." }
+ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS cover_photo_url TEXT;
+ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS profile_photo_url TEXT;
+ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS tagline TEXT;
+ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS about TEXT;
+ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS follower_count INTEGER DEFAULT 0;
+ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}';
 
 -- ===================
 -- UPDATE captain_home_groups with social fields
 -- ===================
 
-ALTER TABLE captain_home_groups ADD COLUMN IF NOT EXISTS
-  cover_photo_url TEXT,
-  profile_photo_url TEXT,
-  tagline TEXT;
+ALTER TABLE captain_home_groups ADD COLUMN IF NOT EXISTS cover_photo_url TEXT;
+ALTER TABLE captain_home_groups ADD COLUMN IF NOT EXISTS profile_photo_url TEXT;
+ALTER TABLE captain_home_groups ADD COLUMN IF NOT EXISTS tagline TEXT;
 
 -- ===================
 -- FUNCTIONS
