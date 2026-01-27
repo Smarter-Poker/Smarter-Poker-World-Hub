@@ -302,7 +302,6 @@ export default function DiamondArcade() {
                         ref={introVideoRef}
                         src="/videos/diamond-arcade-intro.mp4"
                         autoPlay
-                        muted
                         playsInline
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}

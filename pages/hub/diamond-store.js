@@ -545,7 +545,6 @@ export default function DiamondStorePage() {
                         ref={introVideoRef}
                         src="/videos/marketplace-intro.mp4"
                         autoPlay
-                        muted
                         playsInline
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}

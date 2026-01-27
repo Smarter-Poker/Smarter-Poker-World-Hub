@@ -1126,7 +1126,6 @@ export default function NewsHub() {
                         ref={introVideoRef}
                         src="/videos/news-intro.mp4"
                         autoPlay
-                        muted
                         playsInline
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}

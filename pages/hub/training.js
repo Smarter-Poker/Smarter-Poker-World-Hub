@@ -649,7 +649,6 @@ export default function TrainingPage() {
                         ref={introVideoRef}
                         src="/videos/training-intro.mp4"
                         autoPlay
-                        muted
                         playsInline
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}

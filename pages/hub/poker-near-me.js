@@ -576,7 +576,6 @@ export default function PokerNearMe() {
                         ref={introVideoRef}
                         src="/videos/poker-near-me-intro.mp4"
                         autoPlay
-                        muted
                         playsInline
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}

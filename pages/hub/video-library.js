@@ -445,7 +445,6 @@ export default function VideoLibraryPage() {
                         ref={introVideoRef}
                         src="/videos/video-library-intro.mp4"
                         autoPlay
-                        muted
                         playsInline
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}

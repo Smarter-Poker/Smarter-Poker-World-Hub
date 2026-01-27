@@ -224,7 +224,6 @@ export default function BankrollManagerPage() {
             ref={introVideoRef}
             src="/videos/bankroll-manager-intro.mp4"
             autoPlay
-            muted
             playsInline
             onEnded={handleIntroEnd}
             onError={handleIntroEnd}

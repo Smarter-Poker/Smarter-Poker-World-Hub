@@ -2191,7 +2191,6 @@ export default function SocialMediaPage() {
                         ref={introVideoRef}
                         src="/videos/social-media-intro.mp4"
                         autoPlay
-                        muted
                         playsInline
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}

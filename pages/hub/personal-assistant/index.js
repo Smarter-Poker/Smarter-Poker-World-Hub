@@ -83,7 +83,6 @@ export default function PersonalAssistantPage() {
             ref={introVideoRef}
             src="/videos/personal-assistant-intro.mp4"
             autoPlay
-            muted
             playsInline
             onEnded={handleIntroEnd}
             onError={handleIntroEnd}

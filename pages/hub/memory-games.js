@@ -1534,7 +1534,6 @@ export default function MemoryGamesPage() {
                         ref={introVideoRef}
                         src="/videos/memory-games-intro.mp4"
                         autoPlay
-                        muted
                         playsInline
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}
