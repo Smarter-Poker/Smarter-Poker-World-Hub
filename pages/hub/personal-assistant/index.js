@@ -12,7 +12,7 @@
 
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../../src/lib/supabase';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
@@ -28,6 +28,22 @@ export default function PersonalAssistantPage() {
   const router = useRouter();
   const { user } = useAvatar();
   const [mounted, setMounted] = useState(false);
+
+  // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+  // Only show once per session (not on every reload)
+  const [showIntro, setShowIntro] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !sessionStorage.getItem('personal-assistant-intro-seen');
+    }
+    return false;
+  });
+  const introVideoRef = useRef(null);
+
+  // Mark intro as seen when it ends
+  const handleIntroEnd = useCallback(() => {
+    sessionStorage.setItem('personal-assistant-intro-seen', 'true');
+    setShowIntro(false);
+  }, []);
 
   // Use real hooks for data
   const { stats, isLoading: statsLoading } = useAssistantStats();
@@ -49,6 +65,57 @@ export default function PersonalAssistantPage() {
 
   return (
     <PageTransition>
+      {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+      {showIntro && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 99999,
+          background: '#000',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <video
+            ref={introVideoRef}
+            src="/videos/personal-assistant-intro.mp4"
+            autoPlay
+            muted
+            playsInline
+            onEnded={handleIntroEnd}
+            onError={handleIntroEnd}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+          />
+          {/* Skip button */}
+          <button
+            onClick={handleIntroEnd}
+            style={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              padding: '8px 20px',
+              background: 'rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 20,
+              color: 'white',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              zIndex: 100000
+            }}
+          >
+            Skip
+          </button>
+        </div>
+      )}
       <Head>
         <title>Strategy Hub — Smarter.Poker</title>
         <meta name="description" content="Virtual Sandbox & Leak Finder - Safe, data-driven tools to refine your poker game" />
@@ -92,9 +159,9 @@ export default function PersonalAssistantPage() {
               <div style={styles.toolIconContainer}>
                 <div style={styles.sandboxIcon}>
                   <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                    <path d="M24 4L8 14v20l16 10 16-10V14L24 4z" stroke="#64b5f6" strokeWidth="2" fill="none"/>
-                    <path d="M24 24V44M8 14l16 10 16-10" stroke="#64b5f6" strokeWidth="2"/>
-                    <circle cx="24" cy="24" r="4" fill="#64b5f6"/>
+                    <path d="M24 4L8 14v20l16 10 16-10V14L24 4z" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                    <path d="M24 24V44M8 14l16 10 16-10" stroke="#64b5f6" strokeWidth="2" />
+                    <circle cx="24" cy="24" r="4" fill="#64b5f6" />
                   </svg>
                 </div>
               </div>
@@ -130,13 +197,13 @@ export default function PersonalAssistantPage() {
               <div style={styles.toolIconContainer}>
                 <div style={styles.leakIcon}>
                   <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                    <circle cx="24" cy="24" r="18" stroke="#90caf9" strokeWidth="2" fill="none"/>
-                    <circle cx="24" cy="24" r="12" stroke="#90caf9" strokeWidth="2" fill="none"/>
-                    <circle cx="24" cy="24" r="6" stroke="#90caf9" strokeWidth="2" fill="none"/>
-                    <line x1="24" y1="6" x2="24" y2="2" stroke="#90caf9" strokeWidth="2"/>
-                    <line x1="24" y1="46" x2="24" y2="42" stroke="#90caf9" strokeWidth="2"/>
-                    <line x1="6" y1="24" x2="2" y2="24" stroke="#90caf9" strokeWidth="2"/>
-                    <line x1="46" y1="24" x2="42" y2="24" stroke="#90caf9" strokeWidth="2"/>
+                    <circle cx="24" cy="24" r="18" stroke="#90caf9" strokeWidth="2" fill="none" />
+                    <circle cx="24" cy="24" r="12" stroke="#90caf9" strokeWidth="2" fill="none" />
+                    <circle cx="24" cy="24" r="6" stroke="#90caf9" strokeWidth="2" fill="none" />
+                    <line x1="24" y1="6" x2="24" y2="2" stroke="#90caf9" strokeWidth="2" />
+                    <line x1="24" y1="46" x2="24" y2="42" stroke="#90caf9" strokeWidth="2" />
+                    <line x1="6" y1="24" x2="2" y2="24" stroke="#90caf9" strokeWidth="2" />
+                    <line x1="46" y1="24" x2="42" y2="24" stroke="#90caf9" strokeWidth="2" />
                   </svg>
                 </div>
               </div>
@@ -178,34 +245,34 @@ export default function PersonalAssistantPage() {
               <div style={styles.pillar}>
                 <div style={styles.pillarIcon}>
                   <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <path d="M16 2L4 8v8c0 7.18 5.12 13.89 12 16 6.88-2.11 12-8.82 12-16V8L16 2z" stroke="#64b5f6" strokeWidth="2" fill="none"/>
-                    <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M16 2L4 8v8c0 7.18 5.12 13.89 12 16 6.88-2.11 12-8.82 12-16V8L16 2z" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                    <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 </div>
                 <h4 style={styles.pillarTitle}>GTO Anchored</h4>
-                <p style={styles.pillarText}>Tied to solver analysis<br/>AI fill-in clearly labeled</p>
+                <p style={styles.pillarText}>Tied to solver analysis<br />AI fill-in clearly labeled</p>
               </div>
 
               <div style={styles.pillar}>
                 <div style={styles.pillarIcon}>
                   <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <circle cx="16" cy="16" r="14" stroke="#64b5f6" strokeWidth="2" fill="none"/>
-                    <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round"/>
+                    <circle cx="16" cy="16" r="14" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                    <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 </div>
                 <h4 style={styles.pillarTitle}>Safe & Fair</h4>
-                <p style={styles.pillarText}>No live assist - No exploit hunting<br/>Test in peace</p>
+                <p style={styles.pillarText}>No live assist - No exploit hunting<br />Test in peace</p>
               </div>
 
               <div style={styles.pillar}>
                 <div style={styles.pillarIcon}>
                   <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <path d="M4 24V12l6-6h12l6 6v12l-6 6H10l-6-6z" stroke="#64b5f6" strokeWidth="2" fill="none"/>
-                    <path d="M10 20l4-8 4 6 4-4" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 24V12l6-6h12l6 6v12l-6 6H10l-6-6z" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                    <path d="M10 20l4-8 4 6 4-4" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
                 <h4 style={styles.pillarTitle}>Results-Driven</h4>
-                <p style={styles.pillarText}>Identify leaks - Track improvement<br/>Train smarter</p>
+                <p style={styles.pillarText}>Identify leaks - Track improvement<br />Train smarter</p>
               </div>
             </div>
           </div>
@@ -234,11 +301,11 @@ export default function PersonalAssistantPage() {
                       <div style={styles.sessionIcon}>
                         {session.type === 'sandbox' ? (
                           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <rect x="2" y="2" width="16" height="16" rx="2" stroke="#64b5f6" strokeWidth="1.5" fill="none"/>
+                            <rect x="2" y="2" width="16" height="16" rx="2" stroke="#64b5f6" strokeWidth="1.5" fill="none" />
                           </svg>
                         ) : (
                           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <circle cx="10" cy="10" r="8" stroke="#f59e0b" strokeWidth="1.5" fill="none"/>
+                            <circle cx="10" cy="10" r="8" stroke="#f59e0b" strokeWidth="1.5" fill="none" />
                           </svg>
                         )}
                       </div>
