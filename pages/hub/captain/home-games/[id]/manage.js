@@ -395,6 +395,49 @@ export default function ManageHomeGamePage() {
     }
   }
 
+  async function handleDeleteGroup() {
+    if (!confirm('Are you sure you want to delete this group? This action cannot be undone.')) return;
+
+    try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      const res = await fetch(`/api/captain/home-games/groups/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        router.push('/hub/captain/home-games');
+      } else {
+        alert(data.error?.message || 'Failed to delete group');
+      }
+    } catch (error) {
+      console.error('Delete group failed:', error);
+      alert('Failed to delete group');
+    }
+  }
+
+  async function handleUpdateSettings(newSettings) {
+    try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      const res = await fetch(`/api/captain/home-games/groups/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(newSettings)
+      });
+
+      const data = await res.json();
+      if (data.success || data.group) {
+        setGroup(prev => ({ ...prev, ...newSettings }));
+      }
+    } catch (error) {
+      console.error('Update settings failed:', error);
+    }
+  }
+
   const pendingEscrow = escrowTransactions.filter(t => t.status === 'pending' || t.status === 'held');
   const completedEscrow = escrowTransactions.filter(t => t.status === 'released' || t.status === 'refunded');
   const totalHeld = pendingEscrow.reduce((sum, t) => sum + (t.amount || 0), 0);
@@ -709,16 +752,127 @@ export default function ManageHomeGamePage() {
 
           {/* Settings Tab */}
           {activeTab === 'settings' && (
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 space-y-6">
-              <div>
+            <div className="space-y-4">
+              {/* Basic Settings */}
+              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
                 <h3 className="font-semibold text-[#1F2937] mb-4">Group Settings</h3>
-                <p className="text-sm text-[#6B7280]">
-                  Group settings management coming soon. For now, you can schedule games and manage members.
-                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#1F2937] mb-2">Group Name</label>
+                    <input
+                      type="text"
+                      value={group?.name || ''}
+                      onChange={(e) => setGroup(prev => ({ ...prev, name: e.target.value }))}
+                      onBlur={(e) => handleUpdateSettings({ name: e.target.value })}
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1F2937] mb-2">Description</label>
+                    <textarea
+                      value={group?.description || ''}
+                      onChange={(e) => setGroup(prev => ({ ...prev, description: e.target.value }))}
+                      onBlur={(e) => handleUpdateSettings({ description: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#1F2937] mb-2">Default Stakes</label>
+                      <input
+                        type="text"
+                        value={group?.stakes || ''}
+                        onChange={(e) => setGroup(prev => ({ ...prev, stakes: e.target.value }))}
+                        onBlur={(e) => handleUpdateSettings({ stakes: e.target.value })}
+                        placeholder="$1/$2"
+                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#1F2937] mb-2">Max Players</label>
+                      <select
+                        value={group?.max_players || 9}
+                        onChange={(e) => handleUpdateSettings({ max_players: parseInt(e.target.value) })}
+                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                      >
+                        {[6, 7, 8, 9, 10].map(n => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="pt-4 border-t border-[#E5E7EB]">
-                <button className="text-[#EF4444] text-sm font-medium hover:underline">
+              {/* Privacy Settings */}
+              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+                <h3 className="font-semibold text-[#1F2937] mb-4">Privacy</h3>
+
+                <div className="space-y-3">
+                  <label className="flex items-center justify-between p-3 bg-[#F9FAFB] rounded-lg cursor-pointer">
+                    <div>
+                      <p className="font-medium text-[#1F2937]">Require Approval</p>
+                      <p className="text-sm text-[#6B7280]">New members must be approved before joining</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={group?.requires_approval ?? true}
+                      onChange={(e) => handleUpdateSettings({ requires_approval: e.target.checked })}
+                      className="w-5 h-5 text-[#1877F2] border-[#E5E7EB] rounded focus:ring-[#1877F2]"
+                    />
+                  </label>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1F2937] mb-2">Visibility</label>
+                    <select
+                      value={group?.visibility || 'private'}
+                      onChange={(e) => handleUpdateSettings({ visibility: e.target.value })}
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                    >
+                      <option value="private">Private - Invite only</option>
+                      <option value="friends">Friends - Visible to friends</option>
+                      <option value="public">Public - Anyone can find</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Invite Code */}
+              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+                <h3 className="font-semibold text-[#1F2937] mb-4">Invite Code</h3>
+                <div className="flex items-center gap-3">
+                  <code className="flex-1 px-4 py-3 bg-[#F9FAFB] rounded-lg font-mono text-lg tracking-wider text-center">
+                    {group?.invite_code || 'N/A'}
+                  </code>
+                  <button
+                    onClick={() => {
+                      if (group?.invite_code) {
+                        navigator.clipboard.writeText(group.invite_code);
+                        alert('Invite code copied!');
+                      }
+                    }}
+                    className="px-4 py-3 bg-[#1877F2] text-white font-medium rounded-lg hover:bg-[#1664d9]"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="text-sm text-[#6B7280] mt-2">Share this code with players you want to invite</p>
+              </div>
+
+              {/* Danger Zone */}
+              <div className="bg-white rounded-xl border border-[#EF4444]/30 p-6">
+                <h3 className="font-semibold text-[#EF4444] mb-4">Danger Zone</h3>
+                <p className="text-sm text-[#6B7280] mb-4">
+                  Once you delete a group, there is no going back. All scheduled games and member data will be permanently removed.
+                </p>
+                <button
+                  onClick={handleDeleteGroup}
+                  className="px-4 py-2 bg-[#EF4444] text-white font-medium rounded-lg hover:bg-[#DC2626]"
+                >
                   Delete Group
                 </button>
               </div>

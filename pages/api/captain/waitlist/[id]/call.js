@@ -10,6 +10,88 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
+// Twilio SMS Integration
+async function sendTwilioSMS(to, message) {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+
+  if (!accountSid || !authToken || !fromNumber) {
+    console.log('Twilio not configured - skipping SMS');
+    return { success: false, error: 'Twilio not configured' };
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64'),
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          To: to,
+          From: fromNumber,
+          Body: message
+        })
+      }
+    );
+
+    const data = await response.json();
+    if (response.ok) {
+      return { success: true, sid: data.sid };
+    } else {
+      console.error('Twilio error:', data);
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Twilio SMS error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// OneSignal Push Notification Integration
+async function sendOneSignalPush(userId, title, message, data = {}) {
+  const appId = process.env.ONESIGNAL_APP_ID;
+  const apiKey = process.env.ONESIGNAL_REST_API_KEY;
+
+  if (!appId || !apiKey) {
+    console.log('OneSignal not configured - skipping push');
+    return { success: false, error: 'OneSignal not configured' };
+  }
+
+  try {
+    const response = await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        app_id: appId,
+        include_external_user_ids: [userId],
+        headings: { en: title },
+        contents: { en: message },
+        data: data,
+        ios_badgeType: 'Increase',
+        ios_badgeCount: 1
+      })
+    });
+
+    const result = await response.json();
+    if (response.ok && !result.errors) {
+      return { success: true, id: result.id };
+    } else {
+      console.error('OneSignal error:', result);
+      return { success: false, error: result.errors?.[0] || 'Push failed' };
+    }
+  } catch (error) {
+    console.error('OneSignal push error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({
@@ -133,7 +215,7 @@ export default async function handler(req, res) {
         }
       };
 
-      // SMS notification
+      // SMS notification via Twilio
       if (notify_sms && entry.player_phone && entry.poker_venues?.auto_text_enabled !== false) {
         const { data: smsNotification, error: smsError } = await supabase
           .from('captain_notifications')
@@ -146,11 +228,27 @@ export default async function handler(req, res) {
 
         if (!smsError) {
           notifications.push(smsNotification);
-          // TODO: Integrate with Twilio (Step 1.6)
+
+          // Send SMS via Twilio
+          const smsResult = await sendTwilioSMS(entry.player_phone, notificationMessage);
+
+          // Update notification status
+          await supabase
+            .from('captain_notifications')
+            .update({
+              status: smsResult.success ? 'sent' : 'failed',
+              sent_at: smsResult.success ? new Date().toISOString() : null,
+              metadata: {
+                ...smsNotification.metadata,
+                twilio_sid: smsResult.sid,
+                error: smsResult.error
+              }
+            })
+            .eq('id', smsNotification.id);
         }
       }
 
-      // Push notification
+      // Push notification via OneSignal
       if (notify_push && entry.player_id) {
         const { data: pushNotification, error: pushError } = await supabase
           .from('captain_notifications')
@@ -163,7 +261,34 @@ export default async function handler(req, res) {
 
         if (!pushError) {
           notifications.push(pushNotification);
-          // TODO: Integrate with FCM
+
+          // Send push via OneSignal
+          const pushResult = await sendOneSignalPush(
+            entry.player_id,
+            'Seat Available',
+            notificationMessage,
+            {
+              type: 'seat_ready',
+              waitlist_id: entry.id,
+              venue_id: entry.venue_id,
+              game_type: entry.game_type,
+              stakes: entry.stakes
+            }
+          );
+
+          // Update notification status
+          await supabase
+            .from('captain_notifications')
+            .update({
+              status: pushResult.success ? 'sent' : 'failed',
+              sent_at: pushResult.success ? new Date().toISOString() : null,
+              metadata: {
+                ...pushNotification.metadata,
+                onesignal_id: pushResult.id,
+                error: pushResult.error
+              }
+            })
+            .eq('id', pushNotification.id);
         }
       }
 

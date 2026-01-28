@@ -39,6 +39,7 @@ export default function CaptainDashboard() {
   const [showSeatPlayerModal, setShowSeatPlayerModal] = useState(false);
   const [playerToSeat, setPlayerToSeat] = useState(null);
   const [showNav, setShowNav] = useState(false);
+  const [selectedGame, setSelectedGame] = useState(null);
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [waitTimePredictions, setWaitTimePredictions] = useState([]);
 
@@ -257,6 +258,13 @@ export default function CaptainDashboard() {
     setShowOpenGameModal(true);
   }
 
+  // Handle game selection - show game details or navigate to table view
+  function handleGameSelect(game) {
+    setSelectedGame(game);
+    // Navigate to table management view for this game
+    router.push(`/captain/tables?game=${game.id}`);
+  }
+
   // Handle game opened
   function handleGameOpened(game) {
     addActivity('success', `Opened ${game.stakes} ${game.game_type.toUpperCase()} on Table ${game.table_number || game.table_id}`);
@@ -356,7 +364,7 @@ export default function CaptainDashboard() {
               <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Active Games</h2>
               <GameGrid
                 games={games}
-                onGameSelect={(game) => console.log('Selected game:', game)}
+                onGameSelect={handleGameSelect}
                 onOpenGame={handleOpenGame}
               />
             </section>

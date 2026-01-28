@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     return getPromotion(req, res, id);
   }
 
-  if (req.method === 'PUT') {
+  if (req.method === 'PUT' || req.method === 'PATCH') {
     return updatePromotion(req, res, id);
   }
 
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     return deletePromotion(req, res, id);
   }
 
-  res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
+  res.setHeader('Allow', ['GET', 'PUT', 'PATCH', 'DELETE']);
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
@@ -117,11 +117,12 @@ async function updatePromotion(req, res, id) {
 
     const updates = {};
     const allowedFields = [
-      'name', 'description', 'promotion_type', 'prize_type', 'prize_value',
-      'prize_description', 'start_date', 'end_date', 'days_of_week',
-      'start_time', 'end_time', 'is_recurring', 'min_stakes', 'min_hours_played',
-      'min_buyin', 'game_types', 'qualifying_hands', 'status', 'is_featured',
-      'image_url', 'terms_conditions', 'settings'
+      'name', 'description', 'promotion_type', 'promo_type', 'prize_type', 'prize_value',
+      'prize_description', 'prize_amount', 'start_date', 'end_date', 'days_of_week',
+      'days_active', 'start_time', 'end_time', 'frequency', 'is_recurring',
+      'min_stakes', 'min_hours_played', 'min_buyin', 'game_types', 'qualifying_hands',
+      'status', 'is_active', 'is_featured', 'image_url', 'terms_conditions',
+      'settings', 'requirements'
     ];
 
     allowedFields.forEach(field => {
@@ -148,7 +149,7 @@ async function updatePromotion(req, res, id) {
 
     if (error) throw error;
 
-    return res.status(200).json({ promotion });
+    return res.status(200).json({ success: true, data: { promotion } });
   } catch (error) {
     console.error('Update promotion error:', error);
     return res.status(500).json({ error: error.message });
