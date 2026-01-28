@@ -282,7 +282,241 @@ export default function TournamentsPage() {
           }}
         />
       )}
+
+      {/* Create Tournament Modal */}
+      {showCreateModal && (
+        <CreateTournamentModal
+          venueId={venue_id}
+          onClose={() => setShowCreateModal(false)}
+          onCreate={() => {
+            setShowCreateModal(false);
+            loadTournaments();
+          }}
+        />
+      )}
     </>
+  );
+}
+
+function CreateTournamentModal({ venueId, onClose, onCreate }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    game_type: 'nlhe',
+    buyin_amount: 100,
+    buyin_fee: 20,
+    starting_chips: 10000,
+    scheduled_start: '',
+    registration_open: true,
+    max_entries: 100,
+    late_reg_levels: 6,
+    rebuy_allowed: false,
+    addon_allowed: false
+  });
+  const [loading, setLoading] = useState(false);
+
+  async function handleCreate() {
+    if (!formData.name.trim() || !formData.scheduled_start) return;
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      const res = await fetch('/api/captain/tournaments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          venue_id: venueId,
+          ...formData,
+          blind_structure: getDefaultBlindStructure()
+        })
+      });
+
+      const data = await res.json();
+      if (data.success || data.tournament) {
+        onCreate();
+      }
+    } catch (err) {
+      console.error('Create tournament error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function getDefaultBlindStructure() {
+    return [
+      { level: 1, small_blind: 25, big_blind: 50, ante: 0, duration_minutes: 20 },
+      { level: 2, small_blind: 50, big_blind: 100, ante: 0, duration_minutes: 20 },
+      { level: 3, small_blind: 75, big_blind: 150, ante: 0, duration_minutes: 20 },
+      { level: 4, small_blind: 100, big_blind: 200, ante: 25, duration_minutes: 20 },
+      { level: 5, small_blind: 150, big_blind: 300, ante: 25, duration_minutes: 20 },
+      { level: 6, small_blind: 200, big_blind: 400, ante: 50, duration_minutes: 20 },
+      { level: 7, small_blind: 300, big_blind: 600, ante: 75, duration_minutes: 20 },
+      { level: 8, small_blind: 400, big_blind: 800, ante: 100, duration_minutes: 20 },
+      { level: 9, small_blind: 500, big_blind: 1000, ante: 100, duration_minutes: 20 },
+      { level: 10, small_blind: 600, big_blind: 1200, ante: 200, duration_minutes: 20 }
+    ];
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+        <h2 className="text-xl font-bold mb-4" style={{ color: '#1F2937' }}>Create Tournament</h2>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+              Tournament Name *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="e.g., Friday Night $200 NLH"
+              className="w-full h-12 px-3 border rounded-lg"
+              style={{ borderColor: '#E5E7EB' }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                Game Type
+              </label>
+              <select
+                value={formData.game_type}
+                onChange={(e) => setFormData(prev => ({ ...prev, game_type: e.target.value }))}
+                className="w-full h-12 px-3 border rounded-lg"
+                style={{ borderColor: '#E5E7EB' }}
+              >
+                <option value="nlhe">No Limit Hold'em</option>
+                <option value="plo">Pot Limit Omaha</option>
+                <option value="mixed">Mixed Games</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                Starting Chips
+              </label>
+              <input
+                type="number"
+                value={formData.starting_chips}
+                onChange={(e) => setFormData(prev => ({ ...prev, starting_chips: parseInt(e.target.value) || 10000 }))}
+                className="w-full h-12 px-3 border rounded-lg"
+                style={{ borderColor: '#E5E7EB' }}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                Buy-in ($)
+              </label>
+              <input
+                type="number"
+                value={formData.buyin_amount}
+                onChange={(e) => setFormData(prev => ({ ...prev, buyin_amount: parseInt(e.target.value) || 0 }))}
+                className="w-full h-12 px-3 border rounded-lg"
+                style={{ borderColor: '#E5E7EB' }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                Fee ($)
+              </label>
+              <input
+                type="number"
+                value={formData.buyin_fee}
+                onChange={(e) => setFormData(prev => ({ ...prev, buyin_fee: parseInt(e.target.value) || 0 }))}
+                className="w-full h-12 px-3 border rounded-lg"
+                style={{ borderColor: '#E5E7EB' }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+              Scheduled Start *
+            </label>
+            <input
+              type="datetime-local"
+              value={formData.scheduled_start}
+              onChange={(e) => setFormData(prev => ({ ...prev, scheduled_start: e.target.value }))}
+              className="w-full h-12 px-3 border rounded-lg"
+              style={{ borderColor: '#E5E7EB' }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                Max Entries
+              </label>
+              <input
+                type="number"
+                value={formData.max_entries}
+                onChange={(e) => setFormData(prev => ({ ...prev, max_entries: parseInt(e.target.value) || 100 }))}
+                className="w-full h-12 px-3 border rounded-lg"
+                style={{ borderColor: '#E5E7EB' }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                Late Reg Levels
+              </label>
+              <input
+                type="number"
+                value={formData.late_reg_levels}
+                onChange={(e) => setFormData(prev => ({ ...prev, late_reg_levels: parseInt(e.target.value) || 0 }))}
+                className="w-full h-12 px-3 border rounded-lg"
+                style={{ borderColor: '#E5E7EB' }}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.rebuy_allowed}
+                onChange={(e) => setFormData(prev => ({ ...prev, rebuy_allowed: e.target.checked }))}
+                className="w-5 h-5 rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Rebuys Allowed</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.addon_allowed}
+                onChange={(e) => setFormData(prev => ({ ...prev, addon_allowed: e.target.checked }))}
+                className="w-5 h-5 rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Add-on Allowed</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 h-12 border rounded-xl font-medium"
+            style={{ borderColor: '#E5E7EB', color: '#6B7280' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleCreate}
+            disabled={!formData.name.trim() || !formData.scheduled_start || loading}
+            className="flex-1 h-12 text-white rounded-xl font-medium disabled:opacity-50"
+            style={{ backgroundColor: '#1877F2' }}
+          >
+            {loading ? 'Creating...' : 'Create Tournament'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
