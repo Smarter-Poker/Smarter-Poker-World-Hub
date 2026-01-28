@@ -2412,8 +2412,7 @@ export default function SocialMediaPage() {
                 {/* Standard Hub Header - DO NOT MODIFY - see /social-feed-protection workflow */}
                 <UniversalHeader
                     pageDepth={1}
-                    showSearch={true}
-                    onSearchClick={() => setShowGlobalSearch(!showGlobalSearch)}
+                    showSearch={false}
                 />
 
                 {/* Global Search Overlay */}
@@ -2676,23 +2675,34 @@ export default function SocialMediaPage() {
                                 minHeight: 60
                             }}>
                                 {loadingMore && (
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: 8,
-                                        color: C.textSec
-                                    }}>
-                                        <span style={{
-                                            width: 20,
-                                            height: 20,
-                                            border: `2px solid ${C.border}`,
-                                            borderTopColor: C.blue,
-                                            borderRadius: '50%',
-                                            animation: 'spin 1s linear infinite'
-                                        }} />
-                                        Loading more posts...
-                                    </div>
+                                    <>
+                                        {/* Skeleton Post Placeholders */}
+                                        {[1, 2].map(i => (
+                                            <div key={`skeleton-${i}`} style={{
+                                                background: C.card,
+                                                borderRadius: 8,
+                                                padding: 16,
+                                                marginBottom: 12,
+                                                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                            }}>
+                                                {/* Skeleton header */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                                                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#E4E6EB', animation: 'pulse 1.5s infinite' }} />
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ width: 120, height: 12, background: '#E4E6EB', borderRadius: 6, marginBottom: 6, animation: 'pulse 1.5s infinite' }} />
+                                                        <div style={{ width: 80, height: 10, background: '#E4E6EB', borderRadius: 5, animation: 'pulse 1.5s infinite' }} />
+                                                    </div>
+                                                </div>
+                                                {/* Skeleton content */}
+                                                <div style={{ marginBottom: 12 }}>
+                                                    <div style={{ width: '100%', height: 10, background: '#E4E6EB', borderRadius: 5, marginBottom: 8, animation: 'pulse 1.5s infinite' }} />
+                                                    <div style={{ width: '80%', height: 10, background: '#E4E6EB', borderRadius: 5, animation: 'pulse 1.5s infinite' }} />
+                                                </div>
+                                                {/* Skeleton image placeholder */}
+                                                <div style={{ width: '100%', height: 200, background: '#E4E6EB', borderRadius: 8, animation: 'pulse 1.5s infinite' }} />
+                                            </div>
+                                        ))}
+                                    </>
                                 )}
                                 {!hasMorePosts && posts.length > 0 && (
                                     <p style={{ color: C.textSec, fontSize: 14, textAlign: 'center' }}>
@@ -2704,6 +2714,10 @@ export default function SocialMediaPage() {
                             <style jsx>{`
                                 @keyframes spin {
                                     to { transform: rotate(360deg); }
+                                }
+                                @keyframes pulse {
+                                    0%, 100% { opacity: 1; }
+                                    50% { opacity: 0.5; }
                                 }
                             `}</style>
                         </>
