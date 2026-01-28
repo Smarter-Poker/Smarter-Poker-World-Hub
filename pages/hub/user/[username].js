@@ -15,13 +15,6 @@ import { supabase } from '../../../src/lib/supabase';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ArticleCard from '../../../src/components/social/ArticleCard';
-import dynamic from 'next/dynamic';
-
-// Dynamically import PostCreator to avoid SSR issues
-const PostCreator = dynamic(
-    () => import('../social-media').then(mod => ({ default: mod.PostCreator })),
-    { ssr: false }
-);
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -313,6 +306,8 @@ export default function UserProfilePage() {
     const [videos, setVideos] = useState([]);
     const [reels, setReels] = useState([]);
     const [isPosting, setIsPosting] = useState(false);
+    const [postContent, setPostContent] = useState('');
+    const [showPostComposer, setShowPostComposer] = useState(false);
 
     // Tab state
     const [activeTab, setActiveTab] = useState('all');
@@ -787,20 +782,59 @@ export default function UserProfilePage() {
                             <div style={{ marginTop: 16 }}>
                                 <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>All posts</h3>
 
-                                {/* Post Composer (for others' profiles) */}
-                                {!isOwnProfile && currentUser && (
+                                {/* Post Composer (for own profile) */}
+                                {isOwnProfile && currentUser && (
                                     <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                                            <img src={currentUser.avatar_url || '/default-avatar.png'} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
-                                            <div style={{
-                                                flex: 1, padding: '10px 16px', background: C.bg, borderRadius: 20,
-                                                color: C.textSec, fontSize: 15, cursor: 'pointer'
-                                            }}>Write something to {profile.full_name?.split(' ')[0] || profile.username}...</div>
-                                        </div>
-                                        <div style={{ display: 'flex', borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 12 }}>
-                                            <button style={{ flex: 1, padding: 8, background: 'none', border: 'none', color: C.textSec, fontWeight: 500, cursor: 'pointer', fontSize: 14 }}>📝 Write post</button>
-                                            <button style={{ flex: 1, padding: 8, background: 'none', border: 'none', color: C.textSec, fontWeight: 500, cursor: 'pointer', fontSize: 14 }}>🖼️ Share photo</button>
-                                        </div>
+                                        {!showPostComposer ? (
+                                            <div style={{ display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowPostComposer(true)}>
+                                                <img src={currentUser.user_metadata?.avatar_url || '/default-avatar.png'} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                                                <div style={{
+                                                    flex: 1, padding: '10px 16px', background: C.bg, borderRadius: 20,
+                                                    color: C.textSec, fontSize: 15
+                                                }}>What's on your mind, {profile.full_name?.split(' ')[0] || profile.username}?</div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                                                    <img src={currentUser.user_metadata?.avatar_url || '/default-avatar.png'} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                                                    <textarea
+                                                        value={postContent}
+                                                        onChange={(e) => setPostContent(e.target.value)}
+                                                        placeholder={`What's on your mind, ${profile.full_name?.split(' ')[0] || profile.username}?`}
+                                                        style={{
+                                                            flex: 1, minHeight: 80, padding: 12, border: 'none', borderRadius: 8,
+                                                            fontSize: 15, resize: 'vertical', outline: 'none', fontFamily: 'inherit'
+                                                        }}
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+                                                    <button
+                                                        onClick={() => { setShowPostComposer(false); setPostContent(''); }}
+                                                        style={{
+                                                            padding: '8px 16px', borderRadius: 6, border: 'none',
+                                                            background: C.bg, color: C.text, fontWeight: 600, cursor: 'pointer'
+                                                        }}
+                                                    >Cancel</button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            const success = await handlePost(postContent);
+                                                            if (success) {
+                                                                setPostContent('');
+                                                                setShowPostComposer(false);
+                                                            }
+                                                        }}
+                                                        disabled={!postContent.trim() || isPosting}
+                                                        style={{
+                                                            padding: '8px 20px', borderRadius: 6, border: 'none',
+                                                            background: C.blue, color: 'white', fontWeight: 600,
+                                                            cursor: postContent.trim() && !isPosting ? 'pointer' : 'not-allowed',
+                                                            opacity: postContent.trim() && !isPosting ? 1 : 0.5
+                                                        }}
+                                                    >{isPosting ? 'Posting...' : 'Post'}</button>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 )}
 
