@@ -319,7 +319,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 {isYouTubeUrl(currentReel.video_url) ? (
                     <iframe
                         key={currentReel.id}
-                        src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+                        src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&rel=0&modestbranding=1&playsinline=1&controls=1&showinfo=0&iv_load_policy=3&fs=0&disablekb=0&cc_load_policy=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
                         style={{ width: '100%', height: '100%', border: 'none' }}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
