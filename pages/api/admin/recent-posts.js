@@ -25,7 +25,7 @@ export default async function handler(req, res) {
                 media_urls: p.media_urls,
                 link_url: p.link_url,
                 link_title: p.link_title,
-                link_image: p.link_image ? 'YES' : 'NO',
+                link_image: p.link_image,  // Return actual URL for debugging
                 created_at: p.created_at
             }))
         });
