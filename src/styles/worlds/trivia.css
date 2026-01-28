@@ -1,18 +1,18 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MARKETPLACE THEME — Commerce, Premium, Purple
+   TRIVIA THEME — Quiz, Fun, Cyan
    ═══════════════════════════════════════════════════════════════════════════ */
 
-body.world-marketplace {
-    --world-primary: #9b59b6;
-    --world-primary-rgb: 155, 89, 182;
-    --world-primary-glow: rgba(155, 89, 182, 0.4);
-    --world-secondary: #a855f7;
-    --world-secondary-rgb: 168, 85, 247;
-    --world-bg-start: #08050a;
-    --world-bg-mid: #140a1a;
-    --world-bg-end: #040305;
+body.world-trivia {
+    --world-primary: #00ccff;
+    --world-primary-rgb: 0, 204, 255;
+    --world-primary-glow: rgba(0, 204, 255, 0.4);
+    --world-secondary: #22d3ee;
+    --world-secondary-rgb: 34, 211, 238;
+    --world-bg-start: #020812;
+    --world-bg-mid: #0a1a2e;
+    --world-bg-end: #010408;
     --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
-    --world-surface: rgba(40, 20, 60, 0.6);
-    --world-surface-elevated: rgba(60, 30, 90, 0.8);
-    --world-border: rgba(155, 89, 182, 0.3);
+    --world-surface: rgba(10, 40, 70, 0.6);
+    --world-surface-elevated: rgba(15, 55, 95, 0.8);
+    --world-border: rgba(0, 204, 255, 0.3);
 }

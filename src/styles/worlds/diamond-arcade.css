@@ -1,18 +1,18 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MARKETPLACE THEME — Commerce, Premium, Purple
+   DIAMOND ARCADE THEME — Fun, Games, Amber
    ═══════════════════════════════════════════════════════════════════════════ */
 
-body.world-marketplace {
-    --world-primary: #9b59b6;
-    --world-primary-rgb: 155, 89, 182;
-    --world-primary-glow: rgba(155, 89, 182, 0.4);
-    --world-secondary: #a855f7;
-    --world-secondary-rgb: 168, 85, 247;
-    --world-bg-start: #08050a;
-    --world-bg-mid: #140a1a;
-    --world-bg-end: #040305;
+body.world-diamond-arcade {
+    --world-primary: #fbbf24;
+    --world-primary-rgb: 251, 191, 36;
+    --world-primary-glow: rgba(251, 191, 36, 0.4);
+    --world-secondary: #f59e0b;
+    --world-secondary-rgb: 245, 158, 11;
+    --world-bg-start: #0a0806;
+    --world-bg-mid: #1a1408;
+    --world-bg-end: #050402;
     --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
-    --world-surface: rgba(40, 20, 60, 0.6);
-    --world-surface-elevated: rgba(60, 30, 90, 0.8);
-    --world-border: rgba(155, 89, 182, 0.3);
+    --world-surface: rgba(50, 40, 15, 0.6);
+    --world-surface-elevated: rgba(70, 55, 20, 0.8);
+    --world-border: rgba(251, 191, 36, 0.3);
 }

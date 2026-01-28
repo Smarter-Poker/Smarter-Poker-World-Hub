@@ -7,6 +7,20 @@
 
 import '../src/index.css';
 import '../src/styles/premium.css';
+import '../src/styles/global-tokens.css';
+import '../src/styles/worlds/club-arena.css';
+import '../src/styles/worlds/diamond-arena.css';
+import '../src/styles/worlds/social-hub.css';
+import '../src/styles/worlds/training.css';
+import '../src/styles/worlds/marketplace.css';
+import '../src/styles/worlds/news.css';
+import '../src/styles/worlds/video-library.css';
+import '../src/styles/worlds/poker-near-me.css';
+import '../src/styles/worlds/memory-games.css';
+import '../src/styles/worlds/diamond-arcade.css';
+import '../src/styles/worlds/personal-assistant.css';
+import '../src/styles/worlds/bankroll.css';
+import '../src/styles/worlds/trivia.css';
 import '../styles/landing.css';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
@@ -20,6 +34,7 @@ import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
 import { OneSignalProvider } from '../src/contexts/OneSignalContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
+import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CACHE BUSTER — Clears stale caches on new deploys
@@ -246,10 +261,12 @@ export default function App({ Component, pageProps }) {
             <ExternalLinkProvider>
               <OneSignalProvider>
                 <NavigationGuard>
-                  <Component {...pageProps} />
-                  <CelebrationManager />
-                  <ToastContainer />
-                  <GlobalNotificationPrompt />
+                  <WorldThemeProvider>
+                    <Component {...pageProps} />
+                    <CelebrationManager />
+                    <ToastContainer />
+                    <GlobalNotificationPrompt />
+                  </WorldThemeProvider>
                 </NavigationGuard>
               </OneSignalProvider>
             </ExternalLinkProvider>
