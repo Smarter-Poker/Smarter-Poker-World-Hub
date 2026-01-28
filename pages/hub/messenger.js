@@ -24,6 +24,7 @@ const LiveKitCall = dynamic(
 // God-Mode Stack
 import { useMessengerStore } from '../../src/stores/messengerStore';
 import { useOneSignal } from '../../src/contexts/OneSignalContext';
+import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { createRingTone } from '../../src/utils/ringTone';
 import { createMultiDeviceAuthListener, withRetry, safeAsync, getCircuit, isOnline, persistSession, getPersistedSession } from '../../src/utils/authGuard';
 
@@ -1023,6 +1024,9 @@ export default function MessengerPage() {
     // OneSignal Push Notifications
     const { isInitialized: pushReady, isSubscribed: pushSubscribed, subscribe: subscribePush, setExternalUserId } = useOneSignal();
 
+    // Global unread count for header badge - refresh after reading messages
+    const { refreshUnread } = useUnreadCount();
+
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
     const searchInputRef = useRef(null);
@@ -1619,6 +1623,9 @@ export default function MessengerPage() {
                 .update({ last_read_at: new Date().toISOString() })
                 .eq('conversation_id', conversationId)
                 .eq('user_id', user.id);
+
+            // 🔔 Immediately refresh global unread count to clear header badge
+            if (refreshUnread) refreshUnread();
 
         } catch (e) {
             console.error('Load messages error:', e);
