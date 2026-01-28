@@ -199,22 +199,82 @@ const BANNED_PHRASES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// VOICE ARCHETYPES - Extremely different personality types
+// 100 UNIQUE VOICE PERSONALITIES - Every horse has a distinct voice
+// Combines: base archetype (20) × modifier (5) = 100 unique personalities
 // ═══════════════════════════════════════════════════════════════════════════
-const VOICE_ARCHETYPES = [
-    { type: 'deadpan', style: 'Respond with dry, minimal words. No excitement. Example: "huh. okay." or "neat"' },
-    { type: 'hyped', style: 'EXTREMELY excited caps energy. Example: "YOOO THIS IS FIRE" or "BRO FINALLY"' },
-    { type: 'skeptic', style: 'Doubt and cynicism. Example: "we\'ll see about that" or "doubt it tbh"' },
-    { type: 'simp', style: 'Fan behavior. Pick a specific player to hype. Example: "my GOAT never misses" or "legend status"' },
-    { type: 'degen', style: 'Gambler brain. Make it about action. Example: "more action please" or "inject this into my veins"' },
-    { type: 'analyst', style: 'Strategic lens. Example: "interesting spot" or "meta shift incoming"' },
-    { type: 'nostalgic', style: 'Reference the old days. Example: "reminds me of 2010" or "back in my day..."' },
-    { type: 'zoomer', style: 'Gen-Z speak. Example: "no cap fr fr" or "this hits different" or "lowkey based"' },
-    { type: 'boomer', style: 'Old school vibe. Example: "now we\'re talking" or "thats what im talking about"' },
-    { type: 'lurker', style: 'Barely engaged. Just emojis or single words. Example: "👀" or "📈" or "yep"' },
-    { type: 'contrarian', style: 'Disagree or offer hot take. Example: "actually overrated" or "unpopular opinion but..."' },
-    { type: 'supportive', style: 'Pure positivity. Example: "love to see it" or "good for them" or "W"' }
+
+const BASE_ARCHETYPES = [
+    { type: 'deadpan', style: 'Dry, minimal. Example: "huh" / "neat" / "ok"' },
+    { type: 'hyped', style: 'ALL CAPS excitement. Example: "YOOO" / "LETS GO"' },
+    { type: 'skeptic', style: 'Doubtful. Example: "doubt it" / "eh"' },
+    { type: 'simp', style: 'Fan energy. Example: "goat" / "legend"' },
+    { type: 'degen', style: 'Gambler brain. Example: "action" / "inject this"' },
+    { type: 'analyst', style: 'Strategic. Example: "meta" / "EV+"' },
+    { type: 'nostalgic', style: 'Old days. Example: "back when" / "classic"' },
+    { type: 'zoomer', style: 'Gen-Z. Example: "no cap" / "fr fr"' },
+    { type: 'boomer', style: 'Old school. Example: "heck yeah" / "good stuff"' },
+    { type: 'lurker', style: 'Minimal. Example: "👀" / "📈" / "."' },
+    { type: 'contrarian', style: 'Hot takes. Example: "overrated" / "nah"' },
+    { type: 'supportive', style: 'Positive. Example: "W" / "gg"' },
+    { type: 'sardonic', style: 'Sarcastic. Example: "wow shocking" / "who knew"' },
+    { type: 'bro', style: 'Bro culture. Example: "sick" / "lets ride"' },
+    { type: 'chill', style: 'Relaxed. Example: "nice" / "cool"' },
+    { type: 'intense', style: 'Serious. Example: "massive" / "huge if true"' },
+    { type: 'clown', style: 'Joking. Example: "lmaooo" / "dead"' },
+    { type: 'doomer', style: 'Pessimist. Example: "rip" / "pain"' },
+    { type: 'grinder', style: 'Work ethic. Example: "levels" / "respect"' },
+    { type: 'minimalist', style: 'Ultra brief. Example: "." / "k" / "yep"' }
 ];
+
+const VOICE_MODIFIERS = [
+    { mod: 'emoji_sometimes', desc: 'Maybe 1 emoji in random spot' },
+    { mod: 'no_emoji', desc: 'Zero emojis, text only' },
+    { mod: 'lowercase', desc: 'all lowercase no caps ever' },
+    { mod: 'shouty', desc: 'RANDOM caps for EMPHASIS' },
+    { mod: 'terse', desc: 'Max 2 words. Period.' }
+];
+
+// Generate 100 unique voice combinations
+function getVoiceForHorse(profileId) {
+    // Hash the profile ID
+    let hash = 0;
+    const id = profileId || '';
+    for (let i = 0; i < id.length; i++) {
+        hash = ((hash << 5) - hash) + id.charCodeAt(i);
+        hash = hash & hash;
+    }
+    hash = Math.abs(hash);
+
+    // Get base archetype (20 options)
+    const baseIndex = hash % BASE_ARCHETYPES.length;
+    const base = BASE_ARCHETYPES[baseIndex];
+
+    // Get modifier (5 options) - use different hash portion
+    const modIndex = Math.floor(hash / 20) % VOICE_MODIFIERS.length;
+    const modifier = VOICE_MODIFIERS[modIndex];
+
+    // Create combined style instruction
+    let style = `${base.style}`;
+
+    if (modifier.mod === 'emoji_sometimes') {
+        style += ' Maybe add 1 emoji (50% chance). If used, placement varies: start OR middle OR end.';
+    } else if (modifier.mod === 'no_emoji') {
+        style += ' NO emojis whatsoever.';
+    } else if (modifier.mod === 'lowercase') {
+        style += ' All lowercase, never capitalize.';
+    } else if (modifier.mod === 'shouty') {
+        style += ' Randomly CAPITALIZE for emphasis.';
+    } else if (modifier.mod === 'terse') {
+        style += ' MAX 2 words total.';
+    }
+
+    return {
+        type: `${base.type}_${modifier.mod}`,
+        style: style,
+        base: base.type,
+        modifier: modifier.mod
+    };
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GENERATE HORSE COMMENTARY
@@ -228,15 +288,9 @@ async function generateCommentary(horse, article, timeEnergy = null) {
     const templates = CAPTION_TEMPLATES[article.category] || CAPTION_TEMPLATES.default;
     const template = templates[Math.floor(Math.random() * templates.length)];
 
-    // Assign this horse a consistent voice archetype based on their ID hash
-    let hash = 0;
-    const horseId = horse.profile_id || horse.id || '';
-    for (let i = 0; i < horseId.length; i++) {
-        hash = ((hash << 5) - hash) + horseId.charCodeAt(i);
-        hash = hash & hash;
-    }
-    const archetypeIndex = Math.abs(hash) % VOICE_ARCHETYPES.length;
-    const archetype = VOICE_ARCHETYPES[archetypeIndex];
+    // Get this horse's unique voice (100 unique combinations)
+    const voice = getVoiceForHorse(horse.profile_id);
+    console.log(`   🎭 ${horse.name} voice: ${voice.type}`);
 
     try {
         // Use GPT to make it more personalized with ULTRA-STRICT anti-repetition rules
@@ -246,8 +300,8 @@ async function generateCommentary(horse, article, timeEnergy = null) {
                 role: 'system',
                 content: `You are ${horse.name}, reacting to a headline.
 
-YOUR VOICE: ${archetype.type.toUpperCase()}
-${archetype.style}
+YOUR VOICE: ${voice.type.toUpperCase()}
+${voice.style}
 
 CONTENT TYPE: ${contentType} (react with ${reaction.energy} energy)
 

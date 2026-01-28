@@ -210,8 +210,8 @@ export function getHorseWritingStyle(profileId) {
         quirk: quirk,
         // Probability modifiers (0.0 - 1.0)
         fillerProbability: (hash % 50) / 100,  // 0-50% chance
-        emojiProbability: ((hash * 3) % 80) / 100,  // 0-80% chance
-        doubleEmoji: hash % 5 === 0  // 20% of horses double up emojis
+        emojiProbability: ((hash * 3) % 40) / 100,  // 0-40% chance (reduced from 80%)
+        doubleEmoji: false  // DISABLED - double emojis look robotic
     };
 }
 
@@ -330,25 +330,23 @@ export function applyWritingStyle(comment, profileId) {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // EMOJIS
+    // EMOJIS - Natural placement (varied, not always trailing)
     // ═══════════════════════════════════════════════════════════════════════
     const hasEmoji = result.match(/[\u{1F300}-\u{1F9FF}]/u);
     if (!hasEmoji && style.emojiStyle !== 'none' && Math.random() < style.emojiProbability) {
         const emoji = style.emojiChoices[Math.floor(Math.random() * style.emojiChoices.length)];
 
-        switch (style.emojiStyle) {
-            case 'emoji_only':
-                if (result.length < 10) result = emoji;
-                break;
-            case 'trailing':
-                result = result + ' ' + emoji;
-                if (style.doubleEmoji) result = result + emoji;
-                break;
-            case 'heavy':
-                result = emoji + ' ' + result + ' ' + emoji;
-                break;
-            default:
-                result = result + ' ' + emoji;
+        // Random placement instead of always trailing
+        const placement = Math.random();
+        if (placement < 0.15) {
+            // 15% chance: emoji only (for very short responses)
+            if (result.length < 10) result = emoji;
+        } else if (placement < 0.35) {
+            // 20% chance: emoji at start
+            result = emoji + ' ' + result;
+        } else {
+            // 65% chance: emoji at end (most natural for reactions)
+            result = result + ' ' + emoji;
         }
     }
 
