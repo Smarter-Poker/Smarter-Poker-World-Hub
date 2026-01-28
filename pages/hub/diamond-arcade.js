@@ -138,6 +138,13 @@ export default function DiamondArcade() {
         setShowIntro(false);
     }, []);
 
+    // Attempt to unmute video after it starts playing
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
+
     // Today's featured games matching mockup
     const todaysFeatured = [
         { ...ARCADE_GAMES['hand-snap'], badge: '2X BONUS', badgeColor: '#fbbf24' },
@@ -302,7 +309,9 @@ export default function DiamondArcade() {
                         ref={introVideoRef}
                         src="/videos/diamond-arcade-intro.mp4"
                         autoPlay
+                        muted
                         playsInline
+                        onPlay={handleIntroPlay}
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}
                         style={{

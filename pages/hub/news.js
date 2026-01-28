@@ -820,6 +820,13 @@ export default function NewsHub() {
         setShowIntro(false);
     }, []);
 
+    // Attempt to unmute video after it starts playing
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
+
     // Load persisted state
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -1126,7 +1133,9 @@ export default function NewsHub() {
                         ref={introVideoRef}
                         src="/videos/news-intro.mp4"
                         autoPlay
+                        muted
                         playsInline
+                        onPlay={handleIntroPlay}
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}
                         style={{

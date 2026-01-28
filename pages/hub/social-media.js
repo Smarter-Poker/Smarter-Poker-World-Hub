@@ -1493,6 +1493,13 @@ export default function SocialMediaPage() {
         setShowIntro(false);
     }, []);
 
+    // Attempt to unmute video after it starts playing
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
+
     // Bottom nav visibility - hide when scrolling down, show when scrolling up
     useEffect(() => {
         const handleScroll = () => {
@@ -2191,7 +2198,9 @@ export default function SocialMediaPage() {
                         ref={introVideoRef}
                         src="/videos/social-media-intro.mp4"
                         autoPlay
+                        muted
                         playsInline
+                        onPlay={handleIntroPlay}
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}
                         style={{

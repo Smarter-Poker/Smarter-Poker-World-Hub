@@ -1291,6 +1291,13 @@ export default function MemoryGamesPage() {
         setShowIntro(false);
     }, []);
 
+    // Attempt to unmute video after it starts playing
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
+
     // Initialize effects CSS and load real user balance from Supabase
     useEffect(() => {
         EffectsEngine.initCSS();
@@ -1534,7 +1541,9 @@ export default function MemoryGamesPage() {
                         ref={introVideoRef}
                         src="/videos/memory-games-intro.mp4"
                         autoPlay
+                        muted
                         playsInline
+                        onPlay={handleIntroPlay}
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}
                         style={{

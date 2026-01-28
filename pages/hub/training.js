@@ -506,6 +506,13 @@ export default function TrainingPage() {
         setShowPageIntro(false);
     }, []);
 
+    // Attempt to unmute video after it starts playing
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
+
     const {
         isLoaded,
         progress,
@@ -649,7 +656,9 @@ export default function TrainingPage() {
                         ref={introVideoRef}
                         src="/videos/training-intro.mp4"
                         autoPlay
+                        muted
                         playsInline
+                        onPlay={handleIntroPlay}
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}
                         style={{

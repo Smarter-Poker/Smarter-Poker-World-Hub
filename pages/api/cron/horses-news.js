@@ -61,42 +61,13 @@ const NEWS_SOURCES = [
 // ═══════════════════════════════════════════════════════════════════════════
 // CAPTION TEMPLATES - How horses comment on news
 // ═══════════════════════════════════════════════════════════════════════════
+// Ultra-short templates - 1-3 words max for authenticity
 const CAPTION_TEMPLATES = {
-    tournament: [
-        "🏆 {source} this is huge",
-        "congrats to the winner! 🎉",
-        "that final table was insane apparently",
-        "wish i was there tbh",
-        "imagine shipping this 🤑"
-    ],
-    strategy: [
-        "📚 good read here",
-        "been thinking about this lately",
-        "solid advice imo",
-        "saving this for later study session",
-        "this is actually +EV content"
-    ],
-    industry: [
-        "interesting news 👀",
-        "this affects all of us",
-        "thoughts on this?",
-        "big if true",
-        "the poker world is always changing"
-    ],
-    lifestyle: [
-        "poker life 🎲",
-        "relatable content right here",
-        "this is the life we chose lol",
-        "not wrong 😂",
-        "grinder moments"
-    ],
-    default: [
-        "worth a read 📰",
-        "check this out",
-        "interesting stuff",
-        "👀",
-        "thoughts?"
-    ]
+    tournament: ["🏆", "huge", "W", "congrats", "damn", "shipped", "gg"],
+    strategy: ["📈", "valid", "true", "noted", "this", "facts", "📚"],
+    industry: ["👀", "hm", "wild", "📰", "oh", "wow", "huh"],
+    lifestyle: ["🎲", "lol", "mood", "facts", "real", "fr", "same"],
+    default: ["👀", "🔥", "📰", "W", "this", "yo", "damn"]
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -169,22 +140,51 @@ async function isArticleRecentlyShared(link) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PER-HORSE COOLDOWN - Prevent same horse from posting consecutively  
+// ═══════════════════════════════════════════════════════════════════════════
+const HORSE_POST_COOLDOWN_HOURS = 4; // Same horse can't post within 4 hours
+
+async function hasHorsePostedRecently(horseProfileId) {
+    const cutoff = new Date(Date.now() - HORSE_POST_COOLDOWN_HOURS * 60 * 60 * 1000);
+
+    const { data } = await supabase
+        .from('social_posts')
+        .select('id')
+        .eq('author_id', horseProfileId)
+        .gte('created_at', cutoff.toISOString())
+        .limit(1);
+
+    return data && data.length > 0;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // BANNED PHRASES - Patterns that make posts look robotic/samey
 // ═══════════════════════════════════════════════════════════════════════════
 const BANNED_PHRASES = [
     'thoughts on how',
-    'been thinking about this',
+    'been thinking about',
     'this might change',
-    'what do you think about',
+    'what do you think',
     'this could impact',
-    'interesting to see how',
-    'curious how this will',
-    'wondering how this',
-    'this is worth noting',
-    'important news for',
+    'interesting to see',
+    'curious how this',
+    'wondering how',
+    'this is worth',
+    'important news',
     'big news for',
-    'this is huge for',
-    'can\'t wait to see how'
+    'this is huge',
+    'can\'t wait to see',
+    // Added from screenshot analysis
+    'could impact future',
+    'could change',
+    'crushing it',
+    'thoughts on this',
+    'been thinking',
+    'mastering',
+    'crucial for',
+    'maximizing',
+    'check out',
+    'look at this'
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -224,32 +224,32 @@ async function generateCommentary(horse, article) {
     const archetype = VOICE_ARCHETYPES[archetypeIndex];
 
     try {
-        // Use GPT to make it more personalized with STRICT anti-repetition rules
+        // Use GPT to make it more personalized with ULTRA-STRICT anti-repetition rules
         const response = await openai.chat.completions.create({
             model: 'gpt-4o',
             messages: [{
                 role: 'system',
-                content: `You are ${horse.name}, a poker player sharing news.
+                content: `You are ${horse.name}, reacting to a headline.
 
 YOUR VOICE: ${archetype.type.toUpperCase()}
 ${archetype.style}
 
-STRICT RULES:
-1. MAX 8 words. Shorter is better. 1-3 words ideal.
-2. NEVER start with: "Thoughts on", "Been thinking", "Interesting", "This is", "What do you"
-3. NEVER ask questions.
-4. NEVER use hashtags.
-5. NEVER use quotation marks.
-6. Sound like a real person texting, not a news anchor.
-7. Match the ${archetype.type} vibe EXACTLY.
+ULTRA-STRICT RULES (FOLLOW EXACTLY):
+1. MAX 4 WORDS. 1-2 words is IDEAL. 3+ words = FAIL.
+2. BANNED STARTERS: "Thoughts", "Been", "This", "Interesting", "What", "Check", "Look", "Could", "How", "Wondering"
+3. BANNED: questions, hashtags, colons, quotes, em-dashes, "!", formal language
+4. SOUND LIKE TEXTING not a news anchor.
 
-Fallback style if stuck: "${template}"`
+GOOD EXAMPLES: "yep" / "fire" / "👀" / "W" / "damn" / "sheesh" / "lol" / "wild"
+BAD EXAMPLES: "Thoughts on how..." / "Been thinking..." / "This could impact..." / Any sentence over 4 words
+
+Fallback: "${template}"`
             }, {
                 role: 'user',
-                content: `React to: "${article.title}"`
+                content: `React: "${article.title}"`
             }],
-            max_tokens: 30,
-            temperature: 1.0 // High randomness for variety
+            max_tokens: 20,
+            temperature: 0.85 // Balanced for rule adherence + variety
         });
 
         let commentary = response.choices[0].message.content || template;

@@ -119,80 +119,238 @@ export function isHorseActiveHour(profileId, currentHour) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PER-HORSE WRITING STYLES
-// Each horse has a unique personality reflected in their writing
+// 100 UNIQUE WRITING STYLES - Every horse gets a deterministically unique voice
+// Based on multiple dimensions that combine to create distinct personalities
 // ═══════════════════════════════════════════════════════════════════════════
+
+// Style dimensions with many options for combination
+const CAPITALIZATION_STYLES = ['all_lower', 'normal', 'first_cap', 'random_caps', 'all_caps', 'lazy_caps'];
+const EMOJI_STYLES = ['none', 'minimal', 'moderate', 'heavy', 'emoji_only', 'trailing'];
+const PUNCTUATION_STYLES = ['none', 'minimal', 'normal', 'enthusiastic', 'ellipsis', 'dash_lover'];
+const FILLER_SETS = [
+    [], // No fillers
+    ['honestly', 'ngl'],
+    ['fr', 'lowkey'],
+    ['tbh', 'imo'],
+    ['yo', 'bruh'],
+    ['like', 'idk'],
+    ['lmao', 'lol'],
+    ['bro', 'dude'],
+    ['damn', 'sheesh'],
+    ['ong', 'no cap']
+];
+const OPENER_STYLES = ['direct', 'reaction', 'emoji_first', 'filler_first', 'one_word'];
+const LINGUISTIC_QUIRKS = [
+    'none',
+    'double_letters', // "niice", "yooo"  
+    'drops_vowels',   // "wht", "tht"
+    'adds_periods',   // "this. is. fire."
+    'stretches',      // "sooo", "fireee"
+    'abbreviates',    // "w/", "bc"
+    'uses_numbers',   // "gr8", "2day"
+    'spaces_out',     // "w h a t"
+    'repeats_end',    // "niceeee"
+    'slang_heavy'     // heavy use of slang
+];
+
+/**
+ * Generate a unique hash value for a horse (0-99 range for 100 distinct styles)
+ */
+function getHorseStyleHash(profileId) {
+    if (!profileId) return 0;
+    let hash = 0;
+    for (let i = 0; i < profileId.length; i++) {
+        const char = profileId.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return Math.abs(hash) % 100;
+}
 
 /**
  * Get a horse's unique writing style based on their profile_id
+ * Creates 100 distinct combinations across multiple dimensions
  */
 export function getHorseWritingStyle(profileId) {
-    const hash = getHorseSlot(profileId);
+    const hash = getHorseStyleHash(profileId);
+
+    // Use different parts of the hash to select from each dimension
+    const capStyle = CAPITALIZATION_STYLES[hash % CAPITALIZATION_STYLES.length];
+    const emojiStyle = EMOJI_STYLES[(hash * 7) % EMOJI_STYLES.length];
+    const punctStyle = PUNCTUATION_STYLES[(hash * 13) % PUNCTUATION_STYLES.length];
+    const fillerSet = FILLER_SETS[(hash * 17) % FILLER_SETS.length];
+    const openerStyle = OPENER_STYLES[(hash * 23) % OPENER_STYLES.length];
+    const quirk = LINGUISTIC_QUIRKS[(hash * 31) % LINGUISTIC_QUIRKS.length];
+
+    // Additional unique traits
+    const emojiChoices = [
+        ['🔥', '💯', '👀'],
+        ['😂', '💀', '🤣'],
+        ['🙏', '👑', '⚡'],
+        ['🎯', '🃏', '♠️'],
+        ['📈', '📉', '💰'],
+        ['🤔', '🧐', '👁️'],
+        ['😤', '💪', '🏆'],
+        ['❤️', '🖤', '💜']
+    ][(hash * 41) % 8];
 
     return {
-        // Capitalization: none, first_letter, all_caps, normal, random
-        capitalization: ['none', 'first_letter', 'all_caps', 'normal', 'random'][hash % 5],
-        // Emoji frequency (0-3)
-        emojiFrequency: hash % 4,
-        // Punctuation: none, normal, enthusiastic, minimal
-        punctuation: ['none', 'normal', 'enthusiastic', 'minimal'][hash % 4],
-        // Add filler words
-        useFillers: hash % 3 === 0,
-        // Personality type
-        personality: ['chill', 'hype', 'analytical', 'funny', 'supportive', 'sarcastic'][hash % 6]
+        capitalization: capStyle,
+        emojiStyle: emojiStyle,
+        emojiChoices: emojiChoices,
+        punctuation: punctStyle,
+        fillers: fillerSet,
+        openerStyle: openerStyle,
+        quirk: quirk,
+        // Probability modifiers (0.0 - 1.0)
+        fillerProbability: (hash % 50) / 100,  // 0-50% chance
+        emojiProbability: ((hash * 3) % 80) / 100,  // 0-80% chance
+        doubleEmoji: hash % 5 === 0  // 20% of horses double up emojis
     };
 }
 
 /**
- * Apply a horse's writing style to a comment
+ * Apply linguistic quirk to text
+ */
+function applyQuirk(text, quirk) {
+    switch (quirk) {
+        case 'double_letters':
+            return text.replace(/([aeiou])/gi, (m) => Math.random() > 0.7 ? m + m : m);
+        case 'stretches':
+            return text.replace(/([aeiousy])(\s|$)/gi, (m, letter, after) =>
+                Math.random() > 0.6 ? letter + letter + letter + after : m);
+        case 'adds_periods':
+            return text.split(' ').join('. ').replace(/\.\s*\./g, '.');
+        case 'abbreviates':
+            return text.replace(/\bwith\b/gi, 'w/').replace(/\bbecause\b/gi, 'bc');
+        case 'repeats_end':
+            if (text.length > 3) {
+                const lastChar = text[text.length - 1];
+                if (/[a-z]/i.test(lastChar)) {
+                    return text + lastChar.repeat(2 + Math.floor(Math.random() * 3));
+                }
+            }
+            return text;
+        default:
+            return text;
+    }
+}
+
+/**
+ * Apply a horse's unique writing style to a comment
+ * Sanitizes em-dashes and hyphenated words, then applies style
  */
 export function applyWritingStyle(comment, profileId) {
     const style = getHorseWritingStyle(profileId);
     let result = comment;
 
-    // Apply capitalization
+    // ═══════════════════════════════════════════════════════════════════════
+    // SANITIZATION - Remove em-dashes and hyphenated-word patterns
+    // ═══════════════════════════════════════════════════════════════════════
+    result = result
+        .replace(/—/g, ' ')           // Em-dashes to space
+        .replace(/–/g, ' ')           // En-dashes to space  
+        .replace(/(\w)-(\w)/g, '$1 $2')  // Hyphenated-words to spaces
+        .replace(/["'"']/g, '')       // All quote variants
+        .replace(/:/g, '')            // Colons
+        .replace(/\s+/g, ' ')         // Multiple spaces to single
+        .trim();
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CAPITALIZATION
+    // ═══════════════════════════════════════════════════════════════════════
     switch (style.capitalization) {
-        case 'none':
+        case 'all_lower':
             result = result.toLowerCase();
             break;
-        case 'first_letter':
+        case 'first_cap':
             result = result.charAt(0).toUpperCase() + result.slice(1).toLowerCase();
             break;
         case 'all_caps':
-            if (Math.random() < 0.3) result = result.toUpperCase();
+            result = result.toUpperCase();
             break;
-        case 'random':
-            result = result.split(' ').map(word =>
-                Math.random() > 0.7 ? word.toUpperCase() : word.toLowerCase()
-            ).join(' ');
+        case 'random_caps':
+            result = result.split('').map(c =>
+                Math.random() > 0.7 ? c.toUpperCase() : c.toLowerCase()
+            ).join('');
             break;
-    }
-
-    // Apply punctuation style
-    switch (style.punctuation) {
-        case 'none':
-            result = result.replace(/[.!?]+$/, '');
-            break;
-        case 'enthusiastic':
-            if (!result.endsWith('!') && !result.endsWith('?')) {
-                result = result.replace(/[.]+$/, '') + '!';
+        case 'lazy_caps':
+            // Only capitalize if feeling like it (30% chance)
+            if (Math.random() > 0.7) {
+                result = result.charAt(0).toUpperCase() + result.slice(1).toLowerCase();
+            } else {
+                result = result.toLowerCase();
             }
             break;
-        case 'minimal':
-            result = result.replace(/[!]+/g, '');
+        // 'normal' - leave as is
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PUNCTUATION
+    // ═══════════════════════════════════════════════════════════════════════
+    switch (style.punctuation) {
+        case 'none':
+            result = result.replace(/[.!?,]+$/g, '');
             break;
+        case 'minimal':
+            result = result.replace(/[!]+/g, '').replace(/[.]+$/, '');
+            break;
+        case 'enthusiastic':
+            if (!result.match(/[!?]$/)) {
+                result = result.replace(/[.]+$/, '') + (Math.random() > 0.5 ? '!' : '!!');
+            }
+            break;
+        case 'ellipsis':
+            if (!result.match(/[.!?]$/)) {
+                result = result + '...';
+            }
+            break;
+        case 'dash_lover':
+            result = result.replace(/[.!?]+$/, '') + ' -';
+            break;
+        // 'normal' - leave as is
     }
 
-    // Add emoji for high-frequency horses
-    if (style.emojiFrequency >= 2 && !result.match(/[\u{1F300}-\u{1F9FF}]/u)) {
-        const emojis = ['🔥', '💯', '👀', '😂', '💀', '🙏', '👑', '🎯', '⚡', '🃏'];
-        result = result + ' ' + emojis[Math.floor(Math.random() * emojis.length)];
+    // ═══════════════════════════════════════════════════════════════════════
+    // FILLERS (prepend or append based on style)
+    // ═══════════════════════════════════════════════════════════════════════
+    if (style.fillers.length > 0 && Math.random() < style.fillerProbability) {
+        const filler = style.fillers[Math.floor(Math.random() * style.fillers.length)];
+        if (style.openerStyle === 'filler_first' || Math.random() > 0.5) {
+            result = filler + ' ' + result.toLowerCase();
+        } else {
+            result = result + ' ' + filler;
+        }
     }
 
-    // Add fillers for some horses
-    if (style.useFillers && Math.random() > 0.6) {
-        const fillers = ['honestly ', 'ngl ', 'fr ', 'lowkey ', 'tbh '];
-        result = fillers[Math.floor(Math.random() * fillers.length)] + result.toLowerCase();
+    // ═══════════════════════════════════════════════════════════════════════
+    // EMOJIS
+    // ═══════════════════════════════════════════════════════════════════════
+    const hasEmoji = result.match(/[\u{1F300}-\u{1F9FF}]/u);
+    if (!hasEmoji && style.emojiStyle !== 'none' && Math.random() < style.emojiProbability) {
+        const emoji = style.emojiChoices[Math.floor(Math.random() * style.emojiChoices.length)];
+
+        switch (style.emojiStyle) {
+            case 'emoji_only':
+                if (result.length < 10) result = emoji;
+                break;
+            case 'trailing':
+                result = result + ' ' + emoji;
+                if (style.doubleEmoji) result = result + emoji;
+                break;
+            case 'heavy':
+                result = emoji + ' ' + result + ' ' + emoji;
+                break;
+            default:
+                result = result + ' ' + emoji;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // LINGUISTIC QUIRKS
+    // ═══════════════════════════════════════════════════════════════════════
+    if (style.quirk !== 'none' && Math.random() > 0.4) {
+        result = applyQuirk(result, style.quirk);
     }
 
     return result.trim();

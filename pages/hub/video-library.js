@@ -391,6 +391,13 @@ export default function VideoLibraryPage() {
         setShowIntro(false);
     }, []);
 
+    // Attempt to unmute video after it starts playing
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
+
     // Filter videos
     useEffect(() => {
         let filtered = FULL_VIDEOS;
@@ -445,7 +452,9 @@ export default function VideoLibraryPage() {
                         ref={introVideoRef}
                         src="/videos/video-library-intro.mp4"
                         autoPlay
+                        muted
                         playsInline
+                        onPlay={handleIntroPlay}
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}
                         style={{

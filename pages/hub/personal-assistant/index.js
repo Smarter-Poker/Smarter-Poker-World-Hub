@@ -45,6 +45,13 @@ export default function PersonalAssistantPage() {
     setShowIntro(false);
   }, []);
 
+  // Attempt to unmute video after it starts playing
+  const handleIntroPlay = useCallback(() => {
+    if (introVideoRef.current) {
+      introVideoRef.current.muted = false;
+    }
+  }, []);
+
   // Use real hooks for data
   const { stats, isLoading: statsLoading } = useAssistantStats();
   const { sessions: recentSessions, isLoading: sessionsLoading } = useRecentSessions(5);
@@ -83,7 +90,9 @@ export default function PersonalAssistantPage() {
             ref={introVideoRef}
             src="/videos/personal-assistant-intro.mp4"
             autoPlay
+            muted
             playsInline
+            onPlay={handleIntroPlay}
             onEnded={handleIntroEnd}
             onError={handleIntroEnd}
             style={{

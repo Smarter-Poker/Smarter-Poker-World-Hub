@@ -131,6 +131,13 @@ export default function BankrollManagerPage() {
     setShowIntro(false);
   }, []);
 
+  // Attempt to unmute video after it starts playing
+  const handleIntroPlay = useCallback(() => {
+    if (introVideoRef.current) {
+      introVideoRef.current.muted = false;
+    }
+  }, []);
+
   // Initialize bankroll for new users
   useEffect(() => {
     if (userId) {
@@ -224,7 +231,9 @@ export default function BankrollManagerPage() {
             ref={introVideoRef}
             src="/videos/bankroll-manager-intro.mp4"
             autoPlay
+            muted
             playsInline
+            onPlay={handleIntroPlay}
             onEnded={handleIntroEnd}
             onError={handleIntroEnd}
             style={{

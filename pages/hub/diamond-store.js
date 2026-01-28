@@ -497,6 +497,13 @@ export default function DiamondStorePage() {
         setShowIntro(false);
     }, []);
 
+    // Attempt to unmute video after it starts playing
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
+
     const handleDiamondPurchase = () => {
         if (!selectedPackage) return;
         setIsProcessing(true);
@@ -545,7 +552,9 @@ export default function DiamondStorePage() {
                         ref={introVideoRef}
                         src="/videos/marketplace-intro.mp4"
                         autoPlay
+                        muted
                         playsInline
+                        onPlay={handleIntroPlay}
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}
                         style={{

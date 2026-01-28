@@ -127,6 +127,13 @@ export default function PokerNearMe() {
         setShowIntro(false);
     }, []);
 
+    // Attempt to unmute video after it starts playing
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
+
     // Filter states
     const [filters, setFilters] = useState({
         // Venue filters
@@ -576,7 +583,9 @@ export default function PokerNearMe() {
                         ref={introVideoRef}
                         src="/videos/poker-near-me-intro.mp4"
                         autoPlay
+                        muted
                         playsInline
+                        onPlay={handleIntroPlay}
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}
                         style={{

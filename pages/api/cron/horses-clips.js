@@ -238,29 +238,32 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
 YOUR VOICE: ${archetype.type.toUpperCase()}
 ${archetype.style}
 
-STRICT RULES:
-1. MAX 6 words. Shorter = better. 1-3 words ideal.
-2. NEVER start with: "Check out", "Look at", "Watch", "This is"
-3. NO quotation marks. NO colons. NO em-dashes.
-4. Sound like texting, not a news headline.
-5. Match the ${archetype.type} vibe EXACTLY.`
+ULTRA-STRICT RULES:
+1. MAX 4 WORDS. 1-2 words ideal. 3+ = FAIL.
+2. BANNED STARTERS: "Check", "Look", "Watch", "This", "Here"
+3. BANNED: quotes, colons, dashes, hyphens, questions
+4. SOUND LIKE TEXTING not a title.
+
+GOOD: "yep" / "fire" / "👀" / "YOOO" / "sheesh"
+BAD: "Check out..." / "Watch this..." / 5+ words`
                 }, {
                     role: 'user',
                     content: `Caption for: ${clip.description || templateCaption}`
                 }],
-                max_tokens: 25,
-                temperature: 1.0
+                max_tokens: 20,
+                temperature: 0.85
             });
             caption = response.choices[0].message.content || templateCaption;
             // Clean up any quotes/dashes that slip through - strip ALL quote variants
             caption = caption
-                .replace(/[\"""''`]/g, '')  // All quote types
+                .replace(/["\"\"''`]/g, '')  // All quote types
                 .replace(/—/g, ' ')         // Em-dashes to space
-                .replace(/–/g, ' ')         // En-dashes to space  
+                .replace(/–/g, ' ')         // En-dashes to space
+                .replace(/(\w)-(\w)/g, '$1 $2')  // Hyphenated-words to spaces
                 .replace(/:/g, '')          // Colons
                 .replace(/\s+/g, ' ')       // Multiple spaces to single
                 .trim();
-            
+
             // Apply horse's unique writing style
             caption = applyWritingStyle(caption, horse.profile_id);
         } catch (e) {
