@@ -15,6 +15,13 @@ import { supabase } from '../../../src/lib/supabase';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ArticleCard from '../../../src/components/social/ArticleCard';
+import dynamic from 'next/dynamic';
+
+// Dynamically import PostCreator to avoid SSR issues
+const PostCreator = dynamic(
+    () => import('../social-media').then(mod => ({ default: mod.PostCreator })),
+    { ssr: false }
+);
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -305,6 +312,7 @@ export default function UserProfilePage() {
     const [photos, setPhotos] = useState([]);
     const [videos, setVideos] = useState([]);
     const [reels, setReels] = useState([]);
+    const [isPosting, setIsPosting] = useState(false);
 
     // Tab state
     const [activeTab, setActiveTab] = useState('all');
@@ -486,6 +494,60 @@ export default function UserProfilePage() {
         } catch (e) {
             console.error('Error deleting post:', e);
             throw e;
+        }
+    };
+
+    const handlePost = async (content, urls = [], type = 'text', mentions = [], linkPreview = null) => {
+        if (!currentUser?.id) {
+            console.error('Cannot post: user not logged in');
+            return false;
+        }
+
+        setIsPosting(true);
+        try {
+            const insertPayload = {
+                author_id: currentUser.id,
+                content,
+                content_type: type,
+                media_urls: urls,
+                visibility: 'public',
+            };
+
+            // Add link metadata if available
+            if (linkPreview) {
+                insertPayload.link_url = linkPreview.url || urls[0];
+                insertPayload.link_title = linkPreview.title || null;
+                insertPayload.link_description = linkPreview.description || null;
+                insertPayload.link_image = linkPreview.image || null;
+                insertPayload.link_site_name = linkPreview.domain || null;
+            }
+
+            const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().single();
+
+            if (error) {
+                console.error('Post creation error:', error);
+                setIsPosting(false);
+                return false;
+            }
+
+            // Add the new post to the local state
+            const newPost = {
+                ...data,
+                author: {
+                    id: currentUser.id,
+                    username: currentUser.user_metadata?.username,
+                    full_name: currentUser.user_metadata?.full_name,
+                    avatar_url: currentUser.user_metadata?.avatar_url,
+                }
+            };
+            setPosts(prev => [newPost, ...prev]);
+            setStats(prev => ({ ...prev, posts: prev.posts + 1 }));
+            setIsPosting(false);
+            return true;
+        } catch (e) {
+            console.error('Error creating post:', e);
+            setIsPosting(false);
+            return false;
         }
     };
 
