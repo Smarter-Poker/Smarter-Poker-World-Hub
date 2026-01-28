@@ -11,12 +11,14 @@
 // The 4 cron trigger minutes - MUST MATCH vercel.json schedule!
 // horses-stories runs at: 8, 23, 38, 53
 // horses-clips runs at: 3, 18, 33, 48
-// Using the stories schedule as primary since it's more frequent
-const CRON_SLOTS = [8, 23, 38, 53];
+const CRON_TRIGGERS = [8, 23, 38, 53];
+
+// Each horse gets a UNIQUE minute (0-59) instead of sharing 4 slots
+// This spreads 100 horses across 60 minutes for natural timing
 
 /**
- * Get a deterministic slot index (0-3) for a horse based on their profile_id
- * This assigns each horse to one of the 4 cron trigger times
+ * Get a deterministic unique minute (0-59) for a horse based on their profile_id
+ * Each of the 100 horses gets their own posting minute
  */
 export function getHorseSlot(profileId) {
     if (!profileId) return 0;
@@ -29,26 +31,27 @@ export function getHorseSlot(profileId) {
         hash = hash & hash; // Convert to 32-bit integer
     }
 
-    // Map to 0-3 range (one of 4 cron slots)
-    return Math.abs(hash) % 4;
+    // Map to 0-59 range (unique minute for each horse)
+    return Math.abs(hash) % 60;
 }
 
 /**
  * Get the actual minute this horse should be active
+ * Now returns a unique minute 0-59 for each horse
  */
 export function getHorseCronMinute(profileId) {
-    const slotIndex = getHorseSlot(profileId);
-    return CRON_SLOTS[slotIndex];
+    return getHorseSlot(profileId); // Direct mapping - each horse has unique minute
 }
 
 /**
  * Check if a horse should be active during the current minute
- * Horses are active when the current minute matches their assigned cron slot
+ * Uses wider variance (±7 mins) since cron runs every 15 minutes
+ * This ensures every horse is caught by at least one cron trigger
  */
-export function shouldHorseBeActive(profileId, currentMinute, variance = 2) {
+export function shouldHorseBeActive(profileId, currentMinute, variance = 7) {
     const assignedMinute = getHorseCronMinute(profileId);
 
-    // Allow ±variance from their assigned minute
+    // Allow ±variance from their assigned minute (handles hour wrap)
     const diff = Math.abs(currentMinute - assignedMinute);
     return diff <= variance || diff >= (60 - variance);
 }

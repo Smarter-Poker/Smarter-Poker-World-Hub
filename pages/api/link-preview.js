@@ -16,6 +16,12 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'URL parameter is required' });
     }
 
+    // Special handling for platforms that block server-side scraping
+    const specialPlatformPreview = getSpecialPlatformPreview(url);
+    if (specialPlatformPreview) {
+        return res.status(200).json(specialPlatformPreview);
+    }
+
     try {
         // Use realistic browser headers to bypass Cloudflare and similar protections
         const response = await fetch(url, {
@@ -222,3 +228,100 @@ function decodeHTMLEntities(text) {
         .replace(/&#x2F;/g, '/')
         .replace(/&nbsp;/g, ' ');
 }
+
+// Special handling for platforms that block server-side scraping
+// Returns a branded preview card instead of trying to fetch (which fails or returns wrong content)
+function getSpecialPlatformPreview(url) {
+    try {
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname.toLowerCase();
+
+        // Facebook (including fb.watch, fb.gg, etc.)
+        if (hostname.includes('facebook.com') || hostname.includes('fb.watch') || hostname.includes('fb.com') || hostname.includes('fb.gg')) {
+            // Try to extract content type from URL
+            let contentType = 'Post';
+            if (url.includes('/videos/') || url.includes('/watch') || url.includes('fb.watch')) {
+                contentType = 'Video';
+            } else if (url.includes('/reel/') || url.includes('/reels/')) {
+                contentType = 'Reel';
+            } else if (url.includes('/photo') || url.includes('/photos/')) {
+                contentType = 'Photo';
+            } else if (url.includes('/groups/')) {
+                contentType = 'Group Post';
+            } else if (url.includes('/events/')) {
+                contentType = 'Event';
+            }
+
+            return {
+                url,
+                title: `Facebook ${contentType}`,
+                description: 'Click to view on Facebook',
+                image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/1024px-Facebook_Logo_%282019%29.png',
+                siteName: 'Facebook',
+                platform: 'facebook',
+                contentType: contentType.toLowerCase(),
+            };
+        }
+
+        // Instagram
+        if (hostname.includes('instagram.com')) {
+            let contentType = 'Post';
+            if (url.includes('/reel/') || url.includes('/reels/')) {
+                contentType = 'Reel';
+            } else if (url.includes('/stories/')) {
+                contentType = 'Story';
+            } else if (url.includes('/p/')) {
+                contentType = 'Post';
+            }
+
+            return {
+                url,
+                title: `Instagram ${contentType}`,
+                description: 'Click to view on Instagram',
+                image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/1024px-Instagram_logo_2016.svg.png',
+                siteName: 'Instagram',
+                platform: 'instagram',
+                contentType: contentType.toLowerCase(),
+            };
+        }
+
+        // TikTok
+        if (hostname.includes('tiktok.com') || hostname.includes('vm.tiktok.com')) {
+            return {
+                url,
+                title: 'TikTok Video',
+                description: 'Click to view on TikTok',
+                image: 'https://sf-tb-sg.ibytedtos.com/obj/eden-sg/uhtyvueh7nulogpoguhm/tiktok-icon2.png',
+                siteName: 'TikTok',
+                platform: 'tiktok',
+                contentType: 'video',
+            };
+        }
+
+        // X (Twitter)
+        if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
+            let contentType = 'Post';
+            if (url.includes('/status/')) {
+                contentType = 'Tweet';
+            }
+
+            return {
+                url,
+                title: `X ${contentType}`,
+                description: 'Click to view on X',
+                image: 'https://abs.twimg.com/responsive-web/client-web/icon-ios.77d25eba.png',
+                siteName: 'X',
+                platform: 'x',
+                contentType: contentType.toLowerCase(),
+            };
+        }
+
+        // YouTube (usually works but adding for consistency)
+        // Not blocking - YouTube provides good OG tags
+
+        return null; // Not a special platform, proceed with normal fetch
+    } catch (e) {
+        return null;
+    }
+}
+
