@@ -1,18 +1,19 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MEMORY GAMES THEME — Mind, Focus, Violet
+   MEMORY GAMES THEME — Brain Training, Focus, Neon Blue
    ═══════════════════════════════════════════════════════════════════════════ */
 
 body.world-memory-games {
-    --world-primary: #8b5cf6;
-    --world-primary-rgb: 139, 92, 246;
-    --world-primary-glow: rgba(139, 92, 246, 0.4);
-    --world-secondary: #a78bfa;
-    --world-secondary-rgb: 167, 139, 250;
-    --world-bg-start: #070510;
-    --world-bg-mid: #120a1a;
-    --world-bg-end: #040308;
+    /* Primary: Neon Blue - brain, focus, intelligence */
+    --world-primary: #00bfff;
+    --world-primary-rgb: 0, 191, 255;
+    --world-primary-glow: rgba(0, 191, 255, 0.4);
+    --world-secondary: #00d4ff;
+    --world-secondary-rgb: 0, 212, 255;
+    --world-bg-start: #020810;
+    --world-bg-mid: #081828;
+    --world-bg-end: #010408;
     --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
-    --world-surface: rgba(35, 25, 60, 0.6);
-    --world-surface-elevated: rgba(50, 35, 85, 0.8);
-    --world-border: rgba(139, 92, 246, 0.3);
+    --world-surface: rgba(10, 35, 60, 0.6);
+    --world-surface-elevated: rgba(15, 50, 85, 0.8);
+    --world-border: rgba(0, 191, 255, 0.3);
 }
