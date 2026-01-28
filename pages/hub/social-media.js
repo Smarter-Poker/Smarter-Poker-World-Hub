@@ -1112,12 +1112,32 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
+    const [bookmarked, setBookmarked] = useState(post.isBookmarked || false);
     const [showComments, setShowComments] = useState(false);
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [loadingComments, setLoadingComments] = useState(false);
     const [commentCount, setCommentCount] = useState(post.commentCount || 0);
     const [fullScreenVideo, setFullScreenVideo] = useState(null);
+
+    const handleBookmark = async () => {
+        if (!currentUserId) return;
+        const newBookmarked = !bookmarked;
+        setBookmarked(newBookmarked);
+        try {
+            if (newBookmarked) {
+                await supabase.from('social_interactions').upsert(
+                    { post_id: post.id, user_id: currentUserId, interaction_type: 'bookmark' },
+                    { onConflict: 'user_id,post_id,interaction_type' }
+                );
+            } else {
+                await supabase.from('social_interactions').delete()
+                    .eq('post_id', post.id)
+                    .eq('user_id', currentUserId)
+                    .eq('interaction_type', 'bookmark');
+            }
+        } catch (e) { console.error('Bookmark error:', e); setBookmarked(!newBookmarked); }
+    };
 
     const handleLike = async () => {
         const newLiked = !liked;
@@ -1328,6 +1348,10 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                     }}
                     style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}
                 >↗️ Share</button>
+                <button
+                    onClick={handleBookmark}
+                    style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: bookmarked ? '#FFB800' : C.textSec, fontWeight: 500, fontSize: 13 }}
+                >{bookmarked ? '🔖' : '📑'} Save</button>
             </div>
             {showComments && (
                 <div style={{ borderTop: `1px solid ${C.border}`, padding: 12 }}>
