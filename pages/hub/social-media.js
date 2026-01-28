@@ -2457,103 +2457,109 @@ export default function SocialMediaPage() {
                     </div>
                 </div>
 
-                {/* Menu Grid - Premium Design with Gradient Icon Circles */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px', marginBottom: 20 }}>
-                    {/* Profile */}
-                    <Link href="/hub/profile" onClick={() => setSidebarOpen(false)} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: '14px 12px',
-                        background: '#ffffff', borderRadius: 12, textDecoration: 'none', color: C.text,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #f0f0f0'
-                    }}>
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #1877f2 0%, #0d47a1 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="8" r="4" /><path d="M4 20v-1a6 6 0 016-6h4a6 6 0 016 6v1" stroke="white" strokeWidth="2" fill="none" /></svg>
-                        </div>
-                        <span style={{ fontSize: 15, fontWeight: 600, color: '#1c1e21' }}>Profile</span>
-                    </Link>
-                    {/* Friends */}
+                {/* Menu Grid - Facebook Style: Simple icons on white cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 16px', marginBottom: 16 }}>
+                    {/* Friends - Blue people */}
                     <Link href="/hub/friends" onClick={() => setSidebarOpen(false)} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: '14px 12px',
-                        background: '#ffffff', borderRadius: 12, textDecoration: 'none', color: C.text,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #f0f0f0'
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #42b72a 0%, #2e7d32 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><circle cx="8" cy="8" r="3" /><circle cx="16" cy="8" r="3" /><path d="M4 20v-2a4 4 0 014-4h8a4 4 0 014 4v2" stroke="white" strokeWidth="2" fill="none" /></svg>
-                        </div>
-                        <span style={{ fontSize: 15, fontWeight: 600, color: '#1c1e21' }}>Friends</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <circle cx="9" cy="8" r="3.5" fill="#1877f2" /><circle cx="15" cy="8" r="3.5" fill="#1877f2" />
+                            <path d="M3 19c0-3.3 2.7-6 6-6h6c3.3 0 6 2.7 6 6" stroke="#1877f2" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                        </svg>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Friends</span>
                     </Link>
-                    {/* Clubs */}
+                    {/* Club Arena - Purple columns */}
                     <Link href="/hub/club-arena" onClick={() => setSidebarOpen(false)} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: '14px 12px',
-                        background: '#ffffff', borderRadius: 12, textDecoration: 'none', color: C.text,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #f0f0f0'
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #9c27b0 0%, #6a1b9a 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M4 4h4v16H4V4zm6 0h4v16h-4V4zm6 0h4v16h-4V4z" /></svg>
-                        </div>
-                        <span style={{ fontSize: 15, fontWeight: 600, color: '#1c1e21' }}>Clubs</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <rect x="3" y="4" width="5" height="16" rx="1" fill="#8b5cf6" />
+                            <rect x="9.5" y="4" width="5" height="16" rx="1" fill="#a78bfa" />
+                            <rect x="16" y="4" width="5" height="16" rx="1" fill="#c4b5fd" />
+                        </svg>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Arena</span>
                     </Link>
-                    {/* Diamond Store */}
+                    {/* Diamond Store - Cyan gem */}
                     <Link href="/hub/diamond-store" onClick={() => setSidebarOpen(false)} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: '14px 12px',
-                        background: '#ffffff', borderRadius: 12, textDecoration: 'none', color: C.text,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #f0f0f0'
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #00bcd4 0%, #00838f 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M6 3h12l4 6-10 12L2 9z" /></svg>
-                        </div>
-                        <span style={{ fontSize: 15, fontWeight: 600, color: '#1c1e21' }}>Diamonds</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <path d="M12 2L2 9l10 13 10-13L12 2z" fill="#06b6d4" />
+                            <path d="M2 9h20" stroke="#0891b2" strokeWidth="1.5" />
+                            <path d="M12 22L7 9l2.5-7M12 22l5-13-2.5-7" stroke="#0891b2" strokeWidth="1.5" />
+                        </svg>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Diamond Store</span>
                     </Link>
-                    {/* Tournaments */}
+                    {/* Tournaments - Gold trophy */}
                     <Link href="/hub/tournaments" onClick={() => setSidebarOpen(false)} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: '14px 12px',
-                        background: '#ffffff', borderRadius: 12, textDecoration: 'none', color: C.text,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #f0f0f0'
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #ffc107 0%, #ff8f00 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M6 9H4a2 2 0 01-2-2V5a2 2 0 012-2h2" /><path d="M18 9h2a2 2 0 002-2V5a2 2 0 00-2-2h-2" /><rect x="6" y="3" width="12" height="12" rx="2" fill="white" /><path d="M10 19v-4M14 19v-4M8 19h8" /></svg>
-                        </div>
-                        <span style={{ fontSize: 15, fontWeight: 600, color: '#1c1e21' }}>Tournaments</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <path d="M8 3h8v8a4 4 0 01-8 0V3z" fill="#fbbf24" />
+                            <path d="M5 3h3v4c0 1-1 2-2.5 2S3 8 3 7V5a2 2 0 012-2z" fill="#f59e0b" />
+                            <path d="M16 3h3a2 2 0 012 2v2c0 1-1 2-2.5 2S16 8 16 7V3z" fill="#f59e0b" />
+                            <rect x="10" y="13" width="4" height="4" fill="#fbbf24" />
+                            <rect x="7" y="17" width="10" height="3" rx="1" fill="#d97706" />
+                        </svg>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
                     </Link>
-                    {/* GTO Training */}
+                    {/* GTO Training - Red target */}
                     <Link href="/hub/gto-trainer" onClick={() => setSidebarOpen(false)} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: '14px 12px',
-                        background: '#ffffff', borderRadius: 12, textDecoration: 'none', color: C.text,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #f0f0f0'
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #f44336 0%, #c62828 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" fill="white" /></svg>
-                        </div>
-                        <span style={{ fontSize: 15, fontWeight: 600, color: '#1c1e21' }}>GTO Training</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="2" fill="none" />
+                            <circle cx="12" cy="12" r="6" stroke="#ef4444" strokeWidth="2" fill="none" />
+                            <circle cx="12" cy="12" r="2.5" fill="#ef4444" />
+                        </svg>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
                     </Link>
-                    {/* Reels */}
+                    {/* Reels - Orange/pink play */}
                     <Link href="/hub/reels" onClick={() => setSidebarOpen(false)} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: '14px 12px',
-                        background: '#ffffff', borderRadius: 12, textDecoration: 'none', color: C.text,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #f0f0f0'
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #e91e63 0%, #ad1457 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><rect x="3" y="3" width="18" height="18" rx="3" /><polygon points="10,8 16,12 10,16" fill="#e91e63" /></svg>
-                        </div>
-                        <span style={{ fontSize: 15, fontWeight: 600, color: '#1c1e21' }}>Reels</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <rect x="3" y="3" width="18" height="18" rx="4" fill="#f97316" />
+                            <path d="M10 8l6 4-6 4V8z" fill="white" />
+                        </svg>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Reels</span>
                     </Link>
-                    {/* Settings */}
-                    <Link href="/hub/settings" onClick={() => setSidebarOpen(false)} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: '14px 12px',
-                        background: '#ffffff', borderRadius: 12, textDecoration: 'none', color: C.text,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #f0f0f0'
+                    {/* Profile - Blue avatar */}
+                    <Link href="/hub/profile" onClick={() => setSidebarOpen(false)} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #607d8b 0%, #37474f 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="3" /><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" stroke="white" strokeWidth="2" /></svg>
-                        </div>
-                        <span style={{ fontSize: 15, fontWeight: 600, color: '#1c1e21' }}>Settings</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <circle cx="12" cy="8" r="4" fill="#1877f2" />
+                            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" fill="#1877f2" />
+                        </svg>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Profile</span>
+                    </Link>
+                    {/* Settings - Gray gear */}
+                    <Link href="/hub/settings" onClick={() => setSidebarOpen(false)} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                    }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <circle cx="12" cy="12" r="3" fill="#65676b" />
+                            <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="#65676b" strokeWidth="2.5" strokeLinecap="round" />
+                        </svg>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Settings</span>
                     </Link>
                 </div>
 
-                {/* See More - Premium Button */}
+                {/* See More - Facebook style gray button */}
                 <div style={{ padding: '0 16px', marginBottom: 16 }}>
                     <button style={{
-                        width: '100%', padding: 14, background: 'linear-gradient(135deg, #e4e6eb 0%, #d8dadf 100%)', border: 'none',
-                        borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer', color: '#1c1e21'
+                        width: '100%', padding: 12, background: '#e4e6eb', border: 'none',
+                        borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: 'pointer', color: '#1c1e21'
                     }}>See more</button>
                 </div>
 
