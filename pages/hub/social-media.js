@@ -1151,21 +1151,55 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         if (comments.length > 0) return;
         setLoadingComments(true);
         try {
-            const { data } = await supabase.from('social_comments')
-                .select('id, content, created_at, author_id, profiles:author_id(username, full_name, avatar_url)')
+            // Step 1: Fetch comments
+            const { data: commentsData, error: commentsError } = await supabase.from('social_comments')
+                .select('id, content, created_at, author_id')
                 .eq('post_id', post.id)
                 .order('created_at', { ascending: true })
-                .limit(20);
-            if (data) setComments(data.map(c => ({
-                id: c.id,
-                text: c.content,
-                authorId: c.author_id,
-                authorName: c.profiles?.full_name || c.profiles?.username || 'Player',
-                authorAvatar: c.profiles?.avatar_url || null,
-                authorUsername: c.profiles?.username || null,
-                time: timeAgo(c.created_at)
-            })));
-        } catch (e) { console.error(e); }
+                .limit(50);
+
+            if (commentsError) {
+                console.error('[Comments] Error fetching comments:', commentsError);
+                setLoadingComments(false);
+                return;
+            }
+
+            if (!commentsData || commentsData.length === 0) {
+                setComments([]);
+                setLoadingComments(false);
+                return;
+            }
+
+            // Step 2: Fetch author profiles for all comments
+            const authorIds = [...new Set(commentsData.map(c => c.author_id).filter(Boolean))];
+            let profilesMap = {};
+
+            if (authorIds.length > 0) {
+                const { data: profilesData } = await supabase.from('profiles')
+                    .select('id, username, full_name, avatar_url')
+                    .in('id', authorIds);
+
+                if (profilesData) {
+                    profilesData.forEach(p => { profilesMap[p.id] = p; });
+                }
+            }
+
+            // Step 3: Combine comments with author profiles
+            setComments(commentsData.map(c => {
+                const author = profilesMap[c.author_id] || {};
+                return {
+                    id: c.id,
+                    text: c.content,
+                    authorId: c.author_id,
+                    authorName: author.full_name || author.username || 'Player',
+                    authorAvatar: author.avatar_url || null,
+                    authorUsername: author.username || null,
+                    time: timeAgo(c.created_at)
+                };
+            }));
+        } catch (e) {
+            console.error('[Comments] Error loading comments:', e);
+        }
         setLoadingComments(false);
     };
 
