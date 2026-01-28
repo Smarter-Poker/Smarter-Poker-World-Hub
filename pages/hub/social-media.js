@@ -460,9 +460,7 @@ function LinkPreviewCard({ url }) {
                             {decodeHtmlEntities(metadata.description)}
                         </div>
                     )}
-                    <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>
-                        Click to read full article →
-                    </div>
+
                 </div>
             </div>
         </div>
