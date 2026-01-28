@@ -19,7 +19,19 @@
 
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
-import { shouldHorseBeActive, isHorseActiveHour, getHorseActivityRate, applyWritingStyle } from '../../../src/content-engine/pipeline/HorseScheduler.js';
+import {
+    shouldHorseBeActive,
+    isHorseActiveHour,
+    getHorseActivityRate,
+    applyWritingStyle,
+    getTimeOfDayEnergy,
+    getStakesVoice,
+    injectTypos,
+    shouldHorsePostToday,
+    getHorseDailyPostLimit,
+    getContentAwareReaction,
+    detectContentType
+} from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
 // ClipLibrary functions - loaded dynamically in handler
 let getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES, getHorsePreferredSources;

@@ -356,6 +356,235 @@ export function applyWritingStyle(comment, profileId) {
     return result.trim();
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// TIME-OF-DAY ENERGY - Posts feel different at 2am vs 10am
+// ═══════════════════════════════════════════════════════════════════════════
+export function getTimeOfDayEnergy(hour = new Date().getHours()) {
+    if (hour >= 0 && hour < 5) {
+        return {
+            mode: 'degen',
+            emojiBoost: 1.5,
+            typoChance: 0.15,
+            slangBoost: 1.5,
+            lengthMod: 0.7, // Shorter posts
+            fillers: ['bruh', 'lmao', 'yo', 'sheesh']
+        };
+    } else if (hour >= 5 && hour < 11) {
+        return {
+            mode: 'mellow',
+            emojiBoost: 0.7,
+            typoChance: 0.05,
+            slangBoost: 0.8,
+            lengthMod: 0.9,
+            fillers: ['morning', 'coffee needed', 'early']
+        };
+    } else if (hour >= 11 && hour < 17) {
+        return {
+            mode: 'professional',
+            emojiBoost: 1.0,
+            typoChance: 0.03,
+            slangBoost: 1.0,
+            lengthMod: 1.0,
+            fillers: []
+        };
+    } else {
+        return {
+            mode: 'social',
+            emojiBoost: 1.3,
+            typoChance: 0.08,
+            slangBoost: 1.2,
+            lengthMod: 1.1,
+            fillers: ['evening grind', 'session time', 'lets go']
+        };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STAKES-BASED VOICE - 1/2 grinders vs high-stakes regs speak differently 
+// ═══════════════════════════════════════════════════════════════════════════
+export function getStakesVoice(stakes) {
+    if (!stakes) stakes = '2/5'; // Default
+
+    // Parse stakes string like "1/2", "5/10", "25/50"
+    const match = stakes.match(/(\d+)\/(\d+)/);
+    const bigBlind = match ? parseInt(match[2]) : 5;
+
+    if (bigBlind <= 3) {
+        return {
+            tier: 'micro',
+            emojiMod: 1.4,
+            enthusiasm: 1.3,
+            slangLevel: 'heavy',
+            confidence: 0.8,
+            traits: ['excited', 'expressive', 'lots of emojis']
+        };
+    } else if (bigBlind <= 10) {
+        return {
+            tier: 'low',
+            emojiMod: 1.2,
+            enthusiasm: 1.1,
+            slangLevel: 'moderate',
+            confidence: 0.9,
+            traits: ['casual', 'friendly', 'relatable']
+        };
+    } else if (bigBlind <= 50) {
+        return {
+            tier: 'mid',
+            emojiMod: 1.0,
+            enthusiasm: 1.0,
+            slangLevel: 'balanced',
+            confidence: 1.0,
+            traits: ['measured', 'occasional humor']
+        };
+    } else {
+        return {
+            tier: 'high',
+            emojiMod: 0.6,
+            enthusiasm: 0.7,
+            slangLevel: 'minimal',
+            confidence: 1.3,
+            traits: ['understated', 'dry', 'confident', 'fewer words']
+        };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TYPO INJECTION - Occasional realistic typos for authenticity
+// ═══════════════════════════════════════════════════════════════════════════
+const TYPO_MAP = {
+    'the': ['teh', 'hte', 'th'],
+    'and': ['adn', 'nad', 'annd'],
+    'that': ['taht', 'tht'],
+    'with': ['wiht', 'wih'],
+    'have': ['ahve', 'hav'],
+    'this': ['tihs', 'thsi'],
+    'what': ['waht', 'wht'],
+    'just': ['jsut', 'juts'],
+    'from': ['form', 'fomr'],
+    'they': ['tehy', 'thye']
+};
+
+export function injectTypos(text, probability = 0.05) {
+    if (Math.random() > probability) return text;
+
+    const words = text.split(' ');
+    const result = words.map(word => {
+        const lower = word.toLowerCase();
+        if (TYPO_MAP[lower] && Math.random() < 0.3) {
+            const typos = TYPO_MAP[lower];
+            const typo = typos[Math.floor(Math.random() * typos.length)];
+            // Preserve original case
+            return word[0] === word[0].toUpperCase()
+                ? typo.charAt(0).toUpperCase() + typo.slice(1)
+                : typo;
+        }
+        // Random double letter
+        if (word.length > 3 && Math.random() < 0.1) {
+            const pos = Math.floor(Math.random() * (word.length - 1)) + 1;
+            return word.slice(0, pos) + word[pos] + word.slice(pos);
+        }
+        return word;
+    });
+
+    return result.join(' ');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACTIVITY VARIANCE - Some days active, some days quiet
+// ═══════════════════════════════════════════════════════════════════════════
+export function shouldHorsePostToday(profileId) {
+    const hash = getHorseStyleHash(profileId);
+    const dayOfYear = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+
+    // Combine hash with day for deterministic but varying results
+    const combined = (hash + dayOfYear) % 100;
+
+    // 70% of horses post on any given day
+    return combined < 70;
+}
+
+export function getHorseDailyPostLimit(profileId) {
+    const hash = getHorseStyleHash(profileId);
+    const dayOfYear = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+    const combined = (hash + dayOfYear) % 100;
+
+    // Vary between 1-4 posts per day
+    if (combined < 20) return 1;      // Quiet day
+    if (combined < 50) return 2;      // Normal day
+    if (combined < 80) return 3;      // Active day
+    return 4;                          // Very active day
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTENT-AWARE REACTIONS - Match energy to content type
+// ═══════════════════════════════════════════════════════════════════════════
+const CONTENT_REACTIONS = {
+    tournament_win: {
+        templates: ['LFG', 'SHIPPED 🏆', 'massive', 'gg wp', 'congrats!', '👑', 'huge W'],
+        energy: 'hype',
+        emojiBoost: 1.5
+    },
+    bad_beat: {
+        templates: ['pain', 'brutal', 'rip', 'oof', 'rough', '💀', 'variance'],
+        energy: 'sympathy',
+        emojiBoost: 0.8
+    },
+    strategy: {
+        templates: ['noted', 'valid', '📈', 'true', 'facts', 'solid', 'this'],
+        energy: 'analytical',
+        emojiBoost: 0.7
+    },
+    lifestyle: {
+        templates: ['mood', 'real', 'lol', 'same', 'fr', '😂', 'relatable'],
+        energy: 'casual',
+        emojiBoost: 1.2
+    },
+    news: {
+        templates: ['👀', 'wild', 'hm', 'interesting', 'wow', '📰'],
+        energy: 'neutral',
+        emojiBoost: 1.0
+    }
+};
+
+export function getContentAwareReaction(contentType, profileId) {
+    const reactions = CONTENT_REACTIONS[contentType] || CONTENT_REACTIONS.news;
+    const hash = getHorseStyleHash(profileId);
+
+    // Pick a template based on horse's hash for consistency
+    const template = reactions.templates[hash % reactions.templates.length];
+
+    return {
+        template,
+        energy: reactions.energy,
+        emojiBoost: reactions.emojiBoost
+    };
+}
+
+export function detectContentType(title, description = '') {
+    const text = (title + ' ' + description).toLowerCase();
+
+    if (text.match(/win|ship|champion|first place|bracelet|title/)) {
+        return 'tournament_win';
+    }
+    if (text.match(/bad beat|cooler|suck.*out|lost|bust|bad run/)) {
+        return 'bad_beat';
+    }
+    if (text.match(/strategy|gto|range|study|tip|learn|how to|guide/)) {
+        return 'strategy';
+    }
+    if (text.match(/life|grind|session|story|interview|day in/)) {
+        return 'lifestyle';
+    }
+    return 'news';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RANDOM DELAYS - Posts don't all appear at exact cron time
+// ═══════════════════════════════════════════════════════════════════════════
+export function getRandomPostDelay(minMinutes = 1, maxMinutes = 25) {
+    return Math.floor(Math.random() * (maxMinutes - minMinutes + 1) + minMinutes) * 60 * 1000;
+}
+
 export default {
     getHorseSlot,
     shouldHorseBeActive,
@@ -364,5 +593,14 @@ export default {
     getHorseActiveHours,
     isHorseActiveHour,
     getHorseWritingStyle,
-    applyWritingStyle
+    applyWritingStyle,
+    // New Phase 1 exports
+    getTimeOfDayEnergy,
+    getStakesVoice,
+    injectTypos,
+    shouldHorsePostToday,
+    getHorseDailyPostLimit,
+    getContentAwareReaction,
+    detectContentType,
+    getRandomPostDelay
 };

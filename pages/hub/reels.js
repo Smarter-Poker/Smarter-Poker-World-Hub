@@ -44,7 +44,7 @@ export default function ReelsPage() {
     const [loading, setLoading] = useState(true);
     const [muted, setMuted] = useState(true); // MUST be true for autoplay to work
     const [userWantsSound, setUserWantsSound] = useState(false); // localStorage preference
-    const [hasInteracted, setHasInteracted] = useState(false); // Must tap to start
+    // Auto-play immediately - no tap required since videos are muted (browser policy compliant)
     const [liked, setLiked] = useState({});
     const containerRef = useRef(null);
     const iframeRef = useRef(null);
@@ -72,9 +72,9 @@ export default function ReelsPage() {
         }
     };
 
-    // Auto-play and auto-unmute after video loads (if user has interacted)
+    // Auto-play immediately on load (muted videos comply with browser autoplay policy)
     useEffect(() => {
-        if (hasInteracted && !loading && reels.length > 0) {
+        if (!loading && reels.length > 0) {
             // Wait for iframe to load, then force play + unmute if preferred
             const timer = setTimeout(() => {
                 // FORCE PLAY via YouTube API
@@ -86,10 +86,10 @@ export default function ReelsPage() {
                     sendYouTubeCommand('setVolume', [100]);
                     setMuted(false);
                 }
-            }, 800); // Give iframe time to initialize YouTube API
+            }, 500); // Give iframe time to initialize YouTube API
             return () => clearTimeout(timer);
         }
-    }, [currentIndex, hasInteracted, userWantsSound, loading, reels.length]);
+    }, [currentIndex, userWantsSound, loading, reels.length]);
 
     const handleUnmute = () => {
         sendYouTubeCommand('unMute');
@@ -345,47 +345,10 @@ export default function ReelsPage() {
                     clipPath: 'inset(0)',
                     background: '#000',
                 }}>
-                    {/* TAP TO START overlay - shows until first tap */}
-                    {!hasInteracted && (
-                        <div
-                            onClick={() => setHasInteracted(true)}
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '100%',
-                                background: 'rgba(0,0,0,0.7)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                zIndex: 60,
-                                cursor: 'pointer',
-                            }}
-                        >
-                            <div style={{
-                                width: 100,
-                                height: 100,
-                                borderRadius: '50%',
-                                background: 'rgba(255,255,255,0.9)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: 50,
-                                color: '#000',
-                                marginBottom: 16,
-                            }}>
-                                ▶
-                            </div>
-                            <div style={{ color: 'white', fontSize: 18, fontWeight: 600 }}>
-                                Tap to Start
-                            </div>
-                        </div>
-                    )}
+                    {/* Videos auto-play immediately (muted per browser policy) */}
 
-                    {/* Only load iframe AFTER user interaction (guarantees autoplay) */}
-                    {hasInteracted && videoId ? (
+                    {/* Auto-play immediately - muted for browser compliance */}
+                    {videoId ? (
                         <iframe
                             ref={iframeRef}
                             key={currentReel?.id}
@@ -394,16 +357,16 @@ export default function ReelsPage() {
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen
                             onLoad={() => {
-                                // Send playVideo immediately on load for Safari
+                                // Send playVideo immediately on load for all browsers
                                 sendYouTubeCommand('playVideo');
-                                // Also try again after a short delay
+                                // Also try again after a short delay for Safari
                                 setTimeout(() => {
                                     sendYouTubeCommand('playVideo');
                                     if (userWantsSound) {
                                         sendYouTubeCommand('unMute');
                                         sendYouTubeCommand('setVolume', [100]);
                                     }
-                                }, 500);
+                                }, 300);
                             }}
                             style={{
                                 position: 'absolute',

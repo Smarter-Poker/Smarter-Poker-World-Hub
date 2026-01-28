@@ -326,7 +326,7 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
                 padding: '4px 10px',
                 borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
             }}>
-                {isVideoValid === false ? '⚠️ Video unavailable' : '🎬 Tap to view full screen'}
+                {isVideoValid === false ? '⚠️ Video unavailable' : '▶ Tap to play'}
             </div>
         </div>
     );
@@ -1211,9 +1211,10 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                         // Single media - full width
                         post.contentType === 'video' ? (
                             // VIDEO: Use VideoPostWrapper to handle broken video detection
+                            // Click opens inline viewer for immediate playback (no navigation)
                             <VideoPostWrapper
                                 url={post.mediaUrls[0]}
-                                onValidVideoClick={() => router.push('/hub/reels')}
+                                onValidVideoClick={() => setFullScreenVideo(post.mediaUrls[0])}
                             >
                                 <video
                                     src={post.mediaUrls[0]}

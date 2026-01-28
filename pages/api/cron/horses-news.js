@@ -18,7 +18,18 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import Parser from 'rss-parser';
-import { applyWritingStyle, getHorseWritingStyle } from '../../../src/content-engine/pipeline/HorseScheduler.js';
+import {
+    applyWritingStyle,
+    getHorseWritingStyle,
+    getTimeOfDayEnergy,
+    getStakesVoice,
+    injectTypos,
+    shouldHorsePostToday,
+    getHorseDailyPostLimit,
+    getContentAwareReaction,
+    detectContentType,
+    getRandomPostDelay
+} from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -208,7 +219,11 @@ const VOICE_ARCHETYPES = [
 // ═══════════════════════════════════════════════════════════════════════════
 // GENERATE HORSE COMMENTARY
 // ═══════════════════════════════════════════════════════════════════════════
-async function generateCommentary(horse, article) {
+async function generateCommentary(horse, article, timeEnergy = null) {
+    // Detect content type for content-aware reactions
+    const contentType = detectContentType(article.title);
+    const reaction = getContentAwareReaction(contentType, horse.profile_id);
+
     // Get template for category (used as fallback and inspiration)
     const templates = CAPTION_TEMPLATES[article.category] || CAPTION_TEMPLATES.default;
     const template = templates[Math.floor(Math.random() * templates.length)];
@@ -233,6 +248,8 @@ async function generateCommentary(horse, article) {
 
 YOUR VOICE: ${archetype.type.toUpperCase()}
 ${archetype.style}
+
+CONTENT TYPE: ${contentType} (react with ${reaction.energy} energy)
 
 ULTRA-STRICT RULES (FOLLOW EXACTLY):
 1. MAX 4 WORDS. 1-2 words is IDEAL. 3+ words = FAIL.
@@ -270,6 +287,11 @@ Fallback: "${template}"`
         // Apply the horse's unique writing style (caps, emoji, fillers, punctuation)
         commentary = applyWritingStyle(commentary, horse.profile_id);
 
+        // Apply typos based on time-of-day energy (late night = more typos)
+        if (timeEnergy) {
+            commentary = injectTypos(commentary, timeEnergy.typoChance);
+        }
+
         return commentary;
     } catch (err) {
         console.error(`   GPT error: ${err.message}`);
@@ -282,11 +304,12 @@ Fallback: "${template}"`
 // ═══════════════════════════════════════════════════════════════════════════
 // POST NEWS ARTICLE
 // ═══════════════════════════════════════════════════════════════════════════
-async function postNewsArticle(horse, article) {
+async function postNewsArticle(horse, article, timeEnergy = null) {
     console.log(`\n📰 ${horse.alias} sharing: ${article.title}`);
+    if (timeEnergy) console.log(`   🌙 Posting in ${timeEnergy.mode} mode`);
 
-    // Generate commentary
-    const commentary = await generateCommentary(horse, article);
+    // Generate commentary (will use time energy for typo injection)
+    const commentary = await generateCommentary(horse, article, timeEnergy);
 
     // Create post with link
     const postContent = `${commentary}\n\n${article.icon} ${article.title}\n🔗 ${article.link}`;
@@ -350,7 +373,17 @@ export default async function handler(req, res) {
         const shuffledHorses = horses.sort(() => Math.random() - 0.5).slice(0, CONFIG.HORSES_PER_TRIGGER);
         const results = [];
 
+        // Get current time-of-day energy
+        const timeEnergy = getTimeOfDayEnergy();
+        console.log(`   ⏰ Time-of-day mode: ${timeEnergy.mode}`);
+
         for (const horse of shuffledHorses) {
+            // Check if this horse should post today (activity variance)
+            if (!shouldHorsePostToday(horse.profile_id)) {
+                console.log(`   💤 ${horse.alias} is having a quiet day`);
+                continue;
+            }
+
             // Find an article not recently shared
             let article = null;
             const shuffledArticles = [...articles].sort(() => Math.random() - 0.5);
@@ -368,10 +401,11 @@ export default async function handler(req, res) {
                 continue;
             }
 
-            // Random delay
-            await new Promise(r => setTimeout(r, Math.random() * 3000 + 1000));
+            // Random delay between 1-4 seconds for natural staggering
+            const delay = 1000 + Math.random() * 3000;
+            await new Promise(r => setTimeout(r, delay));
 
-            const result = await postNewsArticle(horse, article);
+            const result = await postNewsArticle(horse, article, timeEnergy);
             if (result) {
                 results.push({ horse: horse.alias, ...result, success: true });
             }
