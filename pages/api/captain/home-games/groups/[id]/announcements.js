@@ -227,8 +227,41 @@ async function sendPushNotifications(groupId, announcement, targetAll, targetMem
       })
       .eq('id', announcement.id);
 
-    // TODO: Integrate with actual push service (Firebase FCM, Apple APNS)
-    console.log(`Would send push to ${subscriptions.length} devices`);
+    // Send push via OneSignal
+    const oneSignalAppId = process.env.ONESIGNAL_APP_ID;
+    const oneSignalApiKey = process.env.ONESIGNAL_REST_API_KEY;
+
+    if (oneSignalAppId && oneSignalApiKey) {
+      try {
+        const userIds = [...new Set(subscriptions.map(s => s.user_id))];
+
+        await fetch('https://onesignal.com/api/v1/notifications', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${oneSignalApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            app_id: oneSignalAppId,
+            include_external_user_ids: userIds,
+            headings: { en: announcement.title },
+            contents: { en: announcement.message.substring(0, 200) },
+            data: {
+              type: 'club_announcement',
+              group_id: groupId,
+              announcement_id: announcement.id
+            },
+            url: `https://smarter.poker/hub/captain/home-games/${groupId}`
+          })
+        });
+
+        console.log(`Sent push to ${userIds.length} users via OneSignal`);
+      } catch (pushError) {
+        console.error('OneSignal push failed:', pushError);
+      }
+    } else {
+      console.log(`Push notifications not configured. Would send to ${subscriptions.length} devices`);
+    }
   } catch (error) {
     console.error('Send push notifications error:', error);
   }
