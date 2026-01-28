@@ -88,20 +88,59 @@ async function handleRegister(req, res, tournamentId) {
       });
     }
 
-    // Check responsible gaming
+    // Check responsible gaming - self-exclusions
     const { data: exclusion } = await supabase
       .from('captain_self_exclusions')
-      .select('id')
+      .select('id, exclusion_type, expires_at')
       .eq('player_id', player_id)
-      .eq('status', 'active')
-      .gte('end_date', new Date().toISOString())
+      .or(`venue_id.eq.${tournament.venue_id},scope.eq.network`)
+      .is('lifted_at', null)
+      .or('expires_at.is.null,expires_at.gt.now()')
+      .limit(1)
       .single();
 
     if (exclusion) {
       return res.status(403).json({
         success: false,
-        error: { code: 'EXCLUDED', message: 'Player is self-excluded' }
+        error: {
+          code: 'SELF_EXCLUDED',
+          message: 'You have an active self-exclusion and cannot register at this time.',
+          exclusion_type: exclusion.exclusion_type,
+          expires_at: exclusion.expires_at
+        }
       });
+    }
+
+    // Check spending limits
+    const { data: limits } = await supabase
+      .from('captain_spending_limits')
+      .select('daily_limit')
+      .eq('player_id', player_id)
+      .single();
+
+    if (limits?.daily_limit) {
+      // Get today's tournament registrations total
+      const today = new Date().toISOString().split('T')[0];
+      const { data: todayEntries } = await supabase
+        .from('captain_tournament_entries')
+        .select('buy_in_amount')
+        .eq('player_id', player_id)
+        .gte('registered_at', today)
+        .neq('status', 'cancelled');
+
+      const todaySpend = (todayEntries || []).reduce((sum, e) => sum + (e.buy_in_amount || 0), 0);
+
+      if (todaySpend + tournament.buyin_amount > limits.daily_limit) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'LIMIT_EXCEEDED',
+            message: `Registration would exceed your daily limit of $${limits.daily_limit}`,
+            current_spend: todaySpend,
+            limit: limits.daily_limit
+          }
+        });
+      }
     }
 
     // Create entry
