@@ -2441,36 +2441,12 @@ export default function SocialMediaPage() {
             </div>
 
             <div style={{ minHeight: '100vh', background: '#0a0e1a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', paddingBottom: 70 }}>
-                {/* Standard Hub Header - DO NOT MODIFY - see /social-feed-protection workflow */}
+                {/* Standard Hub Header with Hamburger Menu */}
                 <UniversalHeader
                     pageDepth={1}
                     showSearch={false}
+                    onMenuClick={() => setSidebarOpen(true)}
                 />
-
-                {/* Hamburger Menu Button - Facebook-style ☰ - Opens sidebar */}
-                <button
-                    onClick={() => setSidebarOpen(true)}
-                    style={{
-                        position: 'fixed',
-                        top: 12,
-                        left: 60,
-                        width: 36,
-                        height: 36,
-                        borderRadius: 8,
-                        background: 'rgba(255,255,255,0.15)',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        zIndex: 101,
-                        fontSize: 18,
-                        color: 'white',
-                    }}
-                    aria-label="Open menu"
-                >
-                    ☰
-                </button>
 
                 {/* Global Search Overlay */}
                 {showGlobalSearch && (

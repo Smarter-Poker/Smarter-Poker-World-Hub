@@ -84,7 +84,8 @@ const OrbButton = ({ href, icon, badge = 0, onClick }) => {
 export default function UniversalHeader({
     pageDepth = 1,  // 1 = major page (show Hub button), 2+ = nested (show Back)
     showSearch = false,
-    onSearchClick = null
+    onSearchClick = null,
+    onMenuClick = null  // Callback for hamburger menu click
 }) {
     const router = useRouter();
     const [user, setUser] = useState(null);
@@ -534,8 +535,19 @@ export default function UniversalHeader({
             `}</style>
 
             <header className="universal-header">
-                {/* LEFT: Back/Hub Button + "Smarter.Poker" */}
+                {/* LEFT: Hamburger Menu + Back/Hub Button + "Smarter.Poker" */}
                 <div className="header-left">
+                    {/* Hamburger Menu - only shows when onMenuClick is provided */}
+                    {onMenuClick && (
+                        <button
+                            onClick={onMenuClick}
+                            className="nav-btn"
+                            aria-label="Open menu"
+                            style={{ marginRight: 4 }}
+                        >
+                            <span style={{ fontSize: 16 }}>☰</span>
+                        </button>
+                    )}
                     <button
                         onClick={pageDepth > 1 ? handleBack : () => router.push('/hub')}
                         className="nav-btn"
