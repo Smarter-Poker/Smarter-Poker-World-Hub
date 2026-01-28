@@ -2013,7 +2013,7 @@ export default function SocialMediaPage() {
                     link_title: linkPreview.title || null,
                     link_description: linkPreview.description || null,
                     link_image: linkPreview.image || null,
-                    link_site_name: linkPreview.siteName || linkPreview.domain || null,
+                    link_site_name: linkPreview.domain || null, // Note: state uses 'domain' not 'siteName'
                 }),
             };
             console.log('[Social] 📝 Inserting post with payload:', insertPayload);
