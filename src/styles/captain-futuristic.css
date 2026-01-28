@@ -1,0 +1,453 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SMARTER CAPTAIN — FUTURISTIC UI SYSTEM
+   Facebook colors + Sci-fi metallic styling
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COLOR VARIABLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Facebook Core Colors */
+  --captain-primary: #1877F2;
+  --captain-primary-dark: #1664d9;
+  --captain-primary-light: #4293f5;
+
+  /* Backgrounds - Light theme */
+  --captain-bg: #F9FAFB;
+  --captain-bg-card: #FFFFFF;
+  --captain-bg-dark: #1A2744;
+
+  /* Text */
+  --captain-text: #1F2937;
+  --captain-text-secondary: #6B7280;
+  --captain-text-muted: #9CA3AF;
+
+  /* Borders & Accents */
+  --captain-border: #E5E7EB;
+  --captain-border-metallic: #8B9DC3;
+  --captain-glow-cyan: rgba(34, 211, 238, 0.6);
+  --captain-glow-blue: rgba(24, 119, 242, 0.5);
+
+  /* Status Colors */
+  --captain-success: #10B981;
+  --captain-warning: #F59E0B;
+  --captain-error: #EF4444;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC CARD FRAME
+   Metallic border with corner accents
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-card {
+  background: var(--captain-bg-card);
+  border: 2px solid var(--captain-border-metallic);
+  border-radius: 12px;
+  position: relative;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Corner accents */
+.captain-card::before,
+.captain-card::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--captain-primary);
+}
+
+.captain-card::before {
+  top: -2px;
+  left: -2px;
+  border-right: none;
+  border-bottom: none;
+  border-top-left-radius: 12px;
+}
+
+.captain-card::after {
+  bottom: -2px;
+  right: -2px;
+  border-left: none;
+  border-top: none;
+  border-bottom-right-radius: 12px;
+}
+
+/* Card with glow effect */
+.captain-card-glow {
+  box-shadow:
+    0 0 20px var(--captain-glow-blue),
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC BUTTONS
+   Beveled hexagonal style
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+}
+
+/* Primary button - Blue with glow */
+.captain-btn-primary {
+  background: linear-gradient(180deg, var(--captain-primary-light) 0%, var(--captain-primary) 50%, var(--captain-primary-dark) 100%);
+  color: white;
+  box-shadow:
+    0 4px 15px var(--captain-glow-blue),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.captain-btn-primary:hover {
+  background: linear-gradient(180deg, var(--captain-primary) 0%, var(--captain-primary-dark) 100%);
+  box-shadow:
+    0 6px 25px var(--captain-glow-blue),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.captain-btn-primary:active {
+  transform: translateY(0);
+  box-shadow:
+    0 2px 10px var(--captain-glow-blue),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Secondary button - Outline metallic */
+.captain-btn-secondary {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F3F4F6 100%);
+  color: var(--captain-text);
+  border: 2px solid var(--captain-border-metallic);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.captain-btn-secondary:hover {
+  background: linear-gradient(180deg, #F9FAFB 0%, #E5E7EB 100%);
+  border-color: var(--captain-primary);
+  box-shadow:
+    0 4px 15px rgba(24, 119, 242, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* Success button */
+.captain-btn-success {
+  background: linear-gradient(180deg, #34D399 0%, var(--captain-success) 50%, #059669 100%);
+  color: white;
+  box-shadow:
+    0 4px 15px rgba(16, 185, 129, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Danger button */
+.captain-btn-danger {
+  background: linear-gradient(180deg, #F87171 0%, var(--captain-error) 50%, #DC2626 100%);
+  color: white;
+  box-shadow:
+    0 4px 15px rgba(239, 68, 68, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC INPUTS
+   Inset metallic with glow focus
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: var(--captain-text);
+  background: linear-gradient(180deg, #F3F4F6 0%, #FFFFFF 100%);
+  border: 2px solid var(--captain-border-metallic);
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.captain-input:focus {
+  border-color: var(--captain-primary);
+  box-shadow:
+    0 0 0 3px var(--captain-glow-blue),
+    inset 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.captain-input::placeholder {
+  color: var(--captain-text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC BADGES
+   Metallic with glow
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 6px;
+  border: 1px solid;
+}
+
+.captain-badge-primary {
+  background: linear-gradient(180deg, rgba(24, 119, 242, 0.15) 0%, rgba(24, 119, 242, 0.1) 100%);
+  color: var(--captain-primary);
+  border-color: rgba(24, 119, 242, 0.3);
+}
+
+.captain-badge-success {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
+  color: var(--captain-success);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.captain-badge-warning {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%);
+  color: var(--captain-warning);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.captain-badge-error {
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%);
+  color: var(--captain-error);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Glowing badge */
+.captain-badge-glow {
+  box-shadow: 0 0 10px currentColor;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC HEADER BAR
+   Metallic gradient with accent line
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-header {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%);
+  border-bottom: 2px solid var(--captain-border-metallic);
+  position: relative;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.captain-header::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--captain-primary) 20%,
+    var(--captain-glow-cyan) 50%,
+    var(--captain-primary) 80%,
+    transparent 100%
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC MODAL
+   Metallic frame with corner brackets
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-modal {
+  background: var(--captain-bg-card);
+  border: 3px solid var(--captain-border-metallic);
+  border-radius: 16px;
+  position: relative;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 40px var(--captain-glow-blue),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Corner brackets */
+.captain-modal::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  border: 1px solid rgba(139, 157, 195, 0.3);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+/* Modal header */
+.captain-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--captain-border);
+  background: linear-gradient(180deg, rgba(24, 119, 242, 0.05) 0%, transparent 100%);
+  border-radius: 13px 13px 0 0;
+}
+
+.captain-modal-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--captain-text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC STATUS INDICATORS
+   Pulsing glow effects
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-status-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.captain-status-live::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background: var(--captain-success);
+  border-radius: 50%;
+  animation: captain-pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 10px var(--captain-success);
+}
+
+@keyframes captain-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 10px var(--captain-success);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+    box-shadow: 0 0 20px var(--captain-success);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC PROGRESS BAR
+   Metallic track with glowing fill
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-progress {
+  width: 100%;
+  height: 8px;
+  background: linear-gradient(180deg, #E5E7EB 0%, #F3F4F6 100%);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--captain-border-metallic);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.captain-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--captain-primary) 0%, var(--captain-primary-light) 100%);
+  border-radius: 4px;
+  box-shadow: 0 0 10px var(--captain-glow-blue);
+  transition: width 0.3s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC TABLE/LIST
+   Alternating metallic rows
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.captain-table th {
+  padding: 14px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--captain-text-secondary);
+  background: linear-gradient(180deg, #F3F4F6 0%, #E5E7EB 100%);
+  border-bottom: 2px solid var(--captain-border-metallic);
+  text-align: left;
+}
+
+.captain-table td {
+  padding: 14px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--captain-text);
+  border-bottom: 1px solid var(--captain-border);
+}
+
+.captain-table tr:nth-child(even) td {
+  background: rgba(249, 250, 251, 0.5);
+}
+
+.captain-table tr:hover td {
+  background: rgba(24, 119, 242, 0.05);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC ICON CONTAINER
+   Metallic circle with glow
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F3F4F6 100%);
+  border: 2px solid var(--captain-border-metallic);
+  border-radius: 12px;
+  color: var(--captain-primary);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.captain-icon-box-glow {
+  box-shadow:
+    0 0 20px var(--captain-glow-blue),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC DIVIDER
+   Gradient line with glow center
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-divider {
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--captain-border-metallic) 20%,
+    var(--captain-primary) 50%,
+    var(--captain-border-metallic) 80%,
+    transparent 100%
+  );
+  margin: 24px 0;
+}
