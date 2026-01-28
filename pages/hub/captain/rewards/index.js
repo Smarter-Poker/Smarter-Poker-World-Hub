@@ -137,7 +137,46 @@ export default function PlayerRewardsPage() {
   }
 
   async function handleRedeem(category) {
-    setComingSoonMessage(`Redemption for ${category.label} coming soon!`);
+    if (balance <= 0) {
+      setComingSoonMessage('No balance available to redeem');
+      setTimeout(() => setComingSoonMessage(null), 3000);
+      return;
+    }
+
+    // Prompt for redemption amount
+    const amount = prompt(`Enter amount to redeem for ${category.label} (max $${balance}):`);
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      return;
+    }
+
+    const redeemAmount = Math.min(parseFloat(amount), balance);
+
+    try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      const res = await fetch('/api/captain/comps/redeem', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          category: category.id,
+          amount: redeemAmount
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setBalance(prev => prev - redeemAmount);
+        setComingSoonMessage(`Successfully redeemed $${redeemAmount} for ${category.label}!`);
+        fetchRewardsData(); // Refresh data
+      } else {
+        setComingSoonMessage(data.error || 'Redemption failed');
+      }
+    } catch (err) {
+      console.error('Redeem failed:', err);
+      setComingSoonMessage('Redemption failed. Please try again.');
+    }
     setTimeout(() => setComingSoonMessage(null), 3000);
   }
 

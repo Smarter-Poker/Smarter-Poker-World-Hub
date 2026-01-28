@@ -26,9 +26,12 @@ export default function TournamentRegisterPage() {
 
   async function fetchTournament() {
     try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
       const [tournamentRes, entriesRes] = await Promise.all([
-        fetch(`/api/captain/tournaments/${id}`),
-        fetch(`/api/captain/tournaments/${id}/entries?check_my_entry=true`)
+        fetch(`/api/captain/tournaments/${id}`, { headers }),
+        fetch(`/api/captain/tournaments/${id}/entries?check_my_entry=true`, { headers })
       ]);
 
       const [tournamentData, entriesData] = await Promise.all([
@@ -53,13 +56,22 @@ export default function TournamentRegisterPage() {
   }
 
   async function handleRegister() {
+    const token = localStorage.getItem('smarter-poker-auth');
+    if (!token) {
+      router.push(`/login?redirect=/hub/captain/tournament/${id}/register`);
+      return;
+    }
+
     setRegistering(true);
     setError(null);
 
     try {
       const res = await fetch(`/api/captain/tournaments/${id}/entries`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
           source: 'app'
         })
@@ -83,12 +95,19 @@ export default function TournamentRegisterPage() {
   async function handleUnregister() {
     if (!myEntry) return;
 
+    const token = localStorage.getItem('smarter-poker-auth');
+    if (!token) {
+      router.push(`/login?redirect=/hub/captain/tournament/${id}/register`);
+      return;
+    }
+
     setRegistering(true);
     setError(null);
 
     try {
       const res = await fetch(`/api/captain/tournaments/${id}/entries/${myEntry.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       const data = await res.json();
