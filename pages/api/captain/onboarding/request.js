@@ -82,9 +82,6 @@ export default async function handler(req, res) {
       throw error;
     }
 
-    // TODO: Send notification email to sales team
-    // TODO: Send confirmation email to venue contact
-
     // Send email notifications via Resend
     const resendApiKey = process.env.RESEND_API_KEY;
     if (resendApiKey) {

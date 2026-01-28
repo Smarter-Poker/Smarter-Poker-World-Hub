@@ -69,18 +69,35 @@ export default async function handler(req, res) {
 
     // Format hands for player view
     const formattedHands = hands?.map(hand => {
-      // Find player's cards from the player_cards JSONB
-      const playerCards = hand.player_cards ? Object.values(hand.player_cards)[0] : [];
+      // Determine player's seat and cards from player_cards or player_seat_map
+      let playerSeat = null;
+      let playerCards = [];
 
-      // Calculate profit (simplified - would need more context)
+      if (hand.player_cards && typeof hand.player_cards === 'object') {
+        const seats = Object.keys(hand.player_cards);
+        if (seats.length > 0) {
+          // Check player_seat_map for user's seat
+          if (hand.player_seat_map && hand.player_seat_map[user.id]) {
+            playerSeat = hand.player_seat_map[user.id];
+            playerCards = hand.player_cards[playerSeat] || [];
+          } else {
+            // Fallback: use first available seat
+            playerSeat = parseInt(seats[0]) || 1;
+            playerCards = hand.player_cards[seats[0]] || [];
+          }
+        }
+      }
+
+      // Calculate profit based on actual player seat
       const winners = hand.winners || [];
-      const isWinner = winners.some(w => w.seat === 4); // Placeholder seat
+      const isWinner = winners.some(w => w.seat === playerSeat || w.player_id === user.id);
       const profit = isWinner ? Math.round(hand.pot_size / 2) : -Math.round(hand.pot_size / 4);
 
       return {
         id: hand.id,
         hand_number: hand.hand_number,
         game_type: `${game.stakes || ''} ${game.game_type || 'NLH'}`.trim(),
+        player_seat: playerSeat,
         player_cards: playerCards,
         board: hand.board || [],
         pot_size: hand.pot_size || 0,

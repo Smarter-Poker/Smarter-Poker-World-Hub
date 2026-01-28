@@ -79,10 +79,30 @@ export default async function handler(req, res) {
       });
     }
 
+    // Determine player's seat from player_cards or session
+    let playerSeat = null;
+    let playerCards = [];
+
+    if (hand.player_cards && typeof hand.player_cards === 'object') {
+      // player_cards is an object with seat numbers as keys
+      // Find the seat for the current user
+      const seats = Object.keys(hand.player_cards);
+      if (seats.length > 0) {
+        // If we have player_seat_map, use it to find user's seat
+        if (hand.player_seat_map && hand.player_seat_map[user.id]) {
+          playerSeat = hand.player_seat_map[user.id];
+          playerCards = hand.player_cards[playerSeat] || [];
+        } else {
+          // Fallback: use the first seat with cards (for single-player view)
+          playerSeat = parseInt(seats[0]) || 1;
+          playerCards = hand.player_cards[seats[0]] || [];
+        }
+      }
+    }
+
     // Determine winner info
     const winners = hand.winners || [];
-    const playerCards = hand.player_cards ? Object.values(hand.player_cards)[0] : [];
-    const isWinner = winners.length > 0;
+    const isWinner = winners.some(w => w.seat === playerSeat || w.player_id === user.id);
     const profit = isWinner ? Math.round(hand.pot_size / 2) : -Math.round(hand.pot_size / 4);
     const winningHand = winners[0]?.hand_name || null;
 
@@ -92,7 +112,7 @@ export default async function handler(req, res) {
       hand_number: hand.hand_number,
       game_type: `${hand.captain_games?.stakes || ''} ${hand.captain_games?.game_type || 'NLH'}`.trim(),
       venue_name: hand.captain_tables?.poker_venues?.name || 'Unknown Venue',
-      player_seat: 4, // Placeholder - would come from session
+      player_seat: playerSeat,
       player_cards: playerCards,
       board: hand.board || [],
       pot_size: hand.pot_size || 0,
