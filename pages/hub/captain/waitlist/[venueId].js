@@ -1,12 +1,12 @@
 /**
  * Player Waitlist Join Page - Public page for players to join waitlist
  * URL: /hub/captain/waitlist/[venueId]
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Facebook color scheme with futuristic metallic styling
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Clock, Users, CheckCircle, MapPin, ChevronRight, Loader2 } from 'lucide-react';
+import { Clock, Users, CheckCircle, MapPin, ChevronRight, Loader2, Zap } from 'lucide-react';
 
 const GAME_TYPES = [
   { value: 'nlh', label: 'No Limit Hold\'em', short: 'NLH' },
@@ -171,7 +171,9 @@ export default function PlayerWaitlistPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+        <div className="captain-icon-box-glow">
+          <Loader2 className="w-6 h-6 animate-spin text-[#1877F2]" />
+        </div>
       </div>
     );
   }
@@ -179,8 +181,10 @@ export default function PlayerWaitlistPage() {
   if (!venue) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
-        <div className="text-center">
-          <MapPin className="w-12 h-12 text-[#9CA3AF] mx-auto mb-4" />
+        <div className="captain-card p-8 text-center">
+          <div className="captain-icon-box mx-auto mb-4">
+            <MapPin className="w-6 h-6" />
+          </div>
           <h1 className="text-xl font-semibold text-[#1F2937]">Venue Not Found</h1>
           <p className="text-[#6B7280] mt-2">This venue doesn't exist or isn't using Captain.</p>
         </div>
@@ -196,45 +200,59 @@ export default function PlayerWaitlistPage() {
       </Head>
 
       <div className="min-h-screen bg-[#F9FAFB]">
-        {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-10">
+        {/* Futuristic Header */}
+        <header className="captain-header sticky top-0 z-10">
           <div className="max-w-lg mx-auto px-4 py-4">
-            <h1 className="text-xl font-bold text-[#1F2937]">{venue.name}</h1>
-            <p className="text-sm text-[#6B7280]">{venue.city}, {venue.state}</p>
+            <div className="flex items-center gap-3">
+              <div className="captain-icon-box-glow">
+                <Zap className="w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-[#1F2937] tracking-wide">{venue.name}</h1>
+                <p className="text-sm text-[#6B7280] flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {venue.city}, {venue.state}
+                </p>
+              </div>
+            </div>
           </div>
         </header>
 
         {/* Alerts */}
         <div className="max-w-lg mx-auto px-4 pt-4">
           {success && (
-            <div className="mb-4 p-4 bg-[#D1FAE5] rounded-xl flex items-center gap-3">
+            <div className="mb-4 p-4 rounded-xl flex items-center gap-3 border-2 border-[#10B981] bg-gradient-to-r from-[#D1FAE5] to-[#ECFDF5]"
+              style={{ boxShadow: '0 0 15px rgba(16, 185, 129, 0.3)' }}>
               <CheckCircle className="w-5 h-5 text-[#059669]" />
-              <p className="text-sm text-[#059669] font-medium">{success}</p>
+              <p className="text-sm text-[#059669] font-semibold">{success}</p>
             </div>
           )}
           {error && (
-            <div className="mb-4 p-4 bg-[#FEF2F2] rounded-xl">
-              <p className="text-sm text-[#EF4444]">{error}</p>
+            <div className="mb-4 p-4 rounded-xl border-2 border-[#EF4444] bg-gradient-to-r from-[#FEF2F2] to-[#FEE2E2]"
+              style={{ boxShadow: '0 0 15px rgba(239, 68, 68, 0.3)' }}>
+              <p className="text-sm text-[#EF4444] font-semibold">{error}</p>
             </div>
           )}
         </div>
 
         {/* Main Content */}
-        <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        <main className="max-w-lg mx-auto px-4 py-4 space-y-6">
           {/* Live Games */}
           <section>
-            <h2 className="text-sm font-semibold text-[#6B7280] uppercase tracking-wide mb-3">
-              Live Games
+            <h2 className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span className="captain-status-live">Live Games</span>
             </h2>
 
             {Object.keys(gameOptions).length === 0 ? (
-              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 text-center">
-                <Users className="w-8 h-8 text-[#9CA3AF] mx-auto mb-2" />
-                <p className="text-[#6B7280]">No games running</p>
+              <div className="captain-card p-8 text-center">
+                <div className="captain-icon-box mx-auto mb-3">
+                  <Users className="w-6 h-6" />
+                </div>
+                <p className="text-[#6B7280] font-medium">No games running</p>
                 <p className="text-sm text-[#9CA3AF] mt-1">Check back later</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {Object.values(gameOptions).map((option) => {
                   const onWaitlist = isOnWaitlist(option.gameType, option.stakes);
                   const position = getMyPosition(option.gameType, option.stakes);
@@ -245,44 +263,48 @@ export default function PlayerWaitlistPage() {
                   return (
                     <div
                       key={`${option.gameType}-${option.stakes}`}
-                      className="bg-white rounded-xl border border-[#E5E7EB] p-4"
+                      className={`captain-card p-5 ${onWaitlist ? 'captain-card-glow' : ''}`}
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-semibold text-[#1F2937]">
-                            {option.stakes} {gameLabel}
+                          <h3 className="font-bold text-[#1F2937] text-lg tracking-wide">
+                            {option.stakes} <span className="text-[#1877F2]">{gameLabel}</span>
                           </h3>
-                          <div className="flex items-center gap-4 mt-1 text-sm text-[#6B7280]">
-                            <span>{option.tables.length} table{option.tables.length !== 1 ? 's' : ''}</span>
-                            <span>{option.waitlistCount} waiting</span>
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="captain-badge-primary">
+                              {option.tables.length} table{option.tables.length !== 1 ? 's' : ''}
+                            </span>
+                            <span className="captain-badge-warning">
+                              {option.waitlistCount} waiting
+                            </span>
                           </div>
                         </div>
 
                         {onWaitlist ? (
                           <div className="text-right">
                             <div className="flex items-center gap-2 text-[#1877F2]">
-                              <Clock className="w-4 h-4" />
-                              <span className="font-semibold">#{position}</span>
+                              <Clock className="w-5 h-5" />
+                              <span className="text-2xl font-bold">#{position}</span>
                             </div>
                             <button
                               onClick={() => handleLeaveWaitlist(entryId)}
-                              className="text-xs text-[#EF4444] hover:underline mt-1"
+                              className="text-xs text-[#EF4444] hover:underline mt-2 font-semibold uppercase tracking-wide"
                             >
-                              Leave
+                              Leave List
                             </button>
                           </div>
                         ) : (
                           <button
                             onClick={() => handleJoinWaitlist(option.gameType, option.stakes)}
                             disabled={isJoining}
-                            className="px-4 py-2 bg-[#1877F2] text-white font-medium rounded-lg hover:bg-[#1664d9] transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="captain-btn captain-btn-primary"
                           >
                             {isJoining ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <Loader2 className="w-5 h-5 animate-spin" />
                             ) : (
                               <>
                                 Join
-                                <ChevronRight className="w-4 h-4" />
+                                <ChevronRight className="w-5 h-5" />
                               </>
                             )}
                           </button>
@@ -298,27 +320,30 @@ export default function PlayerWaitlistPage() {
           {/* My Waitlist Entries */}
           {myEntries.filter(e => e.venue_id === parseInt(venueId) && e.status === 'waiting').length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-[#6B7280] uppercase tracking-wide mb-3">
+              <h2 className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-3">
                 Your Waitlist
               </h2>
-              <div className="bg-white rounded-xl border border-[#E5E7EB] divide-y divide-[#E5E7EB]">
+              <div className="captain-card overflow-hidden">
                 {myEntries
                   .filter(e => e.venue_id === parseInt(venueId) && e.status === 'waiting')
-                  .map((entry) => {
+                  .map((entry, idx, arr) => {
                     const gameLabel = GAME_TYPES.find(g => g.value === entry.game_type)?.short || entry.game_type.toUpperCase();
                     return (
-                      <div key={entry.id} className="p-4 flex items-center justify-between">
+                      <div
+                        key={entry.id}
+                        className={`p-4 flex items-center justify-between ${idx !== arr.length - 1 ? 'border-b border-[#E5E7EB]' : ''}`}
+                      >
                         <div>
-                          <h3 className="font-medium text-[#1F2937]">
-                            {entry.stakes} {gameLabel}
+                          <h3 className="font-semibold text-[#1F2937]">
+                            {entry.stakes} <span className="text-[#1877F2]">{gameLabel}</span>
                           </h3>
-                          <p className="text-sm text-[#6B7280]">
-                            Position #{entry.position}
+                          <p className="text-sm text-[#6B7280] mt-1">
+                            Position <span className="font-bold text-[#1877F2]">#{entry.position}</span>
                           </p>
                         </div>
                         <button
                           onClick={() => handleLeaveWaitlist(entry.id)}
-                          className="text-sm text-[#EF4444] hover:underline"
+                          className="captain-btn captain-btn-danger text-xs py-2 px-4"
                         >
                           Leave
                         </button>
@@ -329,17 +354,36 @@ export default function PlayerWaitlistPage() {
             </section>
           )}
 
-          {/* Info */}
-          <section className="pt-4">
-            <div className="bg-[#EFF6FF] rounded-xl p-4">
-              <h3 className="font-medium text-[#1E40AF] mb-2">How it works</h3>
-              <ul className="text-sm text-[#3B82F6] space-y-1">
-                <li>1. Join the waitlist for your preferred game</li>
-                <li>2. You'll get a text when your seat is ready</li>
-                <li>3. Check in at the desk within 5 minutes</li>
-              </ul>
+          {/* Info Card */}
+          <section className="pt-2">
+            <div className="captain-card p-5 bg-gradient-to-br from-[#EFF6FF] to-[#DBEAFE]">
+              <h3 className="font-bold text-[#1E40AF] mb-3 uppercase tracking-wide text-sm">How it works</h3>
+              <div className="space-y-3">
+                {[
+                  'Join the waitlist for your preferred game',
+                  'You\'ll get a text when your seat is ready',
+                  'Check in at the desk within 5 minutes'
+                ].map((step, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-xs font-bold flex-shrink-0"
+                      style={{ boxShadow: '0 0 10px rgba(24, 119, 242, 0.5)' }}>
+                      {idx + 1}
+                    </div>
+                    <p className="text-sm text-[#3B82F6] font-medium">{step}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
+
+          {/* Divider */}
+          <div className="captain-divider" />
+
+          {/* Powered By */}
+          <div className="text-center pb-6">
+            <p className="text-xs text-[#9CA3AF] uppercase tracking-widest">Powered by</p>
+            <p className="text-sm font-bold text-[#1877F2] tracking-wide">Smarter Captain</p>
+          </div>
         </main>
       </div>
     </>
