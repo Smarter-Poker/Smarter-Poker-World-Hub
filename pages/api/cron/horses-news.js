@@ -120,14 +120,20 @@ const NEWS_SOURCES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CAPTION TEMPLATES - How horses comment on news
+// CAPTION TEMPLATES - How horses comment on news (poker + sports)
 // ═══════════════════════════════════════════════════════════════════════════
 // Ultra-short templates - 1-3 words max for authenticity
 const CAPTION_TEMPLATES = {
+    // Poker templates
     tournament: ["🏆", "huge", "W", "congrats", "damn", "shipped", "gg"],
     strategy: ["📈", "valid", "true", "noted", "this", "facts", "📚"],
     industry: ["👀", "hm", "wild", "📰", "oh", "wow", "huh"],
     lifestyle: ["🎲", "lol", "mood", "facts", "real", "fr", "same"],
+    // Sports templates
+    football: ["🏈", "W", "lfg", "huge", "pain", "lets go", "ball"],
+    basketball: ["🏀", "bucket", "sheesh", "cooking", "hooper", "icy", "wet"],
+    baseball: ["⚾", "yak", "bomb", "mash", "crushed", "oppo", "tank"],
+    sports_general: ["W", "pain", "lfg", "huge", "wild", "no way", "damn"],
     default: ["👀", "🔥", "📰", "W", "this", "yo", "damn"]
 };
 
@@ -148,8 +154,9 @@ async function fetchLatestNews() {
                 pubDate: item.pubDate,
                 source: source.name,
                 icon: source.icon,
+                type: source.type || 'general',
                 summary: item.contentSnippet || item.content?.slice(0, 200) || '',
-                category: categorizeArticle(item.title, source.categories)
+                category: categorizeArticle(item.title, source.categories, source.type)
             }));
 
             allArticles.push(...articles);
@@ -162,9 +169,36 @@ async function fetchLatestNews() {
     return allArticles;
 }
 
-function categorizeArticle(title, sourceCategories) {
+function categorizeArticle(title, sourceCategories, sourceType = 'general') {
     const titleLower = title.toLowerCase();
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // SPORTS DETECTION
+    // ─────────────────────────────────────────────────────────────────────────
+    if (sourceType === 'sports') {
+        if (titleLower.includes('nfl') || titleLower.includes('football') ||
+            titleLower.includes('touchdown') || titleLower.includes('super bowl') ||
+            titleLower.includes('quarterback') || titleLower.includes('cowboys') ||
+            titleLower.includes('chiefs') || titleLower.includes('eagles')) {
+            return 'football';
+        }
+        if (titleLower.includes('nba') || titleLower.includes('basketball') ||
+            titleLower.includes('lakers') || titleLower.includes('celtics') ||
+            titleLower.includes('lebron') || titleLower.includes('dunk') ||
+            titleLower.includes('triple-double') || titleLower.includes('warriors')) {
+            return 'basketball';
+        }
+        if (titleLower.includes('mlb') || titleLower.includes('baseball') ||
+            titleLower.includes('home run') || titleLower.includes('yankees') ||
+            titleLower.includes('dodgers') || titleLower.includes('world series')) {
+            return 'baseball';
+        }
+        return 'sports_general';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // POKER DETECTION
+    // ─────────────────────────────────────────────────────────────────────────
     if (titleLower.includes('wsop') || titleLower.includes('wpt') || titleLower.includes('tournament') ||
         titleLower.includes('wins') || titleLower.includes('champion') || titleLower.includes('final table')) {
         return 'tournament';
