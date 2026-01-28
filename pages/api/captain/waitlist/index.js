@@ -93,6 +93,52 @@ export default async function handler(req, res) {
           error: { code: 'ALREADY_ON_WAITLIST', message: 'Player already on this waitlist' }
         });
       }
+
+      // RESPONSIBLE GAMING: Check for self-exclusions
+      const { data: exclusion } = await supabase
+        .from('captain_self_exclusions')
+        .select('id, exclusion_type, expires_at')
+        .eq('player_id', player_id)
+        .or(`venue_id.eq.${venue_id},scope.eq.network`)
+        .is('lifted_at', null)
+        .or('expires_at.is.null,expires_at.gt.now()')
+        .limit(1)
+        .single();
+
+      if (exclusion) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'SELF_EXCLUDED',
+            message: 'You have an active self-exclusion and cannot join at this time.',
+            exclusion_type: exclusion.exclusion_type,
+            expires_at: exclusion.expires_at
+          }
+        });
+      }
+
+      // RESPONSIBLE GAMING: Check spending limits
+      const { data: limits } = await supabase
+        .from('captain_spending_limits')
+        .select('daily_limit, weekly_limit, monthly_limit, session_duration_limit')
+        .eq('player_id', player_id)
+        .single();
+
+      if (limits) {
+        // Check if player has exceeded daily sessions (simple check)
+        const today = new Date().toISOString().split('T')[0];
+        const { count: todaySessions } = await supabase
+          .from('captain_player_sessions')
+          .select('id', { count: 'exact' })
+          .eq('player_id', player_id)
+          .gte('check_in_at', today);
+
+        // If player has more than 3 sessions today and has limits set, warn them
+        if (todaySessions >= 3 && limits.daily_limit) {
+          // Log responsible gaming check
+          console.log(`Responsible gaming: Player ${player_id} has ${todaySessions} sessions today`);
+        }
+      }
     }
 
     // Get next position using the database function

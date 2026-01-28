@@ -192,14 +192,7 @@ async function processNotification(notification, channel, phone) {
         break;
 
       case 'email':
-        // TODO: Integrate with email service (SendGrid/Resend)
-        await supabase
-          .from('captain_notifications')
-          .update({
-            status: 'pending',
-            metadata: { ...notification.metadata, email_pending: true }
-          })
-          .eq('id', notification.id);
+        await sendEmailNotification(notification);
         break;
     }
   } catch (error) {
@@ -231,13 +224,25 @@ async function sendSmsNotification(notification, phone) {
   // Get phone number from notification or player profile
   let toPhone = phone;
   if (!toPhone && notification.player_id) {
-    const { data: player } = await supabase
-      .from('captain_players')
-      .select('phone')
+    // First check player preferences for this venue
+    const { data: prefs } = await supabase
+      .from('captain_player_preferences')
+      .select('notification_preferences')
       .eq('player_id', notification.player_id)
       .eq('venue_id', notification.venue_id)
       .single();
-    toPhone = player?.phone;
+
+    // If no phone in preferences, get from profiles table
+    if (!prefs?.notification_preferences?.phone) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', notification.player_id)
+        .single();
+      toPhone = profile?.phone;
+    } else {
+      toPhone = prefs.notification_preferences.phone;
+    }
   }
 
   if (!toPhone) {
@@ -270,6 +275,104 @@ async function sendSmsNotification(notification, phone) {
       .eq('id', notification.id);
   } catch (error) {
     console.error('Twilio SMS error:', error);
+    await supabase
+      .from('captain_notifications')
+      .update({
+        status: 'failed',
+        metadata: { ...notification.metadata, error: error.message }
+      })
+      .eq('id', notification.id);
+  }
+}
+
+async function sendEmailNotification(notification) {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'notifications@smarter.poker';
+
+  if (!resendApiKey) {
+    console.log('Resend not configured, marking email as pending');
+    await supabase
+      .from('captain_notifications')
+      .update({
+        status: 'pending',
+        metadata: { ...notification.metadata, email_pending: true }
+      })
+      .eq('id', notification.id);
+    return;
+  }
+
+  // Get player email
+  let toEmail = notification.metadata?.email;
+  if (!toEmail && notification.player_id) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', notification.player_id)
+      .single();
+    toEmail = profile?.email;
+  }
+
+  if (!toEmail) {
+    await supabase
+      .from('captain_notifications')
+      .update({
+        status: 'failed',
+        metadata: { ...notification.metadata, error: 'No email address available' }
+      })
+      .eq('id', notification.id);
+    return;
+  }
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${resendApiKey}`
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: toEmail,
+        subject: notification.title || 'Smarter Captain Notification',
+        html: `
+          <div style="font-family: Inter, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #1877F2; padding: 20px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">Smarter Captain</h1>
+            </div>
+            <div style="padding: 30px; background: #F9FAFB;">
+              <h2 style="color: #1F2937; margin-top: 0;">${notification.title || 'Notification'}</h2>
+              <p style="color: #4B5563; font-size: 16px; line-height: 1.6;">${notification.message}</p>
+            </div>
+            <div style="padding: 20px; text-align: center; color: #9CA3AF; font-size: 12px;">
+              <p>Sent by Smarter Captain - Poker Room Management</p>
+            </div>
+          </div>
+        `
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.id) {
+      await supabase
+        .from('captain_notifications')
+        .update({
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          metadata: { ...notification.metadata, resend_id: result.id }
+        })
+        .eq('id', notification.id);
+    } else {
+      await supabase
+        .from('captain_notifications')
+        .update({
+          status: 'failed',
+          metadata: { ...notification.metadata, error: result.message || 'Email send failed' }
+        })
+        .eq('id', notification.id);
+    }
+  } catch (error) {
+    console.error('Resend email error:', error);
     await supabase
       .from('captain_notifications')
       .update({
