@@ -62,10 +62,10 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 
 const CONFIG = {
-    HORSES_PER_TRIGGER: 3,  // 3 clips per trigger (runs 4x/hour = 12 clips/hour)
+    HORSES_PER_TRIGGER: 6,  // 6 clips per trigger (runs 8x/hour = 48 clips/hour)
     VIDEO_CLIP_PROBABILITY: 0.90,  // LAW: 90% video clips
-    MAX_CLIPS_PER_DAY: 200,  // Increased capacity
-    CLIP_COOLDOWN_HOURS: 48  // Don't reuse same clip for 48 hours
+    MAX_CLIPS_PER_DAY: 400,  // Increased capacity
+    CLIP_COOLDOWN_HOURS: 24  // Don't reuse same clip for 24 hours
 };
 
 // Track clips used in this session to prevent duplicates within same cron run

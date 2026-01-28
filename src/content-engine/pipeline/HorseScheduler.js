@@ -78,7 +78,7 @@ export function getHorseActivityRate(profileId, actionType) {
         like: 0.4 + (hash % 40) / 100,      // 40-80% likely to like
         comment: 0.2 + (hash % 30) / 100,   // 20-50% likely to comment
         reply: 0.15 + (hash % 25) / 100,    // 15-40% likely to reply
-        post: 0.1 + (hash % 20) / 100,      // 10-30% likely to post
+        post: 0.3 + (hash % 30) / 100,      // 30-60% likely to post (INCREASED)
         friend: 0.05 + (hash % 15) / 100    // 5-20% likely to friend
     };
 
