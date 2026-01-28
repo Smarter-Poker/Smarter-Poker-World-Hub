@@ -1,0 +1,29 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   WORLD THEME TEMPLATE
+   Copy this file and customize for each world.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Apply theme when body has this world class */
+body.world-WORLDNAME {
+    /* Primary accent - used for buttons, highlights, active states */
+    --world-primary: #00d4ff;
+    --world-primary-rgb: 0, 212, 255;
+    --world-primary-glow: rgba(0, 212, 255, 0.4);
+
+    /* Secondary accent - used for secondary elements */
+    --world-secondary: #0096ff;
+    --world-secondary-rgb: 0, 150, 255;
+
+    /* Background gradient - page background */
+    --world-bg-start: #050510;
+    --world-bg-mid: #0a1628;
+    --world-bg-end: #030508;
+    --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
+
+    /* Surface colors - cards, panels */
+    --world-surface: rgba(20, 40, 80, 0.6);
+    --world-surface-elevated: rgba(30, 50, 90, 0.8);
+
+    /* Border colors */
+    --world-border: rgba(0, 212, 255, 0.3);
+}

@@ -1,0 +1,27 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SOCIAL HUB THEME — Community, Friendly, Blue
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-social-hub {
+    /* Primary: Friendly Blue - community, connection */
+    --world-primary: #4a90d9;
+    --world-primary-rgb: 74, 144, 217;
+    --world-primary-glow: rgba(74, 144, 217, 0.4);
+
+    /* Secondary: Sky Blue */
+    --world-secondary: #60a5fa;
+    --world-secondary-rgb: 96, 165, 250;
+
+    /* Background: Cool professional */
+    --world-bg-start: #050810;
+    --world-bg-mid: #0c1524;
+    --world-bg-end: #030408;
+    --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
+
+    /* Surface: Blue-tinted */
+    --world-surface: rgba(20, 50, 80, 0.6);
+    --world-surface-elevated: rgba(30, 60, 100, 0.8);
+
+    /* Border: Blue accent */
+    --world-border: rgba(74, 144, 217, 0.3);
+}

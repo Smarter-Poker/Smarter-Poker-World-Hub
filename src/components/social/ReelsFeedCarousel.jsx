@@ -231,7 +231,7 @@ function ReelCard({ reel, onClick }) {
 // Full-screen Reel Viewer (opens when clicking a reel)
 function ReelViewer({ reels, startIndex, onClose }) {
     const [currentIndex, setCurrentIndex] = useState(startIndex);
-    const [muted, setMuted] = useState(false);
+    const [muted, setMuted] = useState(false); // Sound ON by default - user clicked to watch
     const [liked, setLiked] = useState({});
     const videoRef = useRef(null);
 
@@ -319,7 +319,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 {isYouTubeUrl(currentReel.video_url) ? (
                     <iframe
                         key={currentReel.id}
-                        src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&rel=0&modestbranding=1&playsinline=1${muted ? '&mute=1' : ''}`}
+                        src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
                         style={{ width: '100%', height: '100%', border: 'none' }}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen

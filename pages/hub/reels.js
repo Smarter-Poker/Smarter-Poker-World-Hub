@@ -73,23 +73,22 @@ export default function ReelsPage() {
     };
 
     // Auto-play immediately on load (muted videos comply with browser autoplay policy)
+    // Then auto-unmute since user explicitly came here to watch videos with sound
     useEffect(() => {
         if (!loading && reels.length > 0) {
-            // Wait for iframe to load, then force play + unmute if preferred
+            // Wait for iframe to load, then force play + unmute
             const timer = setTimeout(() => {
                 // FORCE PLAY via YouTube API
                 sendYouTubeCommand('playVideo');
 
-                // Auto-unmute if user has previously enabled sound
-                if (userWantsSound) {
-                    sendYouTubeCommand('unMute');
-                    sendYouTubeCommand('setVolume', [100]);
-                    setMuted(false);
-                }
+                // AUTO-UNMUTE: User came here to watch videos, they want sound!
+                sendYouTubeCommand('unMute');
+                sendYouTubeCommand('setVolume', [100]);
+                setMuted(false);
             }, 500); // Give iframe time to initialize YouTube API
             return () => clearTimeout(timer);
         }
-    }, [currentIndex, userWantsSound, loading, reels.length]);
+    }, [currentIndex, loading, reels.length]);
 
     const handleUnmute = () => {
         sendYouTubeCommand('unMute');
