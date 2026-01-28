@@ -8,8 +8,11 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-// The 4 cron trigger minutes
-const CRON_SLOTS = [3, 18, 33, 48];
+// The 4 cron trigger minutes - MUST MATCH vercel.json schedule!
+// horses-stories runs at: 8, 23, 38, 53
+// horses-clips runs at: 3, 18, 33, 48
+// Using the stories schedule as primary since it's more frequent
+const CRON_SLOTS = [8, 23, 38, 53];
 
 /**
  * Get a deterministic slot index (0-3) for a horse based on their profile_id
