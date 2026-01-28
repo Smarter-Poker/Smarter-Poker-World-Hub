@@ -233,12 +233,17 @@ export default function UniversalHeader({
                     setNotificationCount(notifCount || 0);
 
                     // FETCH UNREAD MESSAGES COUNT
-                    const { count: msgCount } = await supabase
-                        .from('messages')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('recipient_id', authUser.id)
-                        .eq('read', false);
-                    setUnreadMessages(msgCount || 0);
+                    // NOTE: Wrapped in try/catch - messages table may not exist yet
+                    try {
+                        const { count: msgCount, error: msgError } = await supabase
+                            .from('messages')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('recipient_id', authUser.id)
+                            .eq('read', false);
+                        if (!msgError) setUnreadMessages(msgCount || 0);
+                    } catch (e) {
+                        // Silently fail - messenger table not yet implemented
+                    }
 
                     // REAL-TIME: Subscribe to new notifications
                     notifChannel = supabase
