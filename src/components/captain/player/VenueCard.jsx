@@ -1,9 +1,9 @@
 /**
  * VenueCard Component - Shows venue with live game info
  * Reference: SCOPE_LOCK.md - Phase 1 Components
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Facebook color scheme with futuristic metallic styling
  */
-import { MapPin, Users, Clock, ChevronRight, Star } from 'lucide-react';
+import { MapPin, Users, Clock, ChevronRight, Star, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 export default function VenueCard({ venue, games = [], waitlistCounts = {} }) {
@@ -13,58 +13,71 @@ export default function VenueCard({ venue, games = [], waitlistCounts = {} }) {
   return (
     <Link
       href={`/hub/captain/venue/${venue.id}`}
-      className="block bg-white rounded-lg border border-[#E5E7EB] p-4 hover:border-[#1877F2] hover:shadow-md transition-all"
+      className="block captain-card p-5 hover:captain-card-glow transition-all group"
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-[#1F2937]">{venue.name}</h3>
-            {venue.captain_enabled && (
-              <span className="px-2 py-0.5 bg-[#1877F2]/10 text-[#1877F2] text-xs font-medium rounded">
-                LIVE
-              </span>
-            )}
+          <div className="flex items-center gap-3">
+            <div className="captain-icon-box w-10 h-10">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-[#1F2937] text-lg tracking-wide group-hover:text-[#1877F2] transition-colors">
+                {venue.name}
+              </h3>
+              <p className="text-sm text-[#6B7280] flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {venue.city}, {venue.state}
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-[#6B7280] flex items-center gap-1 mt-1">
-            <MapPin className="w-3 h-3" />
-            {venue.city}, {venue.state}
-          </p>
           {venue.trust_score && (
-            <p className="text-sm text-[#6B7280] flex items-center gap-1 mt-1">
-              <Star className="w-3 h-3 text-[#F59E0B]" />
-              {venue.trust_score.toFixed(1)}
-            </p>
+            <div className="mt-2 ml-13">
+              <span className="captain-badge captain-badge-warning">
+                <Star className="w-3 h-3" />
+                {venue.trust_score.toFixed(1)}
+              </span>
+            </div>
           )}
         </div>
-        <ChevronRight className="w-5 h-5 text-[#6B7280]" />
+        <div className="flex items-center gap-2">
+          {venue.captain_enabled && (
+            <span className="captain-badge captain-badge-success captain-badge-glow">
+              LIVE
+            </span>
+          )}
+          <div className="captain-icon-box w-10 h-10 group-hover:captain-icon-box-glow transition-all">
+            <ChevronRight className="w-5 h-5" />
+          </div>
+        </div>
       </div>
 
       {runningGames.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-[#E5E7EB]">
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1 text-[#10B981]">
-              <Users className="w-4 h-4" />
-              <span className="font-medium">{runningGames.length} games running</span>
-            </div>
+        <div className="mt-4 pt-4 border-t-2 border-[#8B9DC3]/30">
+          <div className="flex items-center gap-4">
+            <span className="captain-badge captain-badge-success">
+              <Users className="w-3 h-3" />
+              {runningGames.length} game{runningGames.length !== 1 ? 's' : ''} running
+            </span>
             {totalWaiting > 0 && (
-              <div className="flex items-center gap-1 text-[#F59E0B]">
-                <Clock className="w-4 h-4" />
-                <span className="font-medium">{totalWaiting} waiting</span>
-              </div>
+              <span className="captain-badge captain-badge-warning">
+                <Clock className="w-3 h-3" />
+                {totalWaiting} waiting
+              </span>
             )}
           </div>
 
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             {runningGames.slice(0, 4).map((game) => (
               <span
                 key={game.id}
-                className="px-2 py-1 bg-[#F9FAFB] rounded text-xs text-[#1F2937]"
+                className="captain-badge captain-badge-primary"
               >
                 {game.game_type?.toUpperCase()} {game.stakes}
               </span>
             ))}
             {runningGames.length > 4 && (
-              <span className="px-2 py-1 text-xs text-[#6B7280]">
+              <span className="text-xs text-[#6B7280] font-medium py-1">
                 +{runningGames.length - 4} more
               </span>
             )}
@@ -73,7 +86,7 @@ export default function VenueCard({ venue, games = [], waitlistCounts = {} }) {
       )}
 
       {venue.distance_mi && (
-        <div className="mt-2 text-xs text-[#6B7280]">
+        <div className="mt-3 text-xs text-[#6B7280] font-medium uppercase tracking-wide">
           {venue.distance_mi} miles away
         </div>
       )}
