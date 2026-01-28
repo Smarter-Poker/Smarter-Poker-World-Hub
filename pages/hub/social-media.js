@@ -2763,6 +2763,7 @@ export default function SocialMediaPage() {
                                         post={{ ...p, isGodMode }}
                                         currentUserId={user?.id}
                                         currentUserName={user?.name}
+                                        currentUserAvatar={user?.avatar}
                                         onLike={handleLike}
                                         onDelete={handleDelete}
                                         onOpenArticle={(url) => setArticleReader({ open: true, url, title: p.link_title || null })}

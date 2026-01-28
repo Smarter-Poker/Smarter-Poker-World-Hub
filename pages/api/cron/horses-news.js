@@ -51,21 +51,71 @@ const CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// POKER NEWS RSS FEEDS - Updated with working endpoints (Jan 2026)
-// Note: PokerNews, PokerListings, Poker.org, WPT feeds are broken/returning errors
+// NEWS & CONTENT RSS FEEDS - Poker + Sports
+// Horses are sports fans too! They post about games, highlights, and hot takes
 // ═══════════════════════════════════════════════════════════════════════════
 const NEWS_SOURCES = [
+    // ─────────────────────────────────────────────────────────────────────────
+    // POKER NEWS
+    // ─────────────────────────────────────────────────────────────────────────
     {
         name: 'CardPlayer',
         rss: 'https://www.cardplayer.com/poker-news.rss',
         icon: '♠️',
+        type: 'poker',
         categories: ['tournaments', 'results', 'industry']
     },
     {
         name: 'Upswing Poker',
         rss: 'https://upswingpoker.com/feed/',
         icon: '📈',
+        type: 'poker',
         categories: ['strategy', 'tips', 'training']
+    },
+    // ─────────────────────────────────────────────────────────────────────────
+    // SPORTS NEWS - Major outlets
+    // ─────────────────────────────────────────────────────────────────────────
+    {
+        name: 'ESPN',
+        rss: 'https://www.espn.com/espn/rss/news',
+        icon: '🏈',
+        type: 'sports',
+        categories: ['football', 'basketball', 'baseball', 'general']
+    },
+    {
+        name: 'ESPN NBA',
+        rss: 'https://www.espn.com/espn/rss/nba/news',
+        icon: '🏀',
+        type: 'sports',
+        categories: ['basketball', 'nba']
+    },
+    {
+        name: 'ESPN NFL',
+        rss: 'https://www.espn.com/espn/rss/nfl/news',
+        icon: '🏈',
+        type: 'sports',
+        categories: ['football', 'nfl']
+    },
+    {
+        name: 'CBS Sports',
+        rss: 'https://www.cbssports.com/rss/headlines/',
+        icon: '📺',
+        type: 'sports',
+        categories: ['general', 'highlights']
+    },
+    {
+        name: 'Yahoo Sports',
+        rss: 'https://sports.yahoo.com/rss/',
+        icon: '🏆',
+        type: 'sports',
+        categories: ['general', 'trending']
+    },
+    {
+        name: 'Bleacher Report',
+        rss: 'https://bleacherreport.com/articles/feed',
+        icon: '🔥',
+        type: 'sports',
+        categories: ['hot-takes', 'trending', 'reactions']
     }
 ];
 
