@@ -1109,7 +1109,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
     );
 }
 
-function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onComment, onOpenArticle }) {
+function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onLike, onDelete, onComment, onOpenArticle }) {
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
@@ -1152,11 +1152,19 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
         setLoadingComments(true);
         try {
             const { data } = await supabase.from('social_comments')
-                .select('id, content, created_at, author_id')
+                .select('id, content, created_at, author_id, profiles:author_id(username, full_name, avatar_url)')
                 .eq('post_id', post.id)
                 .order('created_at', { ascending: true })
                 .limit(20);
-            if (data) setComments(data.map(c => ({ id: c.id, text: c.content, authorName: 'Player', authorId: c.author_id, time: timeAgo(c.created_at) })));
+            if (data) setComments(data.map(c => ({
+                id: c.id,
+                text: c.content,
+                authorId: c.author_id,
+                authorName: c.profiles?.full_name || c.profiles?.username || 'Player',
+                authorAvatar: c.profiles?.avatar_url || null,
+                authorUsername: c.profiles?.username || null,
+                time: timeAgo(c.created_at)
+            })));
         } catch (e) { console.error(e); }
         setLoadingComments(false);
     };
@@ -1171,7 +1179,14 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
         try {
             const { data, error } = await supabase.from('social_comments').insert({ post_id: post.id, author_id: currentUserId, content: newComment }).select('id, content, created_at').single();
             if (!error && data) {
-                setComments(prev => [...prev, { id: data.id, text: data.content, authorName: 'You', authorId: currentUserId, time: 'Just now' }]);
+                setComments(prev => [...prev, {
+                    id: data.id,
+                    text: data.content,
+                    authorName: currentUserName || 'You',
+                    authorId: currentUserId,
+                    authorAvatar: currentUserAvatar,
+                    time: 'Just now'
+                }]);
                 setCommentCount(prev => prev + 1);
                 setNewComment('');
                 if (onComment) onComment(post.id);
@@ -1359,15 +1374,15 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                     {loadingComments && <div style={{ color: C.textSec, fontSize: 13 }}>Loading comments...</div>}
                     {comments.map(c => (
                         <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                            <Avatar name={c.authorName} size={28} />
+                            <Avatar src={c.authorAvatar} name={c.authorName} size={28} />
                             <div style={{ flex: 1, background: C.bg, borderRadius: 12, padding: '6px 10px' }}>
-                                <div style={{ fontWeight: 600, fontSize: 13 }}>{c.authorName}</div>
+                                <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{c.authorName}</div>
                                 <div style={{ fontSize: 14, color: C.text }}>{c.text}</div>
                             </div>
                         </div>
                     ))}
                     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                        <Avatar name={currentUserName} size={28} />
+                        <Avatar src={currentUserAvatar} name={currentUserName} size={28} />
                         <input value={newComment} onChange={e => setNewComment(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSubmitComment()} placeholder="Write a comment..." style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} />
                         <button onClick={handleSubmitComment} disabled={!newComment.trim()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: newComment.trim() ? C.blue : C.textSec, fontWeight: 600, fontSize: 13 }}>Post</button>
                     </div>
@@ -2003,22 +2018,26 @@ export default function SocialMediaPage() {
 
         setIsPosting(true);
         try {
+            // Build base payload
             const insertPayload = {
                 author_id: user.id,
                 content,
                 content_type: type,
                 media_urls: urls,
                 visibility: 'public',
-                // Store link metadata if available (from link preview)
-                ...(linkPreview && {
-                    link_url: linkPreview.url || urls[0],
-                    link_title: linkPreview.title || null,
-                    link_description: linkPreview.description || null,
-                    link_image: linkPreview.image || null,
-                    link_site_name: linkPreview.domain || null, // Note: state uses 'domain' not 'siteName'
-                }),
             };
-            console.log('[Social] 📝 Inserting post with payload:', insertPayload);
+
+            // EXPLICIT: Add link metadata if available (from link preview)
+            if (linkPreview) {
+                console.log('[Social] 📝 Adding link metadata from preview:', linkPreview);
+                insertPayload.link_url = linkPreview.url || urls[0];
+                insertPayload.link_title = linkPreview.title || null;
+                insertPayload.link_description = linkPreview.description || null;
+                insertPayload.link_image = linkPreview.image || null;
+                insertPayload.link_site_name = linkPreview.domain || null;
+            }
+
+            console.log('[Social] 📝 FINAL insert payload:', JSON.stringify(insertPayload, null, 2));
 
             const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().single();
 
