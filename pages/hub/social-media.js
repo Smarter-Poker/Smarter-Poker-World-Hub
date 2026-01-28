@@ -973,7 +973,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                             <>
                                 {/* Preview Image/Thumbnail */}
                                 <div style={{
-                                    height: 240,
+                                    height: 320,
                                     position: 'relative',
                                     background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
                                     display: 'flex',
@@ -988,7 +988,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                                             style={{
                                                 width: '100%',
                                                 height: '100%',
-                                                objectFit: 'contain',
+                                                objectFit: 'cover',
                                                 objectPosition: 'center center',
                                                 position: 'absolute',
                                                 top: 0,
