@@ -37,13 +37,17 @@ export function isValidImageUrl(url) {
     if (!url) return false;
     try {
         const u = new URL(url);
-        // Check for common image extensions or known image hosts
+        // Check for common image extensions or known image hosts (including social CDNs)
         return /\.(jpg|jpeg|png|gif|webp|svg)/i.test(u.pathname)
             || url.includes('unsplash.com')
             || url.includes('images.')
             || url.includes('/img/')
             || url.includes('/image/')
-            || url.includes('pnimg.net');
+            || url.includes('pnimg.net')
+            || url.includes('fbcdn.net')       // Facebook CDN
+            || url.includes('cdninstagram.com') // Instagram CDN
+            || url.includes('scontent')         // Social content servers
+            || url.includes('img.youtube.com'); // YouTube thumbnails
     } catch {
         return false;
     }
@@ -183,10 +187,9 @@ export default function ArticleCard({
         }
     })();
 
-    // Determine what image to show
-    const displayImage = !imageError && metadata.image && isValidImageUrl(metadata.image)
-        ? metadata.image
-        : null;
+    // Determine what image to show - be more permissive for social platform images
+    // If we have an image URL, use it (don't be too strict with validation)
+    const displayImage = !imageError && metadata.image ? metadata.image : null;
 
     return (
         <div
@@ -202,10 +205,10 @@ export default function ArticleCard({
             onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'}
             onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
         >
-            {/* Image Container */}
+            {/* Image Container - FULL WIDTH for maximum visual impact */}
             <div style={{
                 width: '100%',
-                aspectRatio: '16/9',
+                minHeight: 280,
                 overflow: 'hidden',
                 background: loading
                     ? 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)'
@@ -215,7 +218,13 @@ export default function ArticleCard({
                     <img
                         src={displayImage}
                         alt={displayTitle}
-                        style={{ width: '100%', height: '100%', objectFit: 'contain', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}
+                        style={{
+                            width: '100%',
+                            minHeight: 280,
+                            objectFit: 'cover',  // FULL SCREEN - fill the container
+                            objectPosition: 'center center',
+                            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
+                        }}
                         onError={() => setImageError(true)}
                     />
                 ) : (
