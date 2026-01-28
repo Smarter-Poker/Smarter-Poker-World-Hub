@@ -232,18 +232,8 @@ export default function UniversalHeader({
                         .eq('read', false);
                     setNotificationCount(notifCount || 0);
 
-                    // FETCH UNREAD MESSAGES COUNT
-                    // NOTE: Wrapped in try/catch - messages table may not exist yet
-                    try {
-                        const { count: msgCount, error: msgError } = await supabase
-                            .from('messages')
-                            .select('*', { count: 'exact', head: true })
-                            .eq('recipient_id', authUser.id)
-                            .eq('read', false);
-                        if (!msgError) setUnreadMessages(msgCount || 0);
-                    } catch (e) {
-                        // Silently fail - messenger table not yet implemented
-                    }
+                    // NOTE: Unread messages count is set from API response above (lines 160-165)
+                    // No direct query needed - the get-header-stats API handles this correctly
 
                     // REAL-TIME: Subscribe to new notifications
                     notifChannel = supabase
@@ -269,26 +259,17 @@ export default function UniversalHeader({
                         })
                         .subscribe();
 
-                    // REAL-TIME: Subscribe to new messages
+                    // REAL-TIME: Subscribe to new messages (using social_messages table)
                     messageChannel = supabase
                         .channel('header-messages')
                         .on('postgres_changes', {
                             event: 'INSERT',
                             schema: 'public',
-                            table: 'messages',
-                            filter: `recipient_id=eq.${authUser.id}`
-                        }, () => {
-                            setUnreadMessages(prev => prev + 1);
-                        })
-                        .on('postgres_changes', {
-                            event: 'UPDATE',
-                            schema: 'public',
-                            table: 'messages',
-                            filter: `recipient_id=eq.${authUser.id}`
+                            table: 'social_messages'
                         }, (payload) => {
-                            // If marked as read, decrease count
-                            if (payload.new.read && !payload.old.read) {
-                                setUnreadMessages(prev => Math.max(0, prev - 1));
+                            // Only increment if message is not from current user
+                            if (payload.new.sender_id !== authUser.id) {
+                                setUnreadMessages(prev => prev + 1);
                             }
                         })
                         .subscribe();

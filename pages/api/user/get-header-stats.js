@@ -51,26 +51,28 @@ export default async function handler(req, res) {
             .eq('user_id', userId)
             .eq('read', false);
 
-        // Count unread messages - messages in user's conversations where sender is not user and not read
-        // First get user's conversations
+        // Count unread messages - using social messaging schema
+        // Get user's conversations with their last_read_at timestamp
         const { data: conversations } = await supabase
-            .from('conversation_participants')
-            .select('conversation_id')
+            .from('social_conversation_participants')
+            .select('conversation_id, last_read_at')
             .eq('user_id', userId);
 
         let unreadMessages = 0;
         if (conversations && conversations.length > 0) {
-            const convIds = conversations.map(c => c.conversation_id);
+            // Count messages in each conversation that are newer than last_read_at and not sent by user
+            for (const conv of conversations) {
+                const lastRead = conv.last_read_at || '1970-01-01';
+                const { count } = await supabase
+                    .from('social_messages')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('conversation_id', conv.conversation_id)
+                    .neq('sender_id', userId)
+                    .eq('is_deleted', false)
+                    .gt('created_at', lastRead);
 
-            // Count messages in these conversations that are unread and not sent by this user
-            const { count: msgCount } = await supabase
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .in('conversation_id', convIds)
-                .neq('sender_id', userId)
-                .eq('is_read', false);
-
-            unreadMessages = msgCount || 0;
+                unreadMessages += count || 0;
+            }
         }
 
         return res.json({
