@@ -226,7 +226,7 @@ function applyQuirk(text, quirk) {
             return text.replace(/([aeiousy])(\s|$)/gi, (m, letter, after) =>
                 Math.random() > 0.6 ? letter + letter + letter + after : m);
         case 'adds_periods':
-            return text.split(' ').join('. ').replace(/\.\s*\./g, '.');
+            return text; // DISABLED - creates malformed captions
         case 'abbreviates':
             return text.replace(/\bwith\b/gi, 'w/').replace(/\bbecause\b/gi, 'bc');
         case 'repeats_end':
@@ -312,7 +312,7 @@ export function applyWritingStyle(comment, profileId) {
             }
             break;
         case 'dash_lover':
-            result = result.replace(/[.!?]+$/, '') + ' -';
+            // DISABLED - creates malformed captions like 'wild. -'
             break;
         // 'normal' - leave as is
     }
