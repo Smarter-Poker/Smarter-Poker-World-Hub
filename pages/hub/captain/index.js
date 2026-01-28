@@ -1,12 +1,12 @@
 /**
  * Player Captain Hub - Browse venues and manage waitlists
  * Reference: SCOPE_LOCK.md - Phase 1 UI Pages
- * UI: Facebook color scheme with futuristic metallic styling
+ * UI: Facebook color scheme with DRAMATIC futuristic sci-fi styling
  */
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, ChevronRight, Zap, Loader2 } from 'lucide-react';
+import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio } from 'lucide-react';
 import VenueCard from '../../../src/components/captain/player/VenueCard';
 import WaitlistCard from '../../../src/components/captain/player/WaitlistCard';
 
@@ -113,63 +113,66 @@ export default function CaptainHub() {
         <meta name="description" content="Find live poker games near you and join waitlists" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
-        {/* Futuristic Header */}
+      <div className="min-h-screen bg-[#F0F2F5]">
+        {/* Futuristic Header with animated gradient border */}
         <header className="captain-header sticky top-0 z-50">
-          <div className="max-w-3xl mx-auto px-4 py-4">
-            <div className="flex items-center gap-3">
-              <div className="captain-icon-box-glow">
-                <Zap className="w-5 h-5" />
+          <div className="max-w-3xl mx-auto px-4 py-5">
+            <div className="flex items-center gap-4">
+              <div className="captain-icon-box captain-icon-box-glow">
+                <Zap className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-[#1F2937] tracking-wide">Live Poker</h1>
-                <p className="text-sm text-[#6B7280]">Find games and join waitlists</p>
+                <h1 className="text-2xl font-extrabold captain-gradient-text tracking-wider">LIVE POKER</h1>
+                <p className="text-sm text-[#6B7280] font-medium tracking-wide">Find games and join waitlists</p>
               </div>
             </div>
           </div>
         </header>
 
-        <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-          {/* Quick Links */}
-          <section className="grid grid-cols-3 gap-3">
+        <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+          {/* Quick Links - Dramatic cards */}
+          <section className="grid grid-cols-3 gap-4">
             <Link
               href="/hub/captain/leagues"
-              className="captain-card p-4 hover:captain-card-glow transition-all group text-center"
+              className="captain-card captain-card-corners p-5 hover:captain-card-glow transition-all group text-center"
             >
-              <div className="captain-icon-box w-12 h-12 mx-auto mb-3 group-hover:captain-icon-box-glow transition-all">
-                <Trophy className="w-6 h-6" />
+              <div className="captain-icon-box w-14 h-14 mx-auto mb-4 group-hover:captain-icon-box-glow transition-all">
+                <Trophy className="w-7 h-7" />
               </div>
-              <p className="font-bold text-[#1F2937] group-hover:text-[#1877F2] transition-colors">Leagues</p>
-              <p className="text-xs text-[#6B7280] font-medium uppercase tracking-wide mt-1">Compete</p>
+              <p className="font-bold text-[#1F2937] text-lg group-hover:captain-gradient-text transition-colors">Leagues</p>
+              <p className="text-xs text-[#6B7280] font-semibold uppercase tracking-widest mt-1">Compete</p>
             </Link>
             <Link
               href="/hub/captain/hand-history"
-              className="captain-card p-4 hover:captain-card-glow transition-all group text-center"
+              className="captain-card captain-card-corners p-5 hover:captain-card-glow transition-all group text-center"
             >
-              <div className="captain-icon-box w-12 h-12 mx-auto mb-3 group-hover:captain-icon-box-glow transition-all">
-                <FileText className="w-6 h-6" />
+              <div className="captain-icon-box w-14 h-14 mx-auto mb-4 group-hover:captain-icon-box-glow transition-all">
+                <FileText className="w-7 h-7" />
               </div>
-              <p className="font-bold text-[#1F2937] group-hover:text-[#1877F2] transition-colors">Hands</p>
-              <p className="text-xs text-[#6B7280] font-medium uppercase tracking-wide mt-1">Review</p>
+              <p className="font-bold text-[#1F2937] text-lg group-hover:captain-gradient-text transition-colors">Hands</p>
+              <p className="text-xs text-[#6B7280] font-semibold uppercase tracking-widest mt-1">Review</p>
             </Link>
             <Link
               href="/hub/captain/responsible-gaming"
-              className="captain-card p-4 hover:captain-card-glow transition-all group text-center"
+              className="captain-card captain-card-corners p-5 hover:captain-card-glow transition-all group text-center"
             >
-              <div className="captain-icon-box w-12 h-12 mx-auto mb-3 group-hover:captain-icon-box-glow transition-all">
-                <Shield className="w-6 h-6" />
+              <div className="captain-icon-box w-14 h-14 mx-auto mb-4 group-hover:captain-icon-box-glow transition-all">
+                <Shield className="w-7 h-7" />
               </div>
-              <p className="font-bold text-[#1F2937] group-hover:text-[#1877F2] transition-colors">Limits</p>
-              <p className="text-xs text-[#6B7280] font-medium uppercase tracking-wide mt-1">Settings</p>
+              <p className="font-bold text-[#1F2937] text-lg group-hover:captain-gradient-text transition-colors">Limits</p>
+              <p className="text-xs text-[#6B7280] font-semibold uppercase tracking-widest mt-1">Settings</p>
             </Link>
           </section>
 
           {/* My Waitlists */}
           {myWaitlists.length > 0 && (
             <section>
-              <h2 className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-3 flex items-center gap-2">
-                <span className="captain-status-live">My Waitlists</span>
-              </h2>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="captain-badge captain-badge-live">
+                  <Radio className="w-4 h-4" />
+                  MY WAITLISTS
+                </div>
+              </div>
               <div className="space-y-4">
                 {myWaitlists.map((entry) => (
                   <WaitlistCard
@@ -184,15 +187,15 @@ export default function CaptainHub() {
 
           {/* Search and Location */}
           <section>
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#6B7280]" />
+                <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#6B7280]" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search venues..."
-                  className="captain-input pl-12"
+                  className="captain-input pl-14"
                 />
               </div>
               <button
@@ -210,9 +213,9 @@ export default function CaptainHub() {
             </div>
 
             {userLocation && (
-              <div className="mt-3">
+              <div className="mt-4">
                 <span className="captain-badge captain-badge-success">
-                  <MapPin className="w-3 h-3" />
+                  <MapPin className="w-4 h-4" />
                   Showing venues near you
                 </span>
               </div>
@@ -221,43 +224,46 @@ export default function CaptainHub() {
 
           {/* Venues */}
           <section>
-            <h2 className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-3 flex items-center gap-2">
-              <span className="captain-status-live">Venues with Live Games</span>
-            </h2>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="captain-badge captain-badge-live">
+                <Radio className="w-4 h-4" />
+                VENUES WITH LIVE GAMES
+              </div>
+            </div>
 
             {loading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="captain-card p-5 animate-pulse">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#E5E7EB] rounded-xl" />
+                  <div key={i} className="captain-card p-6 animate-pulse">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-[#E2E8F0] rounded-xl" />
                       <div className="flex-1">
-                        <div className="h-5 bg-[#E5E7EB] rounded w-1/3 mb-2" />
-                        <div className="h-4 bg-[#E5E7EB] rounded w-1/4" />
+                        <div className="h-6 bg-[#E2E8F0] rounded w-1/3 mb-3" />
+                        <div className="h-4 bg-[#E2E8F0] rounded w-1/4" />
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : error ? (
-              <div className="captain-card p-8 text-center">
-                <div className="captain-icon-box mx-auto mb-4" style={{ borderColor: '#EF4444' }}>
-                  <AlertCircle className="w-6 h-6 text-[#EF4444]" />
+              <div className="captain-card captain-card-corners p-10 text-center">
+                <div className="captain-icon-box mx-auto mb-5" style={{ borderColor: '#EF4444' }}>
+                  <AlertCircle className="w-7 h-7 text-[#EF4444]" />
                 </div>
-                <p className="text-[#6B7280] font-medium">{error}</p>
+                <p className="text-[#6B7280] font-semibold text-lg">{error}</p>
                 <button
                   onClick={fetchVenues}
-                  className="captain-btn captain-btn-primary mt-4"
+                  className="captain-btn captain-btn-primary mt-6"
                 >
-                  Retry
+                  RETRY CONNECTION
                 </button>
               </div>
             ) : filteredVenues.length === 0 ? (
-              <div className="captain-card p-8 text-center">
-                <div className="captain-icon-box mx-auto mb-4">
-                  <MapPin className="w-6 h-6" />
+              <div className="captain-card captain-card-corners p-10 text-center">
+                <div className="captain-icon-box mx-auto mb-5">
+                  <MapPin className="w-7 h-7" />
                 </div>
-                <p className="text-[#6B7280] font-medium">
+                <p className="text-[#6B7280] font-semibold text-lg">
                   {searchQuery
                     ? 'No venues match your search'
                     : 'No venues with live games found'}
@@ -277,13 +283,13 @@ export default function CaptainHub() {
             )}
           </section>
 
-          {/* Divider */}
+          {/* Divider with diamond accent */}
           <div className="captain-divider" />
 
           {/* Powered By */}
-          <div className="text-center pb-6">
-            <p className="text-xs text-[#9CA3AF] uppercase tracking-widest">Powered by</p>
-            <p className="text-sm font-bold text-[#1877F2] tracking-wide">Smarter Captain</p>
+          <div className="text-center pb-8">
+            <p className="text-xs text-[#9CA3AF] uppercase tracking-[0.3em] mb-2">Powered by</p>
+            <p className="text-xl font-extrabold captain-gradient-text tracking-wider">SMARTER CAPTAIN</p>
           </div>
         </main>
       </div>

@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   SMARTER CAPTAIN — FUTURISTIC UI SYSTEM
-   Facebook colors + Sci-fi metallic styling
+   SMARTER CAPTAIN — FUTURISTIC SCI-FI UI SYSTEM
+   Dramatic neon glows, metallic frames, HUD-style elements
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -12,21 +12,33 @@
   --captain-primary-dark: #1664d9;
   --captain-primary-light: #4293f5;
 
+  /* Neon Accents */
+  --captain-neon-cyan: #22D3EE;
+  --captain-neon-blue: #3B82F6;
+  --captain-neon-purple: #8B5CF6;
+  --captain-neon-green: #10B981;
+
   /* Backgrounds - Light theme */
-  --captain-bg: #F9FAFB;
+  --captain-bg: #F0F2F5;
   --captain-bg-card: #FFFFFF;
-  --captain-bg-dark: #1A2744;
+  --captain-bg-card-gradient: linear-gradient(145deg, #FFFFFF 0%, #F8FAFC 50%, #F1F5F9 100%);
 
   /* Text */
   --captain-text: #1F2937;
   --captain-text-secondary: #6B7280;
   --captain-text-muted: #9CA3AF;
 
-  /* Borders & Accents */
+  /* Borders & Metallic */
   --captain-border: #E5E7EB;
-  --captain-border-metallic: #8B9DC3;
-  --captain-glow-cyan: rgba(34, 211, 238, 0.6);
-  --captain-glow-blue: rgba(24, 119, 242, 0.5);
+  --captain-border-metallic: #94A3B8;
+  --captain-border-light: #CBD5E1;
+  --captain-metallic-shine: linear-gradient(135deg, #E2E8F0 0%, #94A3B8 50%, #64748B 100%);
+
+  /* Glows */
+  --captain-glow-cyan: rgba(34, 211, 238, 0.7);
+  --captain-glow-blue: rgba(24, 119, 242, 0.6);
+  --captain-glow-green: rgba(16, 185, 129, 0.6);
+  --captain-glow-purple: rgba(139, 92, 246, 0.6);
 
   /* Status Colors */
   --captain-success: #10B981;
@@ -35,345 +47,563 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC CARD FRAME
-   Metallic border with corner accents
+   ANIMATIONS
    ═══════════════════════════════════════════════════════════════════════════ */
-.captain-card {
-  background: var(--captain-bg-card);
-  border: 2px solid var(--captain-border-metallic);
-  border-radius: 12px;
-  position: relative;
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+@keyframes captain-glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 20px var(--captain-glow-blue),
+      0 0 40px rgba(24, 119, 242, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+  50% {
+    box-shadow:
+      0 0 30px var(--captain-glow-blue),
+      0 0 60px rgba(24, 119, 242, 0.5),
+      0 0 80px rgba(34, 211, 238, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
 }
 
-/* Corner accents */
-.captain-card::before,
-.captain-card::after {
-  content: '';
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--captain-primary);
+@keyframes captain-border-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
-.captain-card::before {
-  top: -2px;
-  left: -2px;
-  border-right: none;
-  border-bottom: none;
-  border-top-left-radius: 12px;
+@keyframes captain-pulse-dot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 10px var(--captain-neon-green), 0 0 20px var(--captain-neon-green);
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.8;
+    box-shadow: 0 0 20px var(--captain-neon-green), 0 0 40px var(--captain-neon-green), 0 0 60px var(--captain-neon-green);
+  }
 }
 
-.captain-card::after {
-  bottom: -2px;
-  right: -2px;
-  border-left: none;
-  border-top: none;
-  border-bottom-right-radius: 12px;
+@keyframes captain-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
-/* Card with glow effect */
-.captain-card-glow {
-  box-shadow:
-    0 0 20px var(--captain-glow-blue),
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+@keyframes captain-scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC BUTTONS
-   Beveled hexagonal style
+   FUTURISTIC CARD FRAME — DRAMATIC VERSION
+   Bold metallic borders with neon glow
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-card {
+  background: var(--captain-bg-card-gradient);
+  border: 3px solid transparent;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 0 20px rgba(24, 119, 242, 0.15),
+    0 10px 40px -10px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Metallic border effect */
+.captain-card::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 18px;
+  background: linear-gradient(
+    135deg,
+    var(--captain-neon-cyan) 0%,
+    var(--captain-primary) 25%,
+    var(--captain-border-metallic) 50%,
+    var(--captain-primary) 75%,
+    var(--captain-neon-cyan) 100%
+  );
+  background-size: 300% 300%;
+  animation: captain-border-flow 4s ease infinite;
+  z-index: -1;
+}
+
+/* Inner frame line */
+.captain-card::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+/* Corner brackets */
+.captain-card-corners {
+  position: relative;
+}
+
+.captain-card-corners::before,
+.captain-card-corners::after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--captain-neon-cyan);
+  filter: drop-shadow(0 0 6px var(--captain-glow-cyan));
+}
+
+.captain-card-corners::before {
+  top: 8px;
+  left: 8px;
+  border-right: none;
+  border-bottom: none;
+  border-top-left-radius: 8px;
+}
+
+.captain-card-corners::after {
+  bottom: 8px;
+  right: 8px;
+  border-left: none;
+  border-top: none;
+  border-bottom-right-radius: 8px;
+}
+
+/* Card with intense glow */
+.captain-card-glow {
+  animation: captain-glow-pulse 2s ease-in-out infinite;
+}
+
+/* Scanline overlay effect */
+.captain-card-scanline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--captain-glow-cyan) 50%,
+    transparent 100%
+  );
+  opacity: 0.6;
+  animation: captain-scanline 3s linear infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC BUTTONS — DRAMATIC VERSION
+   Heavy beveled look with neon glow
    ═══════════════════════════════════════════════════════════════════════════ */
 .captain-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 24px;
+  gap: 10px;
+  padding: 14px 28px;
   font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 13px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
   border: none;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s ease;
-  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  clip-path: polygon(
+    12px 0, calc(100% - 12px) 0,
+    100% 12px, 100% calc(100% - 12px),
+    calc(100% - 12px) 100%, 12px 100%,
+    0 calc(100% - 12px), 0 12px
+  );
 }
 
-/* Primary button - Blue with glow */
+/* Primary button - Intense blue glow */
 .captain-btn-primary {
-  background: linear-gradient(180deg, var(--captain-primary-light) 0%, var(--captain-primary) 50%, var(--captain-primary-dark) 100%);
+  background: linear-gradient(
+    180deg,
+    #60A5FA 0%,
+    var(--captain-primary) 30%,
+    var(--captain-primary-dark) 70%,
+    #1E40AF 100%
+  );
   color: white;
   box-shadow:
-    0 4px 15px var(--captain-glow-blue),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    0 0 30px var(--captain-glow-blue),
+    0 0 60px rgba(24, 119, 242, 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 .captain-btn-primary:hover {
-  background: linear-gradient(180deg, var(--captain-primary) 0%, var(--captain-primary-dark) 100%);
+  background: linear-gradient(
+    180deg,
+    #93C5FD 0%,
+    var(--captain-primary-light) 30%,
+    var(--captain-primary) 100%
+  );
   box-shadow:
-    0 6px 25px var(--captain-glow-blue),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
+    0 0 40px var(--captain-glow-blue),
+    0 0 80px rgba(24, 119, 242, 0.5),
+    0 0 100px rgba(34, 211, 238, 0.2),
+    inset 0 2px 0 rgba(255, 255, 255, 0.5);
+  transform: translateY(-3px) scale(1.02);
 }
 
 .captain-btn-primary:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
   box-shadow:
-    0 2px 10px var(--captain-glow-blue),
-    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    0 0 20px var(--captain-glow-blue),
+    inset 0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* Secondary button - Outline metallic */
+/* Secondary button - Metallic outline */
 .captain-btn-secondary {
-  background: linear-gradient(180deg, #FFFFFF 0%, #F3F4F6 100%);
+  background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 50%, #E2E8F0 100%);
   color: var(--captain-text);
-  border: 2px solid var(--captain-border-metallic);
+  border: 3px solid var(--captain-border-metallic);
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 1);
+    0 0 15px rgba(148, 163, 184, 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
 }
 
 .captain-btn-secondary:hover {
-  background: linear-gradient(180deg, #F9FAFB 0%, #E5E7EB 100%);
-  border-color: var(--captain-primary);
+  border-color: var(--captain-neon-cyan);
   box-shadow:
-    0 4px 15px rgba(24, 119, 242, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 1);
+    0 0 25px var(--captain-glow-cyan),
+    0 0 50px rgba(34, 211, 238, 0.2),
+    inset 0 2px 0 rgba(255, 255, 255, 1);
+  transform: translateY(-2px);
 }
 
-/* Success button */
+/* Success button - Neon green */
 .captain-btn-success {
   background: linear-gradient(180deg, #34D399 0%, var(--captain-success) 50%, #059669 100%);
   color: white;
   box-shadow:
-    0 4px 15px rgba(16, 185, 129, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 0 30px var(--captain-glow-green),
+    0 0 60px rgba(16, 185, 129, 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
-/* Danger button */
+/* Danger button - Neon red */
 .captain-btn-danger {
   background: linear-gradient(180deg, #F87171 0%, var(--captain-error) 50%, #DC2626 100%);
   color: white;
   box-shadow:
-    0 4px 15px rgba(239, 68, 68, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 0 30px rgba(239, 68, 68, 0.5),
+    0 0 60px rgba(239, 68, 68, 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC INPUTS
-   Inset metallic with glow focus
+   FUTURISTIC INPUTS — DRAMATIC VERSION
+   Inset metallic with intense focus glow
    ═══════════════════════════════════════════════════════════════════════════ */
 .captain-input {
   width: 100%;
-  padding: 14px 16px;
+  padding: 16px 20px;
   font-family: 'Inter', sans-serif;
   font-size: 15px;
+  font-weight: 500;
   color: var(--captain-text);
-  background: linear-gradient(180deg, #F3F4F6 0%, #FFFFFF 100%);
-  border: 2px solid var(--captain-border-metallic);
-  border-radius: 8px;
+  background: linear-gradient(180deg, #F1F5F9 0%, #FFFFFF 100%);
+  border: 3px solid var(--captain-border-metallic);
+  border-radius: 12px;
   outline: none;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.06),
-    0 1px 0 rgba(255, 255, 255, 0.8);
+    inset 0 4px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 2px rgba(0, 0, 0, 0.05),
+    0 2px 0 rgba(255, 255, 255, 0.8);
 }
 
 .captain-input:focus {
-  border-color: var(--captain-primary);
+  border-color: var(--captain-neon-cyan);
   box-shadow:
-    0 0 0 3px var(--captain-glow-blue),
-    inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    0 0 0 4px rgba(34, 211, 238, 0.2),
+    0 0 30px var(--captain-glow-cyan),
+    inset 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .captain-input::placeholder {
   color: var(--captain-text-muted);
+  font-weight: 400;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC BADGES
-   Metallic with glow
+   FUTURISTIC BADGES — DRAMATIC VERSION
+   Glowing status indicators
    ═══════════════════════════════════════════════════════════════════════════ */
 .captain-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 8px;
+  padding: 8px 16px;
   font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-radius: 6px;
-  border: 1px solid;
+  letter-spacing: 1px;
+  border-radius: 8px;
+  border: 2px solid;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Shimmer effect on badges */
+.captain-badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  animation: captain-shimmer 3s ease-in-out infinite;
 }
 
 .captain-badge-primary {
-  background: linear-gradient(180deg, rgba(24, 119, 242, 0.15) 0%, rgba(24, 119, 242, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(24, 119, 242, 0.2) 0%, rgba(24, 119, 242, 0.1) 100%);
   color: var(--captain-primary);
-  border-color: rgba(24, 119, 242, 0.3);
+  border-color: rgba(24, 119, 242, 0.5);
+  box-shadow: 0 0 15px rgba(24, 119, 242, 0.3);
 }
 
 .captain-badge-success {
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
   color: var(--captain-success);
-  border-color: rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
 }
 
 .captain-badge-warning {
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
   color: var(--captain-warning);
-  border-color: rgba(245, 158, 11, 0.3);
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
 }
 
 .captain-badge-error {
-  background: linear-gradient(180deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
   color: var(--captain-error);
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
 }
 
-/* Glowing badge */
+/* Intense glowing badge */
 .captain-badge-glow {
-  box-shadow: 0 0 10px currentColor;
+  animation: captain-glow-pulse 2s ease-in-out infinite;
+}
+
+/* LIVE badge with pulse */
+.captain-badge-live {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(16, 185, 129, 0.15) 100%);
+  color: var(--captain-neon-green);
+  border-color: var(--captain-neon-green);
+  box-shadow:
+    0 0 20px var(--captain-glow-green),
+    0 0 40px rgba(16, 185, 129, 0.2);
+  animation: captain-glow-pulse 2s ease-in-out infinite;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC HEADER BAR
-   Metallic gradient with accent line
+   FUTURISTIC HEADER — DRAMATIC VERSION
+   Heavy metallic with animated accent
    ═══════════════════════════════════════════════════════════════════════════ */
 .captain-header {
-  background: linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%);
-  border-bottom: 2px solid var(--captain-border-metallic);
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 50%, #F1F5F9 100%);
+  border-bottom: 4px solid transparent;
   position: relative;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.1),
+    inset 0 -1px 0 rgba(255, 255, 255, 1);
 }
 
+/* Animated gradient border */
+.captain-header::before {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--captain-primary) 0%,
+    var(--captain-neon-cyan) 25%,
+    var(--captain-neon-purple) 50%,
+    var(--captain-neon-cyan) 75%,
+    var(--captain-primary) 100%
+  );
+  background-size: 200% 100%;
+  animation: captain-border-flow 3s linear infinite;
+}
+
+/* Glow effect under header */
 .captain-header::after {
   content: '';
   position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    var(--captain-primary) 20%,
-    var(--captain-glow-cyan) 50%,
-    var(--captain-primary) 80%,
-    transparent 100%
+  bottom: -20px;
+  left: 10%;
+  right: 10%;
+  height: 20px;
+  background: radial-gradient(
+    ellipse at center,
+    var(--captain-glow-cyan) 0%,
+    transparent 70%
   );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC MODAL
-   Metallic frame with corner brackets
-   ═══════════════════════════════════════════════════════════════════════════ */
-.captain-modal {
-  background: var(--captain-bg-card);
-  border: 3px solid var(--captain-border-metallic);
-  border-radius: 16px;
-  position: relative;
-  box-shadow:
-    0 25px 50px -12px rgba(0, 0, 0, 0.25),
-    0 0 40px var(--captain-glow-blue),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-/* Corner brackets */
-.captain-modal::before {
-  content: '';
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
-  border: 1px solid rgba(139, 157, 195, 0.3);
-  border-radius: 12px;
+  opacity: 0.5;
   pointer-events: none;
 }
 
-/* Modal header */
-.captain-modal-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--captain-border);
-  background: linear-gradient(180deg, rgba(24, 119, 242, 0.05) 0%, transparent 100%);
-  border-radius: 13px 13px 0 0;
-}
-
-.captain-modal-title {
-  font-family: 'Inter', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--captain-text);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC STATUS INDICATORS
-   Pulsing glow effects
+   FUTURISTIC STATUS INDICATORS — DRAMATIC VERSION
+   Intense pulsing effects
    ═══════════════════════════════════════════════════════════════════════════ */
 .captain-status-live {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .captain-status-live::before {
   content: '';
+  width: 12px;
+  height: 12px;
+  background: var(--captain-neon-green);
+  border-radius: 50%;
+  animation: captain-pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC ICON CONTAINER — DRAMATIC VERSION
+   Metallic with glow effects
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(145deg, #FFFFFF 0%, #F1F5F9 50%, #E2E8F0 100%);
+  border: 3px solid var(--captain-border-metallic);
+  border-radius: 14px;
+  color: var(--captain-primary);
+  position: relative;
+  box-shadow:
+    0 4px 15px rgba(0, 0, 0, 0.1),
+    inset 0 2px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+/* Corner accents on icon box */
+.captain-icon-box::before,
+.captain-icon-box::after {
+  content: '';
+  position: absolute;
   width: 10px;
   height: 10px;
-  background: var(--captain-success);
-  border-radius: 50%;
-  animation: captain-pulse 2s ease-in-out infinite;
-  box-shadow: 0 0 10px var(--captain-success);
+  border: 2px solid var(--captain-neon-cyan);
+  opacity: 0.7;
 }
 
-@keyframes captain-pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-    box-shadow: 0 0 10px var(--captain-success);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.2);
-    box-shadow: 0 0 20px var(--captain-success);
-  }
+.captain-icon-box::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+  border-top-left-radius: 6px;
+}
+
+.captain-icon-box::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+  border-bottom-right-radius: 6px;
+}
+
+.captain-icon-box-glow {
+  border-color: var(--captain-neon-cyan);
+  box-shadow:
+    0 0 25px var(--captain-glow-cyan),
+    0 0 50px rgba(34, 211, 238, 0.2),
+    inset 0 2px 0 rgba(255, 255, 255, 1);
+}
+
+.captain-icon-box-glow::before,
+.captain-icon-box-glow::after {
+  opacity: 1;
+  filter: drop-shadow(0 0 4px var(--captain-glow-cyan));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC PROGRESS BAR
-   Metallic track with glowing fill
+   FUTURISTIC DIVIDER — DRAMATIC VERSION
+   Glowing center line
    ═══════════════════════════════════════════════════════════════════════════ */
-.captain-progress {
-  width: 100%;
-  height: 8px;
-  background: linear-gradient(180deg, #E5E7EB 0%, #F3F4F6 100%);
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid var(--captain-border-metallic);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+.captain-divider {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--captain-border-metallic) 15%,
+    var(--captain-neon-cyan) 40%,
+    var(--captain-primary) 50%,
+    var(--captain-neon-cyan) 60%,
+    var(--captain-border-metallic) 85%,
+    transparent 100%
+  );
+  margin: 32px 0;
+  position: relative;
+  border-radius: 2px;
+  box-shadow: 0 0 20px var(--captain-glow-cyan);
 }
 
-.captain-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--captain-primary) 0%, var(--captain-primary-light) 100%);
-  border-radius: 4px;
-  box-shadow: 0 0 10px var(--captain-glow-blue);
-  transition: width 0.3s ease;
+/* Center diamond accent */
+.captain-divider::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: var(--captain-neon-cyan);
+  box-shadow: 0 0 15px var(--captain-glow-cyan);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC TABLE/LIST
-   Alternating metallic rows
+   FUTURISTIC TABLE — DRAMATIC VERSION
    ═══════════════════════════════════════════════════════════════════════════ */
 .captain-table {
   width: 100%;
@@ -382,72 +612,169 @@
 }
 
 .captain-table th {
-  padding: 14px 16px;
+  padding: 16px 20px;
   font-family: 'Inter', sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
   color: var(--captain-text-secondary);
-  background: linear-gradient(180deg, #F3F4F6 0%, #E5E7EB 100%);
-  border-bottom: 2px solid var(--captain-border-metallic);
+  background: linear-gradient(180deg, #F1F5F9 0%, #E2E8F0 100%);
+  border-bottom: 3px solid var(--captain-border-metallic);
   text-align: left;
 }
 
 .captain-table td {
-  padding: 14px 16px;
+  padding: 16px 20px;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   color: var(--captain-text);
   border-bottom: 1px solid var(--captain-border);
-}
-
-.captain-table tr:nth-child(even) td {
-  background: rgba(249, 250, 251, 0.5);
+  transition: all 0.2s ease;
 }
 
 .captain-table tr:hover td {
-  background: rgba(24, 119, 242, 0.05);
+  background: rgba(34, 211, 238, 0.05);
+  box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.05);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC ICON CONTAINER
-   Metallic circle with glow
+   FUTURISTIC STATS DISPLAY
+   For showing numbers with impact
    ═══════════════════════════════════════════════════════════════════════════ */
-.captain-icon-box {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #F3F4F6 100%);
-  border: 2px solid var(--captain-border-metallic);
-  border-radius: 12px;
+.captain-stat {
+  text-align: center;
+}
+
+.captain-stat-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 48px;
+  font-weight: 800;
   color: var(--captain-primary);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 1);
+  text-shadow:
+    0 0 20px var(--captain-glow-blue),
+    0 0 40px rgba(24, 119, 242, 0.3);
+  line-height: 1;
 }
 
-.captain-icon-box-glow {
-  box-shadow:
-    0 0 20px var(--captain-glow-blue),
-    0 2px 8px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 1);
+.captain-stat-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--captain-text-secondary);
+  margin-top: 8px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC DIVIDER
-   Gradient line with glow center
+   FUTURISTIC PROGRESS BAR — DRAMATIC VERSION
    ═══════════════════════════════════════════════════════════════════════════ */
-.captain-divider {
-  height: 2px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    var(--captain-border-metallic) 20%,
-    var(--captain-primary) 50%,
-    var(--captain-border-metallic) 80%,
-    transparent 100%
+.captain-progress {
+  width: 100%;
+  height: 12px;
+  background: linear-gradient(180deg, #E2E8F0 0%, #F1F5F9 100%);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid var(--captain-border-metallic);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.captain-progress-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--captain-primary) 0%,
+    var(--captain-neon-cyan) 50%,
+    var(--captain-primary) 100%
   );
-  margin: 24px 0;
+  background-size: 200% 100%;
+  animation: captain-border-flow 2s linear infinite;
+  border-radius: 4px;
+  box-shadow: 0 0 20px var(--captain-glow-cyan);
+  transition: width 0.5s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FUTURISTIC MODAL — DRAMATIC VERSION
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-modal {
+  background: var(--captain-bg-card);
+  border: 4px solid var(--captain-border-metallic);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 0 60px var(--captain-glow-blue),
+    0 25px 80px -20px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* Animated border */
+.captain-modal::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 22px;
+  background: linear-gradient(
+    45deg,
+    var(--captain-neon-cyan) 0%,
+    var(--captain-primary) 25%,
+    var(--captain-neon-purple) 50%,
+    var(--captain-primary) 75%,
+    var(--captain-neon-cyan) 100%
+  );
+  background-size: 400% 400%;
+  animation: captain-border-flow 4s linear infinite;
+  z-index: -1;
+}
+
+/* Inner bracket frame */
+.captain-modal::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.captain-modal-header {
+  padding: 24px 28px;
+  border-bottom: 2px solid var(--captain-border);
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.08) 0%, transparent 100%);
+  border-radius: 16px 16px 0 0;
+}
+
+.captain-modal-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--captain-text);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════════════════ */
+.captain-text-glow {
+  text-shadow: 0 0 20px currentColor;
+}
+
+.captain-neon-text {
+  color: var(--captain-neon-cyan);
+  text-shadow:
+    0 0 10px var(--captain-glow-cyan),
+    0 0 20px var(--captain-glow-cyan);
+}
+
+.captain-gradient-text {
+  background: linear-gradient(135deg, var(--captain-primary) 0%, var(--captain-neon-cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
