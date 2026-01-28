@@ -2158,8 +2158,43 @@ export default function SocialMediaPage() {
     };
 
     const handleDelete = async (id) => {
-        if (!user?.id || !confirm('Delete?')) return;
-        try { await supabase.from('social_posts').delete().eq('id', id); setPosts(prev => prev.filter(p => p.id !== id)); } catch (e) { console.error(e); }
+        if (!user?.id || !confirm('Delete this post?')) return;
+        try {
+            // Get auth token for server-side API
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
+            if (!token) {
+                console.error('[Delete] No auth token available');
+                alert('Please log in again to delete posts');
+                return;
+            }
+
+            // Call server-side API (bypasses RLS for god mode)
+            const response = await fetch('/api/posts/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ postId: id })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                console.error('[Delete] Server error:', result);
+                alert(result.error || 'Failed to delete post');
+                return;
+            }
+
+            // Remove from local state
+            setPosts(prev => prev.filter(p => p.id !== id));
+            console.log(`[Delete] ✅ Post ${id} deleted successfully (${result.deletedBy})`);
+        } catch (e) {
+            console.error('[Delete] Error:', e);
+            alert('Error deleting post');
+        }
     };
 
     const loadContacts = async (userId) => {
