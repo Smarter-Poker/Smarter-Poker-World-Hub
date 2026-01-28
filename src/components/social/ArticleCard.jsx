@@ -215,7 +215,7 @@ export default function ArticleCard({
                     <img
                         src={displayImage}
                         alt={displayTitle}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}
                         onError={() => setImageError(true)}
                     />
                 ) : (

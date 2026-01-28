@@ -988,8 +988,8 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                                             style={{
                                                 width: '100%',
                                                 height: '100%',
-                                                objectFit: 'cover',
-                                                objectPosition: 'center top',
+                                                objectFit: 'contain',
+                                                objectPosition: 'center center',
                                                 position: 'absolute',
                                                 top: 0,
                                                 left: 0
