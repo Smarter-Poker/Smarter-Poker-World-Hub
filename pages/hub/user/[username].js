@@ -169,17 +169,76 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false }) {
 }
 
 // Post Card Component
-function PostCard({ post, author }) {
+function PostCard({ post, author, isOwnProfile = false, onDelete }) {
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const isArticleOrLink = post.content_type === 'article' || post.content_type === 'link';
 
+    const handleDelete = async () => {
+        setDeleting(true);
+        try {
+            await onDelete(post.id);
+        } catch (e) {
+            console.error('Delete failed:', e);
+        }
+        setDeleting(false);
+        setShowDeleteConfirm(false);
+    };
+
     return (
-        <div style={{ background: C.card, borderRadius: 12, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div style={{ background: C.card, borderRadius: 12, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', position: 'relative' }}>
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+                }} onClick={() => setShowDeleteConfirm(false)}>
+                    <div style={{
+                        background: C.card, borderRadius: 12, padding: 24, maxWidth: 320, width: '100%',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Delete Post?</div>
+                        <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
+                            This action cannot be undone. The post will be permanently removed.
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                style={{
+                                    flex: 1, padding: '10px 16px', background: '#e4e6eb', color: C.text,
+                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+                                }}
+                            >Cancel</button>
+                            <button
+                                onClick={handleDelete}
+                                disabled={deleting}
+                                style={{
+                                    flex: 1, padding: '10px 16px', background: '#F02849', color: 'white',
+                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer',
+                                    opacity: deleting ? 0.6 : 1
+                                }}
+                            >{deleting ? 'Deleting...' : 'Delete'}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div style={{ padding: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
                 <img src={author?.avatar_url || '/default-avatar.png'} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
-                <div>
+                <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{author?.full_name || author?.username}</div>
                     <div style={{ fontSize: 12, color: C.textSec }}>{timeAgo(post.created_at)} · 🌍</div>
                 </div>
+                {isOwnProfile && onDelete && (
+                    <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        style={{
+                            background: 'transparent', border: 'none', cursor: 'pointer',
+                            fontSize: 18, color: C.textSec, padding: 8, borderRadius: 20
+                        }}
+                        title="Delete post"
+                    >🗑️</button>
+                )}
             </div>
             {post.content && (
                 <div style={{ padding: '0 12px 12px', fontSize: 15, color: C.text, lineHeight: 1.4 }}>{post.content}</div>

@@ -2445,18 +2445,18 @@ export default function SocialMediaPage() {
                     style={{
                         position: 'fixed',
                         top: 12,
-                        left: 12,
-                        width: 40,
-                        height: 40,
+                        left: 60,
+                        width: 36,
+                        height: 36,
                         borderRadius: 8,
-                        background: 'rgba(255,255,255,0.1)',
+                        background: 'rgba(255,255,255,0.15)',
                         border: 'none',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         cursor: 'pointer',
                         zIndex: 101,
-                        fontSize: 20,
+                        fontSize: 18,
                         color: 'white',
                     }}
                     aria-label="Open menu"
