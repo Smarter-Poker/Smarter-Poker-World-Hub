@@ -973,7 +973,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                             <>
                                 {/* Preview Image/Thumbnail */}
                                 <div style={{
-                                    height: 320,
+                                    height: 400,
                                     position: 'relative',
                                     background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
                                     display: 'flex',
