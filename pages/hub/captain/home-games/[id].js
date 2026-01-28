@@ -146,6 +146,20 @@ export default function HomeGameDetailPage() {
   const [joining, setJoining] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  // Get current user ID from token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('smarter-poker-auth');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setCurrentUserId(payload.sub);
+      } catch (e) {
+        console.error('Failed to decode token:', e);
+      }
+    }
+  }, []);
 
   // Fetch group data
   const fetchGroup = useCallback(async () => {
@@ -173,9 +187,16 @@ export default function HomeGameDetailPage() {
       }
       if (membersData.success || membersData.members) {
         setMembers(membersData.members || membersData.data?.members || []);
-        // Check if current user is a member
-        const currentUserId = localStorage.getItem('user_id');
-        const membership = (membersData.members || []).find(m => m.user_id === currentUserId);
+        // Check if current user is a member (using decoded token ID)
+        const token = localStorage.getItem('smarter-poker-auth');
+        let userId = null;
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            userId = payload.sub;
+          } catch (e) {}
+        }
+        const membership = (membersData.members || []).find(m => m.user_id === userId);
         setUserMembership(membership);
       }
     } catch (error) {
@@ -280,7 +301,7 @@ export default function HomeGameDetailPage() {
     );
   }
 
-  const isHost = group.host_id === localStorage.getItem('user_id');
+  const isHost = group.host_id === currentUserId;
   const isMember = !!userMembership;
 
   return (

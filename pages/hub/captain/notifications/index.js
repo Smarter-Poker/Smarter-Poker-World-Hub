@@ -154,22 +154,81 @@ export default function PlayerNotificationsPage() {
   }
 
   async function handleMarkRead(notification) {
+    // Optimistic update
     setNotifications(prev =>
       prev.map(n => n.id === notification.id ? { ...n, read_at: new Date().toISOString() } : n)
     );
-    // API call would go here
+
+    try {
+      let token = localStorage.getItem('smarter-poker-auth');
+      if (!token) {
+        const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
+      }
+
+      await fetch(`/api/captain/notifications/${notification.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ read_at: new Date().toISOString() })
+      });
+    } catch (err) {
+      console.error('Mark read failed:', err);
+      // Revert on error
+      setNotifications(prev =>
+        prev.map(n => n.id === notification.id ? { ...n, read_at: null } : n)
+      );
+    }
   }
 
   async function handleDelete(notification) {
+    // Optimistic update
+    const prevNotifications = [...notifications];
     setNotifications(prev => prev.filter(n => n.id !== notification.id));
-    // API call would go here
+
+    try {
+      let token = localStorage.getItem('smarter-poker-auth');
+      if (!token) {
+        const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
+      }
+
+      await fetch(`/api/captain/notifications/${notification.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Delete failed:', err);
+      // Revert on error
+      setNotifications(prevNotifications);
+    }
   }
 
   async function handleMarkAllRead() {
+    // Optimistic update
+    const prevNotifications = [...notifications];
     setNotifications(prev =>
       prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
     );
-    // API call would go here
+
+    try {
+      let token = localStorage.getItem('smarter-poker-auth');
+      if (!token) {
+        const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
+      }
+
+      await fetch('/api/captain/notifications/mark-all-read', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Mark all read failed:', err);
+      // Revert on error
+      setNotifications(prevNotifications);
+    }
   }
 
   const filteredNotifications = notifications.filter(n => {

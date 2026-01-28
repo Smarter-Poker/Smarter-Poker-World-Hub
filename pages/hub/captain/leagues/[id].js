@@ -96,8 +96,19 @@ export default function LeagueDetailPage() {
   const [isJoined, setIsJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [activeTab, setActiveTab] = useState('standings');
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   useEffect(() => {
+    // Get current user ID from token
+    const token = localStorage.getItem('smarter-poker-auth');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setCurrentUserId(payload.sub);
+      } catch (e) {
+        console.error('Failed to decode token:', e);
+      }
+    }
     if (id) {
       fetchLeagueData();
     }
@@ -161,8 +172,7 @@ export default function LeagueDetailPage() {
     }
   }
 
-  const currentUserId = 'me'; // Would come from auth
-  const myRank = standings.findIndex(s => s.player_id === currentUserId) + 1;
+  const myRank = currentUserId ? standings.findIndex(s => s.player_id === currentUserId) + 1 : 0;
 
   if (loading) {
     return (
