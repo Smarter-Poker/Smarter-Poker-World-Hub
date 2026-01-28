@@ -2439,6 +2439,31 @@ export default function SocialMediaPage() {
                     showSearch={false}
                 />
 
+                {/* Hamburger Menu Button - Facebook-style ☰ - Opens sidebar */}
+                <button
+                    onClick={() => setSidebarOpen(true)}
+                    style={{
+                        position: 'fixed',
+                        top: 12,
+                        left: 12,
+                        width: 40,
+                        height: 40,
+                        borderRadius: 8,
+                        background: 'rgba(255,255,255,0.1)',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        zIndex: 101,
+                        fontSize: 20,
+                        color: 'white',
+                    }}
+                    aria-label="Open menu"
+                >
+                    ☰
+                </button>
+
                 {/* Global Search Overlay */}
                 {showGlobalSearch && (
                     <div style={{

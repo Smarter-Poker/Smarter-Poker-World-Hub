@@ -240,16 +240,18 @@ function getSpecialPlatformPreview(url) {
         if (hostname.includes('facebook.com') || hostname.includes('fb.watch') || hostname.includes('fb.com') || hostname.includes('fb.gg')) {
             // Try to extract content type from URL
             let contentType = 'Post';
-            if (url.includes('/videos/') || url.includes('/watch') || url.includes('fb.watch')) {
+            if (url.includes('/videos/') || url.includes('/watch') || url.includes('fb.watch') || url.includes('/share/v/')) {
                 contentType = 'Video';
-            } else if (url.includes('/reel/') || url.includes('/reels/')) {
+            } else if (url.includes('/reel/') || url.includes('/reels/') || url.includes('/share/r/')) {
                 contentType = 'Reel';
-            } else if (url.includes('/photo') || url.includes('/photos/')) {
+            } else if (url.includes('/photo') || url.includes('/photos/') || url.includes('/share/p/')) {
                 contentType = 'Photo';
             } else if (url.includes('/groups/')) {
                 contentType = 'Group Post';
             } else if (url.includes('/events/')) {
                 contentType = 'Event';
+            } else if (url.includes('/share/')) {
+                contentType = 'Post'; // Generic share link
             }
 
             return {

@@ -132,10 +132,35 @@ export default function ArticleCard({
         fetchMetadata();
     }, [url, title, image]);
 
+    // Check if URL is from a social platform that blocks proxying
+    const isSocialPlatformUrl = (testUrl) => {
+        if (!testUrl) return false;
+        try {
+            const hostname = new URL(testUrl).hostname.toLowerCase();
+            // These platforms block server-side fetching and need to open directly
+            return hostname.includes('facebook.com')
+                || hostname.includes('fb.watch')
+                || hostname.includes('fb.com')
+                || hostname.includes('instagram.com')
+                || hostname.includes('tiktok.com')
+                || hostname.includes('twitter.com')
+                || hostname.includes('x.com')
+                || hostname.includes('threads.net');
+        } catch {
+            return false;
+        }
+    };
+
     // Handle click to open article
     const handleClick = (e) => {
         e.preventDefault();
         e.stopPropagation();
+
+        // Social platform links must open directly - proxying doesn't work
+        if (isSocialPlatformUrl(url)) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+            return;
+        }
 
         if (onClick) {
             onClick(url);
