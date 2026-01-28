@@ -365,8 +365,8 @@ async function postNewsArticle(horse, article, timeEnergy = null) {
     // Generate commentary (will use time energy for typo injection)
     const commentary = await generateCommentary(horse, article, timeEnergy);
 
-    // Create post with link
-    const postContent = `${commentary}\n\n${article.icon} ${article.title}\n🔗 ${article.link}`;
+    // Create post with link - just the commentary, link metadata handles the rest
+    const postContent = commentary;
 
     const { data: post, error } = await supabase
         .from('social_posts')
@@ -374,7 +374,13 @@ async function postNewsArticle(horse, article, timeEnergy = null) {
             author_id: horse.profile_id,
             content: postContent,
             content_type: 'link', // Link type for news articles
-            visibility: 'public'
+            visibility: 'public',
+            // Link metadata for proper preview card rendering
+            link_url: article.link,
+            link_title: article.title,
+            link_description: article.summary || null,
+            link_site_name: article.source,
+            link_image: null // Could fetch article image later
         })
         .select()
         .single();

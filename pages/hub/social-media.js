@@ -870,7 +870,8 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         while ((match = mentionPattern.exec(content)) !== null) {
             mentions.push(match[1]);
         }
-
+        // DEBUG: log linkPreview before passing to parent
+        console.log('[PostCreator] 📤 About to call onPost with linkPreview:', JSON.stringify(linkPreview, null, 2));
         const ok = await onPost(cleanContent, urls, type, mentions, linkPreview);
         if (ok) { setContent(''); setMedia([]); setLinkPreview(null); }
         else setError('Unable to post at this time. Please try again later.');
@@ -1992,6 +1993,7 @@ export default function SocialMediaPage() {
 
     const handlePost = async (content, urls, type, mentions = [], linkPreview = null) => {
         console.log('[Social] 📝 handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions, hasLinkPreview: !!linkPreview });
+        console.log('[Social] 📝 linkPreview FULL OBJECT:', JSON.stringify(linkPreview, null, 2));
         console.log('[Social] 📝 User state:', { id: user?.id, name: user?.name, hasUser: !!user });
 
         if (!user?.id) {
@@ -2384,37 +2386,83 @@ export default function SocialMediaPage() {
                     <h4 style={{ fontSize: 14, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>Your shortcuts</h4>
                     <div style={{ display: 'flex', gap: 12 }}>
                         <Link href="/hub/club-arena" onClick={() => setSidebarOpen(false)} style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
-                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🏛</div>
+                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none">
+                                    <path d="M4 4h4v16H4V4zm6 0h4v16h-4V4zm6 0h4v16h-4V4z" />
+                                </svg>
+                            </div>
                             <div style={{ fontSize: 11, marginTop: 4, color: C.textSec }}>Club Arena</div>
                         </Link>
                         <Link href="/hub" onClick={() => setSidebarOpen(false)} style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
-                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🎮</div>
+                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none">
+                                    <path d="M7 4h10a3 3 0 013 3v10a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3zm0 5a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4zM9 15h6v2H9v-2z" />
+                                </svg>
+                            </div>
                             <div style={{ fontSize: 11, marginTop: 4, color: C.textSec }}>Games Hub</div>
                         </Link>
                     </div>
                 </div>
 
-                {/* Menu Grid */}
+                {/* Menu Grid - Clean SVG Icons */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 16px', marginBottom: 16 }}>
-                    {[
-                        { icon: '👤', label: 'Profile', href: '/hub/profile' },
-                        { icon: '👥', label: 'Friends', href: '/hub/friends' },
-                        { icon: '🏛️', label: 'Clubs', href: '/hub/club-arena' },
-                        { icon: '💎', label: 'Diamond Store', href: '/hub/diamond-store' },
-                        { icon: '🏆', label: 'Tournaments', href: '/hub/tournaments' },
-                        { icon: '🎯', label: 'GTO Training', href: '/hub/gto-trainer' },
-                        { icon: '🎬', label: 'Reels', href: '/hub/reels' },
-                        { icon: '⚙️', label: 'Settings', href: '/hub/settings' },
-                    ].map((item, i) => (
-                        <Link key={i} href={item.href} onClick={() => setSidebarOpen(false)} style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                            padding: 12, background: '#f7f8fa', borderRadius: 8,
-                            textDecoration: 'none', color: C.text
-                        }}>
-                            <span style={{ fontSize: 24, marginBottom: 4 }}>{item.icon}</span>
-                            <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>
-                        </Link>
-                    ))}
+                    {/* Profile */}
+                    <Link href="/hub/profile" onClick={() => setSidebarOpen(false)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 12, background: '#f7f8fa', borderRadius: 8, textDecoration: 'none', color: C.text }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1877f2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 4 }}>
+                            <circle cx="12" cy="8" r="4" /><path d="M4 20v-1a6 6 0 016-6h4a6 6 0 016 6v1" />
+                        </svg>
+                        <span style={{ fontSize: 14, fontWeight: 500 }}>Profile</span>
+                    </Link>
+                    {/* Friends */}
+                    <Link href="/hub/friends" onClick={() => setSidebarOpen(false)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 12, background: '#f7f8fa', borderRadius: 8, textDecoration: 'none', color: C.text }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1877f2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 4 }}>
+                            <circle cx="8" cy="8" r="3" /><circle cx="16" cy="8" r="3" /><path d="M4 20v-2a4 4 0 014-4h8a4 4 0 014 4v2" />
+                        </svg>
+                        <span style={{ fontSize: 14, fontWeight: 500 }}>Friends</span>
+                    </Link>
+                    {/* Clubs */}
+                    <Link href="/hub/club-arena" onClick={() => setSidebarOpen(false)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 12, background: '#f7f8fa', borderRadius: 8, textDecoration: 'none', color: C.text }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1877f2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 4 }}>
+                            <rect x="4" y="4" width="16" height="16" rx="2" /><path d="M4 10h16" /><path d="M10 4v6" /><path d="M14 4v6" />
+                        </svg>
+                        <span style={{ fontSize: 14, fontWeight: 500 }}>Clubs</span>
+                    </Link>
+                    {/* Diamond Store */}
+                    <Link href="/hub/diamond-store" onClick={() => setSidebarOpen(false)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 12, background: '#f7f8fa', borderRadius: 8, textDecoration: 'none', color: C.text }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00bcd4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 4 }}>
+                            <path d="M6 3h12l4 6-10 12L2 9z" /><path d="M2 9h20" /><path d="M12 21L6 9l3-6" /><path d="M12 21l6-12-3-6" />
+                        </svg>
+                        <span style={{ fontSize: 14, fontWeight: 500 }}>Diamond Store</span>
+                    </Link>
+                    {/* Tournaments */}
+                    <Link href="/hub/tournaments" onClick={() => setSidebarOpen(false)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 12, background: '#f7f8fa', borderRadius: 8, textDecoration: 'none', color: C.text }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffc107" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 4 }}>
+                            <path d="M6 9H4a2 2 0 01-2-2V5a2 2 0 012-2h2" /><path d="M18 9h2a2 2 0 002-2V5a2 2 0 00-2-2h-2" />
+                            <path d="M4 22h16" /><path d="M10 22v-4a2 2 0 012-2h0a2 2 0 012 2v4" /><rect x="6" y="3" width="12" height="12" rx="2" />
+                        </svg>
+                        <span style={{ fontSize: 14, fontWeight: 500 }}>Tournaments</span>
+                    </Link>
+                    {/* GTO Training */}
+                    <Link href="/hub/gto-trainer" onClick={() => setSidebarOpen(false)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 12, background: '#f7f8fa', borderRadius: 8, textDecoration: 'none', color: C.text }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f44336" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 4 }}>
+                            <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" fill="#f44336" />
+                        </svg>
+                        <span style={{ fontSize: 14, fontWeight: 500 }}>GTO Training</span>
+                    </Link>
+                    {/* Reels */}
+                    <Link href="/hub/reels" onClick={() => setSidebarOpen(false)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 12, background: '#f7f8fa', borderRadius: 8, textDecoration: 'none', color: C.text }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#65676b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 4 }}>
+                            <rect x="3" y="3" width="18" height="18" rx="3" /><polygon points="10,8 16,12 10,16" fill="#65676b" stroke="none" />
+                        </svg>
+                        <span style={{ fontSize: 14, fontWeight: 500 }}>Reels</span>
+                    </Link>
+                    {/* Settings */}
+                    <Link href="/hub/settings" onClick={() => setSidebarOpen(false)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 12, background: '#f7f8fa', borderRadius: 8, textDecoration: 'none', color: C.text }}>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#65676b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 4 }}>
+                            <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+                        </svg>
+                        <span style={{ fontSize: 14, fontWeight: 500 }}>Settings</span>
+                    </Link>
                 </div>
 
                 {/* See More */}
@@ -2425,15 +2473,19 @@ export default function SocialMediaPage() {
                     }}>See more</button>
                 </div>
 
-                {/* Bottom Links */}
+                {/* Bottom Links - Clean SVG Icons */}
                 <div style={{ padding: '0 16px' }}>
                     <div style={{ padding: '12px 0', borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 20, opacity: 0.6 }}>❓</span>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#65676b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" />
+                        </svg>
                         <span style={{ flex: 1, fontSize: 15 }}>Help & support</span>
                         <span style={{ color: C.textSec }}>›</span>
                     </div>
                     <div style={{ padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 20, opacity: 0.6 }}>⚙️</span>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#65676b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+                        </svg>
                         <span style={{ flex: 1, fontSize: 15 }}>Settings & privacy</span>
                         <span style={{ color: C.textSec }}>›</span>
                     </div>
@@ -2760,83 +2812,81 @@ export default function SocialMediaPage() {
                 {/* Bottom Navigation Bar - Facebook Style with SVG Icons */}
                 <nav style={{
                     position: 'fixed', bottom: 0, left: 0, right: 0, height: 56,
-                    background: '#ffffff', borderTop: '1px solid #e5e5e5',
+                    background: '#ffffff', borderTop: '1px solid #dddfe2',
                     display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
                     zIndex: 100,
                     transform: bottomNavVisible ? 'translateY(0)' : 'translateY(100%)',
                     transition: 'transform 0.3s ease',
                     paddingBottom: 'env(safe-area-inset-bottom, 0px)'
                 }}>
-                    {/* Home */}
+                    {/* Home - Outline house */}
                     <Link href="/hub/social-media" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        textDecoration: 'none', color: '#1877f2', flex: 1, padding: '6px 4px', minWidth: 50
+                        textDecoration: 'none', color: '#65676b', flex: 1, padding: '6px 4px', minWidth: 50
                     }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2L3 9v12a1 1 0 001 1h5v-7h6v7h5a1 1 0 001-1V9l-9-7z" />
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z" />
                         </svg>
-                        <span style={{ fontSize: 10, marginTop: 2, fontWeight: 600 }}>Home</span>
+                        <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Home</span>
                     </Link>
-                    {/* Reels */}
+                    {/* Reels - Rounded rect with play triangle */}
                     <Link href="/hub/reels" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                         textDecoration: 'none', color: '#65676b', flex: 1, padding: '6px 4px', minWidth: 50
                     }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2" />
-                            <path d="M3 9h18M9 3v6M15 3v6" />
-                            <polygon points="10,12 16,15 10,18" fill="currentColor" stroke="none" />
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="3" />
+                            <polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none" />
                         </svg>
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Reels</span>
                     </Link>
-                    {/* Friends */}
+                    {/* Friends - Connected people icon */}
                     <Link href="/hub/friends" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                         textDecoration: 'none', color: '#65676b', flex: 1, padding: '6px 4px', minWidth: 50, position: 'relative'
                     }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="9" cy="7" r="3" />
-                            <path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
-                            <circle cx="17" cy="7" r="2" />
-                            <path d="M21 21v-2a3 3 0 00-2-2.8" />
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="8" cy="8" r="3" />
+                            <circle cx="16" cy="8" r="3" />
+                            <path d="M8 11a4 4 0 00-4 4v2h8v-2a4 4 0 00-4-4z" />
+                            <path d="M16 11c1.5 0 2.8.8 3.5 2 .4.8.5 1.3.5 2v2h-6" />
                         </svg>
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Friends</span>
                     </Link>
-                    {/* Clubs */}
+                    {/* Clubs - Star in rounded box (Events-style) */}
                     <Link href="/hub/club-arena" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                         textDecoration: 'none', color: '#65676b', flex: 1, padding: '6px 4px', minWidth: 50
                     }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 21h18M5 21V7l7-4 7 4v14" />
-                            <rect x="9" y="13" width="6" height="8" />
-                            <path d="M9 9h6M9 11h6" />
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="4" y="4" width="16" height="16" rx="2" />
+                            <path d="M12 8l1.5 3 3.5.5-2.5 2.5.5 3.5L12 16l-3 1.5.5-3.5-2.5-2.5 3.5-.5z" fill="currentColor" />
                         </svg>
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Clubs</span>
                     </Link>
-                    {/* Alerts */}
+                    {/* Notifications - Filled bell (blue when active) */}
                     <Link href="/hub/notifications" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        textDecoration: 'none', color: '#65676b', flex: 1, padding: '6px 4px', minWidth: 50, position: 'relative'
+                        textDecoration: 'none', color: '#1877f2', flex: 1, padding: '6px 4px', minWidth: 50, position: 'relative'
                     }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                            <path d="M13.73 21a2 2 0 01-3.46 0" />
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2a7 7 0 00-7 7c0 3.5-1.5 5.5-2.5 7-.3.4-.5.8-.5 1.2 0 .5.5.8 1 .8h18c.5 0 1-.3 1-.8 0-.4-.2-.8-.5-1.2-1-1.5-2.5-3.5-2.5-7a7 7 0 00-7-7z" />
+                            <path d="M10 20a2 2 0 004 0" />
                         </svg>
                         {notifications.filter(n => !n.read).length > 0 && (
                             <div style={{ position: 'absolute', top: 2, right: 'calc(50% - 18px)', background: '#f02849', color: 'white', borderRadius: 10, minWidth: 18, height: 18, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, padding: '0 5px' }}>{notifications.filter(n => !n.read).length}</div>
                         )}
-                        <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Alerts</span>
+                        <span style={{ fontSize: 10, marginTop: 2, fontWeight: 600, color: '#1877f2' }}>Notifications</span>
                     </Link>
-                    {/* Profile */}
+                    {/* Profile - Avatar or person icon */}
                     <Link href="/hub/profile" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                         textDecoration: 'none', color: '#65676b', flex: 1, padding: '6px 4px', minWidth: 50
                     }}>
-                        {user ? <Avatar src={user.avatar} name={user.name} size={24} /> : (
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        {user ? <Avatar src={user.avatar} name={user.name} size={28} style={{ border: '2px solid #e4e6eb', borderRadius: '50%' }} /> : (
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="8" r="4" />
-                                <path d="M4 21v-2a5 5 0 015-5h6a5 5 0 015 5v2" />
+                                <path d="M4 20v-1a6 6 0 016-6h4a6 6 0 016 6v1" />
                             </svg>
                         )}
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Profile</span>
