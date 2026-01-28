@@ -2497,100 +2497,79 @@ export default function SocialMediaPage() {
                     </div>
                 </div>
 
-                {/* Menu Grid - Facebook Style: Simple icons on white cards */}
+                {/* Menu Grid - Custom AI-Generated Smarter.Poker Icons */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 16px', marginBottom: 16 }}>
-                    {/* Friends - Blue people */}
+                    {/* Friends - Custom AI icon */}
                     <Link href="/hub/friends" onClick={() => setSidebarOpen(false)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                            <circle cx="9" cy="8" r="3.5" fill="#1877f2" /><circle cx="15" cy="8" r="3.5" fill="#1877f2" />
-                            <path d="M3 19c0-3.3 2.7-6 6-6h6c3.3 0 6 2.7 6 6" stroke="#1877f2" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-                        </svg>
+                        <img src="/icons/friends.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Friends</span>
                     </Link>
-                    {/* Club Arena - Purple columns */}
+                    {/* Club Arena - Purple columns SVG (fallback) */}
                     <Link href="/hub/club-arena" onClick={() => setSidebarOpen(false)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                            <rect x="3" y="4" width="5" height="16" rx="1" fill="#8b5cf6" />
-                            <rect x="9.5" y="4" width="5" height="16" rx="1" fill="#a78bfa" />
-                            <rect x="16" y="4" width="5" height="16" rx="1" fill="#c4b5fd" />
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <rect x="2" y="6" width="6" height="14" rx="1" fill="#8b5cf6" />
+                            <rect x="9" y="3" width="6" height="17" rx="1" fill="#a78bfa" />
+                            <rect x="16" y="6" width="6" height="14" rx="1" fill="#c4b5fd" />
+                            <ellipse cx="12" cy="20" rx="10" ry="2" fill="#ddd6fe" opacity="0.5" />
                         </svg>
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Arena</span>
                     </Link>
-                    {/* Diamond Store - Cyan gem */}
+                    {/* Diamond Store - Custom AI icon */}
                     <Link href="/hub/diamond-store" onClick={() => setSidebarOpen(false)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                            <path d="M12 2L2 9l10 13 10-13L12 2z" fill="#06b6d4" />
-                            <path d="M2 9h20" stroke="#0891b2" strokeWidth="1.5" />
-                            <path d="M12 22L7 9l2.5-7M12 22l5-13-2.5-7" stroke="#0891b2" strokeWidth="1.5" />
-                        </svg>
+                        <img src="/icons/diamond.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Diamond Store</span>
                     </Link>
-                    {/* Tournaments - Gold trophy */}
+                    {/* Tournaments - Custom AI icon */}
                     <Link href="/hub/tournaments" onClick={() => setSidebarOpen(false)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                            <path d="M8 3h8v8a4 4 0 01-8 0V3z" fill="#fbbf24" />
-                            <path d="M5 3h3v4c0 1-1 2-2.5 2S3 8 3 7V5a2 2 0 012-2z" fill="#f59e0b" />
-                            <path d="M16 3h3a2 2 0 012 2v2c0 1-1 2-2.5 2S16 8 16 7V3z" fill="#f59e0b" />
-                            <rect x="10" y="13" width="4" height="4" fill="#fbbf24" />
-                            <rect x="7" y="17" width="10" height="3" rx="1" fill="#d97706" />
-                        </svg>
+                        <img src="/icons/tournaments.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
                     </Link>
-                    {/* GTO Training - Red target */}
+                    {/* GTO Training - Custom AI icon */}
                     <Link href="/hub/gto-trainer" onClick={() => setSidebarOpen(false)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                            <circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="2" fill="none" />
-                            <circle cx="12" cy="12" r="6" stroke="#ef4444" strokeWidth="2" fill="none" />
-                            <circle cx="12" cy="12" r="2.5" fill="#ef4444" />
-                        </svg>
+                        <img src="/icons/gto.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
                     </Link>
-                    {/* Reels - Orange/pink play */}
+                    {/* Reels - Custom AI icon */}
                     <Link href="/hub/reels" onClick={() => setSidebarOpen(false)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                            <rect x="3" y="3" width="18" height="18" rx="4" fill="#f97316" />
-                            <path d="M10 8l6 4-6 4V8z" fill="white" />
-                        </svg>
+                        <img src="/icons/reels.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Reels</span>
                     </Link>
-                    {/* Profile - Blue avatar */}
+                    {/* Profile - Blue avatar SVG (fallback) */}
                     <Link href="/hub/profile" onClick={() => setSidebarOpen(false)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                            <circle cx="12" cy="8" r="4" fill="#1877f2" />
-                            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" fill="#1877f2" />
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <circle cx="12" cy="12" r="11" fill="#e3f2fd" />
+                            <circle cx="12" cy="9" r="4" fill="#1877f2" />
+                            <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="#1877f2" />
                         </svg>
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Profile</span>
                     </Link>
-                    {/* Settings - Gray gear */}
+                    {/* Settings - Custom AI icon */}
                     <Link href="/hub/settings" onClick={() => setSidebarOpen(false)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                            <circle cx="12" cy="12" r="3" fill="#65676b" />
-                            <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="#65676b" strokeWidth="2.5" strokeLinecap="round" />
-                        </svg>
+                        <img src="/icons/settings.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Settings</span>
                     </Link>
                 </div>
