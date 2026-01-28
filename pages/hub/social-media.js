@@ -296,6 +296,7 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
                 position: 'relative',
                 cursor: isVideoValid === false ? 'not-allowed' : 'pointer',
                 aspectRatio: '16/9',
+                maxHeight: 400, // Cap vertical videos
                 background: '#000',
                 overflow: 'hidden'
             }}
@@ -1307,7 +1308,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 onClick={onOpenArticle}
                             />
                         ) : (
-                            <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                            <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', maxHeight: 500, objectFit: 'cover', display: 'block' }} />
                         )
                     ) : post.mediaUrls.length === 2 ? (
                         // 2 media - side by side
