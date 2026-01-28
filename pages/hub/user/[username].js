@@ -474,6 +474,21 @@ export default function UserProfilePage() {
         router.push(`/hub/messenger?user=${profile.username}`);
     };
 
+    const handleDeletePost = async (postId) => {
+        try {
+            const { error } = await supabase.from('social_posts').delete().eq('id', postId);
+            if (error) throw error;
+            // Update local state
+            setPosts(prev => prev.filter(p => p.id !== postId));
+            setPhotos(prev => prev.filter(p => p.id !== postId));
+            setVideos(prev => prev.filter(p => p.id !== postId));
+            setStats(prev => ({ ...prev, posts: Math.max(0, prev.posts - 1) }));
+        } catch (e) {
+            console.error('Error deleting post:', e);
+            throw e;
+        }
+    };
+
     if (loading) {
         return (
             <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -729,7 +744,7 @@ export default function UserProfilePage() {
 
                                 {/* Posts Feed */}
                                 {posts.length > 0 ? (
-                                    posts.map(post => <PostCard key={post.id} post={post} author={profile} />)
+                                    posts.map(post => <PostCard key={post.id} post={post} author={profile} isOwnProfile={isOwnProfile} onDelete={handleDeletePost} />)
                                 ) : (
                                     <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
                                         <div style={{ fontSize: 32, marginBottom: 12 }}>📝</div>

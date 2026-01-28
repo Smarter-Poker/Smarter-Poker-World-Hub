@@ -871,7 +871,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
             mentions.push(match[1]);
         }
 
-        const ok = await onPost(cleanContent, urls, type, mentions);
+        const ok = await onPost(cleanContent, urls, type, mentions, linkPreview);
         if (ok) { setContent(''); setMedia([]); setLinkPreview(null); }
         else setError('Unable to post at this time. Please try again later.');
     };
