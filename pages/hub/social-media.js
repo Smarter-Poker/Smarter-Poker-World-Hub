@@ -1990,8 +1990,8 @@ export default function SocialMediaPage() {
         observerRef.current.observe(node);
     }, []); // Empty deps - uses refs for current values
 
-    const handlePost = async (content, urls, type, mentions = []) => {
-        console.log('[Social] 📝 handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions });
+    const handlePost = async (content, urls, type, mentions = [], linkPreview = null) => {
+        console.log('[Social] 📝 handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions, hasLinkPreview: !!linkPreview });
         console.log('[Social] 📝 User state:', { id: user?.id, name: user?.name, hasUser: !!user });
 
         if (!user?.id) {
@@ -2006,7 +2006,15 @@ export default function SocialMediaPage() {
                 content,
                 content_type: type,
                 media_urls: urls,
-                visibility: 'public'
+                visibility: 'public',
+                // Store link metadata if available (from link preview)
+                ...(linkPreview && {
+                    link_url: linkPreview.url || urls[0],
+                    link_title: linkPreview.title || null,
+                    link_description: linkPreview.description || null,
+                    link_image: linkPreview.image || null,
+                    link_site_name: linkPreview.siteName || linkPreview.domain || null,
+                }),
             };
             console.log('[Social] 📝 Inserting post with payload:', insertPayload);
 
