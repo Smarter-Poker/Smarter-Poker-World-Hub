@@ -1950,6 +1950,12 @@ export default function SocialMediaPage() {
                     likeCount: p.like_count || 0,
                     commentCount: p.comment_count || 0,
                     shareCount: p.share_count || 0,
+                    // Link metadata for ArticleCard
+                    link_url: p.link_url || null,
+                    link_title: p.link_title || null,
+                    link_description: p.link_description || null,
+                    link_image: p.link_image || null,
+                    link_site_name: p.link_site_name || null,
                     timeAgo: timeAgo(p.created_at),
                     isLiked: false,
                     isPriority: p.isPriority,
