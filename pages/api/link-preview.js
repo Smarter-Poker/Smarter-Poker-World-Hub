@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     if (isSocialPlatform) {
         try {
             const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}`;
-            const microlinkRes = await fetch(microlinkUrl, { timeout: 10000 });
+            const microlinkRes = await fetch(microlinkUrl);
             const microlinkData = await microlinkRes.json();
 
             if (microlinkData.status === 'success' && microlinkData.data) {
