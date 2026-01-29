@@ -807,6 +807,11 @@ export default function DiamondStorePage() {
         }
     };
 
+    // Direct diamond package purchase (adds to cart)
+    const handleDiamondPurchase = (pkg) => {
+        handleAddToCart(pkg);
+    };
+
     const handleMerchPurchase = (itemId) => {
         alert('Merchandise store coming soon!');
     };
