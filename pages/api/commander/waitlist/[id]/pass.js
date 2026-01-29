@@ -21,6 +21,43 @@ export default async function handler(req, res) {
   const { pass_count = 1 } = req.body;
 
   try {
+    // Verify authentication - either player (Bearer) or staff (x-staff-session)
+    let authenticatedUserId = null;
+    let isStaff = false;
+
+    const authHeader = req.headers.authorization;
+    const staffSession = req.headers['x-staff-session'];
+
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (!authError && user) {
+        authenticatedUserId = user.id;
+      }
+    }
+
+    if (staffSession) {
+      try {
+        const sessionData = JSON.parse(staffSession);
+        const { data: staff } = await supabase
+          .from('commander_staff')
+          .select('id, venue_id, is_active')
+          .eq('id', sessionData.id)
+          .eq('is_active', true)
+          .single();
+        if (staff) {
+          isStaff = true;
+        }
+      } catch { /* invalid session format */ }
+    }
+
+    if (!authenticatedUserId && !isStaff) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
+      });
+    }
+
     // Get current entry
     const { data: entry, error: getError } = await supabase
       .from('commander_waitlist')
@@ -32,6 +69,14 @@ export default async function handler(req, res) {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Waitlist entry not found' }
+      });
+    }
+
+    // Verify ownership: player can only pass on their own entry, staff can pass on any
+    if (!isStaff && entry.player_id && entry.player_id !== authenticatedUserId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'You can only pass on your own waitlist entry' }
       });
     }
 

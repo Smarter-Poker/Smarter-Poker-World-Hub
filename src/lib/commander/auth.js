@@ -184,6 +184,60 @@ export async function verifyPin(venueId, pinCode) {
   return staff;
 }
 
+/**
+ * Verify staff via x-staff-session header (PIN-based terminal auth)
+ * Used by staff-facing API endpoints that authenticate via the terminal PIN flow.
+ * @param {object} req - Next.js request object
+ * @returns {object} - { staff } on success, { error: { status, code, message } } on failure
+ */
+export async function verifyStaffSession(req) {
+  const staffSession = req.headers['x-staff-session'];
+  if (!staffSession) {
+    return { error: { status: 401, code: 'AUTH_REQUIRED', message: 'Staff authentication required' } };
+  }
+
+  let sessionData;
+  try {
+    sessionData = JSON.parse(staffSession);
+  } catch {
+    return { error: { status: 401, code: 'INVALID_SESSION', message: 'Invalid session format' } };
+  }
+
+  const { data: staff, error: staffError } = await supabase
+    .from('commander_staff')
+    .select('id, venue_id, role, is_active')
+    .eq('id', sessionData.id)
+    .eq('is_active', true)
+    .single();
+
+  if (staffError || !staff) {
+    return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff member not found or inactive' } };
+  }
+
+  return { staff };
+}
+
+/**
+ * Verify staff session and require manager role (owner or manager)
+ * @param {object} req - Next.js request object
+ * @param {number|string} venueId - Optional venue ID to check membership
+ * @returns {object} - { staff } on success, { error } on failure
+ */
+export async function verifyManagerSession(req, venueId = null) {
+  const result = await verifyStaffSession(req);
+  if (result.error) return result;
+
+  if (venueId && result.staff.venue_id !== parseInt(venueId)) {
+    return { error: { status: 403, code: 'FORBIDDEN', message: 'Not authorized for this venue' } };
+  }
+
+  if (!['owner', 'manager'].includes(result.staff.role)) {
+    return { error: { status: 403, code: 'FORBIDDEN', message: 'Manager role required' } };
+  }
+
+  return result;
+}
+
 // Default permissions by role
 export const DEFAULT_PERMISSIONS = {
   owner: {

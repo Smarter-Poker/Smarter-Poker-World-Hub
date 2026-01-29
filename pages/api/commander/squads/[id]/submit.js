@@ -4,7 +4,6 @@
  * Submits the entire squad to the venue waitlist
  */
 import { createClient } from '@supabase/supabase-js';
-import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -22,14 +21,22 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   try {
-    // Get authenticated user
-    const supabaseServerClient = createPagesServerClient({ req, res });
-    const { data: { user } } = await supabaseServerClient.auth.getUser();
-
-    if (!user) {
+    // Get authenticated user via Bearer token
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
         error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' }
       });
     }
 

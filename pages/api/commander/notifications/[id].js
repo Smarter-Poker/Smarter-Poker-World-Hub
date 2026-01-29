@@ -32,7 +32,10 @@ export default async function handler(req, res) {
 
     const { data, error } = await supabase
       .from('commander_notifications')
-      .update({ read_at: read_at || new Date().toISOString() })
+      .update({
+        is_read: true,
+        read_at: read_at || new Date().toISOString()
+      })
       .eq('id', id)
       .eq('player_id', user.id)
       .select()

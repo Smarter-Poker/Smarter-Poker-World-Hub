@@ -4,6 +4,7 @@
  * Reference: API_REFERENCE.md - Staff Management section
  */
 import { createClient } from '@supabase/supabase-js';
+import { verifyManagerSession } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,42 +12,6 @@ const supabase = createClient(
 );
 
 const VALID_ROLES = ['owner', 'manager', 'floor', 'brush', 'dealer'];
-const MANAGER_ROLES = ['owner', 'manager'];
-
-async function verifyManagerAuth(req, venueId) {
-  const staffSession = req.headers['x-staff-session'];
-  if (!staffSession) {
-    return { error: { status: 401, code: 'AUTH_REQUIRED', message: 'Staff authentication required' } };
-  }
-
-  let sessionData;
-  try {
-    sessionData = JSON.parse(staffSession);
-  } catch {
-    return { error: { status: 401, code: 'INVALID_SESSION', message: 'Invalid session format' } };
-  }
-
-  const { data: staff, error: staffError } = await supabase
-    .from('commander_staff')
-    .select('id, venue_id, role, is_active')
-    .eq('id', sessionData.id)
-    .eq('is_active', true)
-    .single();
-
-  if (staffError || !staff) {
-    return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff member not found or inactive' } };
-  }
-
-  if (venueId && staff.venue_id !== parseInt(venueId)) {
-    return { error: { status: 403, code: 'FORBIDDEN', message: 'Not authorized for this venue' } };
-  }
-
-  if (!MANAGER_ROLES.includes(staff.role)) {
-    return { error: { status: 403, code: 'FORBIDDEN', message: 'Manager role required' } };
-  }
-
-  return { staff };
-}
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -88,7 +53,7 @@ async function handlePatch(req, res, id) {
     }
 
     // Verify requesting user is a manager at the same venue
-    const authResult = await verifyManagerAuth(req, target.venue_id);
+    const authResult = await verifyManagerSession(req, target.venue_id);
     if (authResult.error) {
       return res.status(authResult.error.status).json({
         success: false,
@@ -179,7 +144,7 @@ async function handleDelete(req, res, id) {
     }
 
     // Verify requesting user is a manager at the same venue
-    const authResult = await verifyManagerAuth(req, target.venue_id);
+    const authResult = await verifyManagerSession(req, target.venue_id);
     if (authResult.error) {
       return res.status(authResult.error.status).json({
         success: false,

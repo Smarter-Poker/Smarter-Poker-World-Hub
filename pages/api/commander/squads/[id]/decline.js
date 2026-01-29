@@ -40,11 +40,11 @@ export default async function handler(req, res) {
   try {
     // Find the pending membership
     const { data: membership, error: findError } = await supabase
-      .from('commander_squad_members')
-      .select('id, status')
-      .eq('squad_id', id)
-      .eq('user_id', user.id)
-      .eq('status', 'pending')
+      .from('commander_waitlist_group_members')
+      .select('id, member_status')
+      .eq('group_id', id)
+      .eq('player_id', user.id)
+      .eq('member_status', 'pending')
       .single();
 
     if (findError || !membership) {
@@ -56,9 +56,9 @@ export default async function handler(req, res) {
 
     // Update to declined status
     const { error: updateError } = await supabase
-      .from('commander_squad_members')
+      .from('commander_waitlist_group_members')
       .update({
-        status: 'declined',
+        member_status: 'declined',
         updated_at: new Date().toISOString()
       })
       .eq('id', membership.id);
