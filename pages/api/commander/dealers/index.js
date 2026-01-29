@@ -75,9 +75,8 @@ async function handleCreate(req, res) {
     name,
     phone,
     email,
-    skill_level = 'intermediate',
-    certifications = [],
-    games_dealt = [],
+    skill_level = 3,
+    certified_games = ['nlhe'],
     hourly_rate,
     notes
   } = req.body;
@@ -117,8 +116,7 @@ async function handleCreate(req, res) {
         phone,
         email,
         skill_level,
-        certifications,
-        games_dealt,
+        certified_games,
         hourly_rate,
         notes,
         status: 'active'

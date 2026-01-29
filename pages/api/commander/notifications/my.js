@@ -45,12 +45,12 @@ export default async function handler(req, res) {
         *,
         poker_venues (id, name)
       `)
-      .eq('user_id', user.id)
+      .eq('player_id', user.id)
       .order('created_at', { ascending: false })
       .limit(parseInt(limit));
 
     if (unread_only === 'true') {
-      query = query.eq('is_read', false);
+      query = query.is('read_at', null);
     }
 
     const { data: notifications, error } = await query;
@@ -61,8 +61,8 @@ export default async function handler(req, res) {
     const { count: unreadCount } = await supabase
       .from('commander_notifications')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('is_read', false);
+      .eq('player_id', user.id)
+      .is('read_at', null);
 
     return res.status(200).json({
       success: true,

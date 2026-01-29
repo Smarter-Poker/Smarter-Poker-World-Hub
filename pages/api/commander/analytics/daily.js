@@ -151,14 +151,15 @@ async function calculateDailyAnalytics(req, res) {
       .from('commander_player_sessions')
       .select('*')
       .eq('venue_id', parseInt(venue_id))
-      .gte('check_in_time', `${targetDate}T00:00:00`)
-      .lt('check_in_time', `${targetDate}T23:59:59`);
+      .gte('check_in_at', `${targetDate}T00:00:00`)
+      .lt('check_in_at', `${targetDate}T23:59:59`);
 
     const { data: tournaments } = await supabase
       .from('commander_tournaments')
       .select('*')
       .eq('venue_id', parseInt(venue_id))
-      .eq('start_date', targetDate);
+      .gte('scheduled_start', `${targetDate}T00:00:00`)
+      .lt('scheduled_start', `${targetDate}T23:59:59`);
 
     const { data: awards } = await supabase
       .from('commander_promotion_awards')
@@ -184,7 +185,7 @@ async function calculateDailyAnalytics(req, res) {
       total_cashout: totalCashout,
       avg_buyin: sessions?.length > 0 ? Math.round(totalBuyin / sessions.length) : 0,
       tournaments_run: tournaments?.length || 0,
-      tournament_entries: tournaments?.reduce((sum, t) => sum + (t.total_entries || 0), 0) || 0,
+      tournament_entries: tournaments?.reduce((sum, t) => sum + (t.current_entries || 0), 0) || 0,
       promotions_awarded: awards?.length || 0,
       promotion_value_awarded: awards?.reduce((sum, a) => sum + (a.prize_value || 0), 0) || 0,
       calculated_at: new Date().toISOString()
