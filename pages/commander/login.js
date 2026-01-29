@@ -1,6 +1,6 @@
 /**
  * Commander Staff Login Page - Venue selection + PIN entry
- * Based on PokerAtlas TableCaptain / Bravo Poker patterns
+ * Based on PokerAtlas / Bravo Poker patterns
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';

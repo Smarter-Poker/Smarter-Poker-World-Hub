@@ -1,13 +1,13 @@
 # Club Commander - Complete Build Plan
 
-## The TableCaptain Killer: A Strategic Disruption Play
+## The PokerAtlas Killer: A Strategic Disruption Play
 
 ---
 
 ## Executive Summary
 
 **Club Commander** is a cloud-based poker room management platform designed to:
-1. **Replicate every TableCaptain feature** with improvements
+1. **Replicate every PokerAtlas feature** with improvements
 2. **Add home games functionality** (untapped market)
 3. **Integrate deeply with Smarter.Poker** for user acquisition
 4. **Offer free/near-free pricing** to clubs (loss-leader strategy)
@@ -16,7 +16,7 @@
 ### The Business Model Innovation
 
 ```
-Traditional Model (TableCaptain):
+Traditional Model (PokerAtlas):
   Club pays $$$$ → Gets software → Players use app → PokerAtlas gains audience
 
 Club Commander Model:
@@ -34,9 +34,9 @@ Club Commander Model:
 
 ## Part 1: Feature Parity Matrix
 
-### Every TableCaptain Feature + Our Improvement
+### Every PokerAtlas Feature + Our Improvement
 
-| TableCaptain Feature | Club Commander | Our Improvement |
+| PokerAtlas Feature | Club Commander | Our Improvement |
 |---------------------|-----------------|-----------------|
 | Cash game waitlists | ✅ | AI-powered wait time estimates |
 | Online waitlist signup | ✅ | One-tap signup (already logged into Smarter.Poker) |
@@ -1083,7 +1083,7 @@ SMARTER.POKER → COMMANDER:
 ### Why This Works
 
 1. **Free tier is genuinely useful** - Home games and small clubs can fully operate
-2. **Low barrier to entry** - $49/mo vs TableCaptain's custom pricing (likely $500+/mo)
+2. **Low barrier to entry** - $49/mo vs PokerAtlas's custom pricing (likely $500+/mo)
 3. **Value scales with usage** - Larger rooms need more features anyway
 4. **Hidden value** - All tiers drive users to Smarter.Poker (worth far more than subscription revenue)
 
@@ -1175,7 +1175,7 @@ Week 11-12: Tournament Operations
 └── [ ] Mobile tournament view
 ```
 
-**Deliverable: Tournament system competitive with TableCaptain**
+**Deliverable: Tournament system competitive with PokerAtlas**
 
 ### Phase 4: Home Games (Weeks 13-16)
 **Goal: Launch home games market**
@@ -1220,7 +1220,7 @@ Week 19-20: Analytics & Reporting
 └── [ ] Network-wide stats
 ```
 
-**Deliverable: Feature-complete platform exceeding TableCaptain**
+**Deliverable: Feature-complete platform exceeding PokerAtlas**
 
 ### Phase 6: Scale & Polish (Weeks 21-24)
 **Goal: Production hardening and launch**
@@ -1588,9 +1588,9 @@ export const notificationTemplates = {
 
 ## Part 9: Competitive Advantages Summary
 
-### vs TableCaptain
+### vs PokerAtlas
 
-| Aspect | TableCaptain | Club Commander | Advantage |
+| Aspect | PokerAtlas | Club Commander | Advantage |
 |--------|-------------|-----------------|-----------|
 | **Price** | Custom ($500+/mo est.) | $0-149/mo | 70-100% cheaper |
 | **Home Games** | None | Full suite | New market |
@@ -1665,9 +1665,9 @@ SUPABASE_SERVICE_ROLE_KEY=
 
 ---
 
-## Appendix B: Migration from TableCaptain
+## Appendix B: Migration from PokerAtlas
 
-For venues switching from TableCaptain:
+For venues switching from PokerAtlas:
 
 1. **Data Export Assistance**: Help extract player lists, tournament history
 2. **Parallel Running**: Run both systems during transition (2-4 weeks)

@@ -1,8 +1,8 @@
-# PokerAtlas TableCaptain Software - Expert Knowledge Base
+# PokerAtlas Software - Expert Knowledge Base
 
 ## Executive Summary
 
-**TableCaptain** is the premier poker room management software system developed by **PokerAtlas** (operated by Overlay Gaming Corporation). It is described as "the world's most advanced, user-friendly, and cost-effective Poker Room Management System" designed to streamline operations for poker rooms of any size, from 2 tables to 200+ tables.
+**PokerAtlas** is the premier poker room management software system developed by **PokerAtlas** (operated by Overlay Gaming Corporation). It is described as "the world's most advanced, user-friendly, and cost-effective Poker Room Management System" designed to streamline operations for poker rooms of any size, from 2 tables to 200+ tables.
 
 ---
 
@@ -32,19 +32,19 @@
 | 2004 | AllVegasPoker.com founded |
 | 2011 | Overlay Gaming Corporation established |
 | 2014 | AllVegasPoker merged with PokerAtlas |
-| 2015 | TableCaptain launched |
-| 2024 | TableCaptain 2 (cloud-based) released |
+| 2015 | PokerAtlas launched |
+| 2024 | PokerAtlas Cloud (cloud-based) released |
 | 2025 | 300+ properties worldwide, 6M+ annual player audience |
 
 ---
 
 ## Market Adoption
 
-- **180+ casinos and card rooms** actively use TableCaptain
+- **180+ casinos and card rooms** actively use PokerAtlas
 - **300+ properties** receive software and media services
 - **6 million annual poker player audience** reached through PokerAtlas network
 
-### Notable Properties Using TableCaptain
+### Notable Properties Using PokerAtlas
 - **Wynn Las Vegas** (switched from Bravo in May 2024)
 - **Encore Boston Harbor** (since 2019)
 - **Resorts World Las Vegas**
@@ -58,7 +58,7 @@
 ## Core System Architecture
 
 ### Deployment Model
-- **TableCaptain 2**: Cloud-based waitlist management system
+- **PokerAtlas Cloud**: Cloud-based waitlist management system
 - **Single Workstation**: Complete management from one computer
 - **Real-Time Sync**: Automatic broadcast to PokerAtlas consumer platform
 - **Touch Screen Technology**: Modern interface (vs. competitors' touch key technology)
@@ -67,7 +67,7 @@
 1. **PokerAtlas Website** - Live waitlists, tournaments, promotions published automatically
 2. **PokerAtlas Mobile App** (iOS/Android) - Player-facing features
 3. **SMS/Text Notifications** - Seat available alerts
-4. **Marketing Partnership** - Included with TableCaptain purchase
+4. **Marketing Partnership** - Included with PokerAtlas purchase
 
 ---
 
@@ -171,7 +171,7 @@
 ## Staff Interface
 
 ### Role-Based Access
-TableCaptain is designed for various poker room staff roles:
+PokerAtlas is designed for various poker room staff roles:
 
 1. **Floor Managers/Supervisors**
    - Full system access
@@ -216,7 +216,7 @@ TableCaptain is designed for various poker room staff roles:
 - Every major poker tournament series
 - Map and list views with driving directions
 
-#### Real-Time Features (TableCaptain properties)
+#### Real-Time Features (PokerAtlas properties)
 - Live waitlists
 - Live tournament clocks
 - Online waitlist registration
@@ -243,9 +243,9 @@ TableCaptain is designed for various poker room staff roles:
 
 ## Competitive Comparison
 
-### TableCaptain vs. Bravo Poker
+### PokerAtlas vs. Bravo Poker
 
-| Feature | TableCaptain | Bravo |
+| Feature | PokerAtlas | Bravo |
 |---------|--------------|-------|
 | Text notifications for seat available | ✓ | Limited |
 | Position on waitlist display | ✓ | Limited |
@@ -297,16 +297,16 @@ TableCaptain is designed for various poker room staff roles:
 - Easy-to-master functionality
 - Staff training included
 - Customer support team available
-- PokerAtlas actively hiring experienced TableCaptain users for support roles
+- PokerAtlas actively hiring experienced PokerAtlas users for support roles
 
 ### Support Resources
 - Zendesk support portal
 - Email support: tcinstall@pokeratlas.com (for job inquiries)
 - Phone support
-- Categories: General, PokerAtlas Tour, TableCaptain, Contact Support
+- Categories: General, PokerAtlas Tour, PokerAtlas, Contact Support
 
 ### Job Opportunities
-PokerAtlas actively seeks poker room employees with TableCaptain experience for:
+PokerAtlas actively seeks poker room employees with PokerAtlas experience for:
 - Installation teams
 - Training teams
 - Customer support teams
@@ -316,7 +316,7 @@ PokerAtlas actively seeks poker room employees with TableCaptain experience for:
 ## Technical Specifications
 
 ### System Requirements
-- Cloud-based architecture (TableCaptain 2)
+- Cloud-based architecture (PokerAtlas Cloud)
 - Internet connectivity required
 - Touch screen compatible
 - Single workstation operation
@@ -380,8 +380,8 @@ PokerAtlas actively seeks poker room employees with TableCaptain experience for:
 
 | Term | Definition |
 |------|------------|
-| **TableCaptain** | PokerAtlas's B2B poker room management software |
-| **TableCaptain 2** | Cloud-based version released 2024 |
+| **PokerAtlas** | PokerAtlas's B2B poker room management software |
+| **PokerAtlas Cloud** | Cloud-based version released 2024 |
 | **Brush** | Poker room staff managing waitlists and seating |
 | **Floor** | Supervisor managing poker room operations |
 | **Must Move** | Secondary table that feeds into main game |
@@ -395,13 +395,13 @@ PokerAtlas actively seeks poker room employees with TableCaptain experience for:
 
 ## Sources
 
-- [PokerAtlas TableCaptain Official Page](https://www.pokeratlas.com/info/table-commander)
+- [PokerAtlas Official Page](https://www.pokeratlas.com/info/pokeratlas)
 - [GetPokerAtlas](https://www.getpokeratlas.com/)
 - [PokerAtlas About Us](https://www.pokeratlas.com/info/about-us)
 - [PokerAtlas App Store](https://apps.apple.com/us/app/pokeratlas/id438847152)
 - [PokerNews - Wynn Transition](https://www.pokernews.com/news/2024/05/wynn-las-vegas-poker-room-pokeratlas-46002.htm)
-- [Calvin Ayre - Jon Friedberg Interview](https://calvinayre.com/2015/08/19/poker/jon-friedberg-poker-atlas-table-commander-and-us-online-gambling-ld-audio-interview)
-- [PokerTube - TableCaptain Launch](https://www.pokertube.com/article/886-pokeratlas-launches-tablecommander--next-generation-poker-room-management-software)
+- [Calvin Ayre - Jon Friedberg Interview](https://calvinayre.com/2015/08/19/poker/jon-friedberg-poker-atlas-pokeratlas-and-us-online-gambling-ld-audio-interview)
+- [PokerTube - PokerAtlas Launch](https://www.pokertube.com/article/886-pokeratlas-launches-pokeratlas--next-generation-poker-room-management-software)
 - [PGT - Poker Atlas Tips](https://www.pgt.com/news/poker-atlas-tips-and-tricks)
 - [3UP Gaming - Poker Room Software](https://www.3upgaming.com/blog/poker-room-waiting-list-app-the-best-tools-to-manage-your-poker-games)
 
@@ -410,6 +410,6 @@ PokerAtlas actively seeks poker room employees with TableCaptain experience for:
 ## Document Information
 
 - **Created**: January 2026
-- **Purpose**: Agent skill knowledge base for PokerAtlas TableCaptain expertise
-- **Scope**: Comprehensive coverage of all publicly available TableCaptain features and capabilities
+- **Purpose**: Agent skill knowledge base for PokerAtlas expertise
+- **Scope**: Comprehensive coverage of all publicly available PokerAtlas features and capabilities
 - **Note**: For proprietary details, internal UI screenshots, or specific pricing, contact PokerAtlas directly at info@PokerAtlas.com or (702) 910-2300

@@ -408,7 +408,7 @@ export default function VenueOnboardingPage() {
                       className="cmd-input w-full"
                     >
                       <option value="">Select current system...</option>
-                      <option value="poker_atlas">PokerAtlas TableCaptain</option>
+                      <option value="poker_atlas">PokerAtlas</option>
                       <option value="bravo">Bravo Poker Live</option>
                       <option value="paper">Paper/Whiteboard</option>
                       <option value="custom">Custom Solution</option>
