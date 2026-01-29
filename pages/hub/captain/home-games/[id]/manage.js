@@ -1,7 +1,7 @@
 /**
  * Home Game Group Management Page
  * Host can manage members, schedule events, send announcements
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -80,53 +80,53 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB]">
-          <h3 className="text-lg font-semibold text-[#1F2937]">Schedule Game</h3>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="cap-panel cap-corner-lights w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+          <h3 className="text-lg font-semibold text-white">Schedule Game</h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#6B7280]" />
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         <div className="p-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#1F2937] mb-2">Date</label>
+              <label className="block text-sm font-medium text-white mb-2">Date</label>
               <input
                 type="date"
                 value={eventData.scheduled_date}
                 onChange={(e) => setEventData(prev => ({ ...prev, scheduled_date: e.target.value }))}
                 min={new Date().toISOString().split('T')[0]}
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                className="w-full h-10 px-3 cap-input"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#1F2937] mb-2">Time</label>
+              <label className="block text-sm font-medium text-white mb-2">Time</label>
               <input
                 type="time"
                 value={eventData.scheduled_time}
                 onChange={(e) => setEventData(prev => ({ ...prev, scheduled_time: e.target.value }))}
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                className="w-full h-10 px-3 cap-input"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-2">Stakes</label>
+            <label className="block text-sm font-medium text-white mb-2">Stakes</label>
             <input
               type="text"
               value={eventData.stakes}
               onChange={(e) => setEventData(prev => ({ ...prev, stakes: e.target.value }))}
-              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+              className="w-full h-10 px-3 cap-input"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-2">Max Players</label>
+            <label className="block text-sm font-medium text-white mb-2">Max Players</label>
             <div className="flex gap-2">
               {[6, 8, 9, 10].map((num) => (
                 <button
@@ -135,8 +135,8 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
                   onClick={() => setEventData(prev => ({ ...prev, max_players: num }))}
                   className={`flex-1 h-10 rounded-lg border font-medium transition-colors ${
                     eventData.max_players === num
-                      ? 'border-[#1877F2] bg-[#1877F2] text-white'
-                      : 'border-[#E5E7EB] text-[#1F2937] hover:bg-[#F3F4F6]'
+                      ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
+                      : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
                   }`}
                 >
                   {num}
@@ -146,22 +146,22 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-2">Notes (optional)</label>
+            <label className="block text-sm font-medium text-white mb-2">Notes (optional)</label>
             <textarea
               value={eventData.notes}
               onChange={(e) => setEventData(prev => ({ ...prev, notes: e.target.value }))}
               placeholder="Any special details for this game..."
               rows={2}
-              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] resize-none"
+              className="w-full px-3 py-2 cap-input resize-none"
             />
           </div>
         </div>
 
-        <div className="p-4 border-t border-[#E5E7EB]">
+        <div className="p-4 border-t border-[#4A5E78]">
           <button
             onClick={handleSubmit}
             disabled={!eventData.scheduled_date || submitting}
-            className="w-full h-12 bg-[#1877F2] text-white font-semibold rounded-lg hover:bg-[#1664d9] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="cap-btn cap-btn-primary w-full h-12 flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {submitting ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -182,24 +182,24 @@ function MemberRow({ member, isHost, onApprove, onRemove }) {
   const isPending = member.status === 'pending';
 
   return (
-    <div className="flex items-center gap-3 p-4 border-b border-[#E5E7EB] last:border-b-0">
-      <div className="w-10 h-10 rounded-full bg-[#1877F2]/10 flex items-center justify-center overflow-hidden">
+    <div className="flex items-center gap-3 p-4 border-b border-[#4A5E78] last:border-b-0">
+      <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 flex items-center justify-center overflow-hidden">
         {member.avatar_url ? (
           <img src={member.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
         ) : (
-          <Users className="w-5 h-5 text-[#1877F2]" />
+          <Users className="w-5 h-5 text-[#22D3EE]" />
         )}
       </div>
 
       <div className="flex-1">
-        <p className="font-medium text-[#1F2937]">{member.display_name || 'Member'}</p>
-        <p className="text-sm text-[#6B7280]">
+        <p className="font-medium text-white">{member.display_name || 'Member'}</p>
+        <p className="text-sm text-[#64748B]">
           {isPending ? 'Pending approval' : `Joined ${new Date(member.created_at).toLocaleDateString()}`}
         </p>
       </div>
 
       {isHost && (
-        <span className="px-2 py-1 bg-[#1877F2]/10 text-[#1877F2] text-xs font-medium rounded">
+        <span className="px-2 py-1 bg-[#22D3EE]/10 text-[#22D3EE] text-xs font-medium rounded">
           Host
         </span>
       )}
@@ -224,7 +224,7 @@ function MemberRow({ member, isHost, onApprove, onRemove }) {
       {!isPending && !isHost && (
         <button
           onClick={() => onRemove?.(member)}
-          className="p-2 text-[#EF4444] hover:bg-[#FEF2F2] rounded-lg transition-colors"
+          className="p-2 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
         >
           <UserMinus className="w-4 h-4" />
         </button>
@@ -447,8 +447,8 @@ export default function ManageHomeGamePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
@@ -460,26 +460,26 @@ export default function ManageHomeGamePage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
+        <header className="cap-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push(`/hub/captain/home-games/${id}`)}
-                className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#6B7280]" />
+                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
               </button>
               <div>
-                <h1 className="font-bold text-[#1F2937]">Manage Group</h1>
-                <p className="text-sm text-[#6B7280]">{group?.name}</p>
+                <h1 className="font-bold text-white">Manage Group</h1>
+                <p className="text-sm text-[#64748B]">{group?.name}</p>
               </div>
             </div>
 
             <button
               onClick={() => setShowScheduleModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
+              className="cap-btn cap-btn-primary flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               Schedule Game
@@ -488,7 +488,7 @@ export default function ManageHomeGamePage() {
         </header>
 
         {/* Tabs */}
-        <div className="bg-white border-b border-[#E5E7EB]">
+        <div className="bg-[#0F1C32] border-b border-[#4A5E78]">
           <div className="max-w-4xl mx-auto px-4">
             <div className="flex gap-6">
               {[
@@ -502,8 +502,8 @@ export default function ManageHomeGamePage() {
                   onClick={() => setActiveTab(tabId)}
                   className={`flex items-center gap-2 py-3 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === tabId
-                      ? 'border-[#1877F2] text-[#1877F2]'
-                      : 'border-transparent text-[#6B7280] hover:text-[#1F2937]'
+                      ? 'border-[#22D3EE] text-[#22D3EE]'
+                      : 'border-transparent text-[#64748B] hover:text-white'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -530,12 +530,12 @@ export default function ManageHomeGamePage() {
           {activeTab === 'events' && (
             <div className="space-y-4">
               {events.length === 0 ? (
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-                  <Calendar className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                  <p className="text-[#6B7280]">No games scheduled</p>
+                <div className="cap-panel p-8 text-center">
+                  <Calendar className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                  <p className="text-[#64748B]">No games scheduled</p>
                   <button
                     onClick={() => setShowScheduleModal(true)}
-                    className="mt-4 px-4 py-2 bg-[#1877F2] text-white font-medium rounded-lg"
+                    className="mt-4 cap-btn cap-btn-primary"
                   >
                     Schedule a Game
                   </button>
@@ -546,13 +546,13 @@ export default function ManageHomeGamePage() {
                   return (
                     <div
                       key={event.id}
-                      className="bg-white rounded-xl border border-[#E5E7EB] p-4 flex items-center justify-between"
+                      className="cap-panel p-4 flex items-center justify-between"
                     >
                       <div>
-                        <p className="font-semibold text-[#1F2937]">
+                        <p className="font-semibold text-white">
                           {eventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                         </p>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-[#6B7280]">
+                        <div className="flex items-center gap-4 mt-1 text-sm text-[#64748B]">
                           <span className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
                             {eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
@@ -569,7 +569,7 @@ export default function ManageHomeGamePage() {
                       </div>
                       <button
                         onClick={() => handleDeleteEvent(event)}
-                        className="p-2 text-[#EF4444] hover:bg-[#FEF2F2] rounded-lg transition-colors"
+                        className="p-2 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
@@ -584,9 +584,9 @@ export default function ManageHomeGamePage() {
           {activeTab === 'members' && (
             <div className="space-y-4">
               {pendingMembers.length > 0 && (
-                <div className="bg-white rounded-xl border border-[#E5E7EB]">
-                  <div className="p-4 border-b border-[#E5E7EB]">
-                    <h3 className="font-semibold text-[#1F2937]">
+                <div className="cap-panel">
+                  <div className="p-4 border-b border-[#4A5E78]">
+                    <h3 className="font-semibold text-white">
                       Pending Requests ({pendingMembers.length})
                     </h3>
                   </div>
@@ -602,9 +602,9 @@ export default function ManageHomeGamePage() {
                 </div>
               )}
 
-              <div className="bg-white rounded-xl border border-[#E5E7EB]">
-                <div className="p-4 border-b border-[#E5E7EB]">
-                  <h3 className="font-semibold text-[#1F2937]">
+              <div className="cap-panel">
+                <div className="p-4 border-b border-[#4A5E78]">
+                  <h3 className="font-semibold text-white">
                     Members ({approvedMembers.length})
                   </h3>
                 </div>
@@ -624,26 +624,26 @@ export default function ManageHomeGamePage() {
           {activeTab === 'finances' && (
             <div className="space-y-4">
               {/* Balance Overview */}
-              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+              <div className="cap-panel p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-[#1F2937]">Escrow Balance</h3>
+                  <h3 className="font-semibold text-white">Escrow Balance</h3>
                   <div className="flex items-center gap-2">
                     <Wallet className="w-5 h-5 text-[#10B981]" />
                     <span className="text-2xl font-bold text-[#10B981]">${totalHeld.toFixed(2)}</span>
                   </div>
                 </div>
-                <p className="text-sm text-[#6B7280]">
+                <p className="text-sm text-[#64748B]">
                   Funds held in escrow for upcoming games. Release after games are completed.
                 </p>
               </div>
 
               {/* Pending Transactions */}
               {pendingEscrow.length > 0 && (
-                <div className="bg-white rounded-xl border border-[#E5E7EB]">
-                  <div className="p-4 border-b border-[#E5E7EB]">
-                    <h3 className="font-semibold text-[#1F2937]">Pending Transactions ({pendingEscrow.length})</h3>
+                <div className="cap-panel">
+                  <div className="p-4 border-b border-[#4A5E78]">
+                    <h3 className="font-semibold text-white">Pending Transactions ({pendingEscrow.length})</h3>
                   </div>
-                  <div className="divide-y divide-[#E5E7EB]">
+                  <div className="divide-y divide-[#4A5E78]">
                     {pendingEscrow.map((transaction) => (
                       <div key={transaction.id} className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -651,16 +651,16 @@ export default function ManageHomeGamePage() {
                             <ArrowDownLeft className="w-5 h-5 text-[#F59E0B]" />
                           </div>
                           <div>
-                            <p className="font-medium text-[#1F2937]">
+                            <p className="font-medium text-white">
                               {transaction.player_name || 'Player'} - Buy-in
                             </p>
-                            <p className="text-sm text-[#6B7280]">
+                            <p className="text-sm text-[#64748B]">
                               {new Date(transaction.created_at).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="font-semibold text-[#1F2937]">${transaction.amount}</span>
+                          <span className="font-semibold text-white">${transaction.amount}</span>
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleReleaseEscrow(transaction)}
@@ -689,20 +689,20 @@ export default function ManageHomeGamePage() {
               )}
 
               {/* Transaction History */}
-              <div className="bg-white rounded-xl border border-[#E5E7EB]">
-                <div className="p-4 border-b border-[#E5E7EB]">
-                  <h3 className="font-semibold text-[#1F2937]">Transaction History</h3>
+              <div className="cap-panel">
+                <div className="p-4 border-b border-[#4A5E78]">
+                  <h3 className="font-semibold text-white">Transaction History</h3>
                 </div>
                 {completedEscrow.length === 0 && pendingEscrow.length === 0 ? (
                   <div className="p-8 text-center">
-                    <Wallet className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                    <p className="text-[#6B7280]">No transactions yet</p>
-                    <p className="text-sm text-[#9CA3AF] mt-1">
+                    <Wallet className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                    <p className="text-[#64748B]">No transactions yet</p>
+                    <p className="text-sm text-[#4A5E78] mt-1">
                       Player buy-ins will appear here when escrow is enabled
                     </p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-[#E5E7EB]">
+                  <div className="divide-y divide-[#4A5E78]">
                     {completedEscrow.map((transaction) => (
                       <div key={transaction.id} className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -718,10 +718,10 @@ export default function ManageHomeGamePage() {
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-[#1F2937]">
+                            <p className="font-medium text-white">
                               {transaction.player_name || 'Player'}
                             </p>
-                            <p className="text-sm text-[#6B7280]">
+                            <p className="text-sm text-[#64748B]">
                               {transaction.status === 'released' ? 'Released' : 'Refunded'} - {new Date(transaction.updated_at || transaction.created_at).toLocaleDateString()}
                             </p>
                           </div>
@@ -738,11 +738,11 @@ export default function ManageHomeGamePage() {
               </div>
 
               {/* Info Note */}
-              <div className="bg-[#FEF3C7] rounded-xl p-4 flex items-start gap-3">
+              <div className="bg-[#F59E0B]/10 rounded-xl p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-[#F59E0B] flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium text-[#92400E]">How Escrow Works</p>
-                  <p className="text-sm text-[#A16207] mt-1">
+                  <p className="font-medium text-[#F59E0B]">How Escrow Works</p>
+                  <p className="text-sm text-[#F59E0B]/80 mt-1">
                     Players deposit buy-ins before the game. After the game ends, release funds to pay winners or refund if a player couldn't attend.
                   </p>
                 </div>
@@ -754,50 +754,50 @@ export default function ManageHomeGamePage() {
           {activeTab === 'settings' && (
             <div className="space-y-4">
               {/* Basic Settings */}
-              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-                <h3 className="font-semibold text-[#1F2937] mb-4">Group Settings</h3>
+              <div className="cap-panel p-6">
+                <h3 className="font-semibold text-white mb-4">Group Settings</h3>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-[#1F2937] mb-2">Group Name</label>
+                    <label className="block text-sm font-medium text-white mb-2">Group Name</label>
                     <input
                       type="text"
                       value={group?.name || ''}
                       onChange={(e) => setGroup(prev => ({ ...prev, name: e.target.value }))}
                       onBlur={(e) => handleUpdateSettings({ name: e.target.value })}
-                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                      className="w-full h-10 px-3 cap-input"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#1F2937] mb-2">Description</label>
+                    <label className="block text-sm font-medium text-white mb-2">Description</label>
                     <textarea
                       value={group?.description || ''}
                       onChange={(e) => setGroup(prev => ({ ...prev, description: e.target.value }))}
                       onBlur={(e) => handleUpdateSettings({ description: e.target.value })}
                       rows={3}
-                      className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] resize-none"
+                      className="w-full px-3 py-2 cap-input resize-none"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-[#1F2937] mb-2">Default Stakes</label>
+                      <label className="block text-sm font-medium text-white mb-2">Default Stakes</label>
                       <input
                         type="text"
                         value={group?.stakes || ''}
                         onChange={(e) => setGroup(prev => ({ ...prev, stakes: e.target.value }))}
                         onBlur={(e) => handleUpdateSettings({ stakes: e.target.value })}
                         placeholder="$1/$2"
-                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                        className="w-full h-10 px-3 cap-input"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#1F2937] mb-2">Max Players</label>
+                      <label className="block text-sm font-medium text-white mb-2">Max Players</label>
                       <select
                         value={group?.max_players || 9}
                         onChange={(e) => handleUpdateSettings({ max_players: parseInt(e.target.value) })}
-                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                        className="w-full h-10 px-3 cap-input"
                       >
                         {[6, 7, 8, 9, 10].map(n => (
                           <option key={n} value={n}>{n}</option>
@@ -809,29 +809,29 @@ export default function ManageHomeGamePage() {
               </div>
 
               {/* Privacy Settings */}
-              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-                <h3 className="font-semibold text-[#1F2937] mb-4">Privacy</h3>
+              <div className="cap-panel p-6">
+                <h3 className="font-semibold text-white mb-4">Privacy</h3>
 
                 <div className="space-y-3">
-                  <label className="flex items-center justify-between p-3 bg-[#F9FAFB] rounded-lg cursor-pointer">
+                  <label className="flex items-center justify-between p-3 bg-[#0D192E] rounded-lg cursor-pointer">
                     <div>
-                      <p className="font-medium text-[#1F2937]">Require Approval</p>
-                      <p className="text-sm text-[#6B7280]">New members must be approved before joining</p>
+                      <p className="font-medium text-white">Require Approval</p>
+                      <p className="text-sm text-[#64748B]">New members must be approved before joining</p>
                     </div>
                     <input
                       type="checkbox"
                       checked={group?.requires_approval ?? true}
                       onChange={(e) => handleUpdateSettings({ requires_approval: e.target.checked })}
-                      className="w-5 h-5 text-[#1877F2] border-[#E5E7EB] rounded focus:ring-[#1877F2]"
+                      className="w-5 h-5 text-[#22D3EE] border-[#4A5E78] rounded focus:ring-[#22D3EE]"
                     />
                   </label>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#1F2937] mb-2">Visibility</label>
+                    <label className="block text-sm font-medium text-white mb-2">Visibility</label>
                     <select
                       value={group?.visibility || 'private'}
                       onChange={(e) => handleUpdateSettings({ visibility: e.target.value })}
-                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                      className="w-full h-10 px-3 cap-input"
                     >
                       <option value="private">Private - Invite only</option>
                       <option value="friends">Friends - Visible to friends</option>
@@ -842,10 +842,10 @@ export default function ManageHomeGamePage() {
               </div>
 
               {/* Invite Code */}
-              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-                <h3 className="font-semibold text-[#1F2937] mb-4">Invite Code</h3>
+              <div className="cap-panel p-6">
+                <h3 className="font-semibold text-white mb-4">Invite Code</h3>
                 <div className="flex items-center gap-3">
-                  <code className="flex-1 px-4 py-3 bg-[#F9FAFB] rounded-lg font-mono text-lg tracking-wider text-center">
+                  <code className="flex-1 px-4 py-3 bg-[#0D192E] rounded-lg font-mono text-lg tracking-wider text-center">
                     {group?.invite_code || 'N/A'}
                   </code>
                   <button
@@ -855,18 +855,18 @@ export default function ManageHomeGamePage() {
                         alert('Invite code copied!');
                       }
                     }}
-                    className="px-4 py-3 bg-[#1877F2] text-white font-medium rounded-lg hover:bg-[#1664d9]"
+                    className="cap-btn cap-btn-primary px-4 py-3"
                   >
                     Copy
                   </button>
                 </div>
-                <p className="text-sm text-[#6B7280] mt-2">Share this code with players you want to invite</p>
+                <p className="text-sm text-[#64748B] mt-2">Share this code with players you want to invite</p>
               </div>
 
               {/* Danger Zone */}
-              <div className="bg-white rounded-xl border border-[#EF4444]/30 p-6">
+              <div className="cap-panel border border-[#EF4444]/30 p-6">
                 <h3 className="font-semibold text-[#EF4444] mb-4">Danger Zone</h3>
-                <p className="text-sm text-[#6B7280] mb-4">
+                <p className="text-sm text-[#64748B] mb-4">
                   Once you delete a group, there is no going back. All scheduled games and member data will be permanently removed.
                 </p>
                 <button

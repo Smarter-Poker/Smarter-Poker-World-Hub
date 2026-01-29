@@ -1,7 +1,7 @@
 /**
  * Public Tournament Clock Display
  * Full-screen display for TV/wall screens
- * UI: Dark theme for visibility, large fonts
+ * UI: Dark industrial sci-fi gaming theme, large fonts
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -84,7 +84,7 @@ export default function TournamentClockDisplay() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0B1426] flex items-center justify-center">
         <Clock className="w-12 h-12 text-white animate-pulse" />
       </div>
     );
@@ -92,7 +92,7 @@ export default function TournamentClockDisplay() {
 
   if (!tournament) {
     return (
-      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0B1426] flex items-center justify-center">
         <p className="text-white text-xl">Tournament not found</p>
       </div>
     );
@@ -105,11 +105,11 @@ export default function TournamentClockDisplay() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#0F172A] text-white p-8 flex flex-col">
+      <div className="min-h-screen bg-[#0B1426] text-white p-8 flex flex-col">
         {/* Header */}
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white">{tournament.name}</h1>
-          <p className="text-xl text-[#94A3B8] mt-2">
+          <p className="text-xl text-[#64748B] mt-2">
             ${tournament.buyin_amount} + ${tournament.buyin_fee} {tournament.tournament_type?.toUpperCase()}
           </p>
         </header>
@@ -126,7 +126,7 @@ export default function TournamentClockDisplay() {
           ) : (
             <>
               {/* Level Number */}
-              <p className="text-3xl text-[#94A3B8] mb-2">
+              <p className="text-3xl text-[#64748B] mb-2">
                 LEVEL {clockState.currentLevel}
               </p>
 
@@ -146,7 +146,7 @@ export default function TournamentClockDisplay() {
                     {currentLevel.small_blind?.toLocaleString()} / {currentLevel.big_blind?.toLocaleString()}
                     {currentLevel.ante > 0 && ` / ${currentLevel.ante?.toLocaleString()}`}
                   </p>
-                  <p className="text-2xl text-[#94A3B8] mt-2">BLINDS</p>
+                  <p className="text-2xl text-[#64748B] mt-2">BLINDS</p>
                 </div>
               )}
             </>

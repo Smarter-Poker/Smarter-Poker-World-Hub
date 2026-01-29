@@ -1,7 +1,7 @@
 /**
  * Player Check-In Page
  * Players scan QR or enter code to check in at venue
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -108,19 +108,19 @@ export default function PlayerCheckInPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
 
   if (!venue) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
+      <div className="cap-page flex items-center justify-center p-4">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-[#EF4444] mx-auto mb-3" />
-          <p className="text-[#1F2937] font-medium">Venue not found</p>
-          <p className="text-sm text-[#6B7280] mt-1">Please check the QR code and try again</p>
+          <p className="text-white font-medium">Venue not found</p>
+          <p className="text-sm text-[#64748B] mt-1">Please check the QR code and try again</p>
         </div>
       </div>
     );
@@ -134,20 +134,22 @@ export default function PlayerCheckInPage() {
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         </Head>
 
-        <div className="min-h-screen bg-[#10B981] flex items-center justify-center p-4">
+        <div className="cap-page flex items-center justify-center p-4">
           <div className="text-center text-white">
-            <CheckCircle className="w-20 h-20 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold mb-2">You're Checked In!</h1>
-            <p className="text-white/80 mb-6">Welcome to {venue.name}</p>
+            <div className="cap-icon-box cap-icon-box-glow mx-auto mb-6" style={{ width: 80, height: 80, borderColor: '#10B981', boxShadow: '0 0 20px rgba(16, 185, 129, 0.4), 0 0 40px rgba(16, 185, 129, 0.15), inset 0 0 15px rgba(16, 185, 129, 0.1), inset 0 2px 6px rgba(0,0,0,0.4)' }}>
+              <CheckCircle className="w-10 h-10 text-[#10B981]" />
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-wider mb-2" style={{ textShadow: '0 0 15px rgba(16, 185, 129, 0.5), 0 0 30px rgba(16, 185, 129, 0.2)' }}>You're Checked In!</h1>
+            <p className="text-[#64748B] mb-6">Welcome to {venue.name}</p>
 
-            <div className="bg-white/10 rounded-xl p-4 mb-6">
-              <p className="text-sm text-white/80 mb-1">Your session has started</p>
-              <p className="text-lg font-semibold">{new Date().toLocaleTimeString()}</p>
+            <div className="cap-panel mb-6" style={{ borderColor: '#10B981', boxShadow: '0 0 20px rgba(16, 185, 129, 0.15), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(16, 185, 129, 0.15), inset 0 -2px 0 rgba(0,0,0,0.3)' }}>
+              <p className="text-sm text-[#64748B] mb-1">Your session has started</p>
+              <p className="text-lg font-semibold text-[#10B981]" style={{ textShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }}>{new Date().toLocaleTimeString()}</p>
             </div>
 
             <button
               onClick={handleJoinWaitlist}
-              className="w-full max-w-xs mx-auto h-12 bg-white text-[#10B981] font-semibold rounded-lg hover:bg-white/90 transition-colors"
+              className="cap-btn cap-btn-success w-full max-w-xs mx-auto"
             >
               Join a Game Waitlist
             </button>
@@ -167,36 +169,38 @@ export default function PlayerCheckInPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-[#1877F2] text-white p-6">
+        <header className="cap-header-full p-6">
           <div className="max-w-lg mx-auto text-center">
-            <MapPin className="w-8 h-8 mx-auto mb-2" />
-            <h1 className="text-2xl font-bold">{venue.name}</h1>
+            <div className="cap-icon-box cap-icon-box-glow mx-auto mb-3">
+              <MapPin className="w-6 h-6" />
+            </div>
+            <h1 className="text-xl font-extrabold text-white tracking-wider">{venue.name}</h1>
             {venue.city && (
-              <p className="text-white/80">{venue.city}, {venue.state}</p>
+              <p className="text-[#64748B] mt-1">{venue.city}, {venue.state}</p>
             )}
           </div>
         </header>
 
         <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
           {error && (
-            <div className="p-4 bg-[#FEF2F2] rounded-xl flex items-start gap-3">
+            <div className="p-4 bg-[#EF4444]/10 border-2 border-[#EF4444] rounded-xl flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-[#EF4444] flex-shrink-0 mt-0.5" />
               <p className="text-sm text-[#EF4444]">{error}</p>
             </div>
           )}
 
           {/* Check-in Button */}
-          <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 text-center">
-            <h2 className="text-lg font-semibold text-[#1F2937] mb-2">Ready to Play?</h2>
-            <p className="text-sm text-[#6B7280] mb-4">
+          <div className="cap-panel text-center">
+            <h2 className="font-bold text-white uppercase tracking-wide text-sm mb-2">Ready to Play?</h2>
+            <p className="text-sm text-[#64748B] mb-4">
               Check in to start tracking your session and earn rewards
             </p>
             <button
               onClick={handleCheckIn}
               disabled={checkingIn}
-              className="w-full h-14 bg-[#1877F2] text-white text-lg font-semibold rounded-xl hover:bg-[#1664d9] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="cap-btn cap-btn-primary w-full disabled:opacity-50"
             >
               {checkingIn ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
@@ -211,37 +215,37 @@ export default function PlayerCheckInPage() {
 
           {/* Live Games */}
           {activeGames.length > 0 && (
-            <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
-              <div className="p-4 border-b border-[#E5E7EB]">
-                <h3 className="font-semibold text-[#1F2937] flex items-center gap-2">
-                  <Users className="w-5 h-5 text-[#1877F2]" />
+            <div className="cap-panel overflow-hidden !p-0">
+              <div className="p-4 border-b border-[#4A5E78]">
+                <h3 className="font-bold text-white uppercase tracking-wide text-sm flex items-center gap-2">
+                  <Users className="w-5 h-5 text-[#22D3EE]" />
                   Live Games ({activeGames.length})
                 </h3>
               </div>
-              <div className="divide-y divide-[#E5E7EB]">
+              <div className="divide-y divide-[#4A5E78]">
                 {activeGames.slice(0, 5).map((game) => (
                   <div key={game.id} className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-[#1F2937]">
+                      <p className="font-medium text-white">
                         {game.stakes} {game.game_type?.toUpperCase()}
                       </p>
-                      <p className="text-sm text-[#6B7280]">
+                      <p className="text-sm text-[#64748B]">
                         Table {game.table_number}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-[#1F2937]">
+                      <p className="font-medium text-white">
                         {game.player_count || 0}/{game.max_players}
                       </p>
-                      <p className="text-sm text-[#6B7280]">players</p>
+                      <p className="text-sm text-[#64748B]">players</p>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="p-4 bg-[#F9FAFB]">
+              <div className="p-4 bg-[#0F1C32]">
                 <button
                   onClick={handleJoinWaitlist}
-                  className="w-full h-10 border border-[#1877F2] text-[#1877F2] font-medium rounded-lg hover:bg-[#1877F2]/5 transition-colors"
+                  className="cap-btn cap-btn-secondary w-full"
                 >
                   View Waitlist
                 </button>
@@ -251,22 +255,22 @@ export default function PlayerCheckInPage() {
 
           {/* Active Promotions */}
           {activePromos.length > 0 && (
-            <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
-              <div className="p-4 border-b border-[#E5E7EB]">
-                <h3 className="font-semibold text-[#1F2937] flex items-center gap-2">
+            <div className="cap-panel overflow-hidden !p-0">
+              <div className="p-4 border-b border-[#4A5E78]">
+                <h3 className="font-bold text-white uppercase tracking-wide text-sm flex items-center gap-2">
                   <Gift className="w-5 h-5 text-[#F59E0B]" />
                   Active Promotions
                 </h3>
               </div>
-              <div className="divide-y divide-[#E5E7EB]">
+              <div className="divide-y divide-[#4A5E78]">
                 {activePromos.slice(0, 3).map((promo) => (
                   <div key={promo.id} className="p-4">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-medium text-[#1F2937]">{promo.name}</p>
-                        <p className="text-sm text-[#6B7280]">{promo.frequency}</p>
+                        <p className="font-medium text-white">{promo.name}</p>
+                        <p className="text-sm text-[#64748B]">{promo.frequency}</p>
                       </div>
-                      <span className="text-lg font-bold text-[#10B981]">
+                      <span className="text-lg font-bold text-[#10B981]" style={{ textShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }}>
                         ${promo.prize_amount}
                       </span>
                     </div>
@@ -277,7 +281,7 @@ export default function PlayerCheckInPage() {
           )}
 
           {/* Info */}
-          <div className="text-center text-sm text-[#6B7280]">
+          <div className="text-center text-sm text-[#64748B]">
             <p>By checking in, you agree to the venue's terms and conditions.</p>
             <p className="mt-1">Need help? Ask any staff member.</p>
           </div>

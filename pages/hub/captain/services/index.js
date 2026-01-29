@@ -1,7 +1,7 @@
 /**
  * Player In-Seat Service Requests Page
  * Request food, chips, table change, floor assistance
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -34,7 +34,7 @@ const SERVICE_TYPES = [
     label: 'Chips',
     description: 'Request a chip runner',
     icon: Coins,
-    color: '#1877F2'
+    color: '#22D3EE'
   },
   {
     type: 'table_change',
@@ -66,62 +66,62 @@ function ServiceTypeCard({ service, onSelect, disabled }) {
     <button
       onClick={() => onSelect(service.type)}
       disabled={disabled}
-      className="w-full bg-white rounded-xl border border-[#E5E7EB] p-4 text-left hover:border-[#1877F2] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full cap-panel p-4 text-left hover:border-[#22D3EE] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <div className="flex items-center gap-4">
         <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: `${service.color}15` }}
+          className="w-12 h-12 rounded-xl flex items-center justify-center border-2 bg-[#0A1525]"
+          style={{ borderColor: `${service.color}40` }}
         >
           <Icon className="w-6 h-6" style={{ color: service.color }} />
         </div>
         <div className="flex-1">
-          <p className="font-medium text-[#1F2937]">{service.label}</p>
-          <p className="text-sm text-[#6B7280]">{service.description}</p>
+          <p className="font-medium text-white">{service.label}</p>
+          <p className="text-sm text-[#64748B]">{service.description}</p>
         </div>
-        <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
+        <ChevronRight className="w-5 h-5 text-[#64748B]" />
       </div>
     </button>
   );
 }
 
 function ActiveRequestCard({ request, onCancel }) {
-  const statusColors = {
-    pending: 'bg-[#F59E0B]/10 text-[#F59E0B]',
-    in_progress: 'bg-[#1877F2]/10 text-[#1877F2]',
-    completed: 'bg-[#10B981]/10 text-[#10B981]',
-    cancelled: 'bg-[#6B7280]/10 text-[#6B7280]'
+  const statusBadge = {
+    pending: 'cap-badge cap-badge-warning',
+    in_progress: 'cap-badge cap-badge-primary',
+    completed: 'cap-badge cap-badge-live',
+    cancelled: 'cap-badge cap-badge-chrome'
   };
 
   const serviceType = SERVICE_TYPES.find(s => s.type === request.request_type);
   const Icon = serviceType?.icon || Coffee;
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+    <div className="cap-panel p-4">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: `${serviceType?.color || '#6B7280'}15` }}
+            className="w-10 h-10 rounded-lg flex items-center justify-center border-2 bg-[#0A1525]"
+            style={{ borderColor: `${serviceType?.color || '#6B7280'}40` }}
           >
             <Icon className="w-5 h-5" style={{ color: serviceType?.color || '#6B7280' }} />
           </div>
           <div>
-            <p className="font-medium text-[#1F2937]">{serviceType?.label || 'Request'}</p>
-            <p className="text-sm text-[#6B7280]">Table {request.table_number}, Seat {request.seat_number}</p>
+            <p className="font-medium text-white">{serviceType?.label || 'Request'}</p>
+            <p className="text-sm text-[#64748B]">Table {request.table_number}, Seat {request.seat_number}</p>
           </div>
         </div>
-        <span className={`px-2 py-1 rounded text-xs font-medium capitalize ${statusColors[request.status]}`}>
+        <span className={`${statusBadge[request.status] || 'cap-badge cap-badge-chrome'}`}>
           {request.status?.replace('_', ' ')}
         </span>
       </div>
 
       {request.details && (
-        <p className="text-sm text-[#6B7280] mb-3">{request.details}</p>
+        <p className="text-sm text-[#64748B] mb-3">{request.details}</p>
       )}
 
       <div className="flex items-center justify-between">
-        <span className="text-sm text-[#9CA3AF] flex items-center gap-1">
+        <span className="text-sm text-[#64748B] flex items-center gap-1">
           <Clock className="w-4 h-4" />
           {new Date(request.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
         </span>
@@ -158,23 +158,23 @@ function RequestModal({ type, session, onSubmit, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end z-50">
-      <div className="w-full max-w-lg mx-auto bg-white rounded-t-2xl p-6">
+    <div className="fixed inset-0 bg-black/70 flex items-end z-50">
+      <div className="w-full max-w-lg mx-auto cap-panel rounded-t-2xl rounded-b-none p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-[#1F2937]">{serviceType?.label}</h2>
+          <h2 className="text-xl font-bold text-white">{serviceType?.label}</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#0A1525] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#6B7280]" />
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         <div className="space-y-4">
           {/* Current Location */}
-          <div className="bg-[#F3F4F6] rounded-xl p-4">
-            <p className="text-sm text-[#6B7280]">Your Location</p>
-            <p className="font-medium text-[#1F2937]">
+          <div className="cap-inset rounded-xl p-4">
+            <p className="text-sm text-[#64748B]">Your Location</p>
+            <p className="font-medium text-white">
               Table {session.table_number}, Seat {session.seat_number}
             </p>
           </div>
@@ -182,7 +182,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
           {/* Type-specific inputs */}
           {type === 'chips' && (
             <div>
-              <label className="block text-sm font-medium text-[#1F2937] mb-2">
+              <label className="block text-sm font-medium text-white mb-2">
                 Amount
               </label>
               <div className="grid grid-cols-4 gap-2 mb-3">
@@ -190,10 +190,10 @@ function RequestModal({ type, session, onSubmit, onClose }) {
                   <button
                     key={amt}
                     onClick={() => setChipAmount(amt)}
-                    className={`py-3 rounded-lg border text-sm font-medium transition-colors ${
+                    className={`py-3 rounded-lg border-2 text-sm font-medium transition-colors ${
                       chipAmount === amt
-                        ? 'border-[#1877F2] bg-[#1877F2]/5 text-[#1877F2]'
-                        : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#1877F2]'
+                        ? 'border-[#22D3EE] bg-[#22D3EE]/5 text-[#22D3EE]'
+                        : 'border-[#4A5E78] text-[#64748B] hover:border-[#22D3EE]'
                     }`}
                   >
                     ${amt}
@@ -205,14 +205,14 @@ function RequestModal({ type, session, onSubmit, onClose }) {
                 value={chipAmount}
                 onChange={(e) => setChipAmount(e.target.value)}
                 placeholder="Custom amount"
-                className="w-full h-12 px-4 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                className="cap-input h-12"
               />
             </div>
           )}
 
           {type === 'food' && (
             <div>
-              <label className="block text-sm font-medium text-[#1F2937] mb-2">
+              <label className="block text-sm font-medium text-white mb-2">
                 What would you like?
               </label>
               <textarea
@@ -220,14 +220,14 @@ function RequestModal({ type, session, onSubmit, onClose }) {
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="e.g., Coffee, black. Burger with fries."
                 rows={3}
-                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1877F2] resize-none"
+                className="w-full px-4 py-3 bg-[#0A1525] border-2 border-[#4A5E78] rounded-xl text-white placeholder-[#64748B] focus:outline-none focus:border-[#22D3EE] resize-none transition-colors"
               />
             </div>
           )}
 
           {type === 'table_change' && (
             <div>
-              <label className="block text-sm font-medium text-[#1F2937] mb-2">
+              <label className="block text-sm font-medium text-white mb-2">
                 Preference (optional)
               </label>
               <textarea
@@ -235,14 +235,14 @@ function RequestModal({ type, session, onSubmit, onClose }) {
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="e.g., Prefer table near window, quieter table"
                 rows={2}
-                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1877F2] resize-none"
+                className="w-full px-4 py-3 bg-[#0A1525] border-2 border-[#4A5E78] rounded-xl text-white placeholder-[#64748B] focus:outline-none focus:border-[#22D3EE] resize-none transition-colors"
               />
             </div>
           )}
 
           {type === 'floor' && (
             <div>
-              <label className="block text-sm font-medium text-[#1F2937] mb-2">
+              <label className="block text-sm font-medium text-white mb-2">
                 What do you need help with?
               </label>
               <textarea
@@ -250,15 +250,15 @@ function RequestModal({ type, session, onSubmit, onClose }) {
                 onChange={(e) => setDetails(e.target.value)}
                 placeholder="Briefly describe the issue"
                 rows={3}
-                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1877F2] resize-none"
+                className="w-full px-4 py-3 bg-[#0A1525] border-2 border-[#4A5E78] rounded-xl text-white placeholder-[#64748B] focus:outline-none focus:border-[#22D3EE] resize-none transition-colors"
               />
             </div>
           )}
 
           {type === 'cashout' && (
-            <div className="bg-[#10B981]/10 rounded-xl p-4">
+            <div className="cap-inset rounded-xl p-4">
               <p className="text-[#10B981] font-medium">Ready to cash out?</p>
-              <p className="text-sm text-[#6B7280] mt-1">
+              <p className="text-sm text-[#64748B] mt-1">
                 A chip runner will come to collect your chips and bring your cash.
               </p>
             </div>
@@ -267,7 +267,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
           <button
             onClick={handleSubmit}
             disabled={loading || (type === 'chips' && !chipAmount)}
-            className="w-full h-14 bg-[#1877F2] text-white text-lg font-semibold rounded-xl hover:bg-[#1665D8] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="cap-btn cap-btn-primary w-full h-14 text-lg disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -373,8 +373,8 @@ export default function ServicesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
@@ -385,16 +385,18 @@ export default function ServicesPage() {
         <Head>
           <title>Services | Smarter Poker</title>
         </Head>
-        <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center px-4">
+        <div className="cap-page flex items-center justify-center px-4">
           <div className="text-center">
-            <AlertCircle className="w-16 h-16 text-[#F59E0B] mx-auto mb-4" />
-            <h1 className="text-xl font-bold text-[#1F2937] mb-2">Not Currently Seated</h1>
-            <p className="text-[#6B7280] mb-6">
+            <div className="cap-icon-box mx-auto mb-4">
+              <AlertCircle className="w-7 h-7 text-[#F59E0B]" />
+            </div>
+            <h1 className="text-xl font-bold text-white mb-2">Not Currently Seated</h1>
+            <p className="text-[#64748B] mb-6">
               You need to be seated at a table to request services.
             </p>
             <button
               onClick={() => router.push('/hub/captain/venues')}
-              className="px-6 py-3 bg-[#1877F2] text-white rounded-xl font-medium hover:bg-[#1665D8] transition-colors"
+              className="cap-btn cap-btn-primary"
             >
               Find a Game
             </button>
@@ -411,9 +413,9 @@ export default function ServicesPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-[#1877F2] text-white">
+        <header className="cap-header-full text-white">
           <div className="max-w-lg mx-auto px-4 py-6">
             <h1 className="text-xl font-bold">In-Seat Services</h1>
             <p className="text-white/80 text-sm flex items-center gap-1 mt-1">
@@ -427,7 +429,7 @@ export default function ServicesPage() {
           {/* Active Requests */}
           {activeRequests.length > 0 && (
             <section>
-              <h2 className="font-semibold text-[#1F2937] mb-3">Active Requests</h2>
+              <h2 className="font-semibold text-white mb-3">Active Requests</h2>
               <div className="space-y-3">
                 {activeRequests.map(request => (
                   <ActiveRequestCard
@@ -442,7 +444,7 @@ export default function ServicesPage() {
 
           {/* Service Types */}
           <section>
-            <h2 className="font-semibold text-[#1F2937] mb-3">Request Service</h2>
+            <h2 className="font-semibold text-white mb-3">Request Service</h2>
             <div className="space-y-3">
               {SERVICE_TYPES.map(service => (
                 <ServiceTypeCard
@@ -456,8 +458,8 @@ export default function ServicesPage() {
           </section>
 
           {/* Info */}
-          <div className="bg-[#1877F2]/5 rounded-xl p-4">
-            <p className="text-sm text-[#6B7280]">
+          <div className="cap-inset rounded-xl p-4">
+            <p className="text-sm text-[#64748B]">
               Your requests will be sent to the poker room staff. Average response time is 3-5 minutes.
             </p>
           </div>

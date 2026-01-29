@@ -1,7 +1,7 @@
 /**
  * Venue Detail Page - View games and join waitlist
  * Reference: SCOPE_LOCK.md - Phase 1 UI Pages
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -109,20 +109,26 @@ export default function VenueDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <RefreshCw className="w-8 h-8 text-[#1877F2] animate-spin" />
+      <div className="cap-page flex items-center justify-center">
+        <RefreshCw className="w-8 h-8 text-[#22D3EE] animate-spin" />
       </div>
     );
   }
 
   if (!venue) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-[#6B7280] mb-4">Venue not found</p>
+      <div className="cap-page flex items-center justify-center">
+        <div className="cap-panel p-6 text-center">
+          <div className="cap-rivets">
+            <div className="cap-rivet cap-rivet-tl" />
+            <div className="cap-rivet cap-rivet-tr" />
+            <div className="cap-rivet cap-rivet-bl" />
+            <div className="cap-rivet cap-rivet-br" />
+          </div>
+          <p className="text-[#64748B] mb-4">Venue not found</p>
           <Link
             href="/hub/captain"
-            className="text-[#1877F2] font-medium hover:underline"
+            className="text-[#22D3EE] font-medium hover:underline"
           >
             Back to venues
           </Link>
@@ -137,12 +143,14 @@ export default function VenueDetail() {
         <title>{venue.name} | Live Poker</title>
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Notification Banner */}
         {message && (
           <div
             className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${
-              message.type === 'success' ? 'bg-[#10B981]' : 'bg-[#EF4444]'
+              message.type === 'success'
+                ? 'bg-[#0F172A] border-b border-[#10B981]/40 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                : 'bg-[#0F172A] border-b border-[#EF4444]/40 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
             }`}
           >
             {message.text}
@@ -150,19 +158,19 @@ export default function VenueDetail() {
         )}
 
         {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB]">
+        <header className="cap-header-full">
           <div className="max-w-3xl mx-auto px-4 py-4">
             <Link
               href="/hub/captain"
-              className="inline-flex items-center gap-2 text-[#6B7280] hover:text-[#1F2937] mb-3"
+              className="inline-flex items-center gap-2 text-[#64748B] hover:text-[#22D3EE] mb-3"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
             </Link>
 
-            <h1 className="text-xl font-bold text-[#1F2937]">{venue.name}</h1>
+            <h1 className="text-xl font-bold text-white">{venue.name}</h1>
 
-            <div className="flex flex-wrap gap-4 mt-2 text-sm text-[#6B7280]">
+            <div className="flex flex-wrap gap-4 mt-2 text-sm text-[#64748B]">
               <span className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
                 {venue.city}, {venue.state}
@@ -170,7 +178,7 @@ export default function VenueDetail() {
               {venue.phone && (
                 <a
                   href={`tel:${venue.phone}`}
-                  className="flex items-center gap-1 text-[#1877F2]"
+                  className="flex items-center gap-1 text-[#22D3EE]"
                 >
                   <Phone className="w-4 h-4" />
                   {venue.phone}
@@ -181,7 +189,7 @@ export default function VenueDetail() {
                   href={venue.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[#1877F2]"
+                  className="flex items-center gap-1 text-[#22D3EE]"
                 >
                   <Globe className="w-4 h-4" />
                   Website
@@ -194,12 +202,18 @@ export default function VenueDetail() {
         <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
           {/* Live Games */}
           <section>
-            <h2 className="text-lg font-semibold text-[#1F2937] mb-3">Live Games</h2>
+            <h2 className="text-lg font-semibold text-white mb-3">Live Games</h2>
 
             {games.length === 0 ? (
-              <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 text-center">
-                <Users className="w-8 h-8 mx-auto mb-2 text-[#6B7280] opacity-50" />
-                <p className="text-[#6B7280]">No live games right now</p>
+              <div className="cap-panel p-6 text-center relative">
+                <div className="cap-rivets">
+                  <div className="cap-rivet cap-rivet-tl" />
+                  <div className="cap-rivet cap-rivet-tr" />
+                  <div className="cap-rivet cap-rivet-bl" />
+                  <div className="cap-rivet cap-rivet-br" />
+                </div>
+                <Users className="w-8 h-8 mx-auto mb-2 text-[#64748B] opacity-50" />
+                <p className="text-[#64748B]">No live games right now</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -212,24 +226,36 @@ export default function VenueDetail() {
                   return (
                     <div
                       key={game.id}
-                      className="bg-white rounded-lg border border-[#E5E7EB] p-4"
+                      className="cap-panel p-4 relative"
                     >
+                      <div className="cap-rivets">
+                        <div className="cap-rivet cap-rivet-tl" />
+                        <div className="cap-rivet cap-rivet-tr" />
+                        <div className="cap-rivet cap-rivet-bl" />
+                        <div className="cap-rivet cap-rivet-br" />
+                      </div>
+                      <div className="cap-corner-lights">
+                        <span className="cap-light" />
+                        <span className="cap-light" />
+                        <span className="cap-light" />
+                        <span className="cap-light" />
+                      </div>
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-[#1F2937]">
+                            <span className="font-semibold text-white">
                               {game.game_type?.toUpperCase()} {game.stakes}
                             </span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            <span className={`cap-badge ${
                               game.status === 'running'
-                                ? 'bg-[#10B981]/10 text-[#10B981]'
-                                : 'bg-[#F59E0B]/10 text-[#F59E0B]'
+                                ? 'cap-badge-live'
+                                : 'cap-badge-warning'
                             }`}>
                               {game.status === 'running' ? 'Running' : 'Waiting'}
                             </span>
                           </div>
                           {game.captain_tables && (
-                            <p className="text-sm text-[#6B7280] mt-1">
+                            <p className="text-sm text-[#64748B] mt-1">
                               Table {game.captain_tables.table_number}
                             </p>
                           )}
@@ -237,7 +263,7 @@ export default function VenueDetail() {
                       </div>
 
                       <div className="flex items-center gap-4 mt-3">
-                        <div className="flex items-center gap-1 text-sm text-[#1F2937]">
+                        <div className="flex items-center gap-1 text-sm text-white">
                           <Users className="w-4 h-4" />
                           <span>{occupiedSeats}/{game.max_players || 9} seated</span>
                         </div>
@@ -252,7 +278,7 @@ export default function VenueDetail() {
                       <button
                         onClick={() => handleJoinWaitlist(game.game_type, game.stakes)}
                         disabled={joining === `${game.game_type}-${game.stakes}`}
-                        className="mt-4 w-full py-3 bg-[#1877F2] text-white rounded-lg font-medium hover:bg-[#1664d9] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                        className="cap-btn cap-btn-primary mt-4 w-full py-3 flex items-center justify-center gap-2"
                       >
                         {joining === `${game.game_type}-${game.stakes}` ? (
                           <>
@@ -276,17 +302,23 @@ export default function VenueDetail() {
           {/* Waitlists Summary */}
           {waitlists.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-[#1F2937] mb-3">Waitlists</h2>
+              <h2 className="text-lg font-semibold text-white mb-3">Waitlists</h2>
               <div className="grid grid-cols-2 gap-3">
                 {waitlists.map((wl) => (
                   <div
                     key={`${wl.game_type}-${wl.stakes}`}
-                    className="bg-white rounded-lg border border-[#E5E7EB] p-4"
+                    className="cap-panel p-4 relative"
                   >
-                    <p className="font-medium text-[#1F2937]">
+                    <div className="cap-rivets">
+                      <div className="cap-rivet cap-rivet-tl" />
+                      <div className="cap-rivet cap-rivet-tr" />
+                      <div className="cap-rivet cap-rivet-bl" />
+                      <div className="cap-rivet cap-rivet-br" />
+                    </div>
+                    <p className="font-medium text-white">
                       {wl.game_type?.toUpperCase()} {wl.stakes}
                     </p>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-[#6B7280]">
+                    <div className="flex items-center gap-4 mt-2 text-sm text-[#64748B]">
                       <span className="flex items-center gap-1">
                         <Users className="w-4 h-4" />
                         {wl.count}

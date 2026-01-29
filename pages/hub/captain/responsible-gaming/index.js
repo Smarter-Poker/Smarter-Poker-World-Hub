@@ -1,7 +1,7 @@
 /**
  * Responsible Gaming Page
  * Self-exclusion and spending limits
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  * Per DATABASE_SCHEMA.sql: captain_self_exclusions, captain_spending_limits
  */
 import { useState, useEffect } from 'react';
@@ -22,14 +22,14 @@ import {
 
 function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
   return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+    <div className="cap-panel p-4">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 bg-[#1877F2]/10 rounded-lg flex items-center justify-center">
-          <Icon className="w-5 h-5 text-[#1877F2]" />
+        <div className="cap-icon-box cap-icon-box-square w-10 h-10">
+          <Icon className="w-5 h-5 text-[#22D3EE]" />
         </div>
         <div>
-          <p className="font-medium text-[#1F2937]">{label}</p>
-          <p className="text-sm text-[#6B7280]">
+          <p className="font-medium text-white">{label}</p>
+          <p className="text-sm text-[#64748B]">
             {value ? `${unit}${value.toLocaleString()}` : 'No limit set'}
           </p>
         </div>
@@ -41,9 +41,9 @@ function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
         step={max / 20}
         value={value || 0}
         onChange={(e) => onChange(parseInt(e.target.value) || null)}
-        className="w-full h-2 bg-[#E5E7EB] rounded-lg appearance-none cursor-pointer accent-[#1877F2]"
+        className="w-full h-2 bg-[#1A2E4A] rounded-lg appearance-none cursor-pointer accent-[#1877F2]"
       />
-      <div className="flex justify-between text-xs text-[#9CA3AF] mt-1">
+      <div className="flex justify-between text-xs text-[#64748B] mt-1">
         <span>No limit</span>
         <span>{unit}{max.toLocaleString()}</span>
       </div>
@@ -55,16 +55,16 @@ function ExclusionOption({ duration, label, description, selected, onSelect }) {
   return (
     <button
       onClick={() => onSelect(duration)}
-      className={`w-full p-4 rounded-xl border text-left transition-colors ${
+      className={`w-full text-left transition-all ${
         selected
-          ? 'border-[#EF4444] bg-[#EF4444]/5'
-          : 'border-[#E5E7EB] hover:border-[#EF4444]'
+          ? 'cap-panel border-[#EF4444] shadow-[0_0_15px_rgba(239,68,68,0.3)]'
+          : 'cap-panel hover:border-[#EF4444]'
       }`}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between p-4">
         <div>
-          <p className="font-medium text-[#1F2937]">{label}</p>
-          <p className="text-sm text-[#6B7280]">{description}</p>
+          <p className="font-medium text-white">{label}</p>
+          <p className="text-sm text-[#64748B]">{description}</p>
         </div>
         {selected && <Check className="w-5 h-5 text-[#EF4444]" />}
       </div>
@@ -196,8 +196,8 @@ export default function ResponsibleGamingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
@@ -209,12 +209,14 @@ export default function ResponsibleGamingPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Save Message */}
         {saveMessage && (
           <div
-            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${
-              saveMessage.type === 'success' ? 'bg-[#10B981]' : 'bg-[#EF4444]'
+            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium border-b ${
+              saveMessage.type === 'success'
+                ? 'bg-[#0A1929] border-[#10B981] shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                : 'bg-[#0A1929] border-[#EF4444] shadow-[0_0_15px_rgba(239,68,68,0.3)]'
             }`}
           >
             {saveMessage.text}
@@ -222,21 +224,21 @@ export default function ResponsibleGamingPage() {
         )}
 
         {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
+        <header className="cap-header-full sticky top-0 z-40">
           <div className="max-w-lg mx-auto px-4 py-4">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.back()}
-                className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#1A2E4A] rounded-lg transition-colors"
               >
-                <ChevronLeft className="w-5 h-5 text-[#6B7280]" />
+                <ChevronLeft className="w-5 h-5 text-[#64748B]" />
               </button>
               <div>
-                <h1 className="text-xl font-bold text-[#1F2937] flex items-center gap-2">
-                  <Shield className="w-6 h-6 text-[#1877F2]" />
+                <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Shield className="w-6 h-6 text-[#22D3EE]" />
                   Responsible Gaming
                 </h1>
-                <p className="text-sm text-[#6B7280]">Manage your limits and controls</p>
+                <p className="text-sm text-[#64748B]">Manage your limits and controls</p>
               </div>
             </div>
           </div>
@@ -245,18 +247,18 @@ export default function ResponsibleGamingPage() {
         <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
           {/* Active Exclusion Warning */}
           {activeExclusion && (
-            <div className="bg-[#EF4444]/10 border border-[#EF4444] rounded-xl p-4">
+            <div className="cap-panel border-[#EF4444] shadow-[0_0_15px_rgba(239,68,68,0.3)] p-4">
               <div className="flex items-start gap-3">
                 <Lock className="w-6 h-6 text-[#EF4444] flex-shrink-0" />
                 <div>
                   <p className="font-semibold text-[#EF4444]">Self-Exclusion Active</p>
-                  <p className="text-sm text-[#6B7280] mt-1">
+                  <p className="text-sm text-[#64748B] mt-1">
                     {activeExclusion.type === 'permanent'
                       ? 'You have permanently self-excluded from all poker activities.'
                       : `Your exclusion expires on ${new Date(activeExclusion.expires_at).toLocaleDateString()}`
                     }
                   </p>
-                  <p className="text-xs text-[#9CA3AF] mt-2">
+                  <p className="text-xs text-[#64748B] mt-2">
                     This cannot be reversed early. Contact support for assistance.
                   </p>
                 </div>
@@ -266,7 +268,7 @@ export default function ResponsibleGamingPage() {
 
           {/* Spending Limits */}
           <section>
-            <h2 className="font-semibold text-[#1F2937] mb-3">Spending Limits</h2>
+            <h2 className="font-semibold text-white mb-3">Spending Limits</h2>
             <div className="space-y-3">
               <LimitCard
                 icon={Calendar}
@@ -294,7 +296,7 @@ export default function ResponsibleGamingPage() {
 
           {/* Session Limits */}
           <section>
-            <h2 className="font-semibold text-[#1F2937] mb-3">Session Limits</h2>
+            <h2 className="font-semibold text-white mb-3">Session Limits</h2>
             <div className="space-y-3">
               <LimitCard
                 icon={Clock}
@@ -305,7 +307,7 @@ export default function ResponsibleGamingPage() {
                 unit=""
               />
               {limits.session_duration_limit && (
-                <p className="text-sm text-[#6B7280] px-1">
+                <p className="text-sm text-[#64748B] px-1">
                   You will receive an alert after {limits.session_duration_limit} minutes of play
                 </p>
               )}
@@ -320,20 +322,20 @@ export default function ResponsibleGamingPage() {
           </section>
 
           {/* Alerts Toggle */}
-          <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+          <div className="cap-panel p-4">
             <label className="flex items-center justify-between cursor-pointer">
               <div className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-[#6B7280]" />
+                <Bell className="w-5 h-5 text-[#64748B]" />
                 <div>
-                  <p className="font-medium text-[#1F2937]">Enable Alerts</p>
-                  <p className="text-sm text-[#6B7280]">Get notified when approaching limits</p>
+                  <p className="font-medium text-white">Enable Alerts</p>
+                  <p className="text-sm text-[#64748B]">Get notified when approaching limits</p>
                 </div>
               </div>
               <input
                 type="checkbox"
                 checked={limits.alerts_enabled}
                 onChange={(e) => setLimits(prev => ({ ...prev, alerts_enabled: e.target.checked }))}
-                className="w-5 h-5 rounded border-[#E5E7EB] text-[#1877F2] focus:ring-[#1877F2]"
+                className="w-5 h-5 rounded border-[#1A2E4A] accent-[#22D3EE]"
               />
             </label>
           </div>
@@ -342,7 +344,7 @@ export default function ResponsibleGamingPage() {
           <button
             onClick={handleSaveLimits}
             disabled={saving}
-            className="w-full h-14 bg-[#1877F2] text-white text-lg font-semibold rounded-xl hover:bg-[#1665D8] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="cap-btn cap-btn-primary w-full flex items-center justify-center gap-2"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Limits'}
           </button>
@@ -350,11 +352,11 @@ export default function ResponsibleGamingPage() {
           {/* Self-Exclusion Section */}
           {!activeExclusion && (
             <section>
-              <h2 className="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+              <h2 className="font-semibold text-white mb-3 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-[#EF4444]" />
                 Self-Exclusion
               </h2>
-              <p className="text-sm text-[#6B7280] mb-4">
+              <p className="text-sm text-[#64748B] mb-4">
                 If you need a break from poker, you can temporarily or permanently exclude yourself from all Smarter Captain venues.
               </p>
               <div className="space-y-2">
@@ -398,7 +400,7 @@ export default function ResponsibleGamingPage() {
               {exclusion && (
                 <button
                   onClick={() => setShowExclusionConfirm(true)}
-                  className="w-full mt-4 h-14 bg-[#EF4444] text-white text-lg font-semibold rounded-xl hover:bg-[#DC2626] transition-colors"
+                  className="cap-btn cap-btn-danger w-full mt-4"
                 >
                   Confirm Self-Exclusion
                 </button>
@@ -407,34 +409,45 @@ export default function ResponsibleGamingPage() {
           )}
 
           {/* Resources */}
-          <section className="bg-[#1877F2]/5 rounded-xl p-4">
-            <h3 className="font-semibold text-[#1F2937] mb-2">Need Help?</h3>
-            <p className="text-sm text-[#6B7280] mb-3">
+          <section className="cap-panel p-4">
+            <h3 className="font-semibold text-white mb-2">Need Help?</h3>
+            <p className="text-sm text-[#64748B] mb-3">
               If you or someone you know has a gambling problem, help is available.
             </p>
             <div className="space-y-2 text-sm">
-              <p className="text-[#1877F2] font-medium">National Problem Gambling Helpline</p>
-              <p className="text-[#1F2937]">1-800-522-4700 (24/7)</p>
-              <p className="text-[#6B7280]">ncpgambling.org</p>
+              <p className="text-[#22D3EE] font-medium">National Problem Gambling Helpline</p>
+              <p className="text-white">1-800-522-4700 (24/7)</p>
+              <p className="text-[#64748B]">ncpgambling.org</p>
             </div>
           </section>
         </main>
 
         {/* Exclusion Confirmation Modal */}
         {showExclusionConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl p-6">
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-md cap-panel cap-corner-lights p-6 relative">
+              <span className="cap-light cap-light-tl" />
+              <span className="cap-light cap-light-tr" />
+              <span className="cap-light cap-light-bl" />
+              <span className="cap-light cap-light-br" />
+              <div className="cap-rivets">
+                <div className="cap-rivet cap-rivet-tl" />
+                <div className="cap-rivet cap-rivet-tr" />
+                <div className="cap-rivet cap-rivet-bl" />
+                <div className="cap-rivet cap-rivet-br" />
+              </div>
+
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-[#EF4444]/10 rounded-full flex items-center justify-center">
                   <AlertTriangle className="w-6 h-6 text-[#EF4444]" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-[#1F2937]">Confirm Self-Exclusion</h2>
-                  <p className="text-sm text-[#6B7280]">This action cannot be undone early</p>
+                  <h2 className="text-xl font-bold text-white">Confirm Self-Exclusion</h2>
+                  <p className="text-sm text-[#64748B]">This action cannot be undone early</p>
                 </div>
               </div>
 
-              <div className="bg-[#FEF2F2] rounded-lg p-4 mb-6">
+              <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg p-4 mb-6">
                 <p className="text-[#EF4444] text-sm">
                   {exclusion === 'permanent'
                     ? 'You are about to permanently exclude yourself from all poker activities. This cannot be reversed.'
@@ -446,14 +459,14 @@ export default function ResponsibleGamingPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowExclusionConfirm(false)}
-                  className="flex-1 h-12 border border-[#E5E7EB] text-[#6B7280] font-semibold rounded-xl hover:bg-[#F3F4F6] transition-colors"
+                  className="flex-1 h-12 border border-[#1A2E4A] text-[#64748B] font-semibold rounded-lg hover:bg-[#1A2E4A] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSelfExclude}
                   disabled={saving}
-                  className="flex-1 h-12 bg-[#EF4444] text-white font-semibold rounded-xl hover:bg-[#DC2626] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="cap-btn cap-btn-danger flex-1 flex items-center justify-center gap-2"
                 >
                   {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'I Understand, Proceed'}
                 </button>

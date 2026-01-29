@@ -1,7 +1,7 @@
 /**
  * Player Tournament Registration Page
  * Allows players to register for tournaments from their phone
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -137,18 +137,18 @@ export default function TournamentRegisterPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="min-h-screen bg-[#0B1426] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
 
   if (!tournament) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0B1426] flex items-center justify-center p-4">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-[#EF4444] mx-auto mb-4" />
-          <h1 className="text-xl font-semibold text-[#1F2937]">Tournament Not Found</h1>
+          <h1 className="text-xl font-semibold text-white">Tournament Not Found</h1>
         </div>
       </div>
     );
@@ -164,12 +164,12 @@ export default function TournamentRegisterPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Hero */}
-        <div className="bg-[#1877F2] text-white p-6 pb-12">
+        <div className="cap-header-full text-white p-6 pb-12">
           <div className="max-w-lg mx-auto">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+              <div className="cap-icon-box bg-white/10">
                 <Trophy className="w-6 h-6" />
               </div>
               <div>
@@ -183,15 +183,15 @@ export default function TournamentRegisterPage() {
         {/* Content */}
         <main className="max-w-lg mx-auto px-4 -mt-6">
           {/* Main Card */}
-          <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm overflow-hidden">
+          <div className="cap-panel overflow-hidden">
             {/* Status Badge */}
-            <div className="p-4 border-b border-[#E5E7EB]">
+            <div className="p-4 border-b border-[#4A5E78]">
               <div className="flex items-center justify-between">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  tournament.status === 'registering' ? 'bg-[#DBEAFE] text-[#2563EB]' :
-                  tournament.status === 'running' ? 'bg-[#D1FAE5] text-[#059669]' :
-                  tournament.status === 'completed' ? 'bg-[#F3F4F6] text-[#6B7280]' :
-                  'bg-[#FEF3C7] text-[#D97706]'
+                  tournament.status === 'registering' ? 'bg-[#22D3EE]/10 text-[#22D3EE]' :
+                  tournament.status === 'running' ? 'bg-[#10B981]/10 text-[#10B981]' :
+                  tournament.status === 'completed' ? 'bg-[#4A5E78]/20 text-[#64748B]' :
+                  'bg-[#F59E0B]/10 text-[#F59E0B]'
                 }`}>
                   {tournament.status === 'registering' ? 'Registration Open' :
                    tournament.status === 'running' ? 'In Progress' :
@@ -199,7 +199,7 @@ export default function TournamentRegisterPage() {
                    'Scheduled'}
                 </span>
                 {registered && (
-                  <span className="flex items-center gap-1 text-[#059669] text-sm font-medium">
+                  <span className="flex items-center gap-1 text-[#10B981] text-sm font-medium">
                     <CheckCircle className="w-4 h-4" />
                     Registered
                   </span>
@@ -238,19 +238,19 @@ export default function TournamentRegisterPage() {
 
             {/* Error */}
             {error && (
-              <div className="mx-4 mb-4 p-3 bg-[#FEF2F2] rounded-lg">
+              <div className="mx-4 mb-4 p-3 bg-[#EF4444]/10 rounded-lg">
                 <p className="text-sm text-[#EF4444]">{error}</p>
               </div>
             )}
 
             {/* Action */}
-            <div className="p-4 border-t border-[#E5E7EB]">
+            <div className="p-4 border-t border-[#4A5E78]">
               {registered ? (
                 <div className="space-y-3">
-                  <div className="p-4 bg-[#D1FAE5] rounded-lg text-center">
-                    <CheckCircle className="w-8 h-8 text-[#059669] mx-auto mb-2" />
-                    <p className="font-semibold text-[#059669]">You're Registered!</p>
-                    <p className="text-sm text-[#059669]/80 mt-1">
+                  <div className="p-4 bg-[#10B981]/10 rounded-lg text-center">
+                    <CheckCircle className="w-8 h-8 text-[#10B981] mx-auto mb-2" />
+                    <p className="font-semibold text-[#10B981]">You're Registered!</p>
+                    <p className="text-sm text-[#10B981]/80 mt-1">
                       Entry #{myEntry?.entry_number || '?'}
                     </p>
                   </div>
@@ -258,7 +258,7 @@ export default function TournamentRegisterPage() {
                     <button
                       onClick={handleUnregister}
                       disabled={registering}
-                      className="w-full h-12 border border-[#EF4444] text-[#EF4444] font-medium rounded-lg hover:bg-[#FEF2F2] transition-colors disabled:opacity-50"
+                      className="cap-btn cap-btn-danger w-full h-12 disabled:opacity-50"
                     >
                       {registering ? 'Processing...' : 'Cancel Registration'}
                     </button>
@@ -268,7 +268,7 @@ export default function TournamentRegisterPage() {
                 <button
                   onClick={handleRegister}
                   disabled={registering}
-                  className="w-full h-12 bg-[#1877F2] text-white font-semibold rounded-lg hover:bg-[#1664d9] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="cap-btn cap-btn-primary w-full h-12 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {registering ? (
                     <>
@@ -283,13 +283,13 @@ export default function TournamentRegisterPage() {
                   )}
                 </button>
               ) : isFull ? (
-                <div className="p-4 bg-[#FEF3C7] rounded-lg text-center">
-                  <p className="font-medium text-[#D97706]">Tournament Full</p>
-                  <p className="text-sm text-[#D97706]/80 mt-1">Registration is closed</p>
+                <div className="p-4 bg-[#F59E0B]/10 rounded-lg text-center">
+                  <p className="font-medium text-[#F59E0B]">Tournament Full</p>
+                  <p className="text-sm text-[#F59E0B]/80 mt-1">Registration is closed</p>
                 </div>
               ) : (
-                <div className="p-4 bg-[#F3F4F6] rounded-lg text-center">
-                  <p className="font-medium text-[#6B7280]">Registration Closed</p>
+                <div className="p-4 bg-[#0D192E] rounded-lg text-center">
+                  <p className="font-medium text-[#64748B]">Registration Closed</p>
                 </div>
               )}
             </div>
@@ -297,20 +297,20 @@ export default function TournamentRegisterPage() {
 
           {/* Blind Structure Preview */}
           {tournament.blind_structure && tournament.blind_structure.length > 0 && (
-            <div className="mt-6 bg-white rounded-xl border border-[#E5E7EB] p-4">
-              <h3 className="font-semibold text-[#1F2937] mb-3">Blind Structure</h3>
+            <div className="mt-6 cap-panel p-4">
+              <h3 className="font-semibold text-white mb-3">Blind Structure</h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {tournament.blind_structure.slice(0, 10).map((level, idx) => (
                   <div
                     key={idx}
                     className={`flex items-center justify-between py-2 px-3 rounded-lg ${
-                      level.is_break ? 'bg-[#FEF3C7]' : 'bg-[#F3F4F6]'
+                      level.is_break ? 'bg-[#F59E0B]/10' : 'bg-[#0D192E]'
                     }`}
                   >
-                    <span className="text-sm text-[#6B7280]">
+                    <span className="text-sm text-[#64748B]">
                       {level.is_break ? 'BREAK' : `Level ${idx + 1}`}
                     </span>
-                    <span className="text-sm font-medium text-[#1F2937]">
+                    <span className="text-sm font-medium text-white">
                       {level.is_break ? `${level.duration} min` :
                         `${level.small_blind}/${level.big_blind}${level.ante ? `/${level.ante}` : ''}`
                       }
@@ -318,7 +318,7 @@ export default function TournamentRegisterPage() {
                   </div>
                 ))}
                 {tournament.blind_structure.length > 10 && (
-                  <p className="text-xs text-[#9CA3AF] text-center pt-2">
+                  <p className="text-xs text-[#4A5E78] text-center pt-2">
                     +{tournament.blind_structure.length - 10} more levels
                   </p>
                 )}
@@ -334,11 +334,11 @@ export default function TournamentRegisterPage() {
 function DetailRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3 text-[#6B7280]">
+      <div className="flex items-center gap-3 text-[#64748B]">
         <Icon className="w-5 h-5" />
         <span className="text-sm">{label}</span>
       </div>
-      <span className="font-medium text-[#1F2937]">{value}</span>
+      <span className="font-medium text-white">{value}</span>
     </div>
   );
 }
