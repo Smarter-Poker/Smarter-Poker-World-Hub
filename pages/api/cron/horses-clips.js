@@ -199,10 +199,24 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             return null;
         }
 
-        // Get this horse's preferred content sources
-        const preferredSources = getHorsePreferredSources ? getHorsePreferredSources(horse.profile_id) : null;
-        if (preferredSources) {
-            console.log(`   ${horse.name} prefers: ${preferredSources.join(', ')}`);
+        // Get this horse's EXCLUSIVE assigned content sources from database
+        let assignedSources = null;
+        try {
+            const { data: assignments, error: assignError } = await supabase
+                .from('horse_source_assignments')
+                .select('source_name, is_primary')
+                .eq('horse_id', horse.profile_id);
+
+            if (!assignError && assignments && assignments.length > 0) {
+                assignedSources = assignments.map(a => a.source_name);
+                console.log(`   ${horse.name} assigned sources: ${assignedSources.join(', ')}`);
+            } else {
+                console.log(`   ${horse.name} has no assigned sources, using hash-based fallback`);
+                assignedSources = getHorsePreferredSources ? getHorsePreferredSources(horse.profile_id) : null;
+            }
+        } catch (err) {
+            console.error(`   Error fetching assigned sources:`, err);
+            assignedSources = getHorsePreferredSources ? getHorsePreferredSources(horse.profile_id) : null;
         }
 
         // Get a random clip that hasn't been used recently, preferring horse's sources
@@ -227,16 +241,16 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             attempts++;
 
             // FAILSAFE: After 10 failed attempts, directly pick from verified clips
-            // BUT ONLY from this horse's preferred sources
+            // BUT ONLY from this horse's assigned sources
             if (attempts > 10) {
-                // Find a verified clip that hasn't been used AND matches preferred sources
+                // Find a verified clip that hasn't been used AND matches assigned sources
                 for (const verifiedId of VERIFIED_CLIP_IDS) {
                     if (!recentlyUsedClips.has(verifiedId) && !usedClipsThisSession.has(verifiedId)) {
                         // Find this clip in the library
                         const verifiedClip = CLIP_LIBRARY?.find(c => c.video_id === verifiedId);
                         if (verifiedClip) {
-                            // CRITICAL: Only use if it's from one of this horse's preferred sources
-                            if (!preferredSources || preferredSources.includes(verifiedClip.source)) {
+                            // CRITICAL: Only use if it's from one of this horse's assigned sources
+                            if (!assignedSources || assignedSources.includes(verifiedClip.source)) {
                                 console.log(`   ⚡ FAILSAFE: Using pre-verified clip from ${verifiedClip.source}: ${verifiedId}`);
                                 clip = verifiedClip;
                                 usedClipsThisSession.add(verifiedClip.id);
@@ -248,8 +262,8 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 if (clip) break;
             }
 
-            // Try to get clip from preferred source first
-            const preferSource = preferredSources ? preferredSources[attempts % preferredSources.length] : null;
+            // Try to get clip from assigned source first
+            const preferSource = assignedSources ? assignedSources[attempts % assignedSources.length] : null;
             const candidate = getRandomClip({ preferSource });
             if (!candidate) continue;
 
