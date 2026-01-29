@@ -34,8 +34,6 @@ async function handleGet(req, res, id) {
         commander_waitlist_group_members (
           id,
           player_id,
-          is_leader,
-          status,
           joined_at,
           profiles (id, display_name, avatar_url)
         ),

@@ -38,32 +38,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Find the pending membership
+    // Find the membership record
     const { data: membership, error: findError } = await supabase
       .from('commander_waitlist_group_members')
-      .select('id, member_status')
+      .select('id')
       .eq('group_id', id)
       .eq('player_id', user.id)
-      .eq('member_status', 'pending')
       .single();
 
     if (findError || !membership) {
       return res.status(404).json({
         success: false,
-        error: { code: 'NOT_FOUND', message: 'Invitation not found' }
+        error: { code: 'NOT_FOUND', message: 'Membership not found' }
       });
     }
 
-    // Update to declined status
-    const { error: updateError } = await supabase
+    // Remove the member record (decline = leave the squad)
+    const { error: deleteError } = await supabase
       .from('commander_waitlist_group_members')
-      .update({
-        member_status: 'declined',
-        updated_at: new Date().toISOString()
-      })
+      .delete()
       .eq('id', membership.id);
 
-    if (updateError) throw updateError;
+    if (deleteError) throw deleteError;
 
     return res.status(200).json({
       success: true,

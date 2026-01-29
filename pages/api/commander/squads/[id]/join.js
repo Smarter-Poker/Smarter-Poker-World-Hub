@@ -45,23 +45,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check invite code if squad is private
-    if (squad.is_private && squad.invite_code !== invite_code) {
-      return res.status(403).json({
-        success: false,
-        error: { code: 'INVALID_CODE', message: 'Invalid invite code' }
-      });
-    }
-
-    // Check if squad is full
-    const memberCount = squad.commander_waitlist_group_members?.length || 0;
-    if (memberCount >= squad.max_size) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'SQUAD_FULL', message: 'Squad is full' }
-      });
-    }
-
     // Check if already a member
     const alreadyMember = squad.commander_waitlist_group_members?.some(
       m => m.player_id === player_id
@@ -78,9 +61,7 @@ export default async function handler(req, res) {
       .from('commander_waitlist_group_members')
       .insert({
         group_id: id,
-        player_id,
-        is_leader: false,
-        member_status: 'confirmed'
+        player_id
       })
       .select()
       .single();

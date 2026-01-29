@@ -48,8 +48,7 @@ export default async function handler(req, res) {
         commander_waitlist_group_members (
           id,
           player_id,
-          is_leader,
-          member_status,
+          joined_at,
           profiles (id, display_name, phone)
         )
       `)
@@ -71,23 +70,21 @@ export default async function handler(req, res) {
       });
     }
 
-    // Verify squad is in forming status
-    if (squad.group_status !== 'forming') {
+    // Verify squad is in forming status (not yet submitted)
+    if (squad.status !== 'forming') {
       return res.status(400).json({
         success: false,
         error: { code: 'ALREADY_SUBMITTED', message: 'Squad already submitted to waitlist' }
       });
     }
 
-    // Verify at least 2 confirmed members
-    const confirmedMembers = (squad.commander_waitlist_group_members || []).filter(
-      m => m.member_status === 'confirmed'
-    );
+    // All members present in the group are confirmed (schema has no status column on members)
+    const members = squad.commander_waitlist_group_members || [];
 
-    if (confirmedMembers.length < 2) {
+    if (members.length < 2) {
       return res.status(400).json({
         success: false,
-        error: { code: 'NOT_ENOUGH_MEMBERS', message: 'Need at least 2 confirmed members' }
+        error: { code: 'NOT_ENOUGH_MEMBERS', message: 'Need at least 2 members' }
       });
     }
 
@@ -102,8 +99,15 @@ export default async function handler(req, res) {
 
     const position = (currentPosition || 0) + 1;
 
+    // Build squad notes with preferences
+    const squadNotes = [
+      `Squad group: ${squad.id}`,
+      squad.prefer_same_table ? 'Prefer same table' : null,
+      squad.accept_split ? 'Accept split' : null
+    ].filter(Boolean).join('. ');
+
     // Create waitlist entries for each member
-    const waitlistEntries = confirmedMembers.map((member, index) => ({
+    const waitlistEntries = members.map((member, index) => ({
       venue_id: squad.venue_id,
       player_id: member.player_id,
       player_name: member.profiles?.display_name || `Player ${index + 1}`,
@@ -112,11 +116,8 @@ export default async function handler(req, res) {
       stakes: squad.stakes,
       position: position,
       status: 'waiting',
-      signup_method: 'squad',
-      group_id: squad.id,
-      notes: `Squad: ${squad.name || 'Group'}`,
-      prefer_same_table: squad.prefer_same_table,
-      accept_split: squad.accept_split
+      signup_method: 'app',
+      notes: squadNotes
     }));
 
     const { data: entries, error: entriesError } = await supabase
@@ -126,13 +127,11 @@ export default async function handler(req, res) {
 
     if (entriesError) throw entriesError;
 
-    // Update squad status to waiting
+    // Update squad status to waiting (submitted to waitlist)
     const { error: updateError } = await supabase
       .from('commander_waitlist_groups')
       .update({
-        group_status: 'waiting',
-        position: position,
-        submitted_at: new Date().toISOString()
+        status: 'waiting'
       })
       .eq('id', id);
 

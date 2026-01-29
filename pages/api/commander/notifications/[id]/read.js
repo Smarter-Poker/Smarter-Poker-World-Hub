@@ -23,7 +23,6 @@ export default async function handler(req, res) {
     const { data: notification, error } = await supabase
       .from('commander_notifications')
       .update({
-        is_read: true,
         read_at: new Date().toISOString()
       })
       .eq('id', id)
