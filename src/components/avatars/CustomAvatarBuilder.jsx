@@ -18,6 +18,11 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
   const [generatedImage, setGeneratedImage] = useState(null);
   const [showResult, setShowResult] = useState(false);
 
+  // Edit mode
+  const [showEditMode, setShowEditMode] = useState(false);
+  const [editPrompt, setEditPrompt] = useState('');
+  const [editing, setEditing] = useState(false);
+
   // Gallery management
   const [customAvatars, setCustomAvatars] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -147,6 +152,45 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
   function handleStartOver() {
     setShowResult(false);
     setGeneratedImage(null);
+    setShowEditMode(false);
+    setEditPrompt('');
+  }
+
+  // Edit avatar using Grok image editing
+  async function handleEditAvatar() {
+    if (!editPrompt.trim()) {
+      alert('Please describe what you want to change');
+      return;
+    }
+
+    setEditing(true);
+
+    try {
+      const response = await fetch('/api/avatar/edit-avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: generatedImage,
+          editPrompt: editPrompt,
+          userId: user?.id
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setGeneratedImage(result.imageUrl);
+        setShowEditMode(false);
+        setEditPrompt('');
+      } else {
+        alert(`❌ ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Avatar edit error:', error);
+      alert('Error editing avatar. Please try again.');
+    } finally {
+      setEditing(false);
+    }
   }
 
   // Show loading while auth is initializing (prevents premature "Sign In Required")
@@ -805,9 +849,80 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
             alt="Generated Avatar"
             className="result-image"
           />
+          {/* Edit Mode Input */}
+          {showEditMode && (
+            <div style={{
+              width: '100%',
+              maxWidth: '400px',
+              marginTop: '20px',
+              marginBottom: '15px'
+            }}>
+              <textarea
+                value={editPrompt}
+                onChange={(e) => setEditPrompt(e.target.value)}
+                placeholder="Describe what you want to change... (e.g., 'Add sunglasses', 'Make hair blonde', 'Add a gold chain')"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: 'rgba(0, 0, 0, 0.5)',
+                  border: '2px solid rgba(138, 43, 226, 0.5)',
+                  borderRadius: '10px',
+                  color: '#fff',
+                  fontFamily: 'Rajdhani, sans-serif',
+                  fontSize: '14px',
+                  resize: 'vertical',
+                  minHeight: '80px'
+                }}
+              />
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button
+                  onClick={handleEditAvatar}
+                  disabled={editing || !editPrompt.trim()}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: editing ? 'rgba(138, 43, 226, 0.3)' : 'linear-gradient(135deg, #8a2be2, #ff00ff)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontWeight: '600',
+                    cursor: editing ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {editing ? '✨ Applying Edit...' : '✨ Apply Edit'}
+                </button>
+                <button
+                  onClick={() => { setShowEditMode(false); setEditPrompt(''); }}
+                  style={{
+                    padding: '12px 20px',
+                    background: 'rgba(100, 100, 100, 0.3)',
+                    border: '1px solid #666',
+                    borderRadius: '8px',
+                    color: '#999',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="result-buttons">
             <button className="result-btn accept-btn" onClick={handleAccept}>
               ✓ Accept Avatar
+            </button>
+            {/* Edit button - always available */}
+            <button
+              className="result-btn"
+              onClick={() => setShowEditMode(!showEditMode)}
+              style={{
+                background: showEditMode ? 'rgba(138, 43, 226, 0.3)' : 'transparent',
+                border: '2px solid #8a2be2',
+                color: '#8a2be2'
+              }}
+            >
+              ✏️ Edit Avatar
             </button>
             {effectiveVip && (
               <button className="result-btn regenerate-btn" onClick={handleRegenerate}>
