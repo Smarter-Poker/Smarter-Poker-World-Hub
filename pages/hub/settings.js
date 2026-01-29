@@ -534,11 +534,40 @@ export default function SettingsPage() {
                                     )}
                                 </div>
 
+
                                 <div style={styles.card}>
                                     <h3 style={styles.cardTitle}>Account Security</h3>
-                                    <button style={styles.secondaryButton}>Change Password</button>
-                                    <button style={styles.secondaryButton}>Enable 2FA</button>
-                                    <button style={styles.secondaryButton}>Connected Devices</button>
+                                    <button
+                                        onClick={async () => {
+                                            if (!user?.email) {
+                                                alert('No email found. Please log in again.');
+                                                return;
+                                            }
+                                            const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+                                                redirectTo: `${window.location.origin}/hub/reset-auth`
+                                            });
+                                            if (error) {
+                                                alert('Error sending password reset email: ' + error.message);
+                                            } else {
+                                                alert('Password reset email sent! Check your inbox.');
+                                            }
+                                        }}
+                                        style={styles.secondaryButton}
+                                    >
+                                        Change Password
+                                    </button>
+                                    <button
+                                        onClick={() => alert('Two-factor authentication coming soon! This feature will add an extra layer of security to your account.')}
+                                        style={styles.secondaryButton}
+                                    >
+                                        Enable 2FA
+                                    </button>
+                                    <button
+                                        onClick={() => alert('Connected Devices management coming soon! You\'ll be able to see and manage all devices logged into your account.')}
+                                        style={styles.secondaryButton}
+                                    >
+                                        Connected Devices
+                                    </button>
                                 </div>
                             </div>
                         )}
