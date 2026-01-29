@@ -3,5 +3,5 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export { useLiveHelp, AGENTS } from './useLiveHelp';
-export type { Agent, Message, UserContext } from './useLiveHelp';
+export type { Agent, Message } from './useLiveHelp';
 export { LiveHelpPanel } from './LiveHelpPanel';

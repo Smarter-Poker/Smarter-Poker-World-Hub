@@ -1,13 +1,15 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    LIVE HELP PANEL — PokerIQ's embedded expert assistance layer
    
-   NOT a chatbot — a team of real-feeling human experts with complete 
-   system knowledge, human pacing, and context-aware guidance.
+   Production-ready version with real API integration, message persistence,
+   and context awareness.
    
    Five Fixed Agents: Daniel, Sarah, Alice, Michael, Jenny
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { collectUserContext } from '../../../lib/liveHelp/contextCollector';
+import { getAuthUser } from '../../../lib/authUtils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 👥 AGENT DEFINITIONS — Fixed personalities with distinct tones
@@ -83,20 +85,7 @@ export interface Message {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🎯 CONTEXT AWARENESS — What does Live Help know about current state?
-// ─────────────────────────────────────────────────────────────────────────────
-export interface UserContext {
-    currentOrb: string;
-    currentMode: string;
-    currentPage: string;
-    recentMistakes?: string[];
-    sessionDuration: number;
-    userLevel: number;
-    lastDrillType?: string;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 🔧 LIVE HELP HOOK — Main state management
+// 🔧 LIVE HELP HOOK — Main state management with real API integration
 // ─────────────────────────────────────────────────────────────────────────────
 export function useLiveHelp() {
     const [isOpen, setIsOpen] = useState(false);
@@ -104,24 +93,73 @@ export function useLiveHelp() {
     const [currentAgent, setCurrentAgent] = useState<Agent>(AGENTS[0]);
     const [isAgentTyping, setIsAgentTyping] = useState(false);
     const [inputValue, setInputValue] = useState('');
+    const [conversationId, setConversationId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    // Simulated typing delay based on agent
-    const getTypingDelay = useCallback((text: string, agent: Agent): number => {
-        const baseDelay = {
-            slow: 60,
-            medium: 40,
-            fast: 25,
-        }[agent.typingSpeed];
+    // Start or resume conversation when panel opens
+    useEffect(() => {
+        if (isOpen && !conversationId) {
+            startConversation();
+        }
+    }, [isOpen]);
 
-        // Variable delay + thinking time
-        return Math.min(text.length * baseDelay + 500 + Math.random() * 1000, 4000);
-    }, []);
+    // Start new conversation or resume existing
+    const startConversation = async () => {
+        setIsLoading(true);
+        setError(null);
 
-    // Add message with simulated typing
+        try {
+            const user = getAuthUser();
+            if (!user) {
+                throw new Error('User not authenticated');
+            }
+
+            // Collect user context
+            const context = await collectUserContext(user.id);
+
+            const response = await fetch('/api/live-help/start-conversation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ context })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to start conversation');
+            }
+
+            const data = await response.json();
+
+            setConversationId(data.conversationId);
+
+            const agent = AGENTS.find(a => a.id === data.agentId) || AGENTS[0];
+            setCurrentAgent(agent);
+
+            // Load existing messages or add greeting
+            if (data.messages && data.messages.length > 0) {
+                const formattedMessages = data.messages.map((msg: any) => ({
+                    id: msg.id,
+                    agentId: msg.agent_id || '',
+                    content: msg.content,
+                    timestamp: new Date(msg.created_at),
+                    isUser: msg.sender_type === 'user'
+                }));
+                setMessages(formattedMessages);
+            }
+
+        } catch (err) {
+            console.error('Failed to start conversation:', err);
+            setError('Failed to start conversation. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Send message
     const sendMessage = useCallback(async (content: string) => {
-        if (!content.trim()) return;
+        if (!content.trim() || !conversationId) return;
 
-        // Add user message
+        // Add user message immediately
         const userMessage: Message = {
             id: `user-${Date.now()}`,
             agentId: '',
@@ -131,67 +169,114 @@ export function useLiveHelp() {
         };
         setMessages(prev => [...prev, userMessage]);
         setInputValue('');
-
-        // Simulate agent thinking and typing
         setIsAgentTyping(true);
+        setError(null);
 
-        // Generate response (in real implementation, this would call an AI service)
-        const response = generateAgentResponse(content, currentAgent);
-        const typingDelay = getTypingDelay(response, currentAgent);
+        try {
+            const user = getAuthUser();
+            if (!user) {
+                throw new Error('User not authenticated');
+            }
 
-        await new Promise(resolve => setTimeout(resolve, typingDelay));
+            // Collect current context
+            const context = await collectUserContext(user.id);
 
-        const agentMessage: Message = {
-            id: `agent-${Date.now()}`,
-            agentId: currentAgent.id,
-            content: response,
-            timestamp: new Date(),
-            isUser: false,
-        };
+            const response = await fetch('/api/live-help/send-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    conversationId,
+                    content: content.trim(),
+                    context
+                })
+            });
 
-        setMessages(prev => [...prev, agentMessage]);
-        setIsAgentTyping(false);
-    }, [currentAgent, getTypingDelay]);
+            if (!response.ok) {
+                throw new Error('Failed to send message');
+            }
+
+            const data = await response.json();
+
+            // Simulate typing delay
+            await new Promise(resolve => setTimeout(resolve, data.typingDelay || 1500));
+
+            // Add agent response
+            const agentMessage: Message = {
+                id: data.agentMessage.id,
+                agentId: data.agentMessage.agent_id,
+                content: data.agentMessage.content,
+                timestamp: new Date(data.agentMessage.created_at),
+                isUser: false
+            };
+
+            setMessages(prev => [...prev, agentMessage]);
+
+        } catch (err) {
+            console.error('Failed to send message:', err);
+            setError('Failed to send message. Please try again.');
+
+            // Add error message
+            const errorMessage: Message = {
+                id: `error-${Date.now()}`,
+                agentId: currentAgent.id,
+                content: "I'm having trouble connecting right now. Please try again in a moment.",
+                timestamp: new Date(),
+                isUser: false
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
+            setIsAgentTyping(false);
+        }
+    }, [conversationId, currentAgent]);
 
     // Switch agent
     const switchAgent = useCallback((agentId: string) => {
         const agent = AGENTS.find(a => a.id === agentId);
         if (agent) {
             setCurrentAgent(agent);
-            // Add transition message
-            const transitionMsg: Message = {
-                id: `system-${Date.now()}`,
+
+            // Add system message about agent switch
+            const switchMessage: Message = {
+                id: `switch-${Date.now()}`,
                 agentId: agent.id,
-                content: `You're Now Speaking With ${agent.name}. How Can I Help?`,
+                content: `Hi! I'm ${agent.name}, your ${agent.title}. How can I help you?`,
                 timestamp: new Date(),
-                isUser: false,
+                isUser: false
             };
-            setMessages(prev => [...prev, transitionMsg]);
+            setMessages(prev => [...prev, switchMessage]);
         }
     }, []);
 
-    // Open with greeting — random agent each time
-    const openHelp = useCallback(() => {
-        // Pick a random agent each time panel is opened fresh
-        const randomAgent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
-        setCurrentAgent(randomAgent);
-        setIsOpen(true);
+    // Create support ticket
+    const createTicket = useCallback(async (subject: string, description: string, priority: string = 'medium') => {
+        try {
+            const response = await fetch('/api/live-help/create-ticket', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    conversationId,
+                    subject,
+                    description,
+                    priority
+                })
+            });
 
-        // Always show fresh greeting from random agent
-        const greeting: Message = {
-            id: `greeting-${Date.now()}`,
-            agentId: randomAgent.id,
-            content: getAgentGreeting(randomAgent),
-            timestamp: new Date(),
-            isUser: false,
-        };
-        setMessages([greeting]);
-    }, []);
+            if (!response.ok) {
+                throw new Error('Failed to create ticket');
+            }
+
+            const data = await response.json();
+            return data;
+
+        } catch (err) {
+            console.error('Failed to create ticket:', err);
+            throw err;
+        }
+    }, [conversationId]);
 
     return {
         isOpen,
         setIsOpen,
-        openHelp,
         messages,
         currentAgent,
         isAgentTyping,
@@ -199,77 +284,10 @@ export function useLiveHelp() {
         setInputValue,
         sendMessage,
         switchAgent,
-        agents: AGENTS,
+        createTicket,
+        isLoading,
+        error
     };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 🗣️ AGENT RESPONSE GENERATION
-// ─────────────────────────────────────────────────────────────────────────────
-function getAgentGreeting(agent: Agent): string {
-    return `Hi There! I'm ${agent.name}. What Can I Help You With?`;
-}
-
-function generateAgentResponse(userInput: string, agent: Agent): string {
-    // This is a placeholder — real implementation would use AI + context awareness
-    const input = userInput.toLowerCase();
-
-    // Permission-based depth: start with small chunks, offer to go deeper
-    if (input.includes('raise') || input.includes('bet')) {
-        if (agent.tone === 'analytical') {
-            return "That's Usually A Low-Frequency Raise In Most Solver Solutions. Want The Reasoning Behind It?";
-        } else if (agent.tone === 'direct') {
-            return "Quick Answer: Check Solver Frequency First. Need Me To Break Down The Spot?";
-        }
-        return "Good Question. Let Me Think About That Spot... Want The Quick Take Or Full Analysis?";
-    }
-
-    if (input.includes('tilt') || input.includes('frustrated')) {
-        if (agent.tone === 'warm') {
-            return "I Hear You. Tilt Is Real And Happens To Everyone. Want To Talk Through What Triggered It?";
-        }
-        return "Variance Is Part Of The Game. Taking A Short Break Usually Helps. Want Some Mental Game Tips?";
-    }
-
-    if (input.includes('drill') || input.includes('training')) {
-        return "We Have Several Drill Types Available. What Concept Are You Looking To Strengthen?";
-    }
-
-    if (input.includes('help') || input.includes('support')) {
-        return "I'm Here To Help. If You Need To Speak With A Human, I Can Generate A Support Request For You. Just Say The Word.";
-    }
-
-    // Default: ask for clarification without overwhelming
-    return "Got It. Can You Tell Me A Bit More About What You're Working On? I Want To Make Sure I Give You The Right Info.";
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 📧 SUPPORT ESCALATION
-// ─────────────────────────────────────────────────────────────────────────────
-export function generateSupportTemplate(context: UserContext, agent: Agent): string {
-    return `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-POKERIQ SUPPORT REQUEST
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Agent: ${agent.name}
-Orb: ${context.currentOrb}
-Mode: ${context.currentMode}
-Page: ${context.currentPage}
-Session Duration: ${Math.round(context.sessionDuration / 60)} Minutes
-User Level: ${context.userLevel}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-YOUR QUESTION / ISSUE:
-
-[Please Describe Your Question Or Issue Here]
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-This Will Be Reviewed By A Human Support Team.
-Email: Support@Smarter.Poker
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`.trim();
-}
-
-export default useLiveHelp;
+export { LiveHelpPanel } from './LiveHelpPanel';

@@ -145,6 +145,30 @@
       "schedule": "53 * * * *"
     },
     {
+      "path": "/api/cron/horses-sports-clips",
+      "schedule": "5 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-sports-clips",
+      "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-sports-clips",
+      "schedule": "28 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-sports-clips",
+      "schedule": "35 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-sports-clips",
+      "schedule": "45 * * * *"
+    },
+    {
+      "path": "/api/cron/horses-sports-clips",
+      "schedule": "58 * * * *"
+    },
+    {
       "path": "/api/cron/scrape-poker-clips",
       "schedule": "0 6 * * *"
     },
