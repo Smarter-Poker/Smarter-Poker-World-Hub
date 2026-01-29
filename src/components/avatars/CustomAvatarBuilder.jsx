@@ -316,8 +316,8 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         .vip-badge {
           display: inline-block;
           padding: 4px 12px;
-          background: linear-gradient(135deg, #ffd700, #ff8c00);
-          color: #000;
+          background: #1877F2;
+          color: #fff;
           font-family: 'Rajdhani', sans-serif;
           font-size: 12px;
           font-weight: 700;
@@ -327,14 +327,14 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         }
 
         .vip-slots {
-          background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.1));
-          border: 1px solid rgba(255, 215, 0, 0.3);
+          background: rgba(24, 119, 242, 0.1);
+          border: 1px solid rgba(24, 119, 242, 0.3);
           border-radius: 8px;
           padding: 12px 20px;
           margin-bottom: 20px;
           text-align: center;
           font-family: 'Rajdhani', sans-serif;
-          color: #ffd700;
+          color: #1877F2;
           font-size: 16px;
           font-weight: 600;
           display: flex;
@@ -631,7 +631,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         .vip-note {
           font-family: 'Rajdhani', sans-serif;
           font-size: 12px;
-          color: #ffd700;
+          color: #1877F2;
           margin-top: 15px;
           text-align: center;
         }
@@ -934,14 +934,14 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
 
           </div>
           {effectiveVip && (
-            <div className="vip-note">💎 VIP: Unlimited regenerations</div>
+            <div className="vip-note">VIP: Unlimited regenerations</div>
           )}
         </div>
       )}
 
       {/* Main Form */}
       <h2 className="builder-title">
-        🤖 AI Avatar Generator
+        AI Avatar Generator
         {effectiveVip && <span className="vip-badge">VIP</span>}
       </h2>
       <p className="builder-subtitle">
@@ -951,7 +951,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
       {/* VIP Slot Counter */}
       {effectiveVip && (
         <div className="vip-slots">
-          💎 Custom Avatars: {currentCount}/5 slots used
+          Custom Avatars: {currentCount}/5 slots used
           {!canCreate && (
             <button
               className="manage-gallery-btn"
@@ -966,24 +966,24 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
       {/* Limit Warnings */}
       {!effectiveVip && currentCount >= 1 && (
         <div className="limit-warning limit-reached">
-          🔒 You've used your 1 free custom avatar. Upgrade to VIP for up to 5 avatars!
+          You've used your 1 free custom avatar. Upgrade to VIP for up to 5 avatars!
         </div>
       )}
       {!effectiveVip && currentCount === 0 && (
         <div className="limit-warning">
-          ⚠️ FREE users get 1 custom avatar (one time only). Upgrade to VIP for up to 5!
+          FREE users get 1 custom avatar (one time only). Upgrade to VIP for up to 5!
         </div>
       )}
       {effectiveVip && !canCreate && (
         <div className="limit-warning limit-reached">
-          ⚠️ VIP limit reached! Delete an avatar below to create a new one.
+          VIP limit reached! Delete an avatar below to create a new one.
         </div>
       )}
 
 
 
       <div className="prompt-section">
-        <div className="prompt-label">✨ Describe Your Avatar</div>
+        <div className="prompt-label">Describe Your Avatar</div>
         <textarea
           className="prompt-input"
           placeholder="Describe your avatar in detail... (e.g., 'A fierce dragon warrior with glowing red eyes and golden armor')"
@@ -994,7 +994,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
       </div>
 
       <div className="examples-section">
-        <div className="examples-label">💡 Example Prompts</div>
+        <div className="examples-label">Example Prompts</div>
         <div className="examples-grid">
           {examplePrompts.map((ex, idx) => (
             <div
