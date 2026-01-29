@@ -102,11 +102,7 @@ export function ExternalLinkProvider({ children }) {
                 return;
             }
 
-            // CRITICAL: Skip HendonMob URLs - they block embedding with 403
-            if (lowerHref.includes('thehendonmob.com') || lowerHref.includes('pokerdb.thehendonmob.com')) {
-                // Let HendonMob open in new tab (target="_blank" already set on <a>)
-                return;
-            }
+            // HendonMob URLs will open in ArticleReaderModal with proxy support
 
             // Also intercept links that explicitly should open externally
             const forceInternal = link.hasAttribute('data-internal');

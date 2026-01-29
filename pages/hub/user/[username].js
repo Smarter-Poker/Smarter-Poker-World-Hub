@@ -160,10 +160,8 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
                 </div>
             )}
             {hendonData?.hendon_url && onOpenResume && (
-                <a
-                    href={hendonData.hendon_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <button
+                    onClick={() => onOpenResume(hendonData.hendon_url)}
                     style={{
                         display: 'block',
                         width: '100%',
@@ -171,10 +169,14 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
                         marginTop: 12,
                         color: C.gold,
                         fontSize: 12,
-                        textDecoration: 'underline'
+                        textDecoration: 'underline',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit'
                     }}>
                     View Full Resume on HendonMob →
-                </a>
+                </button>
             )}
         </div>
     );
@@ -340,6 +342,7 @@ export default function UserProfilePage() {
                     .select('*')
                     .eq('username', username)
                     .single();
+                // HendonMob URLs will open in ArticleReaderModal with proxy support
 
                 if (error || !data) {
                     setProfile(null);
