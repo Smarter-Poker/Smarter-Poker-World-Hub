@@ -34,7 +34,7 @@ import {
 } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
 // ClipLibrary functions - loaded dynamically in handler
-let getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES, getHorsePreferredSources;
+let getRandomClip, getRandomCaption, markClipUsed, CLIP_CATEGORIES, getHorsePreferredSources, CLIP_LIBRARY;
 let clipLibraryLoaded = false;
 
 async function loadClipLibrary() {
@@ -46,6 +46,7 @@ async function loadClipLibrary() {
         markClipUsed = lib.markClipUsed;
         CLIP_CATEGORIES = lib.CLIP_CATEGORIES;
         getHorsePreferredSources = lib.getHorsePreferredSources;
+        CLIP_LIBRARY = lib.CLIP_LIBRARY;
         clipLibraryLoaded = true;
         console.log('✅ ClipLibrary loaded successfully');
         return true;
@@ -204,35 +205,52 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
         ];
 
         while (!clip && attempts < maxAttempts) {
+            attempts++;
+
+            // FAILSAFE: After 10 failed attempts, directly pick from verified clips
+            if (attempts > 10) {
+                // Find a verified clip that hasn't been used
+                for (const verifiedId of VERIFIED_CLIP_IDS) {
+                    if (!recentlyUsedClips.has(verifiedId) && !usedClipsThisSession.has(verifiedId)) {
+                        // Find this clip in the library
+                        const verifiedClip = CLIP_LIBRARY?.find(c => c.video_id === verifiedId);
+                        if (verifiedClip) {
+                            console.log(`   ⚡ FAILSAFE: Using pre-verified clip: ${verifiedId}`);
+                            clip = verifiedClip;
+                            usedClipsThisSession.add(verifiedClip.id);
+                            break;
+                        }
+                    }
+                }
+                if (clip) break;
+            }
+
             // Try to get clip from preferred source first
             const preferSource = preferredSources ? preferredSources[attempts % preferredSources.length] : null;
             const candidate = getRandomClip({ preferSource });
-            if (!candidate) break;
+            if (!candidate) continue;
 
             // Check if this clip was recently used (database check) or used this session
             if (recentlyUsedClips.has(candidate.id) || usedClipsThisSession.has(candidate.id)) {
                 console.log(`   Skipping ${candidate.id} (already used)`);
-                attempts++;
                 continue;
             }
 
-            // CRITICAL: Validate the video ID is real before accepting
             const videoId = extractVideoIdFromUrl(candidate.source_url) || candidate.video_id;
 
-            // After 10 failed attempts, skip validation for verified clips
-            if (attempts >= 10 && VERIFIED_CLIP_IDS.includes(videoId)) {
-                console.log(`   ⚡ Using pre-verified clip: ${videoId}`);
+            // If it's a verified clip, accept immediately without validation
+            if (VERIFIED_CLIP_IDS.includes(videoId)) {
+                console.log(`   ✅ Pre-verified clip: ${videoId}`);
                 clip = candidate;
                 usedClipsThisSession.add(candidate.id);
-                attempts++;
                 break;
             }
 
+            // Otherwise validate the video ID
             const isValid = await validateYouTubeVideoId(videoId);
 
             if (!isValid) {
                 console.log(`   ⚠️ Rejecting ${candidate.id} - invalid video ID: ${videoId}`);
-                attempts++;
                 continue;
             }
 
@@ -240,7 +258,6 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             clip = candidate;
             usedClipsThisSession.add(candidate.id);
             console.log(`   ✅ Validated: ${videoId}`);
-            attempts++;
         }
 
         if (!clip) {
