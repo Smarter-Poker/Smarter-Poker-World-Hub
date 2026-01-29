@@ -37,46 +37,37 @@ export async function isClipAlreadyPosted(videoId) {
 }
 
 /**
- * Mark a clip as posted (ATOMIC - uses ON CONFLICT for true atomicity)
+ * Mark a clip as posted (ATOMIC - uses database RPC with ON CONFLICT)
  * Returns the inserted row if successful, false if clip already posted
  */
 export async function markClipAsPosted(clipData) {
-    const { videoId, sourceUrl, clipSource, clipTitle, postedBy, postId, clipType = 'poker', category, horseId } = clipData;
+    const { videoId, sourceUrl, clipSource, horseId } = clipData;
 
     try {
-        // Use maybeSingle() which returns null on conflict instead of error
-        // This makes the operation truly atomic - database handles the race condition
-        const { data, error } = await supabase
-            .from('posted_clips')
-            .insert({
-                video_id: videoId,
-                source_url: sourceUrl,
-                clip_source: clipSource,
-                clip_title: clipTitle,
-                posted_by: postedBy || horseId,
-                post_id: postId,
-                clip_type: clipType,
-                category: category
-            })
-            .select()
-            .maybeSingle(); // Returns null on unique constraint violation, not error
+        // Use RPC function which implements ON CONFLICT at database level
+        // This is truly atomic - the database handles the race condition
+        const { data, error } = await supabase.rpc('reserve_clip', {
+            p_video_id: videoId,
+            p_source_url: sourceUrl,
+            p_clip_source: clipSource,
+            p_horse_id: horseId
+        });
 
-        // Check for unexpected errors (not unique constraint violations)
-        if (error && error.code !== '23505') {
-            console.error('Unexpected error marking clip as posted:', error);
+        if (error) {
+            console.error('Error calling reserve_clip RPC:', error);
             return false;
         }
 
-        // If data is null, it means unique constraint was violated (clip already posted)
-        if (!data) {
+        // RPC returns array with single row: { success: boolean, clip_id: uuid }
+        if (!data || data.length === 0 || !data[0].success) {
             console.log(`   🔒 Clip ${videoId} already reserved by another horse`);
             return false;
         }
 
-        console.log(`   ✅ Clip ${videoId} successfully reserved`);
-        return data;
+        console.log(`   ✅ Clip ${videoId} successfully reserved (ID: ${data[0].clip_id})`);
+        return { id: data[0].clip_id };
     } catch (error) {
-        console.error('Exception marking clip as posted:', error);
+        console.error('Exception calling reserve_clip RPC:', error);
         return false;
     }
 }
