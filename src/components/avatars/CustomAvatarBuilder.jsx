@@ -203,7 +203,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         maxWidth: '600px',
         margin: '40px auto',
         padding: '40px',
-        background: 'rgba(10, 14, 39, 0.9)',
+        background: '#FFFFFF',
         border: '2px solid rgba(0, 245, 255, 0.3)',
         borderRadius: '20px',
         textAlign: 'center'
@@ -215,7 +215,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         <h2 style={{
           fontFamily: 'Orbitron, sans-serif',
           fontSize: '24px',
-          color: '#00f5ff',
+          color: '#1877F2',
           marginBottom: '15px'
         }}>Loading...</h2>
         <p style={{
@@ -236,7 +236,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         maxWidth: '600px',
         margin: '40px auto',
         padding: '40px',
-        background: 'rgba(10, 14, 39, 0.9)',
+        background: '#FFFFFF',
         border: '2px solid rgba(0, 245, 255, 0.3)',
         borderRadius: '20px',
         textAlign: 'center'
@@ -248,7 +248,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         <h2 style={{
           fontFamily: 'Orbitron, sans-serif',
           fontSize: '24px',
-          color: '#00f5ff',
+          color: '#1877F2',
           marginBottom: '15px'
         }}>Sign In Required</h2>
         <p style={{
@@ -262,7 +262,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
           onClick={() => window.location.href = '/auth/login'}
           style={{
             padding: '14px 32px',
-            background: 'linear-gradient(135deg, #00f5ff, #0080ff)',
+            background: 'linear-gradient(135deg, #1877F2, #166FE5)',
             border: 'none',
             borderRadius: '12px',
             color: '#fff',
@@ -286,7 +286,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
           max-width: 800px;
           margin: 0 auto;
           padding: 30px;
-          background: rgba(10, 14, 39, 0.8);
+          background: #FFFFFF;
           border: 2px solid rgba(0, 245, 255, 0.3);
           border-radius: 20px;
           backdrop-filter: blur(10px);
@@ -298,7 +298,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
           font-family: 'Orbitron', sans-serif;
           font-size: 28px;
           font-weight: 700;
-          background: linear-gradient(135deg, #00f5ff, #ff00f5);
+          background: linear-gradient(135deg, #1877F2, #1877F2);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           text-align: center;
@@ -400,7 +400,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
 
         .delete-modal h3 {
           font-family: 'Orbitron', sans-serif;
-          color: #00f5ff;
+          color: #1877F2;
           margin-bottom: 10px;
         }
 
@@ -448,7 +448,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
           background: rgba(0, 245, 255, 0.2);
           border: 1px solid rgba(0, 245, 255, 0.5);
           border-radius: 8px;
-          color: #00f5ff;
+          color: #1877F2;
           font-family: 'Rajdhani', sans-serif;
           font-size: 14px;
           cursor: pointer;
@@ -545,7 +545,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(10, 14, 39, 0.98);
+          background: #FFFFFF;
           z-index: 100;
           display: flex;
           flex-direction: column;
@@ -557,7 +557,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         .result-title {
           font-family: 'Orbitron', sans-serif;
           font-size: 24px;
-          color: #00f5ff;
+          color: #1877F2;
           margin-bottom: 20px;
           text-align: center;
         }
@@ -566,7 +566,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
           max-width: 280px;
           max-height: 280px;
           border-radius: 16px;
-          border: 3px solid #00f5ff;
+          border: 3px solid #1877F2;
           box-shadow: 0 20px 60px rgba(0, 245, 255, 0.5);
           animation: popIn 0.5s ease-out;
         }
@@ -669,7 +669,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         }
 
         .upload-zone:hover {
-          border-color: #00f5ff;
+          border-color: #1877F2;
           background: rgba(0, 245, 255, 0.05);
           transform: translateY(-2px);
         }
@@ -678,7 +678,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         .upload-text {
           font-family: 'Rajdhani', sans-serif;
           font-size: 16px;
-          color: #00f5ff;
+          color: #1877F2;
           font-weight: 600;
           margin-bottom: 8px;
         }
@@ -697,7 +697,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         .photo-preview {
           width: 100%;
           border-radius: 12px;
-          border: 2px solid #00f5ff;
+          border: 2px solid #1877F2;
           box-shadow: 0 5px 20px rgba(0, 245, 255, 0.3);
         }
 
@@ -721,7 +721,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         .prompt-label {
           font-family: 'Rajdhani', sans-serif;
           font-size: 16px;
-          color: #00f5ff;
+          color: #1877F2;
           font-weight: 600;
           margin-bottom: 10px;
           text-transform: uppercase;
@@ -743,7 +743,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
 
         .prompt-input:focus {
           outline: none;
-          border-color: #00f5ff;
+          border-color: #1877F2;
           box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
         }
 
@@ -768,7 +768,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
           background: rgba(0, 245, 255, 0.1);
           border: 1px solid rgba(0, 245, 255, 0.3);
           border-radius: 8px;
-          color: #00f5ff;
+          color: #1877F2;
           font-family: 'Rajdhani', sans-serif;
           font-size: 13px;
           cursor: pointer;
@@ -778,14 +778,14 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
 
         .example-chip:hover {
           background: rgba(0, 245, 255, 0.2);
-          border-color: #00f5ff;
+          border-color: #1877F2;
           transform: translateY(-2px);
         }
 
         .generate-btn {
           width: 100%;
           padding: 18px;
-          background: linear-gradient(135deg, #00f5ff, #0099ff);
+          background: linear-gradient(135deg, #1877F2, #166FE5);
           border: none;
           border-radius: 12px;
           color: #0a0e27;
