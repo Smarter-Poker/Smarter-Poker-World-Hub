@@ -141,8 +141,8 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false }) {
                         <div style={{ fontSize: 10, opacity: 0.6, textTransform: 'uppercase' }}>Earnings</div>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 12, textAlign: 'center' }}>
-                        <div style={{ fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{hendonData.hendon_best_finish || '—'}</div>
-                        <div style={{ fontSize: 10, opacity: 0.6, textTransform: 'uppercase' }}>Best Finish</div>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>${hendonData.hendon_biggest_cash?.toLocaleString() || hendonData.hendon_best_finish || '—'}</div>
+                        <div style={{ fontSize: 10, opacity: 0.6, textTransform: 'uppercase' }}>BIGGEST CASH</div>
                     </div>
                 </div>
             ) : hasHendon ? (
