@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Allow', ['GET', 'POST']);
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
 }
 
 async function listTournaments(req, res) {
@@ -64,10 +64,10 @@ async function listTournaments(req, res) {
 
     if (error) throw error;
 
-    return res.status(200).json({ tournaments: data });
+    return res.status(200).json({ success: true, data: { tournaments: data } });
   } catch (error) {
     captureException(error, { action: 'list_tournaments', endpoint: '/api/commander/tournaments' });
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
   }
 }
 
@@ -75,14 +75,14 @@ async function createTournament(req, res) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Authorization required' } });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: { code: 'AUTH_INVALID', message: 'Invalid token' } });
     }
 
     const {
@@ -119,7 +119,8 @@ async function createTournament(req, res) {
 
     if (!venue_id || !name || !tournament_type || !buyin_amount || !starting_chips || !scheduled_start) {
       return res.status(400).json({
-        error: 'Required fields: venue_id, name, tournament_type, buyin_amount, starting_chips, scheduled_start'
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Required fields: venue_id, name, tournament_type, buyin_amount, starting_chips, scheduled_start' }
       });
     }
 
@@ -133,7 +134,7 @@ async function createTournament(req, res) {
       .single();
 
     if (staffError || !staff) {
-      return res.status(403).json({ error: 'You are not staff at this venue' });
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You are not staff at this venue' } });
     }
 
     const { data: tournament, error } = await supabase
@@ -175,9 +176,9 @@ async function createTournament(req, res) {
 
     if (error) throw error;
 
-    return res.status(201).json({ tournament });
+    return res.status(201).json({ success: true, data: { tournament } });
   } catch (error) {
     captureException(error, { action: 'create_tournament', endpoint: '/api/commander/tournaments', venue_id: req.body?.venue_id });
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
   }
 }

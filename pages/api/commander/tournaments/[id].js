@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (!id) {
-    return res.status(400).json({ error: 'Tournament ID required' });
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Tournament ID required' } });
   }
 
   if (req.method === 'GET') {
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
 }
 
 async function getTournament(req, res, id) {
@@ -61,13 +61,13 @@ async function getTournament(req, res, id) {
     if (error) throw error;
 
     if (!tournament) {
-      return res.status(404).json({ error: 'Tournament not found' });
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Tournament not found' } });
     }
 
-    return res.status(200).json({ tournament });
+    return res.status(200).json({ success: true, data: { tournament } });
   } catch (error) {
     console.error('Get tournament error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
   }
 }
 
@@ -75,14 +75,14 @@ async function updateTournament(req, res, id) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Authorization required' } });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: { code: 'AUTH_INVALID', message: 'Invalid token' } });
     }
 
     // Get tournament to check venue
@@ -93,7 +93,7 @@ async function updateTournament(req, res, id) {
       .single();
 
     if (fetchError || !existing) {
-      return res.status(404).json({ error: 'Tournament not found' });
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Tournament not found' } });
     }
 
     // Verify staff access
@@ -106,7 +106,7 @@ async function updateTournament(req, res, id) {
       .single();
 
     if (staffError || !staff) {
-      return res.status(403).json({ error: 'You are not staff at this venue' });
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You are not staff at this venue' } });
     }
 
     const updates = { ...req.body, updated_at: new Date().toISOString() };
@@ -126,10 +126,10 @@ async function updateTournament(req, res, id) {
 
     if (error) throw error;
 
-    return res.status(200).json({ tournament });
+    return res.status(200).json({ success: true, data: { tournament } });
   } catch (error) {
     console.error('Update tournament error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
   }
 }
 
@@ -137,14 +137,14 @@ async function cancelTournament(req, res, id) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Authorization required' } });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: { code: 'AUTH_INVALID', message: 'Invalid token' } });
     }
 
     // Get tournament
@@ -155,7 +155,7 @@ async function cancelTournament(req, res, id) {
       .single();
 
     if (fetchError || !existing) {
-      return res.status(404).json({ error: 'Tournament not found' });
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Tournament not found' } });
     }
 
     // Only owners/managers can cancel
@@ -169,11 +169,11 @@ async function cancelTournament(req, res, id) {
       .single();
 
     if (staffError || !staff) {
-      return res.status(403).json({ error: 'Only owners and managers can cancel tournaments' });
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only owners and managers can cancel tournaments' } });
     }
 
     if (existing.status === 'completed') {
-      return res.status(400).json({ error: 'Cannot cancel a completed tournament' });
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Cannot cancel a completed tournament' } });
     }
 
     const { data: tournament, error } = await supabase
@@ -189,9 +189,9 @@ async function cancelTournament(req, res, id) {
 
     if (error) throw error;
 
-    return res.status(200).json({ tournament, message: 'Tournament cancelled' });
+    return res.status(200).json({ success: true, data: { tournament, message: 'Tournament cancelled' } });
   } catch (error) {
     console.error('Cancel tournament error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
   }
 }
