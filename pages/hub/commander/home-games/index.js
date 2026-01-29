@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import EventCard from '../../../../src/components/commander/home-games/EventCard';
 import GroupCard from '../../../../src/components/commander/home-games/GroupCard';
+import GameCalendar from '../../../../src/components/commander/home-games/GameCalendar';
 
 /* Inline HomeGameCard replaced by shared GroupCard component */
 
@@ -35,6 +36,8 @@ export default function PlayerHomeGamesHub() {
   const [activeTab, setActiveTab] = useState('my-games');
   const [discoverGames, setDiscoverGames] = useState([]);
   const [discoverLoading, setDiscoverLoading] = useState(false);
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
 
   useEffect(() => {
     loadGames();
@@ -43,6 +46,9 @@ export default function PlayerHomeGamesHub() {
   useEffect(() => {
     if (activeTab === 'discover' && discoverGames.length === 0) {
       loadDiscoverGames();
+    }
+    if (activeTab === 'calendar' && calendarEvents.length === 0) {
+      loadCalendarEvents();
     }
   }, [activeTab]);
 
@@ -147,6 +153,24 @@ export default function PlayerHomeGamesHub() {
       console.error('Discover load error:', err);
     } finally {
       setDiscoverLoading(false);
+    }
+  };
+
+  const loadCalendarEvents = async () => {
+    setCalendarLoading(true);
+    try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      const res = await fetch('/api/commander/home-games/events?limit=100', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      const data = await res.json();
+      if (data.events || data.data?.events) {
+        setCalendarEvents(data.events || data.data?.events || []);
+      }
+    } catch (err) {
+      console.error('Calendar load error:', err);
+    } finally {
+      setCalendarLoading(false);
     }
   };
 
@@ -263,12 +287,41 @@ export default function PlayerHomeGamesHub() {
               <Globe size={16} />
               Discover
             </button>
+            <button
+              onClick={() => setActiveTab('calendar')}
+              className={`px-4 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === 'calendar'
+                  ? 'border-[#22D3EE] text-[#22D3EE]'
+                  : 'border-transparent text-[#64748B] hover:text-white'
+              }`}
+            >
+              <Calendar size={16} />
+              Calendar
+            </button>
           </div>
         </div>
 
         {/* Games Grid */}
         <div className="max-w-6xl mx-auto px-4 py-6">
-          {activeTab === 'discover' ? (
+          {activeTab === 'calendar' ? (
+            calendarLoading ? (
+              <div className="cmd-panel p-12 text-center">
+                <div className="w-8 h-8 animate-spin rounded-full border-2 border-[#22D3EE] border-t-transparent mx-auto" />
+              </div>
+            ) : (
+              <GameCalendar
+                events={calendarEvents.map(e => ({
+                  ...e,
+                  event_date: e.scheduled_date || e.event_date
+                }))}
+                onSelectEvent={(event) => {
+                  if (event.group_id) {
+                    router.push(`/hub/commander/home-games/${event.group_id}`);
+                  }
+                }}
+              />
+            )
+          ) : activeTab === 'discover' ? (
             discoverLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[1, 2, 3, 4, 5, 6].map(i => (

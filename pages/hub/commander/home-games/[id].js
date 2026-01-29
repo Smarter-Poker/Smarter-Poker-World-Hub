@@ -26,6 +26,7 @@ import {
   Star
 } from 'lucide-react';
 import RsvpForm, { RsvpList } from '../../../../src/components/commander/home-games/RsvpForm';
+import PlayerRating from '../../../../src/components/commander/home-games/PlayerRating';
 
 function EventCard({ event, onRsvp, userRsvp }) {
   const eventDate = new Date(event.scheduled_date);
@@ -153,6 +154,8 @@ export default function HomeGameDetailPage() {
   const [eventReviews, setEventReviews] = useState([]);
   const [reviewsAvgRating, setReviewsAvgRating] = useState(0);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [userReview, setUserReview] = useState(null);
 
   // Get current user ID from token on mount
   useEffect(() => {
@@ -496,6 +499,45 @@ export default function HomeGameDetailPage() {
               ))}
             </div>
           </div>
+
+          {/* Leave a Review */}
+          {isMember && events.some(e => new Date(e.scheduled_date) < new Date()) && !userReview && (
+            <div>
+              <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                <Star className="w-5 h-5 text-[#22D3EE]" />
+                Leave a Review
+              </h3>
+              <PlayerRating
+                event={events.find(e => new Date(e.scheduled_date) < new Date())}
+                isLoading={reviewSubmitting}
+                existingReview={userReview}
+                onSubmit={async (reviewData) => {
+                  setReviewSubmitting(true);
+                  try {
+                    const pastEvent = events.find(e => new Date(e.scheduled_date) < new Date());
+                    if (!pastEvent) return;
+                    const token = localStorage.getItem('smarter-poker-auth');
+                    const res = await fetch(`/api/commander/home-games/events/${pastEvent.id}/reviews`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                      },
+                      body: JSON.stringify(reviewData)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      setUserReview(reviewData);
+                    }
+                  } catch (err) {
+                    console.error('Submit review error:', err);
+                  } finally {
+                    setReviewSubmitting(false);
+                  }
+                }}
+              />
+            </div>
+          )}
 
           {/* Event Reviews */}
           <div>

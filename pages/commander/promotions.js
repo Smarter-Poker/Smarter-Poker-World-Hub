@@ -30,6 +30,8 @@ import {
 } from 'lucide-react';
 import PromotionCard from '../../src/components/commander/promotions/PromotionCard';
 import PromotionEditor from '../../src/components/commander/promotions/PromotionEditor';
+import PromotionBuilder from '../../src/components/commander/promotions/PromotionBuilder';
+import HighHandDisplay from '../../src/components/commander/promotions/HighHandDisplay';
 
 const PROMO_TYPES = [
   { value: 'high_hand', label: 'High Hand', icon: Trophy, color: '#F59E0B' },
@@ -379,6 +381,8 @@ export default function PromotionsPage() {
   const [selectedPromoForAwards, setSelectedPromoForAwards] = useState(null);
   const [promoAwards, setPromoAwards] = useState([]);
   const [awardsLoading, setAwardsLoading] = useState(false);
+  const [useWizard, setUseWizard] = useState(false);
+  const [highHandPromo, setHighHandPromo] = useState(null);
 
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
@@ -419,10 +423,13 @@ export default function PromotionsPage() {
         setHighHands(data.high_hands);
         setCurrentHighHand(data.current_high);
       }
+      // Find active high hand promotion
+      const hhPromo = promotions.find(p => p.promo_type === 'high_hand' && p.is_active);
+      if (hhPromo) setHighHandPromo(hhPromo);
     } catch (error) {
       console.error('Fetch high hands failed:', error);
     }
-  }, [venueId]);
+  }, [venueId, promotions]);
 
   useEffect(() => {
     if (venueId) {
@@ -531,13 +538,22 @@ export default function PromotionsPage() {
               </div>
             </div>
             {activeTab === 'promotions' ? (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="cmd-btn cmd-btn-primary flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                New Promo
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setUseWizard(true); setShowCreateModal(true); }}
+                  className="cmd-btn cmd-btn-secondary flex items-center gap-2"
+                >
+                  <Zap className="w-4 h-4" />
+                  Wizard
+                </button>
+                <button
+                  onClick={() => { setUseWizard(false); setShowCreateModal(true); }}
+                  className="cmd-btn cmd-btn-primary flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Promo
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => setShowHighHandModal(true)}
@@ -624,6 +640,32 @@ export default function PromotionsPage() {
             </>
           ) : (
             <>
+              <HighHandDisplay
+                promotion={highHandPromo}
+                currentHighHand={currentHighHand}
+                recentHighHands={highHands.slice(0, 5)}
+                isStaff={true}
+                onSubmitHand={async (handData) => {
+                  try {
+                    const token = localStorage.getItem('smarter-poker-auth');
+                    await fetch('/api/commander/high-hands', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        venue_id: venueId,
+                        ...handData
+                      })
+                    });
+                    fetchHighHands();
+                  } catch (error) {
+                    console.error('Submit high hand failed:', error);
+                  }
+                }}
+              />
+
               <CurrentHighHandBanner highHand={currentHighHand} />
 
               {loading ? (
@@ -659,26 +701,63 @@ export default function PromotionsPage() {
       </div>
 
       {showCreateModal && (
-        <PromotionEditor
-          venueId={venueId}
-          onSave={async (data) => {
-            try {
-              const res = await fetch('/api/commander/promotions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-              });
-              const result = await res.json();
-              if (result.success) {
-                fetchPromotions();
-                setShowCreateModal(false);
+        useWizard ? (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="cmd-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">Promotion Wizard</h3>
+                <button
+                  onClick={() => { setUseWizard(false); setShowCreateModal(false); }}
+                  className="p-2 hover:bg-[#132240] rounded-lg"
+                >
+                  <X className="w-5 h-5 text-[#64748B]" />
+                </button>
+              </div>
+              <PromotionBuilder
+                venueId={venueId}
+                onSubmit={async (data) => {
+                  try {
+                    const res = await fetch('/api/commander/promotions', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(data)
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                      fetchPromotions();
+                      setShowCreateModal(false);
+                      setUseWizard(false);
+                    }
+                  } catch (error) {
+                    console.error('Create promo failed:', error);
+                  }
+                }}
+                onCancel={() => { setUseWizard(false); setShowCreateModal(false); }}
+              />
+            </div>
+          </div>
+        ) : (
+          <PromotionEditor
+            venueId={venueId}
+            onSave={async (data) => {
+              try {
+                const res = await fetch('/api/commander/promotions', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                  fetchPromotions();
+                  setShowCreateModal(false);
+                }
+              } catch (error) {
+                console.error('Create promo failed:', error);
               }
-            } catch (error) {
-              console.error('Create promo failed:', error);
-            }
-          }}
-          onClose={() => setShowCreateModal(false)}
-        />
+            }}
+            onClose={() => setShowCreateModal(false)}
+          />
+        )
       )}
 
       {showEditModal && editingPromo && (
