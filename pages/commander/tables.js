@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { ArrowLeft, Plus, Edit2, Trash2, Table2, Users, Loader2 } from 'lucide-react';
+import TableStatus, { TableGrid } from '../../src/components/commander/staff/TableStatus';
 
 export default function CommanderTablesPage() {
   const router = useRouter();
@@ -14,7 +15,9 @@ export default function CommanderTablesPage() {
   const [venueId, setVenueId] = useState(null);
   const [venue, setVenue] = useState(null);
   const [tables, setTables] = useState([]);
+  const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTableId, setSelectedTableId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTable, setEditingTable] = useState(null);
 
@@ -46,10 +49,17 @@ export default function CommanderTablesPage() {
   const fetchTables = useCallback(async () => {
     if (!venueId) return;
     try {
-      const res = await fetch(`/api/commander/tables/venue/${venueId}`);
-      const data = await res.json();
-      if (data.success) {
-        setTables(data.data.tables || []);
+      const [tablesRes, gamesRes] = await Promise.all([
+        fetch(`/api/commander/tables/venue/${venueId}`),
+        fetch(`/api/commander/games/venue/${venueId}`)
+      ]);
+      const tablesData = await tablesRes.json();
+      const gamesData = await gamesRes.json();
+      if (tablesData.success) {
+        setTables(tablesData.data.tables || []);
+      }
+      if (gamesData.success) {
+        setGames(gamesData.data.games || []);
       }
     } catch (err) {
       console.error('Failed to fetch tables:', err);
@@ -157,7 +167,24 @@ export default function CommanderTablesPage() {
         </header>
 
         {/* Main Content */}
-        <main className="max-w-4xl mx-auto px-4 py-6">
+        <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+          {/* Visual Table Status Overview */}
+          {tables.length > 0 && (
+            <section>
+              <h2 className="text-lg font-semibold text-white mb-4">Table Overview</h2>
+              <TableGrid
+                tables={tables}
+                games={games}
+                selectedTable={selectedTableId}
+                onSelectTable={(table) => {
+                  setSelectedTableId(table.id);
+                  setEditingTable(table);
+                }}
+              />
+            </section>
+          )}
+
+          {/* Table Management */}
           {tables.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
               <Table2 className="w-12 h-12 text-[#4A5E78] mx-auto mb-4" />

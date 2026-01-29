@@ -4,6 +4,7 @@
  * Reference: API_REFERENCE.md - Notifications section
  */
 import { createClient } from '@supabase/supabase-js';
+import { normalizePhoneNumber, isSmsConfigured } from '../../../../src/lib/commander/notifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -208,11 +209,7 @@ async function processNotification(notification, channel, phone) {
 }
 
 async function sendSmsNotification(notification, phone) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
-
-  if (!accountSid || !authToken || !fromNumber) {
+  if (!isSmsConfigured()) {
     console.log('Twilio not configured, marking SMS as pending');
     await supabase
       .from('commander_notifications')
@@ -220,6 +217,10 @@ async function sendSmsNotification(notification, phone) {
       .eq('id', notification.id);
     return;
   }
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
 
   // Get phone number from notification or player profile
   let toPhone = phone;
@@ -257,11 +258,24 @@ async function sendSmsNotification(notification, phone) {
   }
 
   try {
+    // Normalize the phone number to E.164 format using shared utility
+    const normalizedPhone = normalizePhoneNumber(toPhone);
+    if (!normalizedPhone) {
+      await supabase
+        .from('commander_notifications')
+        .update({
+          status: 'failed',
+          metadata: { ...notification.metadata, error: 'Invalid phone number format' }
+        })
+        .eq('id', notification.id);
+      return;
+    }
+
     const client = require('twilio')(accountSid, authToken);
     const result = await client.messages.create({
       body: notification.message,
       from: fromNumber,
-      to: toPhone,
+      to: normalizedPhone,
       statusCallback: `${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/commander/webhooks/twilio/status`
     });
 

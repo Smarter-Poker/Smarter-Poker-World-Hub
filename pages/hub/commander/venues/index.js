@@ -11,10 +11,8 @@ import {
   Search,
   Users,
   Clock,
-  DollarSign,
   ChevronRight,
   Star,
-  Filter,
   Loader2,
   Navigation
 } from 'lucide-react';

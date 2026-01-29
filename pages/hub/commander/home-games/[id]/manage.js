@@ -245,6 +245,8 @@ export default function ManageHomeGamePage() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [activeTab, setActiveTab] = useState('events');
   const [processingEscrow, setProcessingEscrow] = useState(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -291,7 +293,7 @@ export default function ManageHomeGamePage() {
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push('/login');
+      router.push('/auth/login');
       return;
     }
     fetchData();
@@ -398,6 +400,7 @@ export default function ManageHomeGamePage() {
   async function handleDeleteGroup() {
     if (!confirm('Are you sure you want to delete this group? This action cannot be undone.')) return;
 
+    setDeleteError(null);
     try {
       const token = localStorage.getItem('smarter-poker-auth');
       const res = await fetch(`/api/commander/home-games/groups/${id}`, {
@@ -409,11 +412,11 @@ export default function ManageHomeGamePage() {
       if (data.success) {
         router.push('/hub/commander/home-games');
       } else {
-        alert(data.error?.message || 'Failed to delete group');
+        setDeleteError(data.error?.message || 'Failed to delete group');
       }
     } catch (error) {
       console.error('Delete group failed:', error);
-      alert('Failed to delete group');
+      setDeleteError('Failed to delete group');
     }
   }
 
@@ -852,14 +855,18 @@ export default function ManageHomeGamePage() {
                     onClick={() => {
                       if (group?.invite_code) {
                         navigator.clipboard.writeText(group.invite_code);
-                        alert('Invite code copied!');
+                        setCopySuccess(true);
+                        setTimeout(() => setCopySuccess(false), 2000);
                       }
                     }}
                     className="cmd-btn cmd-btn-primary px-4 py-3"
                   >
-                    Copy
+                    {copySuccess ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
+                {copySuccess && (
+                  <p className="text-sm text-[#10B981] mt-2 font-medium">Invite code copied to clipboard</p>
+                )}
                 <p className="text-sm text-[#64748B] mt-2">Share this code with players you want to invite</p>
               </div>
 
@@ -875,6 +882,12 @@ export default function ManageHomeGamePage() {
                 >
                   Delete Group
                 </button>
+                {deleteError && (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-[#EF4444]">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{deleteError}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}

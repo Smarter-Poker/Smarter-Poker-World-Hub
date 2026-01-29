@@ -9,13 +9,11 @@ import Head from 'next/head';
 import {
   ArrowLeft,
   Home,
-  Users,
   MapPin,
   Lock,
   Globe,
   DollarSign,
   Calendar,
-  Clock,
   Loader2,
   Check
 } from 'lucide-react';
@@ -79,7 +77,7 @@ export default function CreateHomeGamePage() {
     try {
       const token = localStorage.getItem('smarter-poker-auth');
       if (!token) {
-        router.push('/login?redirect=/hub/commander/home-games/create');
+        router.push('/auth/login?redirect=/hub/commander/home-games/create');
         return;
       }
 

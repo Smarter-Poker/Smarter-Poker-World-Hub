@@ -9,11 +9,8 @@ import Head from 'next/head';
 import {
   CheckCircle,
   MapPin,
-  Clock,
   Users,
-  DollarSign,
   Gift,
-  Trophy,
   Loader2,
   AlertCircle
 } from 'lucide-react';
@@ -68,7 +65,7 @@ export default function PlayerCheckInPage() {
   async function handleCheckIn() {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push(`/login?redirect=/hub/commander/check-in/${venueId}`);
+      router.push(`/auth/login?redirect=/hub/commander/check-in/${venueId}`);
       return;
     }
 

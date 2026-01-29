@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { ArrowLeft, Settings, Bell, Clock, Users, Save, Loader2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Bell, Clock, Users, Save, Loader2, ChevronRight } from 'lucide-react';
 
 export default function CommanderSettingsPage() {
   const router = useRouter();

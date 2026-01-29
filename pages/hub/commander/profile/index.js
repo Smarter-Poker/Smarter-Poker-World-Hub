@@ -21,8 +21,7 @@ import {
   History,
   Gift,
   Loader2,
-  Edit2,
-  Zap
+  Edit2
 } from 'lucide-react';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
@@ -93,7 +92,7 @@ export default function PlayerProfilePage() {
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push('/login?redirect=/hub/commander/profile');
+      router.push('/auth/login?redirect=/hub/commander/profile');
       return;
     }
     fetchProfile();

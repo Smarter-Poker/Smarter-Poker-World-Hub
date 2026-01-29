@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { ArrowLeft, Plus, Edit2, Trash2, User, Shield, Loader2, X, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff } from 'lucide-react';
 
 const ROLES = [
   { value: 'owner', label: 'Owner', color: 'bg-[#7C3AED] text-white' },

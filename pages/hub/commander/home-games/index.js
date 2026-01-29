@@ -11,104 +11,10 @@ import {
   Home, MapPin, Calendar, Users, Clock, Lock, Globe,
   UserPlus, Search, Filter, QrCode, ChevronRight, Star, Zap
 } from 'lucide-react';
+import EventCard from '../../../../src/components/commander/home-games/EventCard';
+import GroupCard from '../../../../src/components/commander/home-games/GroupCard';
 
-function HomeGameCard({ game, onJoin }) {
-  const gameDate = new Date(game.scheduled_date);
-  const isPrivate = game.visibility === 'private';
-  const isFull = game.rsvp_count >= game.max_players;
-
-  return (
-    <div className="cmd-panel cmd-corner-lights overflow-hidden">
-      {/* Corner glow lights */}
-      <span className="cmd-light cmd-light-tl" />
-      <span className="cmd-light cmd-light-br" />
-
-      {/* Rivets */}
-      <div className="absolute top-3 left-3"><span className="cmd-rivet cmd-rivet-sm" /></div>
-      <div className="absolute top-3 right-3"><span className="cmd-rivet cmd-rivet-sm" /></div>
-
-      <div className="p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            {game.host_avatar ? (
-              <img src={game.host_avatar} alt="" className="w-10 h-10 rounded-full border-2 border-[#4A5E78]" />
-            ) : (
-              <div className="cmd-icon-box w-10 h-10">
-                <Home size={20} />
-              </div>
-            )}
-            <div>
-              <h3 className="font-bold text-white">{game.name}</h3>
-              <div className="flex items-center gap-1 text-sm text-[#64748B]">
-                <span>Hosted by {game.host_name || 'Anonymous'}</span>
-                {game.host_rating && (
-                  <span className="flex items-center gap-0.5 ml-2 text-[#F59E0B]">
-                    <Star size={12} fill="#F59E0B" />
-                    {game.host_rating.toFixed(1)}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <span className={`cmd-badge ${isPrivate ? 'cmd-badge-chrome' : 'cmd-badge-live'}`}>
-            {isPrivate ? <Lock size={12} /> : <Globe size={12} />}
-            {game.visibility}
-          </span>
-        </div>
-
-        {/* Game details */}
-        <div className="space-y-2 mb-4 text-sm text-[#CBD5E1]">
-          <div className="flex items-center gap-2">
-            <Calendar size={16} className="text-[#64748B]" />
-            <span>{gameDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-            <span className="text-[#64748B]">at</span>
-            <span>{gameDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <MapPin size={16} className="text-[#64748B]" />
-            <span>{game.city}, {game.state}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Users size={16} className="text-[#64748B]" />
-            <span>{game.rsvp_count || 0} / {game.max_players} players</span>
-            {isFull && <span className="text-[#EF4444] text-xs font-bold">(FULL)</span>}
-          </div>
-        </div>
-
-        {/* Game type and stakes */}
-        <div className="flex gap-2 mb-4">
-          <span className="cmd-badge cmd-badge-primary">
-            {game.game_type?.toUpperCase() || 'NLHE'}
-          </span>
-          <span className="cmd-badge cmd-badge-live">
-            {game.stakes || '$1/$2'}
-          </span>
-          {game.min_buyin && (
-            <span className="cmd-badge cmd-badge-chrome">
-              Min: ${game.min_buyin}
-            </span>
-          )}
-        </div>
-
-        {/* Description */}
-        {game.description && (
-          <p className="text-sm text-[#64748B] mb-4 line-clamp-2">
-            {game.description}
-          </p>
-        )}
-
-        {/* Action */}
-        <button
-          onClick={() => onJoin?.(game)}
-          disabled={isFull}
-          className={`w-full ${isFull ? 'cmd-btn cmd-btn-secondary opacity-50 cursor-not-allowed' : 'cmd-btn cmd-btn-primary'} justify-center`}
-        >
-          {isFull ? 'GAME FULL' : game.requires_approval ? 'REQUEST TO JOIN' : 'JOIN GAME'}
-        </button>
-      </div>
-    </div>
-  );
-}
+/* Inline HomeGameCard replaced by shared GroupCard component */
 
 export default function PlayerHomeGamesHub() {
   const router = useRouter();
@@ -126,10 +32,19 @@ export default function PlayerHomeGamesHub() {
     daysAhead: 30
   });
   const [message, setMessage] = useState(null);
+  const [activeTab, setActiveTab] = useState('my-games');
+  const [discoverGames, setDiscoverGames] = useState([]);
+  const [discoverLoading, setDiscoverLoading] = useState(false);
 
   useEffect(() => {
     loadGames();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'discover' && discoverGames.length === 0) {
+      loadDiscoverGames();
+    }
+  }, [activeTab]);
 
   // Filter games when search or filters change
   useEffect(() => {
@@ -192,7 +107,7 @@ export default function PlayerHomeGamesHub() {
     try {
       const token = localStorage.getItem('smarter-poker-auth');
       if (!token) {
-        router.push('/login?redirect=/hub/commander/home-games');
+        router.push('/auth/login?redirect=/hub/commander/home-games');
         return;
       }
 
@@ -217,10 +132,28 @@ export default function PlayerHomeGamesHub() {
     setTimeout(() => setMessage(null), 4000);
   };
 
+  const loadDiscoverGames = async () => {
+    setDiscoverLoading(true);
+    try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      const res = await fetch('/api/commander/home-games/discover?type=groups&limit=20', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      const data = await res.json();
+      if (data.groups) {
+        setDiscoverGames(data.groups);
+      }
+    } catch (err) {
+      console.error('Discover load error:', err);
+    } finally {
+      setDiscoverLoading(false);
+    }
+  };
+
   const handleJoinGame = (game) => {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push('/login?redirect=/hub/commander/home-games');
+      router.push('/auth/login?redirect=/hub/commander/home-games');
       return;
     }
     router.push(`/hub/commander/home-games/${game.id}`);
@@ -306,9 +239,68 @@ export default function PlayerHomeGamesHub() {
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="border-b-2 border-[#4A5E78] bg-[#0F1C32]">
+          <div className="max-w-6xl mx-auto px-4 flex gap-1">
+            <button
+              onClick={() => setActiveTab('my-games')}
+              className={`px-4 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors ${
+                activeTab === 'my-games'
+                  ? 'border-[#22D3EE] text-[#22D3EE]'
+                  : 'border-transparent text-[#64748B] hover:text-white'
+              }`}
+            >
+              My Games
+            </button>
+            <button
+              onClick={() => setActiveTab('discover')}
+              className={`px-4 py-3 text-sm font-bold uppercase tracking-wide border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === 'discover'
+                  ? 'border-[#22D3EE] text-[#22D3EE]'
+                  : 'border-transparent text-[#64748B] hover:text-white'
+              }`}
+            >
+              <Globe size={16} />
+              Discover
+            </button>
+          </div>
+        </div>
+
         {/* Games Grid */}
         <div className="max-w-6xl mx-auto px-4 py-6">
-          {isLoading ? (
+          {activeTab === 'discover' ? (
+            discoverLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="h-64 rounded-xl animate-pulse bg-[#132240]" />
+                ))}
+              </div>
+            ) : discoverGames.length === 0 ? (
+              <div className="cmd-panel p-12 text-center">
+                <div className="cmd-icon-box mx-auto mb-4">
+                  <Globe className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-bold text-white">No public games found</h3>
+                <p className="text-[#64748B] mt-1">Check back later or host your own game</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {discoverGames.map(game => (
+                  <GroupCard
+                    key={game.id}
+                    group={{
+                      ...game,
+                      is_private: false,
+                      member_count: game.member_count || 0,
+                      default_game_type: game.default_game_type,
+                      default_stakes: game.default_stakes
+                    }}
+                    onClick={() => handleJoinGame(game)}
+                  />
+                ))}
+              </div>
+            )
+          ) : isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map(i => (
                 <div
@@ -353,10 +345,16 @@ export default function PlayerHomeGamesHub() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredGames.map(game => (
-                <HomeGameCard
+                <GroupCard
                   key={game.id}
-                  game={game}
-                  onJoin={handleJoinGame}
+                  group={{
+                    ...game,
+                    is_private: game.visibility === 'private',
+                    member_count: game.rsvp_count || 0,
+                    default_game_type: game.game_type,
+                    default_stakes: game.stakes
+                  }}
+                  onClick={() => handleJoinGame(game)}
                 />
               ))}
             </div>

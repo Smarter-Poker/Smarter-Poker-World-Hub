@@ -4,6 +4,7 @@
  * Reference: API_REFERENCE.md - Waitlist section
  */
 import { createClient } from '@supabase/supabase-js';
+import { captureException } from '../../../../src/lib/commander/errorMonitoring';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -233,7 +234,7 @@ export default async function handler(req, res) {
       }
     });
   } catch (error) {
-    console.error('Commander waitlist API error:', error);
+    captureException(error, { action: 'waitlist_join', endpoint: '/api/commander/waitlist', venue_id: req.body?.venue_id });
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }

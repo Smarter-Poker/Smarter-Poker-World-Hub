@@ -8,17 +8,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
-  FileText,
   ChevronLeft,
   Loader2,
   Clock,
-  DollarSign,
-  Users,
-  Play,
   Share2,
-  Target,
   Lightbulb,
-  ChevronRight,
   ChevronDown
 } from 'lucide-react';
 

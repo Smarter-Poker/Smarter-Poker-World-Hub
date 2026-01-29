@@ -13,7 +13,6 @@ import {
   DollarSign,
   Hand,
   Clock,
-  Check,
   X,
   Loader2,
   ChevronRight,
@@ -292,7 +291,7 @@ export default function ServicesPage() {
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push('/login?redirect=/hub/commander/services');
+      router.push('/auth/login?redirect=/hub/commander/services');
       return;
     }
     fetchData();

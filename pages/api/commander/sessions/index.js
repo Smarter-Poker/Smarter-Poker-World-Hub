@@ -4,6 +4,7 @@
  * Reference: Phase 2 - Session Tracking
  */
 import { createClient } from '@supabase/supabase-js';
+import { captureException } from '../../../../src/lib/commander/errorMonitoring';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -68,7 +69,7 @@ async function handleGet(req, res) {
       data: { sessions: data || [] }
     });
   } catch (error) {
-    console.error('Commander sessions GET error:', error);
+    captureException(error, { action: 'sessions_list', endpoint: '/api/commander/sessions', venue_id: req.query?.venue_id });
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
@@ -137,7 +138,7 @@ async function handlePost(req, res) {
       data: { session }
     });
   } catch (error) {
-    console.error('Commander sessions POST error:', error);
+    captureException(error, { action: 'session_checkin', endpoint: '/api/commander/sessions', venue_id: req.body?.venue_id });
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }

@@ -18,7 +18,9 @@ import {
   ChevronRight,
   Gift,
   Trophy,
-  Loader2
+  Loader2,
+  MessageSquare,
+  Zap
 } from 'lucide-react';
 
 function GameRow({ game, onJoinWaitlist }) {
@@ -61,20 +63,27 @@ export default function VenueDetailPage() {
   const [games, setGames] = useState([]);
   const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsTotal, setReviewsTotal] = useState(0);
+  const [liveGames, setLiveGames] = useState([]);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
 
     try {
-      const [venueRes, gamesRes, promosRes] = await Promise.all([
+      const [venueRes, gamesRes, promosRes, reviewsRes, liveGamesRes] = await Promise.all([
         fetch(`/api/commander/venues/${id}`),
         fetch(`/api/commander/games/venue/${id}`),
-        fetch(`/api/commander/promotions?venue_id=${id}&active=true`)
+        fetch(`/api/commander/promotions?venue_id=${id}&active=true`),
+        fetch(`/api/commander/venues/${id}/reviews?limit=10`),
+        fetch(`/api/commander/games/live?venue_id=${id}`)
       ]);
 
       const venueData = await venueRes.json();
       const gamesData = await gamesRes.json();
       const promosData = await promosRes.json();
+      const reviewsData = await reviewsRes.json();
+      const liveGamesData = await liveGamesRes.json();
 
       if (venueData.success || venueData.venue) {
         setVenue(venueData.venue || venueData.data?.venue);
@@ -84,6 +93,13 @@ export default function VenueDetailPage() {
       }
       if (promosData.success) {
         setPromotions(promosData.data?.promotions || []);
+      }
+      if (reviewsData.success && reviewsData.data) {
+        setReviews(reviewsData.data.reviews || []);
+        setReviewsTotal(reviewsData.data.total || 0);
+      }
+      if (liveGamesData.success && liveGamesData.data) {
+        setLiveGames(liveGamesData.data.games || []);
       }
     } catch (err) {
       console.error('Fetch failed:', err);
@@ -253,6 +269,105 @@ export default function VenueDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Live Games (from /api/commander/games/live) */}
+          {liveGames.length > 0 && (
+            <div className="cmd-panel overflow-hidden">
+              <div className="p-4 border-b border-[#4A5E78] flex items-center justify-between">
+                <h2 className="font-semibold text-white flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-[#22D3EE]" />
+                  Live Games Now
+                </h2>
+                <span className="cmd-badge cmd-badge-live text-xs">LIVE</span>
+              </div>
+              <div>
+                {liveGames.map((game) => (
+                  <div key={game.id} className="flex items-center justify-between p-4 border-b border-[#4A5E78] last:border-b-0">
+                    <div>
+                      <p className="font-medium text-white">
+                        {game.stakes} {game.game_type?.toUpperCase() || 'NLHE'}
+                      </p>
+                      <div className="flex items-center gap-3 text-sm text-[#64748B]">
+                        {game.commander_tables?.table_number && (
+                          <span>Table {game.commander_tables.table_number}</span>
+                        )}
+                        <span>{game.player_count || 0}/{game.max_players || 9} players</span>
+                        {game.waitlist_count > 0 && (
+                          <span className="text-[#F59E0B]">{game.waitlist_count} waiting</span>
+                        )}
+                        <span className={`text-xs font-medium ${game.status === 'running' ? 'text-[#10B981]' : 'text-[#F59E0B]'}`}>
+                          {game.status === 'running' ? 'Running' : 'Starting'}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleJoinWaitlist(game)}
+                      className="cmd-btn cmd-btn-primary px-4 py-2 text-sm"
+                    >
+                      Join
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reviews */}
+          <div className="cmd-panel overflow-hidden">
+            <div className="p-4 border-b border-[#4A5E78]">
+              <h2 className="font-semibold text-white flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-[#22D3EE]" />
+                Reviews
+                {reviewsTotal > 0 && (
+                  <span className="text-sm text-[#64748B] font-normal">({reviewsTotal})</span>
+                )}
+              </h2>
+            </div>
+            {reviews.length === 0 ? (
+              <div className="p-8 text-center">
+                <MessageSquare className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                <p className="text-[#64748B]">No reviews yet</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-[#4A5E78]">
+                {reviews.map((review) => (
+                  <div key={review.id} className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-[#22D3EE]/10 flex items-center justify-center overflow-hidden">
+                          {review.reviewer?.avatar_url ? (
+                            <img src={review.reviewer.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <Users className="w-4 h-4 text-[#22D3EE]" />
+                          )}
+                        </div>
+                        <span className="font-medium text-white text-sm">
+                          {review.reviewer?.display_name || 'Anonymous'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`w-4 h-4 ${s <= review.overall_rating ? 'text-[#F59E0B] fill-[#F59E0B]' : 'text-[#4A5E78]'}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {review.title && (
+                      <p className="font-medium text-white text-sm mb-1">{review.title}</p>
+                    )}
+                    {review.content && (
+                      <p className="text-sm text-[#CBD5E1]">{review.content}</p>
+                    )}
+                    <p className="text-xs text-[#64748B] mt-2">
+                      {new Date(review.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Description */}
           {venue.description && (

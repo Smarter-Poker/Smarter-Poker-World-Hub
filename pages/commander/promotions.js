@@ -28,6 +28,8 @@ import {
   CheckCircle,
   User
 } from 'lucide-react';
+import PromotionCard from '../../src/components/commander/promotions/PromotionCard';
+import PromotionEditor from '../../src/components/commander/promotions/PromotionEditor';
 
 const PROMO_TYPES = [
   { value: 'high_hand', label: 'High Hand', icon: Trophy, color: '#F59E0B' },
@@ -51,423 +53,7 @@ const HAND_RANKS = [
   { value: 1, label: 'High Card' }
 ];
 
-function EditPromoModal({ isOpen, onClose, onSubmit, promo, venueId }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    promo_type: 'high_hand',
-    description: '',
-    prize_amount: 500,
-    frequency: 'hourly',
-    start_time: '10:00',
-    end_time: '02:00',
-    days_active: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
-    requirements: ''
-  });
-  const [submitting, setSubmitting] = useState(false);
-
-  const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-
-  useEffect(() => {
-    if (promo) {
-      setFormData({
-        name: promo.name || '',
-        promo_type: promo.promo_type || 'high_hand',
-        description: promo.description || '',
-        prize_amount: promo.prize_amount || 500,
-        frequency: promo.frequency || 'hourly',
-        start_time: promo.start_time?.slice(0, 5) || '10:00',
-        end_time: promo.end_time?.slice(0, 5) || '02:00',
-        days_active: promo.days_active || DAYS,
-        requirements: promo.requirements || ''
-      });
-    }
-  }, [promo]);
-
-  function toggleDay(day) {
-    setFormData(prev => ({
-      ...prev,
-      days_active: prev.days_active.includes(day)
-        ? prev.days_active.filter(d => d !== day)
-        : [...prev.days_active, day]
-    }));
-  }
-
-  async function handleSubmit() {
-    if (!formData.name.trim()) return;
-
-    setSubmitting(true);
-    try {
-      const res = await fetch(`/api/commander/promotions/${promo.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        onSubmit?.(data.data?.promotion);
-        onClose();
-      }
-    } catch (error) {
-      console.error('Update promo failed:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (!isOpen || !promo) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="cmd-panel cmd-corner-lights w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
-          <h3 className="text-lg font-semibold text-white">Edit Promotion</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#132240] rounded-lg">
-            <X className="w-5 h-5 text-[#64748B]" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Promotion Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="e.g., High Hand Bonus"
-              className="cmd-input w-full"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Type</label>
-            <div className="grid grid-cols-3 gap-2">
-              {PROMO_TYPES.map(({ value, label, icon: Icon, color }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, promo_type: value }))}
-                  className={`p-3 rounded-lg border text-center transition-colors ${
-                    formData.promo_type === value
-                      ? 'border-[#22D3EE] bg-[#22D3EE]/5'
-                      : 'border-[#4A5E78] hover:bg-[#132240]'
-                  }`}
-                >
-                  <Icon className="w-5 h-5 mx-auto mb-1" style={{ color }} />
-                  <span className="text-xs font-medium text-white">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Prize Amount</label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
-              <input
-                type="number"
-                value={formData.prize_amount}
-                onChange={(e) => setFormData(prev => ({ ...prev, prize_amount: parseInt(e.target.value) || 0 }))}
-                className="cmd-input w-full pl-10"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Frequency</label>
-            <div className="flex gap-2">
-              {['hourly', 'daily', 'weekly', 'once'].map((freq) => (
-                <button
-                  key={freq}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, frequency: freq }))}
-                  className={`flex-1 h-10 rounded-lg border font-medium text-sm capitalize transition-colors ${
-                    formData.frequency === freq
-                      ? 'border-[#22D3EE] bg-[#22D3EE] text-white'
-                      : 'border-[#4A5E78] text-white hover:bg-[#132240]'
-                  }`}
-                >
-                  {freq}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Start Time</label>
-              <input
-                type="time"
-                value={formData.start_time}
-                onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
-                className="cmd-input w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">End Time</label>
-              <input
-                type="time"
-                value={formData.end_time}
-                onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
-                className="cmd-input w-full"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Active Days</label>
-            <div className="flex flex-wrap gap-2">
-              {DAYS.map((day) => (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => toggleDay(day)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
-                    formData.days_active.includes(day)
-                      ? 'bg-[#22D3EE] text-white'
-                      : 'bg-[#0D192E] text-[#64748B] hover:bg-[#132240]'
-                  }`}
-                >
-                  {day.slice(0, 3)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Promotion details and rules..."
-              rows={2}
-              className="cmd-input w-full resize-none"
-            />
-          </div>
-        </div>
-
-        <div className="p-4 border-t border-[#4A5E78]">
-          <button
-            onClick={handleSubmit}
-            disabled={!formData.name.trim() || submitting}
-            className="cmd-btn cmd-btn-primary w-full h-12 flex items-center justify-center gap-2"
-          >
-            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-            Save Changes
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CreatePromoModal({ isOpen, onClose, onSubmit, venueId }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    promo_type: 'high_hand',
-    description: '',
-    prize_amount: 500,
-    frequency: 'hourly',
-    start_time: '10:00',
-    end_time: '02:00',
-    days_active: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
-    requirements: ''
-  });
-  const [submitting, setSubmitting] = useState(false);
-
-  const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-
-  function toggleDay(day) {
-    setFormData(prev => ({
-      ...prev,
-      days_active: prev.days_active.includes(day)
-        ? prev.days_active.filter(d => d !== day)
-        : [...prev.days_active, day]
-    }));
-  }
-
-  async function handleSubmit() {
-    if (!formData.name.trim()) return;
-
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/commander/promotions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          venue_id: venueId
-        })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        onSubmit?.(data.data?.promotion);
-        onClose();
-        setFormData({
-          name: '',
-          promo_type: 'high_hand',
-          description: '',
-          prize_amount: 500,
-          frequency: 'hourly',
-          start_time: '10:00',
-          end_time: '02:00',
-          days_active: DAYS,
-          requirements: ''
-        });
-      }
-    } catch (error) {
-      console.error('Create promo failed:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="cmd-panel cmd-corner-lights w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
-          <h3 className="text-lg font-semibold text-white">Create Promotion</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#132240] rounded-lg">
-            <X className="w-5 h-5 text-[#64748B]" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Promotion Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="e.g., High Hand Bonus"
-              className="cmd-input w-full"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Type</label>
-            <div className="grid grid-cols-3 gap-2">
-              {PROMO_TYPES.map(({ value, label, icon: Icon, color }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, promo_type: value }))}
-                  className={`p-3 rounded-lg border text-center transition-colors ${
-                    formData.promo_type === value
-                      ? 'border-[#22D3EE] bg-[#22D3EE]/5'
-                      : 'border-[#4A5E78] hover:bg-[#132240]'
-                  }`}
-                >
-                  <Icon className="w-5 h-5 mx-auto mb-1" style={{ color }} />
-                  <span className="text-xs font-medium text-white">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Prize Amount</label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
-              <input
-                type="number"
-                value={formData.prize_amount}
-                onChange={(e) => setFormData(prev => ({ ...prev, prize_amount: parseInt(e.target.value) || 0 }))}
-                className="cmd-input w-full pl-10"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Frequency</label>
-            <div className="flex gap-2">
-              {['hourly', 'daily', 'weekly', 'once'].map((freq) => (
-                <button
-                  key={freq}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, frequency: freq }))}
-                  className={`flex-1 h-10 rounded-lg border font-medium text-sm capitalize transition-colors ${
-                    formData.frequency === freq
-                      ? 'border-[#22D3EE] bg-[#22D3EE] text-white'
-                      : 'border-[#4A5E78] text-white hover:bg-[#132240]'
-                  }`}
-                >
-                  {freq}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Start Time</label>
-              <input
-                type="time"
-                value={formData.start_time}
-                onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
-                className="cmd-input w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">End Time</label>
-              <input
-                type="time"
-                value={formData.end_time}
-                onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
-                className="cmd-input w-full"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Active Days</label>
-            <div className="flex flex-wrap gap-2">
-              {DAYS.map((day) => (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => toggleDay(day)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
-                    formData.days_active.includes(day)
-                      ? 'bg-[#22D3EE] text-white'
-                      : 'bg-[#0D192E] text-[#64748B] hover:bg-[#132240]'
-                  }`}
-                >
-                  {day.slice(0, 3)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Promotion details and rules..."
-              rows={2}
-              className="cmd-input w-full resize-none"
-            />
-          </div>
-        </div>
-
-        <div className="p-4 border-t border-[#4A5E78]">
-          <button
-            onClick={handleSubmit}
-            disabled={!formData.name.trim() || submitting}
-            className="cmd-btn cmd-btn-primary w-full h-12 flex items-center justify-center gap-2"
-          >
-            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Gift className="w-5 h-5" />}
-            Create Promotion
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+/* EditPromoModal and CreatePromoModal replaced by shared PromotionEditor component */
 
 function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
   const [formData, setFormData] = useState({
@@ -789,6 +375,10 @@ export default function PromotionsPage() {
   const [showHighHandModal, setShowHighHandModal] = useState(false);
   const [filter, setFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('promotions');
+  const [showAwardsModal, setShowAwardsModal] = useState(false);
+  const [selectedPromoForAwards, setSelectedPromoForAwards] = useState(null);
+  const [promoAwards, setPromoAwards] = useState([]);
+  const [awardsLoading, setAwardsLoading] = useState(false);
 
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
@@ -840,6 +430,22 @@ export default function PromotionsPage() {
       fetchHighHands();
     }
   }, [venueId, fetchPromotions, fetchHighHands]);
+
+  async function handleViewAwards(promo) {
+    setSelectedPromoForAwards(promo);
+    setShowAwardsModal(true);
+    setAwardsLoading(true);
+    try {
+      const res = await fetch(`/api/commander/promotions/${promo.id}/awards?limit=50`);
+      const data = await res.json();
+      setPromoAwards(data.awards || []);
+    } catch (error) {
+      console.error('Fetch awards failed:', error);
+      setPromoAwards([]);
+    } finally {
+      setAwardsLoading(false);
+    }
+  }
 
   async function handleVerifyHighHand(highHand) {
     try {
@@ -1006,12 +612,11 @@ export default function PromotionsPage() {
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
                   {filteredPromos.map((promo) => (
-                    <PromoCard
+                    <PromotionCard
                       key={promo.id}
-                      promo={promo}
-                      onToggle={handleToggle}
+                      promotion={promo}
                       onEdit={handleEdit}
-                      onDelete={handleDelete}
+                      onViewAwards={handleViewAwards}
                     />
                   ))}
                 </div>
@@ -1053,23 +658,67 @@ export default function PromotionsPage() {
         </main>
       </div>
 
-      <CreatePromoModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSubmit={() => fetchPromotions()}
-        venueId={venueId}
-      />
+      {showCreateModal && (
+        <PromotionEditor
+          venueId={venueId}
+          onSave={async (data) => {
+            try {
+              const res = await fetch('/api/commander/promotions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+              });
+              const result = await res.json();
+              if (result.success) {
+                fetchPromotions();
+                setShowCreateModal(false);
+              }
+            } catch (error) {
+              console.error('Create promo failed:', error);
+            }
+          }}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
 
-      <EditPromoModal
-        isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          setEditingPromo(null);
-        }}
-        onSubmit={() => fetchPromotions()}
-        promo={editingPromo}
-        venueId={venueId}
-      />
+      {showEditModal && editingPromo && (
+        <PromotionEditor
+          promotion={editingPromo}
+          venueId={venueId}
+          onSave={async (data) => {
+            try {
+              const res = await fetch(`/api/commander/promotions/${editingPromo.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+              });
+              const result = await res.json();
+              if (result.success) {
+                fetchPromotions();
+                setShowEditModal(false);
+                setEditingPromo(null);
+              }
+            } catch (error) {
+              console.error('Update promo failed:', error);
+            }
+          }}
+          onDelete={async (id) => {
+            if (!confirm('Delete this promotion?')) return;
+            try {
+              await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE' });
+              fetchPromotions();
+              setShowEditModal(false);
+              setEditingPromo(null);
+            } catch (error) {
+              console.error('Delete failed:', error);
+            }
+          }}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingPromo(null);
+          }}
+        />
+      )}
 
       <RecordHighHandModal
         isOpen={showHighHandModal}
@@ -1078,6 +727,81 @@ export default function PromotionsPage() {
         venueId={venueId}
         staff={staff}
       />
+
+      {/* Awards Modal */}
+      {showAwardsModal && selectedPromoForAwards && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="cmd-panel cmd-corner-lights w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Awards</h3>
+                <p className="text-sm text-[#64748B]">{selectedPromoForAwards.name}</p>
+              </div>
+              <button
+                onClick={() => { setShowAwardsModal(false); setSelectedPromoForAwards(null); setPromoAwards([]); }}
+                className="p-2 hover:bg-[#132240] rounded-lg"
+              >
+                <X className="w-5 h-5 text-[#64748B]" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {awardsLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#22D3EE]" />
+                </div>
+              ) : promoAwards.length === 0 ? (
+                <div className="text-center py-8">
+                  <Award className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                  <p className="text-[#64748B]">No awards recorded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {promoAwards.map((award) => (
+                    <div key={award.id} className="p-3 bg-[#0D192E] rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-[#22D3EE]/10 flex items-center justify-center">
+                            {award.profiles?.avatar_url ? (
+                              <img src={award.profiles.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                            ) : (
+                              <User className="w-4 h-4 text-[#22D3EE]" />
+                            )}
+                          </div>
+                          <span className="font-medium text-white text-sm">
+                            {award.profiles?.display_name || award.player_name || 'Unknown'}
+                          </span>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          award.status === 'approved'
+                            ? 'bg-[#10B981]/10 text-[#10B981]'
+                            : award.status === 'pending'
+                            ? 'bg-[#F59E0B]/10 text-[#F59E0B]'
+                            : 'bg-[#4A5E78]/10 text-[#64748B]'
+                        }`}>
+                          {award.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-[#64748B]">
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="w-3 h-3" />
+                          ${award.prize_value?.toLocaleString() || 0}
+                        </span>
+                        {award.prize_description && (
+                          <span>{award.prize_description}</span>
+                        )}
+                        <span className="ml-auto">
+                          {new Date(award.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

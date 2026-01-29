@@ -9,10 +9,11 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import {
   Trophy, Calendar, Users, DollarSign, Clock, MapPin,
-  ChevronRight, Search, Filter, Play, CheckCircle, Zap
+  Play, CheckCircle
 } from 'lucide-react';
 
 function TournamentCard({ tournament, onRegister, isRegistered }) {
+  const router = useRouter();
   const startDate = new Date(tournament.scheduled_start);
   const isLive = tournament.status === 'running';
   const canRegister = tournament.status === 'registering' && !isRegistered;
@@ -96,13 +97,17 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
             REGISTER NOW
           </button>
         ) : isLive ? (
-          <button className="cmd-btn cmd-btn-success w-full justify-center">
+          <button onClick={() => router.push('/hub/commander/tournament/' + tournament.id + '/clock')} className="cmd-btn cmd-btn-success w-full justify-center">
             <Play size={16} />
             VIEW LIVE CLOCK
           </button>
+        ) : tournament.status === 'completed' ? (
+          <button onClick={() => router.push('/hub/commander/tournament/' + tournament.id + '/clock')} className="cmd-btn cmd-btn-secondary w-full justify-center">
+            VIEW RESULTS
+          </button>
         ) : (
           <button className="cmd-btn cmd-btn-secondary w-full justify-center opacity-50 cursor-not-allowed" disabled>
-            {tournament.status === 'completed' ? 'VIEW RESULTS' : 'REGISTRATION CLOSED'}
+            REGISTRATION CLOSED
           </button>
         )}
       </div>
@@ -156,7 +161,7 @@ export default function PlayerTournamentsHub() {
   const handleRegister = async (tournament) => {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push('/login?redirect=/hub/commander/tournaments');
+      router.push('/auth/login?redirect=/hub/commander/tournaments');
       return;
     }
 

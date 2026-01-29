@@ -16,8 +16,7 @@ import {
   AlertCircle,
   Check,
   Trash2,
-  Loader2,
-  Zap
+  Loader2
 } from 'lucide-react';
 
 const NOTIFICATION_ICONS = {
@@ -122,7 +121,7 @@ export default function PlayerNotificationsPage() {
       if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
     }
     if (!token) {
-      router.push('/login?redirect=/hub/commander/notifications');
+      router.push('/auth/login?redirect=/hub/commander/notifications');
       return;
     }
     fetchNotifications();
