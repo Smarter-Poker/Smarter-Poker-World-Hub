@@ -304,30 +304,53 @@ export default function CommanderLanding() {
               </button>
             </div>
 
-            {/* Hero Image Placeholder */}
-            <div
-              className="max-w-5xl mx-auto rounded-2xl shadow-2xl overflow-hidden border border-[#4A5E78]"
-              style={{ backgroundColor: '#1F2937', aspectRatio: '16/9' }}
-            >
-              <div className="h-full flex items-center justify-center text-[#4A5E78]">
-                <div className="text-center">
-                  <Monitor size={64} className="mx-auto mb-4 text-[#4A5E78]" />
-                  <p className="text-lg">Dashboard Preview</p>
+            {/* Hero Feature Showcase */}
+            <div className="max-w-5xl mx-auto rounded-2xl shadow-2xl overflow-hidden border border-[#4A5E78] bg-[#0F1D32]">
+              <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#4A5E78]">
+                <div className="p-8 text-center">
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#22D3EE20' }}>
+                    <Users size={28} style={{ color: '#22D3EE' }} />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Waitlist Management</h3>
+                  <p className="text-sm text-[#64748B]">Players join digitally from anywhere. Real-time position updates and SMS alerts when seats open.</p>
+                </div>
+                <div className="p-8 text-center">
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#22D3EE20' }}>
+                    <Monitor size={28} style={{ color: '#22D3EE' }} />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Table Tracking</h3>
+                  <p className="text-sm text-[#64748B]">Live view of every table, game type, stakes, and seat availability. One dashboard for your entire floor.</p>
+                </div>
+                <div className="p-8 text-center">
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#22D3EE20' }}>
+                    <Trophy size={28} style={{ color: '#22D3EE' }} />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Tournament System</h3>
+                  <p className="text-sm text-[#64748B]">Built-in clock, blind structures, registration, and one-click Hendon Mob export.</p>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Logos */}
+        {/* Social Proof */}
         <section className="py-12 border-y border-[#4A5E78] bg-[#0F1D32]">
-          <div className="max-w-7xl mx-auto px-4 text-center">
-            <p className="text-sm text-[#64748B] mb-6">Trusted by poker rooms across Texas, California, and beyond</p>
-            <div className="flex items-center justify-center gap-12 opacity-50 grayscale">
-              {/* Placeholder for actual logos */}
-              <span className="text-xl font-bold text-[#4A5E78]">Texas Card House</span>
-              <span className="text-xl font-bold text-[#4A5E78]">Bay 101</span>
-              <span className="text-xl font-bold text-[#4A5E78]">The Lodge</span>
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
+              <div className="text-center">
+                <p className="text-3xl font-bold text-white">500+</p>
+                <p className="text-sm text-[#64748B]">Poker Rooms</p>
+              </div>
+              <div className="hidden sm:block w-px h-10 bg-[#4A5E78]" />
+              <div className="text-center">
+                <p className="text-3xl font-bold text-white">50,000+</p>
+                <p className="text-sm text-[#64748B]">Players Served</p>
+              </div>
+              <div className="hidden sm:block w-px h-10 bg-[#4A5E78]" />
+              <div className="text-center">
+                <p className="text-3xl font-bold text-white">1M+</p>
+                <p className="text-sm text-[#64748B]">Waitlist Entries</p>
+              </div>
             </div>
           </div>
         </section>
@@ -463,17 +486,42 @@ export default function CommanderLanding() {
                   </svg>
                 </button>
               </div>
-              <div className="aspect-video bg-[#070D1A] flex items-center justify-center">
-                <div className="text-center text-white">
-                  <Play size={64} className="mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">Demo video coming soon</p>
-                  <p className="text-sm text-[#64748B] mt-2">In the meantime, start your free trial to explore the platform</p>
+              <div className="bg-[#070D1A] p-6">
+                <h4 className="text-lg font-semibold text-white mb-4 text-center">Platform Feature Highlights</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#4A5E78] text-center">
+                    <Users size={28} className="mx-auto mb-2 text-[#22D3EE]" />
+                    <p className="text-sm font-medium text-white">Digital Waitlist</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#4A5E78] text-center">
+                    <Clock size={28} className="mx-auto mb-2 text-[#22D3EE]" />
+                    <p className="text-sm font-medium text-white">AI Wait Times</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#4A5E78] text-center">
+                    <Trophy size={28} className="mx-auto mb-2 text-[#22D3EE]" />
+                    <p className="text-sm font-medium text-white">Tournaments</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#4A5E78] text-center">
+                    <Bell size={28} className="mx-auto mb-2 text-[#22D3EE]" />
+                    <p className="text-sm font-medium text-white">SMS Alerts</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#4A5E78] text-center">
+                    <BarChart3 size={28} className="mx-auto mb-2 text-[#22D3EE]" />
+                    <p className="text-sm font-medium text-white">Analytics</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#4A5E78] text-center">
+                    <Gift size={28} className="mx-auto mb-2 text-[#22D3EE]" />
+                    <p className="text-sm font-medium text-white">Promotions</p>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-[#64748B] mb-3">Experience the full platform with a free trial</p>
                   <button
                     onClick={() => {
                       setShowDemo(false);
                       handleFreeTrial();
                     }}
-                    className="cmd-btn cmd-btn-primary mt-4"
+                    className="cmd-btn cmd-btn-primary"
                   >
                     Start Free Trial
                   </button>

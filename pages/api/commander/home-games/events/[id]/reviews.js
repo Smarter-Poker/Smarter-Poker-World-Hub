@@ -96,7 +96,7 @@ async function handleCreate(req, res, eventId) {
 
     // Check if player attended
     const { data: rsvp } = await supabase
-      .from('commander_home_game_rsvps')
+      .from('commander_home_rsvps')
       .select('status')
       .eq('event_id', eventId)
       .eq('player_id', player_id)

@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { ArrowLeft, Plus, Edit2, Trash2, User, Shield, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, User, Shield, Loader2, X, Eye, EyeOff } from 'lucide-react';
 
 const ROLES = [
   { value: 'owner', label: 'Owner', color: 'bg-[#7C3AED] text-white' },
@@ -25,6 +25,7 @@ export default function CommanderStaffPage() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
+  const [revealedPinId, setRevealedPinId] = useState(null);
 
   // Check staff session
   useEffect(() => {
@@ -214,11 +215,30 @@ export default function CommanderStaffPage() {
                           <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${role.color}`}>
                             {role.label}
                           </span>
-                          {staff.pin_code && (
-                            <span className="text-xs text-[#64748B]">
-                              PIN: {staff.pin_code}
-                            </span>
-                          )}
+                          {staff.pin_code && (() => {
+                            const isAdmin = currentStaff?.role === 'owner' || currentStaff?.role === 'manager';
+                            const isSelf = staff.id === currentStaff?.id;
+                            const canReveal = isAdmin || isSelf;
+                            const isRevealed = revealedPinId === staff.id;
+                            return (
+                              <span className="inline-flex items-center gap-1 text-xs text-[#64748B]">
+                                PIN: {isRevealed ? staff.pin_code : '****'}
+                                {canReveal && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setRevealedPinId(isRevealed ? null : staff.id)}
+                                    className="p-0.5 hover:text-[#22D3EE] transition-colors"
+                                    title={isRevealed ? 'Hide PIN' : 'Show PIN'}
+                                  >
+                                    {isRevealed
+                                      ? <EyeOff className="w-3.5 h-3.5" />
+                                      : <Eye className="w-3.5 h-3.5" />
+                                    }
+                                  </button>
+                                )}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>

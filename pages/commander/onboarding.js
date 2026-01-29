@@ -70,6 +70,7 @@ export default function VenueOnboardingPage() {
   const [step, setStep] = useState('info');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     venueName: '',
     contactName: '',
@@ -90,6 +91,7 @@ export default function VenueOnboardingPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     try {
       const res = await fetch('/api/commander/onboarding/request', {
@@ -101,11 +103,13 @@ export default function VenueOnboardingPage() {
       const data = await res.json();
       if (data.success) {
         setSubmitted(true);
+      } else {
+        setError(data.message || 'Failed to submit. Please try again.');
       }
     } catch (err) {
       console.error('Submit failed:', err);
-      // Demo: show success anyway
-      setSubmitted(true);
+      setError('Failed to submit. Please try again.');
+      setSubmitted(false);
     } finally {
       setLoading(false);
     }
@@ -430,6 +434,12 @@ export default function VenueOnboardingPage() {
                       className="cmd-input w-full resize-none"
                     />
                   </div>
+
+                  {error && (
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                      {error}
+                    </div>
+                  )}
 
                   <button
                     type="submit"

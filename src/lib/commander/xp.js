@@ -115,7 +115,7 @@ export async function awardXP(playerId, eventType, metadata = {}) {
     // Log the XP transaction (if xp_transactions table exists)
     try {
       await supabase
-        .from('xp_transactions')
+        .from('commander_xp_transactions')
         .insert({
           profile_id: playerId,
           amount: event.xp,

@@ -21,7 +21,8 @@ import {
 } from 'lucide-react';
 
 function StatCard({ title, value, change, icon: Icon, color = '#22D3EE' }) {
-  const isPositive = change >= 0;
+  const hasChange = change !== undefined && change !== null;
+  const isPositive = hasChange && change >= 0;
 
   return (
     <div className="cmd-panel p-4">
@@ -32,12 +33,14 @@ function StatCard({ title, value, change, icon: Icon, color = '#22D3EE' }) {
         >
           <Icon className="w-5 h-5" style={{ color }} />
         </div>
-        {change !== undefined && (
+        {change === null ? (
+          <span className="text-sm font-medium text-[#64748B]">N/A</span>
+        ) : hasChange ? (
           <div className={`flex items-center gap-1 text-sm font-medium ${isPositive ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
             {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
             {Math.abs(change)}%
           </div>
-        )}
+        ) : null}
       </div>
       <p className="text-2xl font-bold text-white">{value}</p>
       <p className="text-sm text-[#64748B]">{title}</p>
@@ -113,7 +116,11 @@ export default function AnalyticsPage() {
     totalHours: 0,
     totalBuyins: 0,
     avgSessionLength: 0,
-    peakHour: '7 PM',
+    peakHour: '--',
+    playersChange: undefined,
+    sessionsChange: undefined,
+    hoursChange: undefined,
+    buyinsChange: undefined,
     dailyData: [],
     topPlayers: [],
     gameTypeBreakdown: []
@@ -139,45 +146,91 @@ export default function AnalyticsPage() {
     setLoading(true);
 
     try {
+      // Convert period to days; fetch 2x to get previous period for comparison
+      const periodDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
+
       const [dailyRes, playersRes] = await Promise.all([
-        fetch(`/api/commander/analytics/daily?venue_id=${venueId}&period=${period}`),
-        fetch(`/api/commander/analytics/players?venue_id=${venueId}&period=${period}&limit=10`)
+        fetch(`/api/commander/analytics/daily?venue_id=${venueId}&days=${periodDays * 2}`),
+        fetch(`/api/commander/analytics/players?venue_id=${venueId}&limit=10`)
       ]);
 
       const dailyData = await dailyRes.json();
       const playersData = await playersRes.json();
 
-      // Calculate aggregated stats
-      const daily = dailyData.data?.daily || [];
-      const players = playersData.data?.players || [];
+      // API returns { analytics: [...], summary, period } and { players: [...], total, ... }
+      const allDays = dailyData.analytics || [];
+      const players = playersData.players || [];
+      const totalPlayerCount = playersData.total || players.length;
 
-      const totalSessions = daily.reduce((sum, d) => sum + (d.sessions || 0), 0);
-      const totalHours = daily.reduce((sum, d) => sum + (d.hours || 0), 0);
-      const totalBuyins = daily.reduce((sum, d) => sum + (d.buyins || 0), 0);
+      // allDays is sorted descending by date; split into current and previous periods
+      const currentPeriod = allDays.slice(0, periodDays);
+      const previousPeriod = allDays.slice(periodDays, periodDays * 2);
+
+      // Aggregate current period stats
+      const totalSessions = currentPeriod.reduce((sum, d) => sum + (d.total_sessions || 0), 0);
+      const totalPlayHours = currentPeriod.reduce((sum, d) => sum + (parseFloat(d.total_play_hours) || 0), 0);
+      const totalBuyin = currentPeriod.reduce((sum, d) => sum + (d.total_buyin || 0), 0);
+      const curUniquePlayers = currentPeriod.reduce((sum, d) => sum + (d.unique_players || 0), 0);
+
+      // Aggregate previous period stats for comparison
+      const prevSessions = previousPeriod.reduce((sum, d) => sum + (d.total_sessions || 0), 0);
+      const prevPlayHours = previousPeriod.reduce((sum, d) => sum + (parseFloat(d.total_play_hours) || 0), 0);
+      const prevBuyin = previousPeriod.reduce((sum, d) => sum + (d.total_buyin || 0), 0);
+      const prevUniquePlayers = previousPeriod.reduce((sum, d) => sum + (d.unique_players || 0), 0);
+
+      // Calculate change percentages; returns null when no previous data (renders as "N/A")
+      function calcChange(current, previous) {
+        if (previous === 0) return null;
+        return Math.round(((current - previous) / previous) * 100);
+      }
+
+      // Derive peak hour from the most frequent peak_hour weighted by sessions
+      const peakHourWeights = {};
+      currentPeriod.forEach(d => {
+        if (d.peak_hour != null) {
+          peakHourWeights[d.peak_hour] = (peakHourWeights[d.peak_hour] || 0) + (d.total_sessions || 1);
+        }
+      });
+      let peakHour = '--';
+      const peakEntries = Object.entries(peakHourWeights);
+      if (peakEntries.length > 0) {
+        const [topHourStr] = peakEntries.reduce((a, b) => (a[1] > b[1] ? a : b));
+        const h = parseInt(topHourStr, 10);
+        peakHour = h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`;
+      }
+
+      // Game type breakdown from actual hours columns
+      const nlheHours = currentPeriod.reduce((sum, d) => sum + (parseFloat(d.nlhe_hours) || 0), 0);
+      const ploHours = currentPeriod.reduce((sum, d) => sum + (parseFloat(d.plo_hours) || 0), 0);
+      const otherHours = currentPeriod.reduce((sum, d) => sum + (parseFloat(d.other_hours) || 0), 0);
+      const gameTypeBreakdown = [];
+      if (nlheHours > 0) gameTypeBreakdown.push({ label: 'NLHE', value: Math.round(nlheHours) });
+      if (ploHours > 0) gameTypeBreakdown.push({ label: 'PLO', value: Math.round(ploHours) });
+      if (otherHours > 0) gameTypeBreakdown.push({ label: 'Other', value: Math.round(otherHours) });
 
       setStats({
-        totalPlayers: players.length,
+        totalPlayers: totalPlayerCount,
         totalSessions,
-        totalHours: Math.round(totalHours),
-        totalBuyins,
-        avgSessionLength: totalSessions > 0 ? Math.round(totalHours / totalSessions * 10) / 10 : 0,
-        peakHour: '7 PM',
-        dailyData: daily.slice(-7).map(d => ({
+        totalHours: Math.round(totalPlayHours),
+        totalBuyins: totalBuyin,
+        avgSessionLength: totalSessions > 0 ? Math.round(totalPlayHours / totalSessions * 10) / 10 : 0,
+        peakHour,
+        playersChange: calcChange(curUniquePlayers, prevUniquePlayers),
+        sessionsChange: calcChange(totalSessions, prevSessions),
+        hoursChange: calcChange(totalPlayHours, prevPlayHours),
+        buyinsChange: calcChange(totalBuyin, prevBuyin),
+        dailyData: [...currentPeriod].reverse().slice(-7).map(d => ({
           label: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
-          value: d.sessions || 0
+          value: d.total_sessions || 0
         })),
         topPlayers: players.map(p => ({
           id: p.id,
-          name: p.display_name || p.player_name || 'Unknown',
-          sessions: p.session_count || 0,
-          hours: Math.round(p.total_hours || 0),
-          buyins: p.total_buyins || 0
+          name: p.profiles?.display_name || p.display_name || 'Unknown',
+          sessions: p.total_visits || 0,
+          hours: Math.round(parseFloat(p.total_hours) || 0),
+          buyins: p.total_buyin || 0
         })),
-        gameTypeBreakdown: [
-          { label: 'NLHE', value: Math.round(totalSessions * 0.7) },
-          { label: 'PLO', value: Math.round(totalSessions * 0.2) },
-          { label: 'Mixed', value: Math.round(totalSessions * 0.1) }
-        ]
+        gameTypeBreakdown
       });
     } catch (error) {
       console.error('Fetch analytics failed:', error);
@@ -187,7 +240,11 @@ export default function AnalyticsPage() {
         totalHours: 0,
         totalBuyins: 0,
         avgSessionLength: 0,
-        peakHour: 'N/A',
+        peakHour: '--',
+        playersChange: undefined,
+        sessionsChange: undefined,
+        hoursChange: undefined,
+        buyinsChange: undefined,
         dailyData: [],
         topPlayers: [],
         gameTypeBreakdown: []
@@ -262,28 +319,28 @@ export default function AnalyticsPage() {
                 <StatCard
                   title="Unique Players"
                   value={stats.totalPlayers}
-                  change={12}
+                  change={stats.playersChange}
                   icon={Users}
                   color="#22D3EE"
                 />
                 <StatCard
                   title="Total Sessions"
                   value={stats.totalSessions}
-                  change={8}
+                  change={stats.sessionsChange}
                   icon={Target}
                   color="#10B981"
                 />
                 <StatCard
                   title="Total Hours"
                   value={`${stats.totalHours}h`}
-                  change={15}
+                  change={stats.hoursChange}
                   icon={Clock}
                   color="#8B5CF6"
                 />
                 <StatCard
                   title="Total Buy-ins"
                   value={`$${stats.totalBuyins.toLocaleString()}`}
-                  change={22}
+                  change={stats.buyinsChange}
                   icon={DollarSign}
                   color="#F59E0B"
                 />
