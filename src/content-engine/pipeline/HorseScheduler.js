@@ -330,13 +330,13 @@ export function applyWritingStyle(comment, profileId) {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // EMOJIS - Natural placement (35% of posts only, no back-to-back)
+    // EMOJIS - Natural placement (5% of posts only = 1 in 20, no back-to-back)
     // ═══════════════════════════════════════════════════════════════════════
     const hasEmoji = result.match(/[\u{1F300}-\u{1F9FF}]/u);
     const endsWithEmoji = result.match(/[\u{1F300}-\u{1F9FF}]\s*$/u);
 
-    // GLOBAL 35% emoji rate - real users don't emoji every post
-    if (!hasEmoji && style.emojiStyle !== 'none' && Math.random() < 0.35) {
+    // GLOBAL 5% emoji rate (1 in 20 posts) - real users rarely emoji
+    if (!hasEmoji && style.emojiStyle !== 'none' && Math.random() < 0.05) {
         const emoji = style.emojiChoices[Math.floor(Math.random() * style.emojiChoices.length)];
 
         // Random placement instead of always trailing

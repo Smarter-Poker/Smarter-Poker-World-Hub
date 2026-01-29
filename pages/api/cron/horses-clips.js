@@ -337,8 +337,8 @@ BAD EXAMPLES:
         }
 
         // Create the post (matches debug endpoint exactly)
-        // Append YouTube link to caption
-        const finalCaption = `${caption}\n\n🎥 ${clip.source_url}`;
+        // NO hardcoded emojis - let applyWritingStyle handle it naturally (5% rate)
+        const finalCaption = `${caption}\n\n${clip.source_url}`;
 
         const { data: post, error: postError } = await supabase
             .from('social_posts')
