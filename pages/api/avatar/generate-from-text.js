@@ -148,13 +148,27 @@ STRICT RULES:
 - The character should embody the description given: ${prompt}
 IMPORTANT: This is for a poker player avatar - just the character portrait with a PURE WHITE background for easy removal.`;
 
-        // Use Grok's image generation (mapped from dall-e-3 to grok-2-image)
-        const response = await openai.images.generate({
-            model: "dall-e-3",  // Will be mapped to grok-2-image by grokClient
-            prompt: strictAvatarPrompt,
-            n: 1,
-            size: "1024x1024",
-        });
+        // Use Grok's image generation
+        console.log('📡 Calling Grok image generation API...');
+        let response;
+        try {
+            response = await openai.images.generate({
+                model: "dall-e-3",  // Will be mapped to grok-2-image by grokClient
+                prompt: strictAvatarPrompt,
+                n: 1,
+                // Note: xAI may not support all OpenAI params - keep it minimal
+            });
+            console.log('📡 Grok API response received:', JSON.stringify(response?.data?.[0] ? 'has data' : 'no data'));
+        } catch (apiError) {
+            console.error('❌ Grok API call failed:', apiError.message);
+            console.error('❌ Full error:', JSON.stringify(apiError, null, 2));
+            throw new Error(`Grok API error: ${apiError.message}`);
+        }
+
+        if (!response?.data?.[0]?.url) {
+            console.error('❌ Grok API returned no image URL:', JSON.stringify(response));
+            throw new Error('Grok API returned no image URL');
+        }
 
         const imageUrl = response.data[0].url;
         console.log('✅ Grok generated image, now downloading...');

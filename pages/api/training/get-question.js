@@ -249,11 +249,12 @@ For PIO: Create a GTO scenario with position, stack depth, and board texture
 For CHART: Create a push/fold decision with specific hand and position
 For SCENARIO: Create a mental game situation
 
-Respond in JSON:
+Respond ONLY with valid JSON (no markdown, no explanation):
 {
   "id": "ai_${Date.now()}",
   "type": "${engineType}",
   "question": "The question text",
+  "scenario": {"heroPosition": "BTN", "heroStack": 30, "gameType": "6-Max Cash"},
   "options": [
     {"id": "a", "text": "Option A"},
     {"id": "b", "text": "Option B"},
@@ -268,17 +269,95 @@ Respond in JSON:
             model: 'gpt-4o',
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.7,
-            max_tokens: 500,
+            max_tokens: 600,
         });
 
         const content = response.choices[0]?.message?.content || '';
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+            const parsed = JSON.parse(jsonMatch[0]);
+            console.log('[Training] Grok generated question:', parsed.question);
+            return parsed;
         }
     } catch (error) {
         console.error('[Training] Grok question generation failed:', error.message);
     }
 
-    return null;
+    // Return hardcoded fallback question if Grok fails
+    return getHardcodedQuestion(engineType, level);
 }
+
+/**
+ * Hardcoded fallback questions when all else fails
+ */
+function getHardcodedQuestion(engineType, level) {
+    const questions = {
+        PIO: [
+            {
+                id: `fallback_pio_${Date.now()}`,
+                type: 'PIO',
+                scenario: { heroPosition: 'BTN', heroStack: 100, gameType: '6-Max Cash' },
+                question: 'You are on the Button with AcKs. UTG raises to 3bb. What is the optimal play?',
+                options: [
+                    { id: 'a', text: 'Fold' },
+                    { id: 'b', text: 'Call' },
+                    { id: 'c', text: '3-bet to 9bb' },
+                    { id: 'd', text: 'All-In' },
+                ],
+                correctAnswer: 'c',
+                explanation: 'AKs is a premium hand that should be 3-bet for value from the Button against a UTG open.',
+            },
+            {
+                id: `fallback_pio2_${Date.now()}`,
+                type: 'PIO',
+                scenario: { heroPosition: 'BB', heroStack: 25, gameType: 'MTT' },
+                question: 'You are in the BB with 25bb. BTN opens to 2.5bb. SB folds. You have QJo. What is your play?',
+                options: [
+                    { id: 'a', text: 'Fold' },
+                    { id: 'b', text: 'Call' },
+                    { id: 'c', text: '3-bet to 8bb' },
+                    { id: 'd', text: 'All-In' },
+                ],
+                correctAnswer: 'b',
+                explanation: 'With QJo and 25bb, calling is preferred to close the action. 3-betting leaves you committed.',
+            },
+        ],
+        CHART: [
+            {
+                id: `fallback_chart_${Date.now()}`,
+                type: 'CHART',
+                scenario: { position: 'SB', stackBB: 10 },
+                question: 'You have 10bb in the SB with A5s. It folds to you. Should you push or fold?',
+                options: [
+                    { id: 'a', text: 'Push' },
+                    { id: 'b', text: 'Fold' },
+                    { id: 'c', text: 'Limp' },
+                    { id: 'd', text: 'Min-raise' },
+                ],
+                correctAnswer: 'a',
+                explanation: 'A5s is a clear push from SB with 10bb according to push/fold charts.',
+            },
+        ],
+        SCENARIO: [
+            {
+                id: `fallback_scenario_${Date.now()}`,
+                type: 'SCENARIO',
+                scenario: { title: 'Tilt Management' },
+                question: 'You just lost a big pot with AA vs 72o all-in preflop. What should you do?',
+                options: [
+                    { id: 'a', text: 'Play faster to win it back' },
+                    { id: 'b', text: 'Take a 5-minute break' },
+                    { id: 'c', text: 'Move up stakes for easier games' },
+                    { id: 'd', text: 'Review the hand right now' },
+                ],
+                correctAnswer: 'b',
+                explanation: 'Taking a short break helps reset your mental state and prevents tilt-driven decisions.',
+            },
+        ],
+    };
+
+    const engineQuestions = questions[engineType] || questions.PIO;
+    const index = Math.floor(Math.random() * engineQuestions.length);
+    return engineQuestions[index];
+}
+
