@@ -5,6 +5,7 @@
 
 import Head from 'next/head';
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 const POPULAR_CITIES = [
@@ -93,6 +94,7 @@ function TourBadge({ tourCode, size = 'normal' }) {
 }
 
 export default function PokerNearMe() {
+    const router = useRouter();
     // Active tab state
     const [activeTab, setActiveTab] = useState('venues');
 
@@ -375,13 +377,10 @@ export default function PokerNearMe() {
                             <div className="card-footer">
                                 <span className="trust-badge" style={{ color: trust.color }}>Trust: {trust.label}</span>
                                 <div className="card-actions">
+                                    <button onClick={() => router.push(`/hub/venues/${venue.id}`)} className="action-btn primary">Details</button>
                                     {venue.phone && <a href={`tel:${venue.phone}`} className="action-btn">Call</a>}
-                                    {venue.website && (
-                                        <a href={venue.website.startsWith('http') ? venue.website : `https://${venue.website}`}
-                                            target="_blank" rel="noopener noreferrer" className="action-btn">Web</a>
-                                    )}
                                     <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name + ' ' + venue.city + ' ' + venue.state)}`}
-                                        target="_blank" rel="noopener noreferrer" className="action-btn primary">Map</a>
+                                        target="_blank" rel="noopener noreferrer" className="action-btn">Map</a>
                                 </div>
                             </div>
                         </div>
@@ -429,11 +428,14 @@ export default function PokerNearMe() {
                         )}
                         <div className="card-footer">
                             <span className="established">Est. {tour.established}</span>
-                            {tour.official_website && (
-                                <a href={tour.official_website} target="_blank" rel="noopener noreferrer" className="action-btn primary">
-                                    Website
-                                </a>
-                            )}
+                            <div className="card-actions">
+                                <button onClick={() => router.push(`/hub/tours/${tour.tour_code}`)} className="action-btn primary">Details</button>
+                                {tour.official_website && (
+                                    <a href={tour.official_website} target="_blank" rel="noopener noreferrer" className="action-btn">
+                                        Website
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -470,11 +472,14 @@ export default function PokerNearMe() {
                             <p className="card-detail guaranteed">{formatMoney(s.main_event_guaranteed)}+ GTD</p>
                         )}
                         <div className="card-footer">
-                            {s.source_url && (
-                                <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="action-btn primary">
-                                    Details
-                                </a>
-                            )}
+                            <div className="card-actions">
+                                <button onClick={() => router.push(`/hub/series/${s.id}`)} className="action-btn primary">Details</button>
+                                {s.source_url && (
+                                    <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="action-btn">
+                                        Source
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ))}

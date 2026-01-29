@@ -29,10 +29,10 @@ if (SENTRY_DSN) {
       return event;
     },
 
-    // Tag all Smarter Captain errors
+    // Tag all Club Commander errors
     initialScope: {
       tags: {
-        app: 'smarter-captain',
+        app: 'club-commander',
         runtime: 'server',
       },
     },

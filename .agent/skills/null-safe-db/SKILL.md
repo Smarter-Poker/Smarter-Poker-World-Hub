@@ -72,7 +72,7 @@ These files have been hardened with defensive patterns:
 | `services/MessagingService.js` | 3 null-safe methods |
 | `src/services/UnifiedSocialService.js` | 2 null-safe methods |
 | `pages/hub/social-media.js` | Author fallbacks |
-| `pages/api/captain/home-games/*` | All profile FK joins protected |
+| `pages/api/club-commander/home-games/*` | All profile FK joins protected |
 
 ---
 
