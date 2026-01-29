@@ -500,17 +500,42 @@ export default function UserProfilePage() {
 
         setIsPosting(true);
         try {
+            let cleanContent = content;
+            let finalUrls = [...urls];
+            let finalType = type;
+
+            // Detect YouTube URLs in content
+            const youtubeRegex = /(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/g;
+            const youtubeMatch = content.match(youtubeRegex);
+
+            // Detect general URLs in content
+            const generalUrlRegex = /(https?:\/\/[^\s]+)/g;
+            const urlMatch = content.match(generalUrlRegex);
+
+            if (youtubeMatch && finalType === 'text') {
+                // Extract YouTube URL and remove from content
+                const fullUrl = youtubeMatch[0].startsWith('http') ? youtubeMatch[0] : `https://${youtubeMatch[0]}`;
+                finalUrls = [fullUrl];
+                finalType = 'video';
+                cleanContent = content.replace(youtubeRegex, '').trim();
+            } else if (urlMatch && finalType === 'text') {
+                // Extract general URL and remove from content
+                finalUrls = [urlMatch[0]];
+                finalType = 'link';
+                cleanContent = content.replace(generalUrlRegex, '').trim();
+            }
+
             const insertPayload = {
                 author_id: currentUser.id,
-                content,
-                content_type: type,
-                media_urls: urls,
+                content: cleanContent,
+                content_type: finalType,
+                media_urls: finalUrls,
                 visibility: 'public',
             };
 
             // Add link metadata if available
             if (linkPreview) {
-                insertPayload.link_url = linkPreview.url || urls[0];
+                insertPayload.link_url = linkPreview.url || finalUrls[0];
                 insertPayload.link_title = linkPreview.title || null;
                 insertPayload.link_description = linkPreview.description || null;
                 insertPayload.link_image = linkPreview.image || null;
