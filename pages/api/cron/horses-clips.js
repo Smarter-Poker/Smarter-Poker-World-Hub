@@ -59,12 +59,14 @@ async function loadClipLibrary() {
 // ClipDeduplicationService - CRITICAL for preventing duplicate posts
 let ClipDeduplicationService;
 let deduplicationLoaded = false;
+let dedupLoaded = false;  // Module-scope variable for postVideoClip access
 
 async function loadDeduplicationService() {
     if (deduplicationLoaded) return true;
     try {
         ClipDeduplicationService = await import('../../../src/services/ClipDeduplicationService.js');
         deduplicationLoaded = true;
+        dedupLoaded = true;  // Set module-scope variable
         console.log('✅ ClipDeduplicationService loaded successfully');
         return true;
     } catch (e) {
@@ -610,7 +612,7 @@ export default async function handler(req, res) {
     }
 
     // Load ClipDeduplicationService - CRITICAL for preventing duplicates
-    const dedupLoaded = await loadDeduplicationService();
+    await loadDeduplicationService();
     if (!dedupLoaded) {
         console.warn('⚠️  ClipDeduplicationService not loaded - duplicates may occur');
     }
