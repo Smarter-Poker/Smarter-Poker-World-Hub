@@ -2,8 +2,8 @@
  * VENUE DETAIL PAGE - PokerAtlas-Style Public Venue Profile
  *
  * Displays comprehensive information about a casino, card room, or poker club.
- * Fetches from /api/poker/venues and /api/poker/daily-tournaments.
- * Includes fallback mock data for development.
+ * Fetches from /api/poker/venues?id=X and /api/poker/daily-tournaments.
+ * Supports all 483+ verified venues from the master data.
  */
 
 import Head from 'next/head';
@@ -51,14 +51,16 @@ const VENUE_TYPE_LABELS = {
   casino: 'Casino',
   card_room: 'Card Room',
   poker_club: 'Poker Club',
-  home_game: 'Home Game'
+  home_game: 'Home Game',
+  charity: 'Charity Room'
 };
 
 const VENUE_TYPE_COLORS = {
   casino: { bg: '#EEF2FF', text: '#4338CA', border: '#C7D2FE' },
   card_room: { bg: '#F0FDF4', text: '#166534', border: '#BBF7D0' },
   poker_club: { bg: '#FFF7ED', text: '#9A3412', border: '#FED7AA' },
-  home_game: { bg: '#FDF2F8', text: '#9D174D', border: '#FBCFE8' }
+  home_game: { bg: '#FDF2F8', text: '#9D174D', border: '#FBCFE8' },
+  charity: { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A' }
 };
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -74,196 +76,6 @@ const AMENITY_LIST = [
   { key: 'cocktail_service', label: 'Cocktail Service', icon: Wine },
   { key: 'smoking_area', label: 'Smoking Area', icon: Cigarette },
   { key: 'sports_bar', label: 'Sports Bar', icon: Tv }
-];
-
-// ============================================================================
-// FALLBACK MOCK DATA
-// ============================================================================
-
-const MOCK_VENUES = {
-  '1': {
-    id: 1,
-    name: 'Bellagio Poker Room',
-    venue_type: 'casino',
-    city: 'Las Vegas',
-    state: 'NV',
-    address: '3600 S Las Vegas Blvd, Las Vegas, NV 89109',
-    phone: '702-693-7111',
-    poker_room_phone: '702-693-7291',
-    website: 'https://bellagio.mgmresorts.com/en/entertainment/poker-room.html',
-    hours: '24/7',
-    games_offered: ['NLH', 'PLO', 'Mixed', 'Limit Hold\'em'],
-    stakes_cash: ['$1/$3', '$2/$5', '$5/$10', '$10/$20', '$25/$50'],
-    poker_tables: 40,
-    trust_score: 4.8,
-    is_featured: true,
-    lat: 36.1127,
-    lng: -115.1767,
-    established: 1998,
-    description: 'The Bellagio Poker Room is one of the most iconic poker rooms in the world, located in the heart of the Las Vegas Strip. Known for hosting high-stakes cash games and major tournament series, the room features 40 tables in an elegant setting with world-class service. The Bobby\'s Room high-stakes area is legendary in the poker community.',
-    amenities: {
-      food_service: true,
-      valet_parking: true,
-      hotel: true,
-      self_parking: true,
-      wifi: true,
-      rewards_program: true,
-      atm: true,
-      cocktail_service: true,
-      smoking_area: false,
-      sports_bar: false
-    }
-  },
-  '2': {
-    id: 2,
-    name: 'Commerce Casino',
-    venue_type: 'card_room',
-    city: 'Commerce',
-    state: 'CA',
-    address: '6131 E Telegraph Rd, Commerce, CA 90040',
-    phone: '323-721-2100',
-    poker_room_phone: '323-721-2100',
-    website: 'https://commercecasino.com',
-    hours: '24/7',
-    games_offered: ['NLH', 'PLO', 'Mixed', 'Limit Hold\'em', 'Stud', 'Omaha Hi-Lo'],
-    stakes_cash: ['$1/$2', '$2/$3', '$3/$5', '$5/$10', '$10/$20', '$20/$40', '$40/$80'],
-    poker_tables: 200,
-    trust_score: 4.3,
-    is_featured: true,
-    lat: 33.9958,
-    lng: -118.1517,
-    established: 1983,
-    description: 'Commerce Casino is the largest card room in the world, featuring over 200 poker tables spread across a massive gaming floor. Located just outside of Los Angeles, Commerce hosts the prestigious LA Poker Classic and offers the widest variety of poker games and stakes anywhere in Southern California. From low-limit games to nosebleed stakes, every poker player can find their game here.',
-    amenities: {
-      food_service: true,
-      valet_parking: true,
-      hotel: true,
-      self_parking: true,
-      wifi: true,
-      rewards_program: true,
-      atm: true,
-      cocktail_service: true,
-      smoking_area: false,
-      sports_bar: true
-    }
-  },
-  '3': {
-    id: 3,
-    name: 'Seminole Hard Rock Hotel & Casino',
-    venue_type: 'casino',
-    city: 'Hollywood',
-    state: 'FL',
-    address: '1 Seminole Way, Hollywood, FL 33314',
-    phone: '866-502-7529',
-    poker_room_phone: '954-327-7625',
-    website: 'https://www.seminolehardrockhollywood.com',
-    hours: '24/7',
-    games_offered: ['NLH', 'PLO', 'Mixed'],
-    stakes_cash: ['$1/$2', '$2/$5', '$5/$10', '$10/$25', '$25/$50'],
-    poker_tables: 45,
-    trust_score: 4.7,
-    is_featured: true,
-    lat: 26.0501,
-    lng: -80.2115,
-    established: 2004,
-    description: 'Seminole Hard Rock Hollywood features one of the premier poker rooms in the Southeast United States. The spacious poker room hosts major tournament series throughout the year and offers a wide range of cash game stakes. The venue underwent a $1.5 billion expansion and now features a stunning guitar-shaped hotel tower.',
-    amenities: {
-      food_service: true,
-      valet_parking: true,
-      hotel: true,
-      self_parking: true,
-      wifi: true,
-      rewards_program: true,
-      atm: true,
-      cocktail_service: true,
-      smoking_area: true,
-      sports_bar: true
-    }
-  },
-  '4': {
-    id: 4,
-    name: 'Borgata Hotel Casino & Spa',
-    venue_type: 'casino',
-    city: 'Atlantic City',
-    state: 'NJ',
-    address: '1 Borgata Way, Atlantic City, NJ 08401',
-    phone: '609-317-1000',
-    poker_room_phone: '609-317-1000',
-    website: 'https://www.theborgata.com',
-    hours: '24/7',
-    games_offered: ['NLH', 'PLO', 'Mixed', 'Limit Hold\'em'],
-    stakes_cash: ['$1/$2', '$2/$5', '$5/$10', '$10/$20'],
-    poker_tables: 85,
-    trust_score: 4.6,
-    is_featured: true,
-    lat: 39.3773,
-    lng: -74.4379,
-    established: 2003,
-    description: 'The Borgata poker room is the premier poker destination in Atlantic City. With 85 tables and a dedicated tournament area, it hosts the Borgata Poker Open and other major events. The room is known for its excellent service, comfortable seating, and professional dealing staff.',
-    amenities: {
-      food_service: true,
-      valet_parking: true,
-      hotel: true,
-      self_parking: true,
-      wifi: true,
-      rewards_program: true,
-      atm: true,
-      cocktail_service: true,
-      smoking_area: false,
-      sports_bar: true
-    }
-  },
-  '5': {
-    id: 5,
-    name: 'The Lodge Poker Club',
-    venue_type: 'poker_club',
-    city: 'Austin',
-    state: 'TX',
-    address: '8723 Burnet Rd, Austin, TX 78757',
-    phone: '737-232-5243',
-    poker_room_phone: '737-232-5243',
-    website: 'https://thelodgeaustin.com',
-    hours: 'Mon-Thu: 10am-4am, Fri-Sat: 10am-6am, Sun: 10am-2am',
-    games_offered: ['NLH', 'PLO', 'Mixed', 'Short Deck'],
-    stakes_cash: ['$1/$3', '$2/$5', '$5/$10', '$5/$10/$25'],
-    poker_tables: 40,
-    trust_score: 4.8,
-    is_featured: true,
-    lat: 30.4065,
-    lng: -97.7148,
-    established: 2020,
-    description: 'The Lodge Poker Club is a state-of-the-art poker club in Austin, Texas, co-owned by poker vlogger Brad Owen and Doug Polk. The club features 40 poker tables, a modern streaming setup, and a welcoming environment for players of all levels. Known for its active community and regular live streams, The Lodge has quickly become one of the most popular poker rooms in Texas.',
-    amenities: {
-      food_service: true,
-      valet_parking: false,
-      hotel: false,
-      self_parking: true,
-      wifi: true,
-      rewards_program: true,
-      atm: true,
-      cocktail_service: true,
-      smoking_area: false,
-      sports_bar: false
-    }
-  }
-};
-
-const MOCK_DAILY_TOURNAMENTS = [
-  { day_of_week: 'Monday', start_time: '11:00 AM', buy_in: 80, game_type: 'NLH', guaranteed: 2000, tournament_name: 'Monday Kickoff' },
-  { day_of_week: 'Monday', start_time: '7:00 PM', buy_in: 150, game_type: 'NLH', guaranteed: 5000, tournament_name: 'Monday Night Special' },
-  { day_of_week: 'Tuesday', start_time: '11:00 AM', buy_in: 65, game_type: 'NLH', guaranteed: 1500, tournament_name: 'Tuesday Turbo' },
-  { day_of_week: 'Tuesday', start_time: '7:00 PM', buy_in: 200, game_type: 'PLO', guaranteed: 5000, tournament_name: 'PLO Night' },
-  { day_of_week: 'Wednesday', start_time: '11:00 AM', buy_in: 80, game_type: 'NLH', guaranteed: 2000, tournament_name: 'Midweek Grind' },
-  { day_of_week: 'Wednesday', start_time: '7:00 PM', buy_in: 125, game_type: 'NLH', guaranteed: 4000, tournament_name: 'Hump Day Hold\'em' },
-  { day_of_week: 'Thursday', start_time: '11:00 AM', buy_in: 100, game_type: 'NLH', guaranteed: 3000, tournament_name: 'Thursday Throwdown' },
-  { day_of_week: 'Thursday', start_time: '7:00 PM', buy_in: 250, game_type: 'NLH', guaranteed: 10000, tournament_name: 'Big Thursday' },
-  { day_of_week: 'Friday', start_time: '12:00 PM', buy_in: 150, game_type: 'NLH', guaranteed: 5000, tournament_name: 'Friday Frenzy' },
-  { day_of_week: 'Friday', start_time: '7:00 PM', buy_in: 300, game_type: 'NLH', guaranteed: 15000, tournament_name: 'Friday Night Main' },
-  { day_of_week: 'Saturday', start_time: '11:00 AM', buy_in: 200, game_type: 'NLH', guaranteed: 10000, tournament_name: 'Saturday Showdown' },
-  { day_of_week: 'Saturday', start_time: '5:00 PM', buy_in: 500, game_type: 'NLH', guaranteed: 25000, tournament_name: 'Weekend Major' },
-  { day_of_week: 'Sunday', start_time: '11:00 AM', buy_in: 100, game_type: 'NLH', guaranteed: 3000, tournament_name: 'Sunday Starter' },
-  { day_of_week: 'Sunday', start_time: '4:00 PM', buy_in: 350, game_type: 'NLH', guaranteed: 20000, tournament_name: 'Sunday Championship' },
-  { day_of_week: 'Daily', start_time: '10:00 AM', buy_in: 50, game_type: 'NLH', guaranteed: 1000, tournament_name: 'Daily Morning Satellite' }
 ];
 
 // ============================================================================
@@ -294,7 +106,7 @@ function formatMoney(amount) {
 }
 
 function getGoogleMapsUrl(venue) {
-  if (venue.address) {
+  if (venue.address && venue.address !== `${venue.city}, ${venue.state}`) {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.address)}`;
   }
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name + ' ' + venue.city + ' ' + venue.state)}`;
@@ -318,6 +130,24 @@ function setFollowingData(data) {
   } catch (e) {
     // ignore
   }
+}
+
+// Infer amenities from venue type when not provided by DB
+function inferAmenities(venue) {
+  if (venue.amenities) return venue.amenities;
+  const isCasino = venue.venue_type === 'casino';
+  return {
+    food_service: isCasino,
+    valet_parking: isCasino,
+    hotel: isCasino,
+    self_parking: true,
+    wifi: venue.venue_type !== 'charity',
+    rewards_program: isCasino,
+    atm: venue.venue_type !== 'charity',
+    cocktail_service: isCasino,
+    smoking_area: false,
+    sports_bar: false
+  };
 }
 
 // ============================================================================
@@ -400,24 +230,25 @@ export default function VenueDetailPage() {
     const loadVenue = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/poker/venues?search=${encodeURIComponent(id)}`);
+        // Fetch by ID directly
+        const res = await fetch(`/api/poker/venues?id=${encodeURIComponent(id)}`);
         const json = await res.json();
 
         if (json.success && json.data && json.data.length > 0) {
-          // Try to find exact match by id or name
-          const match = json.data.find(v =>
-            String(v.id) === String(id) || v.name.toLowerCase().includes(String(id).toLowerCase())
-          ) || json.data[0];
-          setVenue(enrichVenueData(match));
+          setVenue(enrichVenueData(json.data[0]));
         } else {
-          // Use mock data fallback
-          const mockVenue = MOCK_VENUES[id] || Object.values(MOCK_VENUES)[0];
-          setVenue(mockVenue);
+          // Try search as fallback (in case id is a name fragment)
+          const searchRes = await fetch(`/api/poker/venues?search=${encodeURIComponent(id)}&limit=1`);
+          const searchJson = await searchRes.json();
+          if (searchJson.success && searchJson.data && searchJson.data.length > 0) {
+            setVenue(enrichVenueData(searchJson.data[0]));
+          } else {
+            setVenue(null);
+          }
         }
       } catch (err) {
         console.error('[VenueDetail] Fetch error:', err);
-        const mockVenue = MOCK_VENUES[id] || Object.values(MOCK_VENUES)[0];
-        setVenue(mockVenue);
+        setVenue(null);
       } finally {
         setLoading(false);
       }
@@ -439,12 +270,11 @@ export default function VenueDetailPage() {
         if (json.success && json.tournaments && json.tournaments.length > 0) {
           setDailyTournaments(json.tournaments);
         } else {
-          // Use mock fallback
-          setDailyTournaments(MOCK_DAILY_TOURNAMENTS);
+          setDailyTournaments([]);
         }
       } catch (err) {
         console.error('[VenueDetail] Tournament fetch error:', err);
-        setDailyTournaments(MOCK_DAILY_TOURNAMENTS);
+        setDailyTournaments([]);
       } finally {
         setTournamentsLoading(false);
       }
@@ -460,32 +290,14 @@ export default function VenueDetailPage() {
     setFollowing(data.venues.includes(String(id)));
   }, [id]);
 
-  // ---- Enrich API venue data with mock defaults ----
+  // ---- Enrich venue data with defaults ----
   function enrichVenueData(apiVenue) {
-    const mockMatch = Object.values(MOCK_VENUES).find(
-      m => m.name.toLowerCase().includes(apiVenue.name.toLowerCase()) ||
-           apiVenue.name.toLowerCase().includes(m.name.toLowerCase())
-    );
-
+    const venueType = VENUE_TYPE_LABELS[apiVenue.venue_type] || 'Venue';
     return {
       ...apiVenue,
-      address: apiVenue.address || mockMatch?.address || `${apiVenue.city}, ${apiVenue.state}`,
-      hours: apiVenue.hours || mockMatch?.hours || 'Contact venue for hours',
-      poker_room_phone: apiVenue.poker_room_phone || mockMatch?.poker_room_phone || apiVenue.phone,
-      established: apiVenue.established || mockMatch?.established || null,
-      description: apiVenue.description || mockMatch?.description || `${apiVenue.name} is a ${VENUE_TYPE_LABELS[apiVenue.venue_type] || 'venue'} located in ${apiVenue.city}, ${apiVenue.state}. Contact the venue directly for the latest information about games, tournaments, and promotions.`,
-      amenities: apiVenue.amenities || mockMatch?.amenities || {
-        food_service: true,
-        valet_parking: apiVenue.venue_type === 'casino',
-        hotel: apiVenue.venue_type === 'casino',
-        self_parking: true,
-        wifi: true,
-        rewards_program: true,
-        atm: true,
-        cocktail_service: true,
-        smoking_area: false,
-        sports_bar: false
-      }
+      hours: apiVenue.hours || null,
+      description: apiVenue.description || `${apiVenue.name} is a ${venueType.toLowerCase()} located in ${apiVenue.city}, ${apiVenue.state}. Contact the venue directly for the latest information about games, tournaments, and promotions.`,
+      amenities: inferAmenities(apiVenue)
     };
   }
 
@@ -595,6 +407,7 @@ export default function VenueDetailPage() {
   const websiteUrl = venue.website
     ? (venue.website.startsWith('http') ? venue.website : `https://${venue.website}`)
     : null;
+  const pokerAtlasUrl = venue.poker_atlas_url || null;
 
   return (
     <>
@@ -638,6 +451,11 @@ export default function VenueDetailPage() {
                   >
                     {VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}
                   </span>
+                  {venue.has_tournaments && (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap bg-green-50 text-green-700 border border-green-200">
+                      Tournaments
+                    </span>
+                  )}
                 </div>
                 <TrustStars score={venue.trust_score} />
                 <div className="flex items-center gap-1.5 mt-2 text-sm text-gray-500">
@@ -723,6 +541,19 @@ export default function VenueDetailPage() {
                 Website
               </a>
             )}
+
+            {/* PokerAtlas */}
+            {pokerAtlasUrl && (
+              <a
+                href={pokerAtlasUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition-all whitespace-nowrap no-underline"
+              >
+                <ExternalLink size={16} />
+                PokerAtlas
+              </a>
+            )}
           </div>
         </div>
 
@@ -760,22 +591,9 @@ export default function VenueDetailPage() {
                   <div className="flex items-start gap-3">
                     <Phone size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-gray-500 mb-0.5">Main Phone</p>
+                      <p className="text-sm font-medium text-gray-500 mb-0.5">Phone</p>
                       <a href={`tel:${venue.phone}`} className="text-sm text-[#1877F2] hover:underline no-underline">
                         {venue.phone}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {/* Poker Room Phone */}
-                {venue.poker_room_phone && venue.poker_room_phone !== venue.phone && (
-                  <div className="flex items-start gap-3">
-                    <Phone size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 mb-0.5">Poker Room Phone</p>
-                      <a href={`tel:${venue.poker_room_phone}`} className="text-sm text-[#1877F2] hover:underline no-underline">
-                        {venue.poker_room_phone}
                       </a>
                     </div>
                   </div>
@@ -794,6 +612,25 @@ export default function VenueDetailPage() {
                         className="text-sm text-[#1877F2] hover:underline no-underline flex items-center gap-1"
                       >
                         {venue.website?.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                        <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {/* PokerAtlas */}
+                {pokerAtlasUrl && (
+                  <div className="flex items-start gap-3">
+                    <ExternalLink size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-0.5">PokerAtlas</p>
+                      <a
+                        href={pokerAtlasUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-[#1877F2] hover:underline no-underline flex items-center gap-1"
+                      >
+                        View on PokerAtlas
                         <ExternalLink size={12} />
                       </a>
                     </div>
@@ -837,8 +674,8 @@ export default function VenueDetailPage() {
             {/* ============================================================ */}
             {/* SECTION 5: GAMES SPREAD */}
             {/* ============================================================ */}
-            <SectionCard title="Games Spread" icon={Banknote}>
-              {venue.games_offered && venue.games_offered.length > 0 ? (
+            {venue.games_offered && venue.games_offered.length > 0 && (
+              <SectionCard title="Games Spread" icon={Banknote}>
                 <div className="space-y-4">
                   {/* Game Type Tags */}
                   <div className="flex flex-wrap gap-2">
@@ -868,21 +705,9 @@ export default function VenueDetailPage() {
                       </div>
                     </div>
                   )}
-
-                  {/* Stakes Range Summary */}
-                  {venue.stakes_cash && venue.stakes_cash.length > 1 && (
-                    <div className="bg-gray-50 rounded-lg px-4 py-3">
-                      <p className="text-xs text-gray-500 mb-1">Stakes Range</p>
-                      <p className="text-sm font-semibold text-gray-800 m-0">
-                        {venue.stakes_cash[0]} to {venue.stakes_cash[venue.stakes_cash.length - 1]}
-                      </p>
-                    </div>
-                  )}
                 </div>
-              ) : (
-                <p className="text-sm text-gray-500 m-0">Contact the venue for current game availability.</p>
-              )}
-            </SectionCard>
+              </SectionCard>
+            )}
 
             {/* ============================================================ */}
             {/* SECTION 6: TOURNAMENT SCHEDULE */}
@@ -898,7 +723,7 @@ export default function VenueDetailPage() {
                   {DAYS_OF_WEEK.map(day => {
                     const dayTournaments = [
                       ...(tournamentsByDay[day] || []),
-                      ...(tournamentsByDay['Daily'] || [])
+                      ...(day === DAYS_OF_WEEK[0] ? (tournamentsByDay['Daily'] || []) : [])
                     ];
                     if (dayTournaments.length === 0) return null;
 
@@ -954,6 +779,18 @@ export default function VenueDetailPage() {
                     );
                   })}
                 </div>
+              ) : venue.has_tournaments ? (
+                <p className="text-sm text-gray-500 m-0">
+                  This venue hosts tournaments. Contact them directly or check{' '}
+                  {pokerAtlasUrl ? (
+                    <a href={pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="text-[#1877F2] hover:underline no-underline">
+                      PokerAtlas
+                    </a>
+                  ) : (
+                    'their website'
+                  )}
+                  {' '}for the current schedule.
+                </p>
               ) : (
                 <p className="text-sm text-gray-500 m-0">
                   No tournament schedule available. Contact the venue for current tournament information.
@@ -993,6 +830,14 @@ export default function VenueDetailPage() {
                       <p className="text-lg font-bold text-gray-900 m-0">{venue.trust_score}/5.0</p>
                     </div>
                   )}
+                  <div className="bg-gray-50 rounded-lg px-4 py-3 text-center">
+                    <p className="text-xs text-gray-500 mb-1">Venue Type</p>
+                    <p className="text-lg font-bold text-gray-900 m-0">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg px-4 py-3 text-center">
+                    <p className="text-xs text-gray-500 mb-1">Tournaments</p>
+                    <p className="text-lg font-bold text-gray-900 m-0">{venue.has_tournaments ? 'Yes' : 'No'}</p>
+                  </div>
                 </div>
 
                 {/* Games Summary */}

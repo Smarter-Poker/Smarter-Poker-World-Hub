@@ -1,25 +1,40 @@
 /**
  * Tournament Series API - Get major poker tournament series
- * Supports date range filtering and search
+ * Serves all 70 tournament series from poker-tour-series-2026.json
+ * Supports date range filtering, search, and individual series lookup
  */
 import { createClient } from '@supabase/supabase-js';
+import tourSeriesData from '../../../data/poker-tour-series-2026.json';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// Fallback tournament series
-const FALLBACK_SERIES = [
-    { id: 1, name: "55th Annual World Series of Poker", short_name: "WSOP", location: "Las Vegas, NV", start_date: "2026-05-26", end_date: "2026-07-16", main_event_buyin: 10000, main_event_guaranteed: 50000000, total_events: 99, series_type: "major", is_featured: true },
-    { id: 2, name: "WPT World Championship", short_name: "WPT", location: "Las Vegas, NV", start_date: "2026-11-29", end_date: "2026-12-17", main_event_buyin: 10400, main_event_guaranteed: 15000000, total_events: 35, series_type: "major", is_featured: true },
-    { id: 3, name: "Venetian DeepStack Championship", short_name: "VDC", location: "Las Vegas, NV", start_date: "2026-05-01", end_date: "2026-05-31", main_event_buyin: 5000, main_event_guaranteed: 2000000, total_events: 60, series_type: "major", is_featured: true },
-    { id: 4, name: "Seminole Hard Rock Poker Open", short_name: "SHRPO", location: "Hollywood, FL", start_date: "2026-08-01", end_date: "2026-08-15", main_event_buyin: 5250, main_event_guaranteed: 5000000, total_events: 45, series_type: "major", is_featured: true },
-    { id: 5, name: "European Poker Tour Barcelona", short_name: "EPT", location: "Barcelona, Spain", start_date: "2026-08-14", end_date: "2026-08-25", main_event_buyin: 5300, main_event_guaranteed: 10000000, total_events: 70, series_type: "major", is_featured: true },
-    { id: 6, name: "WSOP Circuit - Choctaw", short_name: "WSOPC", location: "Durant, OK", start_date: "2026-01-07", end_date: "2026-01-19", main_event_buyin: 1700, main_event_guaranteed: 500000, total_events: 45, series_type: "circuit", is_featured: false },
-    { id: 7, name: "LA Poker Classic", short_name: "LAPC", location: "Los Angeles, CA", start_date: "2026-01-07", end_date: "2026-03-01", main_event_buyin: 10400, main_event_guaranteed: 2000000, total_events: 65, series_type: "major", is_featured: true },
-    { id: 8, name: "WPT Lucky Hearts Poker Open", short_name: "WPTLH", location: "Ft. Lauderdale, FL", start_date: "2026-01-06", end_date: "2026-01-20", main_event_buyin: 3500, main_event_guaranteed: 2000000, total_events: 58, series_type: "major", is_featured: true },
-];
+// Build full series list from JSON data with numeric IDs
+function getSeriesFromJson() {
+    return (tourSeriesData.series_2026 || []).map((s, index) => ({
+        id: index + 1,
+        series_uid: s.series_uid,
+        name: s.name,
+        short_name: s.short_name,
+        tour: s.tour,
+        venue_name: s.venue,
+        location: `${s.city}, ${s.state}`,
+        city: s.city,
+        state: s.state,
+        start_date: s.start_date,
+        end_date: s.end_date,
+        total_events: s.total_events,
+        main_event_buyin: s.main_event_buyin,
+        main_event_guaranteed: s.main_event_guaranteed,
+        series_type: s.series_type,
+        source_url: s.source_url,
+        is_featured: s.is_featured || false
+    }));
+}
+
+const ALL_SERIES = getSeriesFromJson();
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -28,65 +43,122 @@ export default async function handler(req, res) {
 
     try {
         const {
+            id,             // Get series by numeric ID
+            series_uid,     // Get series by UID
             upcoming = 'true',
-            type, // major, regional, circuit
+            type,           // major, regional, circuit
+            tour,           // Filter by tour code (WSOP, WPT, etc.)
             limit = 50,
             start_date,
             end_date,
             search
         } = req.query;
 
-        let query = supabase
-            .from('tournament_series')
-            .select('*')
-            .order('start_date', { ascending: true })
-            .limit(parseInt(limit));
-
-        // Filter upcoming only
-        if (upcoming === 'true' && !start_date) {
-            query = query.gte('start_date', new Date().toISOString().split('T')[0]);
+        // --- Single series lookup by ID ---
+        if (id) {
+            const series = ALL_SERIES.find(s => String(s.id) === String(id));
+            if (series) {
+                return res.status(200).json({ success: true, data: [series], total: 1 });
+            }
+            return res.status(404).json({ success: false, error: 'Series not found' });
         }
 
-        // Filter by date range
-        if (start_date) {
-            query = query.gte('start_date', start_date);
-        }
-        if (end_date) {
-            query = query.lte('start_date', end_date);
-        }
-
-        // Filter by series type
-        if (type) {
-            query = query.eq('series_type', type);
+        // --- Single series lookup by UID ---
+        if (series_uid) {
+            const series = ALL_SERIES.find(s => s.series_uid === series_uid);
+            if (series) {
+                return res.status(200).json({ success: true, data: [series], total: 1 });
+            }
+            return res.status(404).json({ success: false, error: 'Series not found' });
         }
 
-        // Search by name or location
-        if (search) {
-            query = query.or(`name.ilike.%${search}%,location.ilike.%${search}%,venue_name.ilike.%${search}%`);
+        // --- Try database first, fallback to JSON ---
+        let seriesData = [];
+        let fromDb = false;
+
+        try {
+            let query = supabase
+                .from('tournament_series')
+                .select('*')
+                .order('start_date', { ascending: true })
+                .limit(parseInt(limit));
+
+            if (upcoming === 'true' && !start_date) {
+                query = query.gte('start_date', new Date().toISOString().split('T')[0]);
+            }
+            if (start_date) query = query.gte('start_date', start_date);
+            if (end_date) query = query.lte('start_date', end_date);
+            if (type) query = query.eq('series_type', type);
+            if (search) query = query.or(`name.ilike.%${search}%,location.ilike.%${search}%,venue_name.ilike.%${search}%`);
+
+            const { data, error } = await query;
+            if (!error && data && data.length > 0) {
+                seriesData = data;
+                fromDb = true;
+            }
+        } catch (e) {
+            // DB not available, use JSON fallback
         }
 
-        const { data, error } = await query;
-        let seriesData = data || [];
+        // --- Fallback: filter from JSON data ---
+        if (!fromDb) {
+            seriesData = [...ALL_SERIES];
+            const today = new Date().toISOString().split('T')[0];
 
-        if (error || !seriesData.length) {
-            seriesData = FALLBACK_SERIES;
-            if (type) seriesData = seriesData.filter(s => s.series_type === type);
-            if (search) seriesData = seriesData.filter(s =>
-                s.name.toLowerCase().includes(search.toLowerCase()) ||
-                s.location.toLowerCase().includes(search.toLowerCase())
-            );
-            if (start_date) seriesData = seriesData.filter(s => s.start_date >= start_date);
-            if (end_date) seriesData = seriesData.filter(s => s.start_date <= end_date);
+            // Filter upcoming
+            if (upcoming === 'true' && !start_date) {
+                seriesData = seriesData.filter(s => s.end_date >= today);
+            }
+
+            // Filter by date range
+            if (start_date) {
+                seriesData = seriesData.filter(s => s.start_date >= start_date);
+            }
+            if (end_date) {
+                seriesData = seriesData.filter(s => s.start_date <= end_date);
+            }
+
+            // Filter by series type
+            if (type) {
+                seriesData = seriesData.filter(s => s.series_type === type);
+            }
+
+            // Filter by tour
+            if (tour) {
+                seriesData = seriesData.filter(s => s.tour === tour.toUpperCase());
+            }
+
+            // Search by name, location, or venue
+            if (search) {
+                const searchLower = search.toLowerCase();
+                seriesData = seriesData.filter(s =>
+                    s.name.toLowerCase().includes(searchLower) ||
+                    s.location.toLowerCase().includes(searchLower) ||
+                    (s.venue_name && s.venue_name.toLowerCase().includes(searchLower)) ||
+                    (s.tour && s.tour.toLowerCase().includes(searchLower)) ||
+                    (s.series_uid && s.series_uid.toLowerCase().includes(searchLower))
+                );
+            }
+
+            // Sort by start date
+            seriesData.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
         }
+
+        const total = seriesData.length;
 
         return res.status(200).json({
             success: true,
             data: seriesData.slice(0, parseInt(limit)),
-            total: seriesData.length
+            total,
+            source: fromDb ? 'database' : 'json'
         });
     } catch (error) {
         console.error('Series API error:', error);
-        return res.status(200).json({ success: true, data: FALLBACK_SERIES });
+        return res.status(200).json({
+            success: true,
+            data: ALL_SERIES,
+            total: ALL_SERIES.length,
+            source: 'json-fallback'
+        });
     }
 }
-

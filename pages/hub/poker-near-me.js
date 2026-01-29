@@ -20,7 +20,8 @@ const VENUE_TYPE_LABELS = {
     casino: 'Casino',
     card_room: 'Card Room',
     poker_club: 'Poker Club',
-    home_game: 'Home Game'
+    home_game: 'Home Game',
+    charity: 'Charity Room'
 };
 
 const TOUR_TYPE_LABELS = {
@@ -168,7 +169,7 @@ export default function PokerNearMe() {
 
     const fetchVenues = async () => {
         try {
-            const params = new URLSearchParams({ limit: '200' });
+            const params = new URLSearchParams({ limit: '500' });
             if (selectedCity) {
                 params.set('city', selectedCity.name);
                 params.set('state', selectedCity.state);
@@ -230,7 +231,7 @@ export default function PokerNearMe() {
 
     const fetchSeries = async () => {
         try {
-            const params = new URLSearchParams({ upcoming: 'true', limit: '50' });
+            const params = new URLSearchParams({ upcoming: 'true', limit: '70' });
 
             // Add date range filter
             const today = new Date();
@@ -356,7 +357,7 @@ export default function PokerNearMe() {
 
         return (
             <div className="card-grid">
-                {venues.slice(0, 30).map((venue, i) => {
+                {venues.slice(0, 100).map((venue, i) => {
                     const trust = getTrustLevel(venue.trust_score);
                     return (
                         <div key={venue.id || i} className="entity-card venue-card">
@@ -631,7 +632,7 @@ export default function PokerNearMe() {
                                 <div className="filter-group">
                                     <label>Venue Type</label>
                                     <div className="filter-chips">
-                                        {['all', 'casino', 'card_room', 'poker_club'].map(type => (
+                                        {['all', 'casino', 'card_room', 'poker_club', 'charity'].map(type => (
                                             <button key={type} className={`chip ${filters.venueType === type ? 'active' : ''}`}
                                                 onClick={() => setFilters({...filters, venueType: type})}>
                                                 {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}

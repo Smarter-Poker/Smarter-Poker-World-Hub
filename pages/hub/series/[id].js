@@ -337,24 +337,30 @@ export default function SeriesDetailPage() {
     async function fetchSeries() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/poker/series?search=${encodeURIComponent(id)}`);
+        // Try by ID first, then fall back to search
+        const res = await fetch(`/api/poker/series?id=${encodeURIComponent(id)}`);
         const json = await res.json();
 
         if (!cancelled) {
           if (json.success && json.data && json.data.length > 0) {
-            // Try to find an exact id match first, then take first result
-            const match =
-              json.data.find((s) => String(s.id) === String(id)) || json.data[0];
-            setSeries(match);
+            setSeries(json.data[0]);
           } else {
-            // Use mock data as fallback
-            setSeries(MOCK_SERIES);
+            // Fall back to search (in case id is a name fragment)
+            const searchRes = await fetch(`/api/poker/series?search=${encodeURIComponent(id)}&upcoming=false`);
+            const searchJson = await searchRes.json();
+            if (searchJson.success && searchJson.data && searchJson.data.length > 0) {
+              const match =
+                searchJson.data.find((s) => String(s.id) === String(id)) || searchJson.data[0];
+              setSeries(match);
+            } else {
+              setSeries(null);
+            }
           }
         }
       } catch (err) {
         console.error('[SeriesDetail] Fetch error:', err);
         if (!cancelled) {
-          setSeries(MOCK_SERIES);
+          setSeries(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
