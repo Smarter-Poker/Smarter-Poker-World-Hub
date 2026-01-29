@@ -18,21 +18,26 @@ import { motion } from 'framer-motion';
 export default function MTTDeepStackUI({ question, onAnswer, showFeedback, feedbackResult }) {
     if (!question) return null;
 
-    // Parse question data
+    // Parse question data - handle both formats
     const {
         scenario,
-        options,
+        question: questionText,
+        options = [],
         correctAnswer,
         explanation,
         metadata = {}
     } = question;
 
+    // Use scenario if available, otherwise use question field
+    const scenarioText = scenario || questionText || "No scenario available";
+
+    // Extract metadata with safe defaults
     const {
         stackSize = 120,
         position = 'BTN',
         potSize = 15,
         boardTexture = 'Dry',
-        effectiveStack = 120
+        effectiveStack = stackSize || 120
     } = metadata;
 
     // Calculate stack depth category
@@ -42,7 +47,7 @@ export default function MTTDeepStackUI({ question, onAnswer, showFeedback, feedb
         return { label: 'DEEP', color: '#22c55e' };
     };
 
-    const stackCategory = getStackCategory(stackSize);
+    const stackCategory = getStackCategory(effectiveStack);
 
     return (
         <div style={styles.container}>
@@ -88,14 +93,17 @@ export default function MTTDeepStackUI({ question, onAnswer, showFeedback, feedb
             {/* Scenario Text */}
             <div style={styles.scenarioBox}>
                 <div style={styles.scenarioLabel}>Scenario</div>
-                <p style={styles.scenarioText}>{scenario}</p>
+                <p style={styles.scenarioText}>{scenarioText}</p>
             </div>
 
             {/* Answer Options */}
             <div style={styles.optionsContainer}>
-                {options.map((option, index) => {
+                {Array.isArray(options) && options.map((option, index) => {
+                    // Handle both string array and object array formats
+                    const optionText = typeof option === 'string' ? option : (option.text || option.label || 'Unknown');
+                    const optionId = typeof option === 'object' && option.id ? option.id : String.fromCharCode(65 + index);
                     const optionLetter = String.fromCharCode(65 + index); // A, B, C, D
-                    const isCorrect = optionLetter === correctAnswer;
+                    const isCorrect = optionLetter === correctAnswer || optionId === correctAnswer;
                     const isSelected = showFeedback; // Simplified for now
 
                     let optionStyle = styles.option;
@@ -117,7 +125,7 @@ export default function MTTDeepStackUI({ question, onAnswer, showFeedback, feedb
                             whileTap={!showFeedback ? { scale: 0.98 } : {}}
                         >
                             <span style={styles.optionLetter}>{optionLetter}</span>
-                            <span style={styles.optionText}>{option}</span>
+                            <span style={styles.optionText}>{optionText}</span>
                         </motion.button>
                     );
                 })}
