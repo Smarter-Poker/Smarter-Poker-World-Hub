@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import GoldenTemplateTable from '../poker/GoldenTemplateTable';
+import GoldenTemplateTable from '../../poker/GoldenTemplateTable';
 
 export default function MTTDeepStackUI({
     question,
