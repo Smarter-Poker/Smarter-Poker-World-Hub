@@ -161,7 +161,7 @@ export default async function handler(req, res) {
         // Fetch active horses
         const { data: horses, error: horsesError } = await supabase
             .from('content_authors')
-            .select('id, name, profile_id, personality_traits')
+            .select('id, name, profile_id')
             .eq('is_active', true)
             .not('profile_id', 'is', null)
             .limit(CONFIG.HORSES_PER_TRIGGER * 3); // Get extra to account for filtering
