@@ -206,12 +206,6 @@ async function saveClips(clips) {
 }
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    const authHeader = req.headers.authorization;
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
-
     console.log('\n');
     console.log('═'.repeat(70));
     console.log('🏈 SPORTS CLIPS SCRAPER - NBA/NFL/MLB/NHL/Soccer');
