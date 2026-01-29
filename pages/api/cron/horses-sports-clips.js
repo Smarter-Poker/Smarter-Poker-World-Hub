@@ -106,32 +106,40 @@ export default async function handler(req, res) {
         console.log('🏈 SPORTS CLIPS CRON STARTED');
         console.log('═'.repeat(60));
 
-        // Get random active horses
+        // Get random active horses (select more than needed since ~30% will be filtered by shouldHorsePostToday)
         const { data: horses } = await supabase
             .from('content_authors')
             .select('*')
             .eq('is_active', true)
             .not('profile_id', 'is', null)
-            .limit(CONFIG.HORSES_PER_TRIGGER * 2);
+            .limit(CONFIG.HORSES_PER_TRIGGER * 3);  // 3x to account for filtering
 
         if (!horses?.length) {
             return res.status(200).json({ success: true, message: 'No horses available', posted: 0 });
         }
 
-        const shuffledHorses = horses.sort(() => Math.random() - 0.5).slice(0, CONFIG.HORSES_PER_TRIGGER);
+        const shuffledHorses = horses.sort(() => Math.random() - 0.5);
         const results = [];
 
         // Get current time-of-day energy
         const timeEnergy = getTimeOfDayEnergy();
         console.log(`   ⏰ Time-of-day mode: ${timeEnergy.mode}`);
+        console.log(`   🐴 Selected ${shuffledHorses.length} horses (will filter to ${CONFIG.HORSES_PER_TRIGGER})`);
 
+        let postsAttempted = 0;
         for (const horse of shuffledHorses) {
+            // Stop once we have enough posts
+            if (postsAttempted >= CONFIG.HORSES_PER_TRIGGER) {
+                break;
+            }
+
             // Check if this horse should post today
             if (!shouldHorsePostToday(horse.profile_id)) {
                 console.log(`   💤 ${horse.alias} is having a quiet day`);
                 continue;
             }
 
+            postsAttempted++;
             console.log(`\n🏈 ${horse.alias}: Posting sports clip...`);
 
             // Get a random sports clip from database
