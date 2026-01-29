@@ -282,10 +282,11 @@ const styles = {
     },
 
     pokerTable: {
-        width: '90%',
-        maxWidth: '800px',
-        aspectRatio: '5/3',
-        backgroundImage: 'url(/images/poker-table.jpg)',
+        width: '100%',
+        maxWidth: '1000px',
+        height: '100%',
+        maxHeight: '500px',
+        backgroundImage: 'url(/images/poker-table-transparent.png)',
         backgroundSize: 'contain',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
