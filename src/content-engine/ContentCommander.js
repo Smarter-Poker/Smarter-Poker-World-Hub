@@ -12,7 +12,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import OpenAI from 'openai';
+import { getGrokClient } from './lib/grokClient.js';
 import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
@@ -50,7 +50,7 @@ const CONFIG = {
 
 // Initialize clients
 const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
-const openai = new OpenAI({ apiKey: CONFIG.OPENAI_API_KEY });
+const openai = getGrokClient();
 
 // Load personas
 const personasPath = path.join(__dirname, 'personas.json');

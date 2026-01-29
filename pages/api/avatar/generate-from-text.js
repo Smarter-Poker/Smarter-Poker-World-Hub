@@ -4,7 +4,7 @@
  * Downloads and uploads to Supabase Storage to avoid CORS issues
  */
 
-import OpenAI from 'openai';
+import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
@@ -13,9 +13,7 @@ export const config = {
     maxDuration: 60, // 60 second timeout for Vercel
 };
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = getGrokClient();
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

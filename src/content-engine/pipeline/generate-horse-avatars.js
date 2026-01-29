@@ -7,7 +7,7 @@ import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
+import { getGrokClient } from '../../lib/grokClient.js';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
@@ -16,7 +16,7 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = getGrokClient();
 
 // Avatar prompt variations for diversity
 const AVATAR_STYLES = [

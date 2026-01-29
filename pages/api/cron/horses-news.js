@@ -16,7 +16,6 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
 import Parser from 'rss-parser';
 import {
     applyWritingStyle,

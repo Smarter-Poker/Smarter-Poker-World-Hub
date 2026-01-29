@@ -18,7 +18,6 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
 import {
     shouldHorseBeActive,
     isHorseActiveHour,

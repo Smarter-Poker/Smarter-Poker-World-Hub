@@ -848,44 +848,44 @@ export default function SignUpPage() {
                                     )}
                                 </div>
 
-                                {/* OTP Input - appears after sending code */}
+                                {/* OTP Input - appears after sending code - VERTICAL LAYOUT for mobile */}
                                 {phoneOtpSent && !phoneVerified && (
                                     <div style={{ marginTop: '12px' }}>
-                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                            <input
-                                                type="text"
-                                                value={phoneOtp}
-                                                onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                                placeholder="Enter 6-digit code"
-                                                style={{
-                                                    ...styles.inputSingle,
-                                                    flex: 1,
-                                                    letterSpacing: '4px',
-                                                    textAlign: 'center',
-                                                    fontSize: '18px',
-                                                }}
-                                                maxLength={6}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={verifyPhoneOtp}
-                                                disabled={phoneVerifying || phoneOtp.length !== 6}
-                                                style={{
-                                                    padding: '12px 20px',
-                                                    background: phoneOtp.length === 6 ? 'linear-gradient(135deg, #00ff66, #00cc52)' : 'rgba(100, 100, 100, 0.5)',
-                                                    border: 'none',
-                                                    borderRadius: '8px',
-                                                    color: '#fff',
-                                                    fontWeight: '600',
-                                                    fontSize: '13px',
-                                                    cursor: phoneOtp.length === 6 ? 'pointer' : 'not-allowed',
-                                                }}
-                                            >
-                                                {phoneVerifying ? 'Verifying...' : 'Verify'}
-                                            </button>
-                                        </div>
-                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '8px' }}>
-                                            Check your phone for the verification code from Smarter.Poker
+                                        <input
+                                            type="text"
+                                            value={phoneOtp}
+                                            onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            placeholder="Enter 6-digit code"
+                                            style={{
+                                                ...styles.inputSingle,
+                                                width: '100%',
+                                                letterSpacing: '4px',
+                                                textAlign: 'center',
+                                                fontSize: '18px',
+                                            }}
+                                            maxLength={6}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={verifyPhoneOtp}
+                                            disabled={phoneVerifying || phoneOtp.length !== 6}
+                                            style={{
+                                                width: '100%',
+                                                marginTop: '10px',
+                                                padding: '14px 20px',
+                                                background: phoneOtp.length === 6 ? 'linear-gradient(135deg, #00ff66, #00cc52)' : 'rgba(100, 100, 100, 0.5)',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                color: '#fff',
+                                                fontWeight: '600',
+                                                fontSize: '15px',
+                                                cursor: phoneOtp.length === 6 ? 'pointer' : 'not-allowed',
+                                            }}
+                                        >
+                                            {phoneVerifying ? 'Verifying...' : 'Verify Phone Number'}
+                                        </button>
+                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '8px', textAlign: 'center' }}>
+                                            Check your phone for the verification code
                                         </p>
                                     </div>
                                 )}

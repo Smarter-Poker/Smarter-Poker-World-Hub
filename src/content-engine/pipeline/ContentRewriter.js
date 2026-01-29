@@ -6,11 +6,11 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import OpenAI from 'openai';
+import { getGrokClient } from '../../lib/grokClient.js';
 import { rssAggregator } from './RSSAggregator.js';
 import personas from '../personas.json' assert { type: 'json' };
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = getGrokClient();
 
 // Content formats
 const CONTENT_FORMATS = {

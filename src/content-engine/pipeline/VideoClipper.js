@@ -27,7 +27,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
-import OpenAI from 'openai';
+import { getGrokClient } from '../../lib/grokClient.js';
 import { createClient } from '@supabase/supabase-js';
 
 const execAsync = promisify(exec);
@@ -121,10 +121,8 @@ const POKER_SOURCES = {
 // ═══════════════════════════════════════════════════════════════════════════
 class VideoClipper {
     constructor() {
-        // OpenAI is optional - only needed for captions
-        if (process.env.OPENAI_API_KEY) {
-            this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-        }
+        // Grok client (OpenAI-compatible)
+        this.openai = getGrokClient();
         // Supabase is lazy-initialized when needed (to ensure env vars are loaded)
         this.supabase = null;
         this.ensureDirectories();

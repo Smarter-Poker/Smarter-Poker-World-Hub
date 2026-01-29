@@ -10,7 +10,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
+import { getGrokClient } from '../../../src/lib/grokClient';
 import { shouldHorseBeActive, isHorseActiveHour, getHorseActivityRate } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
 // ClipLibrary functions - loaded dynamically
