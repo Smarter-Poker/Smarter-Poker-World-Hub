@@ -98,17 +98,10 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
         >
             <StoryRing hasUnviewed={showRing} isLive={isLive} size={64}>
                 <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', background: '#E4E6EB' }}>
-                    {/* Show story media preview if available, otherwise profile pic */}
-                    {story?.media_url ? (
-                        <img
-                            src={story.media_url}
-                            onError={(e) => {
-                                // Fallback to profile avatar if media fails to load
-                                e.target.src = story?.author_avatar || '/default-avatar.png';
-                            }}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                    ) : story?.background_color ? (
+                    {/* Show gradient background for text stories, otherwise show profile avatar */}
+                    {/* NOTE: We don't show media_url thumbnails because YouTube thumbnails often 404 */}
+                    {/* Only show media_url if it's from our own storage (supabase) */}
+                    {story?.background_color ? (
                         <div style={{
                             width: '100%',
                             height: '100%',
@@ -119,6 +112,15 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
                         }}>
                             <span style={{ fontSize: 24, color: 'white' }}>Aa</span>
                         </div>
+                    ) : story?.media_url && story.media_url.includes('supabase') ? (
+                        <img
+                            src={story.media_url}
+                            onError={(e) => {
+                                // Fallback to profile avatar if media fails to load
+                                e.target.src = story?.author_avatar || '/default-avatar.png';
+                            }}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
                     ) : (
                         <img
                             src={story?.author_avatar || '/default-avatar.png'}
