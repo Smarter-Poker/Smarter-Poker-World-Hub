@@ -48,15 +48,32 @@ export default function MTTDeepStackUI({
     const action = scenario?.action || '';
     const gameType = scenario?.gameType || '9-Max Tournament (MTT)';
 
-    // Format question text for blue bar
+    // Format question text for blue bar - BUILD FROM SCENARIO DATA
     const formatQuestionText = () => {
         if (typeof scenario === 'string') return scenario;
 
-        // Build question from scenario data
-        const posLabel = viewMode === 'standard' ? 'Your Position' : 'Position';
-        const stackLabel = viewMode === 'standard' ? 'Your Stack' : 'Hero';
+        // Build descriptive question from scenario data (like template)
+        const posLabel = viewMode === 'standard' ? 'You Are' : 'Hero';
+        const actionText = action || 'Action is on you';
 
-        return questionText || `${posLabel}: ${heroPosition}. ${action}. What Is Your Best Move?`;
+        // Build question like: "You Are On The Button. The Player To Your Right Bets 2.5 BB. What Is Your Best Move?"
+        let questionParts = [];
+
+        if (heroPosition) {
+            const positionName = heroPosition === 'BTN' ? 'On The Button' :
+                heroPosition === 'SB' ? 'In The Small Blind' :
+                    heroPosition === 'BB' ? 'In The Big Blind' :
+                        `In ${heroPosition}`;
+            questionParts.push(`${posLabel} ${positionName}`);
+        }
+
+        if (action) {
+            questionParts.push(action);
+        }
+
+        questionParts.push('What Is Your Best Move?');
+
+        return questionParts.join('. ');
     };
 
     const handleAnswer = (optionLetter) => {
