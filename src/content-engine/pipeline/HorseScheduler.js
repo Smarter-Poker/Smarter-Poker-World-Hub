@@ -330,10 +330,13 @@ export function applyWritingStyle(comment, profileId) {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // EMOJIS - Natural placement (varied, not always trailing)
+    // EMOJIS - Natural placement (35% of posts only, no back-to-back)
     // ═══════════════════════════════════════════════════════════════════════
     const hasEmoji = result.match(/[\u{1F300}-\u{1F9FF}]/u);
-    if (!hasEmoji && style.emojiStyle !== 'none' && Math.random() < style.emojiProbability) {
+    const endsWithEmoji = result.match(/[\u{1F300}-\u{1F9FF}]\s*$/u);
+
+    // GLOBAL 35% emoji rate - real users don't emoji every post
+    if (!hasEmoji && style.emojiStyle !== 'none' && Math.random() < 0.35) {
         const emoji = style.emojiChoices[Math.floor(Math.random() * style.emojiChoices.length)];
 
         // Random placement instead of always trailing
@@ -344,8 +347,9 @@ export function applyWritingStyle(comment, profileId) {
         } else if (placement < 0.35) {
             // 20% chance: emoji at start
             result = emoji + ' ' + result;
-        } else {
+        } else if (!endsWithEmoji) {
             // 65% chance: emoji at end (most natural for reactions)
+            // But NEVER create back-to-back emojis
             result = result + ' ' + emoji;
         }
     }
