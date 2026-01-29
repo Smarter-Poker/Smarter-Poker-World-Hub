@@ -231,9 +231,16 @@ STRICT RULES:
 
     } catch (error) {
         console.error('❌ Avatar edit error:', error);
+        console.error('Error details:', {
+            message: error.message,
+            status: error.status,
+            response: error.response?.data,
+            stack: error.stack
+        });
         return res.status(500).json({
             success: false,
-            error: error.message || 'Failed to edit avatar'
+            error: error.message || 'Failed to edit avatar',
+            details: error.response?.data || error.toString()
         });
     }
 }

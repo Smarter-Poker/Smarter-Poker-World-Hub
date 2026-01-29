@@ -255,6 +255,15 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
 
             const videoId = extractVideoIdFromUrl(candidate.source_url) || candidate.video_id;
 
+            // CRITICAL: Check if this video has EVER been posted by ANY horse
+            if (dedupLoaded && ClipDeduplicationService) {
+                const alreadyPosted = await ClipDeduplicationService.isClipAlreadyPosted(videoId);
+                if (alreadyPosted) {
+                    console.log(`   🚫 DUPLICATE BLOCKED: ${videoId} already posted`);
+                    continue;
+                }
+            }
+
             // If it's a verified clip, accept immediately without validation
             if (VERIFIED_CLIP_IDS.includes(videoId)) {
                 console.log(`   ✅ Pre-verified clip: ${videoId}`);
@@ -379,6 +388,22 @@ BAD EXAMPLES:
         }
 
         console.log(`✅ ${horse.name}: Video clip posted! Post ID: ${post.id}`);
+
+        // CRITICAL: Mark this clip as posted to prevent duplicates
+        if (dedupLoaded && ClipDeduplicationService) {
+            const videoId = extractVideoIdFromUrl(clip.source_url) || clip.video_id;
+            await ClipDeduplicationService.markClipAsPosted({
+                videoId,
+                sourceUrl: clip.source_url,
+                clipSource: clip.source,
+                clipTitle: clip.description || clip.title,
+                postedBy: horse.profile_id,
+                postId: post.id,
+                clipType: 'poker',
+                category: clip.category
+            });
+            console.log(`   📝 Clip ${videoId} marked as posted`);
+        }
 
         return {
             type: 'video_clip',
@@ -582,6 +607,12 @@ export default async function handler(req, res) {
     const libLoaded = await loadClipLibrary();
     if (!libLoaded) {
         return res.status(500).json({ error: 'Failed to load ClipLibrary' });
+    }
+
+    // Load ClipDeduplicationService - CRITICAL for preventing duplicates
+    const dedupLoaded = await loadDeduplicationService();
+    if (!dedupLoaded) {
+        console.warn('⚠️  ClipDeduplicationService not loaded - duplicates may occur');
     }
 
     try {
