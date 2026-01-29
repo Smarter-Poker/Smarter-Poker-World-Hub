@@ -10,7 +10,8 @@ let Sentry = null;
 export async function initErrorMonitoring() {
   if (process.env.SENTRY_DSN) {
     try {
-      Sentry = await import('@sentry/nextjs');
+      const sentryModule = '@sentry/nextjs';
+      Sentry = await import(/* webpackIgnore: true */ sentryModule);
       Sentry.init({
         dsn: process.env.SENTRY_DSN,
         environment: process.env.NODE_ENV || 'development',
