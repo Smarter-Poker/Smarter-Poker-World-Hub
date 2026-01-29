@@ -412,6 +412,7 @@ function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
                     1💎 = $0.01
                 </span>
             </div>
+        </div>
             
             {/* Add to Cart Button */}
             <button
@@ -426,7 +427,7 @@ function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
                     background: 'linear-gradient(135deg, #1877F2, #4285F4)',
                     border: 'none',
                     borderRadius: 8,
-                    color: '#fff',
+                    color: '#fff,
                     fontSize: 14,
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -437,7 +438,6 @@ function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
             >
                 Add to Cart
             </button>
-        </div>
     );
 }
 
