@@ -74,13 +74,49 @@ function Select({ value, onChange, options, label }) {
 // ═══════════════════════════════════════════════════════════════════════════
 export default function SettingsPage() {
     const router = useRouter();
-    const { avatar, isVip, user, initializing } = useAvatar();
+    const { avatar, isVip, user: contextUser, initializing } = useAvatar();
     const [userProfile, setUserProfile] = useState(null);
+    const [localUser, setLocalUser] = useState(null); // 🛡️ Fallback from localStorage
     const [activeSection, setActiveSection] = useState('account');
     const [saved, setSaved] = useState(false);
     const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
     const [customAvatars, setCustomAvatars] = useState([]);
     const [loadingAvatars, setLoadingAvatars] = useState(true);
+
+    // 🛡️ Use context user or localStorage fallback
+    const user = contextUser || localUser;
+
+    // 🛡️ BULLETPROOF: Read user from localStorage immediately (same as UniversalHeader)
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !contextUser) {
+            try {
+                // Check explicit storage key first
+                const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                if (explicitAuth) {
+                    const tokenData = JSON.parse(explicitAuth);
+                    if (tokenData?.user) {
+                        setLocalUser(tokenData.user);
+                        console.log('[Settings] User loaded from localStorage:', tokenData.user.email);
+                    }
+                }
+                // Fallback to legacy sb-* keys
+                if (!localUser) {
+                    const sbKeys = Object.keys(localStorage).filter(
+                        k => k.startsWith('sb-') && k.endsWith('-auth-token')
+                    );
+                    if (sbKeys.length > 0) {
+                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        if (tokenData?.user) {
+                            setLocalUser(tokenData.user);
+                            console.log('[Settings] User loaded from legacy auth key:', tokenData.user.email);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('[Settings] Error reading localStorage:', e);
+            }
+        }
+    }, [contextUser]);
 
     // Settings State
     const [settings, setSettings] = useState({
