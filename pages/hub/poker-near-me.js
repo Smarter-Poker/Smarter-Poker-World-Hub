@@ -5,6 +5,7 @@
 
 import Head from 'next/head';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 const POPULAR_CITIES = [
@@ -19,7 +20,8 @@ const VENUE_TYPE_LABELS = {
     casino: 'Casino',
     card_room: 'Card Room',
     poker_club: 'Poker Club',
-    home_game: 'Home Game'
+    home_game: 'Home Game',
+    charity: 'Charity Room'
 };
 
 const TOUR_TYPE_LABELS = {
@@ -93,6 +95,7 @@ function TourBadge({ tourCode, size = 'normal' }) {
 }
 
 export default function PokerNearMe() {
+    const router = useRouter();
     // Active tab state
     const [activeTab, setActiveTab] = useState('venues');
 
@@ -189,7 +192,7 @@ export default function PokerNearMe() {
 
     const fetchVenues = async () => {
         try {
-            const params = new URLSearchParams({ limit: '200' });
+            const params = new URLSearchParams({ limit: '500' });
             if (selectedCity) {
                 params.set('city', selectedCity.name);
                 params.set('state', selectedCity.state);
@@ -251,7 +254,7 @@ export default function PokerNearMe() {
 
     const fetchSeries = async () => {
         try {
-            const params = new URLSearchParams({ upcoming: 'true', limit: '50' });
+            const params = new URLSearchParams({ upcoming: 'true', limit: '70' });
 
             // Add date range filter
             const today = new Date();
@@ -377,15 +380,16 @@ export default function PokerNearMe() {
 
         return (
             <div className="card-grid">
-                {venues.slice(0, 30).map((venue, i) => {
+                {venues.slice(0, 100).map((venue, i) => {
                     const trust = getTrustLevel(venue.trust_score);
                     return (
-                        <div key={venue.id || i} className="entity-card venue-card">
+                        <div key={venue.id || i} className="entity-card venue-card" onClick={() => router.push(`/hub/venues/${venue.id}`)} style={{ cursor: 'pointer' }}>
                             <div className="card-header">
                                 <h4>{venue.name}</h4>
                                 <span className="badge venue-type">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
                             </div>
                             <p className="card-location">{venue.city}, {venue.state}</p>
+                            {venue.has_tournaments && <span className="tag format" style={{ marginBottom: 8, display: 'inline-block' }}>Tournaments</span>}
                             <div className="card-tags">
                                 {venue.distance_mi && <span className="tag distance">{venue.distance_mi} mi</span>}
                                 {venue.games_offered?.slice(0, 3).map(g => (
@@ -398,13 +402,10 @@ export default function PokerNearMe() {
                             <div className="card-footer">
                                 <span className="trust-badge" style={{ color: trust.color }}>Trust: {trust.label}</span>
                                 <div className="card-actions">
-                                    {venue.phone && <a href={`tel:${venue.phone}`} className="action-btn">Call</a>}
-                                    {venue.website && (
-                                        <a href={venue.website.startsWith('http') ? venue.website : `https://${venue.website}`}
-                                            target="_blank" rel="noopener noreferrer" className="action-btn">Web</a>
-                                    )}
+                                    {venue.phone && <a href={`tel:${venue.phone}`} className="action-btn" onClick={e => e.stopPropagation()}>Call</a>}
                                     <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name + ' ' + venue.city + ' ' + venue.state)}`}
-                                        target="_blank" rel="noopener noreferrer" className="action-btn primary">Map</a>
+                                        target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Map</a>
+                                    <span className="action-btn primary">Details</span>
                                 </div>
                             </div>
                         </div>
@@ -427,7 +428,7 @@ export default function PokerNearMe() {
         return (
             <div className="card-grid tours-grid">
                 {tours.map((tour, i) => (
-                    <div key={tour.tour_code || i} className="entity-card tour-card">
+                    <div key={tour.tour_code || i} className="entity-card tour-card" onClick={() => router.push(`/hub/tours/${tour.tour_code}`)} style={{ cursor: 'pointer' }}>
                         <div className="card-header">
                             <TourBadge tourCode={tour.tour_code} />
                             <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || tour.tour_type}</span>
@@ -452,11 +453,14 @@ export default function PokerNearMe() {
                         )}
                         <div className="card-footer">
                             <span className="established">Est. {tour.established}</span>
-                            {tour.official_website && (
-                                <a href={tour.official_website} target="_blank" rel="noopener noreferrer" className="action-btn primary">
-                                    Website
-                                </a>
-                            )}
+                            <div className="card-actions">
+                                <span className="action-btn primary">Details</span>
+                                {tour.official_website && (
+                                    <a href={tour.official_website} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>
+                                        Website
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -476,10 +480,10 @@ export default function PokerNearMe() {
 
         return (
             <div className="card-grid">
-                {series.slice(0, 30).map((s, i) => (
-                    <div key={s.id || i} className="entity-card series-card">
+                {series.slice(0, 70).map((s, i) => (
+                    <div key={s.id || i} className="entity-card series-card" onClick={() => router.push(`/hub/series/${s.id || (i + 1)}`)} style={{ cursor: 'pointer' }}>
                         <div className="card-header">
-                            <TourBadge tourCode={s.short_name} size="small" />
+                            <TourBadge tourCode={s.tour_code || s.short_name} size="small" />
                             <span className="badge series-type">{s.series_type}</span>
                         </div>
                         <h4>{s.name}</h4>
@@ -493,11 +497,14 @@ export default function PokerNearMe() {
                             <p className="card-detail guaranteed">{formatMoney(s.main_event_guaranteed)}+ GTD</p>
                         )}
                         <div className="card-footer">
-                            {s.source_url && (
-                                <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="action-btn primary">
-                                    Details
-                                </a>
-                            )}
+                            <div className="card-actions">
+                                <span className="action-btn primary">Details</span>
+                                {s.source_url && (
+                                    <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>
+                                        Source
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -701,7 +708,7 @@ export default function PokerNearMe() {
                                 <div className="filter-group">
                                     <label>Venue Type</label>
                                     <div className="filter-chips">
-                                        {['all', 'casino', 'card_room', 'poker_club'].map(type => (
+                                        {['all', 'casino', 'card_room', 'poker_club', 'charity'].map(type => (
                                             <button key={type} className={`chip ${filters.venueType === type ? 'active' : ''}`}
                                                 onClick={() => setFilters({ ...filters, venueType: type })}>
                                                 {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
