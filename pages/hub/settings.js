@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SETTINGS PAGE — User Preferences & Account Management
    Configure your Smarter.Poker experience
+   Last Updated: 2026-01-29 - Avatar race condition fix deployed
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRouter } from 'next/router';
