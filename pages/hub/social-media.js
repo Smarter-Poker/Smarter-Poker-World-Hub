@@ -1936,10 +1936,11 @@ export default function SocialMediaPage() {
             // Fetch author profiles using native fetch to avoid AbortError
             if (mixedFeed.length > 0) {
                 const authorIds = [...new Set(mixedFeed.map(p => p.author_id).filter(Boolean))];
+                console.log('[Social] 🔍 Processing', mixedFeed.length, 'posts with', authorIds.length, 'unique authors');
                 let authorMap = {};
                 if (authorIds.length) {
                     try {
-                        console.log('[Social] Fetching profiles for', authorIds.length, 'authors');
+                        console.log('[Social] Fetching profiles for author IDs:', authorIds.slice(0, 3), '...');
                         const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name_preference,avatar_url`, {
                             headers: {
                                 'apikey': supabaseKey,
@@ -1947,12 +1948,19 @@ export default function SocialMediaPage() {
                             }
                         });
 
+                        console.log('[Social] Profile fetch response status:', profilesRes.status);
                         if (!profilesRes.ok) {
-                            console.error('[Social] Profile fetch failed:', profilesRes.status, await profilesRes.text());
+                            const errorText = await profilesRes.text();
+                            console.error('[Social] ❌ Profile fetch failed:', profilesRes.status, errorText);
                         } else {
                             const profiles = await profilesRes.json();
-                            console.log('[Social] ✅ Loaded', profiles.length, 'profiles');
-                            if (profiles) authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+                            console.log('[Social] ✅ Loaded', profiles.length, 'profiles:', profiles.map(p => p.username || p.full_name));
+                            if (profiles && profiles.length > 0) {
+                                authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+                                console.log('[Social] ✅ Author map created with', Object.keys(authorMap).length, 'entries');
+                            } else {
+                                console.warn('[Social] ⚠️ No profiles returned from query');
+                            }
                         }
                     } catch (profileError) {
                         console.error('[Social] Profile fetch error:', profileError);
