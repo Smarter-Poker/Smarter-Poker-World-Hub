@@ -93,7 +93,7 @@ export default function ResponsibleGamingPage() {
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push('/login?redirect=/hub/commander/responsible-gaming');
+      router.push('/auth/login?redirect=/hub/commander/responsible-gaming');
       return;
     }
     fetchSettings();

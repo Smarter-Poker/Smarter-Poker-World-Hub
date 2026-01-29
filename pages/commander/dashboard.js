@@ -19,9 +19,14 @@ import OpenGameModal from '../../src/components/commander/modals/OpenGameModal';
 import AddWalkInModal from '../../src/components/commander/modals/AddWalkInModal';
 import SeatPlayerModal from '../../src/components/commander/modals/SeatPlayerModal';
 import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
+import SessionTracker from '../../src/components/commander/staff/SessionTracker';
+import AddBuyinModal from '../../src/components/commander/modals/AddBuyinModal';
+import MustMoveModal from '../../src/components/commander/modals/MustMoveModal';
+import { useCommanderStore } from '../../src/stores/commanderStore';
 
 export default function CommanderDashboard() {
   const router = useRouter();
+  const { setStaffSession, clearStaffSession, addActivity: storeAddActivity } = useCommanderStore();
 
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);
@@ -42,6 +47,12 @@ export default function CommanderDashboard() {
   const [selectedGame, setSelectedGame] = useState(null);
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [waitTimePredictions, setWaitTimePredictions] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [showAddBuyinModal, setShowAddBuyinModal] = useState(false);
+  const [buyinSession, setBuyinSession] = useState(null);
+  const [buyinGame, setBuyinGame] = useState(null);
+  const [showMustMoveModal, setShowMustMoveModal] = useState(false);
+  const [mustMoveGame, setMustMoveGame] = useState(null);
 
   const navItems = [
     { href: '/commander/dashboard', label: 'Dashboard', icon: Home, active: true },
@@ -78,6 +89,9 @@ export default function CommanderDashboard() {
       setStaff(staffData);
       setVenueId(staffData.venue_id);
 
+      // Sync staff session into Zustand store for cross-component access
+      setStaffSession(staffData, staffData.venue_name ? { id: staffData.venue_id, name: staffData.venue_name } : null);
+
       // Set venue name from stored data if available
       if (staffData.venue_name) {
         setVenue({ id: staffData.venue_id, name: staffData.venue_name });
@@ -98,7 +112,7 @@ export default function CommanderDashboard() {
       const storedStaff = localStorage.getItem('commander_staff');
       const staffSession = storedStaff || '{}';
 
-      const [venueRes, gamesRes, waitlistRes, tablesRes, balanceRes, waitTimeRes] = await Promise.all([
+      const [venueRes, gamesRes, waitlistRes, tablesRes, balanceRes, waitTimeRes, sessionsRes] = await Promise.all([
         fetch(`/api/commander/venues/${venueId}`),
         fetch(`/api/commander/games/venue/${venueId}`),
         fetch(`/api/commander/waitlist/venue/${venueId}`),
@@ -106,7 +120,8 @@ export default function CommanderDashboard() {
         fetch(`/api/commander/ai/table-balance/${venueId}`, {
           headers: { 'x-staff-session': staffSession }
         }).catch(() => ({ ok: false })),
-        fetch(`/api/commander/ai/wait-time/${venueId}`).catch(() => ({ ok: false }))
+        fetch(`/api/commander/ai/wait-time/${venueId}`).catch(() => ({ ok: false })),
+        fetch(`/api/commander/sessions/venue/${venueId}`).catch(() => ({ ok: false }))
       ]);
 
       const [venueData, gamesData, waitlistData, tablesData] = await Promise.all([
@@ -151,6 +166,15 @@ export default function CommanderDashboard() {
         setTables(tablesData.data.tables || []);
       }
 
+      if (sessionsRes.ok) {
+        try {
+          const sessionsData = await sessionsRes.json();
+          if (sessionsData.success) {
+            setSessions(sessionsData.data?.sessions || []);
+          }
+        } catch (e) { /* ignore */ }
+      }
+
       setOnline(true);
       setLastRefresh(new Date());
     } catch (error) {
@@ -191,6 +215,7 @@ export default function CommanderDashboard() {
 
   // Handle logout
   function handleLogout() {
+    clearStaffSession();
     localStorage.removeItem('commander_staff');
     router.push('/commander/login');
   }
@@ -279,6 +304,49 @@ export default function CommanderDashboard() {
   // Handle walk-in added
   function handleWalkInAdded(entry) {
     addActivity('player_seated', `Added ${entry.player_name || 'Walk-in'} to ${entry.stakes} ${entry.game_type.toUpperCase()} waitlist`);
+    fetchData();
+  }
+
+  // Handle session checkout
+  async function handleCheckoutSession(session) {
+    try {
+      const res = await fetch(`/api/commander/sessions/${session.id}/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.success) {
+        addActivity('player_removed', `Checked out ${session.player_name || 'Player'}`);
+        fetchData();
+      }
+    } catch (err) {
+      console.error('Checkout failed:', err);
+    }
+  }
+
+  // Handle view session - open buy-in modal
+  function handleViewSession(session) {
+    const game = games.find(g => g.id === session.game_id);
+    setBuyinSession(session);
+    setBuyinGame(game);
+    setShowAddBuyinModal(true);
+  }
+
+  // Handle buy-in submitted
+  function handleBuyinSubmit({ session, amount }) {
+    addActivity('success', `Added $${amount} buy-in for ${session.player_name || 'Player'}`);
+    fetchData();
+  }
+
+  // Handle must-move setup for a game
+  function handleMustMoveSetup(game) {
+    setMustMoveGame(game);
+    setShowMustMoveModal(true);
+  }
+
+  // Handle must-move submitted
+  function handleMustMoveSubmit({ game, action }) {
+    addActivity('success', `Must-move ${action} for ${game.stakes} ${game.game_type?.toUpperCase()}`);
     fetchData();
   }
 
@@ -375,6 +443,16 @@ export default function CommanderDashboard() {
               <ActivityFeed activities={activities} />
             </section>
           </div>
+
+          {/* Active Sessions */}
+          <section>
+            <h2 className="text-lg font-semibold text-white mb-4">Active Sessions</h2>
+            <SessionTracker
+              sessions={sessions}
+              onCheckout={handleCheckoutSession}
+              onViewSession={handleViewSession}
+            />
+          </section>
 
           {/* AI Insights Panel */}
           {(aiSuggestions.length > 0 || waitTimePredictions.length > 0) && (
@@ -502,6 +580,30 @@ export default function CommanderDashboard() {
         onSubmit={handlePlayerSeated}
         player={playerToSeat}
         games={games}
+      />
+
+      <AddBuyinModal
+        isOpen={showAddBuyinModal}
+        onClose={() => {
+          setShowAddBuyinModal(false);
+          setBuyinSession(null);
+          setBuyinGame(null);
+        }}
+        onSubmit={handleBuyinSubmit}
+        session={buyinSession}
+        game={buyinGame}
+      />
+
+      <MustMoveModal
+        isOpen={showMustMoveModal}
+        onClose={() => {
+          setShowMustMoveModal(false);
+          setMustMoveGame(null);
+        }}
+        onSubmit={handleMustMoveSubmit}
+        game={mustMoveGame}
+        allGames={games}
+        venueId={venueId}
       />
 
       {/* Navigation Drawer */}

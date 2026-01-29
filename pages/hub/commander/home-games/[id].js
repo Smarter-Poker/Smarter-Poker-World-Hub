@@ -22,8 +22,10 @@ import {
   Copy,
   Loader2,
   Bell,
-  MessageSquare
+  MessageSquare,
+  Star
 } from 'lucide-react';
+import RsvpForm, { RsvpList } from '../../../../src/components/commander/home-games/RsvpForm';
 
 function EventCard({ event, onRsvp, userRsvp }) {
   const eventDate = new Date(event.scheduled_date);
@@ -147,6 +149,10 @@ export default function HomeGameDetailPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [selectedRsvpEvent, setSelectedRsvpEvent] = useState(null);
+  const [eventReviews, setEventReviews] = useState([]);
+  const [reviewsAvgRating, setReviewsAvgRating] = useState(0);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // Get current user ID from token on mount
   useEffect(() => {
@@ -210,11 +216,45 @@ export default function HomeGameDetailPage() {
     fetchGroup();
   }, [fetchGroup]);
 
+  // Fetch reviews for past events
+  useEffect(() => {
+    if (events.length === 0) return;
+    const pastEvents = events.filter(e => new Date(e.scheduled_date) < new Date());
+    if (pastEvents.length === 0) return;
+
+    async function loadReviews() {
+      setReviewsLoading(true);
+      try {
+        const allReviews = [];
+        let totalRating = 0;
+        let totalCount = 0;
+        // Fetch reviews for up to 5 most recent past events
+        const recentPast = pastEvents.slice(0, 5);
+        for (const event of recentPast) {
+          const res = await fetch(`/api/commander/home-games/events/${event.id}/reviews`);
+          const data = await res.json();
+          if (data.success && data.data?.reviews) {
+            allReviews.push(...data.data.reviews);
+            totalRating += data.data.average_rating * data.data.total_reviews;
+            totalCount += data.data.total_reviews;
+          }
+        }
+        setEventReviews(allReviews);
+        setReviewsAvgRating(totalCount > 0 ? Math.round((totalRating / totalCount) * 10) / 10 : 0);
+      } catch (err) {
+        console.error('Load reviews error:', err);
+      } finally {
+        setReviewsLoading(false);
+      }
+    }
+    loadReviews();
+  }, [events]);
+
   // Join group
   async function handleJoin() {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push(`/login?redirect=/hub/commander/home-games/${id}`);
+      router.push(`/auth/login?redirect=/hub/commander/home-games/${id}`);
       return;
     }
 
@@ -243,7 +283,7 @@ export default function HomeGameDetailPage() {
   async function handleRsvp(event, status) {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push(`/login?redirect=/hub/commander/home-games/${id}`);
+      router.push(`/auth/login?redirect=/hub/commander/home-games/${id}`);
       return;
     }
 
@@ -425,7 +465,13 @@ export default function HomeGameDetailPage() {
                   <EventCard
                     key={event.id}
                     event={event}
-                    onRsvp={handleRsvp}
+                    onRsvp={(evt, status) => {
+                      if (status) {
+                        handleRsvp(evt, status);
+                      } else {
+                        setSelectedRsvpEvent(evt);
+                      }
+                    }}
                     userRsvp={rsvps[event.id] || event.user_rsvp}
                   />
                 ))}
@@ -450,8 +496,98 @@ export default function HomeGameDetailPage() {
               ))}
             </div>
           </div>
+
+          {/* Event Reviews */}
+          <div>
+            <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+              <Star className="w-5 h-5 text-[#F59E0B]" />
+              Reviews
+              {reviewsAvgRating > 0 && (
+                <span className="text-sm text-[#64748B] ml-1">
+                  ({reviewsAvgRating} avg)
+                </span>
+              )}
+            </h3>
+
+            {reviewsLoading ? (
+              <div className="cmd-panel p-6 text-center">
+                <Loader2 className="w-6 h-6 animate-spin text-[#22D3EE] mx-auto" />
+              </div>
+            ) : eventReviews.length === 0 ? (
+              <div className="cmd-panel p-8 text-center">
+                <MessageSquare className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                <p className="text-[#64748B]">No reviews yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {eventReviews.map((review) => (
+                  <div key={review.id} className="cmd-panel p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-[#22D3EE]/10 flex items-center justify-center">
+                          {review.profiles?.avatar_url ? (
+                            <img src={review.profiles.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <Users className="w-4 h-4 text-[#22D3EE]" />
+                          )}
+                        </div>
+                        <span className="font-medium text-white text-sm">
+                          {review.is_anonymous ? 'Anonymous' : (review.profiles?.display_name || 'Player')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`w-4 h-4 ${s <= review.rating ? 'text-[#F59E0B] fill-[#F59E0B]' : 'text-[#4A5E78]'}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {review.comment && (
+                      <p className="text-sm text-[#CBD5E1]">{review.comment}</p>
+                    )}
+                    <p className="text-xs text-[#64748B] mt-2">
+                      {new Date(review.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </main>
       </div>
+
+      {/* RSVP Modal */}
+      {selectedRsvpEvent && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="cmd-panel cmd-corner-lights w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">RSVP to Game</h3>
+              <button
+                onClick={() => setSelectedRsvpEvent(null)}
+                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-[#64748B]" />
+              </button>
+            </div>
+            <RsvpForm
+              event={{
+                ...selectedRsvpEvent,
+                rsvp_yes: selectedRsvpEvent.rsvp_count || 0,
+                allow_guests: true,
+                guest_limit: 2
+              }}
+              currentRsvp={rsvps[selectedRsvpEvent.id] ? { response: rsvps[selectedRsvpEvent.id] } : null}
+              onSubmit={async (rsvpData) => {
+                await handleRsvp(selectedRsvpEvent, rsvpData.response);
+                setSelectedRsvpEvent(null);
+              }}
+              onClose={() => setSelectedRsvpEvent(null)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Share Modal */}
       {showShareModal && (

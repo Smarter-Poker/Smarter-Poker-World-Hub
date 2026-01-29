@@ -151,7 +151,7 @@ export default function LeagueDetailPage() {
     try {
       const token = localStorage.getItem('smarter-poker-auth');
       if (!token) {
-        router.push(`/login?redirect=/hub/commander/leagues/${id}`);
+        router.push(`/auth/login?redirect=/hub/commander/leagues/${id}`);
         return;
       }
 

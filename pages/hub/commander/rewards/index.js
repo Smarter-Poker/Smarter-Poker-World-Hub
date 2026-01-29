@@ -20,6 +20,8 @@ import {
   CreditCard,
   Zap
 } from 'lucide-react';
+import CompBalanceCard from '../../../../src/components/commander/comps/CompBalanceCard';
+import CompTransactionList from '../../../../src/components/commander/comps/CompTransactionList';
 
 const REWARD_CATEGORIES = [
   { id: 'food', label: 'Food & Beverage', icon: Utensils, color: '#F59E0B' },
@@ -89,11 +91,14 @@ export default function PlayerRewardsPage() {
   const [transactions, setTransactions] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [comingSoonMessage, setComingSoonMessage] = useState(null);
+  const [redeemAmount, setRedeemAmount] = useState('');
+  const [showRedeemInput, setShowRedeemInput] = useState(false);
+  const [redeemingId, setRedeemingId] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push('/login?redirect=/hub/commander/rewards');
+      router.push('/auth/login?redirect=/hub/commander/rewards');
       return;
     }
     fetchRewardsData();
@@ -137,20 +142,31 @@ export default function PlayerRewardsPage() {
     }
   }
 
-  async function handleRedeem(category) {
+  function handleRedeemClick(category) {
     if (balance <= 0) {
       setComingSoonMessage('No balance available to redeem');
       setTimeout(() => setComingSoonMessage(null), 3000);
       return;
     }
 
-    // Prompt for redemption amount
-    const amount = prompt(`Enter amount to redeem for ${category.label} (max $${balance}):`);
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+    setRedeemingId(category.id);
+    setShowRedeemInput(true);
+    setRedeemAmount('');
+  }
+
+  function handleRedeemCancel() {
+    setShowRedeemInput(false);
+    setRedeemingId(null);
+    setRedeemAmount('');
+  }
+
+  async function handleRedeemSubmit(category) {
+    const parsed = parseFloat(redeemAmount);
+    if (!redeemAmount || isNaN(parsed) || parsed <= 0) {
       return;
     }
 
-    const redeemAmount = Math.min(parseFloat(amount), balance);
+    const finalAmount = Math.min(parsed, balance);
 
     try {
       const token = localStorage.getItem('smarter-poker-auth');
@@ -162,14 +178,14 @@ export default function PlayerRewardsPage() {
         },
         body: JSON.stringify({
           category: category.id,
-          amount: redeemAmount
+          amount: finalAmount
         })
       });
 
       const data = await res.json();
       if (data.success) {
-        setBalance(prev => prev - redeemAmount);
-        setComingSoonMessage(`Successfully redeemed $${redeemAmount} for ${category.label}!`);
+        setBalance(prev => prev - finalAmount);
+        setComingSoonMessage(`Successfully redeemed $${finalAmount} for ${category.label}!`);
         fetchRewardsData(); // Refresh data
       } else {
         setComingSoonMessage(data.error || 'Redemption failed');
@@ -178,6 +194,7 @@ export default function PlayerRewardsPage() {
       console.error('Redeem failed:', err);
       setComingSoonMessage('Redemption failed. Please try again.');
     }
+    handleRedeemCancel();
     setTimeout(() => setComingSoonMessage(null), 3000);
   }
 
@@ -215,13 +232,14 @@ export default function PlayerRewardsPage() {
             </div>
 
             {/* Balance Card */}
-            <div className="cmd-inset rounded-xl p-5">
-              <p className="text-sm text-[#64748B] mb-1 font-bold uppercase tracking-wide">Available Balance</p>
-              <p className="cmd-stat-value">${balance}</p>
-              <p className="text-sm text-[#64748B] mt-2 font-medium">
-                Earn ${earnRate}/hour played
-              </p>
-            </div>
+            <CompBalanceCard
+              balance={{
+                current_balance: balance,
+                lifetime_earned: lifetimeEarned,
+                lifetime_redeemed: lifetimeEarned - balance
+              }}
+              compact={true}
+            />
           </div>
         </header>
 
@@ -249,25 +267,62 @@ export default function PlayerRewardsPage() {
             <div className="cmd-panel overflow-hidden p-0">
               {REWARD_CATEGORIES.map((category, index) => {
                 const Icon = category.icon;
+                const isActive = showRedeemInput && redeemingId === category.id;
                 return (
-                  <button
+                  <div
                     key={category.id}
-                    onClick={() => handleRedeem(category)}
-                    className={`w-full flex items-center justify-between p-4 hover:bg-[#0F1C32] transition-colors ${
-                      index < REWARD_CATEGORIES.length - 1 ? 'border-b border-[#4A5E78]' : ''
-                    }`}
+                    className={index < REWARD_CATEGORIES.length - 1 ? 'border-b border-[#4A5E78]' : ''}
                   >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center border-2"
-                        style={{ backgroundColor: `${category.color}15`, borderColor: `${category.color}40` }}
-                      >
-                        <Icon className="w-5 h-5" style={{ color: category.color }} />
+                    <button
+                      onClick={() => handleRedeemClick(category)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-[#0F1C32] transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-lg flex items-center justify-center border-2"
+                          style={{ backgroundColor: `${category.color}15`, borderColor: `${category.color}40` }}
+                        >
+                          <Icon className="w-5 h-5" style={{ color: category.color }} />
+                        </div>
+                        <span className="font-medium text-white">{category.label}</span>
                       </div>
-                      <span className="font-medium text-white">{category.label}</span>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-[#64748B]" />
-                  </button>
+                      <ChevronRight className="w-5 h-5 text-[#64748B]" />
+                    </button>
+                    {isActive && (
+                      <div className="px-4 pb-4">
+                        <label className="block text-sm text-[#64748B] mb-2">
+                          Enter amount to redeem (max ${balance})
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0.01"
+                            max={balance}
+                            step="0.01"
+                            value={redeemAmount}
+                            onChange={(e) => setRedeemAmount(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleRedeemSubmit(category); if (e.key === 'Escape') handleRedeemCancel(); }}
+                            placeholder="0.00"
+                            autoFocus
+                            className="cmd-input h-10 px-3 flex-1"
+                          />
+                          <button
+                            onClick={() => handleRedeemSubmit(category)}
+                            disabled={!redeemAmount || isNaN(parseFloat(redeemAmount)) || parseFloat(redeemAmount) <= 0}
+                            className="cmd-btn cmd-btn-primary h-10 px-4 disabled:opacity-50"
+                          >
+                            Redeem
+                          </button>
+                          <button
+                            onClick={handleRedeemCancel}
+                            className="cmd-btn h-10 px-4 border border-[#4A5E78] text-[#64748B] hover:text-white"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -279,23 +334,14 @@ export default function PlayerRewardsPage() {
               <History className="w-5 h-5 text-[#64748B]" />
               Recent Activity
             </h2>
-            {transactions.length === 0 ? (
-              <div className="cmd-panel p-8 text-center">
-                <div className="cmd-icon-box mx-auto mb-3">
-                  <History className="w-7 h-7" />
-                </div>
-                <p className="text-[#64748B] font-medium">No transactions yet</p>
-                <p className="text-sm text-[#64748B] mt-1">
-                  Play poker to start earning rewards!
-                </p>
-              </div>
-            ) : (
-              <div className="cmd-panel overflow-hidden p-0">
-                {transactions.map((transaction) => (
-                  <TransactionRow key={transaction.id} transaction={transaction} />
-                ))}
-              </div>
-            )}
+            <CompTransactionList
+              transactions={transactions.map(tx => ({
+                ...tx,
+                transaction_type: tx.transaction_type || tx.type || 'earn',
+                amount: tx.type === 'earn' ? Math.abs(tx.amount) : -Math.abs(tx.amount)
+              }))}
+              isLoading={loading}
+            />
           </div>
 
           {/* Info */}

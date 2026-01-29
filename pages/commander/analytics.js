@@ -19,6 +19,7 @@ import {
   Target,
   Loader2
 } from 'lucide-react';
+import AnalyticsDashboard from '../../src/components/commander/analytics/AnalyticsDashboard';
 
 function StatCard({ title, value, change, icon: Icon, color = '#22D3EE' }) {
   const hasChange = change !== undefined && change !== null;
@@ -125,6 +126,8 @@ export default function AnalyticsPage() {
     topPlayers: [],
     gameTypeBreakdown: []
   });
+  const [analytics, setAnalytics] = useState([]);
+  const [summary, setSummary] = useState({});
 
   useEffect(() => {
     const storedStaff = localStorage.getItem('commander_staff');
@@ -159,6 +162,8 @@ export default function AnalyticsPage() {
 
       // API returns { analytics: [...], summary, period } and { players: [...], total, ... }
       const allDays = dailyData.analytics || [];
+      setAnalytics(allDays);
+      setSummary(dailyData.summary || {});
       const players = playersData.players || [];
       const totalPlayerCount = playersData.total || players.length;
 
@@ -234,6 +239,8 @@ export default function AnalyticsPage() {
       });
     } catch (error) {
       console.error('Fetch analytics failed:', error);
+      setAnalytics([]);
+      setSummary({});
       setStats({
         totalPlayers: 0,
         totalSessions: 0,
@@ -401,6 +408,14 @@ export default function AnalyticsPage() {
                 </div>
                 <TopPlayersTable players={stats.topPlayers} />
               </div>
+
+              {/* Analytics Dashboard Component */}
+              <AnalyticsDashboard
+                analytics={analytics}
+                summary={summary}
+                isLoading={loading}
+                onPeriodChange={(days) => { /* period change handled by existing code */ }}
+              />
             </>
           )}
         </main>

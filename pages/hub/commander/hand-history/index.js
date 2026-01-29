@@ -12,15 +12,8 @@ import {
   ChevronLeft,
   Loader2,
   Clock,
-  DollarSign,
-  Users,
-  Play,
   ChevronRight,
-  Filter,
-  Calendar,
-  Target,
-  Spade,
-  Search
+  Spade
 } from 'lucide-react';
 
 function CardDisplay({ cards }) {

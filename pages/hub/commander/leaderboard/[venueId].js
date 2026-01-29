@@ -17,57 +17,9 @@ import {
   Calendar,
   Loader2
 } from 'lucide-react';
+import LeaderboardDisplay from '../../../../src/components/commander/leaderboards/LeaderboardDisplay';
 
-function LeaderboardRow({ player, rank, metric }) {
-  const isTop3 = rank <= 3;
-  const medalColors = {
-    1: '#F59E0B',
-    2: '#9CA3AF',
-    3: '#B45309'
-  };
-
-  return (
-    <div className={`flex items-center gap-4 p-4 ${rank % 2 === 0 ? 'bg-[#0F1C32]' : 'bg-[#132240]'}`}>
-      <div className="w-10 text-center">
-        {isTop3 ? (
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center mx-auto"
-            style={{ backgroundColor: `${medalColors[rank]}20` }}
-          >
-            <Medal className="w-5 h-5" style={{ color: medalColors[rank] }} />
-          </div>
-        ) : (
-          <span className="text-lg font-bold text-[#64748B]">{rank}</span>
-        )}
-      </div>
-
-      <div className="flex-1 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/30 flex items-center justify-center overflow-hidden">
-          {player.avatar_url ? (
-            <img src={player.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-          ) : (
-            <Users className="w-5 h-5 text-[#22D3EE]" />
-          )}
-        </div>
-        <div>
-          <p className={`font-medium ${isTop3 ? 'text-white' : 'text-white'}`}>
-            {player.display_name || player.player_name || 'Anonymous'}
-          </p>
-          <p className="text-sm text-[#64748B]">{player.sessions || 0} sessions</p>
-        </div>
-      </div>
-
-      <div className="text-right">
-        <p className={`text-lg font-bold ${isTop3 ? 'text-[#22D3EE]' : 'text-white'}`}>
-          {metric === 'hours' && `${player.total_hours || 0}h`}
-          {metric === 'sessions' && (player.sessions || 0)}
-          {metric === 'buyins' && `$${(player.total_buyins || 0).toLocaleString()}`}
-          {metric === 'points' && (player.points || 0).toLocaleString()}
-        </p>
-      </div>
-    </div>
-  );
-}
+/* Inline LeaderboardRow replaced by shared LeaderboardDisplay component */
 
 function PromotionCard({ promo }) {
   const isActive = promo.is_active;
@@ -117,21 +69,25 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [metric, setMetric] = useState('hours');
   const [period, setPeriod] = useState('month');
+  const [leaderboardsList, setLeaderboardsList] = useState([]);
+  const [selectedLeaderboard, setSelectedLeaderboard] = useState(null);
 
   const fetchData = useCallback(async () => {
     if (!venueId) return;
     setLoading(true);
 
     try {
-      const [leaderboardRes, promosRes, venueRes] = await Promise.all([
+      const [leaderboardRes, promosRes, venueRes, leaderboardsListRes] = await Promise.all([
         fetch(`/api/commander/leaderboards/${venueId}?metric=${metric}&period=${period}`),
         fetch(`/api/commander/promotions?venue_id=${venueId}&active=true`),
-        fetch(`/api/commander/venues/${venueId}`)
+        fetch(`/api/commander/venues/${venueId}`),
+        fetch(`/api/commander/leaderboards?venue_id=${venueId}&status=active`)
       ]);
 
       const leaderboardData = await leaderboardRes.json();
       const promosData = await promosRes.json();
       const venueData = await venueRes.json();
+      const leaderboardsListData = await leaderboardsListRes.json();
 
       if (leaderboardData.success) {
         setLeaderboard(leaderboardData.data?.entries || []);
@@ -141,6 +97,9 @@ export default function LeaderboardPage() {
       }
       if (venueData.success || venueData.venue) {
         setVenue(venueData.venue || venueData.data?.venue);
+      }
+      if (leaderboardsListData.leaderboards) {
+        setLeaderboardsList(leaderboardsListData.leaderboards);
       }
     } catch (error) {
       console.error('Fetch leaderboard failed:', error);
@@ -200,6 +159,39 @@ export default function LeaderboardPage() {
             </div>
           )}
 
+          {/* Available Leaderboards */}
+          {leaderboardsList.length > 0 && (
+            <div>
+              <h2 className="font-bold text-white uppercase tracking-wide text-sm mb-3 flex items-center gap-2">
+                <Medal className="w-5 h-5 text-[#22D3EE]" />
+                Available Leaderboards
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {leaderboardsList.map((lb) => (
+                  <button
+                    key={lb.id}
+                    onClick={() => setSelectedLeaderboard(
+                      selectedLeaderboard?.id === lb.id ? null : lb
+                    )}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      selectedLeaderboard?.id === lb.id
+                        ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
+                        : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78] hover:text-white'
+                    }`}
+                  >
+                    <span>{lb.name}</span>
+                    {lb.period_type && (
+                      <span className="text-xs text-[#4A5E78] ml-1">({lb.period_type})</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              {selectedLeaderboard?.description && (
+                <p className="text-sm text-[#64748B] mt-2">{selectedLeaderboard.description}</p>
+              )}
+            </div>
+          )}
+
           {/* Filters */}
           <div className="flex flex-wrap gap-4">
             <div className="flex gap-2">
@@ -247,30 +239,27 @@ export default function LeaderboardPage() {
               <p className="text-[#64748B]">No leaderboard data available</p>
             </div>
           ) : (
-            <div className="cmd-panel !p-0 overflow-hidden">
-              <div className="p-4 border-b border-[#4A5E78] bg-[#0D192E]">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-white uppercase tracking-wide text-sm">
-                    Top {leaderboard.length} Players
-                  </h3>
-                  <div className="flex items-center gap-1 text-sm text-[#64748B]">
-                    <TrendingUp className="w-4 h-4" />
-                    By {METRICS.find(m => m.value === metric)?.label}
-                  </div>
-                </div>
-              </div>
-
-              <div className="divide-y divide-[#4A5E78]">
-                {leaderboard.map((player, index) => (
-                  <LeaderboardRow
-                    key={player.id}
-                    player={player}
-                    rank={index + 1}
-                    metric={metric}
-                  />
-                ))}
-              </div>
-            </div>
+            <LeaderboardDisplay
+              leaderboard={{
+                name: `${venue?.name || 'Venue'} Leaderboard`,
+                status: 'active',
+                leaderboard_type: metric === 'hours' ? 'hours_played' : metric === 'points' ? 'tournament_points' : metric,
+                description: `Top players this ${period}`
+              }}
+              entries={leaderboard.map((player, idx) => ({
+                id: player.id,
+                rank: idx + 1,
+                player_id: player.id,
+                profiles: {
+                  display_name: player.display_name || player.player_name,
+                  avatar_url: player.avatar_url
+                },
+                hours_played: player.total_hours || 0,
+                sessions_count: player.sessions || 0,
+                points_earned: player.points || 0,
+                score: player.total_buyins || 0
+              }))}
+            />
           )}
         </main>
       </div>

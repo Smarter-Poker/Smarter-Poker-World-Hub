@@ -5,6 +5,7 @@
  * POST /api/commander/tournaments - Create tournament
  */
 import { createClient } from '@supabase/supabase-js';
+import { captureException } from '../../../../src/lib/commander/errorMonitoring';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -65,7 +66,7 @@ async function listTournaments(req, res) {
 
     return res.status(200).json({ tournaments: data });
   } catch (error) {
-    console.error('List tournaments error:', error);
+    captureException(error, { action: 'list_tournaments', endpoint: '/api/commander/tournaments' });
     return res.status(500).json({ error: error.message });
   }
 }
@@ -176,7 +177,7 @@ async function createTournament(req, res) {
 
     return res.status(201).json({ tournament });
   } catch (error) {
-    console.error('Create tournament error:', error);
+    captureException(error, { action: 'create_tournament', endpoint: '/api/commander/tournaments', venue_id: req.body?.venue_id });
     return res.status(500).json({ error: error.message });
   }
 }

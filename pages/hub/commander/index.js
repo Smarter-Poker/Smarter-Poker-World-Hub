@@ -5,9 +5,10 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio } from 'lucide-react';
+import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, DollarSign, Users, Clock } from 'lucide-react';
 import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
+import PushNotificationProvider from '../../../src/components/commander/shared/PushNotificationProvider';
 
 export default function CommanderHub() {
   const [venues, setVenues] = useState([]);
@@ -17,6 +18,7 @@ export default function CommanderHub() {
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [liveGames, setLiveGames] = useState([]);
 
   async function fetchVenues() {
     try {
@@ -49,6 +51,18 @@ export default function CommanderHub() {
     }
   }
 
+  async function fetchLiveGames() {
+    try {
+      const res = await fetch('/api/commander/games/live?limit=10');
+      const data = await res.json();
+      if (data.success) {
+        setLiveGames(data.data?.games || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch live games:', err);
+    }
+  }
+
   function getUserLocation() {
     if (!navigator.geolocation) return;
     setLocationLoading(true);
@@ -64,6 +78,7 @@ export default function CommanderHub() {
   useEffect(() => {
     fetchVenues();
     fetchMyWaitlists();
+    fetchLiveGames();
   }, [userLocation]);
 
   async function handleLeaveWaitlist(entryId) {
@@ -83,7 +98,7 @@ export default function CommanderHub() {
   );
 
   return (
-    <>
+    <PushNotificationProvider>
       <Head>
         <title>Live Poker | Club Commander</title>
         <meta name="description" content="Find live poker games near you and join waitlists" />
@@ -159,6 +174,58 @@ export default function CommanderHub() {
                     entry={entry}
                     onLeave={() => handleLeaveWaitlist(entry.waitlist_entry.id)}
                   />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Live Games */}
+          {liveGames.length > 0 && (
+            <section>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="cmd-badge cmd-badge-live">
+                  <span className="cmd-live-dot" style={{ width: 8, height: 8 }} />
+                  LIVE GAMES NOW
+                </div>
+              </div>
+              <div className="space-y-3">
+                {liveGames.slice(0, 5).map((game) => (
+                  <div key={game.id} className="cmd-panel p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-white">
+                          {game.stakes} {game.game_type?.toUpperCase() || 'NLHE'}
+                        </p>
+                        <p className="text-sm text-[#64748B]">
+                          {game.poker_venues?.name || 'Unknown Venue'}
+                          {game.poker_venues?.city && ` - ${game.poker_venues.city}, ${game.poker_venues.state}`}
+                        </p>
+                        <div className="flex items-center gap-3 text-sm text-[#64748B] mt-1">
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {game.player_count || 0}/{game.max_players || 9}
+                          </span>
+                          {game.waitlist_count > 0 && (
+                            <span className="text-[#F59E0B] flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {game.waitlist_count} waiting
+                            </span>
+                          )}
+                          <span className={`text-xs font-medium ${game.status === 'running' ? 'text-[#10B981]' : 'text-[#F59E0B]'}`}>
+                            {game.status === 'running' ? 'Running' : 'Starting'}
+                          </span>
+                        </div>
+                      </div>
+                      {game.poker_venues?.id && (
+                        <a
+                          href={`/hub/commander/venues/${game.poker_venues.id}`}
+                          className="cmd-btn cmd-btn-secondary px-3 py-2 text-sm"
+                        >
+                          View
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             </section>
@@ -272,6 +339,6 @@ export default function CommanderHub() {
           </div>
         </main>
       </div>
-    </>
+    </PushNotificationProvider>
   );
 }

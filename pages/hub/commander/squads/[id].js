@@ -81,7 +81,7 @@ export default function SquadDetailPage() {
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push(`/login?redirect=/hub/commander/squads/${id}`);
+      router.push(`/auth/login?redirect=/hub/commander/squads/${id}`);
       return;
     }
 

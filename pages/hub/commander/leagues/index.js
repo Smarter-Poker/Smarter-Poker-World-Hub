@@ -11,12 +11,9 @@ import {
   Trophy,
   Users,
   Calendar,
-  MapPin,
   ChevronRight,
   Search,
   Loader2,
-  Star,
-  Award,
   DollarSign
 } from 'lucide-react';
 

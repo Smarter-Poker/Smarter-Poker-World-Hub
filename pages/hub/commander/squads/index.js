@@ -10,13 +10,10 @@ import {
   Users,
   Plus,
   Clock,
-  MapPin,
-  ChevronRight,
   Loader2,
   UserPlus,
   Check,
-  X,
-  AlertCircle
+  X
 } from 'lucide-react';
 
 function SquadCard({ squad, onView }) {
@@ -104,7 +101,7 @@ export default function SquadsPage() {
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push('/login?redirect=/hub/commander/squads');
+      router.push('/auth/login?redirect=/hub/commander/squads');
       return;
     }
     fetchSquads();

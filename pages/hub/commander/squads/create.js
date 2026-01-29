@@ -48,7 +48,7 @@ export default function CreateSquadPage() {
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push('/login?redirect=/hub/commander/squads/create');
+      router.push('/auth/login?redirect=/hub/commander/squads/create');
       return;
     }
     fetchVenues();

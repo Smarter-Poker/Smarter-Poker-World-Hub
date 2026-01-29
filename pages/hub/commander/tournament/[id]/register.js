@@ -58,7 +58,7 @@ export default function TournamentRegisterPage() {
   async function handleRegister() {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push(`/login?redirect=/hub/commander/tournament/${id}/register`);
+      router.push(`/auth/login?redirect=/hub/commander/tournament/${id}/register`);
       return;
     }
 
@@ -97,7 +97,7 @@ export default function TournamentRegisterPage() {
 
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push(`/login?redirect=/hub/commander/tournament/${id}/register`);
+      router.push(`/auth/login?redirect=/hub/commander/tournament/${id}/register`);
       return;
     }
 

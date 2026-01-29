@@ -10,11 +10,7 @@ import {
   History,
   Clock,
   DollarSign,
-  MapPin,
-  Calendar,
   TrendingUp,
-  ChevronRight,
-  Filter,
   Loader2
 } from 'lucide-react';
 
@@ -102,7 +98,7 @@ export default function PlayerHistoryPage() {
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
-      router.push('/login?redirect=/hub/commander/history');
+      router.push('/auth/login?redirect=/hub/commander/history');
       return;
     }
     fetchHistory();

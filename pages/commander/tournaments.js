@@ -12,6 +12,9 @@ import {
   UserPlus, UserMinus, Award, Calendar, ArrowLeft
 } from 'lucide-react';
 import TournamentClock from '../../src/components/commander/tournament/TournamentClock';
+import TournamentManager from '../../src/components/commander/tournament/TournamentManager';
+import BlindStructureEditor from '../../src/components/commander/tournament/BlindStructureEditor';
+import PayoutStructureEditor from '../../src/components/commander/tournament/PayoutStructureEditor';
 
 export default function TournamentsPage() {
   const router = useRouter();
@@ -307,7 +310,9 @@ function CreateTournamentModal({ venueId, onClose, onCreate }) {
     max_entries: 100,
     late_reg_levels: 6,
     rebuy_allowed: false,
-    addon_allowed: false
+    addon_allowed: false,
+    blind_structure: [],
+    payout_structure: []
   });
   const [loading, setLoading] = useState(false);
 
@@ -326,7 +331,7 @@ function CreateTournamentModal({ venueId, onClose, onCreate }) {
         body: JSON.stringify({
           venue_id: venueId,
           ...formData,
-          blind_structure: getDefaultBlindStructure()
+          blind_structure: formData.blind_structure.length > 0 ? formData.blind_structure : getDefaultBlindStructure()
         })
       });
 
@@ -484,6 +489,30 @@ function CreateTournamentModal({ venueId, onClose, onCreate }) {
               />
               <span className="text-sm text-[#94A3B8]">Add-on Allowed</span>
             </label>
+          </div>
+
+          {/* Blind Structure Editor */}
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#94A3B8' }}>
+              Blind Structure
+            </label>
+            <BlindStructureEditor
+              value={formData.blind_structure}
+              onChange={(levels) => setFormData(prev => ({ ...prev, blind_structure: levels }))}
+            />
+          </div>
+
+          {/* Payout Structure Editor */}
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#94A3B8' }}>
+              Payout Structure
+            </label>
+            <PayoutStructureEditor
+              value={formData.payout_structure}
+              onChange={(payouts) => setFormData(prev => ({ ...prev, payout_structure: payouts }))}
+              buyIn={formData.buyin_amount}
+              estimatedEntries={formData.max_entries}
+            />
           </div>
         </div>
 
