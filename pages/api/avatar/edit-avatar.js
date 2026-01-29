@@ -128,7 +128,7 @@ export default async function handler(req, res) {
 
         console.log('🔍 Analyzing current avatar...');
         const analysisResponse = await grok.chat.completions.create({
-            model: "grok-vision-beta", // Grok Vision Beta - confirmed working model
+            model: "grok-2-vision-1212", // Grok 2 Vision - supports image inputs
             messages: [
                 {
                     role: "user",
