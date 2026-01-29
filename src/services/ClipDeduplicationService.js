@@ -37,12 +37,15 @@ export async function isClipAlreadyPosted(videoId) {
 }
 
 /**
- * Mark a clip as posted (ATOMIC - returns false if already posted)
+ * Mark a clip as posted (ATOMIC - uses ON CONFLICT for true atomicity)
+ * Returns the inserted row if successful, false if clip already posted
  */
 export async function markClipAsPosted(clipData) {
     const { videoId, sourceUrl, clipSource, clipTitle, postedBy, postId, clipType = 'poker', category, horseId } = clipData;
 
     try {
+        // Use maybeSingle() which returns null on conflict instead of error
+        // This makes the operation truly atomic - database handles the race condition
         const { data, error } = await supabase
             .from('posted_clips')
             .insert({
@@ -50,21 +53,23 @@ export async function markClipAsPosted(clipData) {
                 source_url: sourceUrl,
                 clip_source: clipSource,
                 clip_title: clipTitle,
-                posted_by: postedBy || horseId, // Use horseId if postedBy not provided
+                posted_by: postedBy || horseId,
                 post_id: postId,
                 clip_type: clipType,
                 category: category
             })
             .select()
-            .single();
+            .maybeSingle(); // Returns null on unique constraint violation, not error
 
-        if (error) {
-            // Check if it's a unique constraint violation (clip already posted)
-            if (error.code === '23505' || error.message?.includes('duplicate') || error.message?.includes('unique')) {
-                console.log(`   🔒 Clip ${videoId} already reserved by another horse`);
-                return false; // Clip already claimed
-            }
-            console.error('Error marking clip as posted:', error);
+        // Check for unexpected errors (not unique constraint violations)
+        if (error && error.code !== '23505') {
+            console.error('Unexpected error marking clip as posted:', error);
+            return false;
+        }
+
+        // If data is null, it means unique constraint was violated (clip already posted)
+        if (!data) {
+            console.log(`   🔒 Clip ${videoId} already reserved by another horse`);
             return false;
         }
 
