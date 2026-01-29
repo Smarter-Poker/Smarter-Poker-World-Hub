@@ -160,8 +160,10 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
                 </div>
             )}
             {hendonData?.hendon_url && onOpenResume && (
-                <button
-                    onClick={() => onOpenResume(hendonData.hendon_url)}
+                <a
+                    href={hendonData.hendon_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{
                         display: 'block',
                         width: '100%',
@@ -169,13 +171,10 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
                         marginTop: 12,
                         color: C.gold,
                         fontSize: 12,
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
                         textDecoration: 'underline'
                     }}>
                     View Full Resume on HendonMob →
-                </button>
+                </a>
             )}
         </div>
     );
