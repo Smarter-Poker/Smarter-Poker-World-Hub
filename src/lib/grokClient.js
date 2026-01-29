@@ -116,5 +116,11 @@ export function getProviderName() {
     return USE_GROK ? 'Grok (xAI)' : 'OpenAI';
 }
 
+/**
+ * Alias for getAIClient - for backwards compatibility
+ * This is the primary function that all files should use
+ */
+export const getGrokClient = getAIClient;
+
 // Default export
 export default grok;

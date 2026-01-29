@@ -287,26 +287,26 @@ const BANNED_PHRASES = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 const BASE_ARCHETYPES = [
-    { type: 'deadpan', style: 'Dry, minimal. Example: "huh" / "neat" / "ok"' },
-    { type: 'hyped', style: 'ALL CAPS excitement. Example: "YOOO" / "LETS GO"' },
-    { type: 'skeptic', style: 'Doubtful. Example: "doubt it" / "eh"' },
-    { type: 'simp', style: 'Fan energy. Example: "goat" / "legend"' },
-    { type: 'degen', style: 'Gambler brain. Example: "action" / "inject this"' },
-    { type: 'analyst', style: 'Strategic. Example: "meta" / "EV+"' },
-    { type: 'nostalgic', style: 'Old days. Example: "back when" / "classic"' },
-    { type: 'zoomer', style: 'Gen-Z. Example: "no cap" / "fr fr"' },
-    { type: 'boomer', style: 'Old school. Example: "heck yeah" / "good stuff"' },
-    { type: 'lurker', style: 'Minimal. Example: "👀" / "📈" / "."' },
-    { type: 'contrarian', style: 'Hot takes. Example: "overrated" / "nah"' },
-    { type: 'supportive', style: 'Positive. Example: "W" / "gg"' },
-    { type: 'sardonic', style: 'Sarcastic. Example: "wow shocking" / "who knew"' },
-    { type: 'bro', style: 'Bro culture. Example: "sick" / "lets ride"' },
-    { type: 'chill', style: 'Relaxed. Example: "nice" / "cool"' },
-    { type: 'intense', style: 'Serious. Example: "massive" / "huge if true"' },
-    { type: 'clown', style: 'Joking. Example: "lmaooo" / "dead"' },
-    { type: 'doomer', style: 'Pessimist. Example: "rip" / "pain"' },
-    { type: 'grinder', style: 'Work ethic. Example: "levels" / "respect"' },
-    { type: 'minimalist', style: 'Ultra brief. Example: "." / "k" / "yep"' }
+    { type: 'deadpan', style: 'Dry, understated reactions. Example: "yep thats about how it goes" / "not surprised at all honestly"' },
+    { type: 'hyped', style: 'Excited energy. Example: "love to see it, lets go" / "this is absolutely huge for poker"' },
+    { type: 'skeptic', style: 'Doubtful takes. Example: "gonna need to see proof on this one" / "not sure I buy that tbh"' },
+    { type: 'simp', style: 'Fan energy. Example: "absolute legend move right there" / "goat status confirmed once again"' },
+    { type: 'degen', style: 'Gambler brain. Example: "inject this straight into my veins" / "this is the action we live for"' },
+    { type: 'analyst', style: 'Strategic view. Example: "solid play from a game theory perspective" / "interesting spot, makes sense mathematically"' },
+    { type: 'nostalgic', style: 'Old days vibes. Example: "brings me back to the golden era" / "they dont make em like this anymore"' },
+    { type: 'zoomer', style: 'Gen-Z energy. Example: "no cap this is actually fire" / "fr fr this hits different"' },
+    { type: 'boomer', style: 'Old school positive. Example: "good stuff right there folks" / "now thats what Im talking about"' },
+    { type: 'quiet', style: 'Low-key reactions. Example: "pretty solid if you ask me" / "not bad at all honestly"' },
+    { type: 'contrarian', style: 'Hot takes. Example: "everyone hyping this but I dont see it" / "overrated take in my opinion"' },
+    { type: 'supportive', style: 'Positive energy. Example: "great to see, love the progress" / "always rooting for the good guys"' },
+    { type: 'sardonic', style: 'Dry humor. Example: "wow shocking development here" / "who could have possibly seen this coming"' },
+    { type: 'bro', style: 'Bro culture. Example: "sick play, gotta respect that" / "lets ride, this is what we came for"' },
+    { type: 'chill', style: 'Relaxed vibes. Example: "pretty cool, good for them" / "nice to see things working out"' },
+    { type: 'intense', style: 'Serious energy. Example: "massive implications for the game" / "this could change everything honestly"' },
+    { type: 'clown', style: 'Joking style. Example: "lmao this is actually hilarious" / "dead, I cant with this game sometimes"' },
+    { type: 'doomer', style: 'Pessimist vibes. Example: "pain, hate to see it happen" / "rough break but thats poker for you"' },
+    { type: 'grinder', style: 'Work ethic respect. Example: "put in the work, reaping rewards" / "respect the grind, always"' },
+    { type: 'realist', style: 'Matter-of-fact. Example: "makes sense when you think about it" / "pretty much what we expected honestly"' }
 ];
 
 const VOICE_MODIFIERS = [
@@ -314,7 +314,7 @@ const VOICE_MODIFIERS = [
     { mod: 'no_emoji', desc: 'Zero emojis, text only' },
     { mod: 'lowercase', desc: 'all lowercase no caps ever' },
     { mod: 'shouty', desc: 'RANDOM caps for EMPHASIS' },
-    { mod: 'terse', desc: 'Max 2 words. Period.' }
+    { mod: 'casual', desc: 'Super relaxed, conversational tone' }
 ];
 
 // Generate 100 unique voice combinations
@@ -347,8 +347,8 @@ function getVoiceForHorse(profileId) {
         style += ' All lowercase, never capitalize.';
     } else if (modifier.mod === 'shouty') {
         style += ' Randomly CAPITALIZE for emphasis.';
-    } else if (modifier.mod === 'terse') {
-        style += ' MAX 2 words total.';
+    } else if (modifier.mod === 'casual') {
+        style += ' Keep it super relaxed and conversational, like talking to a friend.';
     }
 
     return {
@@ -376,34 +376,49 @@ async function generateCommentary(horse, article, timeEnergy = null) {
     console.log(`   🎭 ${horse.name} voice: ${voice.type}`);
 
     try {
-        // Use GPT to make it more personalized with ULTRA-STRICT anti-repetition rules
+        // Use GPT to generate meaningful, personality-driven commentary
         const response = await openai.chat.completions.create({
             model: 'gpt-4o',
             messages: [{
                 role: 'system',
-                content: `You are ${horse.name}, reacting to a headline.
+                content: `You are ${horse.name}, a poker enthusiast sharing a news article.
 
-YOUR VOICE: ${voice.type.toUpperCase()}
-${voice.style}
+YOUR PERSONALITY: ${voice.base.toUpperCase()}
+STYLE NOTES: ${voice.style}
+ENERGY: ${reaction.energy}
 
-CONTENT TYPE: ${contentType} (react with ${reaction.energy} energy)
+REQUIREMENTS:
+1. Write a SHORT REACTION (5-15 words). Not too long, not too short.
+2. React TO the headline content - show you understand what it's about.
+3. Add your PERSONAL TAKE or opinion - agree, disagree, express excitement, sympathy, etc.
+4. Sound like a real person texting their poker group chat.
+5. May include 0-1 emoji at end if it fits naturally.
 
-ULTRA-STRICT RULES (FOLLOW EXACTLY):
-1. MAX 4 WORDS. 1-2 words is IDEAL. 3+ words = FAIL.
-2. BANNED STARTERS: "Thoughts", "Been", "This", "Interesting", "What", "Check", "Look", "Could", "How", "Wondering"
-3. BANNED: questions, hashtags, colons, quotes, em-dashes, "!", formal language
-4. SOUND LIKE TEXTING not a news anchor.
+BANNED:
+- "Thoughts on", "Been thinking", "Interesting", "Check out", "Look at this"
+- Questions, hashtags, colons, em-dashes
+- Formal/news anchor language
+- Single word responses like "w" or "nice" or "wild"
 
-GOOD EXAMPLES: "yep" / "fire" / "👀" / "W" / "damn" / "sheesh" / "lol" / "wild"
-BAD EXAMPLES: "Thoughts on how..." / "Been thinking..." / "This could impact..." / Any sentence over 4 words
+GOOD EXAMPLES:
+- "Cant believe he pulled that off, legend status"
+- "Finally some good news for poker players"
+- "This is exactly why I love tournament poker"
+- "Rough break but thats the game sometimes"
+- "Love seeing the industry growing like this 🔥"
 
-Fallback: "${template}"`
+BAD EXAMPLES:
+- "w" / "nice" / "wild" / "damn" (too short, no context)
+- "Thoughts on this development?" (formal question)
+- Any response under 5 words
+
+Fallback template if needed: "${template}"`
             }, {
                 role: 'user',
-                content: `React: "${article.title}"`
+                content: `React to this headline: "${article.title}"`
             }],
-            max_tokens: 20,
-            temperature: 0.85 // Balanced for rule adherence + variety
+            max_tokens: 50,
+            temperature: 0.9
         });
 
         let commentary = response.choices[0].message.content || template;

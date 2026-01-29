@@ -2,7 +2,7 @@
  * Debug test endpoint for horses-clips
  */
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
+import { getGrokClient } from '../../../src/lib/grokClient';
 
 // Test if ClipLibrary loads
 let clipLibraryLoaded = false;
