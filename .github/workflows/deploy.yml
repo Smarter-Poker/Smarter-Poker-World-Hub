@@ -1,4 +1,4 @@
-name: Auto Deploy to Vercel
+name: Auto-Deploy to Production
 
 on:
   push:
@@ -11,9 +11,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
+
       - name: Deploy to Vercel
         run: |
-          echo "Triggered by: ${{ github.actor }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Vercel will auto-deploy this push"
+          npm install -g vercel
+          vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
