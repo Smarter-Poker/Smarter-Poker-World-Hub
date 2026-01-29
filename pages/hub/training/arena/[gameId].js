@@ -16,6 +16,10 @@ import { getAuthUser, queryProfiles, queryDiamondBalance } from '../../../../src
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import { TABLE_LAYOUTS, getLayoutForGame, LAYOUT_9MAX } from '../../../../src/config/table-layouts';
 import { getVillainAvatars, getHeroAvatar } from '../../../../src/config/avatar-pool';
+import MillionaireQuestion from '../../../../src/components/training/MillionaireQuestion';
+import LevelCompleteModal from '../../../../src/components/training/LevelCompleteModal';
+import useMillionaireGame from '../../../../src/hooks/useMillionaireGame';
+import TRAINING_CONFIG from '../../../../src/config/trainingConfig';
 
 // Design canvas dimensions (locked)
 const DESIGN_WIDTH = 862;
@@ -401,6 +405,17 @@ export default function TrainingArenaPage() {
     const [overlayOpacity, setOverlayOpacity] = useState(0.5);
     const [overlayUrl, setOverlayUrl] = useState('/images/training/template-9max.png'); // Default template
 
+    // MILLIONAIRE MODE - Quiz-style game mode
+    const [gameMode, setGameMode] = useState('table'); // 'table' | 'millionaire'
+    const [engineType, setEngineType] = useState('PIO'); // PIO | CHART | SCENARIO
+
+    // Millionaire game hook
+    const millionaireGame = useMillionaireGame(
+        gameMode === 'millionaire' ? gameId : null,
+        engineType,
+        parseInt(level) || 1
+    );
+
     // Load real user data on mount
     useEffect(() => {
         const loadUserStats = async () => {
@@ -619,114 +634,185 @@ export const ${layoutName} = {
                     {/* Standard Hub Header - DO NOT MODIFY */}
                     <UniversalHeader pageDepth={2} />
 
-                    {/* Question Bar */}
-                    <div className="question-bar">
-                        <p>{question}</p>
+                    {/* Game Mode Toggle */}
+                    <div className="mode-toggle">
+                        <button
+                            onClick={() => setGameMode('table')}
+                            className={`mode-btn ${gameMode === 'table' ? 'active' : ''}`}
+                        >
+                            Table View
+                        </button>
+                        <button
+                            onClick={() => setGameMode('millionaire')}
+                            className={`mode-btn ${gameMode === 'millionaire' ? 'active' : ''}`}
+                        >
+                            Quiz Mode
+                        </button>
                     </div>
 
-                    {/* Table Area */}
-                    <div className="table-area">
-                        <div className="table-wrapper">
-                            <img src="/images/training/table-vertical.jpg" alt="Poker Table" className="table-img" />
+                    {/* MILLIONAIRE MODE - Quiz-style UI */}
+                    {gameMode === 'millionaire' && (
+                        <div className="millionaire-container">
+                            <MillionaireQuestion
+                                question={millionaireGame.currentQuestion}
+                                level={millionaireGame.level}
+                                questionNumber={millionaireGame.questionNumber}
+                                totalQuestions={millionaireGame.totalQuestions}
+                                onAnswer={millionaireGame.submitAnswer}
+                                showFeedback={millionaireGame.showFeedback}
+                                feedbackResult={millionaireGame.feedbackResult}
+                                explanation={millionaireGame.explanation}
+                            />
 
-                            {/* TEMPLATE OVERLAY - DEV MODE visual alignment tool */}
-                            {devMode && showOverlay && (
-                                <img
-                                    src={overlayUrl}
-                                    alt="Template Overlay"
-                                    className="template-overlay"
-                                    style={{
-                                        position: 'absolute',
-                                        inset: 0,
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'contain',
-                                        opacity: overlayOpacity,
-                                        pointerEvents: 'none',
-                                        zIndex: 50,
-                                    }}
+                            {/* Continue button after feedback */}
+                            {millionaireGame.showFeedback && !millionaireGame.gameComplete && (
+                                <button
+                                    className="continue-btn"
+                                    onClick={millionaireGame.nextQuestion}
+                                >
+                                    Continue →
+                                </button>
+                            )}
+
+                            {/* Score bar */}
+                            <div className="score-bar">
+                                <span>Correct: {millionaireGame.correctCount}/{millionaireGame.questionNumber}</span>
+                                <span>Streak: {millionaireGame.streak} 🔥</span>
+                                <span>Required: {millionaireGame.passThreshold}%</span>
+                            </div>
+
+                            {/* Level complete modal */}
+                            {millionaireGame.gameComplete && (
+                                <LevelCompleteModal
+                                    level={millionaireGame.level}
+                                    passed={millionaireGame.levelPassed}
+                                    correctCount={millionaireGame.correctCount}
+                                    totalQuestions={millionaireGame.totalQuestions}
+                                    xpEarned={millionaireGame.totalXP}
+                                    bestStreak={millionaireGame.bestStreak}
+                                    passThreshold={millionaireGame.passThreshold}
+                                    onNextLevel={millionaireGame.startNextLevel}
+                                    onRetry={millionaireGame.retryLevel}
+                                    onExit={handleBack}
+                                    isMaxLevel={millionaireGame.level >= TRAINING_CONFIG.totalLevels}
                                 />
                             )}
+                        </div>
+                    )}
 
-                            {/* Pot Display */}
-                            <div className="pot">
-                                <span className="pot-icon">●</span>
-                                <span className="pot-label">POT</span>
-                                <span className="pot-value">{pot}</span>
+                    {/* TABLE MODE - Original poker table view */}
+                    {gameMode === 'table' && (
+                        <>
+                            {/* Question Bar */}
+                            <div className="question-bar">
+                                <p>{question}</p>
                             </div>
 
-                            {/* Community Board */}
-                            {board.length > 0 && (
-                                <div className="board">
-                                    {board.map((card, i) => <Card key={i} {...card} />)}
+                            {/* Table Area */}
+                            <div className="table-area">
+                                <div className="table-wrapper">
+                                    <img src="/images/training/table-vertical.jpg" alt="Poker Table" className="table-img" />
+
+                                    {/* TEMPLATE OVERLAY - DEV MODE visual alignment tool */}
+                                    {devMode && showOverlay && (
+                                        <img
+                                            src={overlayUrl}
+                                            alt="Template Overlay"
+                                            className="template-overlay"
+                                            style={{
+                                                position: 'absolute',
+                                                inset: 0,
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'contain',
+                                                opacity: overlayOpacity,
+                                                pointerEvents: 'none',
+                                                zIndex: 50,
+                                            }}
+                                        />
+                                    )}
+
+                                    {/* Pot Display */}
+                                    <div className="pot">
+                                        <span className="pot-icon">●</span>
+                                        <span className="pot-label">POT</span>
+                                        <span className="pot-value">{pot}</span>
+                                    </div>
+
+                                    {/* Community Board */}
+                                    {board.length > 0 && (
+                                        <div className="board">
+                                            {board.map((card, i) => <Card key={i} {...card} />)}
+                                        </div>
+                                    )}
+
+                                    {/* Felt Title */}
+                                    <div className="felt-title">
+                                        <span className="felt-name">{gameName}</span>
+                                        <span className="felt-sub">Smarter.Poker</span>
+                                    </div>
+
+                                    {/* Dealer Button */}
+                                    <div className="dealer-btn">D</div>
+
+
+
+                                    {/* Villain Seats - Dynamic based on layout, respects hiddenSeats */}
+                                    {villainAvatars[0] && SEAT_POSITIONS.seat1 && !hiddenSeats.has('seat1') && (
+                                        <DraggablePlayerSeat seatIndex={1} seatId="seat1" avatar={villainAvatars[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
+                                    )}
+                                    {villainAvatars[1] && SEAT_POSITIONS.seat2 && !hiddenSeats.has('seat2') && (
+                                        <DraggablePlayerSeat seatIndex={2} seatId="seat2" avatar={villainAvatars[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
+                                    )}
+                                    {villainAvatars[2] && SEAT_POSITIONS.seat3 && !hiddenSeats.has('seat3') && (
+                                        <DraggablePlayerSeat seatIndex={3} seatId="seat3" avatar={villainAvatars[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
+                                    )}
+                                    {villainAvatars[3] && SEAT_POSITIONS.seat4 && !hiddenSeats.has('seat4') && (
+                                        <DraggablePlayerSeat seatIndex={4} seatId="seat4" avatar={villainAvatars[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
+                                    )}
+                                    {villainAvatars[4] && SEAT_POSITIONS.seat5 && !hiddenSeats.has('seat5') && (
+                                        <DraggablePlayerSeat seatIndex={5} seatId="seat5" avatar={villainAvatars[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
+                                    )}
+                                    {villainAvatars[5] && SEAT_POSITIONS.seat6 && !hiddenSeats.has('seat6') && (
+                                        <DraggablePlayerSeat seatIndex={6} seatId="seat6" avatar={villainAvatars[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
+                                    )}
+                                    {villainAvatars[6] && SEAT_POSITIONS.seat7 && !hiddenSeats.has('seat7') && (
+                                        <DraggablePlayerSeat seatIndex={7} seatId="seat7" avatar={villainAvatars[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
+                                    )}
+                                    {villainAvatars[7] && SEAT_POSITIONS.seat8 && !hiddenSeats.has('seat8') && (
+                                        <DraggablePlayerSeat seatIndex={8} seatId="seat8" avatar={villainAvatars[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
+                                    )}
+
+                                    {/* Hero Seat - DRAGGABLE - highest seatIndex */}
+                                    {!hiddenSeats.has('hero') && (
+                                        <DraggablePlayerSeat seatIndex={9} seatId="hero" avatar={heroAvatar} name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
+                                    )}
+
+
+                                    {/* Hero Cards - DRAGGABLE */}
+                                    <DraggableHeroCards cards={heroCards} onPositionChange={updatePosition} />
                                 </div>
-                            )}
 
-                            {/* Felt Title */}
-                            <div className="felt-title">
-                                <span className="felt-name">{gameName}</span>
-                                <span className="felt-sub">Smarter.Poker</span>
+                                {/* Timer - positioned outside table-wrapper, at bottom of table-area */}
+                                <div className="timer">
+                                    <span>{timer}</span>
+                                </div>
+
+                                {/* Question Counter - positioned outside table-wrapper, at bottom of table-area */}
+                                <div className="q-counter">
+                                    <span>Question {handNumber} of {totalHands}</span>
+                                </div>
                             </div>
 
-                            {/* Dealer Button */}
-                            <div className="dealer-btn">D</div>
-
-
-
-                            {/* Villain Seats - Dynamic based on layout, respects hiddenSeats */}
-                            {villainAvatars[0] && SEAT_POSITIONS.seat1 && !hiddenSeats.has('seat1') && (
-                                <DraggablePlayerSeat seatIndex={1} seatId="seat1" avatar={villainAvatars[0]} name="Villain 1" stack={villainStacks[0]} initialPosition={SEAT_POSITIONS.seat1} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
-                            )}
-                            {villainAvatars[1] && SEAT_POSITIONS.seat2 && !hiddenSeats.has('seat2') && (
-                                <DraggablePlayerSeat seatIndex={2} seatId="seat2" avatar={villainAvatars[1]} name="Villain 2" stack={villainStacks[1]} initialPosition={SEAT_POSITIONS.seat2} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
-                            )}
-                            {villainAvatars[2] && SEAT_POSITIONS.seat3 && !hiddenSeats.has('seat3') && (
-                                <DraggablePlayerSeat seatIndex={3} seatId="seat3" avatar={villainAvatars[2]} name="Villain 3" stack={villainStacks[2]} initialPosition={SEAT_POSITIONS.seat3} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
-                            )}
-                            {villainAvatars[3] && SEAT_POSITIONS.seat4 && !hiddenSeats.has('seat4') && (
-                                <DraggablePlayerSeat seatIndex={4} seatId="seat4" avatar={villainAvatars[3]} name="Villain 4" stack={villainStacks[3]} initialPosition={SEAT_POSITIONS.seat4} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
-                            )}
-                            {villainAvatars[4] && SEAT_POSITIONS.seat5 && !hiddenSeats.has('seat5') && (
-                                <DraggablePlayerSeat seatIndex={5} seatId="seat5" avatar={villainAvatars[4]} name="Villain 5" stack={villainStacks[4]} initialPosition={SEAT_POSITIONS.seat5} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
-                            )}
-                            {villainAvatars[5] && SEAT_POSITIONS.seat6 && !hiddenSeats.has('seat6') && (
-                                <DraggablePlayerSeat seatIndex={6} seatId="seat6" avatar={villainAvatars[5]} name="Villain 6" stack={villainStacks[5]} initialPosition={SEAT_POSITIONS.seat6} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
-                            )}
-                            {villainAvatars[6] && SEAT_POSITIONS.seat7 && !hiddenSeats.has('seat7') && (
-                                <DraggablePlayerSeat seatIndex={7} seatId="seat7" avatar={villainAvatars[6]} name="Villain 7" stack={villainStacks[6]} initialPosition={SEAT_POSITIONS.seat7} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
-                            )}
-                            {villainAvatars[7] && SEAT_POSITIONS.seat8 && !hiddenSeats.has('seat8') && (
-                                <DraggablePlayerSeat seatIndex={8} seatId="seat8" avatar={villainAvatars[7]} name="Villain 8" stack={villainStacks[7]} initialPosition={SEAT_POSITIONS.seat8} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
-                            )}
-
-                            {/* Hero Seat - DRAGGABLE - highest seatIndex */}
-                            {!hiddenSeats.has('hero') && (
-                                <DraggablePlayerSeat seatIndex={9} seatId="hero" avatar={heroAvatar} name="Hero" stack={heroStack} initialPosition={SEAT_POSITIONS.hero} isHero={true} onPositionChange={updatePosition} devMode={devMode} onDelete={toggleSeat} scale={scale} />
-                            )}
-
-
-                            {/* Hero Cards - DRAGGABLE */}
-                            <DraggableHeroCards cards={heroCards} onPositionChange={updatePosition} />
-                        </div>
-
-                        {/* Timer - positioned outside table-wrapper, at bottom of table-area */}
-                        <div className="timer">
-                            <span>{timer}</span>
-                        </div>
-
-                        {/* Question Counter - positioned outside table-wrapper, at bottom of table-area */}
-                        <div className="q-counter">
-                            <span>Question {handNumber} of {totalHands}</span>
-                        </div>
-                    </div>
-
-                    {/* Action Bar */}
-                    <div className="action-bar">
-                        <button className="action-btn fold" onClick={() => handleAction('FOLD')}>Fold</button>
-                        <button className="action-btn call" onClick={() => handleAction('CALL')}>Call</button>
-                        <button className="action-btn raise" onClick={() => handleAction('RAISE')}>Raise to 8bb</button>
-                        <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>All-In</button>
-                    </div>
+                            {/* Action Bar */}
+                            <div className="action-bar">
+                                <button className="action-btn fold" onClick={() => handleAction('FOLD')}>Fold</button>
+                                <button className="action-btn call" onClick={() => handleAction('CALL')}>Call</button>
+                                <button className="action-btn raise" onClick={() => handleAction('RAISE')}>Raise to 8bb</button>
+                                <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>All-In</button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -762,6 +848,77 @@ export const ${layoutName} = {
                     background: #070707;
                     color: #fff;
                     overflow: visible;
+                }
+                
+                /* ========== MODE TOGGLE ========== */
+                .mode-toggle {
+                    display: flex;
+                    justify-content: center;
+                    gap: 8px;
+                    padding: 8px 16px;
+                    background: rgba(10, 14, 23, 0.8);
+                }
+                .mode-btn {
+                    padding: 8px 20px;
+                    background: rgba(255,255,255,0.1);
+                    border: 1px solid rgba(255,255,255,0.2);
+                    border-radius: 20px;
+                    color: #94a3b8;
+                    font-size: 13px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    font-family: inherit;
+                }
+                .mode-btn:hover {
+                    background: rgba(255,255,255,0.15);
+                }
+                .mode-btn.active {
+                    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                    border-color: #3b82f6;
+                    color: #fff;
+                }
+                
+                /* ========== MILLIONAIRE MODE ========== */
+                .millionaire-container {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    padding: 16px;
+                    overflow: hidden;
+                }
+                .continue-btn {
+                    display: block;
+                    width: 100%;
+                    max-width: 300px;
+                    margin: 16px auto;
+                    padding: 14px 32px;
+                    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                    border: none;
+                    border-radius: 10px;
+                    color: #fff;
+                    font-size: 16px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    font-family: inherit;
+                    transition: transform 0.2s ease;
+                }
+                .continue-btn:hover {
+                    transform: scale(1.02);
+                }
+                .score-bar {
+                    display: flex;
+                    justify-content: center;
+                    gap: 20px;
+                    padding: 12px;
+                    background: rgba(0,0,0,0.5);
+                    border-radius: 12px;
+                    margin-top: auto;
+                }
+                .score-bar span {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #94a3b8;
                 }
                 
                 /* ========== HEADER ========== */
