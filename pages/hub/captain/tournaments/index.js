@@ -2,13 +2,14 @@
  * Player Tournament Hub
  * Reference: IMPLEMENTATION_PHASES.md - Phase 3
  * /hub/captain/tournaments - Browse and register for tournaments
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import {
   Trophy, Calendar, Users, DollarSign, Clock, MapPin,
-  ChevronRight, Search, Filter, Play, CheckCircle
+  ChevronRight, Search, Filter, Play, CheckCircle, Zap
 } from 'lucide-react';
 
 function TournamentCard({ tournament, onRegister, isRegistered }) {
@@ -17,61 +18,65 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
   const canRegister = tournament.status === 'registering' && !isRegistered;
 
   return (
-    <div
-      className="bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow"
-      style={{ borderColor: '#E5E7EB' }}
-    >
+    <div className="cap-panel cap-corner-lights overflow-hidden">
+      {/* Corner glow lights */}
+      <span className="cap-light cap-light-tl" />
+      <span className="cap-light cap-light-br" />
+
+      {/* Rivets */}
+      <div className="absolute top-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+      <div className="absolute top-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
+
       {/* Status banner */}
       {isLive && (
-        <div className="bg-green-500 text-white text-center py-1 text-xs font-medium">
+        <div className="bg-[#10B981]/20 border-b-2 border-[#10B981] text-[#10B981] text-center py-1.5 text-xs font-bold uppercase tracking-wider">
           LIVE NOW - {tournament.players_remaining} players remaining
         </div>
       )}
 
-      <div className="p-4">
+      <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className="font-semibold text-gray-900">{tournament.name}</h3>
-            <div className="flex items-center gap-1 mt-1 text-sm text-gray-500">
+            <h3 className="font-bold text-white text-lg">{tournament.name}</h3>
+            <div className="flex items-center gap-1 mt-1 text-sm text-[#64748B]">
               <MapPin size={14} />
               {tournament.venue_name || 'Poker Room'}
             </div>
           </div>
-          <span
-            className={`px-2 py-1 rounded text-xs font-medium ${
-              isLive ? 'bg-green-100 text-green-700' :
-              tournament.status === 'registering' ? 'bg-blue-100 text-blue-700' :
-              tournament.status === 'completed' ? 'bg-gray-100 text-gray-700' :
-              'bg-yellow-100 text-yellow-700'
-            }`}
-          >
+          <span className={`cap-badge ${
+            isLive ? 'cap-badge-live' :
+            tournament.status === 'registering' ? 'cap-badge-primary' :
+            tournament.status === 'completed' ? 'cap-badge-chrome' :
+            'cap-badge-warning'
+          }`}>
             {tournament.status === 'registering' ? 'OPEN' : tournament.status.toUpperCase()}
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
-          <div className="flex items-center gap-2 text-gray-600">
-            <Calendar size={16} className="text-gray-400" />
+          <div className="flex items-center gap-2 text-[#CBD5E1]">
+            <Calendar size={16} className="text-[#64748B]" />
             <span>{startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-600">
-            <Clock size={16} className="text-gray-400" />
+          <div className="flex items-center gap-2 text-[#CBD5E1]">
+            <Clock size={16} className="text-[#64748B]" />
             <span>{startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-600">
-            <DollarSign size={16} className="text-gray-400" />
+          <div className="flex items-center gap-2 text-[#CBD5E1]">
+            <DollarSign size={16} className="text-[#64748B]" />
             <span>${tournament.buyin_amount} + ${tournament.buyin_fee}</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-600">
-            <Users size={16} className="text-gray-400" />
+          <div className="flex items-center gap-2 text-[#CBD5E1]">
+            <Users size={16} className="text-[#64748B]" />
             <span>{tournament.total_entries || 0} / {tournament.max_entries || 'Unlimited'}</span>
           </div>
         </div>
 
         {/* Prize pool */}
-        <div className="flex items-center justify-between py-3 border-t border-b mb-4" style={{ borderColor: '#E5E7EB' }}>
-          <span className="text-sm text-gray-500">Prize Pool</span>
-          <span className="text-lg font-bold text-green-600">
+        <div className="cap-divider" style={{ margin: '12px 0' }} />
+        <div className="flex items-center justify-between py-2 mb-4">
+          <span className="text-sm text-[#64748B] uppercase tracking-wide font-bold">Prize Pool</span>
+          <span className="text-lg font-bold text-[#10B981]">
             ${(tournament.actual_prizepool || tournament.guaranteed_prizepool || 0).toLocaleString()}
             {tournament.guaranteed_prizepool && !tournament.actual_prizepool && ' GTD'}
           </span>
@@ -79,33 +84,25 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
 
         {/* Actions */}
         {isRegistered ? (
-          <div className="flex items-center justify-center gap-2 py-2 rounded-lg bg-green-50 text-green-700">
+          <div className="cap-badge cap-badge-live w-full justify-center py-3">
             <CheckCircle size={18} />
-            <span className="font-medium">Registered</span>
+            <span className="font-bold">REGISTERED</span>
           </div>
         ) : canRegister ? (
           <button
             onClick={() => onRegister?.(tournament)}
-            className="w-full py-3 rounded-lg text-sm font-medium text-white"
-            style={{ backgroundColor: '#1877F2' }}
+            className="cap-btn cap-btn-primary w-full justify-center"
           >
-            Register Now
+            REGISTER NOW
           </button>
         ) : isLive ? (
-          <button
-            className="w-full py-3 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-2"
-            style={{ backgroundColor: '#10B981' }}
-          >
+          <button className="cap-btn cap-btn-success w-full justify-center">
             <Play size={16} />
-            View Live Clock
+            VIEW LIVE CLOCK
           </button>
         ) : (
-          <button
-            className="w-full py-3 rounded-lg text-sm font-medium border"
-            style={{ borderColor: '#E5E7EB', color: '#6B7280' }}
-            disabled
-          >
-            {tournament.status === 'completed' ? 'View Results' : 'Registration Closed'}
+          <button className="cap-btn cap-btn-secondary w-full justify-center opacity-50 cursor-not-allowed" disabled>
+            {tournament.status === 'completed' ? 'VIEW RESULTS' : 'REGISTRATION CLOSED'}
           </button>
         )}
       </div>
@@ -199,41 +196,44 @@ export default function PlayerTournamentsHub() {
     <>
       <Head>
         <title>Tournaments | Smarter Poker</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen" style={{ backgroundColor: '#F9FAFB', fontFamily: 'Inter, sans-serif' }}>
+      <div className="cap-page">
         {/* Notification Banner */}
         {message && (
-          <div
-            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${
-              message.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            }`}
-          >
+          <div className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-bold uppercase tracking-wide ${
+            message.type === 'success'
+              ? 'bg-[#10B981]/20 border-b-2 border-[#10B981] text-[#10B981]'
+              : 'bg-[#EF4444]/20 border-b-2 border-[#EF4444] text-[#EF4444]'
+          }`}>
             {message.text}
           </div>
         )}
 
         {/* Header */}
-        <header className="bg-white border-b" style={{ borderColor: '#E5E7EB' }}>
-          <div className="max-w-6xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Trophy size={28} style={{ color: '#1877F2' }} />
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">Tournaments</h1>
-                  <p className="text-sm text-gray-500">Find and register for poker tournaments</p>
-                </div>
+        <header className="cap-header-full">
+          <div className="max-w-6xl mx-auto px-4 py-6">
+            <div className="flex items-center gap-4">
+              <div className="cap-icon-box cap-icon-box-glow w-14 h-14">
+                <Trophy className="w-7 h-7" />
               </div>
-              <button className="p-2 rounded-lg hover:bg-gray-100">
-                <Search size={20} className="text-gray-600" />
-              </button>
+              <div>
+                <h1 className="text-xl font-extrabold text-white tracking-wider cap-text-glow">TOURNAMENTS</h1>
+                <p className="text-sm text-[#64748B] font-medium tracking-wide">Find and register for poker tournaments</p>
+              </div>
+              {/* Rivets */}
+              <div className="ml-auto flex gap-2">
+                <span className="cap-rivet" />
+                <span className="cap-rivet" />
+                <span className="cap-rivet" />
+              </div>
             </div>
           </div>
         </header>
 
         {/* Filters */}
-        <div className="bg-white border-b" style={{ borderColor: '#E5E7EB' }}>
+        <div className="border-b-2 border-[#4A5E78] bg-[#0F1C32]">
           <div className="max-w-6xl mx-auto px-4 py-3">
             <div className="flex gap-2">
               {[
@@ -245,12 +245,11 @@ export default function PlayerTournamentsHub() {
                 <button
                   key={f.id}
                   onClick={() => setFilter(f.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wide transition-colors border-2 ${
                     filter === f.id
-                      ? 'text-white'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'bg-[#132240] text-[#22D3EE] border-[#22D3EE]'
+                      : 'bg-[#0F1C32] text-[#64748B] border-[#4A5E78] hover:border-[#7A8EA8]'
                   }`}
-                  style={filter === f.id ? { backgroundColor: '#1877F2' } : {}}
                 >
                   {f.label}
                 </button>
@@ -266,16 +265,17 @@ export default function PlayerTournamentsHub() {
               {[1, 2, 3, 4, 5, 6].map(i => (
                 <div
                   key={i}
-                  className="h-64 rounded-xl animate-pulse"
-                  style={{ backgroundColor: '#E5E7EB' }}
+                  className="h-64 rounded-xl animate-pulse bg-[#132240]"
                 />
               ))}
             </div>
           ) : filteredTournaments.length === 0 ? (
-            <div className="text-center py-12">
-              <Trophy size={48} className="mx-auto text-gray-400 mb-3" />
-              <h3 className="text-lg font-medium text-gray-900">No tournaments found</h3>
-              <p className="text-gray-500 mt-1">
+            <div className="cap-panel p-12 text-center">
+              <div className="cap-icon-box mx-auto mb-4">
+                <Trophy className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-bold text-white">No tournaments found</h3>
+              <p className="text-[#64748B] mt-1">
                 {filter === 'registered'
                   ? 'You haven\'t registered for any tournaments yet'
                   : 'Check back later for upcoming tournaments'

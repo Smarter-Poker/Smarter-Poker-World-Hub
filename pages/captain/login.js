@@ -1,7 +1,7 @@
 /**
  * Captain Staff Login Page - Venue selection + PIN entry
  * Based on PokerAtlas TableCaptain / Bravo Poker patterns
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -131,43 +131,43 @@ export default function CaptainLogin() {
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         </Head>
 
-        <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-start p-4 pt-12">
+        <div className="min-h-screen bg-[#0B1426] flex flex-col items-center justify-start p-4 pt-12">
           <div className="w-full max-w-md">
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-[#1877F2] rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <KeyRound className="w-8 h-8 text-white" />
+              <div className="w-16 h-16 bg-[#22D3EE] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <KeyRound className="w-8 h-8 text-[#0B1426]" />
               </div>
-              <h1 className="text-2xl font-bold text-[#1F2937]">Staff Login</h1>
-              <p className="text-[#6B7280] mt-1">Select your venue to continue</p>
+              <h1 className="text-2xl font-bold text-white">Staff Login</h1>
+              <p className="text-[#64748B] mt-1">Select your venue to continue</p>
             </div>
 
             {/* Venue List */}
-            <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+            <div className="cap-panel overflow-hidden">
               {loading ? (
                 <div className="p-8 text-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#1877F2] mx-auto" />
-                  <p className="text-[#6B7280] mt-2">Loading venues...</p>
+                  <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE] mx-auto" />
+                  <p className="text-[#64748B] mt-2">Loading venues...</p>
                 </div>
               ) : venues.length === 0 ? (
                 <div className="p-8 text-center">
-                  <MapPin className="w-8 h-8 text-[#9CA3AF] mx-auto mb-2" />
-                  <p className="text-[#6B7280]">No venues available</p>
-                  <p className="text-sm text-[#9CA3AF] mt-1">Contact admin to enable Captain</p>
+                  <MapPin className="w-8 h-8 text-[#4A5E78] mx-auto mb-2" />
+                  <p className="text-[#64748B]">No venues available</p>
+                  <p className="text-sm text-[#4A5E78] mt-1">Contact admin to enable Captain</p>
                 </div>
               ) : (
-                <div className="divide-y divide-[#E5E7EB]">
+                <div className="divide-y divide-[#4A5E78]">
                   {venues.map((venue) => (
                     <button
                       key={venue.id}
                       onClick={() => handleVenueSelect(venue)}
-                      className="w-full p-4 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors text-left"
+                      className="w-full p-4 flex items-center justify-between hover:bg-[#132240] transition-colors text-left"
                     >
                       <div>
-                        <h3 className="font-semibold text-[#1F2937]">{venue.name}</h3>
-                        <p className="text-sm text-[#6B7280]">{venue.city}, {venue.state}</p>
+                        <h3 className="font-semibold text-white">{venue.name}</h3>
+                        <p className="text-sm text-[#64748B]">{venue.city}, {venue.state}</p>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
+                      <ChevronRight className="w-5 h-5 text-[#4A5E78]" />
                     </button>
                   ))}
                 </div>
@@ -187,13 +187,13 @@ export default function CaptainLogin() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0B1426] flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm">
           {/* Back Button */}
           {!queryVenueId && (
             <button
               onClick={handleBackToVenues}
-              className="flex items-center gap-2 text-[#6B7280] hover:text-[#1F2937] mb-6 transition-colors"
+              className="flex items-center gap-2 text-[#64748B] hover:text-white mb-6 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
               <span>Change Venue</span>
@@ -202,28 +202,28 @@ export default function CaptainLogin() {
 
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-[#1877F2] rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <KeyRound className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 bg-[#22D3EE] rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <KeyRound className="w-8 h-8 text-[#0B1426]" />
             </div>
-            <h1 className="text-2xl font-bold text-[#1F2937]">Enter PIN</h1>
-            <p className="text-[#6B7280] mt-1">{selectedVenue?.name}</p>
+            <h1 className="text-2xl font-bold text-white">Enter PIN</h1>
+            <p className="text-[#64748B] mt-1">{selectedVenue?.name}</p>
           </div>
 
           {/* PIN Display */}
-          <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 mb-4">
+          <div className="cap-panel p-6 mb-4">
             <div className="flex justify-center gap-4 mb-6">
               {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
                   className={`w-4 h-4 rounded-full transition-colors ${
-                    pin.length > i ? 'bg-[#1877F2]' : 'bg-[#E5E7EB]'
+                    pin.length > i ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
                   }`}
                 />
               ))}
             </div>
 
             {error && (
-              <div className="mb-4 p-3 bg-[#FEF2F2] rounded-lg text-center">
+              <div className="mb-4 p-3 bg-[#EF4444]/10 rounded-lg text-center">
                 <p className="text-sm text-[#EF4444]">{error}</p>
               </div>
             )}
@@ -236,7 +236,7 @@ export default function CaptainLogin() {
                   type="button"
                   onClick={() => handlePinInput(digit.toString())}
                   disabled={verifying}
-                  className="h-16 rounded-xl bg-[#F9FAFB] text-2xl font-semibold text-[#1F2937] hover:bg-[#E5E7EB] active:bg-[#D1D5DB] transition-colors disabled:opacity-50"
+                  className="h-16 rounded-xl bg-[#0D192E] text-2xl font-semibold text-white hover:bg-[#132240] active:bg-[#1a2d4a] transition-colors disabled:opacity-50"
                 >
                   {digit}
                 </button>
@@ -245,7 +245,7 @@ export default function CaptainLogin() {
                 type="button"
                 onClick={handleClear}
                 disabled={verifying}
-                className="h-16 rounded-xl bg-[#F9FAFB] text-sm font-medium text-[#6B7280] hover:bg-[#E5E7EB] active:bg-[#D1D5DB] transition-colors disabled:opacity-50"
+                className="h-16 rounded-xl bg-[#0D192E] text-sm font-medium text-[#64748B] hover:bg-[#132240] active:bg-[#1a2d4a] transition-colors disabled:opacity-50"
               >
                 Clear
               </button>
@@ -253,7 +253,7 @@ export default function CaptainLogin() {
                 type="button"
                 onClick={() => handlePinInput('0')}
                 disabled={verifying}
-                className="h-16 rounded-xl bg-[#F9FAFB] text-2xl font-semibold text-[#1F2937] hover:bg-[#E5E7EB] active:bg-[#D1D5DB] transition-colors disabled:opacity-50"
+                className="h-16 rounded-xl bg-[#0D192E] text-2xl font-semibold text-white hover:bg-[#132240] active:bg-[#1a2d4a] transition-colors disabled:opacity-50"
               >
                 0
               </button>
@@ -261,7 +261,7 @@ export default function CaptainLogin() {
                 type="button"
                 onClick={handleBackspace}
                 disabled={verifying}
-                className="h-16 rounded-xl bg-[#F9FAFB] text-sm font-medium text-[#6B7280] hover:bg-[#E5E7EB] active:bg-[#D1D5DB] transition-colors disabled:opacity-50"
+                className="h-16 rounded-xl bg-[#0D192E] text-sm font-medium text-[#64748B] hover:bg-[#132240] active:bg-[#1a2d4a] transition-colors disabled:opacity-50"
               >
                 Back
               </button>
@@ -272,7 +272,7 @@ export default function CaptainLogin() {
               type="button"
               onClick={handleSubmit}
               disabled={verifying || pin.length < 4}
-              className="w-full mt-4 h-14 rounded-xl bg-[#1877F2] text-white text-lg font-semibold hover:bg-[#1664d9] active:bg-[#1558c2] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-4 h-14 rounded-xl text-lg font-semibold cap-btn cap-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {verifying ? 'Verifying...' : 'Login'}
             </button>
@@ -281,8 +281,8 @@ export default function CaptainLogin() {
           {/* Loading indicator */}
           {verifying && (
             <div className="text-center">
-              <Loader2 className="w-6 h-6 animate-spin text-[#1877F2] mx-auto" />
-              <p className="text-sm text-[#6B7280] mt-2">Verifying...</p>
+              <Loader2 className="w-6 h-6 animate-spin text-[#22D3EE] mx-auto" />
+              <p className="text-sm text-[#64748B] mt-2">Verifying...</p>
             </div>
           )}
         </div>

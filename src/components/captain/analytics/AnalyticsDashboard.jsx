@@ -1,7 +1,7 @@
 /**
  * AnalyticsDashboard Component
  * Reference: IMPLEMENTATION_PHASES.md - Phase 5
- * Venue analytics overview
+ * Dark industrial sci-fi gaming theme
  */
 import React, { useState, useMemo } from 'react';
 import {
@@ -16,15 +16,12 @@ const PERIOD_OPTIONS = [
   { value: 90, label: 'Last 90 days' }
 ];
 
-function StatCard({ icon: Icon, label, value, change, changeLabel, color = '#1877F2' }) {
+function StatCard({ icon: Icon, label, value, change, changeLabel, color = '#22D3EE' }) {
   const isPositive = change > 0;
   const isNegative = change < 0;
 
   return (
-    <div
-      className="p-4 rounded-xl border"
-      style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-    >
+    <div className="cap-panel p-4">
       <div className="flex items-start justify-between">
         <div
           className="w-10 h-10 rounded-lg flex items-center justify-center"
@@ -34,7 +31,7 @@ function StatCard({ icon: Icon, label, value, change, changeLabel, color = '#187
         </div>
         {change !== undefined && change !== null && (
           <div className={`flex items-center gap-1 text-xs ${
-            isPositive ? 'text-green-400' : isNegative ? 'text-red-400' : 'text-gray-500'
+            isPositive ? 'text-green-400' : isNegative ? 'text-red-400' : 'text-[#4A5E78]'
           }`}>
             {isPositive ? <TrendingUp size={14} /> : isNegative ? <TrendingDown size={14} /> : null}
             {Math.abs(change).toFixed(1)}%
@@ -43,16 +40,16 @@ function StatCard({ icon: Icon, label, value, change, changeLabel, color = '#187
       </div>
       <div className="mt-3">
         <div className="text-2xl font-bold text-white">{value}</div>
-        <div className="text-sm text-gray-400">{label}</div>
+        <div className="text-sm text-[#64748B]">{label}</div>
         {changeLabel && (
-          <div className="text-xs text-gray-500 mt-1">{changeLabel}</div>
+          <div className="text-xs text-[#4A5E78] mt-1">{changeLabel}</div>
         )}
       </div>
     </div>
   );
 }
 
-function MiniChart({ data, color = '#1877F2' }) {
+function MiniChart({ data, color = '#22D3EE' }) {
   if (!data || data.length === 0) return null;
 
   const max = Math.max(...data);
@@ -127,13 +124,12 @@ export default function AnalyticsDashboard({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="h-8 w-48 rounded animate-pulse" style={{ backgroundColor: '#374151' }} />
+        <div className="h-8 w-48 rounded animate-pulse bg-[#0D192E]" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
             <div
               key={i}
-              className="h-32 rounded-xl animate-pulse"
-              style={{ backgroundColor: '#374151' }}
+              className="h-32 rounded-xl animate-pulse bg-[#0D192E]"
             />
           ))}
         </div>
@@ -149,24 +145,20 @@ export default function AnalyticsDashboard({
         <div className="relative">
           <button
             onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
-            style={{ backgroundColor: '#374151', color: '#E5E7EB' }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#0D192E] text-gray-200"
           >
             <Calendar size={16} />
             {PERIOD_OPTIONS.find(p => p.value === period)?.label}
             <ChevronDown size={16} />
           </button>
           {showPeriodDropdown && (
-            <div
-              className="absolute right-0 mt-2 w-40 rounded-lg shadow-lg z-10 border"
-              style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-            >
+            <div className="absolute right-0 mt-2 w-40 rounded-lg shadow-lg z-10 cap-panel">
               {PERIOD_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
                   onClick={() => handlePeriodChange(opt.value)}
-                  className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg ${
-                    period === opt.value ? 'text-blue-400' : 'text-gray-300'
+                  className={`w-full px-4 py-2 text-left text-sm hover:bg-[#132240] first:rounded-t-lg last:rounded-b-lg ${
+                    period === opt.value ? 'text-[#22D3EE]' : 'text-gray-300'
                   }`}
                 >
                   {opt.label}
@@ -212,80 +204,62 @@ export default function AnalyticsDashboard({
       {/* Charts Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Sessions Chart */}
-        <div
-          className="p-4 rounded-xl border"
-          style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-        >
+        <div className="cap-panel p-4">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-gray-400">Sessions</span>
-            <Activity size={16} className="text-blue-400" />
+            <span className="text-sm font-medium text-[#64748B]">Sessions</span>
+            <Activity size={16} className="text-[#22D3EE]" />
           </div>
           <MiniChart data={chartData.sessions} color="#3B82F6" />
-          <div className="text-xs text-gray-500 mt-2">Last 14 days</div>
+          <div className="text-xs text-[#4A5E78] mt-2">Last 14 days</div>
         </div>
 
         {/* Players Chart */}
-        <div
-          className="p-4 rounded-xl border"
-          style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-        >
+        <div className="cap-panel p-4">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-gray-400">Players</span>
+            <span className="text-sm font-medium text-[#64748B]">Players</span>
             <Users size={16} className="text-purple-400" />
           </div>
           <MiniChart data={chartData.players} color="#8B5CF6" />
-          <div className="text-xs text-gray-500 mt-2">Last 14 days</div>
+          <div className="text-xs text-[#4A5E78] mt-2">Last 14 days</div>
         </div>
 
         {/* Hours Chart */}
-        <div
-          className="p-4 rounded-xl border"
-          style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-        >
+        <div className="cap-panel p-4">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-gray-400">Play Hours</span>
+            <span className="text-sm font-medium text-[#64748B]">Play Hours</span>
             <Clock size={16} className="text-green-400" />
           </div>
           <MiniChart data={chartData.hours} color="#10B981" />
-          <div className="text-xs text-gray-500 mt-2">Last 14 days</div>
+          <div className="text-xs text-[#4A5E78] mt-2">Last 14 days</div>
         </div>
       </div>
 
       {/* Additional Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div
-          className="p-4 rounded-xl border"
-          style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-        >
-          <div className="flex items-center gap-2 text-gray-400 mb-2">
+        <div className="cap-panel p-4">
+          <div className="flex items-center gap-2 text-[#64748B] mb-2">
             <Trophy size={16} className="text-yellow-400" />
             <span className="text-sm">Tournaments</span>
           </div>
           <div className="text-xl font-bold text-white">
             {summary.tournaments_run || 0}
           </div>
-          <div className="text-xs text-gray-500">tournaments run</div>
+          <div className="text-xs text-[#4A5E78]">tournaments run</div>
         </div>
 
-        <div
-          className="p-4 rounded-xl border"
-          style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-        >
-          <div className="flex items-center gap-2 text-gray-400 mb-2">
+        <div className="cap-panel p-4">
+          <div className="flex items-center gap-2 text-[#64748B] mb-2">
             <Gift size={16} className="text-pink-400" />
             <span className="text-sm">Promotions</span>
           </div>
           <div className="text-xl font-bold text-white">
             {summary.promotions_awarded || 0}
           </div>
-          <div className="text-xs text-gray-500">awards given</div>
+          <div className="text-xs text-[#4A5E78]">awards given</div>
         </div>
 
-        <div
-          className="p-4 rounded-xl border"
-          style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-        >
-          <div className="flex items-center gap-2 text-gray-400 mb-2">
+        <div className="cap-panel p-4">
+          <div className="flex items-center gap-2 text-[#64748B] mb-2">
             <Clock size={16} className="text-cyan-400" />
             <span className="text-sm">Avg Session</span>
           </div>
@@ -294,14 +268,11 @@ export default function AnalyticsDashboard({
               ? (analytics.reduce((sum, d) => sum + (parseFloat(d.avg_session_hours) || 0), 0) / analytics.length).toFixed(1)
               : '0'}h
           </div>
-          <div className="text-xs text-gray-500">average duration</div>
+          <div className="text-xs text-[#4A5E78]">average duration</div>
         </div>
 
-        <div
-          className="p-4 rounded-xl border"
-          style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-        >
-          <div className="flex items-center gap-2 text-gray-400 mb-2">
+        <div className="cap-panel p-4">
+          <div className="flex items-center gap-2 text-[#64748B] mb-2">
             <DollarSign size={16} className="text-emerald-400" />
             <span className="text-sm">Avg Buy-in</span>
           </div>
@@ -310,23 +281,20 @@ export default function AnalyticsDashboard({
               ? Math.round(analytics.reduce((sum, d) => sum + (d.avg_buyin || 0), 0) / analytics.length)
               : 0}
           </div>
-          <div className="text-xs text-gray-500">per session</div>
+          <div className="text-xs text-[#4A5E78]">per session</div>
         </div>
       </div>
 
       {/* Daily Breakdown Table */}
       {analytics.length > 0 && (
-        <div
-          className="rounded-xl border overflow-hidden"
-          style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-        >
-          <div className="p-4 border-b" style={{ borderColor: '#374151' }}>
+        <div className="cap-panel overflow-hidden">
+          <div className="p-4 border-b border-[#4A5E78]">
             <h3 className="font-medium text-white">Daily Breakdown</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left text-xs text-gray-500 border-b" style={{ borderColor: '#374151' }}>
+                <tr className="text-left text-xs text-[#4A5E78] border-b border-[#4A5E78]">
                   <th className="px-4 py-3 font-medium">Date</th>
                   <th className="px-4 py-3 font-medium text-right">Sessions</th>
                   <th className="px-4 py-3 font-medium text-right">Players</th>
@@ -334,7 +302,7 @@ export default function AnalyticsDashboard({
                   <th className="px-4 py-3 font-medium text-right">Buy-ins</th>
                 </tr>
               </thead>
-              <tbody className="divide-y" style={{ borderColor: '#374151' }}>
+              <tbody className="divide-y divide-[#4A5E78]">
                 {analytics.slice(0, 7).map((day) => (
                   <tr key={day.date} className="text-sm">
                     <td className="px-4 py-3 text-gray-300">

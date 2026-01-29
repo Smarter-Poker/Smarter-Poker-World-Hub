@@ -1,7 +1,7 @@
 /**
  * Player Waitlist Join Page - Public page for players to join waitlist
  * URL: /hub/captain/waitlist/[venueId]
- * UI: Facebook color scheme with futuristic metallic styling
+ * UI: Dark industrial sci-fi gaming UI with metallic chrome frames
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -170,9 +170,9 @@ export default function PlayerWaitlistPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <div className="captain-icon-box-glow">
-          <Loader2 className="w-6 h-6 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <div className="cap-icon-box cap-icon-box-glow">
+          <Loader2 className="w-6 h-6 animate-spin text-[#22D3EE]" />
         </div>
       </div>
     );
@@ -180,13 +180,21 @@ export default function PlayerWaitlistPage() {
 
   if (!venue) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
-        <div className="captain-card p-8 text-center">
-          <div className="captain-icon-box mx-auto mb-4">
+      <div className="cap-page flex items-center justify-center p-4">
+        <div className="cap-panel cap-corner-lights p-8 text-center">
+          <span className="cap-light cap-light-tl" />
+          <span className="cap-light cap-light-tr" />
+          <span className="cap-light cap-light-bl" />
+          <span className="cap-light cap-light-br" />
+          <div className="absolute top-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+          <div className="absolute top-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
+          <div className="absolute bottom-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+          <div className="absolute bottom-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
+          <div className="cap-icon-box mx-auto mb-4">
             <MapPin className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-semibold text-[#1F2937]">Venue Not Found</h1>
-          <p className="text-[#6B7280] mt-2">This venue doesn't exist or isn't using Captain.</p>
+          <h1 className="text-xl font-semibold text-white">Venue Not Found</h1>
+          <p className="text-[#64748B] mt-2">This venue doesn't exist or isn't using Captain.</p>
         </div>
       </div>
     );
@@ -199,20 +207,25 @@ export default function PlayerWaitlistPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
-        {/* Futuristic Header */}
-        <header className="captain-header sticky top-0 z-10">
+      <div className="cap-page">
+        {/* Header with chrome rail and glow strip */}
+        <header className="cap-header-full sticky top-0 z-10">
           <div className="max-w-lg mx-auto px-4 py-4">
             <div className="flex items-center gap-3">
-              <div className="captain-icon-box-glow">
+              <div className="cap-icon-box cap-icon-box-glow">
                 <Zap className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-[#1F2937] tracking-wide">{venue.name}</h1>
-                <p className="text-sm text-[#6B7280] flex items-center gap-1">
+                <h1 className="text-xl font-bold text-white tracking-wide cap-text-glow">{venue.name}</h1>
+                <p className="text-sm text-[#64748B] flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
                   {venue.city}, {venue.state}
                 </p>
+              </div>
+              {/* Rivets */}
+              <div className="ml-auto flex gap-2">
+                <span className="cap-rivet" />
+                <span className="cap-rivet" />
               </div>
             </div>
           </div>
@@ -221,14 +234,14 @@ export default function PlayerWaitlistPage() {
         {/* Alerts */}
         <div className="max-w-lg mx-auto px-4 pt-4">
           {success && (
-            <div className="mb-4 p-4 rounded-xl flex items-center gap-3 border-2 border-[#10B981] bg-gradient-to-r from-[#D1FAE5] to-[#ECFDF5]"
+            <div className="mb-4 p-4 rounded-xl cap-inset flex items-center gap-3 border-2 border-[#10B981]"
               style={{ boxShadow: '0 0 15px rgba(16, 185, 129, 0.3)' }}>
-              <CheckCircle className="w-5 h-5 text-[#059669]" />
-              <p className="text-sm text-[#059669] font-semibold">{success}</p>
+              <CheckCircle className="w-5 h-5 text-[#10B981]" />
+              <p className="text-sm text-[#10B981] font-semibold">{success}</p>
             </div>
           )}
           {error && (
-            <div className="mb-4 p-4 rounded-xl border-2 border-[#EF4444] bg-gradient-to-r from-[#FEF2F2] to-[#FEE2E2]"
+            <div className="mb-4 p-4 rounded-xl cap-inset border-2 border-[#EF4444]"
               style={{ boxShadow: '0 0 15px rgba(239, 68, 68, 0.3)' }}>
               <p className="text-sm text-[#EF4444] font-semibold">{error}</p>
             </div>
@@ -239,17 +252,25 @@ export default function PlayerWaitlistPage() {
         <main className="max-w-lg mx-auto px-4 py-4 space-y-6">
           {/* Live Games */}
           <section>
-            <h2 className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-3 flex items-center gap-2">
-              <span className="captain-status-live">Live Games</span>
+            <h2 className="text-xs font-bold text-[#64748B] uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span className="cap-badge cap-badge-live">Live Games</span>
             </h2>
 
             {Object.keys(gameOptions).length === 0 ? (
-              <div className="captain-card p-8 text-center">
-                <div className="captain-icon-box mx-auto mb-3">
+              <div className="cap-panel cap-corner-lights p-8 text-center">
+                <span className="cap-light cap-light-tl" />
+                <span className="cap-light cap-light-tr" />
+                <span className="cap-light cap-light-bl" />
+                <span className="cap-light cap-light-br" />
+                <div className="absolute top-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+                <div className="absolute top-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
+                <div className="absolute bottom-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+                <div className="absolute bottom-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
+                <div className="cap-icon-box mx-auto mb-3">
                   <Users className="w-6 h-6" />
                 </div>
-                <p className="text-[#6B7280] font-medium">No games running</p>
-                <p className="text-sm text-[#9CA3AF] mt-1">Check back later</p>
+                <p className="text-[#64748B] font-medium">No games running</p>
+                <p className="text-sm text-[#64748B] mt-1">Check back later</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -263,18 +284,24 @@ export default function PlayerWaitlistPage() {
                   return (
                     <div
                       key={`${option.gameType}-${option.stakes}`}
-                      className={`captain-card p-5 ${onWaitlist ? 'captain-card-glow' : ''}`}
+                      className={`cap-panel cap-corner-lights p-5 ${onWaitlist ? 'shadow-[0_0_30px_rgba(34,211,238,0.3)]' : ''}`}
                     >
+                      <span className="cap-light cap-light-tl" />
+                      <span className="cap-light cap-light-br" />
+                      <div className="absolute top-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+                      <div className="absolute top-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
+                      <div className="absolute bottom-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+                      <div className="absolute bottom-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-bold text-[#1F2937] text-lg tracking-wide">
-                            {option.stakes} <span className="text-[#1877F2]">{gameLabel}</span>
+                          <h3 className="font-bold text-white text-lg tracking-wide">
+                            {option.stakes} <span className="text-[#22D3EE]">{gameLabel}</span>
                           </h3>
                           <div className="flex items-center gap-3 mt-2">
-                            <span className="captain-badge-primary">
+                            <span className="cap-badge cap-badge-primary">
                               {option.tables.length} table{option.tables.length !== 1 ? 's' : ''}
                             </span>
-                            <span className="captain-badge-warning">
+                            <span className="cap-badge cap-badge-warning">
                               {option.waitlistCount} waiting
                             </span>
                           </div>
@@ -282,9 +309,9 @@ export default function PlayerWaitlistPage() {
 
                         {onWaitlist ? (
                           <div className="text-right">
-                            <div className="flex items-center gap-2 text-[#1877F2]">
+                            <div className="flex items-center gap-2 text-[#22D3EE]">
                               <Clock className="w-5 h-5" />
-                              <span className="text-2xl font-bold">#{position}</span>
+                              <span className="text-2xl font-bold cap-text-glow">#{position}</span>
                             </div>
                             <button
                               onClick={() => handleLeaveWaitlist(entryId)}
@@ -297,7 +324,7 @@ export default function PlayerWaitlistPage() {
                           <button
                             onClick={() => handleJoinWaitlist(option.gameType, option.stakes)}
                             disabled={isJoining}
-                            className="captain-btn captain-btn-primary"
+                            className="cap-btn cap-btn-primary"
                           >
                             {isJoining ? (
                               <Loader2 className="w-5 h-5 animate-spin" />
@@ -320,10 +347,16 @@ export default function PlayerWaitlistPage() {
           {/* My Waitlist Entries */}
           {myEntries.filter(e => e.venue_id === parseInt(venueId) && e.status === 'waiting').length > 0 && (
             <section>
-              <h2 className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-3">
+              <h2 className="text-xs font-bold text-[#64748B] uppercase tracking-widest mb-3">
                 Your Waitlist
               </h2>
-              <div className="captain-card overflow-hidden">
+              <div className="cap-panel cap-corner-lights overflow-hidden">
+                <span className="cap-light cap-light-tl" />
+                <span className="cap-light cap-light-br" />
+                <div className="absolute top-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+                <div className="absolute top-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
+                <div className="absolute bottom-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+                <div className="absolute bottom-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
                 {myEntries
                   .filter(e => e.venue_id === parseInt(venueId) && e.status === 'waiting')
                   .map((entry, idx, arr) => {
@@ -331,19 +364,19 @@ export default function PlayerWaitlistPage() {
                     return (
                       <div
                         key={entry.id}
-                        className={`p-4 flex items-center justify-between ${idx !== arr.length - 1 ? 'border-b border-[#E5E7EB]' : ''}`}
+                        className={`p-4 flex items-center justify-between ${idx !== arr.length - 1 ? 'border-b border-[#1A2E4A]' : ''}`}
                       >
                         <div>
-                          <h3 className="font-semibold text-[#1F2937]">
-                            {entry.stakes} <span className="text-[#1877F2]">{gameLabel}</span>
+                          <h3 className="font-semibold text-white">
+                            {entry.stakes} <span className="text-[#22D3EE]">{gameLabel}</span>
                           </h3>
-                          <p className="text-sm text-[#6B7280] mt-1">
-                            Position <span className="font-bold text-[#1877F2]">#{entry.position}</span>
+                          <p className="text-sm text-[#64748B] mt-1">
+                            Position <span className="font-bold text-[#22D3EE]">#{entry.position}</span>
                           </p>
                         </div>
                         <button
                           onClick={() => handleLeaveWaitlist(entry.id)}
-                          className="captain-btn captain-btn-danger text-xs py-2 px-4"
+                          className="cap-btn cap-btn-danger text-xs py-2 px-4"
                         >
                           Leave
                         </button>
@@ -356,20 +389,31 @@ export default function PlayerWaitlistPage() {
 
           {/* Info Card */}
           <section className="pt-2">
-            <div className="captain-card p-5 bg-gradient-to-br from-[#EFF6FF] to-[#DBEAFE]">
-              <h3 className="font-bold text-[#1E40AF] mb-3 uppercase tracking-wide text-sm">How it works</h3>
+            <div className="cap-panel cap-corner-lights p-5">
+              <span className="cap-light cap-light-tl" />
+              <span className="cap-light cap-light-br" />
+              <div className="absolute top-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+              <div className="absolute top-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
+              <div className="absolute bottom-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+              <div className="absolute bottom-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
+              <h3 className="font-bold text-[#22D3EE] mb-3 uppercase tracking-wide text-sm">How it works</h3>
               <div className="space-y-3">
                 {[
                   'Join the waitlist for your preferred game',
                   'You\'ll get a text when your seat is ready',
                   'Check in at the desk within 5 minutes'
                 ].map((step, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-xs font-bold flex-shrink-0"
-                      style={{ boxShadow: '0 0 10px rgba(24, 119, 242, 0.5)' }}>
+                  <div key={idx} className="cap-inset flex items-start gap-3 p-3">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                      style={{
+                        background: 'linear-gradient(180deg, #1E3A5F, #132240)',
+                        border: '2px solid #22D3EE',
+                        color: '#22D3EE',
+                        boxShadow: '0 0 10px rgba(34, 211, 238, 0.4)'
+                      }}>
                       {idx + 1}
                     </div>
-                    <p className="text-sm text-[#3B82F6] font-medium">{step}</p>
+                    <p className="text-sm text-[#CBD5E1] font-medium">{step}</p>
                   </div>
                 ))}
               </div>
@@ -377,12 +421,12 @@ export default function PlayerWaitlistPage() {
           </section>
 
           {/* Divider */}
-          <div className="captain-divider" />
+          <div className="cap-divider" />
 
           {/* Powered By */}
           <div className="text-center pb-6">
-            <p className="text-xs text-[#9CA3AF] uppercase tracking-widest">Powered by</p>
-            <p className="text-sm font-bold text-[#1877F2] tracking-wide">Smarter Captain</p>
+            <p className="text-xs text-[#64748B] uppercase tracking-[0.3em] mb-2">Powered by</p>
+            <p className="text-xl font-extrabold cap-text-chrome tracking-wider">SMARTER CAPTAIN</p>
           </div>
         </main>
       </div>

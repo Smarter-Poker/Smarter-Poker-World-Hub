@@ -1,7 +1,7 @@
 /**
  * Player Leagues Page
  * Browse and join poker leagues
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming UI with metallic chrome frames
  * Per API_REFERENCE.md: /leagues endpoints
  */
 import { useState, useEffect } from 'react';
@@ -21,35 +21,47 @@ import {
 } from 'lucide-react';
 
 function LeagueCard({ league, onView }) {
-  const statusColors = {
-    upcoming: 'bg-[#1877F2]/10 text-[#1877F2]',
-    active: 'bg-[#10B981]/10 text-[#10B981]',
-    completed: 'bg-[#6B7280]/10 text-[#6B7280]'
+  const statusConfig = {
+    upcoming: { className: 'cap-badge cap-badge-primary', label: 'upcoming' },
+    active: { className: 'cap-badge cap-badge-live', label: 'active' },
+    completed: { className: 'cap-badge cap-badge-chrome', label: 'completed' }
   };
+
+  const badge = statusConfig[league.status] || statusConfig.upcoming;
 
   return (
     <button
       onClick={() => onView(league.id)}
-      className="w-full bg-white rounded-xl border border-[#E5E7EB] p-4 text-left hover:border-[#1877F2] transition-colors"
+      className="w-full cap-panel cap-corner-lights p-4 text-left hover:shadow-[0_0_30px_rgba(34,211,238,0.3)] transition-all group"
     >
+      {/* Corner glow lights */}
+      <span className="cap-light cap-light-tl" />
+      <span className="cap-light cap-light-br" />
+
+      {/* Rivets */}
+      <div className="absolute top-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+      <div className="absolute top-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
+      <div className="absolute bottom-3 left-3"><span className="cap-rivet cap-rivet-sm" /></div>
+      <div className="absolute bottom-3 right-3"><span className="cap-rivet cap-rivet-sm" /></div>
+
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#F59E0B]/10 rounded-xl flex items-center justify-center">
-            <Trophy className="w-6 h-6 text-[#F59E0B]" />
+          <div className="cap-icon-box w-12 h-12">
+            <Trophy className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="font-semibold text-[#1F2937]">{league.name}</h3>
-            <p className="text-sm text-[#6B7280]">{league.organizer_name || 'League Organizer'}</p>
+            <h3 className="font-semibold text-white">{league.name}</h3>
+            <p className="text-sm text-[#64748B]">{league.organizer_name || 'League Organizer'}</p>
           </div>
         </div>
-        <span className={`px-2 py-1 rounded text-xs font-medium capitalize ${statusColors[league.status] || statusColors.upcoming}`}>
+        <span className={`${badge.className} capitalize`}>
           {league.status}
         </span>
       </div>
 
-      <p className="text-sm text-[#6B7280] mb-3 line-clamp-2">{league.description}</p>
+      <p className="text-sm text-[#64748B] mb-3 line-clamp-2">{league.description}</p>
 
-      <div className="flex items-center gap-4 text-sm text-[#6B7280] mb-3">
+      <div className="flex items-center gap-4 text-sm text-[#64748B] mb-3">
         <span className="flex items-center gap-1">
           <Users className="w-4 h-4" />
           {league.player_count || 0} players
@@ -67,10 +79,10 @@ function LeagueCard({ league, onView }) {
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-sm text-[#9CA3AF]">
+        <span className="text-sm text-[#64748B]">
           {league.season_start ? new Date(league.season_start).toLocaleDateString() : 'TBD'} - {league.season_end ? new Date(league.season_end).toLocaleDateString() : 'TBD'}
         </span>
-        <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
+        <ChevronRight className="w-5 h-5 text-[#64748B]" />
       </div>
     </button>
   );
@@ -80,15 +92,15 @@ function MyLeagueCard({ league, onView }) {
   return (
     <button
       onClick={() => onView(league.id)}
-      className="w-full bg-gradient-to-r from-[#1877F2] to-[#1665D8] rounded-xl p-4 text-left text-white"
+      className="w-full cap-panel p-4 text-left text-white border-[#22D3EE]/30 shadow-[0_0_20px_rgba(34,211,238,0.15)]"
     >
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-semibold">{league.name}</h3>
-        <span className="px-2 py-1 bg-white/20 rounded text-xs">
+        <span className="px-2 py-1 bg-[#22D3EE]/20 rounded text-xs text-[#22D3EE]">
           Rank #{league.my_rank || '--'}
         </span>
       </div>
-      <div className="flex items-center gap-4 text-sm text-white/80">
+      <div className="flex items-center gap-4 text-sm text-[#CBD5E1]">
         <span>{league.my_points || 0} pts</span>
         <span>{league.events_played || 0} events played</span>
       </div>
@@ -160,15 +172,27 @@ export default function LeaguesPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-[#1877F2] text-white">
+        <header className="cap-header-full">
           <div className="max-w-lg mx-auto px-4 py-6">
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <Trophy className="w-6 h-6" />
-              Poker Leagues
-            </h1>
-            <p className="text-white/80 text-sm mt-1">Compete for points and prizes</p>
+            <div className="flex items-center gap-4">
+              <div className="cap-icon-box cap-icon-box-glow w-14 h-14">
+                <Trophy className="w-7 h-7" />
+              </div>
+              <div>
+                <h1 className="text-xl font-extrabold text-white tracking-wider cap-text-glow">
+                  POKER LEAGUES
+                </h1>
+                <p className="text-sm text-[#64748B] font-medium tracking-wide">Compete for points and prizes</p>
+              </div>
+              {/* Rivets */}
+              <div className="ml-auto flex gap-2">
+                <span className="cap-rivet" />
+                <span className="cap-rivet" />
+                <span className="cap-rivet" />
+              </div>
+            </div>
           </div>
         </header>
 
@@ -176,7 +200,7 @@ export default function LeaguesPage() {
           {/* My Leagues */}
           {myLeagues.length > 0 && (
             <section>
-              <h2 className="font-semibold text-[#1F2937] mb-3">My Leagues</h2>
+              <h2 className="font-semibold text-white mb-3">My Leagues</h2>
               <div className="space-y-3">
                 {myLeagues.map(league => (
                   <MyLeagueCard
@@ -192,13 +216,13 @@ export default function LeaguesPage() {
           {/* Search & Filter */}
           <div className="space-y-3">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search leagues..."
-                className="w-full h-12 pl-12 pr-4 border border-[#E5E7EB] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                className="cap-input pl-12"
               />
             </div>
             <div className="flex gap-2">
@@ -210,10 +234,10 @@ export default function LeaguesPage() {
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
-                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
                     filter === f.value
-                      ? 'bg-[#1877F2] text-white'
-                      : 'bg-white border border-[#E5E7EB] text-[#6B7280]'
+                      ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
+                      : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78]'
                   }`}
                 >
                   {f.label}
@@ -225,11 +249,11 @@ export default function LeaguesPage() {
           {/* Leagues List */}
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
             </div>
           ) : filteredLeagues.length > 0 ? (
             <section>
-              <h2 className="font-semibold text-[#1F2937] mb-3">
+              <h2 className="font-semibold text-white mb-3">
                 {filter === 'all' ? 'All Leagues' : filter === 'active' ? 'Active Leagues' : 'Upcoming Leagues'}
               </h2>
               <div className="space-y-3">
@@ -243,9 +267,11 @@ export default function LeaguesPage() {
               </div>
             </section>
           ) : (
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-              <Trophy className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-              <p className="text-[#6B7280]">No leagues found</p>
+            <div className="cap-panel p-8 text-center">
+              <div className="cap-icon-box mx-auto mb-3">
+                <Trophy className="w-7 h-7" />
+              </div>
+              <p className="text-[#64748B]">No leagues found</p>
             </div>
           )}
         </main>

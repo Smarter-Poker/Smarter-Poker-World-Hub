@@ -1,7 +1,7 @@
 /**
  * LeaderboardDisplay Component
  * Reference: IMPLEMENTATION_PHASES.md - Phase 5
- * Shows leaderboard rankings
+ * Dark industrial sci-fi gaming theme
  */
 import React from 'react';
 import { Trophy, Medal, Clock, Calendar, Users, Award, ChevronRight } from 'lucide-react';
@@ -60,21 +60,17 @@ export default function LeaderboardDisplay({
   if (compact) {
     return (
       <div
-        className="p-4 rounded-xl border cursor-pointer hover:border-blue-400 transition-colors"
-        style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
+        className="cap-panel p-4 cursor-pointer hover:border-[#22D3EE] transition-colors"
         onClick={() => onViewDetails?.(leaderboard)}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: '#374151' }}
-            >
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#0D192E]">
               <Trophy size={20} className="text-yellow-400" />
             </div>
             <div>
               <h3 className="font-medium text-white">{leaderboard.name}</h3>
-              <div className="flex items-center gap-2 text-xs text-gray-400">
+              <div className="flex items-center gap-2 text-xs text-[#4A5E78]">
                 <span
                   className="px-2 py-0.5 rounded-full"
                   style={{ backgroundColor: `${getStatusColor(leaderboard.status)}20`, color: getStatusColor(leaderboard.status) }}
@@ -85,33 +81,24 @@ export default function LeaderboardDisplay({
               </div>
             </div>
           </div>
-          <ChevronRight size={20} className="text-gray-500" />
+          <ChevronRight size={20} className="text-[#4A5E78]" />
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="rounded-xl border overflow-hidden"
-      style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-    >
+    <div className="cap-panel overflow-hidden">
       {/* Header */}
-      <div
-        className="p-4 border-b"
-        style={{ borderColor: '#374151' }}
-      >
+      <div className="p-4 border-b border-[#4A5E78]">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: '#374151' }}
-            >
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#0D192E]">
               <Trophy size={24} className="text-yellow-400" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-white">{leaderboard.name}</h2>
-              <div className="flex items-center gap-3 text-sm text-gray-400 mt-1">
+              <div className="flex items-center gap-3 text-sm text-[#64748B] mt-1">
                 <span className="flex items-center gap-1">
                   <Calendar size={14} />
                   {formatDate(leaderboard.start_date)} - {formatDate(leaderboard.end_date)}
@@ -135,25 +122,24 @@ export default function LeaderboardDisplay({
         </div>
 
         {leaderboard.description && (
-          <p className="mt-3 text-sm text-gray-400">{leaderboard.description}</p>
+          <p className="mt-3 text-sm text-[#64748B]">{leaderboard.description}</p>
         )}
 
         {/* Prizes */}
         {leaderboard.prizes && leaderboard.prizes.length > 0 && (
           <div className="mt-4 flex items-center gap-4">
-            <span className="text-sm text-gray-500">Prizes:</span>
+            <span className="text-sm text-[#4A5E78]">Prizes:</span>
             <div className="flex items-center gap-3">
               {leaderboard.prizes.slice(0, 3).map((prize, idx) => (
                 <span
                   key={idx}
-                  className="px-2 py-1 rounded text-xs font-medium"
-                  style={{ backgroundColor: '#374151', color: '#E5E7EB' }}
+                  className="px-2 py-1 rounded text-xs font-medium bg-[#0D192E] text-gray-200"
                 >
                   #{prize.position}: {prize.prize}
                 </span>
               ))}
               {leaderboard.prizes.length > 3 && (
-                <span className="text-xs text-gray-500">+{leaderboard.prizes.length - 3} more</span>
+                <span className="text-xs text-[#4A5E78]">+{leaderboard.prizes.length - 3} more</span>
               )}
             </div>
           </div>
@@ -162,48 +148,41 @@ export default function LeaderboardDisplay({
 
       {/* User's Position (if logged in and participating) */}
       {userEntry && (
-        <div
-          className="px-4 py-3 flex items-center justify-between"
-          style={{ backgroundColor: '#1877F220' }}
-        >
+        <div className="px-4 py-3 flex items-center justify-between bg-[#22D3EE]/10">
           <div className="flex items-center gap-3">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center font-bold"
-              style={{ backgroundColor: '#1877F2', color: '#FFFFFF' }}
-            >
+            <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold bg-[#22D3EE] text-white">
               {userEntry.rank || '-'}
             </div>
             <span className="text-white font-medium">Your Position</span>
           </div>
-          <span className="text-blue-400 font-medium">{formatScore(userEntry)}</span>
+          <span className="text-[#22D3EE] font-medium">{formatScore(userEntry)}</span>
         </div>
       )}
 
       {/* Rankings */}
-      <div className="divide-y" style={{ borderColor: '#374151' }}>
+      <div className="divide-y divide-[#4A5E78]">
         {entries.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-8 text-center text-[#4A5E78]">
             No entries yet
           </div>
         ) : (
           entries.slice(0, 10).map((entry, idx) => {
-            const rankStyle = RANK_STYLES[entry.rank] || { bg: '#374151', text: '#E5E7EB' };
+            const rankStyle = RANK_STYLES[entry.rank] || { bg: '#0D192E', text: '#E5E7EB' };
             const isCurrentUser = entry.player_id === currentUserId;
 
             return (
               <div
                 key={entry.id}
                 className={`px-4 py-3 flex items-center justify-between ${
-                  isCurrentUser ? 'bg-blue-900/20' : ''
+                  isCurrentUser ? 'bg-[#22D3EE]/10' : ''
                 }`}
-                style={{ borderColor: '#374151' }}
               >
                 <div className="flex items-center gap-3">
                   {/* Rank */}
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
                     style={{
-                      backgroundColor: entry.rank <= 3 ? rankStyle.bg : '#374151',
+                      backgroundColor: entry.rank <= 3 ? rankStyle.bg : '#0D192E',
                       color: entry.rank <= 3 ? rankStyle.text : '#9CA3AF'
                     }}
                   >
@@ -223,14 +202,11 @@ export default function LeaderboardDisplay({
                         className="w-8 h-8 rounded-full object-cover"
                       />
                     ) : (
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
-                        style={{ backgroundColor: '#374151', color: '#9CA3AF' }}
-                      >
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-[#0D192E] text-[#64748B]">
                         {entry.profiles?.display_name?.[0]?.toUpperCase() || '?'}
                       </div>
                     )}
-                    <span className={`font-medium ${isCurrentUser ? 'text-blue-400' : 'text-white'}`}>
+                    <span className={`font-medium ${isCurrentUser ? 'text-[#22D3EE]' : 'text-white'}`}>
                       {entry.profiles?.display_name || 'Anonymous'}
                     </span>
                   </div>
@@ -256,8 +232,7 @@ export default function LeaderboardDisplay({
       {entries.length > 10 && onViewDetails && (
         <button
           onClick={() => onViewDetails(leaderboard)}
-          className="w-full py-3 text-center text-sm font-medium text-blue-400 hover:bg-gray-700/50 transition-colors border-t"
-          style={{ borderColor: '#374151' }}
+          className="w-full py-3 text-center text-sm font-medium text-[#22D3EE] hover:bg-[#132240] transition-colors border-t border-[#4A5E78]"
         >
           View all {entries.length} participants
         </button>

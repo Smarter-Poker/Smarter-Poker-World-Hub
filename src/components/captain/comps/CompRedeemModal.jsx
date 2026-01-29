@@ -1,7 +1,7 @@
 /**
  * CompRedeemModal Component
  * Reference: IMPLEMENTATION_PHASES.md - Phase 5
- * Modal for redeeming player comps
+ * Dark industrial sci-fi gaming theme
  */
 import React, { useState } from 'react';
 import { X, DollarSign, UtensilsCrossed, ShoppingBag, Trophy, Banknote, Hotel, Gift } from 'lucide-react';
@@ -38,52 +38,37 @@ export default function CompRedeemModal({
     });
   };
 
-  const inputStyle = {
-    backgroundColor: '#111827',
-    borderColor: '#374151',
-    color: '#E5E7EB'
-  };
-
   const selectedType = REDEMPTION_TYPES.find(t => t.value === redemptionType);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
-      <div
-        className="w-full max-w-md rounded-xl"
-        style={{ backgroundColor: '#1F2937' }}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+      <div className="w-full max-w-md cap-panel cap-corner-lights">
         {/* Header */}
-        <div
-          className="flex items-center justify-between p-4 border-b"
-          style={{ borderColor: '#374151' }}
-        >
+        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
           <h2 className="text-lg font-semibold text-white">Redeem Comps</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-lg hover:bg-[#132240] transition-colors"
           >
-            <X size={20} className="text-gray-400" />
+            <X size={20} className="text-[#64748B]" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Balance Display */}
-          <div
-            className="p-4 rounded-lg text-center"
-            style={{ backgroundColor: '#111827' }}
-          >
-            <div className="text-sm text-gray-400 mb-1">Available Balance</div>
+          <div className="p-4 rounded-lg text-center bg-[#0B1426]">
+            <div className="text-sm text-[#64748B] mb-1">Available Balance</div>
             <div className="text-3xl font-bold text-green-400">
               ${currentBalance.toFixed(2)}
             </div>
             {player?.display_name && (
-              <div className="text-sm text-gray-500 mt-1">{player.display_name}</div>
+              <div className="text-sm text-[#4A5E78] mt-1">{player.display_name}</div>
             )}
           </div>
 
           {/* Redemption Type */}
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Redemption Type</label>
+            <label className="block text-sm text-[#64748B] mb-2">Redemption Type</label>
             <div className="grid grid-cols-3 gap-2">
               {REDEMPTION_TYPES.map(type => {
                 const Icon = type.icon;
@@ -97,12 +82,12 @@ export default function CompRedeemModal({
                       isSelected ? 'ring-2' : ''
                     }`}
                     style={{
-                      backgroundColor: isSelected ? `${type.color}20` : '#111827',
+                      backgroundColor: isSelected ? `${type.color}20` : '#0B1426',
                       ringColor: type.color
                     }}
                   >
-                    <Icon size={20} style={{ color: isSelected ? type.color : '#6B7280' }} />
-                    <span className={`text-xs ${isSelected ? 'text-white' : 'text-gray-500'}`}>
+                    <Icon size={20} style={{ color: isSelected ? type.color : '#4A5E78' }} />
+                    <span className={`text-xs ${isSelected ? 'text-white' : 'text-[#4A5E78]'}`}>
                       {type.label.split(' ')[0]}
                     </span>
                   </button>
@@ -113,11 +98,11 @@ export default function CompRedeemModal({
 
           {/* Amount */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Amount to Redeem</label>
+            <label className="block text-sm text-[#64748B] mb-1">Amount to Redeem</label>
             <div className="relative">
               <DollarSign
                 size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4A5E78]"
               />
               <input
                 type="number"
@@ -126,8 +111,7 @@ export default function CompRedeemModal({
                 max={currentBalance}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-lg border focus:outline-none focus:border-blue-500 text-lg"
-                style={inputStyle}
+                className="cap-input w-full pl-10 pr-4 py-3 text-lg"
                 placeholder="0.00"
                 required
               />
@@ -139,8 +123,7 @@ export default function CompRedeemModal({
                   key={idx}
                   type="button"
                   onClick={() => setAmount(preset.toString())}
-                  className="flex-1 py-1.5 rounded text-xs font-medium text-gray-400 hover:text-white transition-colors"
-                  style={{ backgroundColor: '#374151' }}
+                  className="flex-1 py-1.5 rounded text-xs font-medium text-[#64748B] hover:text-white transition-colors bg-[#0D192E]"
                 >
                   {idx === 3 ? 'All' : `$${preset}`}
                 </button>
@@ -150,13 +133,12 @@ export default function CompRedeemModal({
 
           {/* Description */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Description (optional)</label>
+            <label className="block text-sm text-[#64748B] mb-1">Description (optional)</label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-              style={inputStyle}
+              className="cap-input w-full px-3 py-2"
               placeholder={`e.g., ${selectedType?.label || 'Redemption'} details`}
             />
           </div>
@@ -170,16 +152,13 @@ export default function CompRedeemModal({
 
           {/* Summary */}
           {amount && parseFloat(amount) > 0 && parseFloat(amount) <= currentBalance && (
-            <div
-              className="p-3 rounded-lg"
-              style={{ backgroundColor: '#111827' }}
-            >
+            <div className="p-3 rounded-lg bg-[#0B1426]">
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-400">Redeeming</span>
+                <span className="text-[#64748B]">Redeeming</span>
                 <span className="text-white font-medium">${parseFloat(amount).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Remaining Balance</span>
+                <span className="text-[#64748B]">Remaining Balance</span>
                 <span className="text-green-400 font-medium">
                   ${(currentBalance - parseFloat(amount)).toFixed(2)}
                 </span>
@@ -192,7 +171,7 @@ export default function CompRedeemModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-lg text-gray-400 hover:bg-gray-700 transition-colors"
+              className="cap-btn cap-btn-secondary flex-1 py-2.5"
               disabled={isLoading}
             >
               Cancel
@@ -200,8 +179,7 @@ export default function CompRedeemModal({
             <button
               type="submit"
               disabled={isLoading || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > currentBalance}
-              className="flex-1 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
-              style={{ backgroundColor: '#1877F2', color: '#FFFFFF' }}
+              className="cap-btn cap-btn-primary flex-1 py-2.5 disabled:opacity-50"
             >
               {isLoading ? 'Processing...' : 'Redeem'}
             </button>

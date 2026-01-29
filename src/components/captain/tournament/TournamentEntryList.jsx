@@ -1,14 +1,14 @@
 /**
  * TournamentEntryList Component - Display and manage tournament entries
  * Reference: SCOPE_LOCK.md - Phase 3 Components
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState } from 'react';
 import { User, Search, UserMinus, Coins, RotateCcw, Plus, Trophy } from 'lucide-react';
 
 const STATUS_CONFIG = {
   registered: { label: 'Registered', color: 'bg-[#6B7280]' },
-  seated: { label: 'Seated', color: 'bg-[#1877F2]' },
+  seated: { label: 'Seated', color: 'bg-[#22D3EE]' },
   active: { label: 'Active', color: 'bg-[#10B981]' },
   eliminated: { label: 'Out', color: 'bg-[#EF4444]' },
   winner: { label: 'Winner', color: 'bg-[#F59E0B]' }
@@ -71,42 +71,42 @@ export default function TournamentEntryList({
     <div className="space-y-4">
       {/* Summary stats */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-[#E5E7EB] p-3 text-center">
-          <p className="text-2xl font-bold text-[#1877F2]">{entries.length}</p>
-          <p className="text-xs text-[#6B7280]">Total Entries</p>
+        <div className="cap-panel p-3 text-center">
+          <p className="text-2xl font-bold text-[#22D3EE]">{entries.length}</p>
+          <p className="text-xs text-[#64748B]">Total Entries</p>
         </div>
-        <div className="bg-white rounded-lg border border-[#E5E7EB] p-3 text-center">
+        <div className="cap-panel p-3 text-center">
           <p className="text-2xl font-bold text-[#10B981]">{activePlayers.length}</p>
-          <p className="text-xs text-[#6B7280]">Remaining</p>
+          <p className="text-xs text-[#64748B]">Remaining</p>
         </div>
-        <div className="bg-white rounded-lg border border-[#E5E7EB] p-3 text-center">
+        <div className="cap-panel p-3 text-center">
           <p className="text-2xl font-bold text-[#EF4444]">{eliminatedPlayers.length}</p>
-          <p className="text-xs text-[#6B7280]">Eliminated</p>
+          <p className="text-xs text-[#64748B]">Eliminated</p>
         </div>
-        <div className="bg-white rounded-lg border border-[#E5E7EB] p-3 text-center">
-          <p className="text-2xl font-bold text-[#1F2937]">
+        <div className="cap-panel p-3 text-center">
+          <p className="text-2xl font-bold text-white">
             {formatChips(tournament?.average_stack || 0)}
           </p>
-          <p className="text-xs text-[#6B7280]">Avg Stack</p>
+          <p className="text-xs text-[#64748B]">Avg Stack</p>
         </div>
       </div>
 
       {/* Search and filter */}
       <div className="flex gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search players..."
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-[#E5E7EB] focus:border-[#1877F2] outline-none"
+            className="w-full pl-10 pr-4 py-2 cap-input"
           />
         </div>
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-4 py-2 rounded-lg border border-[#E5E7EB] focus:border-[#1877F2] outline-none"
+          className="px-4 py-2 cap-input"
         >
           <option value="all">All Players</option>
           <option value="active">Active</option>
@@ -117,7 +117,7 @@ export default function TournamentEntryList({
       </div>
 
       {/* Entry list */}
-      <div className="bg-white rounded-lg border border-[#E5E7EB] overflow-hidden">
+      <div className="cap-panel overflow-hidden">
         <div className="max-h-[500px] overflow-y-auto">
           {sortedEntries.map((entry) => {
             const playerName = entry.player_name || entry.profiles?.display_name || 'Guest';
@@ -127,14 +127,14 @@ export default function TournamentEntryList({
             return (
               <div
                 key={entry.id}
-                className={`border-b border-[#E5E7EB] last:border-b-0 p-4 ${
+                className={`border-b border-[#4A5E78] last:border-b-0 p-4 ${
                   entry.status === 'eliminated' ? 'opacity-60' : ''
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {/* Avatar */}
-                    <div className="w-10 h-10 rounded-full bg-[#F3F4F6] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-[#0D192E] flex items-center justify-center">
                       {entry.profiles?.avatar_url ? (
                         <img
                           src={entry.profiles.avatar_url}
@@ -144,19 +144,19 @@ export default function TournamentEntryList({
                       ) : entry.status === 'winner' ? (
                         <Trophy className="w-5 h-5 text-[#F59E0B]" />
                       ) : (
-                        <User className="w-5 h-5 text-[#6B7280]" />
+                        <User className="w-5 h-5 text-[#64748B]" />
                       )}
                     </div>
 
                     {/* Info */}
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-[#1F2937]">{playerName}</span>
+                        <span className="font-medium text-white">{playerName}</span>
                         <span className={`px-2 py-0.5 rounded text-xs text-white ${config.color}`}>
                           {config.label}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-[#6B7280]">
+                      <div className="flex items-center gap-3 text-sm text-[#64748B]">
                         {isActive && entry.current_chips && (
                           <span className="flex items-center gap-1">
                             <Coins className="w-3 h-3" />
@@ -197,12 +197,12 @@ export default function TournamentEntryList({
                             value={chipUpdateValue}
                             onChange={(e) => setChipUpdateValue(e.target.value)}
                             placeholder="Chips"
-                            className="w-24 px-2 py-1 rounded border border-[#E5E7EB] text-sm"
+                            className="w-24 cap-input text-sm"
                             autoFocus
                           />
                           <button
                             onClick={() => handleChipUpdate(entry)}
-                            className="px-2 py-1 bg-[#1877F2] text-white rounded text-sm"
+                            className="cap-btn cap-btn-primary text-sm"
                           >
                             Save
                           </button>
@@ -211,7 +211,7 @@ export default function TournamentEntryList({
                               setSelectedEntry(null);
                               setChipUpdateValue('');
                             }}
-                            className="px-2 py-1 border border-[#E5E7EB] rounded text-sm"
+                            className="cap-btn cap-btn-secondary text-sm"
                           >
                             Cancel
                           </button>
@@ -223,7 +223,7 @@ export default function TournamentEntryList({
                               setSelectedEntry(entry.id);
                               setChipUpdateValue(entry.current_chips?.toString() || '');
                             }}
-                            className="p-2 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#1877F2] hover:text-[#1877F2] transition-colors"
+                            className="p-2 rounded-lg border border-[#4A5E78] text-[#64748B] hover:border-[#22D3EE] hover:text-[#22D3EE] transition-colors"
                             title="Update chips"
                           >
                             <Coins className="w-4 h-4" />
@@ -233,7 +233,7 @@ export default function TournamentEntryList({
                             <button
                               onClick={() => onRebuy?.(entry)}
                               disabled={tournament.rebuy_end_level && tournament.current_level > tournament.rebuy_end_level}
-                              className="p-2 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#F59E0B] hover:text-[#F59E0B] disabled:opacity-50 transition-colors"
+                              className="p-2 rounded-lg border border-[#4A5E78] text-[#64748B] hover:border-[#F59E0B] hover:text-[#F59E0B] disabled:opacity-50 transition-colors"
                               title="Add rebuy"
                             >
                               <RotateCcw className="w-4 h-4" />
@@ -243,7 +243,7 @@ export default function TournamentEntryList({
                           {tournament?.allows_addon && !entry.addon_taken && (
                             <button
                               onClick={() => onAddon?.(entry)}
-                              className="p-2 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#8B5CF6] hover:text-[#8B5CF6] transition-colors"
+                              className="p-2 rounded-lg border border-[#4A5E78] text-[#64748B] hover:border-[#8B5CF6] hover:text-[#8B5CF6] transition-colors"
                               title="Add add-on"
                             >
                               <Plus className="w-4 h-4" />
@@ -252,7 +252,7 @@ export default function TournamentEntryList({
 
                           <button
                             onClick={() => onEliminate?.(entry)}
-                            className="p-2 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#EF4444] hover:text-[#EF4444] transition-colors"
+                            className="p-2 rounded-lg border border-[#4A5E78] text-[#64748B] hover:border-[#EF4444] hover:text-[#EF4444] transition-colors"
                             title="Eliminate player"
                           >
                             <UserMinus className="w-4 h-4" />
@@ -267,7 +267,7 @@ export default function TournamentEntryList({
           })}
 
           {sortedEntries.length === 0 && (
-            <div className="p-8 text-center text-[#6B7280]">
+            <div className="p-8 text-center text-[#64748B]">
               {searchTerm || filterStatus !== 'all'
                 ? 'No players match your search'
                 : 'No entries yet'
@@ -279,8 +279,8 @@ export default function TournamentEntryList({
 
       {/* Chip leader board */}
       {activePlayers.length > 0 && (
-        <div className="bg-[#F9FAFB] rounded-lg p-4">
-          <h4 className="font-medium text-[#1F2937] mb-3">Chip Leaders</h4>
+        <div className="bg-[#0B1426] rounded-lg p-4">
+          <h4 className="font-medium text-white mb-3">Chip Leaders</h4>
           <div className="space-y-2">
             {activePlayers
               .sort((a, b) => (b.current_chips || 0) - (a.current_chips || 0))
@@ -296,16 +296,16 @@ export default function TournamentEntryList({
                       index === 0 ? 'bg-[#F59E0B] text-white' :
                       index === 1 ? 'bg-[#9CA3AF] text-white' :
                       index === 2 ? 'bg-[#CD7F32] text-white' :
-                      'bg-[#E5E7EB] text-[#1F2937]'
+                      'bg-[#1E293B] text-white'
                     }`}>
                       {index + 1}
                     </span>
-                    <span className="flex-1 text-[#1F2937]">{playerName}</span>
-                    <span className="font-medium text-[#1F2937]">
+                    <span className="flex-1 text-white">{playerName}</span>
+                    <span className="font-medium text-white">
                       {formatChips(entry.current_chips)}
                     </span>
                     <span className={`text-sm ${
-                      parseInt(stackRatio) > 100 ? 'text-[#10B981]' : 'text-[#6B7280]'
+                      parseInt(stackRatio) > 100 ? 'text-[#10B981]' : 'text-[#64748B]'
                     }`}>
                       ({stackRatio}% avg)
                     </span>

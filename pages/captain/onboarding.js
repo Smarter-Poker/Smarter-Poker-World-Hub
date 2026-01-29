@@ -2,7 +2,7 @@
  * Venue Onboarding Page
  * New venue signup and demo request flow
  * Per IMPLEMENTATION_PHASES.md Step 6.5
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { useState } from 'react';
 import Head from 'next/head';
@@ -119,27 +119,27 @@ export default function VenueOnboardingPage() {
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         </Head>
 
-        <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center px-4">
+        <div className="cap-page flex items-center justify-center px-4">
           <div className="max-w-md w-full text-center">
             <div className="w-16 h-16 bg-[#10B981] rounded-full flex items-center justify-center mx-auto mb-6">
               <Check className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-[#1F2937] mb-2">Request Submitted</h1>
-            <p className="text-[#6B7280] mb-6">
+            <h1 className="text-2xl font-bold text-white mb-2">Request Submitted</h1>
+            <p className="text-[#64748B] mb-6">
               Thank you for your interest in Smarter Captain. Our team will contact you within 1 business day to schedule a demo.
             </p>
 
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-6">
-              <h3 className="font-medium text-[#1F2937] mb-3">What happens next?</h3>
+            <div className="cap-panel p-4 mb-6">
+              <h3 className="font-medium text-white mb-3">What happens next?</h3>
               <div className="space-y-3 text-left">
                 {STEPS.map((s, i) => (
                   <div key={s.id} className="flex items-center gap-3">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                      i === 0 ? 'bg-[#10B981] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'
+                      i === 0 ? 'bg-[#10B981] text-white' : 'bg-[#4A5E78] text-[#64748B]'
                     }`}>
                       {i === 0 ? <Check className="w-3 h-3" /> : s.id}
                     </div>
-                    <span className={i === 0 ? 'text-[#10B981]' : 'text-[#6B7280]'}>{s.label}</span>
+                    <span className={i === 0 ? 'text-[#10B981]' : 'text-[#64748B]'}>{s.label}</span>
                   </div>
                 ))}
               </div>
@@ -147,7 +147,7 @@ export default function VenueOnboardingPage() {
 
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-[#1877F2] hover:underline"
+              className="inline-flex items-center gap-2 text-[#22D3EE] hover:underline"
             >
               <ChevronLeft className="w-4 h-4" />
               Return to Home
@@ -166,13 +166,13 @@ export default function VenueOnboardingPage() {
         <meta name="description" content="Request a demo of Smarter Captain for your poker room" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB]">
+        <header className="cap-header-bar">
           <div className="max-w-5xl mx-auto px-4 py-4">
             <Link href="/" className="flex items-center gap-2">
-              <Building2 className="w-8 h-8 text-[#1877F2]" />
-              <span className="text-xl font-bold text-[#1F2937]">Smarter Captain</span>
+              <Building2 className="w-8 h-8 text-[#22D3EE]" />
+              <span className="text-xl font-bold text-white">Smarter Captain</span>
             </Link>
           </div>
         </header>
@@ -182,10 +182,10 @@ export default function VenueOnboardingPage() {
             /* Features Overview */
             <div className="space-y-8">
               <div className="text-center max-w-2xl mx-auto">
-                <h1 className="text-3xl font-bold text-[#1F2937] mb-4">
+                <h1 className="text-3xl font-bold text-white mb-4">
                   Modern Poker Room Management
                 </h1>
-                <p className="text-lg text-[#6B7280]">
+                <p className="text-lg text-[#64748B]">
                   Replace outdated waitlist systems with a digital-first platform that players love and staff find easy to use.
                 </p>
               </div>
@@ -197,13 +197,13 @@ export default function VenueOnboardingPage() {
                   return (
                     <div
                       key={i}
-                      className="bg-white rounded-xl border border-[#E5E7EB] p-5"
+                      className="cap-panel p-5"
                     >
-                      <div className="w-10 h-10 bg-[#1877F2]/10 rounded-lg flex items-center justify-center mb-3">
-                        <Icon className="w-5 h-5 text-[#1877F2]" />
+                      <div className="w-10 h-10 bg-[#22D3EE]/10 rounded-lg flex items-center justify-center mb-3">
+                        <Icon className="w-5 h-5 text-[#22D3EE]" />
                       </div>
-                      <h3 className="font-semibold text-[#1F2937] mb-1">{feature.title}</h3>
-                      <p className="text-sm text-[#6B7280]">{feature.description}</p>
+                      <h3 className="font-semibold text-white mb-1">{feature.title}</h3>
+                      <p className="text-sm text-[#64748B]">{feature.description}</p>
                     </div>
                   );
                 })}
@@ -213,28 +213,28 @@ export default function VenueOnboardingPage() {
               <div className="text-center">
                 <button
                   onClick={() => setStep('form')}
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-[#1877F2] text-white font-semibold rounded-xl hover:bg-[#1665D8] transition-colors"
+                  className="cap-btn cap-btn-primary inline-flex items-center gap-2 px-8 py-4 text-lg"
                 >
                   Request a Demo
                   <ArrowRight className="w-5 h-5" />
                 </button>
-                <p className="text-sm text-[#6B7280] mt-3">
+                <p className="text-sm text-[#64748B] mt-3">
                   Free demo, no obligation
                 </p>
               </div>
 
               {/* Onboarding Process */}
-              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-                <h2 className="font-semibold text-[#1F2937] mb-4 text-center">Onboarding Process</h2>
+              <div className="cap-panel p-6">
+                <h2 className="font-semibold text-white mb-4 text-center">Onboarding Process</h2>
                 <div className="flex justify-between items-center max-w-2xl mx-auto">
                   {STEPS.map((s, i) => (
                     <div key={s.id} className="flex flex-col items-center relative">
-                      <div className="w-10 h-10 bg-[#1877F2]/10 rounded-full flex items-center justify-center text-[#1877F2] font-medium">
+                      <div className="w-10 h-10 bg-[#22D3EE]/10 rounded-full flex items-center justify-center text-[#22D3EE] font-medium">
                         {s.id}
                       </div>
-                      <span className="text-xs text-[#6B7280] mt-2 text-center">{s.label}</span>
+                      <span className="text-xs text-[#64748B] mt-2 text-center">{s.label}</span>
                       {i < STEPS.length - 1 && (
-                        <div className="absolute left-[calc(50%+20px)] top-5 w-[calc(100%-40px)] h-0.5 bg-[#E5E7EB]" />
+                        <div className="absolute left-[calc(50%+20px)] top-5 w-[calc(100%-40px)] h-0.5 bg-[#4A5E78]" />
                       )}
                     </div>
                   ))}
@@ -246,23 +246,23 @@ export default function VenueOnboardingPage() {
             <div className="max-w-xl mx-auto">
               <button
                 onClick={() => setStep('info')}
-                className="flex items-center gap-2 text-[#6B7280] hover:text-[#1F2937] mb-6"
+                className="flex items-center gap-2 text-[#64748B] hover:text-white mb-6"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Back
               </button>
 
-              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-                <h2 className="text-xl font-bold text-[#1F2937] mb-6">Request a Demo</h2>
+              <div className="cap-panel p-6">
+                <h2 className="text-xl font-bold text-white mb-6">Request a Demo</h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Venue Name */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1F2937] mb-1">
+                    <label className="block text-sm font-medium text-white mb-1">
                       Venue Name *
                     </label>
                     <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#4A5E78]" />
                       <input
                         type="text"
                         name="venueName"
@@ -270,18 +270,18 @@ export default function VenueOnboardingPage() {
                         onChange={handleChange}
                         required
                         placeholder="Bellagio Poker Room"
-                        className="w-full pl-10 pr-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                        className="cap-input w-full pl-10"
                       />
                     </div>
                   </div>
 
                   {/* Contact Name */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1F2937] mb-1">
+                    <label className="block text-sm font-medium text-white mb-1">
                       Your Name *
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#4A5E78]" />
                       <input
                         type="text"
                         name="contactName"
@@ -289,7 +289,7 @@ export default function VenueOnboardingPage() {
                         onChange={handleChange}
                         required
                         placeholder="John Smith"
-                        className="w-full pl-10 pr-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                        className="cap-input w-full pl-10"
                       />
                     </div>
                   </div>
@@ -297,11 +297,11 @@ export default function VenueOnboardingPage() {
                   {/* Email & Phone */}
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-[#1F2937] mb-1">
+                      <label className="block text-sm font-medium text-white mb-1">
                         Email *
                       </label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#4A5E78]" />
                         <input
                           type="email"
                           name="email"
@@ -309,16 +309,16 @@ export default function VenueOnboardingPage() {
                           onChange={handleChange}
                           required
                           placeholder="john@venue.com"
-                          className="w-full pl-10 pr-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                          className="cap-input w-full pl-10"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#1F2937] mb-1">
+                      <label className="block text-sm font-medium text-white mb-1">
                         Phone *
                       </label>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#4A5E78]" />
                         <input
                           type="tel"
                           name="phone"
@@ -326,7 +326,7 @@ export default function VenueOnboardingPage() {
                           onChange={handleChange}
                           required
                           placeholder="(555) 123-4567"
-                          className="w-full pl-10 pr-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                          className="cap-input w-full pl-10"
                         />
                       </div>
                     </div>
@@ -335,11 +335,11 @@ export default function VenueOnboardingPage() {
                   {/* Location */}
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-[#1F2937] mb-1">
+                      <label className="block text-sm font-medium text-white mb-1">
                         City *
                       </label>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#4A5E78]" />
                         <input
                           type="text"
                           name="city"
@@ -347,12 +347,12 @@ export default function VenueOnboardingPage() {
                           onChange={handleChange}
                           required
                           placeholder="Las Vegas"
-                          className="w-full pl-10 pr-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                          className="cap-input w-full pl-10"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#1F2937] mb-1">
+                      <label className="block text-sm font-medium text-white mb-1">
                         State *
                       </label>
                       <select
@@ -360,7 +360,7 @@ export default function VenueOnboardingPage() {
                         value={formData.state}
                         onChange={handleChange}
                         required
-                        className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                        className="cap-input w-full"
                       >
                         <option value="">Select state...</option>
                         <option value="NV">Nevada</option>
@@ -378,14 +378,14 @@ export default function VenueOnboardingPage() {
 
                   {/* Table Count */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1F2937] mb-1">
+                    <label className="block text-sm font-medium text-white mb-1">
                       Number of Poker Tables
                     </label>
                     <select
                       name="tableCount"
                       value={formData.tableCount}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                      className="cap-input w-full"
                     >
                       <option value="">Select range...</option>
                       <option value="1-5">1-5 tables</option>
@@ -398,14 +398,14 @@ export default function VenueOnboardingPage() {
 
                   {/* Current System */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1F2937] mb-1">
+                    <label className="block text-sm font-medium text-white mb-1">
                       Current Waitlist System
                     </label>
                     <select
                       name="currentSystem"
                       value={formData.currentSystem}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                      className="cap-input w-full"
                     >
                       <option value="">Select current system...</option>
                       <option value="poker_atlas">PokerAtlas TableCaptain</option>
@@ -418,7 +418,7 @@ export default function VenueOnboardingPage() {
 
                   {/* Notes */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1F2937] mb-1">
+                    <label className="block text-sm font-medium text-white mb-1">
                       Additional Notes
                     </label>
                     <textarea
@@ -427,14 +427,14 @@ export default function VenueOnboardingPage() {
                       onChange={handleChange}
                       rows={3}
                       placeholder="Tell us about your needs or questions..."
-                      className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent resize-none"
+                      className="cap-input w-full resize-none"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-12 bg-[#1877F2] text-white font-semibold rounded-xl hover:bg-[#1665D8] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="cap-btn cap-btn-primary w-full h-12 flex items-center justify-center gap-2"
                   >
                     {loading ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -446,7 +446,7 @@ export default function VenueOnboardingPage() {
                     )}
                   </button>
 
-                  <p className="text-xs text-[#6B7280] text-center">
+                  <p className="text-xs text-[#64748B] text-center">
                     By submitting, you agree to be contacted about Smarter Captain.
                   </p>
                 </form>

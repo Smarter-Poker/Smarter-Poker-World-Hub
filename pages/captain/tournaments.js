@@ -1,6 +1,6 @@
 /**
  * Staff Tournament Management
- * Reference: IMPLEMENTATION_PHASES.md - Phase 3
+ * Dark industrial sci-fi gaming theme
  * /captain/tournaments - Manage tournaments, clock, registrations
  */
 import React, { useState, useEffect } from 'react';
@@ -83,26 +83,25 @@ export default function TournamentsPage() {
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
 
-      <div className="min-h-screen" style={{ backgroundColor: '#F9FAFB', fontFamily: 'Inter, sans-serif' }}>
+      <div className="cap-page" style={{ fontFamily: 'Inter, sans-serif' }}>
         {/* Header */}
-        <header className="bg-white border-b" style={{ borderColor: '#E5E7EB' }}>
+        <header className="cap-header-bar">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.push(`/captain/dashboard?venue_id=${venue_id}`)}
-                className="p-2 rounded-lg hover:bg-gray-100"
+                className="p-2 rounded-lg hover:bg-[#132240]"
               >
-                <ArrowLeft size={20} className="text-gray-600" />
+                <ArrowLeft size={20} className="text-[#64748B]" />
               </button>
               <div>
-                <h1 className="text-xl font-bold" style={{ color: '#1877F2' }}>Tournament Management</h1>
-                <p className="text-sm text-gray-500">Manage tournament clock, entries, and payouts</p>
+                <h1 className="text-xl font-bold text-[#22D3EE]">Tournament Management</h1>
+                <p className="text-sm text-[#64748B]">Manage tournament clock, entries, and payouts</p>
               </div>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
-              style={{ backgroundColor: '#1877F2' }}
+              className="cap-btn cap-btn-primary flex items-center gap-2 text-sm"
             >
               <Plus size={18} />
               New Tournament
@@ -114,12 +113,12 @@ export default function TournamentsPage() {
           {/* Active Tournament Clock */}
           {activeTournament && (
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Live Tournament</h2>
-              <div className="bg-white rounded-xl border p-6" style={{ borderColor: '#E5E7EB' }}>
+              <h2 className="text-lg font-semibold text-white mb-4">Live Tournament</h2>
+              <div className="cap-panel p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900">{activeTournament.name}</h3>
-                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                    <h3 className="text-xl font-bold text-white">{activeTournament.name}</h3>
+                    <div className="flex items-center gap-4 mt-1 text-sm text-[#64748B]">
                       <span className="flex items-center gap-1">
                         <Users size={14} />
                         {activeTournament.players_remaining || 0} / {activeTournament.total_entries || 0} players
@@ -156,24 +155,24 @@ export default function TournamentsPage() {
                   </button>
                   <button
                     onClick={() => handleClockAction('next_level')}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border"
-                    style={{ borderColor: '#E5E7EB' }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border text-[#94A3B8]"
+                    style={{ borderColor: '#4A5E78' }}
                   >
                     <SkipForward size={16} />
                     Next Level
                   </button>
                   <button
                     onClick={() => setShowEliminateModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border"
-                    style={{ borderColor: '#E5E7EB' }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border text-[#94A3B8]"
+                    style={{ borderColor: '#4A5E78' }}
                   >
                     <UserMinus size={16} />
                     Eliminate Player
                   </button>
                   <button
                     onClick={() => setShowPayoutsModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border"
-                    style={{ borderColor: '#E5E7EB' }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border text-[#94A3B8]"
+                    style={{ borderColor: '#4A5E78' }}
                   >
                     <Award size={16} />
                     Payouts
@@ -185,21 +184,20 @@ export default function TournamentsPage() {
 
           {/* Tournament List */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">All Tournaments</h2>
+            <h2 className="text-lg font-semibold text-white mb-4">All Tournaments</h2>
 
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <RefreshCw size={24} className="animate-spin text-gray-400" />
+                <RefreshCw size={24} className="animate-spin text-[#22D3EE]" />
               </div>
             ) : tournaments.length === 0 ? (
-              <div className="bg-white rounded-xl border p-8 text-center" style={{ borderColor: '#E5E7EB' }}>
-                <Trophy size={48} className="mx-auto text-gray-400 mb-3" />
-                <h3 className="text-lg font-medium text-gray-900">No tournaments</h3>
-                <p className="text-gray-500 mt-1">Create your first tournament to get started</p>
+              <div className="cap-panel p-8 text-center">
+                <Trophy size={48} className="mx-auto text-[#4A5E78] mb-3" />
+                <h3 className="text-lg font-medium text-white">No tournaments</h3>
+                <p className="text-[#64748B] mt-1">Create your first tournament to get started</p>
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="mt-4 px-4 py-2 rounded-lg text-sm font-medium text-white"
-                  style={{ backgroundColor: '#1877F2' }}
+                  className="cap-btn cap-btn-primary mt-4 text-sm"
                 >
                   Create Tournament
                 </button>
@@ -209,20 +207,19 @@ export default function TournamentsPage() {
                 {tournaments.map(tournament => (
                   <div
                     key={tournament.id}
-                    className="bg-white rounded-xl border p-4 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer"
-                    style={{ borderColor: '#E5E7EB' }}
+                    className="cap-panel p-4 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => router.push(`/captain/tournaments/${tournament.id}?venue_id=${venue_id}`)}
                   >
                     <div className="flex items-center gap-4">
                       <div
                         className="w-12 h-12 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: tournament.status === 'running' ? '#10B98120' : '#1877F220' }}
+                        style={{ backgroundColor: tournament.status === 'running' ? '#10B98120' : '#22D3EE20' }}
                       >
-                        <Trophy size={24} style={{ color: tournament.status === 'running' ? '#10B981' : '#1877F2' }} />
+                        <Trophy size={24} style={{ color: tournament.status === 'running' ? '#10B981' : '#22D3EE' }} />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900">{tournament.name}</h3>
-                        <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                        <h3 className="font-semibold text-white">{tournament.name}</h3>
+                        <div className="flex items-center gap-3 mt-1 text-sm text-[#64748B]">
                           <span className="flex items-center gap-1">
                             <Calendar size={14} />
                             {formatDate(tournament.scheduled_start)}
@@ -241,15 +238,15 @@ export default function TournamentsPage() {
                     <div className="flex items-center gap-3">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          tournament.status === 'running' ? 'bg-green-100 text-green-700' :
-                          tournament.status === 'registering' ? 'bg-blue-100 text-blue-700' :
-                          tournament.status === 'completed' ? 'bg-gray-100 text-gray-700' :
-                          'bg-yellow-100 text-yellow-700'
+                          tournament.status === 'running' ? 'bg-[#10B981]/10 text-[#10B981]' :
+                          tournament.status === 'registering' ? 'bg-[#22D3EE]/10 text-[#22D3EE]' :
+                          tournament.status === 'completed' ? 'bg-[#4A5E78]/20 text-[#64748B]' :
+                          'bg-[#F59E0B]/10 text-[#F59E0B]'
                         }`}
                       >
                         {tournament.status.toUpperCase()}
                       </span>
-                      <ChevronRight size={20} className="text-gray-400" />
+                      <ChevronRight size={20} className="text-[#4A5E78]" />
                     </div>
                   </div>
                 ))}
@@ -360,13 +357,13 @@ function CreateTournamentModal({ venueId, onClose, onCreate }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
-        <h2 className="text-xl font-bold mb-4" style={{ color: '#1F2937' }}>Create Tournament</h2>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="cap-panel cap-corner-lights w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+        <h2 className="text-xl font-bold text-white mb-4">Create Tournament</h2>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#94A3B8' }}>
               Tournament Name *
             </label>
             <input
@@ -374,21 +371,19 @@ function CreateTournamentModal({ venueId, onClose, onCreate }) {
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="e.g., Friday Night $200 NLH"
-              className="w-full h-12 px-3 border rounded-lg"
-              style={{ borderColor: '#E5E7EB' }}
+              className="cap-input w-full"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#94A3B8' }}>
                 Game Type
               </label>
               <select
                 value={formData.game_type}
                 onChange={(e) => setFormData(prev => ({ ...prev, game_type: e.target.value }))}
-                className="w-full h-12 px-3 border rounded-lg"
-                style={{ borderColor: '#E5E7EB' }}
+                className="cap-input w-full"
               >
                 <option value="nlhe">No Limit Hold'em</option>
                 <option value="plo">Pot Limit Omaha</option>
@@ -396,82 +391,76 @@ function CreateTournamentModal({ venueId, onClose, onCreate }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#94A3B8' }}>
                 Starting Chips
               </label>
               <input
                 type="number"
                 value={formData.starting_chips}
                 onChange={(e) => setFormData(prev => ({ ...prev, starting_chips: parseInt(e.target.value) || 10000 }))}
-                className="w-full h-12 px-3 border rounded-lg"
-                style={{ borderColor: '#E5E7EB' }}
+                className="cap-input w-full"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#94A3B8' }}>
                 Buy-in ($)
               </label>
               <input
                 type="number"
                 value={formData.buyin_amount}
                 onChange={(e) => setFormData(prev => ({ ...prev, buyin_amount: parseInt(e.target.value) || 0 }))}
-                className="w-full h-12 px-3 border rounded-lg"
-                style={{ borderColor: '#E5E7EB' }}
+                className="cap-input w-full"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#94A3B8' }}>
                 Fee ($)
               </label>
               <input
                 type="number"
                 value={formData.buyin_fee}
                 onChange={(e) => setFormData(prev => ({ ...prev, buyin_fee: parseInt(e.target.value) || 0 }))}
-                className="w-full h-12 px-3 border rounded-lg"
-                style={{ borderColor: '#E5E7EB' }}
+                className="cap-input w-full"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#94A3B8' }}>
               Scheduled Start *
             </label>
             <input
               type="datetime-local"
               value={formData.scheduled_start}
               onChange={(e) => setFormData(prev => ({ ...prev, scheduled_start: e.target.value }))}
-              className="w-full h-12 px-3 border rounded-lg"
-              style={{ borderColor: '#E5E7EB' }}
+              className="cap-input w-full"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#94A3B8' }}>
                 Max Entries
               </label>
               <input
                 type="number"
                 value={formData.max_entries}
                 onChange={(e) => setFormData(prev => ({ ...prev, max_entries: parseInt(e.target.value) || 100 }))}
-                className="w-full h-12 px-3 border rounded-lg"
-                style={{ borderColor: '#E5E7EB' }}
+                className="cap-input w-full"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#94A3B8' }}>
                 Late Reg Levels
               </label>
               <input
                 type="number"
                 value={formData.late_reg_levels}
                 onChange={(e) => setFormData(prev => ({ ...prev, late_reg_levels: parseInt(e.target.value) || 0 }))}
-                className="w-full h-12 px-3 border rounded-lg"
-                style={{ borderColor: '#E5E7EB' }}
+                className="cap-input w-full"
               />
             </div>
           </div>
@@ -482,18 +471,18 @@ function CreateTournamentModal({ venueId, onClose, onCreate }) {
                 type="checkbox"
                 checked={formData.rebuy_allowed}
                 onChange={(e) => setFormData(prev => ({ ...prev, rebuy_allowed: e.target.checked }))}
-                className="w-5 h-5 rounded border-gray-300"
+                className="w-5 h-5 rounded border-[#4A5E78]"
               />
-              <span className="text-sm text-gray-700">Rebuys Allowed</span>
+              <span className="text-sm text-[#94A3B8]">Rebuys Allowed</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.addon_allowed}
                 onChange={(e) => setFormData(prev => ({ ...prev, addon_allowed: e.target.checked }))}
-                className="w-5 h-5 rounded border-gray-300"
+                className="w-5 h-5 rounded border-[#4A5E78]"
               />
-              <span className="text-sm text-gray-700">Add-on Allowed</span>
+              <span className="text-sm text-[#94A3B8]">Add-on Allowed</span>
             </label>
           </div>
         </div>
@@ -502,15 +491,14 @@ function CreateTournamentModal({ venueId, onClose, onCreate }) {
           <button
             onClick={onClose}
             className="flex-1 h-12 border rounded-xl font-medium"
-            style={{ borderColor: '#E5E7EB', color: '#6B7280' }}
+            style={{ borderColor: '#4A5E78', color: '#64748B' }}
           >
             Cancel
           </button>
           <button
             onClick={handleCreate}
             disabled={!formData.name.trim() || !formData.scheduled_start || loading}
-            className="flex-1 h-12 text-white rounded-xl font-medium disabled:opacity-50"
-            style={{ backgroundColor: '#1877F2' }}
+            className="cap-btn cap-btn-primary flex-1 h-12 rounded-xl disabled:opacity-50"
           >
             {loading ? 'Creating...' : 'Create Tournament'}
           </button>
@@ -567,20 +555,19 @@ function EliminateModal({ tournament, onClose, onEliminate }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-md p-6">
-        <h2 className="text-xl font-bold mb-4" style={{ color: '#1F2937' }}>Eliminate Player</h2>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="cap-panel cap-corner-lights w-full max-w-md p-6">
+        <h2 className="text-xl font-bold text-white mb-4">Eliminate Player</h2>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#94A3B8' }}>
               Player to Eliminate
             </label>
             <select
               value={selectedPlayer || ''}
               onChange={(e) => setSelectedPlayer(e.target.value)}
-              className="w-full h-12 px-3 border rounded-lg"
-              style={{ borderColor: '#E5E7EB' }}
+              className="cap-input w-full"
             >
               <option value="">Select player...</option>
               {entries.map(entry => (
@@ -592,14 +579,13 @@ function EliminateModal({ tournament, onClose, onEliminate }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#94A3B8' }}>
               Eliminated By (optional)
             </label>
             <select
               value={eliminatedBy || ''}
               onChange={(e) => setEliminatedBy(e.target.value)}
-              className="w-full h-12 px-3 border rounded-lg"
-              style={{ borderColor: '#E5E7EB' }}
+              className="cap-input w-full"
             >
               <option value="">Select player...</option>
               {entries.filter(e => e.id !== selectedPlayer).map(entry => (
@@ -615,7 +601,7 @@ function EliminateModal({ tournament, onClose, onEliminate }) {
           <button
             onClick={onClose}
             className="flex-1 h-12 border rounded-xl font-medium"
-            style={{ borderColor: '#E5E7EB', color: '#6B7280' }}
+            style={{ borderColor: '#4A5E78', color: '#64748B' }}
           >
             Cancel
           </button>
@@ -697,16 +683,16 @@ function PayoutsModal({ tournament, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-2" style={{ color: '#1F2937' }}>Tournament Payouts</h2>
-        <p className="text-sm mb-4" style={{ color: '#6B7280' }}>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="cap-panel cap-corner-lights w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto">
+        <h2 className="text-xl font-bold text-white mb-2">Tournament Payouts</h2>
+        <p className="text-sm mb-4" style={{ color: '#64748B' }}>
           Prize Pool: ${tournament.prize_pool?.toLocaleString() || 0}
         </p>
 
         <div className="space-y-3">
           {payouts.map((payout, index) => (
-            <div key={index} className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: '#F9FAFB' }}>
+            <div key={index} className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: '#0D192E' }}>
               <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white"
                    style={{ backgroundColor: index === 0 ? '#F59E0B' : index === 1 ? '#9CA3AF' : index === 2 ? '#B45309' : '#6B7280' }}>
                 {payout.place}
@@ -719,8 +705,7 @@ function PayoutsModal({ tournament, onClose, onSave }) {
                     newPayouts[index].entry_id = e.target.value;
                     setPayouts(newPayouts);
                   }}
-                  className="w-full h-10 px-2 border rounded"
-                  style={{ borderColor: '#E5E7EB' }}
+                  className="cap-input w-full"
                 >
                   <option value="">Select player...</option>
                   {entries.map(entry => (
@@ -739,8 +724,7 @@ function PayoutsModal({ tournament, onClose, onSave }) {
                     newPayouts[index].amount = parseInt(e.target.value) || 0;
                     setPayouts(newPayouts);
                   }}
-                  className="w-24 h-10 px-2 border rounded text-right font-medium"
-                  style={{ borderColor: '#E5E7EB' }}
+                  className="cap-input w-24 text-right font-medium"
                 />
               </div>
             </div>
@@ -751,7 +735,7 @@ function PayoutsModal({ tournament, onClose, onSave }) {
           <button
             onClick={onClose}
             className="flex-1 h-12 border rounded-xl font-medium"
-            style={{ borderColor: '#E5E7EB', color: '#6B7280' }}
+            style={{ borderColor: '#4A5E78', color: '#64748B' }}
           >
             Cancel
           </button>

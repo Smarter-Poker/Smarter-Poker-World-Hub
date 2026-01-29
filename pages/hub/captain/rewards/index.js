@@ -1,7 +1,7 @@
 /**
  * Player Rewards/Comps Page
  * View comp balance, earn rates, and redeem rewards
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -17,30 +17,31 @@ import {
   Loader2,
   Coffee,
   Utensils,
-  CreditCard
+  CreditCard,
+  Zap
 } from 'lucide-react';
 
 const REWARD_CATEGORIES = [
   { id: 'food', label: 'Food & Beverage', icon: Utensils, color: '#F59E0B' },
   { id: 'merchandise', label: 'Merchandise', icon: Gift, color: '#8B5CF6' },
   { id: 'freeplay', label: 'Free Play', icon: CreditCard, color: '#10B981' },
-  { id: 'tournament', label: 'Tournament Entry', icon: Star, color: '#1877F2' }
+  { id: 'tournament', label: 'Tournament Entry', icon: Star, color: '#22D3EE' }
 ];
 
-function StatCard({ icon: Icon, label, value, subtext, color = '#1877F2' }) {
+function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
   return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+    <div className="cap-panel p-4">
       <div className="flex items-start gap-3">
         <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: `${color}15` }}
+          className="w-10 h-10 rounded-lg flex items-center justify-center border-2"
+          style={{ backgroundColor: `${color}15`, borderColor: `${color}40` }}
         >
           <Icon className="w-5 h-5" style={{ color }} />
         </div>
         <div>
-          <p className="text-2xl font-bold text-[#1F2937]">{value}</p>
-          <p className="text-sm text-[#6B7280]">{label}</p>
-          {subtext && <p className="text-xs text-[#9CA3AF] mt-1">{subtext}</p>}
+          <p className="text-2xl font-bold text-white">{value}</p>
+          <p className="text-sm text-[#64748B]">{label}</p>
+          {subtext && <p className="text-xs text-[#64748B] mt-1">{subtext}</p>}
         </div>
       </div>
     </div>
@@ -52,25 +53,25 @@ function TransactionRow({ transaction }) {
   const date = new Date(transaction.created_at);
 
   return (
-    <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB] last:border-b-0">
+    <div className="flex items-center justify-between p-4 border-b border-[#4A5E78] last:border-b-0">
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-          isEarn ? 'bg-[#10B981]/10' : 'bg-[#1877F2]/10'
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+          isEarn ? 'bg-[#10B981]/10 border-[#10B981]/30' : 'bg-[#22D3EE]/10 border-[#22D3EE]/30'
         }`}>
           {isEarn ? (
             <TrendingUp className="w-5 h-5 text-[#10B981]" />
           ) : (
-            <Gift className="w-5 h-5 text-[#1877F2]" />
+            <Gift className="w-5 h-5 text-[#22D3EE]" />
           )}
         </div>
         <div>
-          <p className="font-medium text-[#1F2937]">{transaction.description}</p>
-          <p className="text-sm text-[#6B7280]">
+          <p className="font-medium text-white">{transaction.description}</p>
+          <p className="text-sm text-[#64748B]">
             {date.toLocaleDateString()} at {date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           </p>
         </div>
       </div>
-      <span className={`font-semibold ${isEarn ? 'text-[#10B981]' : 'text-[#1877F2]'}`}>
+      <span className={`font-bold ${isEarn ? 'text-[#10B981]' : 'text-[#22D3EE]'}`}>
         {isEarn ? '+' : '-'}${transaction.amount}
       </span>
     </div>
@@ -182,8 +183,8 @@ export default function PlayerRewardsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
@@ -195,27 +196,29 @@ export default function PlayerRewardsPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Coming Soon Banner */}
         {comingSoonMessage && (
-          <div className="fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium bg-[#1877F2]">
+          <div className="fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center font-bold bg-[#22D3EE]/20 border-b-2 border-[#22D3EE] text-[#22D3EE] uppercase tracking-wide">
             {comingSoonMessage}
           </div>
         )}
 
         {/* Header */}
-        <header className="bg-[#1877F2] text-white">
+        <header className="cap-header-full">
           <div className="max-w-lg mx-auto px-4 py-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Gift className="w-8 h-8" />
-              <h1 className="text-2xl font-bold">My Rewards</h1>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="cap-icon-box cap-icon-box-glow w-14 h-14">
+                <Gift className="w-7 h-7" />
+              </div>
+              <h1 className="text-2xl font-extrabold text-white tracking-wider cap-text-glow">MY REWARDS</h1>
             </div>
 
             {/* Balance Card */}
-            <div className="bg-white/10 rounded-xl p-4">
-              <p className="text-sm text-white/80 mb-1">Available Balance</p>
-              <p className="text-4xl font-bold">${balance}</p>
-              <p className="text-sm text-white/80 mt-2">
+            <div className="cap-inset rounded-xl p-5">
+              <p className="text-sm text-[#64748B] mb-1 font-bold uppercase tracking-wide">Available Balance</p>
+              <p className="cap-stat-value">${balance}</p>
+              <p className="text-sm text-[#64748B] mt-2 font-medium">
                 Earn ${earnRate}/hour played
               </p>
             </div>
@@ -242,28 +245,28 @@ export default function PlayerRewardsPage() {
 
           {/* Redeem Options */}
           <div>
-            <h2 className="font-semibold text-[#1F2937] mb-3">Redeem Rewards</h2>
-            <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+            <h2 className="font-bold text-white mb-3 uppercase tracking-wide text-sm">Redeem Rewards</h2>
+            <div className="cap-panel overflow-hidden p-0">
               {REWARD_CATEGORIES.map((category, index) => {
                 const Icon = category.icon;
                 return (
                   <button
                     key={category.id}
                     onClick={() => handleRedeem(category)}
-                    className={`w-full flex items-center justify-between p-4 hover:bg-[#F9FAFB] transition-colors ${
-                      index < REWARD_CATEGORIES.length - 1 ? 'border-b border-[#E5E7EB]' : ''
+                    className={`w-full flex items-center justify-between p-4 hover:bg-[#0F1C32] transition-colors ${
+                      index < REWARD_CATEGORIES.length - 1 ? 'border-b border-[#4A5E78]' : ''
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${category.color}15` }}
+                        className="w-10 h-10 rounded-lg flex items-center justify-center border-2"
+                        style={{ backgroundColor: `${category.color}15`, borderColor: `${category.color}40` }}
                       >
                         <Icon className="w-5 h-5" style={{ color: category.color }} />
                       </div>
-                      <span className="font-medium text-[#1F2937]">{category.label}</span>
+                      <span className="font-medium text-white">{category.label}</span>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
+                    <ChevronRight className="w-5 h-5 text-[#64748B]" />
                   </button>
                 );
               })}
@@ -272,20 +275,22 @@ export default function PlayerRewardsPage() {
 
           {/* Recent Transactions */}
           <div>
-            <h2 className="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
-              <History className="w-5 h-5 text-[#6B7280]" />
+            <h2 className="font-bold text-white mb-3 flex items-center gap-2 uppercase tracking-wide text-sm">
+              <History className="w-5 h-5 text-[#64748B]" />
               Recent Activity
             </h2>
             {transactions.length === 0 ? (
-              <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-                <History className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                <p className="text-[#6B7280]">No transactions yet</p>
-                <p className="text-sm text-[#9CA3AF] mt-1">
+              <div className="cap-panel p-8 text-center">
+                <div className="cap-icon-box mx-auto mb-3">
+                  <History className="w-7 h-7" />
+                </div>
+                <p className="text-[#64748B] font-medium">No transactions yet</p>
+                <p className="text-sm text-[#64748B] mt-1">
                   Play poker to start earning rewards!
                 </p>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+              <div className="cap-panel overflow-hidden p-0">
                 {transactions.map((transaction) => (
                   <TransactionRow key={transaction.id} transaction={transaction} />
                 ))}
@@ -294,9 +299,9 @@ export default function PlayerRewardsPage() {
           </div>
 
           {/* Info */}
-          <div className="bg-[#1877F2]/5 rounded-xl p-4">
-            <h3 className="font-medium text-[#1877F2] mb-2">How It Works</h3>
-            <ul className="text-sm text-[#6B7280] space-y-2">
+          <div className="cap-inset rounded-xl p-5">
+            <h3 className="font-bold text-[#22D3EE] mb-3 uppercase tracking-wide text-sm">How It Works</h3>
+            <ul className="text-sm text-[#CBD5E1] space-y-2">
               <li>Earn ${earnRate} for every hour you play</li>
               <li>Bonus rewards during promotional hours</li>
               <li>Redeem anytime for food, merchandise, or free play</li>

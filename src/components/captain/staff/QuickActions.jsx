@@ -1,7 +1,7 @@
 /**
  * QuickActions Component - Common staff actions
  * Reference: IMPLEMENTATION_PHASES.md - Step 1.5
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { Plus, UserPlus, Users, Table2, Bell, Settings } from 'lucide-react';
 
@@ -20,7 +20,7 @@ export default function QuickActions({
       label: 'Open Game',
       icon: Plus,
       onClick: onOpenGame,
-      color: 'bg-[#1877F2]',
+      color: 'bg-[#22D3EE]',
       show: permissions.manage_games !== false
     },
     {
@@ -71,12 +71,12 @@ export default function QuickActions({
         <button
           key={action.id}
           onClick={action.onClick}
-          className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-[#E5E7EB] hover:border-[#1877F2] hover:shadow-md transition-all min-h-[80px]"
+          className="flex flex-col items-center gap-2 p-4 cap-panel hover:border-[#22D3EE] hover:shadow-md transition-all min-h-[80px]"
         >
           <div className={`p-2 rounded-lg ${action.color} text-white`}>
             <action.icon className="w-5 h-5" />
           </div>
-          <span className="text-sm font-medium text-[#1F2937] text-center">
+          <span className="text-sm font-medium text-white text-center">
             {action.label}
           </span>
         </button>

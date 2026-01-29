@@ -1,7 +1,7 @@
 /**
  * Player Venue Discovery Page
  * Find and view poker rooms using Smarter Captain
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -25,24 +25,24 @@ function VenueCard({ venue, onSelect }) {
   return (
     <button
       onClick={() => onSelect?.(venue)}
-      className="w-full bg-white rounded-xl border border-[#E5E7EB] p-4 text-left hover:shadow-md transition-shadow"
+      className="w-full cap-panel p-4 text-left hover:border-[#22D3EE]/30 transition-shadow"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h3 className="font-semibold text-[#1F2937]">{venue.name}</h3>
-          <p className="text-sm text-[#6B7280] flex items-center gap-1">
+          <h3 className="font-semibold text-white">{venue.name}</h3>
+          <p className="text-sm text-[#64748B] flex items-center gap-1">
             <MapPin className="w-4 h-4" />
             {venue.city}, {venue.state}
           </p>
         </div>
         {hasActiveGames && (
-          <span className="px-2 py-1 bg-[#10B981]/10 text-[#10B981] text-xs font-medium rounded">
+          <span className="cap-badge cap-badge-live">
             LIVE
           </span>
         )}
       </div>
 
-      <div className="flex items-center gap-4 text-sm text-[#6B7280] mb-3">
+      <div className="flex items-center gap-4 text-sm text-[#64748B] mb-3">
         <span className="flex items-center gap-1">
           <Users className="w-4 h-4" />
           {venue.active_games || 0} games
@@ -62,28 +62,28 @@ function VenueCard({ venue, onSelect }) {
       {venue.stakes_spread && (
         <div className="flex gap-2 mb-3">
           {venue.stakes_spread.slice(0, 3).map((stake, i) => (
-            <span key={i} className="px-2 py-1 bg-[#F3F4F6] text-[#1F2937] text-xs font-medium rounded">
+            <span key={i} className="px-2 py-1 bg-[#0D192E] text-white text-xs font-medium rounded">
               {stake}
             </span>
           ))}
           {venue.stakes_spread.length > 3 && (
-            <span className="px-2 py-1 bg-[#F3F4F6] text-[#6B7280] text-xs rounded">
+            <span className="px-2 py-1 bg-[#0D192E] text-[#64748B] text-xs rounded">
               +{venue.stakes_spread.length - 3} more
             </span>
           )}
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-3 border-t border-[#E5E7EB]">
+      <div className="flex items-center justify-between pt-3 border-t border-[#4A5E78]">
         <div className="flex items-center gap-1">
           {venue.rating && (
             <>
               <Star className="w-4 h-4 text-[#F59E0B] fill-[#F59E0B]" />
-              <span className="text-sm font-medium text-[#1F2937]">{venue.rating.toFixed(1)}</span>
+              <span className="text-sm font-medium text-white">{venue.rating.toFixed(1)}</span>
             </>
           )}
         </div>
-        <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
+        <ChevronRight className="w-5 h-5 text-[#4A5E78]" />
       </div>
     </button>
   );
@@ -139,24 +139,26 @@ export default function VenueDiscoveryPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-[#1877F2] text-white">
+        <header className="cap-header-full text-white">
           <div className="max-w-lg mx-auto px-4 py-6">
             <div className="flex items-center gap-3 mb-4">
-              <MapPin className="w-8 h-8" />
+              <div className="cap-icon-box cap-icon-box-glow">
+                <MapPin className="w-8 h-8" />
+              </div>
               <h1 className="text-2xl font-bold">Find Poker Rooms</h1>
             </div>
 
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6B7280]" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name or city..."
-                className="w-full h-12 pl-12 pr-4 bg-white text-[#1F2937] rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50"
+                className="w-full h-12 pl-12 pr-4 cap-input"
               />
             </div>
           </div>
@@ -175,8 +177,8 @@ export default function VenueDiscoveryPage() {
                 onClick={() => setFilter(value)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                   filter === value
-                    ? 'bg-[#1877F2] text-white'
-                    : 'bg-white border border-[#E5E7EB] text-[#1F2937] hover:bg-[#F3F4F6]'
+                    ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
+                    : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78]'
                 }`}
               >
                 {label}
@@ -187,13 +189,13 @@ export default function VenueDiscoveryPage() {
           {/* Venues List */}
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
             </div>
           ) : filteredVenues.length === 0 ? (
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-              <MapPin className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-              <p className="text-[#6B7280]">No venues found</p>
-              <p className="text-sm text-[#9CA3AF] mt-1">
+            <div className="cap-panel p-8 text-center">
+              <MapPin className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+              <p className="text-[#64748B]">No venues found</p>
+              <p className="text-sm text-[#4A5E78] mt-1">
                 Try adjusting your search or filters
               </p>
             </div>
@@ -210,7 +212,7 @@ export default function VenueDiscoveryPage() {
           )}
 
           {/* Info */}
-          <div className="text-center text-sm text-[#6B7280] pt-4">
+          <div className="text-center text-sm text-[#64748B] pt-4">
             <p>Tap a venue to check in and join waitlists</p>
           </div>
         </main>

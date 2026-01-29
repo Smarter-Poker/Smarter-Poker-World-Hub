@@ -1,7 +1,7 @@
 /**
  * SessionTracker Component - Shows active player sessions
  * Reference: SCOPE_LOCK.md - Phase 2 Components
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { Clock, LogOut, User, DollarSign } from 'lucide-react';
 
@@ -15,9 +15,9 @@ export default function SessionTracker({
 
   if (activeSessions.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 text-center">
-        <User className="w-8 h-8 mx-auto mb-2 text-[#6B7280] opacity-50" />
-        <p className="text-[#6B7280]">No active sessions</p>
+      <div className="cap-panel p-6 text-center">
+        <User className="w-8 h-8 mx-auto mb-2 text-[#64748B] opacity-50" />
+        <p className="text-[#64748B]">No active sessions</p>
       </div>
     );
   }
@@ -38,26 +38,26 @@ export default function SessionTracker({
     <div className="space-y-4">
       {showSummary && (
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg border border-[#E5E7EB] p-4 text-center">
-            <p className="text-2xl font-bold text-[#1877F2]">{summary.total}</p>
-            <p className="text-sm text-[#6B7280]">Active</p>
+          <div className="cap-panel p-4 text-center">
+            <p className="text-2xl font-bold text-[#22D3EE]">{summary.total}</p>
+            <p className="text-sm text-[#64748B]">Active</p>
           </div>
-          <div className="bg-white rounded-lg border border-[#E5E7EB] p-4 text-center">
-            <p className="text-2xl font-bold text-[#1F2937]">{summary.avgDuration}m</p>
-            <p className="text-sm text-[#6B7280]">Avg Time</p>
+          <div className="cap-panel p-4 text-center">
+            <p className="text-2xl font-bold text-white">{summary.avgDuration}m</p>
+            <p className="text-sm text-[#64748B]">Avg Time</p>
           </div>
-          <div className="bg-white rounded-lg border border-[#E5E7EB] p-4 text-center">
+          <div className="cap-panel p-4 text-center">
             <p className="text-2xl font-bold text-[#10B981]">${summary.totalBuyin}</p>
-            <p className="text-sm text-[#6B7280]">Total Buy-in</p>
+            <p className="text-sm text-[#64748B]">Total Buy-in</p>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-lg border border-[#E5E7EB] overflow-hidden">
-        <div className="p-4 border-b border-[#E5E7EB]">
-          <h3 className="font-semibold text-[#1F2937]">Active Sessions</h3>
+      <div className="cap-panel overflow-hidden">
+        <div className="p-4 border-b border-[#4A5E78]">
+          <h3 className="font-semibold text-white">Active Sessions</h3>
         </div>
-        <div className="divide-y divide-[#E5E7EB] max-h-[400px] overflow-y-auto">
+        <div className="divide-y divide-[#4A5E78] max-h-[400px] overflow-y-auto">
           {activeSessions.map((session) => (
             <SessionRow
               key={session.id}
@@ -85,9 +85,9 @@ function SessionRow({ session, onCheckout, onView }) {
     <div className="flex items-center justify-between p-4">
       <button
         onClick={onView}
-        className="flex items-center gap-3 text-left hover:bg-[#F9FAFB] -m-2 p-2 rounded-lg transition-colors"
+        className="flex items-center gap-3 text-left hover:bg-[#0B1426] -m-2 p-2 rounded-lg transition-colors"
       >
-        <div className="w-10 h-10 rounded-full bg-[#1877F2]/10 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 flex items-center justify-center">
           {session.profiles?.avatar_url ? (
             <img
               src={session.profiles.avatar_url}
@@ -95,12 +95,12 @@ function SessionRow({ session, onCheckout, onView }) {
               className="w-10 h-10 rounded-full object-cover"
             />
           ) : (
-            <User className="w-5 h-5 text-[#1877F2]" />
+            <User className="w-5 h-5 text-[#22D3EE]" />
           )}
         </div>
         <div>
-          <p className="font-medium text-[#1F2937]">{playerName}</p>
-          <div className="flex items-center gap-3 text-sm text-[#6B7280]">
+          <p className="font-medium text-white">{playerName}</p>
+          <div className="flex items-center gap-3 text-sm text-[#64748B]">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {formatDuration(duration)}
@@ -120,7 +120,7 @@ function SessionRow({ session, onCheckout, onView }) {
 
       <button
         onClick={onCheckout}
-        className="p-3 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+        className="p-3 rounded-lg border border-[#4A5E78] text-[#64748B] hover:border-[#EF4444] hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
         title="Check out player"
       >
         <LogOut className="w-5 h-5" />

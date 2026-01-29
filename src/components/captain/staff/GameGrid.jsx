@@ -1,15 +1,15 @@
 /**
  * GameGrid Component - Displays running games in a grid
  * Reference: IMPLEMENTATION_PHASES.md - Step 1.5
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { Users, Clock, ChevronRight } from 'lucide-react';
 
 export default function GameGrid({ games = [], onGameSelect, onOpenGame }) {
   if (games.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-[#E5E7EB] p-8 text-center">
-        <div className="text-[#6B7280] mb-4">
+      <div className="cap-panel p-8 text-center">
+        <div className="text-[#64748B] mb-4">
           <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
           <p className="text-lg font-medium">No Active Games</p>
           <p className="text-sm">Open a game to get started</p>
@@ -17,7 +17,7 @@ export default function GameGrid({ games = [], onGameSelect, onOpenGame }) {
         {onOpenGame && (
           <button
             onClick={onOpenGame}
-            className="mt-4 px-6 py-3 bg-[#1877F2] text-white rounded-lg font-medium hover:bg-[#1664d9] transition-colors min-h-[44px]"
+            className="mt-4 px-6 py-3 cap-btn cap-btn-primary min-h-[44px]"
           >
             Open New Game
           </button>
@@ -54,12 +54,12 @@ function GameCard({ game, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="bg-white rounded-lg border border-[#E5E7EB] p-4 text-left hover:border-[#1877F2] hover:shadow-md transition-all min-h-[44px] w-full"
+      className="cap-panel p-4 text-left hover:border-[#22D3EE] hover:shadow-md transition-all min-h-[44px] w-full"
     >
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold text-[#1F2937]">
+            <span className="text-lg font-semibold text-white">
               {game.game_type?.toUpperCase()} {game.stakes}
             </span>
             <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[game.status] || statusColors.waiting}`}>
@@ -67,30 +67,30 @@ function GameCard({ game, onClick }) {
             </span>
           </div>
           {game.captain_tables && (
-            <p className="text-sm text-[#6B7280] mt-1">
+            <p className="text-sm text-[#64748B] mt-1">
               Table {game.captain_tables.table_number}
               {game.captain_tables.table_name && ` - ${game.captain_tables.table_name}`}
             </p>
           )}
         </div>
-        <ChevronRight className="w-5 h-5 text-[#6B7280]" />
+        <ChevronRight className="w-5 h-5 text-[#64748B]" />
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 text-[#1F2937]">
+        <div className="flex items-center gap-2 text-white">
           <Users className="w-4 h-4" />
           <span className="font-medium">{occupiedSeats}/{maxSeats}</span>
         </div>
         {game.waitlist_count > 0 && (
-          <div className="text-sm text-[#1877F2] font-medium">
+          <div className="text-sm text-[#22D3EE] font-medium">
             +{game.waitlist_count} waiting
           </div>
         )}
       </div>
 
-      <div className="mt-3 h-2 bg-[#E5E7EB] rounded-full overflow-hidden">
+      <div className="mt-3 h-2 bg-[#4A5E78] rounded-full overflow-hidden">
         <div
-          className="h-full bg-[#1877F2] transition-all"
+          className="h-full bg-[#22D3EE] transition-all"
           style={{ width: `${seatPercentage}%` }}
         />
       </div>

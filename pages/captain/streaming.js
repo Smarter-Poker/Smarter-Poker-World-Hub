@@ -1,7 +1,7 @@
 /**
  * Staff Streaming Management Page
  * Configure and control table streams
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  * Per API_REFERENCE.md: /streaming endpoints
  */
 import { useState, useEffect } from 'react';
@@ -36,9 +36,9 @@ function StreamCard({ stream, onStart, onStop, onConfigure }) {
   const isLive = stream.status === 'live';
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+    <div className="cap-panel overflow-hidden">
       {/* Preview Area */}
-      <div className={`h-40 flex items-center justify-center ${isLive ? 'bg-[#1F2937]' : 'bg-[#F3F4F6]'}`}>
+      <div className={`h-40 flex items-center justify-center ${isLive ? 'bg-[#1F2937]' : 'bg-[#0D192E]'}`}>
         {isLive ? (
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 text-[#EF4444] mb-2">
@@ -48,15 +48,15 @@ function StreamCard({ stream, onStart, onStop, onConfigure }) {
             <p className="text-white text-sm">{stream.viewer_count || 0} viewers</p>
           </div>
         ) : (
-          <Video className="w-12 h-12 text-[#9CA3AF]" />
+          <Video className="w-12 h-12 text-[#4A5E78]" />
         )}
       </div>
 
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="font-semibold text-[#1F2937]">Table {stream.table_number}</h3>
-            <p className="text-sm text-[#6B7280]">{stream.game_info || 'No game'}</p>
+            <h3 className="font-semibold text-white">Table {stream.table_number}</h3>
+            <p className="text-sm text-[#64748B]">{stream.game_info || 'No game'}</p>
           </div>
           {isLive && (
             <span className="px-2 py-1 bg-[#EF4444]/10 text-[#EF4444] text-xs font-medium rounded flex items-center gap-1">
@@ -84,7 +84,7 @@ function StreamCard({ stream, onStart, onStop, onConfigure }) {
               );
             })}
             {stream.delay_minutes > 0 && (
-              <span className="text-xs text-[#6B7280] flex items-center gap-1">
+              <span className="text-xs text-[#64748B] flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 {stream.delay_minutes}m delay
               </span>
@@ -94,7 +94,7 @@ function StreamCard({ stream, onStart, onStop, onConfigure }) {
 
         {/* Duration */}
         {isLive && stream.started_at && (
-          <p className="text-sm text-[#6B7280] mb-3">
+          <p className="text-sm text-[#64748B] mb-3">
             Streaming for {Math.round((Date.now() - new Date(stream.started_at).getTime()) / 60000)} minutes
           </p>
         )}
@@ -120,7 +120,7 @@ function StreamCard({ stream, onStart, onStop, onConfigure }) {
           )}
           <button
             onClick={() => onConfigure(stream)}
-            className="px-4 py-2 border border-[#E5E7EB] text-[#6B7280] rounded-lg hover:bg-[#F3F4F6] transition-colors"
+            className="cap-btn cap-btn-secondary px-4 py-2"
           >
             <Settings className="w-4 h-4" />
           </button>
@@ -158,22 +158,22 @@ function ConfigureModal({ stream, onSave, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl p-6">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="w-full max-w-md cap-panel cap-corner-lights p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-[#1F2937]">Stream Settings</h2>
+          <h2 className="text-xl font-bold text-white">Stream Settings</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#6B7280]" />
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         <div className="space-y-6">
           {/* Platforms */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Stream To
             </label>
             <div className="flex gap-2">
@@ -187,15 +187,15 @@ function ConfigureModal({ stream, onSave, onClose }) {
                     className={`flex-1 py-3 rounded-lg border flex flex-col items-center gap-1 transition-colors ${
                       isSelected
                         ? 'border-2'
-                        : 'border-[#E5E7EB]'
+                        : 'border-[#4A5E78]'
                     }`}
                     style={{
                       borderColor: isSelected ? platform.color : undefined,
                       backgroundColor: isSelected ? `${platform.color}10` : undefined
                     }}
                   >
-                    <Icon className="w-5 h-5" style={{ color: isSelected ? platform.color : '#6B7280' }} />
-                    <span className="text-xs" style={{ color: isSelected ? platform.color : '#6B7280' }}>
+                    <Icon className="w-5 h-5" style={{ color: isSelected ? platform.color : '#64748B' }} />
+                    <span className="text-xs" style={{ color: isSelected ? platform.color : '#64748B' }}>
                       {platform.label}
                     </span>
                   </button>
@@ -206,7 +206,7 @@ function ConfigureModal({ stream, onSave, onClose }) {
 
           {/* Delay */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Stream Delay (minutes)
             </label>
             <div className="flex gap-2">
@@ -216,8 +216,8 @@ function ConfigureModal({ stream, onSave, onClose }) {
                   onClick={() => setConfig(prev => ({ ...prev, delay_minutes: mins }))}
                   className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${
                     config.delay_minutes === mins
-                      ? 'border-[#1877F2] bg-[#1877F2]/5 text-[#1877F2]'
-                      : 'border-[#E5E7EB] text-[#6B7280]'
+                      ? 'border-[#22D3EE] bg-[#22D3EE]/5 text-[#22D3EE]'
+                      : 'border-[#4A5E78] text-[#64748B]'
                   }`}
                 >
                   {mins}m
@@ -228,7 +228,7 @@ function ConfigureModal({ stream, onSave, onClose }) {
 
           {/* Overlay Options */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Overlay Options
             </label>
             <div className="space-y-2">
@@ -237,8 +237,8 @@ function ConfigureModal({ stream, onSave, onClose }) {
                 { key: 'showPlayerNames', label: 'Show Player Names' },
                 { key: 'showChipCounts', label: 'Show Chip Counts' }
               ].map(option => (
-                <label key={option.key} className="flex items-center justify-between p-3 bg-[#F9FAFB] rounded-lg">
-                  <span className="text-[#1F2937]">{option.label}</span>
+                <label key={option.key} className="flex items-center justify-between p-3 bg-[#0B1426] rounded-lg">
+                  <span className="text-white">{option.label}</span>
                   <input
                     type="checkbox"
                     checked={config.overlay_config[option.key]}
@@ -249,7 +249,7 @@ function ConfigureModal({ stream, onSave, onClose }) {
                         [option.key]: e.target.checked
                       }
                     }))}
-                    className="w-5 h-5 rounded border-[#E5E7EB] text-[#1877F2] focus:ring-[#1877F2]"
+                    className="w-5 h-5 rounded border-[#4A5E78] text-[#22D3EE] focus:ring-[#22D3EE]"
                   />
                 </label>
               ))}
@@ -259,14 +259,14 @@ function ConfigureModal({ stream, onSave, onClose }) {
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 h-12 border border-[#E5E7EB] text-[#6B7280] font-semibold rounded-xl hover:bg-[#F3F4F6] transition-colors"
+              className="cap-btn cap-btn-secondary flex-1 h-12"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={loading}
-              className="flex-1 h-12 bg-[#1877F2] text-white font-semibold rounded-xl hover:bg-[#1665D8] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="cap-btn cap-btn-primary flex-1 h-12 flex items-center justify-center gap-2"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Settings'}
             </button>
@@ -373,8 +373,8 @@ export default function StreamingPage() {
 
   if (!staff) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
@@ -386,23 +386,23 @@ export default function StreamingPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
+        <header className="cap-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-4">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/captain/dashboard')}
-                className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <ChevronLeft className="w-5 h-5 text-[#6B7280]" />
+                <ChevronLeft className="w-5 h-5 text-[#64748B]" />
               </button>
               <div>
-                <h1 className="text-xl font-bold text-[#1F2937] flex items-center gap-2">
-                  <Video className="w-6 h-6 text-[#1877F2]" />
+                <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Video className="w-6 h-6 text-[#22D3EE]" />
                   Streaming
                 </h1>
-                <p className="text-sm text-[#6B7280]">
+                <p className="text-sm text-[#64748B]">
                   {liveStreams.length} table{liveStreams.length !== 1 ? 's' : ''} live
                 </p>
               </div>
@@ -413,14 +413,14 @@ export default function StreamingPage() {
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
             </div>
           ) : (
             <>
               {/* Live Streams */}
               {liveStreams.length > 0 && (
                 <section>
-                  <h2 className="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+                  <h2 className="font-semibold text-white mb-3 flex items-center gap-2">
                     <span className="w-2 h-2 bg-[#EF4444] rounded-full animate-pulse" />
                     Live Now
                   </h2>
@@ -441,7 +441,7 @@ export default function StreamingPage() {
               {/* Available Tables */}
               {offlineStreams.length > 0 && (
                 <section>
-                  <h2 className="font-semibold text-[#1F2937] mb-3">Available Tables</h2>
+                  <h2 className="font-semibold text-white mb-3">Available Tables</h2>
                   <div className="grid md:grid-cols-2 gap-4">
                     {offlineStreams.map(stream => (
                       <StreamCard
@@ -457,9 +457,9 @@ export default function StreamingPage() {
               )}
 
               {streams.length === 0 && (
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-                  <Video className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                  <p className="text-[#6B7280]">No tables configured for streaming</p>
+                <div className="cap-panel p-8 text-center">
+                  <Video className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                  <p className="text-[#64748B]">No tables configured for streaming</p>
                 </div>
               )}
             </>

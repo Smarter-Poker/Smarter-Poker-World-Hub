@@ -1,7 +1,7 @@
 /**
  * Player Leaderboard Page
  * Public view of venue leaderboards and promotions
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -27,7 +27,7 @@ function LeaderboardRow({ player, rank, metric }) {
   };
 
   return (
-    <div className={`flex items-center gap-4 p-4 ${rank % 2 === 0 ? 'bg-[#F9FAFB]' : 'bg-white'}`}>
+    <div className={`flex items-center gap-4 p-4 ${rank % 2 === 0 ? 'bg-[#0F1C32]' : 'bg-[#132240]'}`}>
       <div className="w-10 text-center">
         {isTop3 ? (
           <div
@@ -37,28 +37,28 @@ function LeaderboardRow({ player, rank, metric }) {
             <Medal className="w-5 h-5" style={{ color: medalColors[rank] }} />
           </div>
         ) : (
-          <span className="text-lg font-bold text-[#6B7280]">{rank}</span>
+          <span className="text-lg font-bold text-[#64748B]">{rank}</span>
         )}
       </div>
 
       <div className="flex-1 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-[#1877F2]/10 flex items-center justify-center overflow-hidden">
+        <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/30 flex items-center justify-center overflow-hidden">
           {player.avatar_url ? (
             <img src={player.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
           ) : (
-            <Users className="w-5 h-5 text-[#1877F2]" />
+            <Users className="w-5 h-5 text-[#22D3EE]" />
           )}
         </div>
         <div>
-          <p className={`font-medium ${isTop3 ? 'text-[#1F2937]' : 'text-[#374151]'}`}>
+          <p className={`font-medium ${isTop3 ? 'text-white' : 'text-white'}`}>
             {player.display_name || player.player_name || 'Anonymous'}
           </p>
-          <p className="text-sm text-[#6B7280]">{player.sessions || 0} sessions</p>
+          <p className="text-sm text-[#64748B]">{player.sessions || 0} sessions</p>
         </div>
       </div>
 
       <div className="text-right">
-        <p className={`text-lg font-bold ${isTop3 ? 'text-[#1877F2]' : 'text-[#1F2937]'}`}>
+        <p className={`text-lg font-bold ${isTop3 ? 'text-[#22D3EE]' : 'text-white'}`}>
           {metric === 'hours' && `${player.total_hours || 0}h`}
           {metric === 'sessions' && (player.sessions || 0)}
           {metric === 'buyins' && `$${(player.total_buyins || 0).toLocaleString()}`}
@@ -73,14 +73,14 @@ function PromotionCard({ promo }) {
   const isActive = promo.is_active;
 
   return (
-    <div className={`bg-white rounded-xl border p-4 ${isActive ? 'border-[#10B981]' : 'border-[#E5E7EB]'}`}>
+    <div className={`cap-panel ${isActive ? 'border-[#10B981]' : ''}`}>
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-[#F59E0B]" />
-          <h3 className="font-semibold text-[#1F2937]">{promo.name}</h3>
+          <h3 className="font-semibold text-white">{promo.name}</h3>
         </div>
         {isActive && (
-          <span className="px-2 py-1 bg-[#10B981]/10 text-[#10B981] text-xs font-medium rounded">
+          <span className="cap-badge cap-badge-live">
             LIVE
           </span>
         )}
@@ -90,7 +90,7 @@ function PromotionCard({ promo }) {
         ${promo.prize_amount?.toLocaleString() || 0}
       </p>
 
-      <div className="flex items-center gap-4 text-sm text-[#6B7280]">
+      <div className="flex items-center gap-4 text-sm text-[#64748B]">
         <span className="flex items-center gap-1">
           <Clock className="w-4 h-4" />
           {promo.frequency}
@@ -101,7 +101,7 @@ function PromotionCard({ promo }) {
       </div>
 
       {promo.description && (
-        <p className="text-sm text-[#6B7280] mt-2">{promo.description}</p>
+        <p className="text-sm text-[#64748B] mt-2">{promo.description}</p>
       )}
     </div>
   );
@@ -170,12 +170,14 @@ export default function LeaderboardPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-[#1877F2] text-white">
+        <header className="cap-header-full text-white">
           <div className="max-w-4xl mx-auto px-4 py-6">
             <div className="flex items-center gap-3 mb-2">
-              <Trophy className="w-8 h-8" />
+              <div className="cap-icon-box cap-icon-box-glow">
+                <Trophy className="w-8 h-8" />
+              </div>
               <h1 className="text-2xl font-bold">{venue?.name || 'Leaderboard'}</h1>
             </div>
             <p className="text-white/80">Top players this {period}</p>
@@ -186,7 +188,7 @@ export default function LeaderboardPage() {
           {/* Active Promotions */}
           {promotions.length > 0 && (
             <div>
-              <h2 className="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+              <h2 className="font-bold text-white uppercase tracking-wide text-sm mb-3 flex items-center gap-2">
                 <Star className="w-5 h-5 text-[#F59E0B]" />
                 Active Promotions
               </h2>
@@ -207,8 +209,8 @@ export default function LeaderboardPage() {
                   onClick={() => setPeriod(p)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
                     period === p
-                      ? 'bg-[#1877F2] text-white'
-                      : 'bg-white border border-[#E5E7EB] text-[#1F2937] hover:bg-[#F3F4F6]'
+                      ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
+                      : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78] hover:text-white'
                   }`}
                 >
                   {p === 'all' ? 'All Time' : p}
@@ -223,8 +225,8 @@ export default function LeaderboardPage() {
                   onClick={() => setMetric(value)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     metric === value
-                      ? 'bg-[#1877F2] text-white'
-                      : 'bg-white border border-[#E5E7EB] text-[#1F2937] hover:bg-[#F3F4F6]'
+                      ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
+                      : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78] hover:text-white'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -237,28 +239,28 @@ export default function LeaderboardPage() {
           {/* Leaderboard */}
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
             </div>
           ) : leaderboard.length === 0 ? (
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
+            <div className="cap-panel p-8 text-center">
               <Trophy className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-              <p className="text-[#6B7280]">No leaderboard data available</p>
+              <p className="text-[#64748B]">No leaderboard data available</p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
-              <div className="p-4 border-b border-[#E5E7EB] bg-[#F9FAFB]">
+            <div className="cap-panel !p-0 overflow-hidden">
+              <div className="p-4 border-b border-[#4A5E78] bg-[#0D192E]">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-[#1F2937]">
+                  <h3 className="font-bold text-white uppercase tracking-wide text-sm">
                     Top {leaderboard.length} Players
                   </h3>
-                  <div className="flex items-center gap-1 text-sm text-[#6B7280]">
+                  <div className="flex items-center gap-1 text-sm text-[#64748B]">
                     <TrendingUp className="w-4 h-4" />
                     By {METRICS.find(m => m.value === metric)?.label}
                   </div>
                 </div>
               </div>
 
-              <div className="divide-y divide-[#E5E7EB]">
+              <div className="divide-y divide-[#4A5E78]">
                 {leaderboard.map((player, index) => (
                   <LeaderboardRow
                     key={player.id}

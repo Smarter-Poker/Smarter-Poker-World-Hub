@@ -1,7 +1,7 @@
 /**
  * Player Notifications Page
  * View announcements and notifications from venues
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -16,7 +16,8 @@ import {
   AlertCircle,
   Check,
   Trash2,
-  Loader2
+  Loader2,
+  Zap
 } from 'lucide-react';
 
 const NOTIFICATION_ICONS = {
@@ -32,23 +33,23 @@ const NOTIFICATION_COLORS = {
   seat_available: '#10B981',
   promotion: '#F59E0B',
   tournament: '#8B5CF6',
-  announcement: '#1877F2',
-  waitlist: '#6B7280',
+  announcement: '#22D3EE',
+  waitlist: '#64748B',
   alert: '#EF4444'
 };
 
 function NotificationCard({ notification, onMarkRead, onDelete }) {
   const Icon = NOTIFICATION_ICONS[notification.type] || Bell;
-  const color = NOTIFICATION_COLORS[notification.type] || '#1877F2';
+  const color = NOTIFICATION_COLORS[notification.type] || '#22D3EE';
   const date = new Date(notification.created_at);
   const isUnread = !notification.read_at;
 
   return (
-    <div className={`bg-white rounded-xl border p-4 ${isUnread ? 'border-[#1877F2]' : 'border-[#E5E7EB]'}`}>
+    <div className={`cap-panel p-4 ${isUnread ? 'shadow-[0_0_20px_rgba(34,211,238,0.2)]' : ''}`}>
       <div className="flex items-start gap-3">
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: `${color}15` }}
+          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border-2"
+          style={{ backgroundColor: `${color}15`, borderColor: `${color}40` }}
         >
           <Icon className="w-5 h-5" style={{ color }} />
         </div>
@@ -56,27 +57,27 @@ function NotificationCard({ notification, onMarkRead, onDelete }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className={`font-medium ${isUnread ? 'text-[#1F2937]' : 'text-[#6B7280]'}`}>
+              <p className={`font-medium ${isUnread ? 'text-white' : 'text-[#64748B]'}`}>
                 {notification.title}
               </p>
               {notification.venue_name && (
-                <p className="text-sm text-[#6B7280] flex items-center gap-1">
+                <p className="text-sm text-[#64748B] flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
                   {notification.venue_name}
                 </p>
               )}
             </div>
             {isUnread && (
-              <span className="w-2 h-2 bg-[#1877F2] rounded-full flex-shrink-0 mt-2" />
+              <span className="w-2.5 h-2.5 bg-[#22D3EE] rounded-full flex-shrink-0 mt-2 shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
             )}
           </div>
 
           {notification.message && (
-            <p className="text-sm text-[#6B7280] mt-2">{notification.message}</p>
+            <p className="text-sm text-[#64748B] mt-2">{notification.message}</p>
           )}
 
           <div className="flex items-center justify-between mt-3">
-            <span className="text-xs text-[#9CA3AF]">
+            <span className="text-xs text-[#64748B]">
               {date.toLocaleDateString()} at {date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
             </span>
 
@@ -84,7 +85,7 @@ function NotificationCard({ notification, onMarkRead, onDelete }) {
               {isUnread && (
                 <button
                   onClick={() => onMarkRead?.(notification)}
-                  className="p-1.5 text-[#6B7280] hover:text-[#10B981] hover:bg-[#10B981]/10 rounded transition-colors"
+                  className="p-1.5 text-[#64748B] hover:text-[#10B981] hover:bg-[#10B981]/10 rounded transition-colors"
                   title="Mark as read"
                 >
                   <Check className="w-4 h-4" />
@@ -92,7 +93,7 @@ function NotificationCard({ notification, onMarkRead, onDelete }) {
               )}
               <button
                 onClick={() => onDelete?.(notification)}
-                className="p-1.5 text-[#6B7280] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded transition-colors"
+                className="p-1.5 text-[#64748B] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded transition-colors"
                 title="Delete"
               >
                 <Trash2 className="w-4 h-4" />
@@ -132,7 +133,7 @@ export default function PlayerNotificationsPage() {
     try {
       // PRIMARY: Check new unified key
       let token = localStorage.getItem('smarter-poker-auth');
-      // FALLBACK: Legacy sb-* keys for older users  
+      // FALLBACK: Legacy sb-* keys for older users
       if (!token) {
         const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
         if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
@@ -245,24 +246,28 @@ export default function PlayerNotificationsPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
+        <header className="cap-header-full sticky top-0 z-40">
           <div className="max-w-lg mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Bell className="w-6 h-6 text-[#1877F2]" />
-                <h1 className="text-xl font-bold text-[#1F2937]">Notifications</h1>
-                {unreadCount > 0 && (
-                  <span className="px-2 py-0.5 bg-[#1877F2] text-white text-xs font-medium rounded-full">
-                    {unreadCount}
-                  </span>
-                )}
+                <div className="cap-icon-box w-12 h-12">
+                  <Bell className="w-6 h-6" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-extrabold text-white tracking-wider">NOTIFICATIONS</h1>
+                  {unreadCount > 0 && (
+                    <span className="cap-badge cap-badge-live text-xs mt-1">
+                      {unreadCount} UNREAD
+                    </span>
+                  )}
+                </div>
               </div>
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllRead}
-                  className="text-sm font-medium text-[#1877F2] hover:underline"
+                  className="text-sm font-bold text-[#22D3EE] hover:text-white uppercase tracking-wide transition-colors"
                 >
                   Mark all read
                 </button>
@@ -281,9 +286,9 @@ export default function PlayerNotificationsPage() {
               <button
                 key={value}
                 onClick={() => setFilter(value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === value
-                  ? 'bg-[#1877F2] text-white'
-                  : 'bg-white border border-[#E5E7EB] text-[#1F2937] hover:bg-[#F3F4F6]'
+                className={`px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wide transition-colors border-2 ${filter === value
+                  ? 'bg-[#132240] text-[#22D3EE] border-[#22D3EE]'
+                  : 'bg-[#0F1C32] text-[#64748B] border-[#4A5E78] hover:border-[#7A8EA8]'
                   }`}
               >
                 {label}
@@ -294,15 +299,17 @@ export default function PlayerNotificationsPage() {
           {/* Notifications List */}
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
             </div>
           ) : filteredNotifications.length === 0 ? (
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-              <Bell className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-              <p className="text-[#6B7280]">
+            <div className="cap-panel p-8 text-center">
+              <div className="cap-icon-box mx-auto mb-3">
+                <Bell className="w-7 h-7" />
+              </div>
+              <p className="text-[#64748B] font-medium">
                 {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
               </p>
-              <p className="text-sm text-[#9CA3AF] mt-1">
+              <p className="text-sm text-[#64748B] mt-1">
                 Join a waitlist to receive updates
               </p>
             </div>

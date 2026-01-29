@@ -1,7 +1,7 @@
 /**
  * AuditLogViewer Component
  * Reference: IMPLEMENTATION_PHASES.md - Phase 6
- * View and filter audit logs
+ * Dark industrial sci-fi gaming theme
  */
 import React, { useState } from 'react';
 import {
@@ -85,8 +85,7 @@ function LogEntry({ log }) {
 
   return (
     <div
-      className="p-3 border-b last:border-b-0 hover:bg-gray-800/50 transition-colors cursor-pointer"
-      style={{ borderColor: '#374151' }}
+      className="p-3 border-b border-[#4A5E78] last:border-b-0 hover:bg-[#132240] transition-colors cursor-pointer"
       onClick={() => setExpanded(!expanded)}
     >
       <div className="flex items-start gap-3">
@@ -117,7 +116,7 @@ function LogEntry({ log }) {
             )}
           </div>
 
-          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+          <div className="flex items-center gap-2 mt-1 text-xs text-[#4A5E78]">
             <span>{getActorName()}</span>
             {log.target_type && (
               <>
@@ -129,7 +128,7 @@ function LogEntry({ log }) {
         </div>
 
         {/* Time */}
-        <div className="text-xs text-gray-500 flex-shrink-0">
+        <div className="text-xs text-[#4A5E78] flex-shrink-0">
           {formatTime(log.created_at)}
         </div>
       </div>
@@ -139,13 +138,13 @@ function LogEntry({ log }) {
         <div className="mt-3 ml-11 space-y-2">
           {/* Changes */}
           {log.changes && Object.keys(log.changes).length > 0 && (
-            <div className="p-2 rounded-lg text-xs" style={{ backgroundColor: '#374151' }}>
-              <div className="text-gray-400 mb-1">Changes:</div>
+            <div className="p-2 rounded-lg text-xs bg-[#0D192E]">
+              <div className="text-[#64748B] mb-1">Changes:</div>
               {Object.entries(log.changes).map(([field, change]) => (
                 <div key={field} className="flex gap-2">
-                  <span className="text-gray-500">{field}:</span>
+                  <span className="text-[#4A5E78]">{field}:</span>
                   <span className="text-red-400 line-through">{JSON.stringify(change.old)}</span>
-                  <span className="text-gray-500">-</span>
+                  <span className="text-[#4A5E78]">-</span>
                   <span className="text-green-400">{JSON.stringify(change.new)}</span>
                 </div>
               ))}
@@ -154,8 +153,8 @@ function LogEntry({ log }) {
 
           {/* Metadata */}
           {log.metadata && Object.keys(log.metadata).length > 0 && (
-            <div className="p-2 rounded-lg text-xs" style={{ backgroundColor: '#374151' }}>
-              <div className="text-gray-400 mb-1">Details:</div>
+            <div className="p-2 rounded-lg text-xs bg-[#0D192E]">
+              <div className="text-[#64748B] mb-1">Details:</div>
               <pre className="text-gray-300 whitespace-pre-wrap">
                 {JSON.stringify(log.metadata, null, 2)}
               </pre>
@@ -170,7 +169,7 @@ function LogEntry({ log }) {
           )}
 
           {/* Full timestamp */}
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-[#4A5E78]">
             {new Date(log.created_at).toLocaleString()}
           </div>
         </div>
@@ -203,20 +202,17 @@ export default function AuditLogViewer({
 
   if (isLoading && logs.length === 0) {
     return (
-      <div
-        className="rounded-xl border overflow-hidden"
-        style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-      >
-        <div className="p-4 border-b" style={{ borderColor: '#374151' }}>
-          <div className="h-8 w-32 rounded animate-pulse" style={{ backgroundColor: '#374151' }} />
+      <div className="cap-panel overflow-hidden">
+        <div className="p-4 border-b border-[#4A5E78]">
+          <div className="h-8 w-32 rounded animate-pulse bg-[#0D192E]" />
         </div>
-        <div className="divide-y" style={{ borderColor: '#374151' }}>
+        <div className="divide-y divide-[#4A5E78]">
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="p-3 flex gap-3">
-              <div className="w-8 h-8 rounded-lg animate-pulse" style={{ backgroundColor: '#374151' }} />
+              <div className="w-8 h-8 rounded-lg animate-pulse bg-[#0D192E]" />
               <div className="flex-1 space-y-2">
-                <div className="h-4 w-48 rounded animate-pulse" style={{ backgroundColor: '#374151' }} />
-                <div className="h-3 w-32 rounded animate-pulse" style={{ backgroundColor: '#374151' }} />
+                <div className="h-4 w-48 rounded animate-pulse bg-[#0D192E]" />
+                <div className="h-3 w-32 rounded animate-pulse bg-[#0D192E]" />
               </div>
             </div>
           ))}
@@ -226,20 +222,17 @@ export default function AuditLogViewer({
   }
 
   return (
-    <div
-      className="rounded-xl border overflow-hidden"
-      style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-    >
+    <div className="cap-panel overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: '#374151' }}>
+      <div className="p-4 border-b border-[#4A5E78] flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-white">Audit Logs</h3>
-          <p className="text-xs text-gray-500">{total.toLocaleString()} total entries</p>
+          <p className="text-xs text-[#4A5E78]">{total.toLocaleString()} total entries</p>
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-            showFilters ? 'bg-blue-500 text-white' : 'text-gray-400 hover:bg-gray-700'
+            showFilters ? 'bg-[#22D3EE] text-white' : 'text-[#64748B] hover:bg-[#132240]'
           }`}
         >
           <Filter size={16} />
@@ -250,17 +243,16 @@ export default function AuditLogViewer({
 
       {/* Filters */}
       {showFilters && (
-        <div className="p-4 border-b grid grid-cols-1 md:grid-cols-4 gap-3" style={{ borderColor: '#374151' }}>
+        <div className="p-4 border-b border-[#4A5E78] grid grid-cols-1 md:grid-cols-4 gap-3">
           {/* Search */}
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4A5E78]" />
             <input
               type="text"
               placeholder="Search..."
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="w-full pl-9 pr-3 py-2 rounded-lg text-sm text-white placeholder-gray-500"
-              style={{ backgroundColor: '#374151', border: 'none' }}
+              className="cap-input w-full pl-9 pr-3 py-2 text-sm"
             />
           </div>
 
@@ -268,8 +260,7 @@ export default function AuditLogViewer({
           <select
             value={filters.category}
             onChange={(e) => handleFilterChange('category', e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm text-white"
-            style={{ backgroundColor: '#374151', border: 'none' }}
+            className="cap-input px-3 py-2 text-sm"
           >
             {CATEGORIES.map(cat => (
               <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -281,8 +272,7 @@ export default function AuditLogViewer({
             type="date"
             value={filters.dateFrom}
             onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm text-white"
-            style={{ backgroundColor: '#374151', border: 'none' }}
+            className="cap-input px-3 py-2 text-sm"
           />
 
           {/* Date to */}
@@ -290,8 +280,7 @@ export default function AuditLogViewer({
             type="date"
             value={filters.dateTo}
             onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm text-white"
-            style={{ backgroundColor: '#374151', border: 'none' }}
+            className="cap-input px-3 py-2 text-sm"
           />
         </div>
       )}
@@ -299,9 +288,9 @@ export default function AuditLogViewer({
       {/* Logs */}
       {logs.length === 0 ? (
         <div className="p-8 text-center">
-          <Shield size={32} className="mx-auto text-gray-600 mb-2" />
-          <p className="text-gray-400">No audit logs found</p>
-          <p className="text-xs text-gray-500">Logs will appear as actions are performed</p>
+          <Shield size={32} className="mx-auto text-[#4A5E78] mb-2" />
+          <p className="text-[#64748B]">No audit logs found</p>
+          <p className="text-xs text-[#4A5E78]">Logs will appear as actions are performed</p>
         </div>
       ) : (
         <div className="max-h-[600px] overflow-y-auto">
@@ -313,11 +302,11 @@ export default function AuditLogViewer({
 
       {/* Load more */}
       {hasMore && (
-        <div className="p-4 border-t" style={{ borderColor: '#374151' }}>
+        <div className="p-4 border-t border-[#4A5E78]">
           <button
             onClick={onLoadMore}
             disabled={isLoading}
-            className="w-full py-2 text-center text-sm text-blue-400 hover:bg-gray-700/50 rounded-lg transition-colors"
+            className="w-full py-2 text-center text-sm text-[#22D3EE] hover:bg-[#132240] rounded-lg transition-colors"
           >
             {isLoading ? 'Loading...' : 'Load more logs'}
           </button>

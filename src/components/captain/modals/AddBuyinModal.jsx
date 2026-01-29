@@ -1,6 +1,6 @@
 /**
  * AddBuyinModal - Add additional buy-in to a seated player
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState } from 'react';
 import { X, DollarSign, Loader2 } from 'lucide-react';
@@ -70,48 +70,48 @@ export default function AddBuyinModal({
   if (!isOpen || !session) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-sm">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="cap-panel cap-corner-lights w-full max-w-sm">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB]">
+        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#10B981] rounded-lg flex items-center justify-center">
               <DollarSign className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[#1F2937]">Add Buy-in</h2>
-              <p className="text-sm text-[#6B7280]">
+              <h2 className="text-lg font-semibold text-white">Add Buy-in</h2>
+              <p className="text-sm text-[#64748B]">
                 {session.player_name || 'Player'} - Seat {session.seat_number}
               </p>
             </div>
           </div>
           <button
             onClick={resetAndClose}
-            className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#6B7280]" />
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         {/* Content */}
         <div className="p-4 space-y-4">
           {error && (
-            <div className="p-3 bg-[#FEF2F2] rounded-lg">
+            <div className="p-3 bg-[#EF4444]/10 rounded-lg">
               <p className="text-sm text-[#EF4444]">{error}</p>
             </div>
           )}
 
           {/* Current total */}
-          <div className="p-3 bg-[#F3F4F6] rounded-lg">
-            <p className="text-sm text-[#6B7280]">Current total buy-in</p>
-            <p className="text-xl font-bold text-[#1F2937]">
+          <div className="p-3 bg-[#0D192E] rounded-lg">
+            <p className="text-sm text-[#64748B]">Current total buy-in</p>
+            <p className="text-xl font-bold text-white">
               ${session.total_buyin || 0}
             </p>
           </div>
 
           {/* Quick amounts */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Quick Select
             </label>
             <div className="grid grid-cols-5 gap-2">
@@ -122,8 +122,8 @@ export default function AddBuyinModal({
                   onClick={() => setAmount(amt.toString())}
                   className={`h-10 rounded-lg text-sm font-medium transition-colors ${
                     amount === amt.toString()
-                      ? 'bg-[#1877F2] text-white'
-                      : 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                   }`}
                 >
                   ${amt}
@@ -134,23 +134,23 @@ export default function AddBuyinModal({
 
           {/* Custom amount */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Amount
             </label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6B7280]" />
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="Enter amount"
-                className="w-full h-12 pl-10 pr-4 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] text-lg"
+                className="cap-input w-full h-12 pl-10 pr-4 text-lg"
                 min={minBuyin || 0}
                 max={maxBuyin || undefined}
               />
             </div>
             {(minBuyin > 0 || maxBuyin < 999999) && (
-              <p className="text-xs text-[#6B7280] mt-1">
+              <p className="text-xs text-[#64748B] mt-1">
                 Buy-in range: ${minBuyin} - ${maxBuyin}
               </p>
             )}
@@ -158,7 +158,7 @@ export default function AddBuyinModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-[#E5E7EB]">
+        <div className="p-4 border-t border-[#4A5E78]">
           <button
             onClick={handleSubmit}
             disabled={!amount || parseInt(amount) <= 0 || submitting}

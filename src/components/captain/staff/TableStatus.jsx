@@ -1,7 +1,7 @@
 /**
  * TableStatus Component - Shows table status with game info
  * Reference: SCOPE_LOCK.md - Phase 2 Components
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { Users, Clock, Settings, Play, Square, Wrench } from 'lucide-react';
 
@@ -14,9 +14,9 @@ const STATUS_CONFIG = {
     label: 'Available'
   },
   in_use: {
-    color: 'bg-[#1877F2]',
-    textColor: 'text-[#1877F2]',
-    bgColor: 'bg-[#1877F2]/10',
+    color: 'bg-[#22D3EE]',
+    textColor: 'text-[#22D3EE]',
+    bgColor: 'bg-[#22D3EE]/10',
     icon: Users,
     label: 'In Use'
   },
@@ -54,17 +54,17 @@ export default function TableStatus({
       onClick={onClick}
       className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
         selected
-          ? 'border-[#1877F2] bg-[#1877F2]/5'
-          : 'border-[#E5E7EB] bg-white hover:border-[#1877F2]'
+          ? 'border-[#22D3EE] bg-[#22D3EE]/10'
+          : 'border-[#4A5E78] bg-[#132240] hover:border-[#22D3EE]'
       }`}
     >
       <div className="flex items-start justify-between mb-2">
         <div>
-          <h3 className="font-semibold text-[#1F2937]">
+          <h3 className="font-semibold text-white">
             Table {table.table_number}
           </h3>
           {table.table_name && (
-            <p className="text-sm text-[#6B7280]">{table.table_name}</p>
+            <p className="text-sm text-[#64748B]">{table.table_name}</p>
           )}
         </div>
         <span className={`px-2 py-1 rounded text-xs font-medium ${config.bgColor} ${config.textColor}`}>
@@ -73,11 +73,11 @@ export default function TableStatus({
       </div>
 
       {showDetails && game && table.status === 'in_use' && (
-        <div className="mt-3 pt-3 border-t border-[#E5E7EB]">
-          <p className="font-medium text-[#1F2937]">
+        <div className="mt-3 pt-3 border-t border-[#4A5E78]">
+          <p className="font-medium text-white">
             {game.game_type?.toUpperCase()} {game.stakes}
           </p>
-          <div className="flex items-center gap-4 mt-2 text-sm text-[#6B7280]">
+          <div className="flex items-center gap-4 mt-2 text-sm text-[#64748B]">
             <span className="flex items-center gap-1">
               <Users className="w-4 h-4" />
               {occupiedSeats}/{maxSeats}
@@ -96,7 +96,7 @@ export default function TableStatus({
               <div
                 key={i}
                 className={`h-2 flex-1 rounded-full ${
-                  i < occupiedSeats ? 'bg-[#1877F2]' : 'bg-[#E5E7EB]'
+                  i < occupiedSeats ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
                 }`}
               />
             ))}
@@ -105,8 +105,8 @@ export default function TableStatus({
       )}
 
       {table.status === 'available' && showDetails && (
-        <div className="mt-3 pt-3 border-t border-[#E5E7EB]">
-          <p className="text-sm text-[#6B7280]">
+        <div className="mt-3 pt-3 border-t border-[#4A5E78]">
+          <p className="text-sm text-[#64748B]">
             {maxSeats} seats available
           </p>
         </div>

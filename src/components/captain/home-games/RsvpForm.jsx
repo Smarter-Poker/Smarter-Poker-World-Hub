@@ -1,7 +1,7 @@
 /**
  * RsvpForm Component - RSVP to home game events
  * Reference: SCOPE_LOCK.md - Phase 4 Components
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { useState } from 'react';
 import { Check, X, HelpCircle, Users } from 'lucide-react';
@@ -37,7 +37,7 @@ export default function RsvpForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Response buttons */}
       <div>
-        <label className="block text-sm font-medium text-[#1F2937] mb-2">
+        <label className="block text-sm font-medium text-white mb-2">
           Your Response
         </label>
         <div className="flex gap-2">
@@ -46,8 +46,8 @@ export default function RsvpForm({
             onClick={() => setResponse('yes')}
             className={`flex-1 py-3 rounded-lg border-2 font-medium transition-colors flex items-center justify-center gap-2 ${
               response === 'yes'
-                ? 'border-[#10B981] bg-[#D1FAE5] text-[#10B981]'
-                : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#10B981]'
+                ? 'border-[#10B981] bg-[#10B981]/10 text-[#10B981]'
+                : 'border-[#4A5E78] text-[#64748B] hover:border-[#10B981]'
             }`}
           >
             <Check className="w-5 h-5" />
@@ -58,8 +58,8 @@ export default function RsvpForm({
             onClick={() => setResponse('maybe')}
             className={`flex-1 py-3 rounded-lg border-2 font-medium transition-colors flex items-center justify-center gap-2 ${
               response === 'maybe'
-                ? 'border-[#F59E0B] bg-[#FEF3C7] text-[#F59E0B]'
-                : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#F59E0B]'
+                ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-[#F59E0B]'
+                : 'border-[#4A5E78] text-[#64748B] hover:border-[#F59E0B]'
             }`}
           >
             <HelpCircle className="w-5 h-5" />
@@ -70,8 +70,8 @@ export default function RsvpForm({
             onClick={() => setResponse('no')}
             className={`flex-1 py-3 rounded-lg border-2 font-medium transition-colors flex items-center justify-center gap-2 ${
               response === 'no'
-                ? 'border-[#EF4444] bg-[#FEE2E2] text-[#EF4444]'
-                : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#EF4444]'
+                ? 'border-[#EF4444] bg-[#EF4444]/10 text-[#EF4444]'
+                : 'border-[#4A5E78] text-[#64748B] hover:border-[#EF4444]'
             }`}
           >
             <X className="w-5 h-5" />
@@ -82,7 +82,7 @@ export default function RsvpForm({
 
       {/* Capacity warning */}
       {willBeWaitlisted && (
-        <div className="p-3 bg-[#FEF3C7] border border-[#F59E0B] rounded-lg">
+        <div className="p-3 bg-[#F59E0B]/10 border border-[#F59E0B] rounded-lg">
           <p className="text-sm text-[#D97706]">
             This event is full. You will be added to the waitlist.
           </p>
@@ -92,14 +92,14 @@ export default function RsvpForm({
       {/* Guests (only if allowed and responding yes) */}
       {event.allow_guests && response === 'yes' && (
         <div>
-          <label className="block text-sm font-medium text-[#1F2937] mb-2">
+          <label className="block text-sm font-medium text-white mb-2">
             Bringing Guests?
           </label>
           <div className="flex items-center gap-3">
             <select
               value={bringingGuests}
               onChange={(e) => setBringingGuests(parseInt(e.target.value))}
-              className="px-3 py-2 rounded-lg border border-[#E5E7EB] focus:border-[#1877F2] outline-none"
+              className="cap-input px-3 py-2"
             >
               <option value={0}>No guests</option>
               {Array.from({ length: event.guest_limit || 1 }, (_, i) => (
@@ -108,7 +108,7 @@ export default function RsvpForm({
                 </option>
               ))}
             </select>
-            <span className="text-sm text-[#6B7280]">
+            <span className="text-sm text-[#64748B]">
               Max {event.guest_limit || 1} guest{(event.guest_limit || 1) > 1 ? 's' : ''} allowed
             </span>
           </div>
@@ -119,7 +119,7 @@ export default function RsvpForm({
               value={guestNames}
               onChange={(e) => setGuestNames(e.target.value)}
               placeholder="Guest names (comma separated)"
-              className="mt-2 w-full px-3 py-2 rounded-lg border border-[#E5E7EB] focus:border-[#1877F2] outline-none"
+              className="cap-input mt-2 w-full px-3 py-2"
             />
           )}
         </div>
@@ -127,7 +127,7 @@ export default function RsvpForm({
 
       {/* Message to host */}
       <div>
-        <label className="block text-sm font-medium text-[#1F2937] mb-2">
+        <label className="block text-sm font-medium text-white mb-2">
           Message to Host (optional)
         </label>
         <textarea
@@ -135,7 +135,7 @@ export default function RsvpForm({
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Any notes for the host..."
           rows={2}
-          className="w-full px-3 py-2 rounded-lg border border-[#E5E7EB] focus:border-[#1877F2] outline-none resize-none"
+          className="cap-input w-full px-3 py-2 resize-none"
         />
       </div>
 
@@ -144,14 +144,14 @@ export default function RsvpForm({
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 py-2 rounded-lg border border-[#E5E7EB] text-[#6B7280] font-medium hover:bg-[#F9FAFB] transition-colors"
+          className="cap-btn cap-btn-secondary flex-1 py-2"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={!response || isLoading}
-          className="flex-1 py-2 rounded-lg bg-[#1877F2] text-white font-medium hover:bg-[#1664D9] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="cap-btn cap-btn-primary flex-1 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? 'Submitting...' : currentRsvp ? 'Update RSVP' : 'Submit RSVP'}
         </button>
@@ -173,14 +173,14 @@ export function RsvpList({ rsvps, isHost = false, onManage }) {
       {sections.map(section => (
         section.items.length > 0 && (
           <div key={section.key}>
-            <h4 className="text-sm font-medium text-[#6B7280] mb-2">
+            <h4 className="text-sm font-medium text-[#64748B] mb-2">
               {section.label} ({section.items.length})
             </h4>
             <div className="space-y-2">
               {section.items.map(rsvp => (
                 <div
                   key={rsvp.id}
-                  className="flex items-center justify-between p-2 rounded-lg bg-[#F9FAFB]"
+                  className="flex items-center justify-between p-2 rounded-lg bg-[#0B1426]"
                 >
                   <div className="flex items-center gap-2">
                     {rsvp.profiles?.avatar_url ? (
@@ -190,16 +190,16 @@ export function RsvpList({ rsvps, isHost = false, onManage }) {
                         className="w-8 h-8 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-[#E5E7EB] flex items-center justify-center">
-                        <Users className="w-4 h-4 text-[#6B7280]" />
+                      <div className="w-8 h-8 rounded-full bg-[#0D192E] flex items-center justify-center">
+                        <Users className="w-4 h-4 text-[#64748B]" />
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-medium text-[#1F2937]">
+                      <p className="text-sm font-medium text-white">
                         {rsvp.profiles?.display_name || 'Unknown'}
                       </p>
                       {rsvp.bringing_guests > 0 && (
-                        <p className="text-xs text-[#6B7280]">
+                        <p className="text-xs text-[#64748B]">
                           +{rsvp.bringing_guests} guest{rsvp.bringing_guests > 1 ? 's' : ''}
                         </p>
                       )}
@@ -208,19 +208,19 @@ export function RsvpList({ rsvps, isHost = false, onManage }) {
 
                   <div className="flex items-center gap-2">
                     {rsvp.is_confirmed && (
-                      <span className="px-2 py-0.5 bg-[#D1FAE5] text-[#10B981] text-xs rounded">
+                      <span className="px-2 py-0.5 bg-[#10B981]/10 text-[#10B981] text-xs rounded">
                         Confirmed
                       </span>
                     )}
                     {rsvp.seat_number && (
-                      <span className="text-xs text-[#6B7280]">
+                      <span className="text-xs text-[#64748B]">
                         Seat {rsvp.seat_number}
                       </span>
                     )}
                     {isHost && section.key !== 'waitlist' && (
                       <button
                         onClick={() => onManage?.(rsvp, rsvp.is_confirmed ? 'unconfirm' : 'confirm')}
-                        className="text-xs text-[#1877F2] hover:underline"
+                        className="text-xs text-[#22D3EE] hover:underline"
                       >
                         {rsvp.is_confirmed ? 'Unconfirm' : 'Confirm'}
                       </button>
@@ -228,7 +228,7 @@ export function RsvpList({ rsvps, isHost = false, onManage }) {
                     {isHost && section.key === 'waitlist' && (
                       <button
                         onClick={() => onManage?.(rsvp, 'move_from_waitlist')}
-                        className="text-xs text-[#1877F2] hover:underline"
+                        className="text-xs text-[#22D3EE] hover:underline"
                       >
                         Add to Game
                       </button>
@@ -242,7 +242,7 @@ export function RsvpList({ rsvps, isHost = false, onManage }) {
       ))}
 
       {Object.values(rsvps || {}).every(arr => arr.length === 0) && (
-        <p className="text-center text-[#6B7280] py-4">
+        <p className="text-center text-[#64748B] py-4">
           No RSVPs yet
         </p>
       )}

@@ -1,7 +1,7 @@
 /**
  * BlindStructureEditor Component - Create/edit tournament blind structures
  * Reference: SCOPE_LOCK.md - Phase 3 Components
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState } from 'react';
 import { Plus, Trash2, Clock, Coffee, GripVertical } from 'lucide-react';
@@ -132,14 +132,14 @@ export default function BlindStructureEditor({
     <div className="space-y-4">
       {/* Preset buttons */}
       <div className="flex flex-wrap gap-2">
-        <span className="text-sm text-[#6B7280] py-2">Load preset:</span>
+        <span className="text-sm text-[#64748B] py-2">Load preset:</span>
         {Object.entries(PRESET_STRUCTURES).map(([key, preset]) => (
           <button
             key={key}
             type="button"
             onClick={() => loadPreset(key)}
             disabled={disabled}
-            className="px-3 py-1 text-sm rounded-lg border border-[#E5E7EB] text-[#1F2937] hover:border-[#1877F2] hover:text-[#1877F2] transition-colors disabled:opacity-50"
+            className="px-3 py-1 text-sm rounded-lg border border-[#4A5E78] text-white hover:border-[#22D3EE] hover:text-[#22D3EE] transition-colors disabled:opacity-50"
           >
             {preset.name}
           </button>
@@ -147,8 +147,8 @@ export default function BlindStructureEditor({
       </div>
 
       {/* Level list */}
-      <div className="bg-white rounded-lg border border-[#E5E7EB] overflow-hidden">
-        <div className="bg-[#F9FAFB] px-4 py-2 grid grid-cols-12 gap-2 text-sm font-medium text-[#6B7280]">
+      <div className="cap-panel overflow-hidden">
+        <div className="bg-[#0D192E] px-4 py-2 grid grid-cols-12 gap-2 text-sm font-medium text-[#64748B]">
           <div className="col-span-1">Lvl</div>
           <div className="col-span-2">Small</div>
           <div className="col-span-2">Big</div>
@@ -157,7 +157,7 @@ export default function BlindStructureEditor({
           <div className="col-span-3">Actions</div>
         </div>
 
-        <div className="divide-y divide-[#E5E7EB] max-h-[400px] overflow-y-auto">
+        <div className="divide-y divide-[#4A5E78] max-h-[400px] overflow-y-auto">
           {levels.map((level, index) => {
             if (!level.is_break) levelNumber++;
 
@@ -165,15 +165,15 @@ export default function BlindStructureEditor({
               <div
                 key={index}
                 className={`px-4 py-2 grid grid-cols-12 gap-2 items-center ${
-                  level.is_break ? 'bg-[#FEF3C7]' : ''
+                  level.is_break ? 'bg-[#F59E0B]/10' : ''
                 }`}
               >
                 <div className="col-span-1 flex items-center gap-1">
-                  <GripVertical className="w-4 h-4 text-[#9CA3AF] cursor-move" />
+                  <GripVertical className="w-4 h-4 text-[#4A5E78] cursor-move" />
                   {level.is_break ? (
                     <Coffee className="w-4 h-4 text-[#D97706]" />
                   ) : (
-                    <span className="font-medium text-[#1F2937]">{levelNumber}</span>
+                    <span className="font-medium text-white">{levelNumber}</span>
                   )}
                 </div>
 
@@ -188,7 +188,7 @@ export default function BlindStructureEditor({
                         value={level.duration}
                         onChange={(e) => updateLevel(index, 'duration', parseInt(e.target.value) || 0)}
                         disabled={disabled}
-                        className="w-full px-2 py-1 rounded border border-[#E5E7EB] text-sm"
+                        className="w-full cap-input text-sm"
                         min="1"
                       />
                     </div>
@@ -201,7 +201,7 @@ export default function BlindStructureEditor({
                         value={level.small_blind}
                         onChange={(e) => updateLevel(index, 'small_blind', parseInt(e.target.value) || 0)}
                         disabled={disabled}
-                        className="w-full px-2 py-1 rounded border border-[#E5E7EB] text-sm"
+                        className="w-full cap-input text-sm"
                         min="1"
                       />
                     </div>
@@ -211,7 +211,7 @@ export default function BlindStructureEditor({
                         value={level.big_blind}
                         onChange={(e) => updateLevel(index, 'big_blind', parseInt(e.target.value) || 0)}
                         disabled={disabled}
-                        className="w-full px-2 py-1 rounded border border-[#E5E7EB] text-sm"
+                        className="w-full cap-input text-sm"
                         min="1"
                       />
                     </div>
@@ -221,7 +221,7 @@ export default function BlindStructureEditor({
                         value={level.ante || 0}
                         onChange={(e) => updateLevel(index, 'ante', parseInt(e.target.value) || 0)}
                         disabled={disabled}
-                        className="w-full px-2 py-1 rounded border border-[#E5E7EB] text-sm"
+                        className="w-full cap-input text-sm"
                         min="0"
                       />
                     </div>
@@ -231,7 +231,7 @@ export default function BlindStructureEditor({
                         value={level.duration}
                         onChange={(e) => updateLevel(index, 'duration', parseInt(e.target.value) || 0)}
                         disabled={disabled}
-                        className="w-full px-2 py-1 rounded border border-[#E5E7EB] text-sm"
+                        className="w-full cap-input text-sm"
                         min="1"
                       />
                     </div>
@@ -243,7 +243,7 @@ export default function BlindStructureEditor({
                     type="button"
                     onClick={() => moveLevel(index, -1)}
                     disabled={disabled || index === 0}
-                    className="p-1 text-[#6B7280] hover:text-[#1877F2] disabled:opacity-30"
+                    className="p-1 text-[#64748B] hover:text-[#22D3EE] disabled:opacity-30"
                     title="Move up"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -254,7 +254,7 @@ export default function BlindStructureEditor({
                     type="button"
                     onClick={() => moveLevel(index, 1)}
                     disabled={disabled || index === levels.length - 1}
-                    className="p-1 text-[#6B7280] hover:text-[#1877F2] disabled:opacity-30"
+                    className="p-1 text-[#64748B] hover:text-[#22D3EE] disabled:opacity-30"
                     title="Move down"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -265,7 +265,7 @@ export default function BlindStructureEditor({
                     type="button"
                     onClick={() => removeLevel(index)}
                     disabled={disabled}
-                    className="p-1 text-[#6B7280] hover:text-[#EF4444] disabled:opacity-30"
+                    className="p-1 text-[#64748B] hover:text-[#EF4444] disabled:opacity-30"
                     title="Remove"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -283,7 +283,7 @@ export default function BlindStructureEditor({
           type="button"
           onClick={() => addLevel(false)}
           disabled={disabled}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#1877F2] text-[#1877F2] hover:bg-[#1877F2] hover:text-white transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#22D3EE] text-[#22D3EE] hover:bg-[#22D3EE] hover:text-white transition-colors disabled:opacity-50"
         >
           <Plus className="w-4 h-4" />
           Add Level
@@ -301,20 +301,20 @@ export default function BlindStructureEditor({
 
       {/* Summary */}
       {levels.length > 0 && (
-        <div className="bg-[#F9FAFB] rounded-lg p-4">
-          <h4 className="font-medium text-[#1F2937] mb-2">Structure Summary</h4>
+        <div className="bg-[#0B1426] rounded-lg p-4">
+          <h4 className="font-medium text-white mb-2">Structure Summary</h4>
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>
-              <span className="text-[#6B7280]">Total Levels:</span>
-              <span className="ml-2 font-medium">{levels.filter(l => !l.is_break).length}</span>
+              <span className="text-[#64748B]">Total Levels:</span>
+              <span className="ml-2 font-medium text-white">{levels.filter(l => !l.is_break).length}</span>
             </div>
             <div>
-              <span className="text-[#6B7280]">Breaks:</span>
-              <span className="ml-2 font-medium">{levels.filter(l => l.is_break).length}</span>
+              <span className="text-[#64748B]">Breaks:</span>
+              <span className="ml-2 font-medium text-white">{levels.filter(l => l.is_break).length}</span>
             </div>
             <div>
-              <span className="text-[#6B7280]">Total Time:</span>
-              <span className="ml-2 font-medium">
+              <span className="text-[#64748B]">Total Time:</span>
+              <span className="ml-2 font-medium text-white">
                 {Math.floor(levels.reduce((sum, l) => sum + l.duration, 0) / 60)}h{' '}
                 {levels.reduce((sum, l) => sum + l.duration, 0) % 60}m
               </span>

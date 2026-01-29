@@ -1,7 +1,7 @@
 /**
  * Staff Marketplace Management Page
  * Browse and book freelance dealers and equipment
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -80,82 +80,82 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId }) {
   if (!isOpen || !equipment) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB]">
-          <h3 className="text-lg font-semibold text-[#1F2937]">Request Equipment Rental</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#F3F4F6] rounded-lg">
-            <X className="w-5 h-5 text-[#6B7280]" />
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="cap-panel cap-corner-lights w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+          <h3 className="text-lg font-semibold text-white">Request Equipment Rental</h3>
+          <button onClick={onClose} className="p-2 hover:bg-[#132240] rounded-lg">
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         {success ? (
           <div className="p-8 text-center">
             <CheckCircle className="w-12 h-12 text-[#10B981] mx-auto mb-3" />
-            <p className="font-semibold text-[#1F2937]">Rental Request Sent</p>
-            <p className="text-sm text-[#6B7280]">The equipment owner will be notified</p>
+            <p className="font-semibold text-white">Rental Request Sent</p>
+            <p className="text-sm text-[#64748B]">The equipment owner will be notified</p>
           </div>
         ) : (
           <>
             <div className="p-4 space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-[#F3F4F6] rounded-lg">
+              <div className="flex items-center gap-3 p-3 bg-[#0D192E] rounded-lg">
                 <div className="w-12 h-12 bg-[#10B981]/10 rounded-lg flex items-center justify-center">
                   <Package className="w-6 h-6 text-[#10B981]" />
                 </div>
                 <div>
-                  <p className="font-semibold text-[#1F2937]">{equipment.name}</p>
-                  <p className="text-sm text-[#6B7280]">${equipment.daily_rate}/day</p>
+                  <p className="font-semibold text-white">{equipment.name}</p>
+                  <p className="text-sm text-[#64748B]">${equipment.daily_rate}/day</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#1F2937] mb-2">Start Date</label>
+                <label className="block text-sm font-medium text-white mb-2">Start Date</label>
                 <input
                   type="date"
                   value={formData.start_date}
                   onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981]"
+                  className="cap-input w-full"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#1F2937] mb-2">End Date</label>
+                <label className="block text-sm font-medium text-white mb-2">End Date</label>
                 <input
                   type="date"
                   value={formData.end_date}
                   onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
                   min={formData.start_date || new Date().toISOString().split('T')[0]}
-                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981]"
+                  className="cap-input w-full"
                 />
               </div>
 
-              <div className="p-3 bg-[#F9FAFB] rounded-lg">
+              <div className="p-3 bg-[#0B1426] rounded-lg">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#6B7280]">Duration</span>
-                  <span className="font-medium text-[#1F2937]">{days} day{days > 1 ? 's' : ''}</span>
+                  <span className="text-[#64748B]">Duration</span>
+                  <span className="font-medium text-white">{days} day{days > 1 ? 's' : ''}</span>
                 </div>
                 <div className="flex justify-between text-sm mt-1">
-                  <span className="text-[#6B7280]">Estimated Cost</span>
-                  <span className="font-semibold text-[#1F2937]">
+                  <span className="text-[#64748B]">Estimated Cost</span>
+                  <span className="font-semibold text-white">
                     ${(equipment.daily_rate || 50) * days}
                   </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#1F2937] mb-2">Notes (Optional)</label>
+                <label className="block text-sm font-medium text-white mb-2">Notes (Optional)</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="Pickup location, special requirements..."
                   rows={2}
-                  className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981] resize-none"
+                  className="cap-input w-full resize-none"
                 />
               </div>
             </div>
 
-            <div className="p-4 border-t border-[#E5E7EB]">
+            <div className="p-4 border-t border-[#4A5E78]">
               <button
                 onClick={handleSubmit}
                 disabled={!formData.start_date || !formData.end_date || submitting}
@@ -222,94 +222,94 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId }) {
   if (!isOpen || !dealer) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB]">
-          <h3 className="text-lg font-semibold text-[#1F2937]">Book Dealer</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#F3F4F6] rounded-lg">
-            <X className="w-5 h-5 text-[#6B7280]" />
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="cap-panel cap-corner-lights w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+          <h3 className="text-lg font-semibold text-white">Book Dealer</h3>
+          <button onClick={onClose} className="p-2 hover:bg-[#132240] rounded-lg">
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         {success ? (
           <div className="p-8 text-center">
             <CheckCircle className="w-12 h-12 text-[#10B981] mx-auto mb-3" />
-            <p className="font-semibold text-[#1F2937]">Booking Request Sent</p>
-            <p className="text-sm text-[#6B7280]">{dealer.name} will be notified</p>
+            <p className="font-semibold text-white">Booking Request Sent</p>
+            <p className="text-sm text-[#64748B]">{dealer.name} will be notified</p>
           </div>
         ) : (
           <>
             <div className="p-4 space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-[#F3F4F6] rounded-lg">
-                <div className="w-12 h-12 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
-                  <Users className="w-6 h-6 text-[#1877F2]" />
+              <div className="flex items-center gap-3 p-3 bg-[#0D192E] rounded-lg">
+                <div className="w-12 h-12 bg-[#22D3EE]/10 rounded-full flex items-center justify-center">
+                  <Users className="w-6 h-6 text-[#22D3EE]" />
                 </div>
                 <div>
-                  <p className="font-semibold text-[#1F2937]">{dealer.name}</p>
-                  <p className="text-sm text-[#6B7280]">${dealer.hourly_rate}/hr</p>
+                  <p className="font-semibold text-white">{dealer.name}</p>
+                  <p className="text-sm text-[#64748B]">${dealer.hourly_rate}/hr</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#1F2937] mb-2">Date</label>
+                <label className="block text-sm font-medium text-white mb-2">Date</label>
                 <input
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                  className="cap-input w-full"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#1F2937] mb-2">Start Time</label>
+                  <label className="block text-sm font-medium text-white mb-2">Start Time</label>
                   <input
                     type="time"
                     value={formData.start_time}
                     onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
-                    className="w-full h-11 px-4 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                    className="cap-input w-full"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#1F2937] mb-2">Hours</label>
+                  <label className="block text-sm font-medium text-white mb-2">Hours</label>
                   <input
                     type="number"
                     value={formData.hours}
                     onChange={(e) => setFormData(prev => ({ ...prev, hours: parseInt(e.target.value) || 1 }))}
                     min="1"
                     max="12"
-                    className="w-full h-11 px-4 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                    className="cap-input w-full"
                   />
                 </div>
               </div>
 
-              <div className="p-3 bg-[#F9FAFB] rounded-lg">
+              <div className="p-3 bg-[#0B1426] rounded-lg">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#6B7280]">Estimated Cost</span>
-                  <span className="font-semibold text-[#1F2937]">
+                  <span className="text-[#64748B]">Estimated Cost</span>
+                  <span className="font-semibold text-white">
                     ${(dealer.hourly_rate || 25) * formData.hours}
                   </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#1F2937] mb-2">Notes (Optional)</label>
+                <label className="block text-sm font-medium text-white mb-2">Notes (Optional)</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="Any special requirements..."
                   rows={2}
-                  className="w-full px-4 py-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] resize-none"
+                  className="cap-input w-full resize-none"
                 />
               </div>
             </div>
 
-            <div className="p-4 border-t border-[#E5E7EB]">
+            <div className="p-4 border-t border-[#4A5E78]">
               <button
                 onClick={handleSubmit}
                 disabled={!formData.date || submitting}
-                className="w-full h-12 bg-[#1877F2] text-white font-semibold rounded-lg hover:bg-[#1664d9] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="cap-btn cap-btn-primary w-full h-12 flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Calendar className="w-5 h-5" />}
                 Send Booking Request
@@ -324,19 +324,19 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId }) {
 
 function DealerCard({ dealer, onBook }) {
   return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+    <div className="cap-panel p-4">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-[#22D3EE]/10 rounded-full flex items-center justify-center">
             {dealer.profiles?.avatar_url ? (
               <img src={dealer.profiles.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
             ) : (
-              <Users className="w-6 h-6 text-[#1877F2]" />
+              <Users className="w-6 h-6 text-[#22D3EE]" />
             )}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-[#1F2937]">{dealer.name}</h3>
+              <h3 className="font-semibold text-white">{dealer.name}</h3>
               {dealer.verified && (
                 <CheckCircle className="w-4 h-4 text-[#10B981]" />
               )}
@@ -346,36 +346,36 @@ function DealerCard({ dealer, onBook }) {
                 <Star className="w-4 h-4 fill-current" />
                 <span>{dealer.rating.toFixed(1)}</span>
                 {dealer.reviews_count && (
-                  <span className="text-[#6B7280]">({dealer.reviews_count})</span>
+                  <span className="text-[#64748B]">({dealer.reviews_count})</span>
                 )}
               </div>
             )}
           </div>
         </div>
         <div className="text-right">
-          <p className="font-semibold text-[#1F2937]">${dealer.hourly_rate}/hr</p>
+          <p className="font-semibold text-white">${dealer.hourly_rate}/hr</p>
           {dealer.experience_years && (
-            <p className="text-xs text-[#6B7280]">{dealer.experience_years}+ years</p>
+            <p className="text-xs text-[#64748B]">{dealer.experience_years}+ years</p>
           )}
         </div>
       </div>
 
       {dealer.bio && (
-        <p className="text-sm text-[#6B7280] mb-3 line-clamp-2">{dealer.bio}</p>
+        <p className="text-sm text-[#64748B] mb-3 line-clamp-2">{dealer.bio}</p>
       )}
 
       <div className="flex flex-wrap gap-2 mb-3">
         {(dealer.games_offered || []).slice(0, 4).map((game) => (
           <span
             key={game}
-            className="px-2 py-1 bg-[#F3F4F6] rounded text-xs font-medium text-[#1F2937] uppercase"
+            className="px-2 py-1 bg-[#0D192E] rounded text-xs font-medium text-white uppercase"
           >
             {game}
           </span>
         ))}
       </div>
 
-      <div className="flex items-center gap-4 text-sm text-[#6B7280] mb-4">
+      <div className="flex items-center gap-4 text-sm text-[#64748B] mb-4">
         {dealer.service_area && (
           <span className="flex items-center gap-1">
             <MapPin className="w-4 h-4" />
@@ -392,7 +392,7 @@ function DealerCard({ dealer, onBook }) {
 
       <button
         onClick={() => onBook(dealer)}
-        className="w-full h-10 bg-[#1877F2] text-white font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
+        className="cap-btn cap-btn-primary w-full h-10"
       >
         Book Dealer
       </button>
@@ -402,25 +402,25 @@ function DealerCard({ dealer, onBook }) {
 
 function EquipmentCard({ equipment, onRent }) {
   return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+    <div className="cap-panel p-4">
       <div className="flex items-start gap-3 mb-3">
         <div className="w-12 h-12 bg-[#10B981]/10 rounded-lg flex items-center justify-center">
           <Package className="w-6 h-6 text-[#10B981]" />
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold text-[#1F2937]">{equipment.name}</h3>
-          <p className="text-sm text-[#6B7280]">{equipment.category}</p>
+          <h3 className="font-semibold text-white">{equipment.name}</h3>
+          <p className="text-sm text-[#64748B]">{equipment.category}</p>
         </div>
         <div className="text-right">
-          <p className="font-semibold text-[#1F2937]">${equipment.daily_rate}/day</p>
+          <p className="font-semibold text-white">${equipment.daily_rate}/day</p>
         </div>
       </div>
 
       {equipment.description && (
-        <p className="text-sm text-[#6B7280] mb-3 line-clamp-2">{equipment.description}</p>
+        <p className="text-sm text-[#64748B] mb-3 line-clamp-2">{equipment.description}</p>
       )}
 
-      <div className="flex items-center gap-4 text-sm text-[#6B7280] mb-4">
+      <div className="flex items-center gap-4 text-sm text-[#64748B] mb-4">
         <span className="flex items-center gap-1">
           <MapPin className="w-4 h-4" />
           {equipment.location || 'Local pickup'}
@@ -525,8 +525,8 @@ export default function MarketplacePage() {
 
   if (!staff) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
@@ -538,32 +538,32 @@ export default function MarketplacePage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
-        <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
+      <div className="cap-page">
+        <header className="cap-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/captain/dashboard')}
-                className="p-2 hover:bg-[#F3F4F6] rounded-lg"
+                className="p-2 hover:bg-[#132240] rounded-lg"
               >
-                <ArrowLeft className="w-5 h-5 text-[#6B7280]" />
+                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
               </button>
               <div>
-                <h1 className="font-bold text-[#1F2937]">Marketplace</h1>
-                <p className="text-sm text-[#6B7280]">
+                <h1 className="font-bold text-white">Marketplace</h1>
+                <p className="text-sm text-[#64748B]">
                   {activeTab === 'dealers' ? `${dealers.length} dealers` : `${equipment.length} items`}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#E5E7EB]">
+          <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#4A5E78]">
             <button
               onClick={() => setActiveTab('dealers')}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'dealers'
-                  ? 'border-[#1877F2] text-[#1877F2]'
-                  : 'border-transparent text-[#6B7280] hover:text-[#1F2937]'
+                  ? 'border-[#22D3EE] text-[#22D3EE]'
+                  : 'border-transparent text-[#64748B] hover:text-white'
               }`}
             >
               <Users className="w-4 h-4 inline-block mr-2" />
@@ -574,7 +574,7 @@ export default function MarketplacePage() {
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'equipment'
                   ? 'border-[#10B981] text-[#10B981]'
-                  : 'border-transparent text-[#6B7280] hover:text-[#1F2937]'
+                  : 'border-transparent text-[#64748B] hover:text-white'
               }`}
             >
               <Package className="w-4 h-4 inline-block mr-2" />
@@ -586,26 +586,26 @@ export default function MarketplacePage() {
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6B7280]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={activeTab === 'dealers' ? 'Search dealers, games...' : 'Search equipment...'}
-              className="w-full h-11 pl-10 pr-4 bg-white border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+              className="cap-input w-full pl-10"
             />
           </div>
 
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
             </div>
           ) : activeTab === 'dealers' ? (
             filteredDealers.length === 0 ? (
-              <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-                <Users className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                <p className="text-[#6B7280]">No dealers found</p>
-                <p className="text-sm text-[#9CA3AF] mt-1">Try adjusting your search</p>
+              <div className="cap-panel p-8 text-center">
+                <Users className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                <p className="text-[#64748B]">No dealers found</p>
+                <p className="text-sm text-[#4A5E78] mt-1">Try adjusting your search</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
@@ -620,10 +620,10 @@ export default function MarketplacePage() {
             )
           ) : (
             filteredEquipment.length === 0 ? (
-              <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-                <Package className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                <p className="text-[#6B7280]">No equipment found</p>
-                <p className="text-sm text-[#9CA3AF] mt-1">Try adjusting your search</p>
+              <div className="cap-panel p-8 text-center">
+                <Package className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                <p className="text-[#64748B]">No equipment found</p>
+                <p className="text-sm text-[#4A5E78] mt-1">Try adjusting your search</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">

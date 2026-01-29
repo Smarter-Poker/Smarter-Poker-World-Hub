@@ -1,7 +1,7 @@
 /**
  * TournamentClock Component - Live tournament clock display
  * Reference: SCOPE_LOCK.md - Phase 3 Components
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect, useCallback } from 'react';
 import { Play, Pause, SkipForward, SkipBack, Users, Trophy, Coins } from 'lucide-react';
@@ -124,7 +124,7 @@ export default function TournamentClock({
       <div className="bg-[#111827] px-6 py-4 flex items-center justify-between">
         <div>
           <h2 className="text-white font-bold text-xl">{tournament.name}</h2>
-          <p className="text-[#9CA3AF] text-sm">Level {(tournament.current_level || 0) + 1}</p>
+          <p className="text-[#4A5E78] text-sm">Level {(tournament.current_level || 0) + 1}</p>
         </div>
         <div className={`px-3 py-1 rounded text-sm font-medium ${
           tournament.status === 'running' ? 'bg-[#10B981] text-white' :
@@ -141,12 +141,12 @@ export default function TournamentClock({
         {/* Blinds */}
         {currentBlind && (
           <div className="mb-6">
-            <p className="text-[#9CA3AF] text-sm uppercase tracking-wider mb-2">Blinds</p>
+            <p className="text-[#4A5E78] text-sm uppercase tracking-wider mb-2">Blinds</p>
             <p className="text-white text-5xl font-bold">
               {formatChips(currentBlind.smallBlind)} / {formatChips(currentBlind.bigBlind)}
             </p>
             {currentBlind.ante > 0 && (
-              <p className="text-[#1877F2] text-xl mt-2">
+              <p className="text-[#22D3EE] text-xl mt-2">
                 Ante: {formatChips(currentBlind.ante)}
               </p>
             )}
@@ -166,7 +166,7 @@ export default function TournamentClock({
         {/* Next Level Preview */}
         {nextBlind && (
           <div className="bg-[#374151] rounded-lg px-6 py-4 inline-block">
-            <p className="text-[#9CA3AF] text-sm">Next Level</p>
+            <p className="text-[#4A5E78] text-sm">Next Level</p>
             <p className="text-white text-xl font-semibold">
               {formatChips(nextBlind.smallBlind)} / {formatChips(nextBlind.bigBlind)}
               {nextBlind.ante > 0 && ` (${formatChips(nextBlind.ante)} ante)`}
@@ -178,19 +178,19 @@ export default function TournamentClock({
       {/* Stats Row */}
       <div className="grid grid-cols-3 gap-4 px-6 pb-6">
         <div className="bg-[#374151] rounded-lg p-4 text-center">
-          <Users className="w-6 h-6 mx-auto mb-2 text-[#1877F2]" />
+          <Users className="w-6 h-6 mx-auto mb-2 text-[#22D3EE]" />
           <p className="text-2xl font-bold text-white">{tournament.players_remaining || 0}</p>
-          <p className="text-sm text-[#9CA3AF]">Remaining</p>
+          <p className="text-sm text-[#4A5E78]">Remaining</p>
         </div>
         <div className="bg-[#374151] rounded-lg p-4 text-center">
           <Coins className="w-6 h-6 mx-auto mb-2 text-[#10B981]" />
           <p className="text-2xl font-bold text-white">{formatChips(tournament.average_stack)}</p>
-          <p className="text-sm text-[#9CA3AF]">Avg Stack</p>
+          <p className="text-sm text-[#4A5E78]">Avg Stack</p>
         </div>
         <div className="bg-[#374151] rounded-lg p-4 text-center">
           <Trophy className="w-6 h-6 mx-auto mb-2 text-[#F59E0B]" />
           <p className="text-2xl font-bold text-white">{tournament.current_entries || 0}</p>
-          <p className="text-sm text-[#9CA3AF]">Entries</p>
+          <p className="text-sm text-[#4A5E78]">Entries</p>
         </div>
       </div>
 
@@ -323,7 +323,7 @@ export function TournamentClockCompact({ tournamentId, initialData }) {
 
   return (
     <div className="bg-[#1F2937] rounded-lg p-4 text-center">
-      <p className="text-[#9CA3AF] text-xs mb-1">
+      <p className="text-[#4A5E78] text-xs mb-1">
         Level {(clockData.tournament?.current_level || 0) + 1}
       </p>
       {currentBlind && (

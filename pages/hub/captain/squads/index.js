@@ -1,7 +1,7 @@
 /**
  * Player Squads (Group Waitlist) Page
  * Create and manage group waitlist entries
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -21,11 +21,11 @@ import {
 
 function SquadCard({ squad, onView }) {
   const statusColors = {
-    forming: 'bg-[#F59E0B]/10 text-[#F59E0B]',
-    waiting: 'bg-[#1877F2]/10 text-[#1877F2]',
-    called: 'bg-[#10B981]/10 text-[#10B981]',
-    seated: 'bg-[#10B981]/10 text-[#10B981]',
-    expired: 'bg-[#6B7280]/10 text-[#6B7280]'
+    forming: 'cap-badge cap-badge-warning',
+    waiting: 'cap-badge cap-badge-primary',
+    called: 'cap-badge cap-badge-live',
+    seated: 'cap-badge cap-badge-live',
+    expired: 'cap-badge cap-badge-chrome'
   };
 
   const memberCount = squad.members?.length || 0;
@@ -34,20 +34,20 @@ function SquadCard({ squad, onView }) {
   return (
     <button
       onClick={() => onView(squad.id)}
-      className="w-full bg-white rounded-xl border border-[#E5E7EB] p-4 text-left hover:border-[#1877F2] transition-colors"
+      className="w-full cap-panel text-left hover:border-[#22D3EE] transition-colors"
     >
       <div className="flex items-start justify-between mb-3">
         <div>
-          <h3 className="font-semibold text-[#1F2937]">{squad.name || 'Squad'}</h3>
-          <p className="text-sm text-[#6B7280]">{squad.venue_name}</p>
+          <h3 className="font-bold text-white">{squad.name || 'Squad'}</h3>
+          <p className="text-sm text-[#64748B]">{squad.venue_name}</p>
         </div>
-        <span className={`px-2 py-1 rounded text-xs font-medium capitalize ${statusColors[squad.status] || statusColors.forming}`}>
+        <span className={statusColors[squad.status] || statusColors.forming}>
           {squad.status}
         </span>
       </div>
 
-      <div className="flex items-center gap-4 text-sm text-[#6B7280] mb-3">
-        <span className="font-medium text-[#1F2937]">{squad.stakes} {squad.game_type?.toUpperCase()}</span>
+      <div className="flex items-center gap-4 text-sm text-[#64748B] mb-3">
+        <span className="font-medium text-white">{squad.stakes} {squad.game_type?.toUpperCase()}</span>
         <span className="flex items-center gap-1">
           <Users className="w-4 h-4" />
           {confirmedCount}/{memberCount}
@@ -56,8 +56,8 @@ function SquadCard({ squad, onView }) {
 
       {squad.status === 'waiting' && squad.position && (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-[#6B7280]">Position #{squad.position}</span>
-          <span className="flex items-center gap-1 text-[#1877F2]">
+          <span className="text-[#64748B]">Position #{squad.position}</span>
+          <span className="flex items-center gap-1 text-[#22D3EE]">
             <Clock className="w-4 h-4" />
             ~{squad.estimated_wait || '--'} min
           </span>
@@ -75,17 +75,17 @@ function SquadCard({ squad, onView }) {
 
 function EmptyState({ onCreateSquad }) {
   return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-      <div className="w-16 h-16 bg-[#1877F2]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-        <Users className="w-8 h-8 text-[#1877F2]" />
+    <div className="cap-panel p-8 text-center">
+      <div className="cap-icon-box cap-icon-box-glow mx-auto mb-4">
+        <Users className="w-8 h-8" />
       </div>
-      <h3 className="font-semibold text-[#1F2937] mb-2">No Active Squads</h3>
-      <p className="text-[#6B7280] mb-6">
+      <h3 className="font-bold text-white mb-2">No Active Squads</h3>
+      <p className="text-[#64748B] mb-6">
         Create a squad to join a waitlist with friends and get seated together.
       </p>
       <button
         onClick={onCreateSquad}
-        className="inline-flex items-center gap-2 px-6 py-3 bg-[#1877F2] text-white rounded-xl font-medium hover:bg-[#1665D8] transition-colors"
+        className="cap-btn cap-btn-primary"
       >
         <Plus className="w-5 h-5" />
         Create Squad
@@ -163,18 +163,18 @@ export default function SquadsPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-[#1877F2] text-white">
+        <header className="cap-header-full">
           <div className="max-w-lg mx-auto px-4 py-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-xl font-bold">Squads</h1>
-                <p className="text-white/80 text-sm">Join waitlists with friends</p>
+                <h1 className="text-xl font-extrabold text-white tracking-wider cap-text-glow">Squads</h1>
+                <p className="text-[#64748B] text-sm">Join waitlists with friends</p>
               </div>
               <button
                 onClick={handleCreateSquad}
-                className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-colors"
+                className="cap-icon-box cap-icon-box-glow"
               >
                 <Plus className="w-6 h-6" />
               </button>
@@ -185,14 +185,14 @@ export default function SquadsPage() {
         <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
             </div>
           ) : (
             <>
               {/* Invitations */}
               {invitations.length > 0 && (
                 <section>
-                  <h2 className="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+                  <h2 className="font-bold text-white uppercase tracking-wide text-sm mb-3 flex items-center gap-2">
                     <UserPlus className="w-5 h-5 text-[#F59E0B]" />
                     Squad Invitations
                   </h2>
@@ -200,31 +200,32 @@ export default function SquadsPage() {
                     {invitations.map(invitation => (
                       <div
                         key={invitation.id}
-                        className="bg-white rounded-xl border border-[#F59E0B] p-4"
+                        className="cap-panel"
+                        style={{ borderColor: 'rgba(245, 158, 11, 0.5)', boxShadow: '0 0 15px rgba(245, 158, 11, 0.2), 0 8px 32px rgba(0, 0, 0, 0.5)' }}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <h3 className="font-medium text-[#1F2937]">{invitation.name}</h3>
-                            <p className="text-sm text-[#6B7280]">{invitation.venue_name}</p>
+                            <h3 className="font-medium text-white">{invitation.name}</h3>
+                            <p className="text-sm text-[#64748B]">{invitation.venue_name}</p>
                           </div>
-                          <span className="text-sm text-[#6B7280]">
+                          <span className="text-sm text-[#64748B]">
                             {invitation.member_count} members
                           </span>
                         </div>
-                        <p className="text-sm text-[#6B7280] mb-3">
+                        <p className="text-sm text-[#64748B] mb-3">
                           {invitation.leader_name} invited you to join for {invitation.stakes} {invitation.game_type?.toUpperCase()}
                         </p>
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleInvitation(invitation.id, true)}
-                            className="flex-1 py-2 bg-[#10B981] text-white rounded-lg font-medium hover:bg-[#059669] transition-colors flex items-center justify-center gap-1"
+                            className="flex-1 cap-btn cap-btn-success"
                           >
                             <Check className="w-4 h-4" />
                             Accept
                           </button>
                           <button
                             onClick={() => handleInvitation(invitation.id, false)}
-                            className="flex-1 py-2 bg-[#F3F4F6] text-[#6B7280] rounded-lg font-medium hover:bg-[#E5E7EB] transition-colors flex items-center justify-center gap-1"
+                            className="flex-1 cap-btn cap-btn-secondary"
                           >
                             <X className="w-4 h-4" />
                             Decline
@@ -239,7 +240,7 @@ export default function SquadsPage() {
               {/* Active Squads */}
               {activeSquads.length > 0 ? (
                 <section>
-                  <h2 className="font-semibold text-[#1F2937] mb-3">Active Squads</h2>
+                  <h2 className="font-bold text-white uppercase tracking-wide text-sm mb-3">Active Squads</h2>
                   <div className="space-y-3">
                     {activeSquads.map(squad => (
                       <SquadCard
@@ -255,19 +256,19 @@ export default function SquadsPage() {
               ) : null}
 
               {/* How It Works */}
-              <section className="bg-[#1877F2]/5 rounded-xl p-4">
-                <h3 className="font-semibold text-[#1F2937] mb-3">How Squads Work</h3>
-                <ul className="space-y-2 text-sm text-[#6B7280]">
+              <section className="cap-inset rounded-xl p-4">
+                <h3 className="font-bold text-white uppercase tracking-wide text-sm mb-3">How Squads Work</h3>
+                <ul className="space-y-2 text-sm text-[#64748B]">
                   <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 bg-[#1877F2] text-white rounded-full flex items-center justify-center text-xs flex-shrink-0">1</span>
+                    <span className="w-5 h-5 bg-[#132240] border border-[#22D3EE] text-[#22D3EE] rounded-full flex items-center justify-center text-xs flex-shrink-0">1</span>
                     Create a squad and invite friends
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 bg-[#1877F2] text-white rounded-full flex items-center justify-center text-xs flex-shrink-0">2</span>
+                    <span className="w-5 h-5 bg-[#132240] border border-[#22D3EE] text-[#22D3EE] rounded-full flex items-center justify-center text-xs flex-shrink-0">2</span>
                     Once everyone confirms, join the waitlist together
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 bg-[#1877F2] text-white rounded-full flex items-center justify-center text-xs flex-shrink-0">3</span>
+                    <span className="w-5 h-5 bg-[#132240] border border-[#22D3EE] text-[#22D3EE] rounded-full flex items-center justify-center text-xs flex-shrink-0">3</span>
                     Get seated at the same table when available
                   </li>
                 </ul>
@@ -276,7 +277,7 @@ export default function SquadsPage() {
               {/* Past Squads */}
               {pastSquads.length > 0 && (
                 <section>
-                  <h2 className="font-semibold text-[#1F2937] mb-3">Past Squads</h2>
+                  <h2 className="font-bold text-white uppercase tracking-wide text-sm mb-3">Past Squads</h2>
                   <div className="space-y-3">
                     {pastSquads.map(squad => (
                       <SquadCard

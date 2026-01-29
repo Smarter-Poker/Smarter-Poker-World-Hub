@@ -1,13 +1,13 @@
 /**
  * EventCard Component - Display home game event
  * Reference: SCOPE_LOCK.md - Phase 4 Components
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { Calendar, Clock, MapPin, Users, User } from 'lucide-react';
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', color: 'bg-[#6B7280]' },
-  scheduled: { label: 'Scheduled', color: 'bg-[#1877F2]' },
+  scheduled: { label: 'Scheduled', color: 'bg-[#22D3EE]' },
   confirmed: { label: 'Confirmed', color: 'bg-[#10B981]' },
   in_progress: { label: 'In Progress', color: 'bg-[#F59E0B]' },
   completed: { label: 'Completed', color: 'bg-[#6B7280]' },
@@ -15,10 +15,10 @@ const STATUS_CONFIG = {
 };
 
 const RSVP_CONFIG = {
-  yes: { label: 'Going', color: 'text-[#10B981]', bg: 'bg-[#D1FAE5]' },
-  maybe: { label: 'Maybe', color: 'text-[#F59E0B]', bg: 'bg-[#FEF3C7]' },
-  no: { label: 'Not Going', color: 'text-[#EF4444]', bg: 'bg-[#FEE2E2]' },
-  waitlist: { label: 'Waitlist', color: 'text-[#6B7280]', bg: 'bg-[#F3F4F6]' }
+  yes: { label: 'Going', color: 'text-[#10B981]', bg: 'bg-[#10B981]/10' },
+  maybe: { label: 'Maybe', color: 'text-[#F59E0B]', bg: 'bg-[#F59E0B]/10' },
+  no: { label: 'Not Going', color: 'text-[#EF4444]', bg: 'bg-[#EF4444]/10' },
+  waitlist: { label: 'Waitlist', color: 'text-[#64748B]', bg: 'bg-[#0D192E]' }
 };
 
 export default function EventCard({
@@ -64,18 +64,18 @@ export default function EventCard({
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-lg border border-[#E5E7EB] overflow-hidden hover:border-[#1877F2] transition-colors cursor-pointer"
+      className="cap-panel overflow-hidden hover:border-[#22D3EE] transition-colors cursor-pointer"
     >
       {/* Header */}
       <div className="p-4">
         <div className="flex items-start justify-between mb-2">
           <div>
             {showGroup && event.captain_home_groups && (
-              <p className="text-xs text-[#6B7280] mb-1">
+              <p className="text-xs text-[#64748B] mb-1">
                 {event.captain_home_groups.name}
               </p>
             )}
-            <h3 className="font-semibold text-[#1F2937]">
+            <h3 className="font-semibold text-white">
               {event.title || 'Home Game'}
             </h3>
           </div>
@@ -85,7 +85,7 @@ export default function EventCard({
         </div>
 
         {/* Date/Time */}
-        <div className="flex items-center gap-4 text-sm text-[#6B7280] mt-3">
+        <div className="flex items-center gap-4 text-sm text-[#64748B] mt-3">
           <span className="flex items-center gap-1">
             <Calendar className="w-4 h-4" />
             {formatDate(event.scheduled_date)}
@@ -99,16 +99,16 @@ export default function EventCard({
 
         {/* Game info */}
         <div className="flex items-center gap-3 mt-3">
-          <span className="px-2 py-1 bg-[#F3F4F6] rounded text-xs font-medium text-[#1F2937]">
+          <span className="px-2 py-1 bg-[#0D192E] rounded text-xs font-medium text-white">
             {event.game_type?.toUpperCase() || 'NLHE'}
           </span>
           {event.stakes && (
-            <span className="px-2 py-1 bg-[#E0F2FE] rounded text-xs font-medium text-[#1877F2]">
+            <span className="px-2 py-1 bg-[#22D3EE]/10 rounded text-xs font-medium text-[#22D3EE]">
               {event.stakes}
             </span>
           )}
           {(event.buyin_min || event.buyin_max) && (
-            <span className="text-xs text-[#6B7280]">
+            <span className="text-xs text-[#64748B]">
               ${event.buyin_min || 0}
               {event.buyin_max && event.buyin_max !== event.buyin_min && ` - $${event.buyin_max}`}
               {' buy-in'}
@@ -126,11 +126,11 @@ export default function EventCard({
                 className="w-6 h-6 rounded-full object-cover"
               />
             ) : (
-              <div className="w-6 h-6 rounded-full bg-[#F3F4F6] flex items-center justify-center">
-                <User className="w-3 h-3 text-[#6B7280]" />
+              <div className="w-6 h-6 rounded-full bg-[#0D192E] flex items-center justify-center">
+                <User className="w-3 h-3 text-[#64748B]" />
               </div>
             )}
-            <span className="text-sm text-[#6B7280]">
+            <span className="text-sm text-[#64748B]">
               Hosted by {event.profiles.display_name || 'Unknown'}
             </span>
           </div>
@@ -138,9 +138,9 @@ export default function EventCard({
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 bg-[#F9FAFB] border-t border-[#E5E7EB] flex items-center justify-between">
+      <div className="px-4 py-3 bg-[#0B1426] border-t border-[#4A5E78] flex items-center justify-between">
         <div className="flex items-center gap-4 text-sm">
-          <span className="flex items-center gap-1 text-[#1F2937]">
+          <span className="flex items-center gap-1 text-white">
             <Users className="w-4 h-4" />
             {event.rsvp_yes}/{event.max_players}
           </span>
@@ -150,7 +150,7 @@ export default function EventCard({
             </span>
           )}
           {event.waitlist_count > 0 && (
-            <span className="text-[#6B7280]">
+            <span className="text-[#64748B]">
               {event.waitlist_count} waitlist
             </span>
           )}
@@ -171,8 +171,8 @@ export default function EventCard({
               }}
               className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                 isFull
-                  ? 'bg-[#F3F4F6] text-[#6B7280]'
-                  : 'bg-[#1877F2] text-white hover:bg-[#1664D9]'
+                  ? 'bg-[#0D192E] text-[#64748B]'
+                  : 'cap-btn cap-btn-primary'
               }`}
             >
               {isFull ? 'Join Waitlist' : 'RSVP'}
@@ -194,21 +194,21 @@ export function EventListItem({ event, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-[#F9FAFB] text-left transition-colors"
+      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-[#0B1426] text-left transition-colors"
     >
-      <div className="w-12 h-12 rounded-lg bg-[#1877F2]/10 flex flex-col items-center justify-center">
-        <span className="text-xs text-[#1877F2] font-medium">
+      <div className="w-12 h-12 rounded-lg bg-[#22D3EE]/10 flex flex-col items-center justify-center">
+        <span className="text-xs text-[#22D3EE] font-medium">
           {formatDate(event.scheduled_date).split(' ')[0]}
         </span>
-        <span className="text-lg font-bold text-[#1877F2]">
+        <span className="text-lg font-bold text-[#22D3EE]">
           {formatDate(event.scheduled_date).split(' ')[1]}
         </span>
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-[#1F2937] truncate">
+        <h4 className="font-medium text-white truncate">
           {event.title || 'Home Game'}
         </h4>
-        <p className="text-sm text-[#6B7280]">
+        <p className="text-sm text-[#64748B]">
           {event.game_type?.toUpperCase()} {event.stakes && `• ${event.stakes}`}
           {' • '}{event.rsvp_yes}/{event.max_players} going
         </p>

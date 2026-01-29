@@ -1,7 +1,7 @@
 /**
  * PayoutModal - Configure and display tournament payouts
  * Shows payout structure and records actual payouts
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect, useMemo } from 'react';
 import { X, DollarSign, Trophy, Users, Loader2, Check } from 'lucide-react';
@@ -157,31 +157,31 @@ export default function PayoutModal({
   if (!isOpen || !tournament) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="cap-panel cap-corner-lights w-full max-w-lg max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB]">
+        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#10B981] rounded-lg flex items-center justify-center">
               <DollarSign className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[#1F2937]">Tournament Payouts</h2>
-              <p className="text-sm text-[#6B7280]">{tournament.name}</p>
+              <h2 className="text-lg font-semibold text-white">Tournament Payouts</h2>
+              <p className="text-sm text-[#64748B]">{tournament.name}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#6B7280]" />
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {error && (
-            <div className="p-3 bg-[#FEF2F2] rounded-lg">
+            <div className="p-3 bg-[#EF4444]/10 rounded-lg">
               <p className="text-sm text-[#EF4444]">{error}</p>
             </div>
           )}
@@ -189,14 +189,14 @@ export default function PayoutModal({
           {/* Prize Pool Summary */}
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-[#10B981]/10 rounded-lg">
-              <p className="text-sm text-[#6B7280]">Prize Pool</p>
+              <p className="text-sm text-[#64748B]">Prize Pool</p>
               <p className="text-2xl font-bold text-[#10B981]">
                 ${prizePool.toLocaleString()}
               </p>
             </div>
-            <div className="p-4 bg-[#1877F2]/10 rounded-lg">
-              <p className="text-sm text-[#6B7280]">Entries</p>
-              <p className="text-2xl font-bold text-[#1877F2]">
+            <div className="p-4 bg-[#22D3EE]/10 rounded-lg">
+              <p className="text-sm text-[#64748B]">Entries</p>
+              <p className="text-2xl font-bold text-[#22D3EE]">
                 {entries.length || tournament.current_entries || 0}
               </p>
             </div>
@@ -204,7 +204,7 @@ export default function PayoutModal({
 
           {/* Paying Places */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Paying Places
             </label>
             <div className="flex gap-2 flex-wrap">
@@ -217,8 +217,8 @@ export default function PayoutModal({
                   }}
                   className={`w-10 h-10 rounded-lg font-medium transition-colors ${
                     payingPlaces === num
-                      ? 'bg-[#1877F2] text-white'
-                      : 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                   }`}
                 >
                   {num}
@@ -230,7 +230,7 @@ export default function PayoutModal({
           {/* Payout Structure */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-[#1F2937]">
+              <label className="text-sm font-medium text-white">
                 Payout Structure
               </label>
               <span className={`text-sm font-medium ${
@@ -249,25 +249,25 @@ export default function PayoutModal({
                   <div
                     key={payout.position}
                     className={`flex items-center gap-3 p-3 rounded-lg ${
-                      isPaid ? 'bg-[#D1FAE5]' : 'bg-[#F3F4F6]'
+                      isPaid ? 'bg-[#10B981]/10' : 'bg-[#0D192E]'
                     }`}
                   >
-                    <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-[#0B1426] rounded-full flex items-center justify-center">
                       <Trophy className={`w-4 h-4 ${
                         payout.position === 1 ? 'text-[#F59E0B]' :
-                        payout.position === 2 ? 'text-[#9CA3AF]' :
+                        payout.position === 2 ? 'text-[#4A5E78]' :
                         payout.position === 3 ? 'text-[#B45309]' :
-                        'text-[#6B7280]'
+                        'text-[#64748B]'
                       }`} />
                     </div>
 
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-[#1F2937]">
+                        <span className="font-medium text-white">
                           {payout.position}{payout.position === 1 ? 'st' : payout.position === 2 ? 'nd' : payout.position === 3 ? 'rd' : 'th'}
                         </span>
                         {finisher && (
-                          <span className="text-sm text-[#6B7280]">
+                          <span className="text-sm text-[#64748B]">
                             - {finisher.player_name || finisher.profiles?.display_name}
                           </span>
                         )}
@@ -278,12 +278,12 @@ export default function PayoutModal({
                       type="number"
                       value={customPayouts[payout.position] ?? payout.percentage}
                       onChange={(e) => handlePercentageChange(payout.position, e.target.value)}
-                      className="w-16 h-8 px-2 text-center border border-[#E5E7EB] rounded text-sm"
+                      className="cap-input w-16 h-8 px-2 text-center text-sm"
                       step="0.1"
                       min="0"
                       max="100"
                     />
-                    <span className="text-sm text-[#6B7280] w-6">%</span>
+                    <span className="text-sm text-[#64748B] w-6">%</span>
 
                     <div className="w-20 text-right">
                       <span className="font-semibold text-[#10B981]">
@@ -297,7 +297,7 @@ export default function PayoutModal({
                         className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
                           isPaid
                             ? 'bg-[#10B981] text-white'
-                            : 'border border-[#E5E7EB] text-[#6B7280] hover:bg-[#E5E7EB]'
+                            : 'border border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
                         }`}
                       >
                         <Check className="w-4 h-4" />
@@ -311,7 +311,7 @@ export default function PayoutModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-[#E5E7EB]">
+        <div className="p-4 border-t border-[#4A5E78]">
           <button
             onClick={handleSaveStructure}
             disabled={Math.abs(totalPercentage - 100) > 0.5 || submitting}

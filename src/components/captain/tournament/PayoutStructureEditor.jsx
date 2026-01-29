@@ -1,7 +1,7 @@
 /**
  * PayoutStructureEditor Component - Create/edit tournament payout structures
  * Reference: SCOPE_LOCK.md - Phase 3 Components
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, DollarSign } from 'lucide-react';
@@ -131,14 +131,14 @@ export default function PayoutStructureEditor({
     <div className="space-y-4">
       {/* Preset buttons */}
       <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-sm text-[#6B7280]">Load for entries:</span>
+        <span className="text-sm text-[#64748B]">Load for entries:</span>
         {Object.keys(PAYOUT_PRESETS).map((count) => (
           <button
             key={count}
             type="button"
             onClick={() => loadPreset(count)}
             disabled={disabled}
-            className="px-3 py-1 text-sm rounded-lg border border-[#E5E7EB] text-[#1F2937] hover:border-[#1877F2] hover:text-[#1877F2] transition-colors disabled:opacity-50"
+            className="px-3 py-1 text-sm rounded-lg border border-[#4A5E78] text-white hover:border-[#22D3EE] hover:text-[#22D3EE] transition-colors disabled:opacity-50"
           >
             {count}+
           </button>
@@ -146,30 +146,30 @@ export default function PayoutStructureEditor({
       </div>
 
       {/* Prize pool estimate */}
-      <div className="bg-[#F0F9FF] border border-[#1877F2]/20 rounded-lg p-4">
+      <div className="bg-[#22D3EE]/5 border border-[#22D3EE]/20 rounded-lg p-4">
         <div className="flex items-center gap-2 mb-2">
-          <DollarSign className="w-5 h-5 text-[#1877F2]" />
-          <span className="font-medium text-[#1F2937]">Estimated Prize Pool</span>
+          <DollarSign className="w-5 h-5 text-[#22D3EE]" />
+          <span className="font-medium text-white">Estimated Prize Pool</span>
         </div>
-        <p className="text-2xl font-bold text-[#1877F2]">
+        <p className="text-2xl font-bold text-[#22D3EE]">
           ${prizePool.toLocaleString()}
         </p>
-        <p className="text-sm text-[#6B7280] mt-1">
+        <p className="text-sm text-[#64748B] mt-1">
           Based on ${buyIn} buy-in x {estimatedEntries} entries
           {guaranteedPool > 0 && ` (${guaranteedPool > buyIn * estimatedEntries ? 'overlay' : 'no overlay'})`}
         </p>
       </div>
 
       {/* Payout list */}
-      <div className="bg-white rounded-lg border border-[#E5E7EB] overflow-hidden">
-        <div className="bg-[#F9FAFB] px-4 py-2 grid grid-cols-12 gap-2 text-sm font-medium text-[#6B7280]">
+      <div className="cap-panel overflow-hidden">
+        <div className="bg-[#0D192E] px-4 py-2 grid grid-cols-12 gap-2 text-sm font-medium text-[#64748B]">
           <div className="col-span-3">Position</div>
           <div className="col-span-3">Percentage</div>
           <div className="col-span-4">Estimated Payout</div>
           <div className="col-span-2">Actions</div>
         </div>
 
-        <div className="divide-y divide-[#E5E7EB] max-h-[300px] overflow-y-auto">
+        <div className="divide-y divide-[#4A5E78] max-h-[300px] overflow-y-auto">
           {payouts
             .sort((a, b) => a.position - b.position)
             .map((payout, index) => (
@@ -183,11 +183,11 @@ export default function PayoutStructureEditor({
                       payout.position === 1 ? 'bg-[#F59E0B] text-white' :
                       payout.position === 2 ? 'bg-[#9CA3AF] text-white' :
                       payout.position === 3 ? 'bg-[#CD7F32] text-white' :
-                      'bg-[#E5E7EB] text-[#1F2937]'
+                      'bg-[#1E293B] text-white'
                     }`}>
                       {payout.position}
                     </span>
-                    <span className="text-[#6B7280] text-sm">
+                    <span className="text-[#64748B] text-sm">
                       {payout.position}{getPositionSuffix(payout.position)}
                     </span>
                   </div>
@@ -200,12 +200,12 @@ export default function PayoutStructureEditor({
                       value={payout.percentage || ''}
                       onChange={(e) => updatePayout(index, 'percentage', parseFloat(e.target.value) || 0)}
                       disabled={disabled}
-                      className="w-20 px-2 py-1 rounded border border-[#E5E7EB] text-sm"
+                      className="w-20 cap-input text-sm"
                       min="0"
                       max="100"
                       step="0.5"
                     />
-                    <span className="text-[#6B7280]">%</span>
+                    <span className="text-[#64748B]">%</span>
                   </div>
                 </div>
 
@@ -220,7 +220,7 @@ export default function PayoutStructureEditor({
                     type="button"
                     onClick={() => removePayout(index)}
                     disabled={disabled}
-                    className="p-2 text-[#6B7280] hover:text-[#EF4444] disabled:opacity-30"
+                    className="p-2 text-[#64748B] hover:text-[#EF4444] disabled:opacity-30"
                     title="Remove"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -230,7 +230,7 @@ export default function PayoutStructureEditor({
             ))}
 
           {payouts.length === 0 && (
-            <div className="px-4 py-8 text-center text-[#6B7280]">
+            <div className="px-4 py-8 text-center text-[#64748B]">
               No payouts defined. Add positions or load a preset.
             </div>
           )}
@@ -243,7 +243,7 @@ export default function PayoutStructureEditor({
           type="button"
           onClick={addPayout}
           disabled={disabled}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#1877F2] text-[#1877F2] hover:bg-[#1877F2] hover:text-white transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#22D3EE] text-[#22D3EE] hover:bg-[#22D3EE] hover:text-white transition-colors disabled:opacity-50"
         >
           <Plus className="w-4 h-4" />
           Add Position
@@ -263,13 +263,13 @@ export default function PayoutStructureEditor({
       {/* Summary */}
       {payouts.length > 0 && (
         <div className={`rounded-lg p-4 ${
-          totalPercentage === 100 ? 'bg-[#D1FAE5]' :
-          totalPercentage > 100 ? 'bg-[#FEE2E2]' :
-          'bg-[#FEF3C7]'
+          totalPercentage === 100 ? 'bg-[#10B981]/10' :
+          totalPercentage > 100 ? 'bg-[#EF4444]/10' :
+          'bg-[#F59E0B]/10'
         }`}>
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-sm text-[#6B7280]">Total Allocation:</span>
+              <span className="text-sm text-[#64748B]">Total Allocation:</span>
               <span className={`ml-2 font-bold ${
                 totalPercentage === 100 ? 'text-[#10B981]' :
                 totalPercentage > 100 ? 'text-[#EF4444]' :
@@ -279,18 +279,18 @@ export default function PayoutStructureEditor({
               </span>
             </div>
             <div>
-              <span className="text-sm text-[#6B7280]">Paid Positions:</span>
-              <span className="ml-2 font-bold text-[#1F2937]">{payouts.length}</span>
+              <span className="text-sm text-[#64748B]">Paid Positions:</span>
+              <span className="ml-2 font-bold text-white">{payouts.length}</span>
             </div>
             <div>
-              <span className="text-sm text-[#6B7280]">ITM %:</span>
-              <span className="ml-2 font-bold text-[#1F2937]">
+              <span className="text-sm text-[#64748B]">ITM %:</span>
+              <span className="ml-2 font-bold text-white">
                 {estimatedEntries > 0 ? ((payouts.length / estimatedEntries) * 100).toFixed(1) : 0}%
               </span>
             </div>
           </div>
           {totalPercentage !== 100 && (
-            <p className="text-sm mt-2 text-[#6B7280]">
+            <p className="text-sm mt-2 text-[#64748B]">
               {totalPercentage > 100
                 ? `Warning: Payouts exceed 100% by ${(totalPercentage - 100).toFixed(1)}%`
                 : `Remaining: ${(100 - totalPercentage).toFixed(1)}% unallocated`
