@@ -97,11 +97,15 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
             }}
         >
             <StoryRing hasUnviewed={showRing} isLive={isLive} size={64}>
-                <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden' }}>
+                <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', background: '#E4E6EB' }}>
                     {/* Show story media preview if available, otherwise profile pic */}
                     {story?.media_url ? (
                         <img
                             src={story.media_url}
+                            onError={(e) => {
+                                // Fallback to profile avatar if media fails to load
+                                e.target.src = story?.author_avatar || '/default-avatar.png';
+                            }}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                     ) : story?.background_color ? (
@@ -113,11 +117,14 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
                             alignItems: 'center',
                             justifyContent: 'center',
                         }}>
-                            <span style={{ fontSize: 24 }}>Aa</span>
+                            <span style={{ fontSize: 24, color: 'white' }}>Aa</span>
                         </div>
                     ) : (
                         <img
                             src={story?.author_avatar || '/default-avatar.png'}
+                            onError={(e) => {
+                                e.target.src = '/default-avatar.png';
+                            }}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                     )}
