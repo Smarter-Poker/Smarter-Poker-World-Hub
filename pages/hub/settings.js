@@ -268,7 +268,8 @@ export default function SettingsPage() {
                                     <div style={styles.profileRow}>
                                         {(() => {
                                             // Determine which avatar to display
-                                            const displayAvatar = avatar || customAvatars[0]?.image_url || null;
+                                            // avatar from useAvatar is an object with .imageUrl, not a string URL
+                                            const displayAvatar = avatar?.imageUrl || customAvatars[0]?.image_url || null;
                                             const defaultPlaceholder = '/default-avatar.png';
 
                                             return (
