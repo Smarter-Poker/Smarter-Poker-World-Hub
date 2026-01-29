@@ -4,6 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '@supabase/supabase-js';
+import { sendTicketNotification } from '../../../src/lib/emailService';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -80,19 +81,21 @@ export default async function handler(req, res) {
             .eq('id', user.id)
             .single();
 
-        // Send email notification (TODO: integrate with email service)
+        // Send email notification via Resend
         try {
-            await sendTicketEmail({
+            await sendTicketNotification({
                 ticketId: ticket.id,
-                username: profile?.username || 'Unknown',
-                email: profile?.email || user.email,
+                userId: user.id,
+                userEmail: profile?.email || user.email,
+                userName: profile?.username || 'Unknown User',
                 subject: subject.trim(),
                 description: description.trim(),
                 priority: priority,
                 conversationId: conversationId
             });
+            console.log('[LiveHelp] Ticket notification email sent successfully');
         } catch (emailError) {
-            console.error('Failed to send ticket email:', emailError);
+            console.error('[LiveHelp] Failed to send ticket email:', emailError);
             // Don't fail the request if email fails
         }
 
@@ -112,30 +115,4 @@ export default async function handler(req, res) {
     }
 }
 
-/**
- * Send ticket notification email
- */
-async function sendTicketEmail(ticketData) {
-    // TODO: Integrate with email service (SendGrid, Resend, etc.)
-    console.log('📧 Ticket email would be sent:', {
-        to: 'support@smarter.poker',
-        subject: `[${ticketData.priority.toUpperCase()}] New Support Ticket: ${ticketData.subject}`,
-        body: `
-New support ticket from ${ticketData.username} (${ticketData.email})
 
-Ticket ID: ${ticketData.ticketId}
-Priority: ${ticketData.priority}
-Subject: ${ticketData.subject}
-
-Description:
-${ticketData.description}
-
-${ticketData.conversationId ? `Conversation ID: ${ticketData.conversationId}` : 'No conversation linked'}
-
-View ticket: https://smarter.poker/admin/live-help?ticket=${ticketData.ticketId}
-        `
-    });
-
-    // For now, just log. In production, call email API here.
-    return Promise.resolve();
-}

@@ -318,13 +318,14 @@ export function useLiveHelp() {
     return {
         isOpen,
         setIsOpen,
+        onClose: () => setIsOpen(false),
         messages,
         currentAgent,
         isAgentTyping,
         inputValue,
-        setInputValue,
-        sendMessage,
-        switchAgent,
+        onInputChange: setInputValue,
+        onSendMessage: sendMessage,
+        onSwitchAgent: switchAgent,
         createTicket,
         isLoading,
         error

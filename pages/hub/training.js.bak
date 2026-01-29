@@ -598,7 +598,7 @@ export default function TrainingPage() {
                 origin: { y: 0.6 },
                 colors: ['#FFD700', '#FF6B35', '#00D4FF'],
             });
-            trainingSounds.play('mastery'); // TODO: Uncomment when sounds ready
+            // trainingSounds.play('mastery'); // TODO: Uncomment when sounds ready
             markGameCelebrated(game.id);
         }
 

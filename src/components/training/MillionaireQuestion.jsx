@@ -245,9 +245,33 @@ export default function MillionaireQuestion({
                 <div style={styles.questionBox}>
                     {question.scenario && (
                         <div style={styles.scenarioText}>
-                            {question.scenario.heroPosition && `${question.scenario.heroPosition} • `}
-                            {question.scenario.heroStack && `${question.scenario.heroStack}bb • `}
-                            {question.scenario.gameType || 'Cash Game'}
+                            {/* Header */}
+                            <div style={{ marginBottom: '12px', fontWeight: '600', color: '#cbd5e1', fontSize: '13px' }}>
+                                {question.scenario.heroPosition && `${question.scenario.heroPosition} • `}
+                                {question.scenario.heroStack && `${question.scenario.heroStack}bb • `}
+                                {question.scenario.gameType || 'Cash Game'}
+                            </div>
+
+                            {/* Poker Details */}
+                            <div style={{ fontSize: '13px', lineHeight: '1.8' }}>
+                                {question.scenario.heroHand && (
+                                    <div>Hero: <span style={{ color: '#fbbf24' }}>{question.scenario.heroHand}</span></div>
+                                )}
+                                {question.scenario.board && (
+                                    <div>Board: <span style={{ color: '#22c55e' }}>{question.scenario.board}</span></div>
+                                )}
+                                {question.scenario.pot && (
+                                    <div>Pot: {question.scenario.pot}bb</div>
+                                )}
+                                {question.scenario.villainPosition && question.scenario.villainStack && (
+                                    <div>Villain ({question.scenario.villainPosition}): {question.scenario.villainStack}bb</div>
+                                )}
+                                {question.scenario.action && (
+                                    <div style={{ marginTop: '8px', color: '#f59e0b', fontWeight: '600' }}>
+                                        → {question.scenario.action}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                     <div style={styles.questionText}>{question.question}</div>

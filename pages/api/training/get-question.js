@@ -12,6 +12,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import TRAINING_CONFIG from '../../../src/config/trainingConfig';
+import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConfigs';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -30,7 +31,29 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Get seen questions for this user/game to avoid repeats
+        // ═══════════════════════════════════════════════════════════════════
+        // STEP 1: GET COMPREHENSIVE GAME CONFIGURATION
+        // ═══════════════════════════════════════════════════════════════════
+        const TRAINING_LIBRARY = require('../../../src/data/TRAINING_LIBRARY').default;
+        const game = TRAINING_LIBRARY.find(g => g.id === gameId);
+
+        if (!game) {
+            return res.status(404).json({ error: 'Game not found' });
+        }
+
+        // Get comprehensive game configuration
+        const gameConfig = getGameConfig(gameId);
+        const gameType = gameConfig.gameType; // 'cash', 'tournament', or 'sng'
+        const playerCount = gameConfig.players; // 2, 3, 6, or 9
+        const gameFormat = gameConfig.format; // "Heads-Up Cash", "6-Max Cash", etc.
+        const stackDepth = getStackDepthNumber(gameConfig.stackDepth); // Numeric BB
+        const preferredEngine = gameConfig.engine; // 'PIO', 'CHART', or 'SCENARIO'
+
+        console.log(`[Training] 🎮 ${game.name} | ${gameFormat} (${playerCount}p) | ${stackDepth}bb | Engine: ${preferredEngine}`);
+
+        // ═══════════════════════════════════════════════════════════════════
+        // STEP 2: GET SEEN QUESTIONS (No-Repeat Logic)
+        // ═══════════════════════════════════════════════════════════════════
         let seenQuestionIds = [];
         if (userId) {
             const { data: seen } = await supabase
@@ -42,27 +65,85 @@ export default async function handler(req, res) {
             seenQuestionIds = (seen || []).map(s => s.question_id);
         }
 
+        // ═══════════════════════════════════════════════════════════════════
+        // STEP 3: FETCH QUESTION BASED ON ENGINE TYPE
+        // ═══════════════════════════════════════════════════════════════════
         let question = null;
 
         // Route to appropriate engine
         switch (engineType.toUpperCase()) {
             case 'PIO':
-                question = await getPIOQuestion(gameId, level, seenQuestionIds);
+                question = await getPIOQuestion(gameId, level, seenQuestionIds, gameType, game);
                 break;
             case 'CHART':
-                question = await getChartQuestion(gameId, level, seenQuestionIds);
+                question = await getChartQuestion(gameId, level, seenQuestionIds, gameType, game);
                 break;
             case 'SCENARIO':
-                question = await getScenarioQuestion(gameId, level, seenQuestionIds);
+                question = await getScenarioQuestion(gameId, level, seenQuestionIds, gameType, game);
                 break;
             default:
-                question = await getPIOQuestion(gameId, level, seenQuestionIds);
+                question = await getPIOQuestion(gameId, level, seenQuestionIds, gameType, game);
         }
 
-        // If no question found (all seen), reset or generate with AI
+        // ═══════════════════════════════════════════════════════════════════
+        // STEP 4: FALLBACK TO CACHED QUESTIONS (Before Grok)
+        // ═══════════════════════════════════════════════════════════════════
         if (!question) {
-            // Try to generate with Grok AI as fallback
-            question = await generateQuestionWithGrok(gameId, engineType, level);
+            console.log('[Training] 💾 Checking question cache...');
+
+            const { data: cachedQuestions } = await supabase
+                .from('training_question_cache')
+                .select('question_data, question_id')
+                .eq('game_id', gameId)
+                .eq('level', level)
+                .eq('engine_type', engineType.toUpperCase())
+                .not('question_id', 'in', `(${seenQuestionIds.join(',') || 'null'})`)
+                .limit(10); // Get 10 random candidates
+
+            if (cachedQuestions && cachedQuestions.length > 0) {
+                // Pick random question from cache
+                const randomIndex = Math.floor(Math.random() * cachedQuestions.length);
+                question = cachedQuestions[randomIndex].question_data;
+
+                // Increment times_used counter
+                await supabase
+                    .from('training_question_cache')
+                    .update({ times_used: supabase.raw('times_used + 1') })
+                    .eq('question_id', cachedQuestions[randomIndex].question_id);
+
+                console.log('[Training] ✅ Loaded from cache:', question.question);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // STEP 5: GENERATE WITH GROK AI (Last Resort)
+        // ═══════════════════════════════════════════════════════════════════
+        if (!question) {
+            console.log('[Training] 💡 No cached question found, generating with Grok AI...');
+            question = await generateQuestionWithGrok(gameId, engineType, level, gameType, game, gameConfig);
+
+            // Save to cache for future use
+            if (question) {
+                try {
+                    await supabase
+                        .from('training_question_cache')
+                        .insert({
+                            question_id: question.id,
+                            game_id: gameId,
+                            engine_type: engineType.toUpperCase(),
+                            game_type: gameType,
+                            level: parseInt(level),
+                            question_data: question,
+                            times_used: 1,
+                        });
+                    console.log('[Training] 💾 Saved to cache:', question.id);
+                } catch (cacheError) {
+                    // Ignore duplicate errors (question already cached)
+                    if (!cacheError.message?.includes('duplicate')) {
+                        console.error('[Training] ⚠️ Cache save failed:', cacheError.message);
+                    }
+                }
+            }
         }
 
         if (!question) {
@@ -77,10 +158,11 @@ export default async function handler(req, res) {
             question,
             level: parseInt(level),
             passThreshold: TRAINING_CONFIG.passThresholds[level] || 85,
+            gameType, // Return game type for debugging
         });
 
     } catch (error) {
-        console.error('Get question error:', error);
+        console.error('[Training] ❌ Get question error:', error);
         return res.status(500).json({ error: error.message });
     }
 }
@@ -238,53 +320,89 @@ async function getScenarioQuestion(gameId, level, seenIds) {
 
 /**
  * Grok AI Fallback: Generate question when database is exhausted
+ * PIO ENGINE IS THE SOURCE OF TRUTH - Grok generates GTO-accurate questions
  */
-async function generateQuestionWithGrok(gameId, engineType, level) {
+async function generateQuestionWithGrok(gameId, engineType, level, gameType, game, gameConfig) {
     try {
         const grok = getGrokClient();
 
-        const prompt = `Generate a poker training question for a ${engineType} game at difficulty level ${level}/10.
+        const gameName = game?.name || 'Training Game';
+        const gameCategory = game?.category || 'CASH';
 
-For PIO: Create a GTO scenario with position, stack depth, and board texture
-For CHART: Create a push/fold decision with specific hand and position
-For SCENARIO: Create a mental game situation
+        // Map game type to readable format
+        const gameTypeDisplay = gameType === 'tournament' ? 'Tournament (MTT)'
+            : gameType === 'sng' ? 'Spin & Go (SNG)'
+                : '6-Max Cash Game';
 
-Respond ONLY with valid JSON (no markdown, no explanation):
+        const prompt = `You are a GTO poker solver expert. Generate a realistic poker training question for "${gameName}" (${gameCategory}) at difficulty level ${level}/10.
+
+CRITICAL REQUIREMENTS:
+- Game Type: ${gameTypeDisplay}
+- Use REAL poker scenarios that would appear in ${gameTypeDisplay} games
+- ${gameType === 'tournament' ? 'Include ICM considerations and stack depths in BB' : ''}
+- ${gameType === 'cash' ? 'Use 100BB effective stacks and focus on postflop play' : ''}
+- ${gameType === 'sng' ? 'Use hyper-turbo stack depths (10-25BB) and 3-max dynamics' : ''}
+- Provide GTO-accurate solver-style answers
+- Include specific stack depths, positions, and board textures
+- Explain WHY the GTO play is optimal (equity, range advantage, ICM, etc.)
+
+Game Context:
+- Game: ${gameName}
+- Category: ${gameCategory}
+- Game Type: ${gameTypeDisplay}
+- Difficulty: ${level}/10 (1=beginner, 10=expert)
+- Engine: ${engineType}
+
+Generate a question in this EXACT JSON format (no markdown, no code blocks):
 {
-  "id": "ai_${Date.now()}",
+  "id": "grok_${gameId}_${Date.now()}",
   "type": "${engineType}",
-  "question": "The question text",
-  "scenario": {"heroPosition": "BTN", "heroStack": 30, "gameType": "6-Max Cash"},
+  "question": "What is the GTO play in this spot?",
+  "scenario": {
+    "heroPosition": "BTN",
+    "heroStack": ${gameType === 'tournament' ? '25' : gameType === 'sng' ? '15' : '100'},
+    "gameType": "${gameTypeDisplay}",
+    "heroHand": "AhKs",
+    "board": "Jh7s2d",
+    "pot": ${gameType === 'tournament' ? '8' : gameType === 'sng' ? '5' : '12'},
+    "villainPosition": "BB",
+    "villainStack": ${gameType === 'tournament' ? '22' : gameType === 'sng' ? '12' : '100'},
+    "action": "Villain bets ${gameType === 'tournament' ? '5bb' : gameType === 'sng' ? '3bb' : '8bb'}"
+  },
   "options": [
-    {"id": "a", "text": "Option A"},
-    {"id": "b", "text": "Option B"},
-    {"id": "c", "text": "Option C"},
-    {"id": "d", "text": "Option D"}
+    {"id": "a", "text": "Fold"},
+    {"id": "b", "text": "Call"},
+    {"id": "c", "text": "Raise to 24bb"},
+    {"id": "d", "text": "All-In"}
   ],
-  "correctAnswer": "a",
-  "explanation": "Why this is correct"
-}`;
+  "correctAnswer": "c",
+  "explanation": "Raising is optimal because: (1) You have strong equity with AK high + backdoor flush, (2) Villain's range is capped on this dry board, (3) You have position and can apply maximum pressure${gameType === 'tournament' ? ', (4) ICM pressure makes villain fold more often' : ''}, (4) Solver shows this as a 65% raise frequency spot."
+}
+
+IMPORTANT: Make the scenario realistic for ${gameTypeDisplay}. Use proper GTO reasoning in the explanation.`;
 
         const response = await grok.chat.completions.create({
             model: 'grok-3',
             messages: [{ role: 'user', content: prompt }],
-            temperature: 0.7,
-            max_tokens: 600,
+            temperature: 0.8, // Higher temp for more variety
+            max_tokens: 800,
         });
 
         const content = response.choices[0]?.message?.content || '';
+
+        // Try to extract JSON from response
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            console.log('[Training] Grok generated question:', parsed.question);
+            console.log(`[Training] ✅ Grok generated ${gameTypeDisplay} question:`, parsed.question);
             return parsed;
         }
     } catch (error) {
-        console.error('[Training] Grok question generation failed:', error.message);
+        console.error('[Training] ❌ Grok question generation failed:', error.message);
     }
 
     // Return hardcoded fallback question if Grok fails
-    return getHardcodedQuestion(engineType, level);
+    return getHardcodedQuestion(engineType, level, gameType);
 }
 
 /**

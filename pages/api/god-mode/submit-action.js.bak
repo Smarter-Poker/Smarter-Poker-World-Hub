@@ -84,41 +84,6 @@ export default async function handler(req, res) {
         // 2. Calculate damage
         const damageResult = calculateDamage(action, sizing, solverNode, effectivePotSize);
 
-        // Extract level from gameId (e.g., "blind-vs-blind-level-3" → 3)
-        const levelMatch = gameId.match(/level-(\d+)/i);
-        const level = levelMatch ? parseInt(levelMatch[1], 10) : 1;
-
-        // Get session data to track round number
-        let roundNumber = 1;
-        try {
-            const { data: sessionData } = await supabase
-                .from('god_mode_sessions')
-                .select('hands_played')
-                .eq('user_id', userId)
-                .eq('game_id', gameId)
-                .eq('status', 'active')
-                .order('started_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-            
-            if (sessionData) {
-                roundNumber = (sessionData.hands_played || 0) + 1;
-            }
-        } catch (sessionError) {
-            console.warn('Could not fetch session data:', sessionError.message);
-        }
-
-        // 3. Record in hand history
-        try {
-            await supabase.from('god_mode_hand_history').insert({
-                user_id: userId,
-                game_id: gameId,
-                source_file_id: effectiveFileId || 'unknown',
-                variant_hash: effectiveVariantHash || '0',
-                hero_hand: effectiveHeroHand || '',
-                board: effectiveBoard || '',
-                level_at_play: level,
-                round_hand_number: roundNumber,
                 round_hand_number: 1, // TODO: Track properly
                 user_action: action,
                 user_sizing: sizing,

@@ -5,7 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../src/lib/grokClient';
-import { getAgentPrompt } from '../../../src/lib/liveHelp/agentPrompts';
+import { getAgentConfig, buildSystemPrompt } from '../../../src/lib/liveHelp/agentPrompts';
 import { collectUserContext } from '../../../src/lib/liveHelp/contextCollector';
 
 const supabase = createClient(

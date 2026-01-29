@@ -13,6 +13,31 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MillionaireQuestion from './MillionaireQuestion';
 import useMillionaireGame from '../../hooks/useMillionaireGame';
 import TRAINING_CONFIG from '../../config/trainingConfig';
+import { getGameById } from '../../data/TRAINING_LIBRARY';
+
+/**
+ * Determine engine type based on game data
+ * - PSYCHOLOGY category → SCENARIO engine
+ * - Games with 'gto' or 'math' tags → PIO engine
+ * - Others → CHART engine
+ */
+function getEngineType(gameId) {
+    const game = getGameById(gameId);
+    if (!game) return 'PIO'; // Default fallback
+
+    // Psychology games use SCENARIO engine
+    if (game.category === 'PSYCHOLOGY') {
+        return 'SCENARIO';
+    }
+
+    // Games with GTO or math tags use PIO solver
+    if (game.tags?.includes('gto') || game.tags?.includes('math')) {
+        return 'PIO';
+    }
+
+    // Default to CHART for range-based games
+    return 'CHART';
+}
 
 export default function GodModeArena({
     userId,
@@ -23,6 +48,9 @@ export default function GodModeArena({
     onComplete,
     onExit,
 }) {
+    // Determine engine type from game data
+    const engineType = getEngineType(gameId);
+
     const {
         // Current state
         currentQuestion,

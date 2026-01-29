@@ -684,9 +684,6 @@ export default function UniversalHeader({
                     )}
                 </div>
             </header>
-
-            {/* Live Help Panel - renders on all pages with UniversalHeader */}
-            <LiveHelpPanel {...liveHelp} />
         </>
     );
 }
