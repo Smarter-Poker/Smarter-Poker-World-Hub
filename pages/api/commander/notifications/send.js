@@ -5,6 +5,8 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { normalizePhoneNumber, isSmsConfigured } from '../../../../src/lib/commander/notifications';
+import { sendSMS as twilioSendSMS, isTwilioConfigured } from '../../../../src/lib/commander/twilio';
+import { isOneSignalConfigured, sendPushNotification as pushNotifySend } from '../../../../src/lib/commander/pushNotifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -209,7 +211,7 @@ async function processNotification(notification, channel, phone) {
 }
 
 async function sendSmsNotification(notification, phone) {
-  if (!isSmsConfigured()) {
+  if (!isSmsConfigured() && !isTwilioConfigured()) {
     console.log('Twilio not configured, marking SMS as pending');
     await supabase
       .from('commander_notifications')
@@ -217,10 +219,6 @@ async function sendSmsNotification(notification, phone) {
       .eq('id', notification.id);
     return;
   }
-
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
 
   // Get phone number from notification or player profile
   let toPhone = phone;
@@ -271,22 +269,27 @@ async function sendSmsNotification(notification, phone) {
       return;
     }
 
-    const client = require('twilio')(accountSid, authToken);
-    const result = await client.messages.create({
-      body: notification.message,
-      from: fromNumber,
-      to: normalizedPhone,
-      statusCallback: `${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/commander/webhooks/twilio/status`
-    });
+    // Use shared Twilio utility for SMS sending
+    const smsResult = await twilioSendSMS(normalizedPhone, notification.message);
 
-    await supabase
-      .from('commander_notifications')
-      .update({
-        status: 'sent',
-        sent_at: new Date().toISOString(),
-        metadata: { ...notification.metadata, message_sid: result.sid }
-      })
-      .eq('id', notification.id);
+    if (smsResult.success) {
+      await supabase
+        .from('commander_notifications')
+        .update({
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          metadata: { ...notification.metadata, message_sid: smsResult.messageId }
+        })
+        .eq('id', notification.id);
+    } else {
+      await supabase
+        .from('commander_notifications')
+        .update({
+          status: 'failed',
+          metadata: { ...notification.metadata, error: smsResult.reason }
+        })
+        .eq('id', notification.id);
+    }
   } catch (error) {
     console.error('Twilio SMS error:', error);
     await supabase
@@ -398,10 +401,8 @@ async function sendEmailNotification(notification) {
 }
 
 async function sendPushNotification(notification) {
-  const appId = process.env.ONESIGNAL_APP_ID;
-  const apiKey = process.env.ONESIGNAL_REST_API_KEY;
-
-  if (!appId || !apiKey) {
+  // Use shared push notification utility for configuration check
+  if (!isOneSignalConfigured()) {
     console.log('OneSignal not configured, marking push as pending');
     await supabase
       .from('commander_notifications')
@@ -409,6 +410,9 @@ async function sendPushNotification(notification) {
       .eq('id', notification.id);
     return;
   }
+
+  const appId = process.env.ONESIGNAL_APP_ID;
+  const apiKey = process.env.ONESIGNAL_REST_API_KEY;
 
   // Get player's push subscriptions
   const { data: subscriptions } = await supabase
