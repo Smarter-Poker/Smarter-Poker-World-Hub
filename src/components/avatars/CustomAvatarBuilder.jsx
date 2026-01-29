@@ -9,8 +9,10 @@ import React, { useState, useEffect } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
 
-export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
-  const { user, createCustomAvatar, isVip: contextIsVip, initializing } = useAvatar();
+export default function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = null }) {
+  const { user: contextUser, createCustomAvatar, isVip: contextIsVip, initializing } = useAvatar();
+  // Use prop user as fallback when context is still initializing
+  const user = contextUser || propUser;
   const effectiveVip = isVip || contextIsVip;
 
   const [prompt, setPrompt] = useState('');
@@ -226,8 +228,8 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
     );
   }
 
-  // Show login prompt ONLY after confirming no session exists
-  if (!user) {
+  // Show login prompt ONLY after confirming no session exists (and no prop user)
+  if (!user && !propUser) {
     return (
       <div style={{
         width: '100%',

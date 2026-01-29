@@ -509,7 +509,7 @@ export default function AvatarsComplete() {
                             }}>
                             ✕ Close
                         </button>
-                        <CustomAvatarBuilder isVip={isVip} onClose={handleCloseBuilder} />
+                        <CustomAvatarBuilder isVip={isVip} onClose={handleCloseBuilder} user={user} />
                     </div>
                 )
             }
