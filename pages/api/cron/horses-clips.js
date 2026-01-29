@@ -219,8 +219,8 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             // CRITICAL: Validate the video ID is real before accepting
             const videoId = extractVideoIdFromUrl(candidate.source_url) || candidate.video_id;
 
-            // After 30 failed attempts, skip validation for verified clips
-            if (attempts >= 30 && VERIFIED_CLIP_IDS.includes(videoId)) {
+            // After 10 failed attempts, skip validation for verified clips
+            if (attempts >= 10 && VERIFIED_CLIP_IDS.includes(videoId)) {
                 console.log(`   ⚡ Using pre-verified clip: ${videoId}`);
                 clip = candidate;
                 usedClipsThisSession.add(candidate.id);
