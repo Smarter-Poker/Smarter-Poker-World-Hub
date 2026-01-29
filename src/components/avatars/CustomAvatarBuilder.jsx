@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
+import supabase from '../../lib/supabase.ts';
 
 export default function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = null }) {
   const { user: contextUser, createCustomAvatar, isVip: contextIsVip, initializing } = useAvatar();
@@ -134,13 +135,49 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
     }
   }
 
-  function handleAccept() {
-    // Reset state
+  async function handleAccept() {
+    // Save to database before closing
+    if (user && generatedImage && prompt) {
+      try {
+        const { data, error } = await supabase
+          .from('custom_avatar_gallery')
+          .insert({
+            user_id: user.id,
+            image_url: generatedImage,
+            prompt: prompt
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error saving avatar:', error);
+          alert('Failed to save avatar. Please try again.');
+          return;
+        }
+
+        // Set as active avatar
+        const { error: setError } = await supabase.rpc('set_active_avatar', {
+          p_user_id: user.id,
+          p_avatar_type: 'custom',
+          p_custom_image_url: generatedImage,
+          p_custom_prompt: prompt
+        });
+
+        if (setError) {
+          console.error('Error setting active avatar:', setError);
+        }
+      } catch (err) {
+        console.error('Error in handleAccept:', err);
+        alert('Failed to save avatar. Please try again.');
+        return;
+      }
+    }
+
+    // Reset state and close modal
     setShowResult(false);
     setGeneratedImage(null);
     setPrompt('');
 
-    // Close the modal immediately - no popup needed
     if (onClose) {
       onClose();
     }
@@ -173,6 +210,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageUrl: generatedImage,
+          originalPrompt: prompt, // Include original prompt to preserve character
           editPrompt: editPrompt,
           userId: user?.id
         })

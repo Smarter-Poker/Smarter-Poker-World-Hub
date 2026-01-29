@@ -112,23 +112,30 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Edit prompt is required' });
         }
 
-        console.log('✏️ Editing avatar with Grok:', editPrompt);
+        // Get the original prompt to preserve the character
+        const { originalPrompt } = req.body;
+
+        console.log('✏️ Editing avatar:', { originalPrompt, editPrompt });
 
         // Download the original image and convert to base64
         console.log('📥 Downloading original image...');
-        // SIMPLIFIED APPROACH: Skip vision analysis (Grok vision doesn't support image inputs yet)
-        // Instead, regenerate based on edit prompt only
-        console.log('🎨 Generating edited avatar (simplified approach)...');
+        // IMPROVED APPROACH: Combine original prompt with edit to preserve character
+        console.log('🎨 Generating edited avatar (preserving original character)...');
 
-        const editedPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT with this modification:
+        const editedPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT.
 
-${editPrompt}
+ORIGINAL CHARACTER: ${originalPrompt || 'A character'}
+
+MODIFICATION: ${editPrompt}
 
 STRICT RULES:
+- Keep the SAME character as described in "ORIGINAL CHARACTER"
+- Apply ONLY the modification described in "MODIFICATION"
 - PURE WHITE BACKGROUND (#FFFFFF)
 - Head and upper shoulders only (bust portrait)
 - High quality 3D render
-- Professional character design`;
+- Professional character design
+- Maintain the same art style and character identity`;
 
         const imageResponse = await grok.images.generate({
             model: "dall-e-3", // Mapped to grok-2-image by grokClient
