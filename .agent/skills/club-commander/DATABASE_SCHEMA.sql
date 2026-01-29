@@ -1,9 +1,11 @@
 -- =====================================================
 -- CLUB COMMANDER - COMPLETE DATABASE SCHEMA
 -- =====================================================
--- Version: 1.0
+-- Version: 1.1
 -- Created: January 2026
+-- Updated: January 29, 2026
 -- Purpose: Complete SQL schema for Club Commander platform
+-- Note: All venue_id columns are INTEGER (poker_venues.id is SERIAL)
 -- =====================================================
 
 -- ===================
@@ -26,7 +28,7 @@ ALTER TABLE poker_venues ADD COLUMN IF NOT EXISTS
 -- Staff & Roles
 CREATE TABLE commander_staff (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   role TEXT NOT NULL, -- 'owner', 'manager', 'floor', 'brush', 'dealer'
   permissions JSONB DEFAULT '{}',
@@ -43,7 +45,7 @@ CREATE TABLE commander_staff (
 
 CREATE TABLE commander_tables (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
   table_number INTEGER NOT NULL,
   table_name TEXT, -- "Table 1", "Feature Table", etc.
   max_seats INTEGER DEFAULT 9,
@@ -58,7 +60,7 @@ CREATE TABLE commander_tables (
 -- Active Games (Cash & Tournament)
 CREATE TABLE commander_games (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
   table_id UUID REFERENCES commander_tables(id),
   game_type TEXT NOT NULL, -- 'nlh', 'plo', 'mixed', 'limit', 'tournament'
   stakes TEXT, -- '1/3', '2/5', '5/10', etc.
@@ -81,7 +83,7 @@ CREATE TABLE commander_games (
 
 CREATE TABLE commander_waitlist (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
   game_id UUID REFERENCES commander_games(id),
   player_id UUID REFERENCES profiles(id),
   player_name TEXT, -- For walk-in players without accounts
@@ -100,7 +102,7 @@ CREATE TABLE commander_waitlist (
 -- Waitlist History (for analytics)
 CREATE TABLE commander_waitlist_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   player_id UUID REFERENCES profiles(id),
   game_type TEXT,
   stakes TEXT,
@@ -113,7 +115,7 @@ CREATE TABLE commander_waitlist_history (
 CREATE TABLE commander_waitlist_groups (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   leader_id UUID REFERENCES profiles(id),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   game_type TEXT,
   stakes TEXT,
   prefer_same_table BOOLEAN DEFAULT true,
@@ -166,7 +168,7 @@ CREATE TABLE commander_player_preferences (
 
 CREATE TABLE commander_tournaments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
   tournament_type TEXT DEFAULT 'freezeout', -- 'freezeout', 'rebuy', 'bounty', 'satellite'
@@ -251,7 +253,7 @@ CREATE TABLE commander_tournament_entries (
 
 CREATE TABLE commander_notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   player_id UUID REFERENCES profiles(id),
 
   notification_type TEXT NOT NULL, -- 'seat_available', 'tournament_starting', 'called_for_seat', 'promotion', 'custom'
@@ -275,7 +277,7 @@ CREATE TABLE commander_notifications (
 
 CREATE TABLE commander_promotions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
 
   name TEXT NOT NULL,
   description TEXT,
@@ -304,7 +306,7 @@ CREATE TABLE commander_promotions (
 -- High Hand Winners
 CREATE TABLE commander_high_hands (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   promotion_id UUID REFERENCES commander_promotions(id),
 
   player_id UUID REFERENCES profiles(id),
@@ -331,7 +333,7 @@ CREATE TABLE commander_high_hands (
 
 CREATE TABLE commander_player_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   player_id UUID REFERENCES profiles(id),
 
   -- Session tracking
@@ -357,7 +359,7 @@ CREATE TABLE commander_player_sessions (
 -- In-Seat Services
 CREATE TABLE commander_service_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   player_id UUID REFERENCES profiles(id),
   table_id UUID REFERENCES commander_tables(id),
   seat_number INTEGER,
@@ -375,7 +377,7 @@ CREATE TABLE commander_service_requests (
 
 CREATE TABLE commander_dealers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   user_id UUID REFERENCES profiles(id),
   employee_id TEXT,
   skill_level INTEGER,         -- 1-5
@@ -387,7 +389,7 @@ CREATE TABLE commander_dealers (
 
 CREATE TABLE commander_dealer_rotations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   dealer_id UUID REFERENCES commander_dealers(id),
   table_id UUID REFERENCES commander_tables(id),
   started_at TIMESTAMPTZ,
@@ -401,7 +403,7 @@ CREATE TABLE commander_dealer_rotations (
 
 CREATE TABLE commander_incidents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   reported_by UUID REFERENCES commander_staff(id),
   incident_type TEXT NOT NULL,
   severity TEXT NOT NULL,
@@ -559,7 +561,7 @@ CREATE TABLE commander_equipment_rentals (
 
 CREATE TABLE commander_analytics_daily (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   date DATE NOT NULL,
 
   -- Traffic
@@ -601,7 +603,7 @@ CREATE TABLE commander_analytics_daily (
 
 CREATE TABLE commander_wait_time_predictions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   game_type TEXT NOT NULL,
   stakes TEXT NOT NULL,
   hour_of_day INTEGER,
@@ -615,7 +617,7 @@ CREATE TABLE commander_wait_time_predictions (
 CREATE TABLE commander_player_recommendations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   player_id UUID REFERENCES profiles(id),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   recommendation_type TEXT,    -- 'game', 'stakes', 'venue', 'training'
   recommendation_data JSONB,
   was_followed BOOLEAN,
@@ -628,7 +630,7 @@ CREATE TABLE commander_player_recommendations (
 
 CREATE TABLE commander_streams (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   table_id UUID REFERENCES commander_tables(id),
   platforms TEXT[],
   stream_keys JSONB,           -- Encrypted
@@ -643,7 +645,7 @@ CREATE TABLE commander_streams (
 
 CREATE TABLE commander_hand_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   table_id UUID REFERENCES commander_tables(id),
   game_id UUID REFERENCES commander_games(id),
   hand_number INTEGER,
@@ -667,7 +669,7 @@ CREATE TABLE commander_hand_history (
 
 CREATE TABLE commander_tax_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id UUID REFERENCES poker_venues(id),
+  venue_id INTEGER REFERENCES poker_venues(id),
   player_id UUID REFERENCES profiles(id),
   event_type TEXT NOT NULL,
   gross_amount DECIMAL(12,2) NOT NULL,
@@ -691,7 +693,7 @@ CREATE TABLE commander_self_exclusions (
   exclusion_type TEXT NOT NULL,
   duration_days INTEGER,
   scope TEXT NOT NULL,         -- 'venue', 'network'
-  venue_id UUID REFERENCES poker_venues(id), -- If venue-specific
+  venue_id INTEGER REFERENCES poker_venues(id), -- If venue-specific
   reason TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   expires_at TIMESTAMPTZ,
@@ -723,7 +725,7 @@ CREATE TABLE commander_leagues (
   name TEXT NOT NULL,
   description TEXT,
   organizer_id UUID REFERENCES profiles(id),
-  venues UUID[],               -- Participating venues
+  venues INTEGER[],             -- Participating venue IDs (poker_venues.id is SERIAL)
   season_start DATE,
   season_end DATE,
   scoring_system JSONB,
