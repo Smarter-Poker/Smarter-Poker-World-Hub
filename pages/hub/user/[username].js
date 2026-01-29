@@ -638,7 +638,7 @@ export default function UserProfilePage() {
                     height: 220,
                     background: profile.cover_photo_url
                         ? `url(${profile.cover_photo_url}) center/cover`
-                        : 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                        : '#E5E7EB',
                     position: 'relative',
                     borderRadius: '0 0 12px 12px'
                 }}>
