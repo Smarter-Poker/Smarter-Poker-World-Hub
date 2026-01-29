@@ -2640,7 +2640,7 @@ export default function SocialMediaPage() {
 
                 {/* Bottom Links */}
                 <div style={{ padding: '0 16px' }}>
-                    <Link href="/hub/lives" onClick={() => setSidebarOpen(false)} style={{
+                    <Link href="/hub/help" onClick={() => setSidebarOpen(false)} style={{
                         padding: '12px 0', borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textDecoration: 'none', color: 'inherit'
                     }}>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#65676b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

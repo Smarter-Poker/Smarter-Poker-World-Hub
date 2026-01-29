@@ -597,9 +597,9 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         }
 
         .accept-btn {
-          background: linear-gradient(135deg, #00ff00, #00cc00);
+          background: #1877F2;
           border: none;
-          color: #000;
+          color: #fff;
         }
 
         .accept-btn:hover {
@@ -609,12 +609,12 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
 
         .regenerate-btn {
           background: transparent;
-          border: 2px solid #ff8c00;
-          color: #ff8c00;
+          border: 2px solid #1877F2;
+          color: #1877F2;
         }
 
         .regenerate-btn:hover {
-          background: rgba(255, 140, 0, 0.2);
+          background: rgba(24, 119, 242, 0.1);
         }
 
         .back-btn {
@@ -867,7 +867,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
                   width: '100%',
                   padding: '12px',
                   background: 'rgba(0, 0, 0, 0.5)',
-                  border: '2px solid rgba(138, 43, 226, 0.5)',
+                  border: '2px solid rgba(24, 119, 242, 0.5)',
                   borderRadius: '10px',
                   color: '#fff',
                   fontFamily: 'Rajdhani, sans-serif',
@@ -883,7 +883,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
                   style={{
                     flex: 1,
                     padding: '12px',
-                    background: editing ? 'rgba(138, 43, 226, 0.3)' : 'linear-gradient(135deg, #8a2be2, #ff00ff)',
+                    background: editing ? 'rgba(24, 119, 242, 0.3)' : '#1877F2',
                     border: 'none',
                     borderRadius: '8px',
                     color: '#fff',
@@ -919,9 +919,9 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
               className="result-btn"
               onClick={() => setShowEditMode(!showEditMode)}
               style={{
-                background: showEditMode ? 'rgba(138, 43, 226, 0.3)' : 'transparent',
-                border: '2px solid #8a2be2',
-                color: '#8a2be2'
+                background: showEditMode ? 'rgba(24, 119, 242, 0.2)' : 'transparent',
+                border: '2px solid #1877F2',
+                color: '#1877F2'
               }}
             >
               ✏️ Edit Avatar
@@ -931,9 +931,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
                 🔄 Regenerate
               </button>
             )}
-            <button className="result-btn back-btn" onClick={handleStartOver}>
-              ← Try Different Style
-            </button>
+
           </div>
           {effectiveVip && (
             <div className="vip-note">💎 VIP: Unlimited regenerations</div>
