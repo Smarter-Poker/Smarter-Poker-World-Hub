@@ -13,6 +13,7 @@ import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 import { supabase } from '../../src/lib/supabase';
 import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
 import { useAvatar } from '../../src/contexts/AvatarContext';
+import { getCustomAvatarGallery } from '../../src/services/avatar-service';
 
 // God-Mode Stack
 import { useSettingsStore } from '../../src/stores/settingsStore';
@@ -76,6 +77,8 @@ export default function SettingsPage() {
     const [activeSection, setActiveSection] = useState('account');
     const [saved, setSaved] = useState(false);
     const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
+    const [customAvatars, setCustomAvatars] = useState([]);
+    const [loadingAvatars, setLoadingAvatars] = useState(true);
 
     // Settings State
     const [settings, setSettings] = useState({
@@ -123,6 +126,11 @@ export default function SettingsPage() {
                         }));
                     }
                 });
+            // Load custom avatars gallery
+            getCustomAvatarGallery(user.id).then(avatars => {
+                setCustomAvatars(avatars || []);
+                setLoadingAvatars(false);
+            }).catch(() => setLoadingAvatars(false));
         }
     }, [user?.id]);
 
@@ -300,38 +308,160 @@ export default function SettingsPage() {
                                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 16 }}>
                                         Create a unique AI-generated avatar to use as your profile picture across Smarter.Poker
                                     </p>
-                                    <button
-                                        onClick={() => setShowAvatarBuilder(true)}
-                                        style={{
-                                            padding: '14px 28px',
-                                            background: 'linear-gradient(135deg, #8a2be2, #00D4FF)',
-                                            border: 'none',
-                                            borderRadius: 12,
-                                            color: '#fff',
-                                            fontSize: 16,
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 10,
-                                            boxShadow: '0 4px 20px rgba(138, 43, 226, 0.4)',
-                                            transition: 'all 0.3s ease',
-                                        }}
-                                    >
-                                        ✨ Create Custom Avatar
-                                    </button>
-                                    <button
-                                        onClick={() => router.push('/hub/avatars-complete')}
-                                        style={{
-                                            ...styles.secondaryButton,
-                                            marginTop: 12,
-                                            marginBottom: 0,
-                                            display: 'inline-block',
-                                            width: 'auto',
-                                        }}
-                                    >
-                                        📚 Browse Avatar Library
-                                    </button>
+
+                                    {/* 5 Avatar Boxes */}
+                                    <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+                                        {[0, 1, 2, 3, 4].map((index) => {
+                                            const avatarData = customAvatars[index];
+                                            const isActive = avatar && avatarData && avatar === avatarData.image_url;
+                                            const canCreate = isVip ? customAvatars.length < 5 : customAvatars.length < 1;
+
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    onClick={() => {
+                                                        if (avatarData) {
+                                                            // Could implement select as active here
+                                                        } else if (canCreate) {
+                                                            setShowAvatarBuilder(true);
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        width: 64,
+                                                        height: 64,
+                                                        borderRadius: 12,
+                                                        background: avatarData
+                                                            ? 'transparent'
+                                                            : 'rgba(255, 255, 255, 0.05)',
+                                                        border: isActive
+                                                            ? '3px solid #00D4FF'
+                                                            : avatarData
+                                                                ? '2px solid rgba(138, 43, 226, 0.5)'
+                                                                : '2px dashed rgba(255, 255, 255, 0.2)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: (avatarData || canCreate) ? 'pointer' : 'not-allowed',
+                                                        opacity: (!avatarData && !canCreate) ? 0.4 : 1,
+                                                        overflow: 'hidden',
+                                                        transition: 'all 0.2s ease',
+                                                        position: 'relative',
+                                                    }}
+                                                >
+                                                    {loadingAvatars ? (
+                                                        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>...</span>
+                                                    ) : avatarData ? (
+                                                        <>
+                                                            <img
+                                                                src={avatarData.image_url}
+                                                                alt={`Avatar ${index + 1}`}
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                            />
+                                                            {isActive && (
+                                                                <div style={{
+                                                                    position: 'absolute',
+                                                                    bottom: 2,
+                                                                    right: 2,
+                                                                    width: 16,
+                                                                    height: 16,
+                                                                    borderRadius: '50%',
+                                                                    background: '#00D4FF',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    fontSize: 10,
+                                                                    color: '#000',
+                                                                }}>
+                                                                    ✓
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span style={{
+                                                            color: canCreate ? '#8a2be2' : 'rgba(255,255,255,0.2)',
+                                                            fontSize: 24,
+                                                            fontWeight: 300,
+                                                        }}>
+                                                            +
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Equal-sized buttons */}
+                                    <div style={{ display: 'flex', gap: 12 }}>
+                                        <button
+                                            onClick={() => setShowAvatarBuilder(true)}
+                                            style={{
+                                                flex: 1,
+                                                padding: '14px 20px',
+                                                background: 'linear-gradient(135deg, #8a2be2, #00D4FF)',
+                                                border: 'none',
+                                                borderRadius: 10,
+                                                color: '#fff',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: 8,
+                                                boxShadow: '0 4px 20px rgba(138, 43, 226, 0.3)',
+                                                transition: 'all 0.3s ease',
+                                            }}
+                                        >
+                                            ✨ Create Custom Avatar
+                                        </button>
+                                        <button
+                                            onClick={() => router.push('/hub/avatars-complete')}
+                                            style={{
+                                                flex: 1,
+                                                padding: '14px 20px',
+                                                background: 'rgba(0, 212, 255, 0.15)',
+                                                border: '1px solid rgba(0, 212, 255, 0.3)',
+                                                borderRadius: 10,
+                                                color: '#00D4FF',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: 8,
+                                                transition: 'all 0.3s ease',
+                                            }}
+                                        >
+                                            📚 Browse Avatar Library
+                                        </button>
+                                    </div>
+
+                                    {/* VIP Upgrade Link for non-VIP users */}
+                                    {!isVip && (
+                                        <div style={{
+                                            marginTop: 16,
+                                            padding: '12px 16px',
+                                            background: 'rgba(255, 215, 0, 0.1)',
+                                            borderRadius: 8,
+                                            border: '1px solid rgba(255, 215, 0, 0.2)',
+                                        }}>
+                                            <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
+                                                💎 Free users get 1 custom avatar.
+                                                <a
+                                                    href="/hub/vip"
+                                                    style={{
+                                                        color: '#FFD700',
+                                                        fontWeight: 600,
+                                                        marginLeft: 6,
+                                                        textDecoration: 'none',
+                                                    }}
+                                                >
+                                                    Upgrade to VIP for 5 custom avatars!
+                                                </a>
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div style={styles.card}>

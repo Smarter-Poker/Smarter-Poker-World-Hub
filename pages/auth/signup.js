@@ -82,6 +82,7 @@ export default function SignUpPage() {
     const [phoneVerifying, setPhoneVerifying] = useState(false);
     const [phoneError, setPhoneError] = useState('');
     const [phoneOtpCooldown, setPhoneOtpCooldown] = useState(0);
+    const [showPhoneModal, setShowPhoneModal] = useState(false);
 
     // Animated glow effect
     useEffect(() => {
@@ -194,6 +195,7 @@ export default function SignUpPage() {
             }
 
             setPhoneOtpSent(true);
+            setShowPhoneModal(true); // Show verification modal
             // Start 60-second cooldown
             setPhoneOtpCooldown(60);
             const interval = setInterval(() => {
@@ -236,6 +238,7 @@ export default function SignUpPage() {
             }
 
             setPhoneVerified(true);
+            setShowPhoneModal(false); // Close modal on success
             setPhoneError('');
         } catch (err) {
             setPhoneError(err.message);
@@ -847,48 +850,7 @@ export default function SignUpPage() {
                                         </button>
                                     )}
                                 </div>
-
-                                {/* OTP Input - appears after sending code - VERTICAL LAYOUT for mobile */}
-                                {phoneOtpSent && !phoneVerified && (
-                                    <div style={{ marginTop: '12px' }}>
-                                        <input
-                                            type="text"
-                                            value={phoneOtp}
-                                            onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                            placeholder="Enter 6-digit code"
-                                            style={{
-                                                ...styles.inputSingle,
-                                                width: '100%',
-                                                letterSpacing: '4px',
-                                                textAlign: 'center',
-                                                fontSize: '18px',
-                                            }}
-                                            maxLength={6}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={verifyPhoneOtp}
-                                            disabled={phoneVerifying || phoneOtp.length !== 6}
-                                            style={{
-                                                width: '100%',
-                                                marginTop: '10px',
-                                                padding: '14px 20px',
-                                                background: phoneOtp.length === 6 ? 'linear-gradient(135deg, #00ff66, #00cc52)' : 'rgba(100, 100, 100, 0.5)',
-                                                border: 'none',
-                                                borderRadius: '8px',
-                                                color: '#fff',
-                                                fontWeight: '600',
-                                                fontSize: '15px',
-                                                cursor: phoneOtp.length === 6 ? 'pointer' : 'not-allowed',
-                                            }}
-                                        >
-                                            {phoneVerifying ? 'Verifying...' : 'Verify Phone Number'}
-                                        </button>
-                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '8px', textAlign: 'center' }}>
-                                            Check your phone for the verification code
-                                        </p>
-                                    </div>
-                                )}
+                                {/* OTP verification moved to modal popup */}
 
                                 {/* Phone Error Message */}
                                 {phoneError && (
@@ -1087,6 +1049,167 @@ export default function SignUpPage() {
                         </>
                     )}
                 </div>
+
+                {/* ═══════════════════════════════════════════════════════════════
+                    PHONE VERIFICATION MODAL - iOS SMS AUTOFILL SUPPORT
+                    ═══════════════════════════════════════════════════════════════ */}
+                {showPhoneModal && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0, 0, 0, 0.85)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 9999,
+                        padding: '20px',
+                    }}>
+                        <div style={{
+                            background: 'linear-gradient(145deg, #0a1628, #0f1f3a)',
+                            border: '1px solid rgba(0, 212, 255, 0.3)',
+                            borderRadius: '16px',
+                            padding: '32px 24px',
+                            maxWidth: '360px',
+                            width: '100%',
+                            textAlign: 'center',
+                            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 212, 255, 0.15)',
+                        }}>
+                            {/* Logo */}
+                            <div style={{ marginBottom: '20px' }}>
+                                <BrainIcon size={48} />
+                            </div>
+
+                            {/* Title */}
+                            <h2 style={{
+                                fontFamily: 'Orbitron, sans-serif',
+                                fontSize: '22px',
+                                fontWeight: '700',
+                                color: '#00d4ff',
+                                margin: '0 0 8px 0',
+                            }}>
+                                Verify Phone
+                            </h2>
+
+                            <p style={{
+                                fontSize: '14px',
+                                color: 'rgba(255,255,255,0.7)',
+                                margin: '0 0 24px 0',
+                            }}>
+                                Enter the 6-digit code sent to<br />
+                                <span style={{ color: '#00d4ff', fontWeight: '600' }}>
+                                    +1 {formatPhone(formData.phone)}
+                                </span>
+                            </p>
+
+                            {/* OTP Input - with iOS SMS autofill support */}
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                value={phoneOtp}
+                                onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                placeholder="• • • • • •"
+                                autoFocus
+                                style={{
+                                    width: '100%',
+                                    padding: '16px',
+                                    fontSize: '28px',
+                                    fontWeight: '700',
+                                    letterSpacing: '8px',
+                                    textAlign: 'center',
+                                    background: 'rgba(0, 0, 0, 0.4)',
+                                    border: phoneOtp.length === 6 ? '2px solid #00ff66' : '2px solid rgba(0, 212, 255, 0.3)',
+                                    borderRadius: '12px',
+                                    color: '#fff',
+                                    outline: 'none',
+                                    fontFamily: 'monospace',
+                                    boxSizing: 'border-box',
+                                }}
+                                maxLength={6}
+                            />
+
+                            {/* Error message */}
+                            {phoneError && (
+                                <p style={{
+                                    color: '#ff4d4d',
+                                    fontSize: '13px',
+                                    marginTop: '12px',
+                                    marginBottom: '0',
+                                }}>
+                                    {phoneError}
+                                </p>
+                            )}
+
+                            {/* Verify Button */}
+                            <button
+                                type="button"
+                                onClick={verifyPhoneOtp}
+                                disabled={phoneVerifying || phoneOtp.length !== 6}
+                                style={{
+                                    width: '100%',
+                                    marginTop: '20px',
+                                    padding: '16px',
+                                    background: phoneOtp.length === 6 ? 'linear-gradient(135deg, #00ff66, #00cc52)' : 'rgba(100, 100, 100, 0.5)',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    color: '#fff',
+                                    fontWeight: '700',
+                                    fontSize: '16px',
+                                    cursor: phoneOtp.length === 6 ? 'pointer' : 'not-allowed',
+                                    fontFamily: 'Inter, sans-serif',
+                                }}
+                            >
+                                {phoneVerifying ? 'Verifying...' : 'Verify Code'}
+                            </button>
+
+                            {/* Resend code link */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (phoneOtpCooldown === 0) {
+                                        sendPhoneOtp();
+                                    }
+                                }}
+                                disabled={phoneOtpCooldown > 0}
+                                style={{
+                                    marginTop: '16px',
+                                    background: 'none',
+                                    border: 'none',
+                                    color: phoneOtpCooldown > 0 ? 'rgba(255,255,255,0.4)' : '#00d4ff',
+                                    fontSize: '13px',
+                                    cursor: phoneOtpCooldown > 0 ? 'not-allowed' : 'pointer',
+                                    fontFamily: 'Inter, sans-serif',
+                                }}
+                            >
+                                {phoneOtpCooldown > 0 ? `Resend code in ${phoneOtpCooldown}s` : "Didn't get the code? Resend"}
+                            </button>
+
+                            {/* Cancel button */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowPhoneModal(false);
+                                    setPhoneOtp('');
+                                    setPhoneError('');
+                                }}
+                                style={{
+                                    marginTop: '8px',
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'rgba(255,255,255,0.5)',
+                                    fontSize: '13px',
+                                    cursor: 'pointer',
+                                    fontFamily: 'Inter, sans-serif',
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </>
     );
