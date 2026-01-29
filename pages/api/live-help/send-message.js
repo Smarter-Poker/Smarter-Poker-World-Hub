@@ -1,12 +1,17 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    API: Send Live Help Message
-   Sends user message and gets AI response from Grok
+   Handles user messages and generates AI responses
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { supabase } from '../../../src/lib/supabase';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../src/lib/grokClient';
-import { buildSystemPrompt, getAgentConfig } from '../../../src/lib/liveHelp/agentPrompts';
+import { getAgentPrompt } from '../../../src/lib/liveHelp/agentPrompts';
+import { collectUserContext } from '../../../src/lib/liveHelp/contextCollector';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -14,10 +19,16 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Get authenticated user
-        const user = getAuthUser();
-        if (!user) {
+        const authHeader = req.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) {
             return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+        if (authError || !user) {
+            return res.status(401).json({ error: 'Invalid token' });
         }
 
         const { conversationId, content, context } = req.body;

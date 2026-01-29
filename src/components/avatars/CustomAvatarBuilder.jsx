@@ -851,81 +851,13 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
             alt="Generated Avatar"
             className="result-image"
           />
-          {/* Edit Mode Input */}
-          {showEditMode && (
-            <div style={{
-              width: '100%',
-              maxWidth: '400px',
-              marginTop: '20px',
-              marginBottom: '15px'
-            }}>
-              <textarea
-                value={editPrompt}
-                onChange={(e) => setEditPrompt(e.target.value)}
-                placeholder="Describe what you want to change... (e.g., 'Add sunglasses', 'Make hair blonde', 'Add a gold chain')"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  border: '2px solid rgba(24, 119, 242, 0.5)',
-                  borderRadius: '10px',
-                  color: '#fff',
-                  fontFamily: 'Rajdhani, sans-serif',
-                  fontSize: '14px',
-                  resize: 'vertical',
-                  minHeight: '80px'
-                }}
-              />
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button
-                  onClick={handleEditAvatar}
-                  disabled={editing || !editPrompt.trim()}
-                  style={{
-                    flex: 1,
-                    padding: '12px',
-                    background: editing ? 'rgba(24, 119, 242, 0.3)' : '#1877F2',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    fontWeight: '600',
-                    cursor: editing ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {editing ? '✨ Applying Edit...' : '✨ Apply Edit'}
-                </button>
-                <button
-                  onClick={() => { setShowEditMode(false); setEditPrompt(''); }}
-                  style={{
-                    padding: '12px 20px',
-                    background: 'rgba(100, 100, 100, 0.3)',
-                    border: '1px solid #666',
-                    borderRadius: '8px',
-                    color: '#999',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
+
 
           <div className="result-buttons">
             <button className="result-btn accept-btn" onClick={handleAccept}>
               ✓ Accept Avatar
             </button>
-            {/* Edit button - always available */}
-            <button
-              className="result-btn"
-              onClick={() => setShowEditMode(!showEditMode)}
-              style={{
-                background: showEditMode ? 'rgba(24, 119, 242, 0.2)' : 'transparent',
-                border: '2px solid #1877F2',
-                color: '#1877F2'
-              }}
-            >
-              ✏️ Edit Avatar
-            </button>
+
             {effectiveVip && (
               <button className="result-btn regenerate-btn" onClick={handleRegenerate}>
                 🔄 Regenerate

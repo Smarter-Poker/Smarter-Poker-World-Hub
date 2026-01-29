@@ -116,68 +116,20 @@ export default async function handler(req, res) {
 
         // Download the original image and convert to base64
         console.log('📥 Downloading original image...');
-        const originalImageResponse = await fetch(imageUrl);
-        const originalBuffer = Buffer.from(await originalImageResponse.arrayBuffer());
-        const base64Image = originalBuffer.toString('base64');
-        const mimeType = 'image/png';
+        // SIMPLIFIED APPROACH: Skip vision analysis (Grok vision doesn't support image inputs yet)
+        // Instead, regenerate based on edit prompt only
+        console.log('🎨 Generating edited avatar (simplified approach)...');
 
-        // Use Grok Vision to analyze the image + generate edited version
-        // Since Grok's image API uses grok-2-image for generation, we'll use a hybrid approach:
-        // 1. Describe the current image
-        // 2. Generate a new image with the requested edits applied to the description
+        const editedPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT with this modification:
 
-        console.log('🔍 Analyzing current avatar...');
-        const analysisResponse = await grok.chat.completions.create({
-            model: "grok-2-vision-1212", // Grok 2 Vision - supports image inputs
-            messages: [
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "text",
-                            text: `Describe this avatar/character in EXTREME detail for recreation. Include:
-1. Face shape, skin tone, facial features
-2. Hair color, style, length
-3. Eye color and shape
-4. Clothing style and colors
-5. Any accessories or distinctive features
-6. Expression and pose
-7. Art style (3D, cartoon, realistic, etc.)
-
-Be very specific so the image can be recreated.`
-                        },
-                        {
-                            type: "image_url",
-                            image_url: { url: `data:${mimeType};base64,${base64Image}` }
-                        }
-                    ]
-                }
-            ],
-            max_tokens: 800
-        });
-
-        const originalDescription = analysisResponse.choices[0].message.content;
-        console.log('📝 Original description:', originalDescription.substring(0, 200) + '...');
-
-        // Generate new image with edit applied
-        const editedPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT.
-
-ORIGINAL CHARACTER:
-${originalDescription}
-
-EDIT REQUEST: ${editPrompt}
-
-Apply the requested edit while keeping all other features of the character the same.
+${editPrompt}
 
 STRICT RULES:
-- Keep the SAME face, skin tone, and body as the original
-- Apply ONLY the requested edit: "${editPrompt}"
 - PURE WHITE BACKGROUND (#FFFFFF)
 - Head and upper shoulders only (bust portrait)
-- Same art style as the original character
-- High quality 3D render`;
+- High quality 3D render
+- Professional character design`;
 
-        console.log('🎨 Generating edited avatar...');
         const imageResponse = await grok.images.generate({
             model: "dall-e-3", // Mapped to grok-2-image by grokClient
             prompt: editedPrompt,
