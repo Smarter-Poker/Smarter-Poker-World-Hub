@@ -35,6 +35,7 @@ const GodModeArena = dynamic(
     { ssr: false }
 );
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import TrainingSettingsMenu from '../../src/components/training/TrainingSettingsMenu';
 
 // God-Mode Stack
 import { useTrainingStore } from '../../src/stores/trainingStore';
@@ -145,6 +146,9 @@ function TrainingHeader({ gamesPlayed = 0 }) {
                     <span style={{ fontSize: 12, color: '#FFD700' }}>XP</span>
                     <span style={headerStyles.statValue}>{xp.toLocaleString()}</span>
                 </div>
+
+                {/* Settings Menu Button */}
+                <TrainingSettingsMenu />
 
                 {/* Profile Orb → Profile Page */}
                 <div

@@ -734,23 +734,33 @@ export default function DiamondStorePage() {
         setIsProcessing(true);
 
         try {
-            console.log('[Diamond Store] Fetching session...');
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            console.log('[Diamond Store] Checking authentication...');
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-            console.log('[Diamond Store] Session result:', {
-                hasSession: !!session,
-                user: session?.user?.email,
-                error: sessionError
+            console.log('[Diamond Store] Auth result:', {
+                hasUser: !!user,
+                email: user?.email,
+                error: authError
             });
 
-            if (!session) {
-                console.error('[Diamond Store] No session found - user needs to sign in');
+            if (!user || authError) {
+                console.error('[Diamond Store] Not authenticated:', authError);
                 alert('Please sign in to complete your purchase');
                 setIsProcessing(false);
                 return;
             }
 
-            console.log('[Diamond Store] Session valid, creating checkout...');
+            console.log('[Diamond Store] User authenticated, getting session for token...');
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session) {
+                console.error('[Diamond Store] No session token available');
+                alert('Session expired. Please refresh and try again.');
+                setIsProcessing(false);
+                return;
+            }
+
+            console.log('[Diamond Store] Creating checkout session...');
 
             // Create checkout session
             const response = await fetch('/api/store/create-checkout-session', {
@@ -792,10 +802,18 @@ export default function DiamondStorePage() {
         setIsProcessing(true);
 
         try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+            if (!user || authError) {
+                alert('Please sign in to subscribe to VIP');
+                setIsProcessing(false);
+                return;
+            }
+
             const { data: { session } } = await supabase.auth.getSession();
 
             if (!session) {
-                alert('Please sign in to subscribe to VIP');
+                alert('Session expired. Please refresh and try again.');
                 setIsProcessing(false);
                 return;
             }

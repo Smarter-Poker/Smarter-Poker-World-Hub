@@ -149,14 +149,10 @@ export default function TrainingSettingsMenu() {
 
 const styles = {
     hamburgerButton: {
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        zIndex: 998,
-        background: 'rgba(30, 58, 95, 0.9)',
-        border: '2px solid #3b82f6',
+        background: 'rgba(255, 255, 255, 0.08)',
+        border: '1px solid rgba(255, 255, 255, 0.15)',
         borderRadius: '8px',
-        padding: '12px',
+        padding: '8px',
         color: '#fff',
         cursor: 'pointer',
         transition: 'all 0.2s ease',
