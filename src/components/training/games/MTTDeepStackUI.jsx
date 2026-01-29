@@ -147,23 +147,50 @@ export default function MTTDeepStackUI({
                         {/* Hero Cards - Using Real Card Images */}
                         {heroHand && (
                             <div style={styles.heroCards}>
-                                {heroHand.split('').map((card, i) => {
-                                    // Parse card to get rank and suit
-                                    // Card format: "Ah" = Ace of hearts, "Ks" = King of spades
-                                    const rank = card.toLowerCase();
-                                    // For now, default to hearts for all cards (will need suit data from API)
-                                    const suit = 'hearts';
-                                    const cardImage = `/cards/${suit}_${rank}.png`;
+                                {(() => {
+                                    // Parse heroHand: "AhKs" = Ace of hearts, King of spades
+                                    // Split into pairs: ["Ah", "Ks"]
+                                    const cards = [];
+                                    for (let i = 0; i < heroHand.length; i += 2) {
+                                        if (i + 1 < heroHand.length) {
+                                            cards.push(heroHand.substring(i, i + 2));
+                                        }
+                                    }
 
-                                    return (
-                                        <img
-                                            key={i}
-                                            src={cardImage}
-                                            alt={`${rank} of ${suit}`}
-                                            style={styles.cardImage}
-                                        />
-                                    );
-                                })}
+                                    return cards.map((card, i) => {
+                                        // Parse card: "Ah" = rank "A", suit "h"
+                                        const rank = card[0].toLowerCase();
+                                        const suitChar = card[1].toLowerCase();
+
+                                        // Map suit character to full name
+                                        const suitMap = {
+                                            'h': 'hearts',
+                                            'd': 'diamonds',
+                                            'c': 'clubs',
+                                            's': 'spades'
+                                        };
+                                        const suit = suitMap[suitChar] || 'hearts';
+
+                                        // Map rank to card file name
+                                        const rankMap = {
+                                            'a': 'a', 'k': 'k', 'q': 'q', 'j': 'j',
+                                            't': '10', '9': '9', '8': '8', '7': '7',
+                                            '6': '6', '5': '5', '4': '4', '3': '3', '2': '2'
+                                        };
+                                        const cardRank = rankMap[rank] || rank;
+
+                                        const cardImage = `/cards/${suit}_${cardRank}.png`;
+
+                                        return (
+                                            <img
+                                                key={i}
+                                                src={cardImage}
+                                                alt={`${cardRank} of ${suit}`}
+                                                style={styles.cardImage}
+                                            />
+                                        );
+                                    });
+                                })()}
                             </div>
                         )}
                     </div>
