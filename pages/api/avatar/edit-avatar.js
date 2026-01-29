@@ -1,12 +1,13 @@
 /**
  * 🎨 AI AVATAR EDIT - IMAGE EDITING
- * Uses Grok to edit existing avatar images based on text prompts
+ * Uses GPT-4o to analyze existing avatar, then DALL-E 3 to regenerate with edits
  * Uses Sharp (Node.js native) for professional-grade background removal
  * 
  * Created 2026-01-29: Edit existing avatars with AI
+ * Note: Grok API doesn't have image generation access for this account
  */
 
-import { getGrokClient } from '../../../src/lib/grokClient';
+import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
@@ -14,7 +15,10 @@ export const config = {
     maxDuration: 60, // 60 second timeout for Vercel
 };
 
-const openai = getGrokClient();
+// Use OpenAI for both vision analysis and image generation
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

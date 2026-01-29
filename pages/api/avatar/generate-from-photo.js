@@ -1,13 +1,14 @@
 /**
  * 🤖 AI AVATAR GENERATION - PHOTO TO IMAGE (LIKENESS)
- * Uses Grok Vision to analyze photo + grok-2-image to generate avatar
+ * Uses GPT-4 Vision to analyze photo + DALL-E 3 to generate avatar
  * Uses Sharp (Node.js native) for professional-grade background removal
  * Downloads and uploads to Supabase Storage
  * 
- * Updated 2026-01-29: Uses Grok API + Sharp (serverless compatible) for zero-background stickers
+ * Updated 2026-01-29: Uses OpenAI + Sharp for zero-background stickers
+ * Note: Grok API doesn't have image generation access for this account
  */
 
-import { getGrokClient } from '../../../src/lib/grokClient';
+import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
@@ -22,7 +23,10 @@ export const config = {
     maxDuration: 60, // 60 second timeout for Vercel
 };
 
-const openai = getGrokClient();
+// Use OpenAI for both vision analysis and image generation
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
