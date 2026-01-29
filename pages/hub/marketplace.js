@@ -15,7 +15,7 @@ export default function MarketplacePage() {
             alignItems: 'center',
             justifyContent: 'center',
             height: '100vh',
-            background: '#F0F2F5',
+            background: '#18191A',
             color: '#1877F2',
             fontFamily: 'Inter, -apple-system, sans-serif',
             fontSize: 16

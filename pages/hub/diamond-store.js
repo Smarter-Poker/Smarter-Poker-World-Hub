@@ -956,7 +956,7 @@ export default function DiamondStorePage() {
 const styles = {
     container: {
         minHeight: '100vh',
-        background: '#F0F2F5',
+        background: '#18191A',
         fontFamily: 'Inter, -apple-system, sans-serif',
         position: 'relative',
     },
@@ -989,7 +989,7 @@ const styles = {
         alignItems: 'center',
         padding: '16px 24px',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(255, 255, 255, 0.95)',
+        background: 'rgba(36, 37, 38, 0.95)',
         backdropFilter: 'blur(10px)',
         zIndex: 100,
     },
@@ -1000,7 +1000,7 @@ const styles = {
         gap: 8,
         padding: '16px 24px',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(255, 255, 255, 0.95)',
+        background: 'rgba(36, 37, 38, 0.95)',
         position: 'sticky',
         top: 0,
         zIndex: 99,
@@ -1010,7 +1010,7 @@ const styles = {
         background: 'rgba(255, 255, 255, 0.05)',
         border: '1px solid rgba(255, 255, 255, 0.15)',
         borderRadius: 10,
-        color: 'rgba(0, 0, 0, 0.6)',
+        color: 'rgba(255, 255, 255, 0.7)',
         fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
@@ -1043,7 +1043,7 @@ const styles = {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: 28,
         fontWeight: 700,
-        color: '#1C1E21',
+        color: '#E4E6EB',
     },
     content: {
         maxWidth: 900,
@@ -1056,7 +1056,7 @@ const styles = {
     },
     introText: {
         fontSize: 16,
-        color: 'rgba(0, 0, 0, 0.6)',
+        color: 'rgba(255, 255, 255, 0.7)',
         maxWidth: 600,
         margin: '0 auto',
         lineHeight: 1.6,
@@ -1430,7 +1430,7 @@ const styles = {
     },
     vipSubtitle: {
         fontSize: 16,
-        color: 'rgba(0, 0, 0, 0.6)',
+        color: 'rgba(255, 255, 255, 0.7)',
         maxWidth: 500,
         margin: '0 auto',
         lineHeight: 1.6,
@@ -1457,7 +1457,7 @@ const styles = {
     },
     vipCancelNote: {
         fontSize: 12,
-        color: 'rgba(0, 0, 0, 0.5)',
+        color: 'rgba(255, 255, 255, 0.5)',
         marginTop: 12,
     },
     benefitsSection: {
@@ -1467,7 +1467,7 @@ const styles = {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: 20,
         fontWeight: 600,
-        color: '#1C1E21',
+        color: '#E4E6EB',
         marginBottom: 20,
         textAlign: 'center',
     },
@@ -1496,11 +1496,11 @@ const styles = {
     benefitTitle: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#1C1E21',
+        color: '#E4E6EB',
     },
     benefitDesc: {
         fontSize: 11,
-        color: 'rgba(0, 0, 0, 0.5)',
+        color: 'rgba(255, 255, 255, 0.5)',
     },
     benefitValue: {
         fontSize: 12,
@@ -1558,7 +1558,7 @@ const styles = {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: 28,
         fontWeight: 700,
-        color: '#1C1E21',
+        color: '#E4E6EB',
         marginBottom: 12,
     },
     merchSection: {
@@ -1568,7 +1568,7 @@ const styles = {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: 18,
         fontWeight: 600,
-        color: '#1C1E21',
+        color: '#E4E6EB',
         marginBottom: 16,
     },
     merchGrid: {
