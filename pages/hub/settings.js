@@ -269,6 +269,8 @@ export default function SettingsPage() {
                                         {(() => {
                                             // Determine which avatar to display
                                             // avatar from useAvatar is an object with .imageUrl, not a string URL
+                                            // Wait for BOTH context initialization AND local avatar loading to complete
+                                            const isStillLoading = initializing || loadingAvatars;
                                             const displayAvatar = avatar?.imageUrl || customAvatars[0]?.image_url || null;
                                             const defaultPlaceholder = '/default-avatar.png';
 
@@ -286,7 +288,7 @@ export default function SettingsPage() {
                                                     border: '3px solid rgba(0, 212, 255, 0.5)',
                                                     boxShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
                                                 }}>
-                                                    {loadingAvatars ? (
+                                                    {isStillLoading ? (
                                                         <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>...</span>
                                                     ) : displayAvatar ? (
                                                         <img

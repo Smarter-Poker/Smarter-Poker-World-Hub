@@ -188,7 +188,7 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
         // Get a random clip that hasn't been used recently, preferring horse's sources
         let clip = null;
         let attempts = 0;
-        const maxAttempts = 15;
+        const maxAttempts = 50;  // Increased from 15 - many clips are invalid
 
         while (!clip && attempts < maxAttempts) {
             // Try to get clip from preferred source first
