@@ -1,16 +1,17 @@
 -- ============================================================
 -- Club Commander: Missing Tables (v2)
 -- Tables referenced by API code but not in any migration
+-- All IDs and FKs use UUID to match existing commander schema
 -- ============================================================
 
 -- High Hands table (used by /api/commander/high-hands/)
 CREATE TABLE IF NOT EXISTS commander_high_hands (
-  id BIGSERIAL PRIMARY KEY,
-  venue_id INTEGER NOT NULL REFERENCES poker_venues(id),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue_id UUID NOT NULL REFERENCES poker_venues(id),
   promotion_id UUID REFERENCES commander_promotions(id),
   player_id UUID REFERENCES profiles(id),
-  table_id BIGINT REFERENCES commander_tables(id),
-  game_id BIGINT REFERENCES commander_games(id),
+  table_id UUID REFERENCES commander_tables(id),
+  game_id UUID REFERENCES commander_games(id),
   hand_rank TEXT NOT NULL,
   cards TEXT[],
   board_cards TEXT[],
@@ -44,7 +45,7 @@ CREATE POLICY "Players can view own high hands" ON commander_high_hands
 
 -- Leads table (used by /api/commander/leads)
 CREATE TABLE IF NOT EXISTS commander_leads (
-  id BIGSERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT NOT NULL,
   source TEXT DEFAULT 'landing_page',
   referrer TEXT,
@@ -65,9 +66,9 @@ CREATE POLICY "Service role can manage leads" ON commander_leads
 
 -- XP Transactions table (used by /src/lib/commander/xp.js)
 CREATE TABLE IF NOT EXISTS commander_xp_transactions (
-  id BIGSERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id),
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   event_type TEXT NOT NULL,
   xp_amount INTEGER NOT NULL DEFAULT 0,
   metadata JSONB DEFAULT '{}',
