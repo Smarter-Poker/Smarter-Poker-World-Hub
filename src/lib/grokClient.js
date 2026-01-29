@@ -29,8 +29,8 @@ const MODEL_MAP = {
     'gpt-4': 'grok-3',
     'gpt-4-turbo': 'grok-3',
     'gpt-4-vision-preview': 'grok-2-vision',
-    'dall-e-3': 'grok-2-image',
-    'dall-e-2': 'grok-2-image',
+    'dall-e-3': 'grok-2-image-1212',  // Correct xAI image model name
+    'dall-e-2': 'grok-2-image-1212',
 };
 
 /**

@@ -1,14 +1,13 @@
 /**
  * 🤖 AI AVATAR GENERATION - TEXT TO IMAGE
- * Uses OpenAI DALL-E 3 to generate avatars from text descriptions
+ * Uses Grok (xAI) grok-2-image-1212 to generate avatars from text descriptions
  * Uses Sharp (Node.js native) for professional-grade background removal
  * Downloads and uploads to Supabase Storage
  * 
- * Updated 2026-01-29: Uses OpenAI DALL-E + Sharp for zero-background stickers
- * Note: Grok API doesn't have image generation access for this account
+ * Updated 2026-01-29: Uses Grok API + Sharp (serverless compatible) for zero-background stickers
  */
 
-import OpenAI from 'openai';
+import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
@@ -17,10 +16,8 @@ export const config = {
     maxDuration: 60, // 60 second timeout for Vercel
 };
 
-// Use OpenAI for image generation (Grok doesn't have image access)
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Use Grok for image generation
+const openai = getGrokClient();
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -152,31 +149,30 @@ STRICT RULES:
 - The character should embody the description given: ${prompt}
 IMPORTANT: This is for a poker player avatar - just the character portrait with a PURE WHITE background for easy removal.`;
 
-        // Use OpenAI DALL-E 3 for image generation
-        console.log('📡 Calling OpenAI DALL-E 3 API...');
+        // Use Grok image generation (mapped from dall-e-3 to grok-2-image-1212)
+        console.log('📡 Calling Grok image generation API...');
         let response;
         try {
             response = await openai.images.generate({
-                model: "dall-e-3",
+                model: "dall-e-3",  // Will be mapped to grok-2-image-1212 by grokClient
                 prompt: strictAvatarPrompt,
                 n: 1,
-                size: "1024x1024",
-                quality: "standard",
+                // Note: xAI API doesn't support size/quality params
             });
-            console.log('📡 DALL-E response received:', JSON.stringify(response?.data?.[0] ? 'has data' : 'no data'));
+            console.log('📡 Grok response received:', JSON.stringify(response?.data?.[0] ? 'has data' : 'no data'));
         } catch (apiError) {
-            console.error('❌ DALL-E API call failed:', apiError.message);
+            console.error('❌ Grok API call failed:', apiError.message);
             console.error('❌ Full error:', JSON.stringify(apiError, null, 2));
-            throw new Error(`DALL-E API error: ${apiError.message}`);
+            throw new Error(`Grok API error: ${apiError.message}`);
         }
 
         if (!response?.data?.[0]?.url) {
-            console.error('❌ DALL-E API returned no image URL:', JSON.stringify(response));
-            throw new Error('DALL-E API returned no image URL');
+            console.error('❌ Grok API returned no image URL:', JSON.stringify(response));
+            throw new Error('Grok API returned no image URL');
         }
 
         const imageUrl = response.data[0].url;
-        console.log('✅ DALL-E generated image, now downloading...');
+        console.log('✅ Grok generated image, now downloading...');
 
         // Download the image (server-side, no CORS issue)
         const imageResponse = await fetch(imageUrl);

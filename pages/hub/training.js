@@ -23,9 +23,17 @@ import confetti from 'canvas-confetti';
 import GameCard from '../../src/components/training/GameCard';
 import { TRAINING_LIBRARY, TRAINING_LANES, getGamesByCategory, getGamesByTag } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
+import { getAuthUser } from '../../src/lib/authUtils';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
 import GameIntroSplash from '../../src/components/training/GameIntroSplash';
 import LeakFixerIntercept from '../../src/components/training/LeakFixerIntercept';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for GodModeArena to avoid SSR issues
+const GodModeArena = dynamic(
+    () => import('../../src/components/training/GodModeArena'),
+    { ssr: false }
+);
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 // God-Mode Stack
@@ -490,6 +498,10 @@ export default function TrainingPage() {
     const markGameCelebrated = useTrainingStore((s) => s.markGameCelebrated);
     const celebratedGames = useTrainingStore((s) => s.celebratedGames);
 
+    // 🎮 ARENA STATE - Show arena inline after intro video
+    const [showArena, setShowArena] = useState(false);
+    const [activeGame, setActiveGame] = useState(null);
+
     // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
     const [showPageIntro, setShowPageIntro] = useState(() => {
@@ -599,13 +611,28 @@ export default function TrainingPage() {
         router.push(`/hub/training/category/${categoryId}`);
     };
 
-    // After intro video completes, navigate to the game
+    // After intro video completes, show arena inline (don't navigate away)
     const handleIntroComplete = () => {
         setShowIntro(false);
         if (pendingGame) {
-            router.push(`/hub/training/play/${pendingGame.id}`);
+            setActiveGame(pendingGame);
+            setShowArena(true);
             setPendingGame(null);
         }
+    };
+
+    // Handle exiting the arena - return to training page
+    const handleArenaExit = () => {
+        setShowArena(false);
+        setActiveGame(null);
+    };
+
+    // Handle arena completion
+    const handleArenaComplete = (results) => {
+        console.log('🏆 Arena complete:', results);
+        // Could show results modal or update progress here
+        setShowArena(false);
+        setActiveGame(null);
     };
 
     // Handle featured play
@@ -723,103 +750,121 @@ export default function TrainingPage() {
                 `}</style>
             </Head>
 
-            {/* Video Intro Splash - Shows before loading any game */}
-            <GameIntroSplash
-                isVisible={showIntro}
-                game={pendingGame ? { ...pendingGame, image: getGameImage(pendingGame.id) } : null}
-                onComplete={handleIntroComplete}
-            />
-
-            {/* LAW 1: Leak Fixer Intercept - Shows when leaks are detected */}
-            <LeakFixerIntercept
-                onDismiss={() => console.log('[LAW 1] Intercept dismissed')}
-                onAccept={(clinic) => console.log('[LAW 1] Starting clinic:', clinic.name)}
-            />
-
-            <div className="training-page" style={styles.page}>
-                {/* Fixed Header - Universal Header with Hub navigation */}
-                <UniversalHeader pageDepth={1} />
-
-                {/* Promo/Ad Section */}
-                <PromoSection onPlayFeatured={handlePlayFeatured} />
-
-                {/* Streaks Badge */}
-                <StreaksBadge bestStreak={bestStreak} />
-
-                {/* Filters */}
-                <FilterBar
-                    active={activeFilter}
-                    onFilter={setActiveFilter}
-                    gameCount={filteredGames.length}
+            {/* 🎮 INLINE ARENA - Takes over entire page when active */}
+            {showArena && activeGame && (
+                <GodModeArena
+                    userId={getAuthUser()?.id || `anon-${Date.now()}`}
+                    gameId={activeGame.id}
+                    gameName={activeGame.name}
+                    level={1}
+                    sessionId={`session-${Date.now()}`}
+                    onComplete={handleArenaComplete}
+                    onExit={handleArenaExit}
                 />
+            )}
 
-                {/* Game Lanes */}
-                <div className="lanes-container-responsive" style={styles.lanesContainer}>
-                    {/* TODAY'S DAILY CHALLENGE lane */}
-                    {dailyChallenges.length > 0 && activeFilter === 'ALL' && (
-                        <GameLane
-                            title="TODAY'S DAILY CHALLENGE"
-                            color="#FFD700"
-                            games={dailyChallenges}
-                            onGameClick={handleGameClick}
-                            getProgress={getGameProgress}
+            {/* Normal training page content - hidden when arena is active */}
+            {!showArena && (
+                <>
+                    {/* Video Intro Splash - Shows before loading any game */}
+                    <GameIntroSplash
+                        isVisible={showIntro}
+                        game={pendingGame ? { ...pendingGame, image: getGameImage(pendingGame.id) } : null}
+                        onComplete={handleIntroComplete}
+                    />
+
+                    {/* LAW 1: Leak Fixer Intercept - Shows when leaks are detected */}
+                    <LeakFixerIntercept
+                        onDismiss={() => console.log('[LAW 1] Intercept dismissed')}
+                        onAccept={(clinic) => console.log('[LAW 1] Starting clinic:', clinic.name)}
+                    />
+
+                    <div className="training-page" style={styles.page}>
+                        {/* Fixed Header - Universal Header with Hub navigation */}
+                        <UniversalHeader pageDepth={1} />
+
+                        {/* Promo/Ad Section */}
+                        <PromoSection onPlayFeatured={handlePlayFeatured} />
+
+                        {/* Streaks Badge */}
+                        <StreaksBadge bestStreak={bestStreak} />
+
+                        {/* Filters */}
+                        <FilterBar
+                            active={activeFilter}
+                            onFilter={setActiveFilter}
+                            gameCount={filteredGames.length}
                         />
-                    )}
 
-                    {/* FIX YOUR LEAKS lane */}
-                    {leakGames.length > 0 && activeFilter === 'ALL' && (
-                        <GameLane
-                            title="FIX YOUR LEAKS"
-                            color="#FF4444"
-                            games={leakGames}
-                            onGameClick={handleGameClick}
-                            getProgress={getGameProgress}
-                            badge="BELOW 70%!"
-                        />
-                    )}
-
-                    {/* Category lanes */}
-                    {activeFilter === 'ALL' ? (
-                        // Show all category lanes (4 games each, clickable headers)
-                        CATEGORIES.map(cat => (
-                            <GameLane
-                                key={cat.id}
-                                title={cat.title}
-                                color={cat.color}
-                                games={getGamesByCategory(cat.id)}
-                                onGameClick={handleGameClick}
-                                getProgress={getGameProgress}
-                                categoryId={cat.id}
-                                onCategoryClick={handleCategoryClick}
-                            />
-                        ))
-                    ) : (
-                        // Show filtered games in a single lane for the selected category
-                        (() => {
-                            const activeCategory = CATEGORIES.find(c => c.id === activeFilter);
-                            const activeFilterConfig = FILTERS.find(f => f.id === activeFilter);
-                            return (
+                        {/* Game Lanes */}
+                        <div className="lanes-container-responsive" style={styles.lanesContainer}>
+                            {/* TODAY'S DAILY CHALLENGE lane */}
+                            {dailyChallenges.length > 0 && activeFilter === 'ALL' && (
                                 <GameLane
-                                    title={activeCategory?.title || activeFilterConfig?.laneTitle || `${activeFilter} TRAINING`}
-                                    color={activeCategory?.color || activeFilterConfig?.color || '#fff'}
-                                    games={filteredGames}
+                                    title="TODAY'S DAILY CHALLENGE"
+                                    color="#FFD700"
+                                    games={dailyChallenges}
                                     onGameClick={handleGameClick}
                                     getProgress={getGameProgress}
                                 />
-                            );
-                        })()
-                    )}
-                </div>
+                            )}
 
-                {/* Footer stats */}
-                <div style={styles.footer}>
-                    <span>100 Training Games</span>
-                    <span>•</span>
-                    <span>2,000 Levels</span>
-                    <span>•</span>
-                    <span>85% to Master</span>
-                </div>
-            </div>
+                            {/* FIX YOUR LEAKS lane */}
+                            {leakGames.length > 0 && activeFilter === 'ALL' && (
+                                <GameLane
+                                    title="FIX YOUR LEAKS"
+                                    color="#FF4444"
+                                    games={leakGames}
+                                    onGameClick={handleGameClick}
+                                    getProgress={getGameProgress}
+                                    badge="BELOW 70%!"
+                                />
+                            )}
+
+                            {/* Category lanes */}
+                            {activeFilter === 'ALL' ? (
+                                // Show all category lanes (4 games each, clickable headers)
+                                CATEGORIES.map(cat => (
+                                    <GameLane
+                                        key={cat.id}
+                                        title={cat.title}
+                                        color={cat.color}
+                                        games={getGamesByCategory(cat.id)}
+                                        onGameClick={handleGameClick}
+                                        getProgress={getGameProgress}
+                                        categoryId={cat.id}
+                                        onCategoryClick={handleCategoryClick}
+                                    />
+                                ))
+                            ) : (
+                                // Show filtered games in a single lane for the selected category
+                                (() => {
+                                    const activeCategory = CATEGORIES.find(c => c.id === activeFilter);
+                                    const activeFilterConfig = FILTERS.find(f => f.id === activeFilter);
+                                    return (
+                                        <GameLane
+                                            title={activeCategory?.title || activeFilterConfig?.laneTitle || `${activeFilter} TRAINING`}
+                                            color={activeCategory?.color || activeFilterConfig?.color || '#fff'}
+                                            games={filteredGames}
+                                            onGameClick={handleGameClick}
+                                            getProgress={getGameProgress}
+                                        />
+                                    );
+                                })()
+                            )}
+                        </div>
+
+                        {/* Footer stats */}
+                        <div style={styles.footer}>
+                            <span>100 Training Games</span>
+                            <span>•</span>
+                            <span>2,000 Levels</span>
+                            <span>•</span>
+                            <span>85% to Master</span>
+                        </div>
+                    </div>
+                </>
+            )}
         </PageTransition>
     );
 }
@@ -891,7 +936,7 @@ const styles = {
             radial-gradient(circle at 20% 50%, rgba(255,107,53,0.3) 0%, transparent 50%),
             radial-gradient(circle at 80% 50%, rgba(0,212,255,0.2) 0%, transparent 50%),
             linear-gradient(180deg, #0a0a15 0%, #1a2744 100%)
-        `,
+            `,
     },
 
     particleOverlay: {
