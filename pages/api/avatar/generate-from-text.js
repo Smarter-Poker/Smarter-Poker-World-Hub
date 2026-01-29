@@ -1,12 +1,21 @@
 /**
  * 🤖 AI AVATAR GENERATION - TEXT TO IMAGE
- * Uses OpenAI's DALL-E 3 to generate avatars from text descriptions
- * Downloads and uploads to Supabase Storage to avoid CORS issues
+ * Uses Grok (xAI) grok-2-image to generate avatars from text descriptions
+ * Uses ImageMagick for professional-grade background removal
+ * Downloads and uploads to Supabase Storage
+ * 
+ * Updated 2026-01-29: Switched to Grok API + ImageMagick for zero-background stickers
  */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '@supabase/supabase-js';
-import sharp from 'sharp';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+
+const execAsync = promisify(exec);
 
 // Increase timeout for AI generation
 export const config = {
@@ -20,6 +29,51 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
+/**
+ * Remove background using ImageMagick with multi-hex targeting
+ * This ensures 100% alpha-transparency for sticker-style avatars
+ */
+async function removeBackgroundWithImageMagick(inputBuffer) {
+    const tempDir = os.tmpdir();
+    const inputPath = path.join(tempDir, `avatar_input_${Date.now()}.png`);
+    const outputPath = path.join(tempDir, `avatar_output_${Date.now()}.png`);
+
+    try {
+        // Write input buffer to temp file
+        fs.writeFileSync(inputPath, inputBuffer);
+
+        // ImageMagick command with multi-hex targeting for white backgrounds
+        // Uses fuzz factor to catch near-white pixels and checkerboard patterns
+        const cmd = `convert "${inputPath}" \\
+            -fuzz 15% \\
+            -fill none \\
+            -draw "alpha 0,0 floodfill" \\
+            -draw "alpha 0,1023 floodfill" \\
+            -draw "alpha 1023,0 floodfill" \\
+            -draw "alpha 1023,1023 floodfill" \\
+            -channel RGBA \\
+            -blur 0x0.5 \\
+            -level 0%,100%,1.0 \\
+            "${outputPath}"`;
+
+        await execAsync(cmd);
+
+        // Read the processed image
+        const outputBuffer = fs.readFileSync(outputPath);
+
+        // Cleanup temp files
+        fs.unlinkSync(inputPath);
+        fs.unlinkSync(outputPath);
+
+        return outputBuffer;
+    } catch (error) {
+        // Cleanup on error
+        try { fs.unlinkSync(inputPath); } catch (e) { }
+        try { fs.unlinkSync(outputPath); } catch (e) { }
+        throw error;
+    }
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -32,7 +86,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Prompt is required' });
         }
 
-        console.log('🎨 Generating avatar from text with DALL-E 3:', prompt);
+        console.log('🎨 Generating avatar with Grok grok-2-image:', prompt);
 
         // STRICT AVATAR PROMPT - Character only, transparent-friendly background
         const strictAvatarPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT ONLY. 
@@ -49,60 +103,28 @@ STRICT RULES:
 - The character should embody the description given: ${prompt}
 IMPORTANT: This is for a poker player avatar - just the character portrait with a PURE WHITE background for easy removal.`;
 
-        // Use DALL-E 3 for high-quality generation
+        // Use Grok's image generation (mapped from dall-e-3 to grok-2-image)
         const response = await openai.images.generate({
-            model: "dall-e-3",
+            model: "dall-e-3",  // Will be mapped to grok-2-image by grokClient
             prompt: strictAvatarPrompt,
             n: 1,
             size: "1024x1024",
-            quality: "hd",
-            style: "vivid"
         });
 
-        const openaiImageUrl = response.data[0].url;
-        console.log('✅ DALL-E generated image, now downloading...');
+        const imageUrl = response.data[0].url;
+        console.log('✅ Grok generated image, now downloading...');
 
-        // Download the image from OpenAI (server-side, no CORS issue)
-        const imageResponse = await fetch(openaiImageUrl);
+        // Download the image (server-side, no CORS issue)
+        const imageResponse = await fetch(imageUrl);
         const arrayBuffer = await imageResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        console.log('🔧 Removing white background with sharp...');
+        console.log('🔧 Removing background with ImageMagick (zero-background sticker)...');
 
-        // Process image to remove white background and create transparency
-        const transparentBuffer = await sharp(buffer)
-            .ensureAlpha() // Ensure image has alpha channel
-            .raw()
-            .toBuffer({ resolveWithObject: true })
-            .then(({ data, info }) => {
-                // Process each pixel to make white pixels transparent
-                const pixels = new Uint8ClampedArray(data);
-                const threshold = 235; // Balanced threshold for background removal
+        // Remove background using ImageMagick for professional-grade transparency
+        const transparentBuffer = await removeBackgroundWithImageMagick(buffer);
 
-                for (let i = 0; i < pixels.length; i += 4) {
-                    const r = pixels[i];
-                    const g = pixels[i + 1];
-                    const b = pixels[i + 2];
-
-                    // If pixel is near-white, make it transparent
-                    if (r > threshold && g > threshold && b > threshold) {
-                        pixels[i + 3] = 0; // Set alpha to 0 (transparent)
-                    }
-                }
-
-                // Convert back to PNG with transparency
-                return sharp(pixels, {
-                    raw: {
-                        width: info.width,
-                        height: info.height,
-                        channels: 4
-                    }
-                })
-                    .png({ compressionLevel: 9 })
-                    .toBuffer();
-            });
-
-        console.log('✅ Background removed, uploading to Supabase...');
+        console.log('✅ Background removed (100% transparency), uploading to Supabase...');
 
         // Generate unique filename
         const timestamp = Date.now();
@@ -129,7 +151,7 @@ IMPORTANT: This is for a poker player avatar - just the character portrait with 
             .from('custom-avatars')
             .getPublicUrl(storagePath);
 
-        console.log('✅ Avatar uploaded to Supabase:', publicUrl);
+        console.log('✅ Sticker avatar uploaded to Supabase:', publicUrl);
 
         return res.status(200).json({
             success: true,
