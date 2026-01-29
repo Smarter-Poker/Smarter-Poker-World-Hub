@@ -227,17 +227,21 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             attempts++;
 
             // FAILSAFE: After 10 failed attempts, directly pick from verified clips
+            // BUT ONLY from this horse's preferred sources
             if (attempts > 10) {
-                // Find a verified clip that hasn't been used
+                // Find a verified clip that hasn't been used AND matches preferred sources
                 for (const verifiedId of VERIFIED_CLIP_IDS) {
                     if (!recentlyUsedClips.has(verifiedId) && !usedClipsThisSession.has(verifiedId)) {
                         // Find this clip in the library
                         const verifiedClip = CLIP_LIBRARY?.find(c => c.video_id === verifiedId);
                         if (verifiedClip) {
-                            console.log(`   ⚡ FAILSAFE: Using pre-verified clip: ${verifiedId}`);
-                            clip = verifiedClip;
-                            usedClipsThisSession.add(verifiedClip.id);
-                            break;
+                            // CRITICAL: Only use if it's from one of this horse's preferred sources
+                            if (!preferredSources || preferredSources.includes(verifiedClip.source)) {
+                                console.log(`   ⚡ FAILSAFE: Using pre-verified clip from ${verifiedClip.source}: ${verifiedId}`);
+                                clip = verifiedClip;
+                                usedClipsThisSession.add(verifiedClip.id);
+                                break;
+                            }
                         }
                     }
                 }
