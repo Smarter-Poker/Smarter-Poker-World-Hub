@@ -97,11 +97,30 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
             }}
         >
             <StoryRing hasUnviewed={showRing} isLive={isLive} size={64}>
-                <div style={{ position: 'relative' }}>
-                    <img
-                        src={story?.author_avatar || '/default-avatar.png'}
-                        style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }}
-                    />
+                <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden' }}>
+                    {/* Show story media preview if available, otherwise profile pic */}
+                    {story?.media_url ? (
+                        <img
+                            src={story.media_url}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                    ) : story?.background_color ? (
+                        <div style={{
+                            width: '100%',
+                            height: '100%',
+                            background: story.background_color,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}>
+                            <span style={{ fontSize: 24 }}>Aa</span>
+                        </div>
+                    ) : (
+                        <img
+                            src={story?.author_avatar || '/default-avatar.png'}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                    )}
                     {isLive && (
                         <div style={{
                             position: 'absolute', bottom: -4, left: '50%', transform: 'translateX(-50%)',
@@ -207,9 +226,6 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
     const ownStory = stories.find(s => s.is_own);
     const otherStories = stories.filter(s => !s.is_own);
 
-    // For "Your Story" - use story media if exists, otherwise use user's profile avatar
-    const yourStoryAvatar = ownStory?.author_avatar || userAvatar || '/default-avatar.png';
-
     return (
         <>
             <div style={{
@@ -230,7 +246,7 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
                     }}
                 >
                     <StoryAvatar
-                        story={{ author_avatar: yourStoryAvatar }}
+                        story={ownStory || { author_avatar: userAvatar || '/default-avatar.png' }}
                         isOwn={true}
                         hasStory={!!ownStory}
                         onClick={() => ownStory ? handleViewStory(ownStory) : setShowCreate(true)}
