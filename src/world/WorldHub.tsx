@@ -463,6 +463,15 @@ export default function WorldHub() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
+    // Listen for Live Help open event from header button
+    useEffect(() => {
+        const handleOpenLiveHelp = () => {
+            liveHelp.setIsOpen(true);
+        };
+        window.addEventListener('openLiveHelp', handleOpenLiveHelp);
+        return () => window.removeEventListener('openLiveHelp', handleOpenLiveHelp);
+    }, [liveHelp]);
+
     // Navigate to settings page
     const handleSettings = () => {
         console.log('Settings clicked — navigating to settings page');

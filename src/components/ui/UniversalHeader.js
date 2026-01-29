@@ -647,6 +647,25 @@ export default function UniversalHeader({
                         </div>
                     </Link>
 
+                    {/* Live Help */}
+                    <button
+                        onClick={() => {
+                            // Trigger Live Help panel open
+                            if (typeof window !== 'undefined') {
+                                window.dispatchEvent(new CustomEvent('openLiveHelp'));
+                            }
+                        }}
+                        style={{ background: 'none', border: 'none', padding: 0 }}
+                        aria-label="Live Help"
+                    >
+                        <div className="orb-btn">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                                <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="2" fill="none" />
+                                <text x="12" y="17" textAnchor="middle" fontSize="14" fontWeight="bold" fill="white">?</text>
+                            </svg>
+                        </div>
+                    </button>
+
                     {/* Push Notification Bell */}
                     <PushNotificationBell />
 
