@@ -159,12 +159,12 @@ export default function TournamentClockDisplay() {
             <StatCard
               icon={Users}
               label="Players"
-              value={`${tournament.players_remaining || 0} / ${tournament.current_entries || tournament.total_entries || 0}`}
+              value={`${tournament.players_remaining || 0} / ${tournament.current_entries || 0}`}
             />
             <StatCard
               icon={DollarSign}
               label="Prize Pool"
-              value={`$${(tournament.actual_prizepool || tournament.guaranteed_pool || 0).toLocaleString()}`}
+              value={`$${(tournament.guaranteed_pool || 0).toLocaleString()}`}
             />
             <StatCard
               icon={Trophy}

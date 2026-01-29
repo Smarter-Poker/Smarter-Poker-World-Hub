@@ -16,7 +16,7 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
   const router = useRouter();
   const startDate = new Date(tournament.scheduled_start);
   const isLive = tournament.status === 'running';
-  const canRegister = tournament.status === 'registering' && !isRegistered;
+  const canRegister = tournament.status === 'registration' && !isRegistered;
 
   return (
     <div className="cmd-panel cmd-corner-lights overflow-hidden">
@@ -46,11 +46,11 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
           </div>
           <span className={`cmd-badge ${
             isLive ? 'cmd-badge-live' :
-            tournament.status === 'registering' ? 'cmd-badge-primary' :
+            tournament.status === 'registration' ? 'cmd-badge-primary' :
             tournament.status === 'completed' ? 'cmd-badge-chrome' :
             'cmd-badge-warning'
           }`}>
-            {tournament.status === 'registering' ? 'OPEN' : tournament.status.toUpperCase()}
+            {tournament.status === 'registration' ? 'OPEN' : tournament.status.toUpperCase()}
           </span>
         </div>
 
@@ -69,7 +69,7 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
           </div>
           <div className="flex items-center gap-2 text-[#CBD5E1]">
             <Users size={16} className="text-[#64748B]" />
-            <span>{tournament.total_entries || 0} / {tournament.max_entries || 'Unlimited'}</span>
+            <span>{tournament.current_entries || 0} / {tournament.max_entries || 'Unlimited'}</span>
           </div>
         </div>
 
@@ -78,8 +78,8 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
         <div className="flex items-center justify-between py-2 mb-4">
           <span className="text-sm text-[#64748B] uppercase tracking-wide font-bold">Prize Pool</span>
           <span className="text-lg font-bold text-[#10B981]">
-            ${(tournament.actual_prizepool || tournament.guaranteed_prizepool || 0).toLocaleString()}
-            {tournament.guaranteed_prizepool && !tournament.actual_prizepool && ' GTD'}
+            ${(tournament.guaranteed_pool || 0).toLocaleString()}
+            {tournament.guaranteed_pool ? ' GTD' : ''}
           </span>
         </div>
 
@@ -191,7 +191,7 @@ export default function PlayerTournamentsHub() {
   };
 
   const filteredTournaments = tournaments.filter(t => {
-    if (filter === 'upcoming') return t.status === 'registering';
+    if (filter === 'upcoming') return t.status === 'registration';
     if (filter === 'live') return t.status === 'running';
     if (filter === 'registered') return myRegistrations.includes(t.id);
     return true;

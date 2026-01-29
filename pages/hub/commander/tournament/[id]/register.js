@@ -154,7 +154,7 @@ export default function TournamentRegisterPage() {
     );
   }
 
-  const canRegister = tournament.status === 'registering' || tournament.status === 'scheduled';
+  const canRegister = tournament.status === 'registration' || tournament.status === 'scheduled';
   const isFull = tournament.max_entries && tournament.current_entries >= tournament.max_entries;
 
   return (
@@ -188,12 +188,12 @@ export default function TournamentRegisterPage() {
             <div className="p-4 border-b border-[#4A5E78]">
               <div className="flex items-center justify-between">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  tournament.status === 'registering' ? 'bg-[#22D3EE]/10 text-[#22D3EE]' :
+                  tournament.status === 'registration' ? 'bg-[#22D3EE]/10 text-[#22D3EE]' :
                   tournament.status === 'running' ? 'bg-[#10B981]/10 text-[#10B981]' :
                   tournament.status === 'completed' ? 'bg-[#4A5E78]/20 text-[#64748B]' :
                   'bg-[#F59E0B]/10 text-[#F59E0B]'
                 }`}>
-                  {tournament.status === 'registering' ? 'Registration Open' :
+                  {tournament.status === 'registration' ? 'Registration Open' :
                    tournament.status === 'running' ? 'In Progress' :
                    tournament.status === 'completed' ? 'Completed' :
                    'Scheduled'}
@@ -227,7 +227,7 @@ export default function TournamentRegisterPage() {
               <DetailRow
                 icon={Trophy}
                 label="Prize Pool"
-                value={`$${(tournament.actual_prizepool || tournament.guaranteed_pool || 0).toLocaleString()}${tournament.guaranteed_pool ? ' GTD' : ''}`}
+                value={`$${(tournament.guaranteed_pool || 0).toLocaleString()}${tournament.guaranteed_pool ? ' GTD' : ''}`}
               />
               <DetailRow
                 icon={Clock}
@@ -251,7 +251,7 @@ export default function TournamentRegisterPage() {
                     <CheckCircle className="w-8 h-8 text-[#10B981] mx-auto mb-2" />
                     <p className="font-semibold text-[#10B981]">You're Registered!</p>
                     <p className="text-sm text-[#10B981]/80 mt-1">
-                      Entry #{myEntry?.entry_number || '?'}
+                      Entry confirmed
                     </p>
                   </div>
                   {canRegister && (

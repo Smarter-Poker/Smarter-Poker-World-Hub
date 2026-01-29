@@ -121,7 +121,7 @@ export default async function handler(req, res) {
         name: t.name,
         buyin: t.buyin_amount,
         entries: t.current_entries || 0,
-        prizepool: t.actual_prizepool || t.guaranteed_pool || 0,
+        prizepool: t.guaranteed_pool || 0,
         status: t.status
       })),
       hourlyBreakdown: Object.entries(hourlyData).map(([hour, data]) => ({

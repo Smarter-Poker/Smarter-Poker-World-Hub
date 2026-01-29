@@ -27,7 +27,7 @@ import PayoutModal from '../../../src/components/commander/modals/PayoutModal';
 
 const STATUS_CONFIG = {
   scheduled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]', label: 'Scheduled' },
-  registering: { bg: 'bg-[#22D3EE]/10', text: 'text-[#22D3EE]', label: 'Registration Open' },
+  registration: { bg: 'bg-[#22D3EE]/10', text: 'text-[#22D3EE]', label: 'Registration Open' },
   running: { bg: 'bg-[#10B981]/10', text: 'text-[#10B981]', label: 'Running' },
   break: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', label: 'On Break' },
   final_table: { bg: 'bg-[#8B5CF6]/10', text: 'text-[#8B5CF6]', label: 'Final Table' },
@@ -296,7 +296,7 @@ export default function TournamentDetailPage() {
             <div className="cmd-panel p-4 text-center">
               <DollarSign className="w-5 h-5 text-[#10B981] mx-auto mb-1" />
               <p className="text-2xl font-bold text-[#10B981]">
-                ${(tournament.actual_prizepool || entries.length * (tournament.buyin_amount || 0)).toLocaleString()}
+                ${(tournament.guaranteed_pool || entries.length * (tournament.buyin_amount || 0)).toLocaleString()}
               </p>
               <p className="text-xs text-[#64748B]">Prize Pool</p>
             </div>
@@ -311,7 +311,7 @@ export default function TournamentDetailPage() {
           <div className="grid grid-cols-2 gap-4">
             {tournament.status === 'scheduled' && (
               <button
-                onClick={() => handleStatusChange('registering')}
+                onClick={() => handleStatusChange('registration')}
                 className="flex items-center justify-center gap-2 p-4 cmd-btn cmd-btn-primary rounded-xl font-medium transition-colors"
               >
                 <UserPlus className="w-5 h-5" />
@@ -319,7 +319,7 @@ export default function TournamentDetailPage() {
               </button>
             )}
 
-            {tournament.status === 'registering' && (
+            {tournament.status === 'registration' && (
               <button
                 onClick={() => handleStatusChange('running')}
                 className="flex items-center justify-center gap-2 p-4 bg-[#10B981] text-white rounded-xl font-medium hover:bg-[#059669] transition-colors"

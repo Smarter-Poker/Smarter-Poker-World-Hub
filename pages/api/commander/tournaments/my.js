@@ -42,12 +42,10 @@ export default async function handler(req, res) {
       .from('commander_tournament_entries')
       .select(`
         id,
-        entry_number,
-        buyin_amount,
-        entry_status,
+        status,
         registered_at,
         finish_position,
-        prize_amount,
+        payout_amount,
         commander_tournaments:tournament_id (
           id,
           name,
@@ -55,9 +53,8 @@ export default async function handler(req, res) {
           scheduled_start,
           buyin_amount,
           buyin_fee,
-          guaranteed_prizepool,
-          actual_prizepool,
-          total_entries,
+          guaranteed_pool,
+          current_entries,
           max_entries,
           poker_venues:venue_id (id, name, city, state)
         )
@@ -67,7 +64,7 @@ export default async function handler(req, res) {
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
     if (status) {
-      query = query.eq('entry_status', status);
+      query = query.eq('status', status);
     }
 
     const { data: registrations, error, count } = await query;
@@ -77,20 +74,18 @@ export default async function handler(req, res) {
     // Format response
     const formattedRegistrations = registrations?.map(r => ({
       id: r.id,
-      entry_number: r.entry_number,
-      buyin_amount: r.buyin_amount,
-      status: r.entry_status,
+      status: r.status,
       registered_at: r.registered_at,
       finish_position: r.finish_position,
-      prize_amount: r.prize_amount,
+      payout_amount: r.payout_amount,
       tournament_id: r.commander_tournaments?.id,
       tournament_name: r.commander_tournaments?.name,
       tournament_status: r.commander_tournaments?.status,
       scheduled_start: r.commander_tournaments?.scheduled_start,
       buyin: r.commander_tournaments?.buyin_amount,
       fee: r.commander_tournaments?.buyin_fee,
-      prizepool: r.commander_tournaments?.actual_prizepool || r.commander_tournaments?.guaranteed_prizepool,
-      entries: r.commander_tournaments?.total_entries,
+      prizepool: r.commander_tournaments?.guaranteed_pool,
+      entries: r.commander_tournaments?.current_entries,
       max_entries: r.commander_tournaments?.max_entries,
       venue: r.commander_tournaments?.poker_venues
     })) || [];

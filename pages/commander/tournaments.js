@@ -124,11 +124,11 @@ export default function TournamentsPage() {
                     <div className="flex items-center gap-4 mt-1 text-sm text-[#64748B]">
                       <span className="flex items-center gap-1">
                         <Users size={14} />
-                        {activeTournament.players_remaining || 0} / {activeTournament.total_entries || 0} players
+                        {activeTournament.players_remaining || 0} / {activeTournament.current_entries || 0} players
                       </span>
                       <span className="flex items-center gap-1">
                         <DollarSign size={14} />
-                        ${activeTournament.actual_prizepool?.toLocaleString() || 0} prize pool
+                        ${(activeTournament.guaranteed_pool || 0).toLocaleString()} prize pool
                       </span>
                     </div>
                   </div>
@@ -233,7 +233,7 @@ export default function TournamentsPage() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Users size={14} />
-                            {tournament.total_entries || 0} entries
+                            {tournament.current_entries || 0} entries
                           </span>
                         </div>
                       </div>
@@ -242,7 +242,7 @@ export default function TournamentsPage() {
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
                           tournament.status === 'running' ? 'bg-[#10B981]/10 text-[#10B981]' :
-                          tournament.status === 'registering' ? 'bg-[#22D3EE]/10 text-[#22D3EE]' :
+                          tournament.status === 'registration' ? 'bg-[#22D3EE]/10 text-[#22D3EE]' :
                           tournament.status === 'completed' ? 'bg-[#4A5E78]/20 text-[#64748B]' :
                           'bg-[#F59E0B]/10 text-[#F59E0B]'
                         }`}
