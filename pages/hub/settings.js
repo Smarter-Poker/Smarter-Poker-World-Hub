@@ -229,6 +229,114 @@ export default function SettingsPage() {
         }
     };
 
+    // Call setup API when 2FA modal opens
+    useEffect(() => {
+        if (show2FAModal && !twoFactorEnabled && !qrCode) {
+            setup2FA();
+        }
+    }, [show2FAModal]);
+
+    const setup2FA = async () => {
+        setLoadingMFA(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const response = await fetch('/api/auth/mfa/setup', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setQrCode(data.qrCode);
+                setManualEntryKey(data.manualEntryKey);
+            } else {
+                alert('Failed to setup 2FA. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error setting up 2FA:', error);
+            alert('Error setting up 2FA');
+        } finally {
+            setLoadingMFA(false);
+        }
+    };
+
+    const verify2FA = async () => {
+        if (verificationCode.length !== 6) {
+            alert('Please enter a valid 6-digit code');
+            return;
+        }
+
+        setLoadingMFA(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const response = await fetch('/api/auth/mfa/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ code: verificationCode })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setTwoFactorEnabled(true);
+                setBackupCodes(data.backupCodes);
+                setVerificationCode('');
+                alert('2FA successfully enabled! Save your backup codes in a safe place.');
+            } else {
+                const error = await response.json();
+                alert(error.error || 'Invalid verification code');
+            }
+        } catch (error) {
+            console.error('Error verifying 2FA:', error);
+            alert('Error verifying 2FA');
+        } finally {
+            setLoadingMFA(false);
+        }
+    };
+
+    const disable2FA = async () => {
+        if (!confirm('Are you sure you want to disable 2FA? This will make your account less secure.')) {
+            return;
+        }
+
+        setLoadingMFA(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const response = await fetch('/api/auth/mfa/disable', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            });
+
+            if (response.ok) {
+                setTwoFactorEnabled(false);
+                setQrCode('');
+                setManualEntryKey('');
+                setBackupCodes([]);
+                setShow2FAModal(false);
+                alert('2FA has been disabled');
+            } else {
+                alert('Failed to disable 2FA');
+            }
+        } catch (error) {
+            console.error('Error disabling 2FA:', error);
+            alert('Error disabling 2FA');
+        } finally {
+            setLoadingMFA(false);
+        }
+    };
+
     const updateSetting = (key, value) => {
         setSettings(prev => ({ ...prev, [key]: value }));
         setSaved(false);
@@ -610,16 +718,21 @@ export default function SettingsPage() {
                                     <button
                                         onClick={async () => {
                                             setShowDevicesModal(true);
-                                            // Load connected devices from Supabase
+                                            // Load connected devices from API
                                             try {
-                                                const { data, error } = await supabase
-                                                    .from('user_sessions')
-                                                    .select('*')
-                                                    .eq('user_id', user?.id)
-                                                    .order('last_active', { ascending: false });
+                                                const { data: { session } } = await supabase.auth.getSession();
+                                                if (!session) return;
 
-                                                if (!error && data) {
-                                                    setConnectedDevices(data);
+                                                const response = await fetch('/api/auth/sessions/list', {
+                                                    method: 'GET',
+                                                    headers: {
+                                                        'Authorization': `Bearer ${session.access_token}`
+                                                    }
+                                                });
+
+                                                if (response.ok) {
+                                                    const data = await response.json();
+                                                    setConnectedDevices(data.sessions || []);
                                                 }
                                             } catch (err) {
                                                 console.error('Error loading devices:', err);
@@ -917,23 +1030,19 @@ export default function SettingsPage() {
                                     marginBottom: 20,
                                     textAlign: 'center'
                                 }}>
-                                    <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>QR Code Placeholder</div>
-                                    <div style={{
-                                        width: 200,
-                                        height: 200,
-                                        margin: '0 auto',
-                                        background: '#f0f0f0',
-                                        borderRadius: 8,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: 48
-                                    }}>
-                                        📱
-                                    </div>
-                                    <p style={{ fontSize: 12, color: '#666', marginTop: 12 }}>
-                                        Manual entry key: XXXX-XXXX-XXXX-XXXX
-                                    </p>
+                                    {loadingMFA ? (
+                                        <div style={{ fontSize: 14, color: '#666', padding: 40 }}>Loading QR code...</div>
+                                    ) : qrCode ? (
+                                        <>
+                                            <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Scan with your authenticator app</div>
+                                            <img src={qrCode} alt="QR Code" style={{ width: 200, height: 200, margin: '0 auto' }} />
+                                            <p style={{ fontSize: 12, color: '#666', marginTop: 12 }}>
+                                                Manual entry key: {manualEntryKey || 'Loading...'}
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <div style={{ fontSize: 14, color: '#666', padding: 40 }}>Failed to generate QR code</div>
+                                    )}
                                 </div>
 
                                 <input
@@ -957,29 +1066,21 @@ export default function SettingsPage() {
 
                                 <div style={{ display: 'flex', gap: 12 }}>
                                     <button
-                                        onClick={() => {
-                                            if (verificationCode.length === 6) {
-                                                setTwoFactorEnabled(true);
-                                                alert('2FA successfully enabled! Your account is now more secure.');
-                                                setShow2FAModal(false);
-                                                setVerificationCode('');
-                                            } else {
-                                                alert('Please enter a valid 6-digit code');
-                                            }
-                                        }}
+                                        onClick={verify2FA}
+                                        disabled={loadingMFA || verificationCode.length !== 6}
                                         style={{
                                             flex: 1,
                                             padding: '12px 24px',
-                                            background: '#00D4FF',
+                                            background: loadingMFA || verificationCode.length !== 6 ? '#666' : '#00D4FF',
                                             border: 'none',
                                             borderRadius: 8,
-                                            color: '#000',
+                                            color: loadingMFA || verificationCode.length !== 6 ? '#999' : '#000',
                                             fontSize: 14,
                                             fontWeight: 600,
-                                            cursor: 'pointer'
+                                            cursor: loadingMFA || verificationCode.length !== 6 ? 'not-allowed' : 'pointer'
                                         }}
                                     >
-                                        Verify & Enable
+                                        {loadingMFA ? 'Verifying...' : 'Verify & Enable'}
                                     </button>
                                     <button
                                         onClick={() => {
@@ -1020,27 +1121,22 @@ export default function SettingsPage() {
                                 </div>
 
                                 <button
-                                    onClick={() => {
-                                        if (confirm('Are you sure you want to disable 2FA? This will make your account less secure.')) {
-                                            setTwoFactorEnabled(false);
-                                            alert('2FA has been disabled');
-                                            setShow2FAModal(false);
-                                        }
-                                    }}
+                                    onClick={disable2FA}
+                                    disabled={loadingMFA}
                                     style={{
                                         width: '100%',
                                         padding: '12px 24px',
-                                        background: '#ff4757',
+                                        background: loadingMFA ? '#999' : '#ff4757',
                                         border: 'none',
                                         borderRadius: 8,
                                         color: '#fff',
                                         fontSize: 14,
                                         fontWeight: 600,
-                                        cursor: 'pointer',
+                                        cursor: loadingMFA ? 'not-allowed' : 'pointer',
                                         marginBottom: 12
                                     }}
                                 >
-                                    Disable 2FA
+                                    {loadingMFA ? 'Disabling...' : 'Disable 2FA'}
                                 </button>
 
                                 <button
@@ -1133,13 +1229,26 @@ export default function SettingsPage() {
                                                 onClick={async () => {
                                                     if (confirm('Revoke access for this device?')) {
                                                         try {
-                                                            await supabase
-                                                                .from('user_sessions')
-                                                                .delete()
-                                                                .eq('id', device.id);
-                                                            setConnectedDevices(prev => prev.filter(d => d.id !== device.id));
-                                                            alert('Device access revoked');
+                                                            const { data: { session } } = await supabase.auth.getSession();
+                                                            if (!session) return;
+
+                                                            const response = await fetch('/api/auth/sessions/revoke', {
+                                                                method: 'POST',
+                                                                headers: {
+                                                                    'Content-Type': 'application/json',
+                                                                    'Authorization': `Bearer ${session.access_token}`
+                                                                },
+                                                                body: JSON.stringify({ sessionId: device.id })
+                                                            });
+
+                                                            if (response.ok) {
+                                                                setConnectedDevices(prev => prev.filter(d => d.id !== device.id));
+                                                                alert('Device access revoked');
+                                                            } else {
+                                                                alert('Failed to revoke device access');
+                                                            }
                                                         } catch (err) {
+                                                            console.error('Error revoking session:', err);
                                                             alert('Error revoking device access');
                                                         }
                                                     }

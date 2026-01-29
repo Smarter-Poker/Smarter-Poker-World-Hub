@@ -572,6 +572,46 @@ export default function ProfilePage() {
         setMessage('✓ Cover photo saved!');
     };
 
+    const handleCoverPhotoRemove = async (e) => {
+        e.stopPropagation(); // Prevent triggering the upload click
+        if (!user || !profile.cover_photo_url) return;
+
+        // Confirm removal
+        if (!confirm('Remove cover photo?')) return;
+
+        setMessage('Removing cover photo...');
+
+        // Extract file path from URL
+        const urlParts = profile.cover_photo_url.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        const filePath = `${user.id}/${fileName}`;
+
+        // Delete from storage
+        const { error: deleteError } = await supabase.storage
+            .from('avatars')
+            .remove([filePath]);
+
+        if (deleteError) {
+            console.warn('Storage delete error (may not exist):', deleteError);
+            // Continue anyway - file might already be deleted
+        }
+
+        // Update database to remove URL
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ cover_photo_url: null, updated_at: new Date().toISOString() })
+            .eq('id', user.id);
+
+        if (updateError) {
+            setMessage('Error removing cover photo: ' + updateError.message);
+            console.error('Update error:', updateError);
+            return;
+        }
+
+        setProfile(prev => ({ ...prev, cover_photo_url: null }));
+        setMessage('✓ Cover photo removed!');
+    };
+
     const handleSave = async () => {
         if (!user) return;
         setSaving(true);
@@ -690,6 +730,34 @@ export default function ProfilePage() {
                         hidden
                         onChange={handleCoverPhotoUpload}
                     />
+
+                    {/* Remove Cover Photo - Top Right (only show if cover exists) */}
+                    {profile.cover_photo_url && (
+                        <button
+                            onClick={handleCoverPhotoRemove}
+                            style={{
+                                position: 'absolute',
+                                top: 12,
+                                right: 12,
+                                background: 'rgba(0,0,0,0.7)',
+                                color: 'white',
+                                border: '1px solid rgba(255,255,255,0.3)',
+                                padding: '8px 12px',
+                                borderRadius: 8,
+                                fontSize: 13,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.target.style.background = 'rgba(220,38,38,0.9)'}
+                            onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.7)'}
+                        >
+                            🗑️ Remove
+                        </button>
+                    )}
 
                     {/* Add Cover Photo - Bottom Right inside cover */}
                     <div style={{
