@@ -32,3 +32,4 @@ src/content-engine/node_modules
 # Credentials (keep secure)
 .agent/skills/credentials/
 .agent/skills/deployment.md
+.env.production

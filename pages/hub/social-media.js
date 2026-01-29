@@ -2530,7 +2530,7 @@ export default function SocialMediaPage() {
                                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>EARNINGS</div>
                                 </div>
                                 <div style={{ textAlign: 'center' }}>
-                                    <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>${user.hendon.biggestCash?.toLocaleString() || user.hendon.bestFinish || '—'}</div>
+                                    <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>{user.hendon.biggestCash ? `$${user.hendon.biggestCash.toLocaleString()}` : '—'}</div>
                                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>BIGGEST CASH</div>
                                 </div>
                             </div>

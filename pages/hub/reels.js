@@ -9,6 +9,11 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { reelsPreferences, savedReelsService } from '../../src/services/preferences-service';
+import { getAuthUser } from '../../src/lib/authUtils';
+import UploadReelModal from '../../src/components/reels/UploadReelModal';
 
 const C = {
     bg: '#000000',
@@ -50,6 +55,18 @@ export default function ReelsPage() {
     const iframeRef = useRef(null);
     const touchStartY = useRef(0);
     const router = useRouter();
+    const [user, setUser] = useState(null);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [savedReels, setSavedReels] = useState(new Set());
+
+    // Reels preferences state
+    const [preferences, setPreferences] = useState({
+        autoplay: true,
+        soundOnScroll: true,
+        dataSaver: false,
+        showCaptions: true
+    });
 
     // Load sound preference from localStorage on mount
     useEffect(() => {
@@ -59,6 +76,26 @@ export default function ReelsPage() {
                 setUserWantsSound(true);
             }
         }
+    }, []);
+
+    // Load user and preferences
+    useEffect(() => {
+        const loadUserData = async () => {
+            const authUser = await getAuthUser();
+            setUser(authUser);
+
+            if (authUser) {
+                // Load preferences
+                const prefs = await reelsPreferences.get(authUser.id);
+                setPreferences(prefs);
+
+                // Load saved reels
+                const saved = await savedReelsService.getSavedReels(authUser.id);
+                const savedIds = new Set(saved.map(item => item.reel_id));
+                setSavedReels(savedIds);
+            }
+        };
+        loadUserData();
     }, []);
 
     // YouTube API: Send command to iframe via postMessage
@@ -170,6 +207,51 @@ export default function ReelsPage() {
         if (!currentReel) return;
         setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
     };
+
+    const handleSave = async () => {
+        if (!currentReel || !user) return;
+
+        const isSaved = savedReels.has(currentReel.id);
+
+        if (isSaved) {
+            await savedReelsService.unsaveReel(user.id, currentReel.id);
+            setSavedReels(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(currentReel.id);
+                return newSet;
+            });
+        } else {
+            await savedReelsService.saveReel(user.id, {
+                id: currentReel.id,
+                video_url: currentReel.video_url,
+                caption: currentReel.caption
+            });
+            setSavedReels(prev => new Set([...prev, currentReel.id]));
+        }
+    };
+
+    // Hamburger menu handlers
+    const handleUploadReel = () => {
+        setShowUploadModal(true);
+        setMenuOpen(false);
+    };
+
+    const updatePreference = async (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+        if (user) {
+            await reelsPreferences.update(user.id, newPrefs);
+        }
+    };
+
+    // Menu config
+    const menuConfig = getMenuConfig('reels', user, preferences, {
+        onUploadReel: handleUploadReel,
+        setAutoplay: (val) => updatePreference('autoplay', val),
+        setSoundOnScroll: (val) => updatePreference('soundOnScroll', val),
+        setDataSaver: (val) => updatePreference('dataSaver', val),
+        setShowCaptions: (val) => updatePreference('showCaptions', val)
+    });
 
     // Keyboard navigation
     useEffect(() => {
@@ -302,6 +384,36 @@ export default function ReelsPage() {
                 <title>Reels | Smarter Poker</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
             </Head>
+
+            {/* Universal Header */}
+            <UniversalHeader
+                pageDepth={1}
+                onMenuClick={() => setMenuOpen(true)}
+            />
+
+            {/* Hamburger Menu */}
+            <HamburgerMenu
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                direction="left"
+                theme="dark"
+                user={user}
+                showProfile={false}
+                menuItems={menuConfig.menuItems}
+                bottomLinks={menuConfig.bottomLinks}
+            />
+
+            {/* Upload Modal */}
+            {showUploadModal && (
+                <UploadReelModal
+                    user={user}
+                    onClose={() => setShowUploadModal(false)}
+                    onSuccess={() => {
+                        setShowUploadModal(false);
+                        loadReels();
+                    }}
+                />
+            )}
 
             {/* Full-screen container */}
             <div
@@ -486,6 +598,19 @@ export default function ReelsPage() {
                     }}>
                         <span style={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>📤</span>
                         <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Share</span>
+                    </button>
+
+                    {/* Save */}
+                    <button onClick={handleSave} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    }}>
+                        <span style={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
+                            {savedReels.has(currentReel?.id) ? '🔖' : '📑'}
+                        </span>
+                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                            {savedReels.has(currentReel?.id) ? 'Saved' : 'Save'}
+                        </span>
                     </button>
 
                     {/* Sound */}

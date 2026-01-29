@@ -14,6 +14,9 @@ import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { messengerPreferences } from '../../src/services/preferences-service';
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(
@@ -1030,8 +1033,31 @@ export default function MessengerPage() {
     const callTimeoutRef = useRef(null);
     const callStartTimeRef = useRef(null); // Track call start for duration
 
+    // Hamburger Menu State
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [preferences, setPreferences] = useState({
+        notifications: true,
+        readReceipts: true,
+        activeStatus: true,
+        messageSounds: true
+    });
+
     // OneSignal Push Notifications
     const { isInitialized: pushReady, isSubscribed: pushSubscribed, subscribe: subscribePush, setExternalUserId } = useOneSignal();
+
+    // Load preferences from service (localStorage + Supabase)
+    useEffect(() => {
+        messengerPreferences.get(user?.id).then(prefs => {
+            setPreferences(prefs);
+        });
+    }, [user]);
+
+    // Preference update handler with Supabase sync
+    const updatePreference = async (key, value) => {
+        const updated = { ...preferences, [key]: value };
+        setPreferences(updated);
+        await messengerPreferences.update(user?.id, { [key]: value });
+    };
 
     // Global unread count for header badge - refresh after reading messages
     const { refreshUnread } = useUnreadCount();
@@ -1042,6 +1068,14 @@ export default function MessengerPage() {
     const typingTimeout = useRef(null);
     const messageSearchTimeout = useRef(null);
 
+    // Menu config with handlers
+    const menuConfig = getMenuConfig('messenger', user, preferences, {
+        setNotifications: (val) => updatePreference('notifications', val),
+        setReadReceipts: (val) => updatePreference('readReceipts', val),
+        setActiveStatus: (val) => updatePreference('activeStatus', val),
+        setMessageSounds: (val) => updatePreference('messageSounds', val)
+    });
+
     // Check for mobile
     useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 768);
@@ -1049,6 +1083,7 @@ export default function MessengerPage() {
         window.addEventListener('resize', check);
         return () => window.removeEventListener('resize', check);
     }, []);
+
 
     // Load user and conversations
     useEffect(() => {
@@ -2304,7 +2339,22 @@ export default function MessengerPage() {
             </Head>
 
             {/* UNIVERSAL HEADER - Mobile responsive with diamond/XP */}
-            <UniversalHeader pageDepth={2} />
+            <UniversalHeader
+                pageDepth={2}
+                onMenuClick={() => setMenuOpen(true)}
+            />
+
+            {/* Hamburger Menu */}
+            <HamburgerMenu
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                direction="left"
+                theme="dark"
+                user={user}
+                showProfile={true}
+                menuItems={menuConfig.menuItems}
+                bottomLinks={menuConfig.bottomLinks}
+            />
 
             {/* Toast Notifications */}
             <Toast toast={toast} onDismiss={() => setToast(null)} />

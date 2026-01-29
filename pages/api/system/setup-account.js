@@ -29,14 +29,28 @@ export default async function handler(req, res) {
         // Check if system account already exists
         const { data: existing } = await supabase
             .from('profiles')
-            .select('id, username, full_name')
+            .select('id, username, full_name, avatar_url')
             .eq('id', SYSTEM_UUID)
             .maybeSingle();
 
         if (existing) {
+            // Update avatar_url if missing
+            if (!existing.avatar_url) {
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({
+                        avatar_url: '/smarter-poker-logo.png'
+                    })
+                    .eq('id', SYSTEM_UUID);
+
+                if (!updateError) {
+                    existing.avatar_url = '/smarter-poker-logo.png';
+                }
+            }
+
             return res.status(200).json({
                 success: true,
-                message: 'System account already exists',
+                message: 'System account already exists' + (!existing.avatar_url ? ' (avatar updated)' : ''),
                 account: existing
             });
         }
@@ -49,6 +63,7 @@ export default async function handler(req, res) {
                 username: 'smarter.poker',
                 full_name: 'Smarter.Poker',
                 email: 'system@smarter.poker',
+                avatar_url: '/smarter-poker-logo.png',
                 xp_total: 999999,
                 diamonds: 0,
                 skill_tier: 'System',

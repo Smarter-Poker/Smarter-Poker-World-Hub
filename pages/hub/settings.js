@@ -20,6 +20,8 @@ import { getCustomAvatarGallery } from '../../src/services/avatar-service';
 import { useSettingsStore } from '../../src/stores/settingsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT
@@ -91,6 +93,12 @@ export default function SettingsPage() {
     const [backupCodes, setBackupCodes] = useState([]);
     const [connectedDevices, setConnectedDevices] = useState([]);
     const [loadingMFA, setLoadingMFA] = useState(false);
+
+    // Hamburger Menu State
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Menu config
+    const menuConfig = getMenuConfig('settings', user, {}, {});
 
     // 🛡️ Use context user or localStorage fallback
     const user = contextUser || localUser;
@@ -373,13 +381,41 @@ export default function SettingsPage() {
         }
     };
 
+    const exportData = async () => {
+        try {
+            // TODO: Implement data export API endpoint
+            alert('Data export requested! You will receive an email when your data is ready.');
+        } catch (error) {
+            console.error('Error requesting data export:', error);
+            alert('Failed to request data export. Please try again.');
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        try {
+            // TODO: Implement account deletion API endpoint
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+
+            // Redirect to homepage
+            window.location.href = '/';
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            alert('Failed to delete account. Please contact support.');
+        }
+    };
+
     const sections = [
         { id: 'account', label: 'Account', icon: '👤' },
         { id: 'notifications', label: 'Notifications', icon: '🔔' },
         { id: 'privacy', label: 'Privacy', icon: '🔒' },
         { id: 'appearance', label: 'Appearance', icon: '🎨' },
+        { id: 'display', label: 'Display & Sound', icon: '🎵' },
         { id: 'gameplay', label: 'Gameplay', icon: '🎮' },
+        { id: 'billing', label: 'Billing & Payments', icon: '💳' },
+        { id: 'blocked', label: 'Blocked Users', icon: '🚫' },
         { id: 'data', label: 'Data Export', icon: '📦' },
+        { id: 'delete', label: 'Delete Account', icon: '⚠️' },
     ];
 
     return (
@@ -405,7 +441,22 @@ export default function SettingsPage() {
                 <div style={styles.bgGrid} />
 
                 {/* Header - Universal Header */}
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader
+                    pageDepth={2}
+                    onMenuClick={() => setMenuOpen(true)}
+                />
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={user}
+                    showProfile={true}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                     <h1 style={styles.pageTitle}>⚙️ Settings</h1>
                     <button
@@ -902,7 +953,224 @@ export default function SettingsPage() {
                             </div>
                         )}
 
+
+                        {/* Display & Sound Section */}
+                        {activeSection === 'display' && (
+                            <div style={styles.section}>
+                                <h2 style={styles.sectionTitle}>🎵 Display & Sound</h2>
+
+                                <div style={styles.settingGroup}>
+                                    <h3 style={styles.groupTitle}>Display</h3>
+                                    <Select
+                                        label="Font Size"
+                                        value={settings.fontSize || 'medium'}
+                                        onChange={(val) => updateSetting('fontSize', val)}
+                                        options={[
+                                            { value: 'small', label: 'Small' },
+                                            { value: 'medium', label: 'Medium' },
+                                            { value: 'large', label: 'Large' },
+                                            { value: 'xlarge', label: 'Extra Large' }
+                                        ]}
+                                    />
+                                    <Toggle
+                                        label="Animations"
+                                        description="Enable smooth transitions and animations"
+                                        value={settings.animations !== false}
+                                        onChange={(val) => updateSetting('animations', val)}
+                                    />
+                                    <Toggle
+                                        label="Reduce Motion"
+                                        description="Minimize animations for accessibility"
+                                        value={settings.reduceMotion || false}
+                                        onChange={(val) => updateSetting('reduceMotion', val)}
+                                    />
+                                </div>
+
+                                <div style={styles.settingGroup}>
+                                    <h3 style={styles.groupTitle}>Sound</h3>
+                                    <Toggle
+                                        label="Sound Effects"
+                                        description="Play sounds for actions and notifications"
+                                        value={settings.soundEffects !== false}
+                                        onChange={(val) => updateSetting('soundEffects', val)}
+                                    />
+                                    <Toggle
+                                        label="Notification Sounds"
+                                        description="Play sound when you receive notifications"
+                                        value={settings.notificationSounds !== false}
+                                        onChange={(val) => updateSetting('notificationSounds', val)}
+                                    />
+                                    <div style={styles.settingRow}>
+                                        <span style={styles.settingLabel}>Master Volume</span>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            value={settings.masterVolume || 50}
+                                            onChange={(e) => updateSetting('masterVolume', parseInt(e.target.value))}
+                                            style={styles.slider}
+                                        />
+                                        <span style={styles.volumeLabel}>{settings.masterVolume || 50}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Billing & Payments Section */}
+                        {activeSection === 'billing' && (
+                            <div style={styles.section}>
+                                <h2 style={styles.sectionTitle}>💳 Billing & Payments</h2>
+
+                                <div style={styles.settingGroup}>
+                                    <h3 style={styles.groupTitle}>Payment Methods</h3>
+                                    <p style={styles.infoText}>
+                                        Manage your payment methods in the Diamond Store checkout.
+                                    </p>
+                                    <button
+                                        onClick={() => router.push('/hub/diamond-store')}
+                                        style={styles.linkButton}
+                                    >
+                                        Go to Diamond Store →
+                                    </button>
+                                </div>
+
+                                <div style={styles.settingGroup}>
+                                    <h3 style={styles.groupTitle}>Order History</h3>
+                                    <p style={styles.infoText}>
+                                        View your past orders and download receipts.
+                                    </p>
+                                    <button
+                                        onClick={() => router.push('/hub/diamond-store/orders')}
+                                        style={styles.linkButton}
+                                    >
+                                        View Orders →
+                                    </button>
+                                </div>
+
+                                {isVip && (
+                                    <div style={styles.settingGroup}>
+                                        <h3 style={styles.groupTitle}>VIP Membership</h3>
+                                        <div style={styles.vipBadge}>
+                                            <span style={styles.vipIcon}>👑</span>
+                                            <div>
+                                                <div style={styles.vipTitle}>Active VIP Member</div>
+                                                <div style={styles.vipSubtitle}>Enjoying premium benefits</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Blocked Users Section */}
+                        {activeSection === 'blocked' && (
+                            <div style={styles.section}>
+                                <h2 style={styles.sectionTitle}>🚫 Blocked Users</h2>
+
+                                <div style={styles.settingGroup}>
+                                    <p style={styles.infoText}>
+                                        Manage users you've blocked from messaging and interacting with you.
+                                    </p>
+                                    <button
+                                        onClick={() => router.push('/hub/messenger/blocked')}
+                                        style={styles.linkButton}
+                                    >
+                                        Manage Blocked Users →
+                                    </button>
+                                </div>
+
+                                <div style={styles.settingGroup}>
+                                    <h3 style={styles.groupTitle}>Blocking Information</h3>
+                                    <ul style={styles.infoList}>
+                                        <li>Blocked users cannot send you messages</li>
+                                        <li>They won't see your online status</li>
+                                        <li>They cannot view your profile or posts</li>
+                                        <li>You can unblock users at any time</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Data Export Section */}
                         {activeSection === 'data' && (
+                            <div style={styles.section}>
+                                <h2 style={styles.sectionTitle}>📦 Data Export</h2>
+
+                                <div style={styles.settingGroup}>
+                                    <p style={styles.infoText}>
+                                        Download a copy of your Smarter.Poker data including your profile, posts, messages, and training history.
+                                    </p>
+                                    <button
+                                        onClick={exportData}
+                                        style={styles.exportButton}
+                                    >
+                                        📥 Request Data Export
+                                    </button>
+                                    <p style={styles.helperText}>
+                                        You'll receive an email with a download link when your data is ready (usually within 24 hours).
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Delete Account Section */}
+                        {activeSection === 'delete' && (
+                            <div style={styles.section}>
+                                <h2 style={styles.sectionTitle}>⚠️ Delete Account</h2>
+
+                                <div style={styles.dangerZone}>
+                                    <div style={styles.warningBox}>
+                                        <div style={styles.warningIcon}>⚠️</div>
+                                        <div>
+                                            <h3 style={styles.warningTitle}>Danger Zone</h3>
+                                            <p style={styles.warningText}>
+                                                Once you delete your account, there is no going back. This action is permanent and cannot be undone.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div style={styles.settingGroup}>
+                                        <h3 style={styles.groupTitle}>What will be deleted:</h3>
+                                        <ul style={styles.infoList}>
+                                            <li>Your profile and all personal information</li>
+                                            <li>All your posts, reels, and comments</li>
+                                            <li>Your training progress and statistics</li>
+                                            <li>Your messages and conversations</li>
+                                            <li>Your friends and connections</li>
+                                            <li>Your Diamond balance and VIP status</li>
+                                        </ul>
+                                    </div>
+
+                                    <div style={styles.settingGroup}>
+                                        <h3 style={styles.groupTitle}>Before you delete:</h3>
+                                        <ul style={styles.infoList}>
+                                            <li>Download your data using the Data Export feature</li>
+                                            <li>Withdraw any remaining Diamond balance</li>
+                                            <li>Cancel any active VIP subscriptions</li>
+                                        </ul>
+                                    </div>
+
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.\n\nType DELETE in the next prompt to confirm.')) {
+                                                const confirmation = prompt('Type DELETE to confirm account deletion:');
+                                                if (confirmation === 'DELETE') {
+                                                    handleDeleteAccount();
+                                                } else {
+                                                    alert('Account deletion cancelled.');
+                                                }
+                                            }
+                                        }}
+                                        style={styles.deleteButton}
+                                    >
+                                        Delete My Account
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Original Data Export Section - keeping for backward compatibility */}
+                        {activeSection === 'data_old' && (
                             <div style={styles.section}>
                                 <h2 style={styles.sectionTitle}>Data & Export</h2>
 
@@ -1593,5 +1861,111 @@ const styles = {
         fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
+    },
+    // New styles for added sections
+    slider: {
+        flex: 1,
+        margin: '0 16px',
+        accentColor: '#00D4FF',
+    },
+    volumeLabel: {
+        minWidth: '50px',
+        textAlign: 'right',
+        fontSize: 14,
+        color: '#00D4FF',
+        fontWeight: 600,
+    },
+    infoText: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.7)',
+        lineHeight: 1.6,
+        marginBottom: 16,
+    },
+    helperText: {
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.5)',
+        marginTop: 12,
+        fontStyle: 'italic',
+    },
+    linkButton: {
+        padding: '12px 24px',
+        background: 'rgba(0, 212, 255, 0.15)',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
+        borderRadius: 8,
+        color: '#00D4FF',
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+    },
+    infoList: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.7)',
+        lineHeight: 1.8,
+        paddingLeft: 24,
+        margin: 0,
+    },
+    vipBadge: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        padding: 16,
+        background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1))',
+        border: '1px solid rgba(255, 215, 0, 0.3)',
+        borderRadius: 12,
+    },
+    vipIcon: {
+        fontSize: 32,
+    },
+    vipTitle: {
+        fontSize: 16,
+        fontWeight: 600,
+        color: '#FFD700',
+        marginBottom: 4,
+    },
+    vipSubtitle: {
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.6)',
+    },
+    dangerZone: {
+        background: 'rgba(255, 71, 87, 0.05)',
+        border: '1px solid rgba(255, 71, 87, 0.2)',
+        borderRadius: 16,
+        padding: 24,
+    },
+    warningBox: {
+        display: 'flex',
+        gap: 16,
+        padding: 20,
+        background: 'rgba(255, 165, 0, 0.1)',
+        border: '1px solid rgba(255, 165, 0, 0.3)',
+        borderRadius: 12,
+        marginBottom: 24,
+    },
+    warningIcon: {
+        fontSize: 32,
+    },
+    warningTitle: {
+        fontSize: 18,
+        fontWeight: 600,
+        color: '#FFA500',
+        marginBottom: 8,
+    },
+    warningText: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.7)',
+        lineHeight: 1.6,
+    },
+    deleteButton: {
+        padding: '14px 28px',
+        background: '#ff4757',
+        border: 'none',
+        borderRadius: 8,
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: 700,
+        cursor: 'pointer',
+        marginTop: 24,
+        transition: 'all 0.2s',
     },
 };

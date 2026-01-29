@@ -13,7 +13,7 @@ import { useTrainingSettings } from '../../contexts/TrainingSettingsContext';
 
 export default function TrainingSettingsMenu({ onClose }) {
     const [isOpen, setIsOpen] = useState(false);
-    const { viewMode, setViewMode, soundEnabled, setSoundEnabled, timerEnabled, setTimerEnabled } = useTrainingSettings();
+    const { viewMode, setViewMode, soundEnabled, setSoundEnabled, timerEnabled, setTimerEnabled, autoAdvanceEnabled, setAutoAdvanceEnabled, hintsEnabled, setHintsEnabled } = useTrainingSettings();
 
     // Auto-open when component mounts (controlled by parent)
     useEffect(() => {
@@ -128,6 +128,50 @@ export default function TrainingSettingsMenu({ onClose }) {
                             <span style={{
                                 ...styles.switchSlider,
                                 backgroundColor: timerEnabled ? '#10b981' : '#64748b',
+                            }} />
+                        </label>
+                    </div>
+
+                    {/* Auto-Advance Toggle */}
+                    <div style={styles.settingGroup}>
+                        <label style={styles.settingLabel}>
+                            Auto-Advance
+                            <span style={styles.settingHint}>
+                                Automatically move to next question
+                            </span>
+                        </label>
+                        <label style={styles.switchContainer}>
+                            <input
+                                type="checkbox"
+                                checked={autoAdvanceEnabled}
+                                onChange={(e) => setAutoAdvanceEnabled(e.target.checked)}
+                                style={styles.switchInput}
+                            />
+                            <span style={{
+                                ...styles.switchSlider,
+                                backgroundColor: autoAdvanceEnabled ? '#10b981' : '#64748b',
+                            }} />
+                        </label>
+                    </div>
+
+                    {/* Hints Toggle */}
+                    <div style={styles.settingGroup}>
+                        <label style={styles.settingLabel}>
+                            Hints
+                            <span style={styles.settingHint}>
+                                Show helpful hints during questions
+                            </span>
+                        </label>
+                        <label style={styles.switchContainer}>
+                            <input
+                                type="checkbox"
+                                checked={hintsEnabled}
+                                onChange={(e) => setHintsEnabled(e.target.checked)}
+                                style={styles.switchInput}
+                            />
+                            <span style={{
+                                ...styles.switchSlider,
+                                backgroundColor: hintsEnabled ? '#10b981' : '#64748b',
                             }} />
                         </label>
                     </div>

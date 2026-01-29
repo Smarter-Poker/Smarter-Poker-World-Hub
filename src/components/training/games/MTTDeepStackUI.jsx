@@ -195,17 +195,9 @@ export default function MTTDeepStackUI({
                         )}
                     </div>
                 </div>
-
-                {/* Timer (Left) and Question Counter (Right) */}
-                <div style={styles.bottomRow}>
-                    <div style={styles.timer}>{timeLeft}</div>
-                    <div style={styles.questionCounter}>
-                        Question {questionNumber} of {totalQuestions}
-                    </div>
-                </div>
             </div>
 
-            {/* Answer Grid (2x2) - BOTTOM */}
+            {/* Answer Grid (2x2) */}
             <div style={styles.answersGrid}>
                 {options.map((option, index) => {
                     const optionLetter = String.fromCharCode(65 + index); // A, B, C, D
@@ -224,6 +216,14 @@ export default function MTTDeepStackUI({
                         </motion.button>
                     );
                 })}
+            </div>
+
+            {/* Timer (Left) and Question Counter (Right) - AT THE VERY BOTTOM */}
+            <div style={styles.bottomRow}>
+                <div style={styles.timer}>{timeLeft}</div>
+                <div style={styles.questionCounter}>
+                    Question {questionNumber} of {totalQuestions}
+                </div>
             </div>
 
             {/* Explanation (shown after answer) */}

@@ -5,7 +5,7 @@
 
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -16,6 +16,10 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import ShoppingCart from '../../src/components/store/ShoppingCart';
 import useCartStore from '../../src/stores/cartStore';
 import supabase from '../../src/lib/supabase';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getAuthUser } from '../../src/lib/authUtils';
+import { storePreferences } from '../../src/services/preferences-service';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // XP SYSTEM — Quadratic Progression (Infinite Levels)
@@ -709,6 +713,77 @@ export default function DiamondStorePage() {
         }
     }, []);
 
+    // Hamburger Menu State
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [user, setUser] = useState(null);
+    const [preferences, setPreferences] = useState({
+        emailReceipts: true,
+        promotionalEmails: false
+    });
+
+    // Load user
+    useEffect(() => {
+        getAuthUser().then(setUser);
+    }, []);
+
+    // Load preferences from service (localStorage + Supabase)
+    useEffect(() => {
+        storePreferences.get(user?.id).then(prefs => {
+            setPreferences(prefs);
+        });
+    }, [user]);
+
+    // Preference update handler with Supabase sync
+    const updatePreference = async (key, value) => {
+        const updated = { ...preferences, [key]: value };
+        setPreferences(updated);
+        await storePreferences.update(user?.id, { [key]: value });
+    };
+
+    // Menu config
+    const menuConfig = getMenuConfig('diamond-store', user, preferences, {
+        setEmailReceipts: (val) => updatePreference('emailReceipts', val),
+        setPromotionalEmails: (val) => updatePreference('promotionalEmails', val)
+    });
+
+    // Handle success/cancel redirects from Stripe checkout
+    const { clearCart } = useCartStore();
+
+    useEffect(() => {
+        const { success, canceled, session_id } = router.query;
+
+        if (success === 'true') {
+            // Purchase successful!
+            console.log('[Diamond Store] Purchase successful! Session:', session_id);
+
+            // Clear the cart
+            clearCart();
+
+            // Trigger confetti celebration
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            // Show success message
+            alert('🎉 Purchase successful! Your diamonds have been added to your account.');
+
+            // Clean up URL
+            router.replace('/hub/diamond-store', undefined, { shallow: true });
+
+        } else if (canceled === 'true') {
+            // Purchase canceled
+            console.log('[Diamond Store] Purchase canceled');
+
+            // Show cancellation message
+            alert('Purchase canceled. Your items are still in your cart.');
+
+            // Clean up URL
+            router.replace('/hub/diamond-store', undefined, { shallow: true });
+        }
+    }, [router.query, router, clearCart]);
+
     const { addItem } = useCartStore();
 
     // Add diamond package to cart
@@ -781,12 +856,18 @@ export default function DiamondStorePage() {
                 })
             });
 
+            console.log('[Diamond Store] API Response Status:', response.status);
             const data = await response.json();
+            console.log('[Diamond Store] API Response Data:', data);
 
             if (!data.success) {
-                throw new Error(data.error?.message || 'Failed to create checkout session');
+                console.error('[Diamond Store] Checkout failed:', data.error);
+                const errorMsg = data.error?.message || 'Failed to create checkout session';
+                const errorCode = data.error?.code || 'UNKNOWN';
+                throw new Error(`${errorCode}: ${errorMsg}`);
             }
 
+            console.log('[Diamond Store] Redirecting to Stripe:', data.data.url);
             // Redirect to Stripe Checkout
             window.location.href = data.data.url;
 
@@ -919,7 +1000,22 @@ export default function DiamondStorePage() {
                     <div style={styles.bgGlow} />
 
                     {/* Header */}
-                    <UniversalHeader pageDepth={1} />
+                    <UniversalHeader
+                        pageDepth={1}
+                        onMenuClick={() => setMenuOpen(true)}
+                    />
+
+                    {/* Hamburger Menu */}
+                    <HamburgerMenu
+                        isOpen={menuOpen}
+                        onClose={() => setMenuOpen(false)}
+                        direction="left"
+                        theme="dark"
+                        user={user}
+                        showProfile={true}
+                        menuItems={menuConfig.menuItems}
+                        bottomLinks={menuConfig.bottomLinks}
+                    />
                     <div style={styles.header}>
                         <div style={{ width: 100 }} />
                         <h1 style={styles.pageTitle}>💎 Store</h1>

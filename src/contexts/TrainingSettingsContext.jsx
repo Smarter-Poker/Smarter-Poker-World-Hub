@@ -17,6 +17,8 @@ export function TrainingSettingsProvider({ children }) {
     const [viewMode, setViewModeState] = useState('standard'); // 'standard' | 'pro'
     const [soundEnabled, setSoundEnabledState] = useState(true);
     const [timerEnabled, setTimerEnabledState] = useState(true);
+    const [autoAdvanceEnabled, setAutoAdvanceEnabledState] = useState(false);
+    const [hintsEnabled, setHintsEnabledState] = useState(true);
     const [loading, setLoading] = useState(true);
 
     // Load user and settings on mount
@@ -35,7 +37,7 @@ export function TrainingSettingsProvider({ children }) {
         try {
             const { data, error } = await supabase
                 .from('profiles')
-                .select('training_view_mode, training_sound_enabled, training_timer_enabled')
+                .select('training_view_mode, training_sound_enabled, training_timer_enabled, training_auto_advance, training_hints_enabled')
                 .eq('id', userId)
                 .single();
 
@@ -45,6 +47,8 @@ export function TrainingSettingsProvider({ children }) {
                 setViewModeState(data.training_view_mode || 'standard');
                 setSoundEnabledState(data.training_sound_enabled ?? true);
                 setTimerEnabledState(data.training_timer_enabled ?? true);
+                setAutoAdvanceEnabledState(data.training_auto_advance ?? false);
+                setHintsEnabledState(data.training_hints_enabled ?? true);
             }
         } catch (error) {
             console.error('[TrainingSettings] Load error:', error);
@@ -85,6 +89,16 @@ export function TrainingSettingsProvider({ children }) {
         await updateSettings({ training_timer_enabled: enabled });
     };
 
+    const setAutoAdvanceEnabled = async (enabled) => {
+        setAutoAdvanceEnabledState(enabled);
+        await updateSettings({ training_auto_advance: enabled });
+    };
+
+    const setHintsEnabled = async (enabled) => {
+        setHintsEnabledState(enabled);
+        await updateSettings({ training_hints_enabled: enabled });
+    };
+
     const value = {
         viewMode,
         setViewMode,
@@ -92,6 +106,10 @@ export function TrainingSettingsProvider({ children }) {
         setSoundEnabled,
         timerEnabled,
         setTimerEnabled,
+        autoAdvanceEnabled,
+        setAutoAdvanceEnabled,
+        hintsEnabled,
+        setHintsEnabled,
         loading,
     };
 
