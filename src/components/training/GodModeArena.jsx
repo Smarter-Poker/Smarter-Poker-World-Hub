@@ -199,25 +199,14 @@ export default function GodModeArena({
 
             {/* Main Question Area */}
             <div style={styles.questionContainer}>
-                {loading ? (
-                    <div style={styles.loadingState}>
-                        <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                            style={{ fontSize: 48 }}
-                        >
-                            🎰
-                        </motion.div>
-                        <p style={{ color: '#94a3b8', marginTop: 16 }}>Loading question...</p>
-                    </div>
-                ) : error ? (
+                {error ? (
                     <div style={styles.errorState}>
                         <p style={{ color: '#ef4444', fontSize: 18 }}>⚠️ {error}</p>
                         <button onClick={() => window.location.reload()} style={styles.retryButton}>
                             Retry
                         </button>
                     </div>
-                ) : (
+                ) : currentQuestion ? (
                     <GameUIRouter
                         gameId={gameId}
                         question={currentQuestion}
@@ -229,7 +218,7 @@ export default function GodModeArena({
                         feedbackResult={feedbackResult}
                         explanation={explanation}
                     />
-                )}
+                ) : null}
             </div>
 
             {/* Footer Stats */}

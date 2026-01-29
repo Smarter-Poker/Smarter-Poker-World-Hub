@@ -214,14 +214,10 @@ export default function MillionaireQuestion({
         return style;
     };
 
+    // Questions are pre-loaded, so this should never show
+    // But keep as fallback for safety
     if (!question) {
-        return (
-            <div style={styles.container}>
-                <div style={styles.questionArea}>
-                    <div style={styles.questionText}>Loading question...</div>
-                </div>
-            </div>
-        );
+        return null;
     }
 
     return (

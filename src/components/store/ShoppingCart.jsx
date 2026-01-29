@@ -315,8 +315,11 @@ export default function ShoppingCartComponent({ onCheckout }) {
 
                                     <button
                                         onClick={() => {
-                                            onCheckout && onCheckout(items);
-                                            closeCart();
+                                            if (onCheckout) {
+                                                onCheckout(items);
+                                                // Don't close cart immediately - let the checkout complete
+                                                // The page will redirect to Stripe when ready
+                                            }
                                         }}
                                         style={{
                                             width: '100%',

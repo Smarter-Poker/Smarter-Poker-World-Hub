@@ -820,65 +820,66 @@ export default function DiamondStorePage() {
     const selectedVIPPlan = selectedVIP === 'vip-monthly' ? VIP_MEMBERSHIP.monthly : VIP_MEMBERSHIP.annual;
 
     return (
-        <PageTransition>
-            {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
-            {showIntro && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 99999,
-                    background: '#000',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}>
-                    <video
-                        ref={introVideoRef}
-                        src="/videos/marketplace-intro.mp4"
-                        autoPlay
-                        muted
-                        playsInline
-                        onPlay={handleIntroPlay}
-                        onEnded={handleIntroEnd}
-                        onError={handleIntroEnd}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                        }}
-                    />
-                    {/* Skip button */}
-                    <button
-                        onClick={handleIntroEnd}
-                        style={{
-                            position: 'absolute',
-                            top: 20,
-                            right: 20,
-                            padding: '8px 20px',
-                            background: 'rgba(255,255,255,0.2)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(255,255,255,0.3)',
-                            borderRadius: 20,
-                            color: 'white',
-                            fontSize: 14,
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            zIndex: 100000
-                        }}
-                    >
-                        Skip
-                    </button>
-                </div>
-            )}
-            <Head>
-                <title>Diamond Store — Smarter.Poker</title>
-                <meta name="description" content="Purchase diamonds to unlock premium features" />
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-                <style>{`
+        <>
+            <PageTransition>
+                {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+                {showIntro && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        zIndex: 99999,
+                        background: '#000',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        <video
+                            ref={introVideoRef}
+                            src="/videos/marketplace-intro.mp4"
+                            autoPlay
+                            muted
+                            playsInline
+                            onPlay={handleIntroPlay}
+                            onEnded={handleIntroEnd}
+                            onError={handleIntroEnd}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                            }}
+                        />
+                        {/* Skip button */}
+                        <button
+                            onClick={handleIntroEnd}
+                            style={{
+                                position: 'absolute',
+                                top: 20,
+                                right: 20,
+                                padding: '8px 20px',
+                                background: 'rgba(255,255,255,0.2)',
+                                backdropFilter: 'blur(10px)',
+                                border: '1px solid rgba(255,255,255,0.3)',
+                                borderRadius: 20,
+                                color: 'white',
+                                fontSize: 14,
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                zIndex: 100000
+                            }}
+                        >
+                            Skip
+                        </button>
+                    </div>
+                )}
+                <Head>
+                    <title>Diamond Store — Smarter.Poker</title>
+                    <meta name="description" content="Purchase diamonds to unlock premium features" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+                    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+                    <style>{`
                     /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
                     .diamond-store-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
                     
@@ -887,560 +888,564 @@ export default function DiamondStorePage() {
                     
                     
                 `}</style>
-            </Head>
+                </Head>
 
-            <div className="diamond-store-page" style={styles.container}>
-                {/* Background */}
-                <div style={styles.bgGrid} />
-                <div style={styles.bgGlow} />
+                <div className="diamond-store-page" style={styles.container}>
+                    {/* Background */}
+                    <div style={styles.bgGrid} />
+                    <div style={styles.bgGlow} />
 
-                {/* Header */}
-                <UniversalHeader pageDepth={1} />
-                <div style={styles.header}>
-                    <div style={{ width: 100 }} />
-                    <h1 style={styles.pageTitle}>💎 Store</h1>
-                    <div style={{ width: 100 }} />
-                </div>
+                    {/* Header */}
+                    <UniversalHeader pageDepth={1} />
+                    <div style={styles.header}>
+                        <div style={{ width: 100 }} />
+                        <h1 style={styles.pageTitle}>💎 Store</h1>
+                        <div style={{ width: 100 }} />
+                    </div>
 
-                {/* Tab Navigation */}
-                <div style={styles.tabNav}>
-                    <button
-                        onClick={() => setActiveTab('diamonds')}
-                        style={{
-                            ...styles.tabButton,
-                            ...(activeTab === 'diamonds' ? styles.tabButtonActive : {}),
-                        }}
-                    >
-                        💎 Diamonds
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('vip')}
-                        style={{
-                            ...styles.tabButton,
-                            ...(activeTab === 'vip' ? styles.tabButtonActiveVIP : {}),
-                        }}
-                    >
-                        👑 VIP Membership
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('merch')}
-                        style={{
-                            ...styles.tabButton,
-                            ...(activeTab === 'merch' ? styles.tabButtonActive : {}),
-                        }}
-                    >
-                        🛍️ Merch
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('rewards')}
-                        style={{
-                            ...styles.tabButton,
-                            ...(activeTab === 'rewards' ? styles.tabButtonActive : {}),
-                        }}
-                    >
-                        🎁 Smarter Rewards
-                    </button>
-                </div>
+                    {/* Tab Navigation */}
+                    <div style={styles.tabNav}>
+                        <button
+                            onClick={() => setActiveTab('diamonds')}
+                            style={{
+                                ...styles.tabButton,
+                                ...(activeTab === 'diamonds' ? styles.tabButtonActive : {}),
+                            }}
+                        >
+                            💎 Diamonds
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('vip')}
+                            style={{
+                                ...styles.tabButton,
+                                ...(activeTab === 'vip' ? styles.tabButtonActiveVIP : {}),
+                            }}
+                        >
+                            👑 VIP Membership
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('merch')}
+                            style={{
+                                ...styles.tabButton,
+                                ...(activeTab === 'merch' ? styles.tabButtonActive : {}),
+                            }}
+                        >
+                            🛍️ Merch
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('rewards')}
+                            style={{
+                                ...styles.tabButton,
+                                ...(activeTab === 'rewards' ? styles.tabButtonActive : {}),
+                            }}
+                        >
+                            🎁 Smarter Rewards
+                        </button>
+                    </div>
 
-                {/* Main Content */}
-                <div style={styles.content}>
+                    {/* Main Content */}
+                    <div style={styles.content}>
 
-                    {/* ═══════════════════════════════════════════════════════════════════ */}
-                    {/* DIAMONDS TAB */}
-                    {/* ═══════════════════════════════════════════════════════════════════ */}
-                    {activeTab === 'diamonds' && (
-                        <>
-                            {/* Intro */}
-                            <div style={styles.intro}>
-                                <p style={styles.introText}>
-                                    <strong>1 Diamond = $0.01</strong> — Use diamonds for tournament entries,
-                                    premium training, cosmetics, and more. <span style={{ color: '#00ff88' }}>5% bonus on $100+ purchases!</span>
-                                </p>
-                            </div>
+                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* DIAMONDS TAB */}
+                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {activeTab === 'diamonds' && (
+                            <>
+                                {/* Intro */}
+                                <div style={styles.intro}>
+                                    <p style={styles.introText}>
+                                        <strong>1 Diamond = $0.01</strong> — Use diamonds for tournament entries,
+                                        premium training, cosmetics, and more. <span style={{ color: '#00ff88' }}>5% bonus on $100+ purchases!</span>
+                                    </p>
+                                </div>
 
-                            {/* Package Grid */}
-                            <div style={styles.packageGrid}>
-                                {DIAMOND_PACKAGES.map(pkg => (
-                                    <PackageCard
-                                        key={pkg.id}
-                                        pkg={pkg}
-                                        isSelected={selectedPackage === pkg.id}
-                                        onSelect={setSelectedPackage}
-                                        onAddToCart={handleAddToCart}
+                                {/* Package Grid */}
+                                <div style={styles.packageGrid}>
+                                    {DIAMOND_PACKAGES.map(pkg => (
+                                        <PackageCard
+                                            key={pkg.id}
+                                            pkg={pkg}
+                                            isSelected={selectedPackage === pkg.id}
+                                            onSelect={setSelectedPackage}
+                                            onAddToCart={handleAddToCart}
+                                        />
+                                    ))}
+                                </div>
+
+                                {/* Purchase Section */}
+                                <div style={styles.purchaseSection}>
+                                    <div style={styles.selectedInfo}>
+                                        {selectedPkg && (
+                                            <>
+                                                <span style={styles.selectedLabel}>Selected:</span>
+                                                <span style={styles.selectedName}>{selectedPkg.name}</span>
+                                                <span style={styles.selectedDiamonds}>
+                                                    💎 {(selectedPkg.diamonds + selectedPkg.bonus).toLocaleString()}
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        onClick={handleDiamondPurchase}
+                                        disabled={!selectedPackage || isProcessing}
+                                        style={{
+                                            ...styles.purchaseButton,
+                                            opacity: (!selectedPackage || isProcessing) ? 0.6 : 1,
+                                        }}
+                                    >
+                                        {isProcessing ? 'Processing...' : `Purchase for $${selectedPkg?.price.toFixed(2) || '0.00'}`}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* VIP MEMBERSHIP TAB */}
+                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {activeTab === 'vip' && (
+                            <>
+                                {/* VIP Hero */}
+                                <div style={styles.vipHero}>
+                                    <h2 style={styles.vipTitle}>👑 VIP Membership</h2>
+                                    <p style={styles.vipSubtitle}>
+                                        Unlock <strong>everything</strong> for one low monthly price. No diamond costs, no limits.
+                                    </p>
+                                </div>
+
+                                {/* VIP Plan Selection */}
+                                <div style={styles.vipPlansRow}>
+                                    <VIPCard
+                                        plan={VIP_MEMBERSHIP.monthly}
+                                        isSelected={selectedVIP === 'vip-monthly'}
+                                        onSelect={setSelectedVIP}
                                     />
-                                ))}
-                            </div>
-
-                            {/* Purchase Section */}
-                            <div style={styles.purchaseSection}>
-                                <div style={styles.selectedInfo}>
-                                    {selectedPkg && (
-                                        <>
-                                            <span style={styles.selectedLabel}>Selected:</span>
-                                            <span style={styles.selectedName}>{selectedPkg.name}</span>
-                                            <span style={styles.selectedDiamonds}>
-                                                💎 {(selectedPkg.diamonds + selectedPkg.bonus).toLocaleString()}
-                                            </span>
-                                        </>
-                                    )}
+                                    <VIPCard
+                                        plan={VIP_MEMBERSHIP.annual}
+                                        isSelected={selectedVIP === 'vip-annual'}
+                                        onSelect={setSelectedVIP}
+                                    />
                                 </div>
 
-                                <button
-                                    onClick={handleDiamondPurchase}
-                                    disabled={!selectedPackage || isProcessing}
-                                    style={{
-                                        ...styles.purchaseButton,
-                                        opacity: (!selectedPackage || isProcessing) ? 0.6 : 1,
-                                    }}
-                                >
-                                    {isProcessing ? 'Processing...' : `Purchase for $${selectedPkg?.price.toFixed(2) || '0.00'}`}
-                                </button>
-                            </div>
-                        </>
-                    )}
-
-                    {/* ═══════════════════════════════════════════════════════════════════ */}
-                    {/* VIP MEMBERSHIP TAB */}
-                    {/* ═══════════════════════════════════════════════════════════════════ */}
-                    {activeTab === 'vip' && (
-                        <>
-                            {/* VIP Hero */}
-                            <div style={styles.vipHero}>
-                                <h2 style={styles.vipTitle}>👑 VIP Membership</h2>
-                                <p style={styles.vipSubtitle}>
-                                    Unlock <strong>everything</strong> for one low monthly price. No diamond costs, no limits.
-                                </p>
-                            </div>
-
-                            {/* VIP Plan Selection */}
-                            <div style={styles.vipPlansRow}>
-                                <VIPCard
-                                    plan={VIP_MEMBERSHIP.monthly}
-                                    isSelected={selectedVIP === 'vip-monthly'}
-                                    onSelect={setSelectedVIP}
-                                />
-                                <VIPCard
-                                    plan={VIP_MEMBERSHIP.annual}
-                                    isSelected={selectedVIP === 'vip-annual'}
-                                    onSelect={setSelectedVIP}
-                                />
-                            </div>
-
-                            {/* Subscribe Button */}
-                            <div style={styles.vipSubscribeSection}>
-                                <button
-                                    onClick={handleVIPSubscribe}
-                                    disabled={isProcessing}
-                                    style={{
-                                        ...styles.vipSubscribeButton,
-                                        opacity: isProcessing ? 0.6 : 1,
-                                    }}
-                                >
-                                    {isProcessing ? 'Processing...' : `Subscribe for $${selectedVIPPlan.price.toFixed(2)}/${selectedVIPPlan.interval}`}
-                                </button>
-                                <p style={styles.vipCancelNote}>Cancel anytime. No commitment required.</p>
-                            </div>
-
-                            {/* VIP Benefits Table */}
-                            <div style={styles.benefitsSection}>
-                                <h3 style={styles.benefitsTitle}>Everything Included with VIP</h3>
-                                <div style={styles.benefitsGrid}>
-                                    {VIP_BENEFITS.map((benefit, idx) => (
-                                        <div key={idx} style={styles.benefitCard}>
-                                            <span style={styles.benefitIcon}>{benefit.icon}</span>
-                                            <div style={styles.benefitInfo}>
-                                                <div style={styles.benefitTitle}>{benefit.title}</div>
-                                                <div style={styles.benefitDesc}>{benefit.description}</div>
-                                            </div>
-                                            <div style={styles.benefitValue}>{benefit.value}</div>
-                                        </div>
-                                    ))}
+                                {/* Subscribe Button */}
+                                <div style={styles.vipSubscribeSection}>
+                                    <button
+                                        onClick={handleVIPSubscribe}
+                                        disabled={isProcessing}
+                                        style={{
+                                            ...styles.vipSubscribeButton,
+                                            opacity: isProcessing ? 0.6 : 1,
+                                        }}
+                                    >
+                                        {isProcessing ? 'Processing...' : `Subscribe for $${selectedVIPPlan.price.toFixed(2)}/${selectedVIPPlan.interval}`}
+                                    </button>
+                                    <p style={styles.vipCancelNote}>Cancel anytime. No commitment required.</p>
                                 </div>
-                            </div>
 
-                            {/* Value Comparison */}
-                            <div style={styles.valueComparison}>
-                                <div style={styles.valueBox}>
-                                    <div style={styles.valueLabel}>Total Feature Value</div>
-                                    <div style={styles.valueAmount}>$200+/mo</div>
-                                </div>
-                                <div style={styles.valueDivider}>→</div>
-                                <div style={styles.valueBoxHighlight}>
-                                    <div style={styles.valueLabel}>VIP Price</div>
-                                    <div style={styles.vipPrice}>$19.99/mo</div>
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                    {/* ═══════════════════════════════════════════════════════════════════ */}
-                    {/* MERCHANDISE TAB */}
-                    {/* ═══════════════════════════════════════════════════════════════════ */}
-                    {activeTab === 'merch' && (
-                        <>
-                            <div style={styles.intro}>
-                                <h2 style={styles.merchTitle}>🛍️ Official Merch</h2>
-                                <p style={styles.introText}>
-                                    Rep the Smarter.Poker brand at the tables. Premium quality gear for serious players.
-                                </p>
-                            </div>
-
-                            {/* Apparel Section */}
-                            <div style={styles.merchSection}>
-                                <h3 style={styles.merchCategoryTitle}>👕 Apparel</h3>
-                                <div style={styles.merchGrid}>
-                                    {MERCHANDISE.filter(m => m.category === 'apparel').map(item => (
-                                        <MerchCard key={item.id} item={item} onSelect={handleMerchPurchase} />
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Accessories Section */}
-                            <div style={styles.merchSection}>
-                                <h3 style={styles.merchCategoryTitle}>🎴 Accessories</h3>
-                                <div style={styles.merchGrid}>
-                                    {MERCHANDISE.filter(m => m.category === 'accessories').map(item => (
-                                        <MerchCard key={item.id} item={item} onSelect={handleMerchPurchase} />
-                                    ))}
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-
-                    {/* ═══════════════════════════════════════════════════════════════════ */}
-                    {/* SMARTER REWARDS TAB - Comprehensive Rewards Information Center */}
-                    {/* ═══════════════════════════════════════════════════════════════════ */}
-                    {activeTab === 'rewards' && (
-                        <>
-                            {/* Sub-Tab Navigation */}
-                            <div style={styles.rewardsSubNav}>
-                                <button
-                                    onClick={() => setRewardsSubTab('overview')}
-                                    style={{
-                                        ...styles.rewardsSubTab,
-                                        ...(rewardsSubTab === 'overview' ? styles.rewardsSubTabActive : {}),
-                                    }}
-                                >
-                                    📋 Overview
-                                </button>
-                                <button
-                                    onClick={() => setRewardsSubTab('diamonds')}
-                                    style={{
-                                        ...styles.rewardsSubTab,
-                                        ...(rewardsSubTab === 'diamonds' ? styles.rewardsSubTabActive : {}),
-                                    }}
-                                >
-                                    💎 Diamond Rewards
-                                </button>
-                                <button
-                                    onClick={() => setRewardsSubTab('xp')}
-                                    style={{
-                                        ...styles.rewardsSubTab,
-                                        ...(rewardsSubTab === 'xp' ? styles.rewardsSubTabActive : {}),
-                                    }}
-                                >
-                                    📈 XP System
-                                </button>
-                                <button
-                                    onClick={() => setRewardsSubTab('eggs')}
-                                    style={{
-                                        ...styles.rewardsSubTab,
-                                        ...(rewardsSubTab === 'eggs' ? styles.rewardsSubTabActive : {}),
-                                    }}
-                                >
-                                    🎁 Easter Eggs
-                                </button>
-                            </div>
-
-                            {/* OVERVIEW SUB-TAB */}
-                            {rewardsSubTab === 'overview' && (
-                                <div style={styles.rewardsOverview}>
-                                    <h2 style={styles.earnTitle}>🎁 Smarter Rewards</h2>
-                                    <p style={styles.introText}>
-                                        Welcome to the Smarter Rewards system! Earn diamonds and XP by playing, training, and engaging with the community.
-                                    </p>
-
-                                    <div style={styles.overviewGrid}>
-                                        <div style={styles.overviewCard}>
-                                            <div style={styles.overviewIcon}>💎</div>
-                                            <h3 style={styles.overviewCardTitle}>Diamond Rewards</h3>
-                                            <p style={styles.overviewCardText}>
-                                                Earn diamonds through daily logins, training, social engagement, and referrals.
-                                                <strong style={{ color: '#00ff88' }}> Daily cap: 500 💎</strong> with streak multipliers!
-                                            </p>
-                                        </div>
-
-                                        <div style={styles.overviewCard}>
-                                            <div style={styles.overviewIcon}>📈</div>
-                                            <h3 style={styles.overviewCardTitle}>XP System</h3>
-                                            <p style={styles.overviewCardText}>
-                                                Progress through <strong>infinite levels</strong> using the quadratic formula.
-                                                Level = floor(sqrt(XP / 100)) + 1. Verified: 700,000 XP = Level 84!
-                                            </p>
-                                        </div>
-
-                                        <div style={styles.overviewCard}>
-                                            <div style={styles.overviewIcon}>🎁</div>
-                                            <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
-                                            <p style={styles.overviewCardText}>
-                                                Discover <strong>100 hidden achievements</strong> across 6 categories.
-                                                From Performance to Legacy Milestones, find them all for massive rewards!
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div style={styles.quickStats}>
-                                        <div style={styles.quickStat}>
-                                            <span style={styles.quickStatValue}>500 💎</span>
-                                            <span style={styles.quickStatLabel}>Daily Cap</span>
-                                        </div>
-                                        <div style={styles.quickStat}>
-                                            <span style={styles.quickStatValue}>∞</span>
-                                            <span style={styles.quickStatLabel}>XP Levels</span>
-                                        </div>
-                                        <div style={styles.quickStat}>
-                                            <span style={styles.quickStatValue}>100</span>
-                                            <span style={styles.quickStatLabel}>Easter Eggs</span>
-                                        </div>
-                                        <div style={styles.quickStat}>
-                                            <span style={styles.quickStatValue}>10</span>
-                                            <span style={styles.quickStatLabel}>Standard Rewards</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* DIAMOND REWARDS SUB-TAB */}
-                            {rewardsSubTab === 'diamonds' && (
-                                <div style={styles.diamondRewardsSection}>
-                                    <h2 style={styles.earnTitle}>💎 Diamond Rewards</h2>
-                                    <p style={styles.introText}>
-                                        All 10 ways you can earn diamonds on Smarter.Poker
-                                    </p>
-
-                                    {/* Daily Cap Banner */}
-                                    <div style={styles.capBanner}>
-                                        <div style={styles.capInfo}>
-                                            <span style={styles.capNumber}>500</span>
-                                            <span style={styles.capLabel}>Daily Cap</span>
-                                        </div>
-                                        <div style={styles.capDivider} />
-                                        <div style={styles.streakMultipliers}>
-                                            <div style={styles.multiplierItem}>
-                                                <span style={styles.multiplierValue}>1.5x</span>
-                                                <span style={styles.multiplierLabel}>Days 4-6</span>
-                                            </div>
-                                            <div style={styles.multiplierItem}>
-                                                <span style={styles.multiplierValueGold}>2.0x</span>
-                                                <span style={styles.multiplierLabel}>Day 7+</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Standard Rewards List */}
-                                    <div style={styles.rewardCategory}>
-                                        <h3 style={styles.categoryTitle}>💎 All Standard Rewards</h3>
-                                        <div style={styles.rewardList}>
-                                            {STANDARD_REWARDS.map((reward, idx) => (
-                                                <div key={idx} style={reward.bypassesCap ? { ...styles.rewardItem, ...styles.referralHighlight } : styles.rewardItem}>
-                                                    <span style={styles.rewardIcon}>{reward.icon}</span>
-                                                    <div style={styles.rewardDetails}>
-                                                        <span style={styles.rewardName}>{reward.name}</span>
-                                                        <span style={styles.rewardNote}>{reward.note}</span>
-                                                    </div>
-                                                    <span style={reward.bypassesCap ? styles.referralReward : styles.rewardAmount}>{reward.amount}</span>
+                                {/* VIP Benefits Table */}
+                                <div style={styles.benefitsSection}>
+                                    <h3 style={styles.benefitsTitle}>Everything Included with VIP</h3>
+                                    <div style={styles.benefitsGrid}>
+                                        {VIP_BENEFITS.map((benefit, idx) => (
+                                            <div key={idx} style={styles.benefitCard}>
+                                                <span style={styles.benefitIcon}>{benefit.icon}</span>
+                                                <div style={styles.benefitInfo}>
+                                                    <div style={styles.benefitTitle}>{benefit.title}</div>
+                                                    <div style={styles.benefitDesc}>{benefit.description}</div>
                                                 </div>
-                                            ))}
-                                        </div>
+                                                <div style={styles.benefitValue}>{benefit.value}</div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
-                            )}
 
-                            {/* XP SYSTEM SUB-TAB */}
-                            {rewardsSubTab === 'xp' && (
-                                <div style={styles.xpSystemSection}>
-                                    <h2 style={styles.earnTitle}>📈 XP System - Infinite Progression</h2>
+                                {/* Value Comparison */}
+                                <div style={styles.valueComparison}>
+                                    <div style={styles.valueBox}>
+                                        <div style={styles.valueLabel}>Total Feature Value</div>
+                                        <div style={styles.valueAmount}>$200+/mo</div>
+                                    </div>
+                                    <div style={styles.valueDivider}>→</div>
+                                    <div style={styles.valueBoxHighlight}>
+                                        <div style={styles.valueLabel}>VIP Price</div>
+                                        <div style={styles.vipPrice}>$19.99/mo</div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* MERCHANDISE TAB */}
+                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {activeTab === 'merch' && (
+                            <>
+                                <div style={styles.intro}>
+                                    <h2 style={styles.merchTitle}>🛍️ Official Merch</h2>
                                     <p style={styles.introText}>
-                                        Level up using the quadratic formula: <code style={styles.formula}>Level = floor(sqrt(XP / 100)) + 1</code>
+                                        Rep the Smarter.Poker brand at the tables. Premium quality gear for serious players.
                                     </p>
+                                </div>
 
-                                    {/* Formula Explanation */}
-                                    <div style={styles.formulaBox}>
-                                        <h3 style={styles.formulaTitle}>How It Works</h3>
-                                        <p style={styles.formulaText}>
-                                            Your level is calculated dynamically from your total XP using a quadratic formula.
-                                            This means each level requires progressively more XP than the last, creating a satisfying
-                                            long-term progression curve. <strong>There is no level cap!</strong>
+                                {/* Apparel Section */}
+                                <div style={styles.merchSection}>
+                                    <h3 style={styles.merchCategoryTitle}>👕 Apparel</h3>
+                                    <div style={styles.merchGrid}>
+                                        {MERCHANDISE.filter(m => m.category === 'apparel').map(item => (
+                                            <MerchCard key={item.id} item={item} onSelect={handleMerchPurchase} />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Accessories Section */}
+                                <div style={styles.merchSection}>
+                                    <h3 style={styles.merchCategoryTitle}>🎴 Accessories</h3>
+                                    <div style={styles.merchGrid}>
+                                        {MERCHANDISE.filter(m => m.category === 'accessories').map(item => (
+                                            <MerchCard key={item.id} item={item} onSelect={handleMerchPurchase} />
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+
+                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* SMARTER REWARDS TAB - Comprehensive Rewards Information Center */}
+                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {activeTab === 'rewards' && (
+                            <>
+                                {/* Sub-Tab Navigation */}
+                                <div style={styles.rewardsSubNav}>
+                                    <button
+                                        onClick={() => setRewardsSubTab('overview')}
+                                        style={{
+                                            ...styles.rewardsSubTab,
+                                            ...(rewardsSubTab === 'overview' ? styles.rewardsSubTabActive : {}),
+                                        }}
+                                    >
+                                        📋 Overview
+                                    </button>
+                                    <button
+                                        onClick={() => setRewardsSubTab('diamonds')}
+                                        style={{
+                                            ...styles.rewardsSubTab,
+                                            ...(rewardsSubTab === 'diamonds' ? styles.rewardsSubTabActive : {}),
+                                        }}
+                                    >
+                                        💎 Diamond Rewards
+                                    </button>
+                                    <button
+                                        onClick={() => setRewardsSubTab('xp')}
+                                        style={{
+                                            ...styles.rewardsSubTab,
+                                            ...(rewardsSubTab === 'xp' ? styles.rewardsSubTabActive : {}),
+                                        }}
+                                    >
+                                        📈 XP System
+                                    </button>
+                                    <button
+                                        onClick={() => setRewardsSubTab('eggs')}
+                                        style={{
+                                            ...styles.rewardsSubTab,
+                                            ...(rewardsSubTab === 'eggs' ? styles.rewardsSubTabActive : {}),
+                                        }}
+                                    >
+                                        🎁 Easter Eggs
+                                    </button>
+                                </div>
+
+                                {/* OVERVIEW SUB-TAB */}
+                                {rewardsSubTab === 'overview' && (
+                                    <div style={styles.rewardsOverview}>
+                                        <h2 style={styles.earnTitle}>🎁 Smarter Rewards</h2>
+                                        <p style={styles.introText}>
+                                            Welcome to the Smarter Rewards system! Earn diamonds and XP by playing, training, and engaging with the community.
                                         </p>
-                                        <div style={styles.verifiedExample}>
-                                            <span style={styles.verifiedLabel}>Verified:</span>
-                                            <span style={styles.verifiedValue}>700,000 XP = Level 84</span>
+
+                                        <div style={styles.overviewGrid}>
+                                            <div style={styles.overviewCard}>
+                                                <div style={styles.overviewIcon}>💎</div>
+                                                <h3 style={styles.overviewCardTitle}>Diamond Rewards</h3>
+                                                <p style={styles.overviewCardText}>
+                                                    Earn diamonds through daily logins, training, social engagement, and referrals.
+                                                    <strong style={{ color: '#00ff88' }}> Daily cap: 500 💎</strong> with streak multipliers!
+                                                </p>
+                                            </div>
+
+                                            <div style={styles.overviewCard}>
+                                                <div style={styles.overviewIcon}>📈</div>
+                                                <h3 style={styles.overviewCardTitle}>XP System</h3>
+                                                <p style={styles.overviewCardText}>
+                                                    Progress through <strong>infinite levels</strong> using the quadratic formula.
+                                                    Level = floor(sqrt(XP / 100)) + 1. Verified: 700,000 XP = Level 84!
+                                                </p>
+                                            </div>
+
+                                            <div style={styles.overviewCard}>
+                                                <div style={styles.overviewIcon}>🎁</div>
+                                                <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
+                                                <p style={styles.overviewCardText}>
+                                                    Discover <strong>100 hidden achievements</strong> across 6 categories.
+                                                    From Performance to Legacy Milestones, find them all for massive rewards!
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div style={styles.quickStats}>
+                                            <div style={styles.quickStat}>
+                                                <span style={styles.quickStatValue}>500 💎</span>
+                                                <span style={styles.quickStatLabel}>Daily Cap</span>
+                                            </div>
+                                            <div style={styles.quickStat}>
+                                                <span style={styles.quickStatValue}>∞</span>
+                                                <span style={styles.quickStatLabel}>XP Levels</span>
+                                            </div>
+                                            <div style={styles.quickStat}>
+                                                <span style={styles.quickStatValue}>100</span>
+                                                <span style={styles.quickStatLabel}>Easter Eggs</span>
+                                            </div>
+                                            <div style={styles.quickStat}>
+                                                <span style={styles.quickStatValue}>10</span>
+                                                <span style={styles.quickStatLabel}>Standard Rewards</span>
+                                            </div>
                                         </div>
                                     </div>
+                                )}
 
-                                    {/* Example Milestones */}
-                                    <h3 style={styles.categoryTitle}>📊 Example Milestones</h3>
-                                    <div style={styles.xpTableContainer}>
-                                        <table style={styles.xpTable}>
-                                            <thead>
-                                                <tr style={styles.xpTableHeader}>
-                                                    <th style={styles.xpTableHeaderCell}>Level</th>
-                                                    <th style={styles.xpTableHeaderCell}>Total XP Required</th>
-                                                    <th style={styles.xpTableHeaderCell}>XP to Next Level</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {XP_MILESTONES.map((milestone) => {
-                                                    const xpToNext = calculateXPToNextLevel(milestone.xp);
-                                                    return (
-                                                        <tr key={milestone.level} style={styles.xpTableRow}>
-                                                            <td style={styles.xpTableCell}>
-                                                                <span style={styles.levelBadge}>Lv {milestone.level}</span>
-                                                            </td>
-                                                            <td style={styles.xpTableCell}>
-                                                                {milestone.xp.toLocaleString()} XP
-                                                            </td>
-                                                            <td style={styles.xpTableCell}>
-                                                                {xpToNext.toLocaleString()} XP
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
+                                {/* DIAMOND REWARDS SUB-TAB */}
+                                {rewardsSubTab === 'diamonds' && (
+                                    <div style={styles.diamondRewardsSection}>
+                                        <h2 style={styles.earnTitle}>💎 Diamond Rewards</h2>
+                                        <p style={styles.introText}>
+                                            All 10 ways you can earn diamonds on Smarter.Poker
+                                        </p>
 
-                            {/* EASTER EGGS SUB-TAB */}
-                            {rewardsSubTab === 'eggs' && (
-                                <div style={styles.easterEggsSection}>
-                                    <h2 style={styles.earnTitle}>🎁 Easter Eggs - 100 Hidden Achievements</h2>
-                                    <p style={styles.introText}>
-                                        Discover 100 hidden achievements across 6 categories for massive bonus rewards!
-                                    </p>
-
-                                    {/* Performance Category (10 eggs) */}
-                                    <div style={styles.eggCategory}>
-                                        <h3 style={styles.eggCategoryTitle}>🎯 Performance (10 Achievements)</h3>
-                                        <div style={styles.eggGrid}>
-                                            {EASTER_EGGS.performance.map((egg) => (
-                                                <div key={egg.id} style={styles.eggCard}>
-                                                    <div style={styles.eggIcon}>{egg.icon}</div>
-                                                    <h4 style={styles.eggName}>{egg.name}</h4>
-                                                    <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
-                                                        {egg.rarity.toUpperCase()}
-                                                    </div>
-                                                    <div style={styles.eggReward}>{egg.reward}</div>
-                                                    <p style={styles.eggTrigger}>{egg.trigger}</p>
+                                        {/* Daily Cap Banner */}
+                                        <div style={styles.capBanner}>
+                                            <div style={styles.capInfo}>
+                                                <span style={styles.capNumber}>500</span>
+                                                <span style={styles.capLabel}>Daily Cap</span>
+                                            </div>
+                                            <div style={styles.capDivider} />
+                                            <div style={styles.streakMultipliers}>
+                                                <div style={styles.multiplierItem}>
+                                                    <span style={styles.multiplierValue}>1.5x</span>
+                                                    <span style={styles.multiplierLabel}>Days 4-6</span>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Timing & Loyalty Category (15 eggs) */}
-                                    <div style={styles.eggCategory}>
-                                        <h3 style={styles.eggCategoryTitle}>⏰ Timing & Loyalty (15 Achievements)</h3>
-                                        <div style={styles.eggGrid}>
-                                            {EASTER_EGGS.timing_loyalty.map((egg) => (
-                                                <div key={egg.id} style={styles.eggCard}>
-                                                    <div style={styles.eggIcon}>{egg.icon}</div>
-                                                    <h4 style={styles.eggName}>{egg.name}</h4>
-                                                    <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
-                                                        {egg.rarity.toUpperCase()}
-                                                    </div>
-                                                    <div style={styles.eggReward}>{egg.reward}</div>
-                                                    <p style={styles.eggTrigger}>{egg.trigger}</p>
+                                                <div style={styles.multiplierItem}>
+                                                    <span style={styles.multiplierValueGold}>2.0x</span>
+                                                    <span style={styles.multiplierLabel}>Day 7+</span>
                                                 </div>
-                                            ))}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Strategy & Mastery Category (20 eggs) */}
-                                    <div style={styles.eggCategory}>
-                                        <h3 style={styles.eggCategoryTitle}>♟️ Strategy & Mastery (20 Achievements)</h3>
-                                        <div style={styles.eggGrid}>
-                                            {EASTER_EGGS.strategy_mastery.map((egg) => (
-                                                <div key={egg.id} style={styles.eggCard}>
-                                                    <div style={styles.eggIcon}>{egg.icon}</div>
-                                                    <h4 style={styles.eggName}>{egg.name}</h4>
-                                                    <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
-                                                        {egg.rarity.toUpperCase()}
+                                        {/* Standard Rewards List */}
+                                        <div style={styles.rewardCategory}>
+                                            <h3 style={styles.categoryTitle}>💎 All Standard Rewards</h3>
+                                            <div style={styles.rewardList}>
+                                                {STANDARD_REWARDS.map((reward, idx) => (
+                                                    <div key={idx} style={reward.bypassesCap ? { ...styles.rewardItem, ...styles.referralHighlight } : styles.rewardItem}>
+                                                        <span style={styles.rewardIcon}>{reward.icon}</span>
+                                                        <div style={styles.rewardDetails}>
+                                                            <span style={styles.rewardName}>{reward.name}</span>
+                                                            <span style={styles.rewardNote}>{reward.note}</span>
+                                                        </div>
+                                                        <span style={reward.bypassesCap ? styles.referralReward : styles.rewardAmount}>{reward.amount}</span>
                                                     </div>
-                                                    <div style={styles.eggReward}>{egg.reward}</div>
-                                                    <p style={styles.eggTrigger}>{egg.trigger}</p>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
+                                )}
 
-                                    {/* Social/Viral Category (20 eggs) */}
-                                    <div style={styles.eggCategory}>
-                                        <h3 style={styles.eggCategoryTitle}>🌟 Social & Viral (20 Achievements)</h3>
-                                        <div style={styles.eggGrid}>
-                                            {EASTER_EGGS.social_viral.map((egg) => (
-                                                <div key={egg.id} style={styles.eggCard}>
-                                                    <div style={styles.eggIcon}>{egg.icon}</div>
-                                                    <h4 style={styles.eggName}>{egg.name}</h4>
-                                                    <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
-                                                        {egg.rarity.toUpperCase()}
+                                {/* XP SYSTEM SUB-TAB */}
+                                {rewardsSubTab === 'xp' && (
+                                    <div style={styles.xpSystemSection}>
+                                        <h2 style={styles.earnTitle}>📈 XP System - Infinite Progression</h2>
+                                        <p style={styles.introText}>
+                                            Level up using the quadratic formula: <code style={styles.formula}>Level = floor(sqrt(XP / 100)) + 1</code>
+                                        </p>
+
+                                        {/* Formula Explanation */}
+                                        <div style={styles.formulaBox}>
+                                            <h3 style={styles.formulaTitle}>How It Works</h3>
+                                            <p style={styles.formulaText}>
+                                                Your level is calculated dynamically from your total XP using a quadratic formula.
+                                                This means each level requires progressively more XP than the last, creating a satisfying
+                                                long-term progression curve. <strong>There is no level cap!</strong>
+                                            </p>
+                                            <div style={styles.verifiedExample}>
+                                                <span style={styles.verifiedLabel}>Verified:</span>
+                                                <span style={styles.verifiedValue}>700,000 XP = Level 84</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Example Milestones */}
+                                        <h3 style={styles.categoryTitle}>📊 Example Milestones</h3>
+                                        <div style={styles.xpTableContainer}>
+                                            <table style={styles.xpTable}>
+                                                <thead>
+                                                    <tr style={styles.xpTableHeader}>
+                                                        <th style={styles.xpTableHeaderCell}>Level</th>
+                                                        <th style={styles.xpTableHeaderCell}>Total XP Required</th>
+                                                        <th style={styles.xpTableHeaderCell}>XP to Next Level</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {XP_MILESTONES.map((milestone) => {
+                                                        const xpToNext = calculateXPToNextLevel(milestone.xp);
+                                                        return (
+                                                            <tr key={milestone.level} style={styles.xpTableRow}>
+                                                                <td style={styles.xpTableCell}>
+                                                                    <span style={styles.levelBadge}>Lv {milestone.level}</span>
+                                                                </td>
+                                                                <td style={styles.xpTableCell}>
+                                                                    {milestone.xp.toLocaleString()} XP
+                                                                </td>
+                                                                <td style={styles.xpTableCell}>
+                                                                    {xpToNext.toLocaleString()} XP
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* EASTER EGGS SUB-TAB */}
+                                {rewardsSubTab === 'eggs' && (
+                                    <div style={styles.easterEggsSection}>
+                                        <h2 style={styles.earnTitle}>🎁 Easter Eggs - 100 Hidden Achievements</h2>
+                                        <p style={styles.introText}>
+                                            Discover 100 hidden achievements across 6 categories for massive bonus rewards!
+                                        </p>
+
+                                        {/* Performance Category (10 eggs) */}
+                                        <div style={styles.eggCategory}>
+                                            <h3 style={styles.eggCategoryTitle}>🎯 Performance (10 Achievements)</h3>
+                                            <div style={styles.eggGrid}>
+                                                {EASTER_EGGS.performance.map((egg) => (
+                                                    <div key={egg.id} style={styles.eggCard}>
+                                                        <div style={styles.eggIcon}>{egg.icon}</div>
+                                                        <h4 style={styles.eggName}>{egg.name}</h4>
+                                                        <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
+                                                            {egg.rarity.toUpperCase()}
+                                                        </div>
+                                                        <div style={styles.eggReward}>{egg.reward}</div>
+                                                        <p style={styles.eggTrigger}>{egg.trigger}</p>
                                                     </div>
-                                                    <div style={styles.eggReward}>{egg.reward}</div>
-                                                    <p style={styles.eggTrigger}>{egg.trigger}</p>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Meta/Interface Category (20 eggs) */}
-                                    <div style={styles.eggCategory}>
-                                        <h3 style={styles.eggCategoryTitle}>🎮 Meta & Interface (20 Achievements)</h3>
-                                        <div style={styles.eggGrid}>
-                                            {EASTER_EGGS.meta_interface.map((egg) => (
-                                                <div key={egg.id} style={styles.eggCard}>
-                                                    <div style={styles.eggIcon}>{egg.icon}</div>
-                                                    <h4 style={styles.eggName}>{egg.name}</h4>
-                                                    <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
-                                                        {egg.rarity.toUpperCase()}
+                                        {/* Timing & Loyalty Category (15 eggs) */}
+                                        <div style={styles.eggCategory}>
+                                            <h3 style={styles.eggCategoryTitle}>⏰ Timing & Loyalty (15 Achievements)</h3>
+                                            <div style={styles.eggGrid}>
+                                                {EASTER_EGGS.timing_loyalty.map((egg) => (
+                                                    <div key={egg.id} style={styles.eggCard}>
+                                                        <div style={styles.eggIcon}>{egg.icon}</div>
+                                                        <h4 style={styles.eggName}>{egg.name}</h4>
+                                                        <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
+                                                            {egg.rarity.toUpperCase()}
+                                                        </div>
+                                                        <div style={styles.eggReward}>{egg.reward}</div>
+                                                        <p style={styles.eggTrigger}>{egg.trigger}</p>
                                                     </div>
-                                                    <div style={styles.eggReward}>{egg.reward}</div>
-                                                    <p style={styles.eggTrigger}>{egg.trigger}</p>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Legacy/Milestones Category (15 eggs) */}
-                                    <div style={styles.eggCategory}>
-                                        <h3 style={styles.eggCategoryTitle}>🏆 Legacy & Milestones (15 Achievements)</h3>
-                                        <div style={styles.eggGrid}>
-                                            {EASTER_EGGS.legacy_milestones.map((egg) => (
-                                                <div key={egg.id} style={styles.eggCard}>
-                                                    <div style={styles.eggIcon}>{egg.icon}</div>
-                                                    <h4 style={styles.eggName}>{egg.name}</h4>
-                                                    <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
-                                                        {egg.rarity.toUpperCase()}
+                                        {/* Strategy & Mastery Category (20 eggs) */}
+                                        <div style={styles.eggCategory}>
+                                            <h3 style={styles.eggCategoryTitle}>♟️ Strategy & Mastery (20 Achievements)</h3>
+                                            <div style={styles.eggGrid}>
+                                                {EASTER_EGGS.strategy_mastery.map((egg) => (
+                                                    <div key={egg.id} style={styles.eggCard}>
+                                                        <div style={styles.eggIcon}>{egg.icon}</div>
+                                                        <h4 style={styles.eggName}>{egg.name}</h4>
+                                                        <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
+                                                            {egg.rarity.toUpperCase()}
+                                                        </div>
+                                                        <div style={styles.eggReward}>{egg.reward}</div>
+                                                        <p style={styles.eggTrigger}>{egg.trigger}</p>
                                                     </div>
-                                                    <div style={styles.eggReward}>{egg.reward}</div>
-                                                    <p style={styles.eggTrigger}>{egg.trigger}</p>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Social/Viral Category (20 eggs) */}
+                                        <div style={styles.eggCategory}>
+                                            <h3 style={styles.eggCategoryTitle}>🌟 Social & Viral (20 Achievements)</h3>
+                                            <div style={styles.eggGrid}>
+                                                {EASTER_EGGS.social_viral.map((egg) => (
+                                                    <div key={egg.id} style={styles.eggCard}>
+                                                        <div style={styles.eggIcon}>{egg.icon}</div>
+                                                        <h4 style={styles.eggName}>{egg.name}</h4>
+                                                        <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
+                                                            {egg.rarity.toUpperCase()}
+                                                        </div>
+                                                        <div style={styles.eggReward}>{egg.reward}</div>
+                                                        <p style={styles.eggTrigger}>{egg.trigger}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Meta/Interface Category (20 eggs) */}
+                                        <div style={styles.eggCategory}>
+                                            <h3 style={styles.eggCategoryTitle}>🎮 Meta & Interface (20 Achievements)</h3>
+                                            <div style={styles.eggGrid}>
+                                                {EASTER_EGGS.meta_interface.map((egg) => (
+                                                    <div key={egg.id} style={styles.eggCard}>
+                                                        <div style={styles.eggIcon}>{egg.icon}</div>
+                                                        <h4 style={styles.eggName}>{egg.name}</h4>
+                                                        <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
+                                                            {egg.rarity.toUpperCase()}
+                                                        </div>
+                                                        <div style={styles.eggReward}>{egg.reward}</div>
+                                                        <p style={styles.eggTrigger}>{egg.trigger}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Legacy/Milestones Category (15 eggs) */}
+                                        <div style={styles.eggCategory}>
+                                            <h3 style={styles.eggCategoryTitle}>🏆 Legacy & Milestones (15 Achievements)</h3>
+                                            <div style={styles.eggGrid}>
+                                                {EASTER_EGGS.legacy_milestones.map((egg) => (
+                                                    <div key={egg.id} style={styles.eggCard}>
+                                                        <div style={styles.eggIcon}>{egg.icon}</div>
+                                                        <h4 style={styles.eggName}>{egg.name}</h4>
+                                                        <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
+                                                            {egg.rarity.toUpperCase()}
+                                                        </div>
+                                                        <div style={styles.eggReward}>{egg.reward}</div>
+                                                        <p style={styles.eggTrigger}>{egg.trigger}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
-                        </>
-                    )}
+                                )}
+                            </>
+                        )}
 
-                    {/* Legal Note */}
-                    <p style={styles.legalNote}>
-                        Diamonds are virtual currency and have no real-world cash value.
-                        All purchases are final. See our <a href="/terms" style={styles.link}>Terms of Service</a> for details.
-                    </p>
+                        {/* Legal Note */}
+                        <p style={styles.legalNote}>
+                            Diamonds are virtual currency and have no real-world cash value.
+                            All purchases are final. See our <a href="/terms" style={styles.link}>Terms of Service</a> for details.
+                        </p>
+                    </div>
                 </div>
-            </div>
-        </PageTransition>
+            </PageTransition>
+
+            {/* Shopping Cart Component */}
+            <ShoppingCart onCheckout={handleCheckout} />
+        </>
     );
 }
 
@@ -1463,7 +1468,7 @@ const styles = {
         backgroundImage: `
             linear-gradient(rgba(0, 212, 255, 0.02) 1px, transparent 1px),
             linear-gradient(90deg, rgba(0, 212, 255, 0.02) 1px, transparent 1px)
-        `,
+            `,
         backgroundSize: '60px 60px',
         pointerEvents: 'none',
     },
