@@ -4,22 +4,23 @@ import { useRouter } from 'next/router';
 
 export default function MarketplacePage() {
     const router = useRouter();
-    
+
     useEffect(() => {
         router.replace('/hub/diamond-store');
     }, [router]);
-    
+
     return (
-        <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             height: '100vh',
-            background: '#0a0a12',
-            color: '#00d4ff',
-            fontFamily: 'Orbitron, sans-serif'
+            background: '#F0F2F5',
+            color: '#1877F2',
+            fontFamily: 'Inter, -apple-system, sans-serif',
+            fontSize: 16
         }}>
-            Redirecting to Marketplace...
+            Redirecting to Store...
         </div>
     );
 }
