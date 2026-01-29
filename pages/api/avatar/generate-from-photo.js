@@ -1,21 +1,15 @@
 /**
  * 🤖 AI AVATAR GENERATION - PHOTO TO IMAGE (LIKENESS)
  * Uses Grok Vision to analyze photo + grok-2-image to generate avatar
- * Uses ImageMagick for professional-grade background removal
+ * Uses Sharp (Node.js native) for professional-grade background removal
  * Downloads and uploads to Supabase Storage
  * 
- * Updated 2026-01-29: Switched to Grok API + ImageMagick for zero-background stickers
+ * Updated 2026-01-29: Uses Grok API + Sharp (serverless compatible) for zero-background stickers
  */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '@supabase/supabase-js';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-
-const execAsync = promisify(exec);
+import sharp from 'sharp';
 
 // Increase body size limit for base64 images (10MB)
 export const config = {
@@ -36,48 +30,78 @@ const supabase = createClient(
 );
 
 /**
- * Remove background using ImageMagick with multi-hex targeting
- * This ensures 100% alpha-transparency for sticker-style avatars
+ * Remove white/near-white background using Sharp with multi-threshold algorithm
+ * Professional-grade transparency for sticker-style avatars
  */
-async function removeBackgroundWithImageMagick(inputBuffer) {
-    const tempDir = os.tmpdir();
-    const inputPath = path.join(tempDir, `avatar_input_${Date.now()}.png`);
-    const outputPath = path.join(tempDir, `avatar_output_${Date.now()}.png`);
+async function removeBackgroundWithSharp(inputBuffer) {
+    const { data, info } = await sharp(inputBuffer)
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
 
-    try {
-        // Write input buffer to temp file
-        fs.writeFileSync(inputPath, inputBuffer);
+    const pixels = new Uint8ClampedArray(data);
+    const { width, height } = info;
 
-        // ImageMagick command with multi-hex targeting for white backgrounds
-        // Uses fuzz factor to catch near-white pixels and checkerboard patterns
-        const cmd = `convert "${inputPath}" \\
-            -fuzz 15% \\
-            -fill none \\
-            -draw "alpha 0,0 floodfill" \\
-            -draw "alpha 0,1023 floodfill" \\
-            -draw "alpha 1023,0 floodfill" \\
-            -draw "alpha 1023,1023 floodfill" \\
-            -channel RGBA \\
-            -blur 0x0.5 \\
-            -level 0%,100%,1.0 \\
-            "${outputPath}"`;
+    const whiteThreshold = 240;
+    const nearWhiteThreshold = 225;
+    const grayThreshold = 200;
 
-        await execAsync(cmd);
+    for (let i = 0; i < pixels.length; i += 4) {
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
 
-        // Read the processed image
-        const outputBuffer = fs.readFileSync(outputPath);
+        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        const isWhite = r > whiteThreshold && g > whiteThreshold && b > whiteThreshold;
+        const isNearWhite = r > nearWhiteThreshold && g > nearWhiteThreshold && b > nearWhiteThreshold;
 
-        // Cleanup temp files
-        fs.unlinkSync(inputPath);
-        fs.unlinkSync(outputPath);
+        const maxChannel = Math.max(r, g, b);
+        const minChannel = Math.min(r, g, b);
+        const colorVariance = maxChannel - minChannel;
+        const isGrayish = luminance > grayThreshold && colorVariance < 30;
+        const isCheckerboard = (r > 200 && g > 200 && b > 200) && colorVariance < 15;
 
-        return outputBuffer;
-    } catch (error) {
-        // Cleanup on error
-        try { fs.unlinkSync(inputPath); } catch (e) { }
-        try { fs.unlinkSync(outputPath); } catch (e) { }
-        throw error;
+        if (isWhite || isNearWhite || isGrayish || isCheckerboard) {
+            pixels[i + 3] = 0;
+        }
     }
+
+    // Corner-based background detection
+    const cornerPositions = [
+        0,
+        (width - 1) * 4,
+        (height - 1) * width * 4,
+        ((height - 1) * width + (width - 1)) * 4,
+    ];
+
+    for (const pos of cornerPositions) {
+        if (pixels[pos + 3] !== 0) {
+            const cornerR = pixels[pos];
+            const cornerG = pixels[pos + 1];
+            const cornerB = pixels[pos + 2];
+
+            if (cornerR > 180 && cornerG > 180 && cornerB > 180) {
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const r = pixels[i];
+                    const g = pixels[i + 1];
+                    const b = pixels[i + 2];
+
+                    const tolerance = 35;
+                    if (Math.abs(r - cornerR) < tolerance &&
+                        Math.abs(g - cornerG) < tolerance &&
+                        Math.abs(b - cornerB) < tolerance) {
+                        pixels[i + 3] = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    return sharp(pixels, {
+        raw: { width: info.width, height: info.height, channels: 4 }
+    })
+        .png({ compressionLevel: 9 })
+        .toBuffer();
 }
 
 export default async function handler(req, res) {
@@ -95,8 +119,7 @@ export default async function handler(req, res) {
         console.log('🎨 Generating avatar from photo with Grok Vision + grok-2-image');
         console.log('📏 Photo base64 length:', photoBase64?.length || 0);
 
-        // Step 1: Use Grok Vision to analyze the photo with MORE DETAIL
-        // gpt-4o will be mapped to grok-3 (vision capable) by grokClient
+        // Step 1: Use Grok Vision to analyze the photo
         const analysisResponse = await openai.chat.completions.create({
             model: "gpt-4o",  // Mapped to grok-3 by grokClient
             messages: [
@@ -109,28 +132,20 @@ export default async function handler(req, res) {
 
 1. FACE SHAPE: (oval, round, square, heart, oblong, etc.)
 2. SKIN TONE: (exact shade - fair, olive, tan, brown, dark, with undertones)
-3. HAIR: 
-   - Exact color (not just "brown" but "warm chestnut brown with golden highlights")
-   - Style (wavy, straight, curly, length, parting)
-   - Texture
-4. EYES:
-   - Exact color and any unique patterns
-   - Shape (almond, round, hooded, etc.)
-   - Size relative to face
-5. EYEBROWS: Shape, thickness, color, arch
-6. NOSE: Size, shape, bridge width
-7. LIPS: Shape, fullness, natural color
-8. DISTINCTIVE FEATURES: Dimples, freckles, beauty marks, smile characteristics
-9. OVERALL VIBE: Expression, energy, personality that comes through
-10. AGE RANGE: Approximate age appearance
+3. HAIR: Exact color, style, texture, length
+4. EYES: Exact color, shape, size
+5. EYEBROWS: Shape, thickness, color
+6. NOSE: Size, shape
+7. LIPS: Shape, fullness
+8. DISTINCTIVE FEATURES: Dimples, freckles, beauty marks
+9. OVERALL VIBE: Expression, energy
+10. AGE RANGE: Approximate age
 
-Be as specific as possible - this will create a Pixar-style avatar that should be RECOGNIZABLE as this person.`
+Be specific - this creates a Pixar-style avatar that should be RECOGNIZABLE as this person.`
                         },
                         {
                             type: "image_url",
-                            image_url: {
-                                url: photoBase64
-                            }
+                            image_url: { url: photoBase64 }
                         }
                     ]
                 }
@@ -141,7 +156,7 @@ Be as specific as possible - this will create a Pixar-style avatar that should b
         const faceDescription = analysisResponse.choices[0].message.content;
         console.log('📝 Face analysis:', faceDescription);
 
-        // Step 2: Generate avatar with grok-2-image using the detailed analysis
+        // Step 2: Generate avatar with grok-2-image
         const additionalStyle = prompt ? `ADDITIONAL STYLE REQUESTS: ${prompt}. ` : '';
         const dallePrompt = `Create a 3D Pixar/Disney-style cartoon PORTRAIT that MATCHES these EXACT features:
 
@@ -152,18 +167,13 @@ ${additionalStyle}
 CRITICAL REQUIREMENTS:
 - This avatar MUST be recognizable as the person described above
 - MATCH the exact face shape, skin tone, hair color/style described
-- MATCH the eye color, eyebrow shape, and nose described  
-- MATCH any distinctive features (dimples, beauty marks, etc.)
-- The animated style should enhance but NOT change the core features
 - Head and upper shoulders only (bust portrait)
 - PURE WHITE BACKGROUND (#FFFFFF)
 - NO props, NO accessories, NO poker chips, NO cards
 - High quality 3D render with Pixar-level detail
-- Warm, friendly expression matching the photo's energy
 
-The goal is that if someone knows this person, they would IMMEDIATELY recognize this avatar as that person in cartoon form.`;
+The goal is that if someone knows this person, they would IMMEDIATELY recognize this avatar.`;
 
-        // Use Grok's image generation (mapped from dall-e-3 to grok-2-image)
         const imageResponse = await openai.images.generate({
             model: "dall-e-3",  // Mapped to grok-2-image by grokClient
             prompt: dallePrompt,
@@ -174,25 +184,21 @@ The goal is that if someone knows this person, they would IMMEDIATELY recognize 
         const imageUrl = imageResponse.data[0].url;
         console.log('✅ Grok generated likeness, now downloading...');
 
-        // Download the image (server-side, no CORS issue)
         const imgResponse = await fetch(imageUrl);
         const arrayBuffer = await imgResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        console.log('🔧 Removing background with ImageMagick (zero-background sticker)...');
+        console.log('🔧 Removing background with Sharp (zero-background sticker)...');
 
-        // Remove background using ImageMagick for professional-grade transparency
-        const transparentBuffer = await removeBackgroundWithImageMagick(buffer);
+        const transparentBuffer = await removeBackgroundWithSharp(buffer);
 
         console.log('✅ Background removed (100% transparency), uploading to Supabase...');
 
-        // Generate unique filename
         const timestamp = Date.now();
         const safeUserId = userId || 'anonymous';
         const filename = `likeness_${safeUserId}_${timestamp}.png`;
         const storagePath = `generated/${filename}`;
 
-        // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
             .from('custom-avatars')
             .upload(storagePath, transparentBuffer, {
@@ -206,7 +212,6 @@ The goal is that if someone knows this person, they would IMMEDIATELY recognize 
             throw new Error('Failed to upload avatar to storage');
         }
 
-        // Get public URL
         const { data: { publicUrl } } = supabase.storage
             .from('custom-avatars')
             .getPublicUrl(storagePath);
