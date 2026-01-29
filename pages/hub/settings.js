@@ -73,7 +73,8 @@ function Select({ value, onChange, options, label }) {
 // ═══════════════════════════════════════════════════════════════════════════
 export default function SettingsPage() {
     const router = useRouter();
-    const { avatar, isVip, user } = useAvatar();
+    const { avatar, isVip, user, initializing } = useAvatar();
+    const [userProfile, setUserProfile] = useState(null);
     const [activeSection, setActiveSection] = useState('account');
     const [saved, setSaved] = useState(false);
     const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
@@ -131,6 +132,18 @@ export default function SettingsPage() {
                 setCustomAvatars(avatars || []);
                 setLoadingAvatars(false);
             }).catch(() => setLoadingAvatars(false));
+
+            // Also fetch user profile for display name
+            supabase
+                .from('profiles')
+                .select('full_name, username, avatar_url')
+                .eq('id', user.id)
+                .single()
+                .then(({ data: profile }) => {
+                    if (profile) {
+                        setUserProfile(profile);
+                    }
+                });
         }
     }, [user?.id]);
 
@@ -253,33 +266,50 @@ export default function SettingsPage() {
                                 {/* Profile Card with Avatar */}
                                 <div style={styles.card}>
                                     <div style={styles.profileRow}>
-                                        <div style={{
-                                            width: 80,
-                                            height: 80,
-                                            borderRadius: '50%',
-                                            background: 'linear-gradient(135deg, #00D4FF, #8a2be2)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: 40,
-                                            overflow: 'hidden',
-                                            border: '3px solid rgba(0, 212, 255, 0.5)',
-                                            boxShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
-                                        }}>
-                                            {avatar ? (
-                                                <img
-                                                    src={avatar}
-                                                    alt="Your Avatar"
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                />
-                                            ) : '👤'}
-                                        </div>
+                                        {(() => {
+                                            // Determine which avatar to display
+                                            const displayAvatar = avatar || customAvatars[0]?.image_url || null;
+                                            const defaultPlaceholder = '/default-avatar.png';
+
+                                            return (
+                                                <div style={{
+                                                    width: 80,
+                                                    height: 80,
+                                                    borderRadius: '50%',
+                                                    background: 'linear-gradient(135deg, #00D4FF, #8a2be2)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: 40,
+                                                    overflow: 'hidden',
+                                                    border: '3px solid rgba(0, 212, 255, 0.5)',
+                                                    boxShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
+                                                }}>
+                                                    {loadingAvatars ? (
+                                                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>...</span>
+                                                    ) : displayAvatar ? (
+                                                        <img
+                                                            src={displayAvatar}
+                                                            alt="Your Avatar"
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                        />
+                                                    ) : (
+                                                        <img
+                                                            src={defaultPlaceholder}
+                                                            alt="Default Avatar"
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                            onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = '👤'; }}
+                                                        />
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                         <div style={styles.profileInfo}>
                                             <span style={styles.profileName}>
-                                                {user?.email || 'Guest User'}
+                                                {initializing ? 'Loading...' : (userProfile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Guest User')}
                                             </span>
                                             <span style={styles.profileEmail}>
-                                                {user?.email || 'Not logged in'}
+                                                {initializing ? '' : (user?.email || 'Not logged in')}
                                             </span>
                                             {isVip && (
                                                 <span style={{ color: '#FFD700', fontSize: 13, marginTop: 4 }}>
