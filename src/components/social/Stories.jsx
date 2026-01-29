@@ -77,11 +77,38 @@ function StoryRing({ hasUnviewed, isLive, children, size = 64, onClick }) {
     );
 }
 
+// Helper function to extract YouTube video ID and generate thumbnail URL
+function getYouTubeThumbnail(linkUrl) {
+    if (!linkUrl) return null;
+
+    // Extract video ID from various YouTube URL formats
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/
+    ];
+
+    for (const pattern of patterns) {
+        const match = linkUrl.match(pattern);
+        if (match && match[1]) {
+            return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+        }
+    }
+
+    return null;
+}
+
 // Story Avatar - individual story in the bar
 function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive }) {
     // Show ring if: other user has unviewed story, OR this is user's own story and they have stories
     const hasUnviewed = !story?.is_viewed && !isOwn;
     const showRing = hasUnviewed || (isOwn && hasStory);
+
+    // Get thumbnail from link_url if it's a YouTube video
+    const youtubeThumb = getYouTubeThumbnail(story?.link_url);
+    const thumbnailUrl = youtubeThumb || story?.media_url;
+
+
 
     return (
         <div
@@ -98,9 +125,7 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
         >
             <StoryRing hasUnviewed={showRing} isLive={isLive} size={64}>
                 <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', background: '#E4E6EB' }}>
-                    {/* Show gradient background for text stories, otherwise show profile avatar */}
-                    {/* NOTE: We don't show media_url thumbnails because YouTube thumbnails often 404 */}
-                    {/* Only show media_url if it's from our own storage (supabase) */}
+                    {/* Priority: gradient background > thumbnail (YouTube or uploaded) > profile avatar */}
                     {story?.background_color ? (
                         <div style={{
                             width: '100%',
@@ -112,11 +137,11 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
                         }}>
                             <span style={{ fontSize: 24, color: 'white' }}>Aa</span>
                         </div>
-                    ) : story?.media_url && story.media_url.includes('supabase') ? (
+                    ) : thumbnailUrl ? (
                         <img
-                            src={story.media_url}
+                            src={thumbnailUrl}
                             onError={(e) => {
-                                // Fallback to profile avatar if media fails to load
+                                // Fallback to profile avatar if thumbnail fails to load
                                 e.target.src = story?.author_avatar || '/default-avatar.png';
                             }}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
