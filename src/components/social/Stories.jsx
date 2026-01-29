@@ -219,11 +219,26 @@ export function StoriesBar({ userId, userAvatar, onCreateStory }) {
         console.log('[Stories] Loading stories for userId:', userId);
         setLoading(true);
         try {
-            const { data, error } = await supabase.rpc('fn_get_stories', { p_viewer_id: userId });
-            console.log('[Stories] RPC response:', { data: data?.length || 0, error });
-            if (error) {
-                console.error('[Stories] RPC error:', error);
+            // Use native fetch to avoid AbortError
+            const response = await fetch('https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/rpc/fn_get_stories', {
+                method: 'POST',
+                headers: {
+                    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo',
+                    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ p_viewer_id: userId })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[Stories] RPC fetch failed:', response.status, errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
+
+            const data = await response.json();
+            console.log('[Stories] RPC response:', { data: data?.length || 0 });
+
             if (data) {
                 const grouped = {};
                 data.forEach(story => {
