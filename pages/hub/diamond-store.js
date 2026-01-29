@@ -15,7 +15,7 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import ShoppingCart from '../../src/components/store/ShoppingCart';
 import useCartStore from '../../src/stores/cartStore';
-import { createClient } from '@supabase/supabase-js';
+import supabase from '../../src/lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // XP SYSTEM — Quadratic Progression (Infinite Levels)
@@ -713,7 +713,8 @@ export default function DiamondStorePage() {
 
     // Add diamond package to cart
     const handleAddToCart = (pkg) => {
-        addItem({
+        console.log('[Diamond Store] Adding to cart:', pkg);
+        const cartItem = {
             id: `diamond-${pkg.id}`,
             name: pkg.name,
             type: 'diamonds',
@@ -721,26 +722,35 @@ export default function DiamondStorePage() {
             bonus: pkg.bonus || 0,
             price: pkg.price,
             quantity: 1
-        });
+        };
+        console.log('[Diamond Store] Cart item:', cartItem);
+        addItem(cartItem);
+        console.log('[Diamond Store] Item added to cart');
     };
 
     // Handle checkout from cart
     const handleCheckout = async (items) => {
+        console.log('[Diamond Store] Checkout initiated with items:', items);
         setIsProcessing(true);
 
         try {
-            const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-            );
+            console.log('[Diamond Store] Fetching session...');
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-            const { data: { session } } = await supabase.auth.getSession();
+            console.log('[Diamond Store] Session result:', {
+                hasSession: !!session,
+                user: session?.user?.email,
+                error: sessionError
+            });
 
             if (!session) {
+                console.error('[Diamond Store] No session found - user needs to sign in');
                 alert('Please sign in to complete your purchase');
                 setIsProcessing(false);
                 return;
             }
+
+            console.log('[Diamond Store] Session valid, creating checkout...');
 
             // Create checkout session
             const response = await fetch('/api/store/create-checkout-session', {
@@ -782,11 +792,6 @@ export default function DiamondStorePage() {
         setIsProcessing(true);
 
         try {
-            const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-            );
-
             const { data: { session } } = await supabase.auth.getSession();
 
             if (!session) {
@@ -987,7 +992,7 @@ export default function DiamondStorePage() {
                                     </div>
 
                                     <button
-                                        onClick={handleDiamondPurchase}
+                                        onClick={() => handleDiamondPurchase(selectedPkg)}
                                         disabled={!selectedPackage || isProcessing}
                                         style={{
                                             ...styles.purchaseButton,

@@ -33,6 +33,7 @@ import { SoundEngine } from '../src/audio/SoundEngine';
 import { AvatarProvider } from '../src/contexts/AvatarContext';
 import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
 import { OneSignalProvider } from '../src/contexts/OneSignalContext';
+import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
 import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
@@ -261,14 +262,16 @@ export default function App({ Component, pageProps }) {
           <AvatarProvider>
             <ExternalLinkProvider>
               <OneSignalProvider>
-                <NavigationGuard>
-                  <WorldThemeProvider>
-                    <Component {...pageProps} />
-                    <CelebrationManager />
-                    <ToastContainer />
-                    <GlobalNotificationPrompt />
-                  </WorldThemeProvider>
-                </NavigationGuard>
+                <TrainingSettingsProvider>
+                  <NavigationGuard>
+                    <WorldThemeProvider>
+                      <Component {...pageProps} />
+                      <CelebrationManager />
+                      <ToastContainer />
+                      <GlobalNotificationPrompt />
+                    </WorldThemeProvider>
+                  </NavigationGuard>
+                </TrainingSettingsProvider>
               </OneSignalProvider>
             </ExternalLinkProvider>
           </AvatarProvider>

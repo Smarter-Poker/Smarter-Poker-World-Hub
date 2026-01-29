@@ -15,6 +15,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { getAuthUser } from '../../../../src/lib/authUtils';
+import TrainingSettingsMenu from '../../../../src/components/training/TrainingSettingsMenu';
 
 // Dynamic import for GodModeArena to avoid SSR issues
 const GodModeArena = dynamic(
@@ -112,6 +113,8 @@ export default function TrainingArenaPage() {
                     }
                 `}</style>
             </Head>
+
+            <TrainingSettingsMenu />
 
             <GodModeArena
                 userId={userId}

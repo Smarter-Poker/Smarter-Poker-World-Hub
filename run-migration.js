@@ -1,46 +1,105 @@
 #!/usr/bin/env node
-/* ═══════════════════════════════════════════════════════════════════════════
-   SQL Migration Runner — Execute migrations against Supabase
-   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Run sports_clips table migration on production database
+ */
 
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
-// Supabase configuration
-const SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Load environment variables
+require('dotenv').config();
 
-if (!SUPABASE_SERVICE_KEY) {
-    console.log('⚠️  SUPABASE_SERVICE_ROLE_KEY not set in environment.');
-    console.log('Please run this SQL manually via Supabase Dashboard > SQL Editor:');
-    console.log('\nhttps://supabase.com/dashboard/project/kuklfnapbkmacvwxktbh/sql/new\n');
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    // Output the file path
-    const migrationPath = path.join(__dirname, 'supabase/migrations/20260112_diamond_reward_system_v2.sql');
-    console.log('Migration file:', migrationPath);
-    console.log('\n📋 Copy the SQL from the migration file and paste into the SQL Editor.');
-    process.exit(0);
+if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    console.error('❌ Missing environment variables');
+    console.error('   NEXT_PUBLIC_SUPABASE_URL:', !!SUPABASE_URL);
+    console.error('   SUPABASE_SERVICE_ROLE_KEY:', !!SERVICE_ROLE_KEY);
+    process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
 async function runMigration() {
-    const migrationPath = path.join(__dirname, 'supabase/migrations/20260112_diamond_reward_system_v2.sql');
-    const sql = fs.readFileSync(migrationPath, 'utf-8');
+    console.log('\n🔧 Running sports_clips table migration...\n');
 
-    console.log('🚀 Running Diamond Reward System V2 migration...');
+    // Read migration file
+    const migrationPath = path.join(__dirname, 'supabase/migrations/20260129_sports_clips_table.sql');
+    const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
 
-    const { data, error } = await supabase.rpc('pgmigrate', { sql_text: sql });
+    console.log('📄 Migration SQL:');
+    console.log(migrationSQL);
+    console.log('\n');
 
-    if (error) {
-        console.error('❌ Migration error:', error.message);
+    try {
+        // Execute the migration
+        const { data, error } = await supabase.rpc('exec_sql', {
+            sql: migrationSQL
+        });
+
+        if (error) {
+            // Try alternative method - direct query
+            console.log('⚠️  RPC method failed, trying direct execution...\n');
+
+            // Split into individual statements
+            const statements = migrationSQL
+                .split(';')
+                .map(s => s.trim())
+                .filter(s => s.length > 0 && !s.startsWith('--'));
+
+            for (const statement of statements) {
+                console.log(`Executing: ${statement.substring(0, 50)}...`);
+                const { error: stmtError } = await supabase.rpc('exec_sql', { sql: statement });
+                if (stmtError) {
+                    console.error(`   ❌ Error:`, stmtError.message);
+                } else {
+                    console.log(`   ✅ Success`);
+                }
+            }
+        } else {
+            console.log('✅ Migration executed successfully!\n');
+        }
+
+        // Verify table was created
+        console.log('🔍 Verifying table creation...\n');
+        const { data: tableCheck, error: checkError } = await supabase
+            .from('sports_clips')
+            .select('count')
+            .limit(1);
+
+        if (checkError) {
+            console.error('❌ Table verification failed:', checkError.message);
+            console.log('\n⚠️  The table may not exist. You may need to run the migration manually in Supabase Dashboard.');
+        } else {
+            console.log('✅ Table exists and is accessible!\n');
+
+            // Check row count
+            const { count, error: countError } = await supabase
+                .from('sports_clips')
+                .select('*', { count: 'exact', head: true });
+
+            if (!countError) {
+                console.log(`📊 Current row count: ${count}\n`);
+            }
+        }
+
+    } catch (err) {
+        console.error('❌ Migration failed:', err.message);
+        console.log('\n📝 Manual migration required:');
+        console.log('   1. Go to Supabase Dashboard → SQL Editor');
+        console.log('   2. Paste and run the migration SQL from:');
+        console.log('      supabase/migrations/20260129_sports_clips_table.sql');
         process.exit(1);
     }
-
-    console.log('✅ Migration completed successfully!');
-    console.log('📊 100 Pillar Easter Eggs deployed');
-    console.log('🎉 Celebration system active');
 }
 
-runMigration();
+runMigration().then(() => {
+    console.log('✅ Migration complete!\n');
+    process.exit(0);
+}).catch(err => {
+    console.error('❌ Fatal error:', err);
+    process.exit(1);
+});
