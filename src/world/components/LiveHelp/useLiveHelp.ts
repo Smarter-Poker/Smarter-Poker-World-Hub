@@ -73,6 +73,23 @@ export const AGENTS: Agent[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 🔐 AUTH HELPER
+// ─────────────────────────────────────────────────────────────────────────────
+function getAuthToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    try {
+        const authData = localStorage.getItem('smarter-poker-auth');
+        if (authData) {
+            const parsed = JSON.parse(authData);
+            return parsed?.access_token || null;
+        }
+    } catch (e) {
+        console.error('[LiveHelp] Error getting auth token:', e);
+    }
+    return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 💬 MESSAGE TYPES
 // ─────────────────────────────────────────────────────────────────────────────
 export interface Message {
@@ -118,9 +135,17 @@ export function useLiveHelp() {
             // Collect user context
             const context = await collectUserContext(user.id);
 
+            const token = getAuthToken();
+            if (!token) {
+                throw new Error('No auth token available');
+            }
+
             const response = await fetch('/api/live-help/start-conversation', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ context })
             });
 
@@ -181,9 +206,17 @@ export function useLiveHelp() {
             // Collect current context
             const context = await collectUserContext(user.id);
 
+            const token = getAuthToken();
+            if (!token) {
+                throw new Error('No auth token available');
+            }
+
             const response = await fetch('/api/live-help/send-message', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     conversationId,
                     content: content.trim(),
@@ -250,9 +283,17 @@ export function useLiveHelp() {
     // Create support ticket
     const createTicket = useCallback(async (subject: string, description: string, priority: string = 'medium') => {
         try {
+            const token = getAuthToken();
+            if (!token) {
+                throw new Error('No auth token available');
+            }
+
             const response = await fetch('/api/live-help/create-ticket', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     conversationId,
                     subject,

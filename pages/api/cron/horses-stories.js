@@ -65,20 +65,67 @@ const TEXT_STORY_TOPICS = [
     "The river is such a cruel mistress 🌊",
 ];
 
+
+// Validate that a YouTube thumbnail exists and is not a placeholder
+async function validateYouTubeThumbnail(videoId) {
+    try {
+        const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+        const response = await fetch(thumbnailUrl, { method: 'HEAD' });
+
+        if (!response.ok) return false;
+
+        // YouTube returns a 120x90 gray placeholder for invalid videos
+        // We need to actually fetch the image to check its dimensions
+        const imageResponse = await fetch(thumbnailUrl);
+        const buffer = await imageResponse.arrayBuffer();
+
+        // Check if it's the small placeholder (typically ~2-3KB) vs real thumbnail (typically >20KB)
+        const sizeKB = buffer.byteLength / 1024;
+
+        // Real thumbnails are usually 20KB+, placeholders are ~2-3KB
+        return sizeKB > 10;
+    } catch (e) {
+        console.error(`   Thumbnail validation failed: ${e.message}`);
+        return false;
+    }
+}
+
 async function postVideoStory(horse) {
     console.log(`🎬 ${horse.name}: Posting video story...`);
+    const { getRandomClip, getRandomCaption } = clipLibrary;
 
     try {
-        const clip = getRandomClip?.();
-        if (!clip) {
-            console.log(`   No clip available`);
+        // Try up to 5 different clips to find one with a valid thumbnail
+        const maxAttempts = 5;
+        let validClip = null;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            const clip = getRandomClip?.();
+            if (!clip) {
+                console.log(`   No clip available (attempt ${attempt}/${maxAttempts})`);
+                continue;
+            }
+
+            // Validate the YouTube thumbnail before creating the story
+            const isValid = await validateYouTubeThumbnail(clip.video_id);
+            if (isValid) {
+                validClip = clip;
+                console.log(`   ✓ Found valid clip on attempt ${attempt}/${maxAttempts}`);
+                break;
+            } else {
+                console.log(`   ⚠️ Invalid thumbnail for ${clip.video_id} (attempt ${attempt}/${maxAttempts})`);
+            }
+        }
+
+        if (!validClip) {
+            console.log(`   ❌ ${horse.name}: No valid clips found after ${maxAttempts} attempts`);
             return null;
         }
 
-        const caption = getRandomCaption?.(clip.category) || "🔥";
+        const caption = getRandomCaption?.(validClip.category) || "🔥";
 
         // Use YouTube thumbnail as story image
-        const thumbnailUrl = `https://img.youtube.com/vi/${clip.video_id}/hqdefault.jpg`;
+        const thumbnailUrl = `https://img.youtube.com/vi/${validClip.video_id}/hqdefault.jpg`;
 
         const { data: storyId, error } = await supabase.rpc('fn_create_story', {
             p_user_id: horse.profile_id,
@@ -86,7 +133,7 @@ async function postVideoStory(horse) {
             p_media_url: thumbnailUrl,
             p_media_type: 'image',
             p_background_color: null,
-            p_link_url: clip.source_url,  // Link to the actual video
+            p_link_url: validClip.source_url,  // Link to the actual video
         });
 
         if (error) {
