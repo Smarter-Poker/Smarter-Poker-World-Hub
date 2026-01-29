@@ -1645,12 +1645,30 @@ export default function SocialMediaPage() {
                 }
 
                 if (authUser) {
-                    // Check for profile by id OR by owner_id (allows login access to owned profiles)
-                    let { data: p } = await supabase.from('profiles').select('id, username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
+                    // Use native fetch to avoid AbortError (same issue as stories/profiles)
+                    console.log('[Social] Fetching profile for user:', authUser.id);
+
+                    let profileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,role`, {
+                        headers: {
+                            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo',
+                            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
+                        }
+                    });
+
+                    let profiles = await profileRes.json();
+                    let p = profiles?.[0] || null;
+                    console.log('[Social] Profile loaded:', p ? `${p.username} (avatar: ${p.avatar_url ? 'YES' : 'NO'})` : 'NOT FOUND');
+
                     // If no profile found by id, check if user owns another profile via owner_id
                     if (!p) {
-                        const { data: ownedProfile } = await supabase.from('profiles').select('id, username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('owner_id', authUser.id).maybeSingle();
-                        if (ownedProfile) p = ownedProfile;
+                        const ownedProfileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?owner_id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,role`, {
+                            headers: {
+                                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo',
+                                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
+                            }
+                        });
+                        const ownedProfiles = await ownedProfileRes.json();
+                        if (ownedProfiles?.[0]) p = ownedProfiles[0];
                     }
                     // 👑 Check for God Mode
                     if (p?.role === 'god') {
