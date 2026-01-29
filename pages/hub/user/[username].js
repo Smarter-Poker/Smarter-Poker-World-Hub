@@ -94,7 +94,7 @@ function FriendAvatar({ friend, currentUserFriends = [] }) {
 }
 
 // Poker Resume Badge - Always shows, with placeholder if no HendonMob linked
-function PokerResumeBadge({ hendonData, isOwnProfile = false }) {
+function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
     const hasHendon = hendonData?.hendon_url;
     const hasData = hendonData?.hendon_total_cashes || hendonData?.hendon_total_earnings;
 
@@ -159,9 +159,9 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false }) {
                     </div>
                 </div>
             )}
-            {hendonData?.hendon_url && (
+            {hendonData?.hendon_url && onOpenResume && (
                 <button
-                    onClick={() => setArticleReader({ open: true, url: hendonData.hendon_url, title: 'HendonMob Poker Resume' })}
+                    onClick={() => onOpenResume(hendonData.hendon_url)}
                     style={{
                         display: 'block',
                         width: '100%',
@@ -754,7 +754,11 @@ export default function UserProfilePage() {
                     {activeTab === 'all' && (
                         <>
                             {/* Poker Resume - At Top */}
-                            <PokerResumeBadge hendonData={profile} isOwnProfile={isOwnProfile} />
+                            <PokerResumeBadge
+                                hendonData={profile}
+                                isOwnProfile={isOwnProfile}
+                                onOpenResume={(url) => setArticleReader({ open: true, url, title: 'HendonMob Poker Resume' })}
+                            />
 
                             {/* Personal Details Card */}
                             <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
@@ -979,12 +983,13 @@ export default function UserProfilePage() {
             </div>
 
             {/* Article Reader Modal for HendonMob */}
-            <ArticleReaderModal
-                open={articleReader.open}
-                url={articleReader.url}
-                title={articleReader.title}
-                onClose={() => setArticleReader({ open: false, url: '', title: '' })}
-            />
+            {articleReader.open && (
+                <ArticleReaderModal
+                    url={articleReader.url}
+                    title={articleReader.title}
+                    onClose={() => setArticleReader({ open: false, url: '', title: '' })}
+                />
+            )}
         </PageTransition>
     );
 }

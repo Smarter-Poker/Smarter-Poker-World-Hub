@@ -28,15 +28,6 @@ export default function ArticleReaderModal({ url, title, onClose }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    // AUTO-OPEN: Immediately open the article in a new tab and close modal
-    // This bypasses the broken iframe loading screen
-    useEffect(() => {
-        if (url) {
-            window.open(url, '_blank', 'noopener,noreferrer');
-            onClose();
-        }
-    }, [url, onClose]);
-
     // Handle escape key to close
     useEffect(() => {
         const handleEscape = (e) => {
