@@ -89,6 +89,7 @@ export default function ResponsibleGamingPage() {
   const [activeExclusion, setActiveExclusion] = useState(null);
   const [showExclusionConfirm, setShowExclusionConfirm] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);
+  const [riskStatus, setRiskStatus] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
@@ -120,6 +121,20 @@ export default function ResponsibleGamingPage() {
       }
       if (exclusionData.success && exclusionData.data?.exclusion) {
         setActiveExclusion(exclusionData.data.exclusion);
+      }
+
+      // Check responsible gaming status for this player
+      if (limitsData.data?.player_id) {
+        fetch(`/api/commander/responsible-gaming/check/${limitsData.data.player_id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+          .then(r => r.json())
+          .then(checkData => {
+            if (checkData.success) {
+              setRiskStatus(checkData.data?.risk_level || null);
+            }
+          })
+          .catch(() => {});
       }
     } catch (err) {
       console.error('Fetch failed:', err);
@@ -260,6 +275,31 @@ export default function ResponsibleGamingPage() {
                   </p>
                   <p className="text-xs text-[#64748B] mt-2">
                     This cannot be reversed early. Contact support for assistance.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Risk Status Alert */}
+          {riskStatus && riskStatus !== 'low' && (
+            <div className={`cmd-panel p-4 ${
+              riskStatus === 'high' ? 'border-[#EF4444]' : 'border-[#F59E0B]'
+            }`}>
+              <div className="flex items-start gap-3">
+                <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${
+                  riskStatus === 'high' ? 'text-[#EF4444]' : 'text-[#F59E0B]'
+                }`} />
+                <div>
+                  <p className={`font-medium ${
+                    riskStatus === 'high' ? 'text-[#EF4444]' : 'text-[#F59E0B]'
+                  }`}>
+                    {riskStatus === 'high' ? 'High Risk Detected' : 'Moderate Risk Detected'}
+                  </p>
+                  <p className="text-sm text-[#64748B] mt-1">
+                    {riskStatus === 'high'
+                      ? 'Your recent activity suggests you may be at risk. Consider setting lower limits or taking a break.'
+                      : 'Your spending patterns have increased recently. Review your limits below.'}
                   </p>
                 </div>
               </div>

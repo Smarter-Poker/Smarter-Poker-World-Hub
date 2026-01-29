@@ -156,6 +156,8 @@ export default function HomeGameDetailPage() {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [userReview, setUserReview] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [newPost, setNewPost] = useState('');
 
   // Get current user ID from token on mount
   useEffect(() => {
@@ -178,10 +180,11 @@ export default function HomeGameDetailPage() {
       const token = localStorage.getItem('smarter-poker-auth');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const [groupRes, eventsRes, membersRes] = await Promise.all([
+      const [groupRes, eventsRes, membersRes, postsRes] = await Promise.all([
         fetch(`/api/commander/home-games/groups/${id}`, { headers }),
         fetch(`/api/commander/home-games/events?group_id=${id}`, { headers }),
-        fetch(`/api/commander/home-games/groups/${id}/members`, { headers })
+        fetch(`/api/commander/home-games/groups/${id}/members`, { headers }),
+        fetch(`/api/commander/home-games/${id}/posts`, { headers }).catch(() => ({ ok: false }))
       ]);
 
       const groupData = await groupRes.json();
@@ -207,6 +210,14 @@ export default function HomeGameDetailPage() {
         }
         const membership = (membersData.members || []).find(m => m.user_id === userId);
         setUserMembership(membership);
+      }
+
+      // Posts/announcements
+      if (postsRes.ok) {
+        const postsData = await postsRes.json();
+        if (postsData.success) {
+          setPosts(postsData.data?.posts || postsData.posts || []);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch group:', error);
@@ -499,6 +510,70 @@ export default function HomeGameDetailPage() {
               ))}
             </div>
           </div>
+
+          {/* Group Posts/Announcements */}
+          {isMember && (
+            <div>
+              <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-[#22D3EE]" />
+                Posts
+              </h3>
+
+              {/* New post form */}
+              <div className="cmd-panel p-4 mb-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newPost}
+                    onChange={(e) => setNewPost(e.target.value)}
+                    placeholder="Share an update with the group..."
+                    className="flex-1 h-10 px-3 cmd-input"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!newPost.trim()) return;
+                      try {
+                        const token = localStorage.getItem('smarter-poker-auth');
+                        await fetch(`/api/commander/home-games/${id}/posts`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`
+                          },
+                          body: JSON.stringify({ content: newPost.trim() })
+                        });
+                        setNewPost('');
+                        fetchGroup();
+                      } catch (err) {
+                        console.error('Post failed:', err);
+                      }
+                    }}
+                    disabled={!newPost.trim()}
+                    className="cmd-btn cmd-btn-primary px-4 disabled:opacity-50"
+                  >
+                    Post
+                  </button>
+                </div>
+              </div>
+
+              {/* Posts list */}
+              {posts.length > 0 && (
+                <div className="space-y-2">
+                  {posts.slice(0, 5).map((post) => (
+                    <div key={post.id} className="cmd-panel p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-white text-sm">{post.author_name || 'Member'}</span>
+                        <span className="text-xs text-[#64748B]">
+                          {new Date(post.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-[#C0CDE0]">{post.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Leave a Review */}
           {isMember && events.some(e => new Date(e.scheduled_date) < new Date()) && !userReview && (

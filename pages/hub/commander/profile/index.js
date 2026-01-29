@@ -88,6 +88,7 @@ export default function PlayerProfilePage() {
   const [stats, setStats] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [favoriteVenues, setFavoriteVenues] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
@@ -117,6 +118,20 @@ export default function PlayerProfilePage() {
       if (profileData.success) {
         setProfile(profileData.data?.profile);
         setAchievements(profileData.data?.achievements || []);
+
+        // Fetch AI-powered game recommendations for this player
+        if (profileData.data?.profile?.id) {
+          fetch(`/api/commander/ai/recommendations/${profileData.data.profile.id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+            .then(r => r.json())
+            .then(recData => {
+              if (recData.success) {
+                setRecommendations(recData.data?.recommendations || []);
+              }
+            })
+            .catch(() => {});
+        }
       }
       if (statsData.success) {
         setStats(statsData.data?.stats);
@@ -257,6 +272,30 @@ export default function PlayerProfilePage() {
               <div className="space-y-2">
                 {favoriteVenues.slice(0, 3).map((venue, index) => (
                   <FavoriteVenue key={venue.id} venue={venue} rank={index + 1} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* AI Recommendations */}
+          {recommendations.length > 0 && (
+            <section>
+              <h2 className="font-bold text-white mb-3 uppercase tracking-wide text-sm">Recommended For You</h2>
+              <div className="space-y-2">
+                {recommendations.slice(0, 3).map((rec, index) => (
+                  <button
+                    key={rec.id || index}
+                    onClick={() => rec.venue_id && router.push(`/hub/commander/venues/${rec.venue_id}`)}
+                    className="w-full text-left cmd-panel p-4 hover:border-[#22D3EE] transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-white">{rec.title || rec.game_type}</p>
+                        <p className="text-sm text-[#64748B]">{rec.reason || rec.description}</p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-[#64748B]" />
+                    </div>
+                  </button>
                 ))}
               </div>
             </section>
