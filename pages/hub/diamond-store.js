@@ -1170,8 +1170,8 @@ export default function DiamondStorePage() {
                                             <div style={styles.overviewIcon}>📈</div>
                                             <h3 style={styles.overviewCardTitle}>XP System</h3>
                                             <p style={styles.overviewCardText}>
-                                                Progress through <strong>55 levels</strong> by earning XP. Each level unlocks new features,
-                                                badges, and exclusive content. Level up to become a legend!
+                                                Progress through <strong>infinite levels</strong> using the quadratic formula.
+                                                Level = floor(sqrt(XP / 100)) + 1. Verified: 700,000 XP = Level 84!
                                             </p>
                                         </div>
 
@@ -1179,8 +1179,8 @@ export default function DiamondStorePage() {
                                             <div style={styles.overviewIcon}>🎁</div>
                                             <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
                                             <p style={styles.overviewCardText}>
-                                                Discover <strong>hidden achievements</strong> throughout the platform.
-                                                From the Konami Code to perfect week streaks, find them all for bonus rewards!
+                                                Discover <strong>100 hidden achievements</strong> across 6 categories.
+                                                From Performance to Legacy Milestones, find them all for massive rewards!
                                             </p>
                                         </div>
                                     </div>
@@ -1191,12 +1191,16 @@ export default function DiamondStorePage() {
                                             <span style={styles.quickStatLabel}>Daily Cap</span>
                                         </div>
                                         <div style={styles.quickStat}>
-                                            <span style={styles.quickStatValue}>55</span>
+                                            <span style={styles.quickStatValue}>∞</span>
                                             <span style={styles.quickStatLabel}>XP Levels</span>
                                         </div>
                                         <div style={styles.quickStat}>
-                                            <span style={styles.quickStatValue}>10+</span>
+                                            <span style={styles.quickStatValue}>100</span>
                                             <span style={styles.quickStatLabel}>Easter Eggs</span>
+                                        </div>
+                                        <div style={styles.quickStat}>
+                                            <span style={styles.quickStatValue}>10</span>
+                                            <span style={styles.quickStatLabel}>Standard Rewards</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1207,7 +1211,7 @@ export default function DiamondStorePage() {
                                 <div style={styles.diamondRewardsSection}>
                                     <h2 style={styles.earnTitle}>💎 Diamond Rewards</h2>
                                     <p style={styles.introText}>
-                                        All the ways you can earn diamonds on Smarter.Poker
+                                        All 10 ways you can earn diamonds on Smarter.Poker
                                     </p>
 
                                     {/* Daily Cap Banner */}
@@ -1229,86 +1233,18 @@ export default function DiamondStorePage() {
                                         </div>
                                     </div>
 
-                                    {/* Daily Rewards */}
+                                    {/* Standard Rewards List */}
                                     <div style={styles.rewardCategory}>
-                                        <h3 style={styles.categoryTitle}>📅 Daily Rewards</h3>
+                                        <h3 style={styles.categoryTitle}>💎 All Standard Rewards</h3>
                                         <div style={styles.rewardList}>
-                                            {DIAMOND_REWARDS.daily.map((reward, idx) => (
-                                                <div key={idx} style={styles.rewardItem}>
+                                            {STANDARD_REWARDS.map((reward, idx) => (
+                                                <div key={idx} style={reward.bypassesCap ? { ...styles.rewardItem, ...styles.referralHighlight } : styles.rewardItem}>
                                                     <span style={styles.rewardIcon}>{reward.icon}</span>
                                                     <div style={styles.rewardDetails}>
                                                         <span style={styles.rewardName}>{reward.name}</span>
                                                         <span style={styles.rewardNote}>{reward.note}</span>
                                                     </div>
-                                                    <span style={styles.rewardAmount}>{reward.amount}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Training Rewards */}
-                                    <div style={styles.rewardCategory}>
-                                        <h3 style={styles.categoryTitle}>🎯 Training Rewards</h3>
-                                        <div style={styles.rewardList}>
-                                            {DIAMOND_REWARDS.training.map((reward, idx) => (
-                                                <div key={idx} style={styles.rewardItem}>
-                                                    <span style={styles.rewardIcon}>{reward.icon}</span>
-                                                    <div style={styles.rewardDetails}>
-                                                        <span style={styles.rewardName}>{reward.name}</span>
-                                                        <span style={styles.rewardNote}>{reward.note}</span>
-                                                    </div>
-                                                    <span style={styles.rewardAmount}>{reward.amount}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Social Rewards */}
-                                    <div style={styles.rewardCategory}>
-                                        <h3 style={styles.categoryTitle}>💬 Social Rewards</h3>
-                                        <div style={styles.rewardList}>
-                                            {DIAMOND_REWARDS.social.map((reward, idx) => (
-                                                <div key={idx} style={styles.rewardItem}>
-                                                    <span style={styles.rewardIcon}>{reward.icon}</span>
-                                                    <div style={styles.rewardDetails}>
-                                                        <span style={styles.rewardName}>{reward.name}</span>
-                                                        <span style={styles.rewardNote}>{reward.note}</span>
-                                                    </div>
-                                                    <span style={styles.rewardAmount}>{reward.amount}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Progression Rewards */}
-                                    <div style={styles.rewardCategory}>
-                                        <h3 style={styles.categoryTitle}>📈 Progression Rewards</h3>
-                                        <div style={styles.rewardList}>
-                                            {DIAMOND_REWARDS.progression.map((reward, idx) => (
-                                                <div key={idx} style={styles.rewardItem}>
-                                                    <span style={styles.rewardIcon}>{reward.icon}</span>
-                                                    <div style={styles.rewardDetails}>
-                                                        <span style={styles.rewardName}>{reward.name}</span>
-                                                        <span style={styles.rewardNote}>{reward.note}</span>
-                                                    </div>
-                                                    <span style={styles.rewardAmount}>{reward.amount}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Referral Rewards */}
-                                    <div style={styles.rewardCategory}>
-                                        <h3 style={styles.categoryTitle}>👥 Referral Rewards (Bypasses Cap!)</h3>
-                                        <div style={styles.rewardList}>
-                                            {DIAMOND_REWARDS.referral.map((reward, idx) => (
-                                                <div key={idx} style={{ ...styles.rewardItem, ...styles.referralHighlight }}>
-                                                    <span style={styles.rewardIcon}>{reward.icon}</span>
-                                                    <div style={styles.rewardDetails}>
-                                                        <span style={styles.rewardName}>{reward.name}</span>
-                                                        <span style={styles.rewardNote}>{reward.note}</span>
-                                                    </div>
-                                                    <span style={styles.referralReward}>{reward.amount}</span>
+                                                    <span style={reward.bypassesCap ? styles.referralReward : styles.rewardAmount}>{reward.amount}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -1319,46 +1255,53 @@ export default function DiamondStorePage() {
                             {/* XP SYSTEM SUB-TAB */}
                             {rewardsSubTab === 'xp' && (
                                 <div style={styles.xpSystemSection}>
-                                    <h2 style={styles.earnTitle}>📈 XP System - 55 Levels</h2>
+                                    <h2 style={styles.earnTitle}>📈 XP System - Infinite Progression</h2>
                                     <p style={styles.introText}>
-                                        Progress through 55 levels by earning XP. Formula: <code style={styles.formula}>1000 × level^1.2</code>
+                                        Level up using the quadratic formula: <code style={styles.formula}>Level = floor(sqrt(XP / 100)) + 1</code>
                                     </p>
 
+                                    {/* Formula Explanation */}
+                                    <div style={styles.formulaBox}>
+                                        <h3 style={styles.formulaTitle}>How It Works</h3>
+                                        <p style={styles.formulaText}>
+                                            Your level is calculated dynamically from your total XP using a quadratic formula.
+                                            This means each level requires progressively more XP than the last, creating a satisfying
+                                            long-term progression curve. <strong>There is no level cap!</strong>
+                                        </p>
+                                        <div style={styles.verifiedExample}>
+                                            <span style={styles.verifiedLabel}>Verified:</span>
+                                            <span style={styles.verifiedValue}>700,000 XP = Level 84</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Example Milestones */}
+                                    <h3 style={styles.categoryTitle}>📊 Example Milestones</h3>
                                     <div style={styles.xpTableContainer}>
                                         <table style={styles.xpTable}>
                                             <thead>
                                                 <tr style={styles.xpTableHeader}>
                                                     <th style={styles.xpTableHeaderCell}>Level</th>
                                                     <th style={styles.xpTableHeaderCell}>Total XP Required</th>
-                                                    <th style={styles.xpTableHeaderCell}>XP to Next</th>
-                                                    <th style={styles.xpTableHeaderCell}>Unlocks</th>
+                                                    <th style={styles.xpTableHeaderCell}>XP to Next Level</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {XP_LEVELS.map((levelData) => (
-                                                    <tr key={levelData.level} style={styles.xpTableRow}>
-                                                        <td style={styles.xpTableCell}>
-                                                            <span style={styles.levelBadge}>Lv {levelData.level}</span>
-                                                        </td>
-                                                        <td style={styles.xpTableCell}>
-                                                            {levelData.xpRequired.toLocaleString()} XP
-                                                        </td>
-                                                        <td style={styles.xpTableCell}>
-                                                            {levelData.xpToNext > 0 ? `${levelData.xpToNext.toLocaleString()} XP` : 'MAX'}
-                                                        </td>
-                                                        <td style={styles.xpTableCell}>
-                                                            {levelData.unlocks.length > 0 ? (
-                                                                <div style={styles.unlocksList}>
-                                                                    {levelData.unlocks.map((unlock, idx) => (
-                                                                        <span key={idx} style={styles.unlockBadge}>{unlock}</span>
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                <span style={styles.noUnlocks}>—</span>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                {XP_MILESTONES.map((milestone) => {
+                                                    const xpToNext = calculateXPToNextLevel(milestone.xp);
+                                                    return (
+                                                        <tr key={milestone.level} style={styles.xpTableRow}>
+                                                            <td style={styles.xpTableCell}>
+                                                                <span style={styles.levelBadge}>Lv {milestone.level}</span>
+                                                            </td>
+                                                            <td style={styles.xpTableCell}>
+                                                                {milestone.xp.toLocaleString()} XP
+                                                            </td>
+                                                            <td style={styles.xpTableCell}>
+                                                                {xpToNext.toLocaleString()} XP
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                     </div>
@@ -1368,23 +1311,117 @@ export default function DiamondStorePage() {
                             {/* EASTER EGGS SUB-TAB */}
                             {rewardsSubTab === 'eggs' && (
                                 <div style={styles.easterEggsSection}>
-                                    <h2 style={styles.earnTitle}>🎁 Easter Eggs - Hidden Achievements</h2>
+                                    <h2 style={styles.earnTitle}>🎁 Easter Eggs - 100 Hidden Achievements</h2>
                                     <p style={styles.introText}>
-                                        Discover hidden achievements throughout Smarter.Poker for bonus rewards!
-
-                                        {/* Shopping Cart Component */}
-                                        <ShoppingCart onCheckout={handleCheckout} />
+                                        Discover 100 hidden achievements across 6 categories for massive bonus rewards!
                                     </p>
 
-                                    <div style={styles.eggGrid}>
-                                        {EASTER_EGGS.map((egg) => (
-                                            <div key={egg.id} style={styles.eggCard}>
-                                                <div style={styles.eggIcon}>{egg.icon}</div>
-                                                <h3 style={styles.eggName}>{egg.name}</h3>
-                                                <div style={styles.eggReward}>{egg.reward}</div>
-                                                <p style={styles.eggTrigger}>{egg.trigger}</p>
-                                            </div>
-                                        ))}
+                                    {/* Performance Category (10 eggs) */}
+                                    <div style={styles.eggCategory}>
+                                        <h3 style={styles.eggCategoryTitle}>🎯 Performance (10 Achievements)</h3>
+                                        <div style={styles.eggGrid}>
+                                            {EASTER_EGGS.performance.map((egg) => (
+                                                <div key={egg.id} style={styles.eggCard}>
+                                                    <div style={styles.eggIcon}>{egg.icon}</div>
+                                                    <h4 style={styles.eggName}>{egg.name}</h4>
+                                                    <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
+                                                        {egg.rarity.toUpperCase()}
+                                                    </div>
+                                                    <div style={styles.eggReward}>{egg.reward}</div>
+                                                    <p style={styles.eggTrigger}>{egg.trigger}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Timing & Loyalty Category (15 eggs) */}
+                                    <div style={styles.eggCategory}>
+                                        <h3 style={styles.eggCategoryTitle}>⏰ Timing & Loyalty (15 Achievements)</h3>
+                                        <div style={styles.eggGrid}>
+                                            {EASTER_EGGS.timing_loyalty.map((egg) => (
+                                                <div key={egg.id} style={styles.eggCard}>
+                                                    <div style={styles.eggIcon}>{egg.icon}</div>
+                                                    <h4 style={styles.eggName}>{egg.name}</h4>
+                                                    <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
+                                                        {egg.rarity.toUpperCase()}
+                                                    </div>
+                                                    <div style={styles.eggReward}>{egg.reward}</div>
+                                                    <p style={styles.eggTrigger}>{egg.trigger}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Strategy & Mastery Category (20 eggs) */}
+                                    <div style={styles.eggCategory}>
+                                        <h3 style={styles.eggCategoryTitle}>♟️ Strategy & Mastery (20 Achievements)</h3>
+                                        <div style={styles.eggGrid}>
+                                            {EASTER_EGGS.strategy_mastery.map((egg) => (
+                                                <div key={egg.id} style={styles.eggCard}>
+                                                    <div style={styles.eggIcon}>{egg.icon}</div>
+                                                    <h4 style={styles.eggName}>{egg.name}</h4>
+                                                    <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
+                                                        {egg.rarity.toUpperCase()}
+                                                    </div>
+                                                    <div style={styles.eggReward}>{egg.reward}</div>
+                                                    <p style={styles.eggTrigger}>{egg.trigger}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Social/Viral Category (20 eggs) */}
+                                    <div style={styles.eggCategory}>
+                                        <h3 style={styles.eggCategoryTitle}>🌟 Social & Viral (20 Achievements)</h3>
+                                        <div style={styles.eggGrid}>
+                                            {EASTER_EGGS.social_viral.map((egg) => (
+                                                <div key={egg.id} style={styles.eggCard}>
+                                                    <div style={styles.eggIcon}>{egg.icon}</div>
+                                                    <h4 style={styles.eggName}>{egg.name}</h4>
+                                                    <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
+                                                        {egg.rarity.toUpperCase()}
+                                                    </div>
+                                                    <div style={styles.eggReward}>{egg.reward}</div>
+                                                    <p style={styles.eggTrigger}>{egg.trigger}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Meta/Interface Category (20 eggs) */}
+                                    <div style={styles.eggCategory}>
+                                        <h3 style={styles.eggCategoryTitle}>🎮 Meta & Interface (20 Achievements)</h3>
+                                        <div style={styles.eggGrid}>
+                                            {EASTER_EGGS.meta_interface.map((egg) => (
+                                                <div key={egg.id} style={styles.eggCard}>
+                                                    <div style={styles.eggIcon}>{egg.icon}</div>
+                                                    <h4 style={styles.eggName}>{egg.name}</h4>
+                                                    <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
+                                                        {egg.rarity.toUpperCase()}
+                                                    </div>
+                                                    <div style={styles.eggReward}>{egg.reward}</div>
+                                                    <p style={styles.eggTrigger}>{egg.trigger}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Legacy/Milestones Category (15 eggs) */}
+                                    <div style={styles.eggCategory}>
+                                        <h3 style={styles.eggCategoryTitle}>🏆 Legacy & Milestones (15 Achievements)</h3>
+                                        <div style={styles.eggGrid}>
+                                            {EASTER_EGGS.legacy_milestones.map((egg) => (
+                                                <div key={egg.id} style={styles.eggCard}>
+                                                    <div style={styles.eggIcon}>{egg.icon}</div>
+                                                    <h4 style={styles.eggName}>{egg.name}</h4>
+                                                    <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
+                                                        {egg.rarity.toUpperCase()}
+                                                    </div>
+                                                    <div style={styles.eggReward}>{egg.reward}</div>
+                                                    <p style={styles.eggTrigger}>{egg.trigger}</p>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -2004,6 +2041,94 @@ const styles = {
         fontSize: 12,
         color: 'rgba(255, 255, 255, 0.6)',
         lineHeight: 1.5,
+    },
+    // Egg Category Styles
+    eggCategory: {
+        marginBottom: 48,
+    },
+    eggCategoryTitle: {
+        fontSize: 20,
+        fontWeight: 700,
+        color: '#E4E6EB',
+        marginBottom: 20,
+        fontFamily: 'Orbitron, sans-serif',
+    },
+    // Rarity Badge Styles
+    rarityBadge: {
+        display: 'inline-block',
+        padding: '4px 12px',
+        borderRadius: 6,
+        fontSize: 10,
+        fontWeight: 700,
+        marginBottom: 8,
+        letterSpacing: '0.5px',
+    },
+    rarityCommon: {
+        background: 'rgba(158, 158, 158, 0.2)',
+        border: '1px solid rgba(158, 158, 158, 0.4)',
+        color: '#9E9E9E',
+    },
+    rarityUncommon: {
+        background: 'rgba(76, 175, 80, 0.2)',
+        border: '1px solid rgba(76, 175, 80, 0.4)',
+        color: '#4CAF50',
+    },
+    rarityRare: {
+        background: 'rgba(33, 150, 243, 0.2)',
+        border: '1px solid rgba(33, 150, 243, 0.4)',
+        color: '#2196F3',
+    },
+    rarityEpic: {
+        background: 'rgba(156, 39, 176, 0.2)',
+        border: '1px solid rgba(156, 39, 176, 0.4)',
+        color: '#9C27B0',
+    },
+    rarityLegendary: {
+        background: 'rgba(255, 152, 0, 0.2)',
+        border: '1px solid rgba(255, 152, 0, 0.4)',
+        color: '#FF9800',
+    },
+    // Formula Box Styles
+    formulaBox: {
+        background: 'rgba(0, 212, 255, 0.05)',
+        border: '1px solid rgba(0, 212, 255, 0.2)',
+        borderRadius: 12,
+        padding: 24,
+        marginBottom: 32,
+    },
+    formulaTitle: {
+        fontSize: 18,
+        fontWeight: 700,
+        color: '#00D4FF',
+        marginBottom: 12,
+        fontFamily: 'Orbitron, sans-serif',
+    },
+    formulaText: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.7)',
+        lineHeight: 1.6,
+        marginBottom: 16,
+    },
+    verifiedExample: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: 12,
+        background: 'rgba(0, 255, 136, 0.1)',
+        border: '1px solid rgba(0, 255, 136, 0.3)',
+        borderRadius: 8,
+    },
+    verifiedLabel: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: '#00FF88',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+    },
+    verifiedValue: {
+        fontSize: 14,
+        fontWeight: 600,
+        color: '#E4E6EB',
     },
     easterSection: {
         textAlign: 'center',

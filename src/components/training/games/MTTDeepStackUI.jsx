@@ -28,16 +28,41 @@ export default function MTTDeepStackUI({ question, onAnswer, showFeedback, feedb
         metadata = {}
     } = question;
 
-    // Use scenario if available, otherwise use question field
-    const scenarioText = scenario || questionText || "No scenario available";
+    // Format scenario - handle both string and object formats
+    let scenarioText = "";
+    if (typeof scenario === 'string') {
+        scenarioText = scenario;
+    } else if (typeof scenario === 'object' && scenario !== null) {
+        // Format object scenario into readable text
+        const {
+            heroPosition,
+            heroStack,
+            gameType,
+            heroHand,
+            board,
+            pot,
+            villainPosition,
+            villainStack,
+            action
+        } = scenario;
+
+        scenarioText = `${gameType || 'MTT'} - ${heroStack}bb effective\n` +
+            `Hero (${heroPosition}): ${heroHand || 'Unknown'}\n` +
+            `Villain (${villainPosition}): ${villainStack}bb\n` +
+            `Board: ${board || 'Preflop'}\n` +
+            `Pot: ${pot}bb\n` +
+            `Action: ${action || 'No action yet'}`;
+    } else {
+        scenarioText = questionText || "No scenario available";
+    }
 
     // Extract metadata with safe defaults
     const {
-        stackSize = 120,
-        position = 'BTN',
-        potSize = 15,
-        boardTexture = 'Dry',
-        effectiveStack = stackSize || 120
+        stackSize = scenario?.heroStack || 120,
+        position = scenario?.heroPosition || 'BTN',
+        potSize = scenario?.pot || 15,
+        boardTexture = scenario?.board || 'Dry',
+        effectiveStack = stackSize || scenario?.heroStack || 120
     } = metadata;
 
     // Calculate stack depth category
@@ -93,7 +118,7 @@ export default function MTTDeepStackUI({ question, onAnswer, showFeedback, feedb
             {/* Scenario Text */}
             <div style={styles.scenarioBox}>
                 <div style={styles.scenarioLabel}>Scenario</div>
-                <p style={styles.scenarioText}>{scenarioText}</p>
+                <p style={{ ...styles.scenarioText, whiteSpace: 'pre-line' }}>{scenarioText}</p>
             </div>
 
             {/* Answer Options */}
