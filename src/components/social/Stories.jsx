@@ -145,6 +145,13 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
                     ) : (
                         <img
                             src={displayUrl}
+                            onLoad={(e) => {
+                                // YouTube returns a 120x90 gray placeholder for invalid video IDs
+                                // Check if this is a placeholder and switch to profile avatar
+                                if (thumbnailUrl && e.target.naturalWidth <= 120) {
+                                    setThumbnailFailed(true);
+                                }
+                            }}
                             onError={(e) => {
                                 // Mark thumbnail as failed and switch to profile avatar
                                 if (!thumbnailFailed && thumbnailUrl) {
