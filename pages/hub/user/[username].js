@@ -15,6 +15,7 @@ import { supabase } from '../../../src/lib/supabase';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ArticleCard from '../../../src/components/social/ArticleCard';
+import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -159,10 +160,22 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false }) {
                 </div>
             )}
             {hendonData?.hendon_url && (
-                <a href={hendonData.hendon_url} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'block', textAlign: 'center', marginTop: 12, color: C.gold, fontSize: 12, textDecoration: 'none' }}>
+                <button
+                    onClick={() => setArticleReader({ open: true, url: hendonData.hendon_url, title: 'HendonMob Poker Resume' })}
+                    style={{
+                        display: 'block',
+                        width: '100%',
+                        textAlign: 'center',
+                        marginTop: 12,
+                        color: C.gold,
+                        fontSize: 12,
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                    }}>
                     View Full Resume on HendonMob →
-                </a>
+                </button>
             )}
         </div>
     );
@@ -311,6 +324,7 @@ export default function UserProfilePage() {
 
     // Tab state
     const [activeTab, setActiveTab] = useState('all');
+    const [articleReader, setArticleReader] = useState({ open: false, url: '', title: '' });
 
     useEffect(() => {
         if (!username) return;
@@ -963,6 +977,14 @@ export default function UserProfilePage() {
                 {/* Bottom padding */}
                 <div style={{ height: 80 }} />
             </div>
+
+            {/* Article Reader Modal for HendonMob */}
+            <ArticleReaderModal
+                open={articleReader.open}
+                url={articleReader.url}
+                title={articleReader.title}
+                onClose={() => setArticleReader({ open: false, url: '', title: '' })}
+            />
         </PageTransition>
     );
 }
