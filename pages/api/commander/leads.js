@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     // Check if lead already exists
     const { data: existing } = await supabase
       .from('commander_leads')
-      .select('id, email')
+      .select('id, email, visit_count')
       .eq('email', email.toLowerCase())
       .single();
 
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
         .from('commander_leads')
         .update({
           last_activity: new Date().toISOString(),
-          visit_count: supabase.sql`visit_count + 1`
+          visit_count: (existing.visit_count || 0) + 1
         })
         .eq('id', existing.id);
 

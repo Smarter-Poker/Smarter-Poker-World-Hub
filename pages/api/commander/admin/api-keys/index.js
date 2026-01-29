@@ -87,6 +87,8 @@ export default async function handler(req, res) {
       }
 
       const apiKey = generateApiKey();
+      const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
+      const keyPrefix = apiKey.substring(0, 8);
 
       const { data, error } = await supabase
         .from('commander_api_keys')
@@ -94,7 +96,8 @@ export default async function handler(req, res) {
           venue_id: targetVenueId,
           created_by: user.id,
           name,
-          api_key: apiKey,
+          key_hash: keyHash,
+          key_prefix: keyPrefix,
           permissions: ['read'],
           is_active: true
         })
@@ -103,9 +106,10 @@ export default async function handler(req, res) {
 
       if (error) throw error;
 
+      // Return raw key only on creation - it cannot be retrieved later
       return res.status(201).json({
         success: true,
-        data: { key: data }
+        data: { key: { ...data, raw_key: apiKey } }
       });
     }
 

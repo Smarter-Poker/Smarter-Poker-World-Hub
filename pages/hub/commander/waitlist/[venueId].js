@@ -38,26 +38,43 @@ export default function PlayerWaitlistPage() {
     }
   }, [venueId]);
 
+  function getAuthToken() {
+    let token = localStorage.getItem('smarter-poker-auth');
+    if (!token) {
+      const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+      if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
+    }
+    return token;
+  }
+
   async function fetchData() {
     try {
-      const [venueRes, gamesRes, waitlistRes, myRes] = await Promise.all([
+      // Public data - no auth needed
+      const [venueRes, gamesRes, waitlistRes] = await Promise.all([
         fetch(`/api/commander/venues/${venueId}`),
         fetch(`/api/commander/games/venue/${venueId}`),
-        fetch(`/api/commander/waitlist/venue/${venueId}`),
-        fetch('/api/commander/waitlist/my')
+        fetch(`/api/commander/waitlist/venue/${venueId}`)
       ]);
 
-      const [venueData, gamesData, waitlistData, myData] = await Promise.all([
+      const [venueData, gamesData, waitlistData] = await Promise.all([
         venueRes.json(),
         gamesRes.json(),
-        waitlistRes.json(),
-        myRes.json()
+        waitlistRes.json()
       ]);
 
       if (venueData.success) setVenue(venueData.data.venue);
       if (gamesData.success) setGames(gamesData.data.games || []);
       if (waitlistData.success) setWaitlists(waitlistData.data.waitlists || []);
-      if (myData.success) setMyEntries(myData.data.entries || []);
+
+      // Authenticated data - fetch my entries only if logged in
+      const token = getAuthToken();
+      if (token) {
+        const myRes = await fetch('/api/commander/waitlist/my', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const myData = await myRes.json();
+        if (myData.success) setMyEntries(myData.data.entries || []);
+      }
     } catch (err) {
       console.error('Failed to fetch data:', err);
     } finally {
@@ -66,6 +83,12 @@ export default function PlayerWaitlistPage() {
   }
 
   async function handleJoinWaitlist(gameType, stakes) {
+    const token = getAuthToken();
+    if (!token) {
+      router.push(`/auth/login?redirect=/hub/commander/waitlist/${venueId}`);
+      return;
+    }
+
     setJoining(`${gameType}-${stakes}`);
     setError(null);
     setSuccess(null);
@@ -73,7 +96,10 @@ export default function PlayerWaitlistPage() {
     try {
       const res = await fetch('/api/commander/waitlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
           venue_id: parseInt(venueId),
           game_type: gameType,
@@ -99,9 +125,16 @@ export default function PlayerWaitlistPage() {
   }
 
   async function handleLeaveWaitlist(entryId) {
+    const token = getAuthToken();
+    if (!token) {
+      router.push(`/auth/login?redirect=/hub/commander/waitlist/${venueId}`);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/commander/waitlist/${entryId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       const data = await res.json();

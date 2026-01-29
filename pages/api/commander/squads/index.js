@@ -24,7 +24,7 @@ export default async function handler(req, res) {
 }
 
 async function handleCreate(req, res) {
-  const { venue_id, game_type, stakes, leader_id, name, max_size = 6 } = req.body;
+  const { venue_id, game_type, stakes, leader_id, prefer_same_table = true, accept_split = false } = req.body;
 
   if (!venue_id || !game_type || !leader_id) {
     return res.status(400).json({
@@ -34,10 +34,7 @@ async function handleCreate(req, res) {
   }
 
   try {
-    // Generate invite code
-    const invite_code = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-    // Create squad
+    // Create squad (waitlist group)
     const { data: squad, error } = await supabase
       .from('commander_waitlist_groups')
       .insert({
@@ -45,10 +42,9 @@ async function handleCreate(req, res) {
         game_type,
         stakes,
         leader_id,
-        name: name || `Squad ${invite_code}`,
-        invite_code,
-        max_size,
-        group_status: 'forming'
+        prefer_same_table,
+        accept_split,
+        status: 'waiting'
       })
       .select()
       .single();
@@ -60,9 +56,7 @@ async function handleCreate(req, res) {
       .from('commander_waitlist_group_members')
       .insert({
         group_id: squad.id,
-        player_id: leader_id,
-        is_leader: true,
-        member_status: 'confirmed'
+        player_id: leader_id
       });
 
     return res.status(201).json({
@@ -89,15 +83,14 @@ async function handleList(req, res) {
         commander_waitlist_group_members (
           id,
           player_id,
-          is_leader,
-          member_status,
-          profiles (id, display_name, avatar_url)
+          joined_at,
+          profiles:player_id (id, display_name, avatar_url)
         )
       `)
       .order('created_at', { ascending: false });
 
     if (venue_id) query = query.eq('venue_id', venue_id);
-    if (status) query = query.eq('group_status', status);
+    if (status) query = query.eq('status', status);
 
     const { data: squads, error } = await query;
 

@@ -51,10 +51,10 @@ export default async function handler(req, res) {
       // Get total hours from sessions
       const { data: sessions } = await supabase
         .from('commander_player_sessions')
-        .select('total_minutes')
+        .select('total_time_minutes')
         .eq('player_id', user.id);
 
-      const totalHours = sessions?.reduce((sum, s) => sum + ((s.total_minutes || 0) / 60), 0) || 0;
+      const totalHours = sessions?.reduce((sum, s) => sum + ((s.total_time_minutes || 0) / 60), 0) || 0;
 
       return res.status(200).json({
         success: true,

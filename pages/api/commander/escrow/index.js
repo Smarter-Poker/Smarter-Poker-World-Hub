@@ -1,6 +1,6 @@
 /**
  * Escrow List API
- * GET /api/commander/escrow - List escrow transactions for a group or event
+ * GET /api/commander/escrow - List escrow transactions for a home game
  */
 import { createClient } from '@supabase/supabase-js';
 
@@ -36,34 +36,43 @@ export default async function handler(req, res) {
       });
     }
 
-    const { group_id, event_id, status, limit = 50, offset = 0 } = req.query;
+    const { home_game_id, status, limit = 50, offset = 0 } = req.query;
 
-    if (!group_id && !event_id) {
+    if (!home_game_id) {
       return res.status(400).json({
         success: false,
-        error: { code: 'MISSING_PARAMS', message: 'group_id or event_id required' }
+        error: { code: 'MISSING_PARAMS', message: 'home_game_id required' }
       });
     }
 
-    // Verify user is host of the group
-    if (group_id) {
-      const { data: group, error: groupError } = await supabase
-        .from('commander_home_groups')
-        .select('id, host_id')
-        .eq('id', group_id)
+    // Verify user is host of the home game
+    const { data: game, error: gameError } = await supabase
+      .from('commander_home_games')
+      .select('id, host_id')
+      .eq('id', home_game_id)
+      .single();
+
+    if (gameError || !game) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Home game not found' }
+      });
+    }
+
+    if (game.host_id !== user.id) {
+      // Also check if user is a player with transactions
+      const { data: playerTxn } = await supabase
+        .from('commander_escrow_transactions')
+        .select('id')
+        .eq('home_game_id', home_game_id)
+        .eq('player_id', user.id)
+        .limit(1)
         .single();
 
-      if (groupError || !group) {
-        return res.status(404).json({
-          success: false,
-          error: { code: 'NOT_FOUND', message: 'Group not found' }
-        });
-      }
-
-      if (group.host_id !== user.id) {
+      if (!playerTxn) {
         return res.status(403).json({
           success: false,
-          error: { code: 'FORBIDDEN', message: 'Only host can view escrow transactions' }
+          error: { code: 'FORBIDDEN', message: 'Only host or participants can view escrow transactions' }
         });
       }
     }
@@ -74,16 +83,9 @@ export default async function handler(req, res) {
         *,
         profiles:player_id (id, display_name, avatar_url)
       `, { count: 'exact' })
+      .eq('home_game_id', home_game_id)
       .order('created_at', { ascending: false })
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
-
-    if (group_id) {
-      query = query.eq('group_id', group_id);
-    }
-
-    if (event_id) {
-      query = query.eq('event_id', event_id);
-    }
 
     if (status) {
       query = query.eq('status', status);
@@ -96,7 +98,7 @@ export default async function handler(req, res) {
     // Map profile data to player_name for convenience
     const transactions = (data || []).map(t => ({
       ...t,
-      player_name: t.profiles?.display_name || t.player_name || 'Player'
+      player_name: t.profiles?.display_name || 'Player'
     }));
 
     return res.status(200).json({

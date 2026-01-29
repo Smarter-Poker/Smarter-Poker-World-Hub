@@ -38,61 +38,53 @@ export default async function handler(req, res) {
   try {
     const { status } = req.query;
 
-    // Get squads where user is a member
-    let query = supabase
-      .from('commander_home_members')
+    // Get waitlist groups where user is a member
+    const { data: memberships, error } = await supabase
+      .from('commander_waitlist_group_members')
       .select(`
         id,
-        role,
-        status,
+        player_id,
         joined_at,
-        commander_squads:squad_id (
+        commander_waitlist_groups:group_id (
           id,
-          name,
           game_type,
           stakes,
           status,
           prefer_same_table,
+          accept_split,
           created_at,
           poker_venues:venue_id (id, name, city, state),
           profiles:leader_id (id, display_name, avatar_url)
         )
       `)
-      .eq('user_id', user.id);
-
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    const { data: memberships, error } = await query.order('joined_at', { ascending: false });
+      .eq('player_id', user.id)
+      .order('joined_at', { ascending: false });
 
     if (error) throw error;
 
-    // Separate active squads and pending invitations
+    // Separate active squads and completed ones
     const activeSquads = [];
-    const pendingInvitations = [];
+    const completedSquads = [];
 
     memberships?.forEach(m => {
-      if (!m.commander_squads) return;
+      if (!m.commander_waitlist_groups) return;
 
       const squad = {
-        id: m.commander_squads.id,
-        name: m.commander_squads.name,
-        game_type: m.commander_squads.game_type,
-        stakes: m.commander_squads.stakes,
-        squad_status: m.commander_squads.status,
-        prefer_same_table: m.commander_squads.prefer_same_table,
-        venue: m.commander_squads.poker_venues,
-        leader: m.commander_squads.profiles,
-        member_role: m.role,
-        member_status: m.status,
+        id: m.commander_waitlist_groups.id,
+        game_type: m.commander_waitlist_groups.game_type,
+        stakes: m.commander_waitlist_groups.stakes,
+        squad_status: m.commander_waitlist_groups.status,
+        prefer_same_table: m.commander_waitlist_groups.prefer_same_table,
+        accept_split: m.commander_waitlist_groups.accept_split,
+        venue: m.commander_waitlist_groups.poker_venues,
+        leader: m.commander_waitlist_groups.profiles,
         joined_at: m.joined_at
       };
 
-      if (m.status === 'pending') {
-        pendingInvitations.push(squad);
-      } else if (m.status === 'active') {
+      if (m.commander_waitlist_groups.status === 'waiting') {
         activeSquads.push(squad);
+      } else {
+        completedSquads.push(squad);
       }
     });
 
@@ -100,7 +92,7 @@ export default async function handler(req, res) {
       success: true,
       data: {
         squads: activeSquads,
-        invitations: pendingInvitations,
+        completed: completedSquads,
         total: memberships?.length || 0
       }
     });
