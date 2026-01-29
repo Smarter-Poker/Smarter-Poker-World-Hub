@@ -1933,13 +1933,30 @@ export default function SocialMediaPage() {
             // Sort by score (Facebook-style ranking)
             mixedFeed.sort((a, b) => b.score - a.score);
 
-            // Fetch author profiles
+            // Fetch author profiles using native fetch to avoid AbortError
             if (mixedFeed.length > 0) {
                 const authorIds = [...new Set(mixedFeed.map(p => p.author_id).filter(Boolean))];
                 let authorMap = {};
                 if (authorIds.length) {
-                    const { data: profiles } = await supabase.from('profiles').select('id, username, full_name, display_name_preference, avatar_url').in('id', authorIds);
-                    if (profiles) authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+                    try {
+                        console.log('[Social] Fetching profiles for', authorIds.length, 'authors');
+                        const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name_preference,avatar_url`, {
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': `Bearer ${supabaseKey}`
+                            }
+                        });
+
+                        if (!profilesRes.ok) {
+                            console.error('[Social] Profile fetch failed:', profilesRes.status, await profilesRes.text());
+                        } else {
+                            const profiles = await profilesRes.json();
+                            console.log('[Social] ✅ Loaded', profiles.length, 'profiles');
+                            if (profiles) authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+                        }
+                    } catch (profileError) {
+                        console.error('[Social] Profile fetch error:', profileError);
+                    }
                 }
 
                 const formattedPosts = mixedFeed.map(p => ({
