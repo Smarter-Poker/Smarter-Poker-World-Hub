@@ -159,20 +159,24 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
                             border: '2px solid white',
                         }}>LIVE</div>
                     )}
-                    {isOwn && (
-                        <div
-                            onClick={(e) => { e.stopPropagation(); onCreateStory?.(); }}
-                            style={{
-                                position: 'absolute', bottom: -2, right: -2,
-                                width: 24, height: 24, borderRadius: '50%',
-                                background: C.blue, border: '3px solid white',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 16, color: 'white', fontWeight: 700,
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                            }}>+</div>
-                    )}
                 </div>
             </StoryRing>
+
+            {/* + button moved outside the ring, positioned below the avatar */}
+            {isOwn && (
+                <div
+                    onClick={(e) => { e.stopPropagation(); onCreateStory?.(); }}
+                    style={{
+                        position: 'absolute', top: 52, right: 6,
+                        width: 24, height: 24, borderRadius: '50%',
+                        background: C.blue, border: '3px solid white',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 16, color: 'white', fontWeight: 700,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        cursor: 'pointer',
+                    }}>+</div>
+            )}
+
             <span style={{
                 fontSize: 12,
                 color: isLive ? '#FA383E' : C.text,
