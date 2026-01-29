@@ -68,8 +68,18 @@ export default async function handler(req, res) {
             .single();
 
         if (convError) {
-            console.error('Failed to create conversation:', convError);
-            return res.status(500).json({ error: 'Failed to create conversation' });
+            console.error('[LiveHelp] Failed to create conversation:', {
+                error: convError,
+                message: convError.message,
+                details: convError.details,
+                hint: convError.hint,
+                code: convError.code
+            });
+            return res.status(500).json({
+                error: 'Failed to create conversation',
+                details: convError.message,
+                hint: convError.hint
+            });
         }
 
         // Create greeting message

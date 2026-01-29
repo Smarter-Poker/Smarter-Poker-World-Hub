@@ -175,6 +175,37 @@ STRICT RULES:
 
         console.log('✅ Edited avatar uploaded:', publicUrl);
 
+        // Update the avatar in the database gallery
+        // Find the most recent avatar for this user and update it with the edited version
+        if (userId) {
+            console.log('💾 Updating avatar in database gallery...');
+            const { data: existingAvatars, error: fetchError } = await supabase
+                .from('custom_avatar_gallery')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('is_deleted', false)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (!fetchError && existingAvatars && existingAvatars.length > 0) {
+                // Update the most recent avatar with the edited version
+                const { error: updateError } = await supabase
+                    .from('custom_avatar_gallery')
+                    .update({
+                        image_url: publicUrl,
+                        prompt: `${editPrompt} (edited)`,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', existingAvatars[0].id);
+
+                if (updateError) {
+                    console.error('⚠️ Failed to update gallery:', updateError);
+                } else {
+                    console.log('✅ Gallery updated with edited avatar');
+                }
+            }
+        }
+
         return res.status(200).json({
             success: true,
             imageUrl: publicUrl,
