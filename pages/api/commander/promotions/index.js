@@ -39,7 +39,7 @@ async function listPromotions(req, res) {
       .select(`
         *,
         poker_venues:venue_id (id, name, city, state),
-        commander_staff:created_by (id, display_name)
+        commander_staff:created_by (id, role)
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
@@ -109,6 +109,10 @@ async function createPromotion(req, res) {
 
     if (!staff) {
       return res.status(403).json({ error: 'You are not authorized to create promotions for this venue' });
+    }
+
+    if (!['owner', 'manager'].includes(staff.role)) {
+      return res.status(403).json({ error: 'Owner or Manager role required to create promotions' });
     }
 
     const {

@@ -167,6 +167,14 @@ export default async function handler(req, res) {
       });
     }
 
+    // Verify staff belongs to the same venue as the waitlist entry
+    if (staff.venue_id !== entry.venue_id) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Staff is not authorized for this venue' }
+      });
+    }
+
     if (entry.status !== 'waiting') {
       return res.status(400).json({
         success: false,

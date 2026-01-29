@@ -36,6 +36,7 @@ export default async function handler(req, res) {
       }
     }
 
+    let staffVenueId = null;
     if (staffSession) {
       try {
         const sessionData = JSON.parse(staffSession);
@@ -47,6 +48,7 @@ export default async function handler(req, res) {
           .single();
         if (staff) {
           isStaff = true;
+          staffVenueId = staff.venue_id;
         }
       } catch { /* invalid session format */ }
     }
@@ -72,6 +74,14 @@ export default async function handler(req, res) {
       });
     }
 
+    // Verify staff belongs to the same venue as the waitlist entry
+    if (isStaff && staffVenueId && staffVenueId !== entry.venue_id) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Staff is not authorized for this venue' }
+      });
+    }
+
     // Verify ownership: player can only pass on their own entry, staff can pass on any
     if (!isStaff && entry.player_id && entry.player_id !== authenticatedUserId) {
       return res.status(403).json({
@@ -80,23 +90,25 @@ export default async function handler(req, res) {
       });
     }
 
-    const newPassCount = (entry.pass_count || 0) + pass_count;
+    // Use call_count to track passes (each pass follows a call)
+    const currentCallCount = entry.call_count || 0;
     const maxPasses = 3;
 
-    // Remove from waitlist if too many passes
-    if (newPassCount >= maxPasses) {
+    // Remove from waitlist if too many calls/passes
+    if (currentCallCount >= maxPasses) {
       // Move to history
       await supabase
         .from('commander_waitlist_history')
         .insert({
-          waitlist_id: entry.id,
           venue_id: entry.venue_id,
           player_id: entry.player_id,
           game_type: entry.game_type,
           stakes: entry.stakes,
-          action: 'removed',
-          reason: 'max_passes_exceeded',
-          action_time: new Date().toISOString()
+          wait_time_minutes: Math.round(
+            (Date.now() - new Date(entry.created_at).getTime()) / (1000 * 60)
+          ),
+          was_seated: false,
+          signup_method: entry.signup_method
         });
 
       // Delete entry
@@ -114,12 +126,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // Update pass count and move to back of list
+    // Set status back to waiting (player passed on the call)
     const { data: updated, error } = await supabase
       .from('commander_waitlist')
       .update({
-        pass_count: newPassCount,
-        last_called: new Date().toISOString(),
+        last_called_at: new Date().toISOString(),
         status: 'waiting'
       })
       .eq('id', id)
@@ -132,7 +143,7 @@ export default async function handler(req, res) {
       success: true,
       data: {
         entry: updated,
-        passes_remaining: maxPasses - newPassCount
+        passes_remaining: maxPasses - currentCallCount
       }
     });
   } catch (error) {

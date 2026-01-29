@@ -214,7 +214,7 @@ export default async function handler(req, res) {
         signup_method: entry.signup_method
       });
 
-    // Award XP to player for getting seated
+    // Award XP to player for getting seated - stored in metadata JSONB
     if (entry.player_id) {
       const XP_FOR_SEATED = 25; // Base XP for getting seated
       const DIAMOND_FOR_SEATED = 1; // Bonus diamond for using Commander
@@ -222,37 +222,39 @@ export default async function handler(req, res) {
       // Create or update player session
       const { data: existingSession } = await supabase
         .from('commander_player_sessions')
-        .select('id, xp_earned, diamonds_earned')
+        .select('id, metadata')
         .eq('venue_id', entry.venue_id)
         .eq('player_id', entry.player_id)
         .is('check_out_at', null)
         .single();
 
       if (existingSession) {
-        // Update existing session with XP
+        // Update existing session with XP in metadata
+        const currentMetadata = existingSession.metadata || {};
         await supabase
           .from('commander_player_sessions')
           .update({
-            xp_earned: (existingSession.xp_earned || 0) + XP_FOR_SEATED,
-            diamonds_earned: (existingSession.diamonds_earned || 0) + DIAMOND_FOR_SEATED
+            games_played: (existingSession.games_played || 0) + 1,
+            metadata: {
+              ...currentMetadata,
+              xp_earned: (currentMetadata.xp_earned || 0) + XP_FOR_SEATED,
+              diamonds_earned: (currentMetadata.diamonds_earned || 0) + DIAMOND_FOR_SEATED
+            }
           })
           .eq('id', existingSession.id);
       } else {
-        // Create new session with XP
+        // Create new session with XP in metadata
         await supabase
           .from('commander_player_sessions')
           .insert({
             venue_id: entry.venue_id,
             player_id: entry.player_id,
             check_in_at: now,
-            xp_earned: XP_FOR_SEATED,
-            diamonds_earned: DIAMOND_FOR_SEATED,
-            games_played: [{
-              game_id,
-              game_type: entry.game_type,
-              stakes: entry.stakes,
-              started_at: now
-            }]
+            games_played: 1,
+            metadata: {
+              xp_earned: XP_FOR_SEATED,
+              diamonds_earned: DIAMOND_FOR_SEATED
+            }
           });
       }
     }

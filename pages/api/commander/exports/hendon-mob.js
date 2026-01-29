@@ -138,11 +138,13 @@ function buildHendonMobCSV(tournament, entries) {
   lines.push(`Buy-in,${tournament.buyin_amount || 0}`);
   lines.push(`Fee,${tournament.buyin_fee || 0}`);
   lines.push(`Total Buy-in,${(tournament.buyin_amount || 0) + (tournament.buyin_fee || 0)}`);
-  lines.push(`Entries,${tournament.total_entries || entries.length}`);
-  lines.push(`Rebuys,${tournament.total_rebuys || 0}`);
-  lines.push(`Add-ons,${tournament.total_addons || 0}`);
-  lines.push(`Prize Pool,${tournament.actual_prizepool || tournament.guaranteed_prizepool || 0}`);
-  lines.push(`Game Type,${tournament.game_type?.toUpperCase() || 'NLHE'}`);
+  const totalRebuys = entries.reduce((sum, e) => sum + (e.rebuy_count || 0), 0);
+  const totalAddons = entries.filter(e => e.addon_taken).length;
+  lines.push(`Entries,${tournament.current_entries || entries.length}`);
+  lines.push(`Rebuys,${totalRebuys}`);
+  lines.push(`Add-ons,${totalAddons}`);
+  lines.push(`Prize Pool,${tournament.guaranteed_pool || 0}`);
+  lines.push(`Game Type,${(tournament.tournament_type || 'freezeout').toUpperCase()}`);
   lines.push(`Tournament Type,${tournament.tournament_type || 'freezeout'}`);
   lines.push('');
 
@@ -224,11 +226,11 @@ function buildHendonMobJSON(tournament, entries) {
       buy_in: tournament.buyin_amount || 0,
       fee: tournament.buyin_fee || 0,
       total_buy_in: (tournament.buyin_amount || 0) + (tournament.buyin_fee || 0),
-      entries: tournament.total_entries || entries.length,
-      rebuys: tournament.total_rebuys || 0,
-      addons: tournament.total_addons || 0,
-      prize_pool: tournament.actual_prizepool || tournament.guaranteed_prizepool || 0,
-      game_type: tournament.game_type?.toUpperCase() || 'NLHE',
+      entries: tournament.current_entries || entries.length,
+      rebuys: entries.reduce((sum, e) => sum + (e.rebuy_count || 0), 0),
+      addons: entries.filter(e => e.addon_taken).length,
+      prize_pool: tournament.guaranteed_pool || 0,
+      game_type: (tournament.tournament_type || 'freezeout').toUpperCase(),
       tournament_type: tournament.tournament_type || 'freezeout'
     },
     results: sortedEntries

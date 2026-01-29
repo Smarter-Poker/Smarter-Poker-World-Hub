@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 }
 
 async function handleRegister(req, res, tournamentId) {
-  const { player_id, payment_method = 'cash', registered_by } = req.body;
+  const { player_id } = req.body;
 
   if (!player_id) {
     return res.status(400).json({
@@ -123,12 +123,12 @@ async function handleRegister(req, res, tournamentId) {
       const today = new Date().toISOString().split('T')[0];
       const { data: todayEntries } = await supabase
         .from('commander_tournament_entries')
-        .select('buy_in_amount')
+        .select('total_invested')
         .eq('player_id', player_id)
         .gte('registered_at', today)
         .neq('status', 'cancelled');
 
-      const todaySpend = (todayEntries || []).reduce((sum, e) => sum + (e.buy_in_amount || 0), 0);
+      const todaySpend = (todayEntries || []).reduce((sum, e) => sum + (e.total_invested || 0), 0);
 
       if (todaySpend + tournament.buyin_amount > limits.daily_limit) {
         return res.status(403).json({
@@ -143,16 +143,13 @@ async function handleRegister(req, res, tournamentId) {
       }
     }
 
-    // Create entry
+    // Create entry (total_invested is auto-calculated by DB trigger)
     const { data: entry, error } = await supabase
       .from('commander_tournament_entries')
       .insert({
         tournament_id: tournamentId,
         player_id,
-        buy_in_amount: tournament.buy_in,
-        payment_method,
-        payment_status: payment_method === 'comp' ? 'paid' : 'pending',
-        registered_by: registered_by || player_id,
+        registration_method: 'app',
         status: 'registered'
       })
       .select()
@@ -160,18 +157,7 @@ async function handleRegister(req, res, tournamentId) {
 
     if (error) throw error;
 
-    // Update tournament entry count
-    await supabase.rpc('increment', {
-      table_name: 'commander_tournaments',
-      row_id: tournamentId,
-      column_name: 'total_entries'
-    }).catch(() => {
-      // Fallback if RPC doesn't exist
-      supabase
-        .from('commander_tournaments')
-        .update({ total_entries: (tournament.total_entries || 0) + 1 })
-        .eq('id', tournamentId);
-    });
+    // Note: current_entries is auto-updated by the update_tournament_stats trigger
 
     // Award XP for tournament registration
     if (player_id) {
@@ -223,8 +209,8 @@ async function handleUnregister(req, res, tournamentId) {
     const { error } = await supabase
       .from('commander_tournament_entries')
       .update({
-        status: 'cancelled',
-        cancelled_at: new Date().toISOString()
+        status: 'eliminated',
+        notes: 'Registration cancelled'
       })
       .eq('tournament_id', tournamentId)
       .eq('player_id', player_id)
