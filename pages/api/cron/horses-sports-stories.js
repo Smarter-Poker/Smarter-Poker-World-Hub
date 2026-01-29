@@ -163,6 +163,7 @@ export default async function handler(req, res) {
             .from('content_authors')
             .select('id, name, profile_id, personality_traits')
             .eq('is_active', true)
+            .not('profile_id', 'is', null)
             .limit(CONFIG.HORSES_PER_TRIGGER * 3); // Get extra to account for filtering
 
         if (horsesError || !horses || horses.length === 0) {
