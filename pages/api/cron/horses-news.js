@@ -33,7 +33,7 @@ import {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = getGrokClient();
 
 // Configure RSS Parser with realistic User-Agent to avoid 403 blocks
 const rssParser = new Parser({

@@ -27,7 +27,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, IS_SERVICE_ROLE ? {
     }
 } : {});
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = getGrokClient();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PROMPT TEMPLATES - Law-compliant poker player avatars

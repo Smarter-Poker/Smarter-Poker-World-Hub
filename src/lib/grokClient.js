@@ -2,7 +2,7 @@
  * Grok API Client (xAI)
  * 
  * OpenAI-compatible wrapper for xAI's Grok API.
- * Uses the OpenAI SDK with custom base URL for seamless integration.
+ * Uses a proxy to automatically map OpenAI model names to Grok equivalents.
  * 
  * Base URL: https://api.x.ai/v1
  * API Key: XAI_API_KEY environment variable
@@ -12,12 +12,6 @@
 
 import OpenAI from 'openai';
 
-// Initialize Grok client with xAI endpoint
-const grok = new OpenAI({
-    apiKey: process.env.XAI_API_KEY,
-    baseURL: 'https://api.x.ai/v1',
-});
-
 /**
  * Feature flag to enable/disable Grok API
  * Set USE_GROK_API=false to fallback to OpenAI
@@ -25,25 +19,98 @@ const grok = new OpenAI({
 const USE_GROK = process.env.USE_GROK_API !== 'false';
 
 /**
- * Fallback OpenAI client (for rollback capability)
+ * Model mapping from OpenAI to Grok
  */
-let openaiClient = null;
-if (!USE_GROK && process.env.OPENAI_API_KEY) {
-    openaiClient = new OpenAI({
+const MODEL_MAP = {
+    'gpt-4o': 'grok-3',
+    'gpt-4o-mini': 'grok-3-mini',
+    'gpt-3.5-turbo': 'grok-3',
+    'gpt-4': 'grok-3',
+    'gpt-4-turbo': 'grok-3',
+    'gpt-4-vision-preview': 'grok-2-vision-1212',
+    'dall-e-3': 'grok-2-image-1212',
+    'dall-e-2': 'grok-2-image-1212',
+};
+
+/**
+ * Map OpenAI model names to Grok equivalents
+ */
+export function mapModelToGrok(openaiModel) {
+    if (!USE_GROK) {
+        return openaiModel;
+    }
+    return MODEL_MAP[openaiModel] || 'grok-3';
+}
+
+/**
+ * Create a proxied OpenAI client that automatically maps models
+ */
+function createGrokProxyClient() {
+    if (!process.env.XAI_API_KEY) {
+        console.warn('[GrokClient] XAI_API_KEY not set - API calls will fail');
+    }
+
+    // Create the base Grok client
+    const baseClient = new OpenAI({
+        apiKey: process.env.XAI_API_KEY || 'not-set',
+        baseURL: 'https://api.x.ai/v1',
+    });
+
+    // Create proxied chat.completions.create that maps models
+    const originalCreate = baseClient.chat.completions.create.bind(baseClient.chat.completions);
+    baseClient.chat.completions.create = async function (params) {
+        const mappedModel = mapModelToGrok(params.model);
+        console.log(`[GrokClient] Model mapping: ${params.model} → ${mappedModel}`);
+        return originalCreate({
+            ...params,
+            model: mappedModel,
+        });
+    };
+
+    // Create proxied images.generate that maps models
+    const originalImagesGenerate = baseClient.images.generate.bind(baseClient.images);
+    baseClient.images.generate = async function (params) {
+        const mappedModel = mapModelToGrok(params.model);
+        console.log(`[GrokClient] Image model mapping: ${params.model} → ${mappedModel}`);
+        return originalImagesGenerate({
+            ...params,
+            model: mappedModel,
+        });
+    };
+
+    return baseClient;
+}
+
+/**
+ * Create fallback OpenAI client
+ */
+function createOpenAIClient() {
+    if (!process.env.OPENAI_API_KEY) {
+        return null;
+    }
+    return new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
     });
 }
 
+// Initialize clients
+let grokClient = null;
+let openaiClient = null;
+
 /**
  * Get the active AI client (Grok or OpenAI fallback)
+ * Returns a proxied client that automatically maps models when using Grok
  */
 export function getAIClient() {
     if (USE_GROK) {
-        if (!process.env.XAI_API_KEY) {
-            throw new Error('XAI_API_KEY environment variable is not set. Get your key from https://console.x.ai');
+        if (!grokClient) {
+            grokClient = createGrokProxyClient();
         }
-        return grok;
+        return grokClient;
     } else {
+        if (!openaiClient) {
+            openaiClient = createOpenAIClient();
+        }
         if (!openaiClient) {
             throw new Error('OpenAI fallback is enabled but OPENAI_API_KEY is not set');
         }
@@ -52,53 +119,23 @@ export function getAIClient() {
 }
 
 /**
- * Map OpenAI model names to Grok equivalents
- * 
- * @param {string} openaiModel - OpenAI model name (e.g., 'gpt-4o')
- * @returns {string} Grok model name (e.g., 'grok-3')
+ * Alias for getAIClient - for backwards compatibility
  */
-export function mapModelToGrok(openaiModel) {
-    if (!USE_GROK) {
-        return openaiModel; // Return original if using OpenAI fallback
-    }
-
-    const modelMap = {
-        'gpt-4o': 'grok-3',
-        'gpt-4o-mini': 'grok-3-mini',
-        'gpt-3.5-turbo': 'grok-3',
-        'gpt-4': 'grok-3',
-        'gpt-4-turbo': 'grok-3',
-    };
-
-    return modelMap[openaiModel] || 'grok-3'; // Default to grok-3
-}
+export const getGrokClient = getAIClient;
 
 /**
  * Create a chat completion with automatic model mapping
- * 
- * @param {object} params - OpenAI-compatible parameters
- * @returns {Promise} Chat completion response
  */
 export async function createChatCompletion(params) {
     const client = getAIClient();
-    const model = mapModelToGrok(params.model);
-
-    return client.chat.completions.create({
-        ...params,
-        model,
-    });
+    return client.chat.completions.create(params);
 }
 
 /**
- * Generate an image with Grok's image generation API
- * 
- * @param {object} params - Image generation parameters
- * @returns {Promise} Image generation response
+ * Generate an image with automatic model mapping
  */
 export async function generateImage(params) {
     const client = getAIClient();
-
-    // Grok uses the same API structure as DALL-E
     return client.images.generate(params);
 }
 
@@ -116,11 +153,5 @@ export function getProviderName() {
     return USE_GROK ? 'Grok (xAI)' : 'OpenAI';
 }
 
-/**
- * Alias for getAIClient - for backwards compatibility
- * This is the primary function that all files should use
- */
-export const getGrokClient = getAIClient;
-
-// Default export
-export default grok;
+// Default export - the Grok client with auto model mapping
+export default getAIClient();

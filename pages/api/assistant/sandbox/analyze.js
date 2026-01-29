@@ -6,14 +6,99 @@
  * - Cache repeated sandbox configs
  * - Rate-limit combinatorial exploration
  * - Block reverse-engineering attempts
+ * 
+ * NEW: Grok AI Integration (Phase 3)
+ * - Tier 3 analysis now uses Grok for intelligent reasoning
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { checkSandboxAccess } from '../../../../src/lib/personal-assistant/contextAuthority';
+import { getGrokClient } from '../../../../src/lib/grokClient';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AI-POWERED ANALYSIS (Tier 3 with Grok)
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function analyzeWithGrok(params) {
+  try {
+    const openai = getGrokClient();
+
+    const { heroHand, heroPosition, heroStack, gameType, villains, board, potSize } = params;
+
+    // Build board string
+    const boardCards = [
+      ...(board?.flop || []),
+      board?.turn,
+      board?.river
+    ].filter(Boolean);
+
+    const boardStr = boardCards.length > 0 ? boardCards.join(' ') : 'Preflop';
+    const villainDesc = villains?.map(v => `${v.archetype?.name || 'Unknown'} (${v.stack}bb)`).join(', ') || 'Unknown';
+
+    const prompt = `You are a GTO poker expert. Analyze this scenario and provide optimal action frequencies.
+
+SCENARIO:
+- Hero Hand: ${heroHand?.card1 || 'As'} ${heroHand?.card2 || 'Kd'}
+- Hero Position: ${heroPosition || 'BTN'}
+- Hero Stack: ${heroStack || 100}bb
+- Game Type: ${gameType === 'tournament' ? 'Tournament (ICM)' : 'Cash Game'}
+- Pot Size: ${potSize || 0}bb
+- Board: ${boardStr}
+- Villains: ${villainDesc}
+
+Respond in this exact JSON format:
+{
+  "primaryAction": "Bet 66% Pot",
+  "primaryFrequency": 65,
+  "alternatives": [
+    {"action": "Check", "frequency": 25},
+    {"action": "Bet 33% Pot", "frequency": 10}
+  ],
+  "whyNot": "Brief explanation why this is the GTO play",
+  "confidence": "High"
+}
+
+RULES:
+- Frequencies must sum to 100
+- Provide exactly 2 alternatives
+- Actions: Fold, Check, Call, Bet 33% Pot, Bet 66% Pot, Bet 75% Pot, Bet 100% Pot, Raise 2.5x, All-In
+- Consider stack depth, position, and villain tendencies
+- Be specific about bet sizing`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o', // Will be mapped to grok-3
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      max_tokens: 500,
+    });
+
+    const content = response.choices[0]?.message?.content || '';
+
+    // Parse JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No JSON in response');
+    }
+
+    const analysis = JSON.parse(jsonMatch[0]);
+
+    return {
+      ...analysis,
+      source: 'Grok AI Analysis',
+      street: boardCards.length === 0 ? 'preflop' :
+        boardCards.length <= 3 ? 'flop' :
+          boardCards.length === 4 ? 'turn' : 'river',
+      sensitivityFlags: heroStack < 50 ? ['stack_sensitive'] : [],
+      context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} - ${heroStack} BB - ${heroPosition} vs ${villainDesc}`,
+    };
+  } catch (error) {
+    console.error('[Sandbox] Grok analysis failed, using fallback:', error.message);
+    return null; // Fall back to rule-based
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RATE LIMITING & CACHING — Per Masterplan Section VIII
-// ═══════════════════════════════════════════════════════════════════════════
 
 // Simple in-memory cache (in production, use Redis)
 const analysisCache = new Map();
@@ -216,9 +301,9 @@ async function findSolverTemplate(supabase, params) {
   // Normalize stack depth to common ranges solvers use
   const stackDepth = heroStack <= 25 ? 20 :
     heroStack <= 35 ? 30 :
-    heroStack <= 50 ? 40 :
-    heroStack <= 75 ? 60 :
-    heroStack <= 125 ? 100 : 150;
+      heroStack <= 50 ? 40 :
+        heroStack <= 75 ? 60 :
+          heroStack <= 125 ? 100 : 150;
 
   // Determine street
   const boardCards = [
@@ -229,7 +314,7 @@ async function findSolverTemplate(supabase, params) {
 
   const street = boardCards.length === 0 ? 'preflop' :
     boardCards.length <= 3 ? 'flop' :
-    boardCards.length === 4 ? 'turn' : 'river';
+      boardCards.length === 4 ? 'turn' : 'river';
 
   // Build board texture classification for matching
   let boardTexture = null;
@@ -604,7 +689,13 @@ export default async function handler(req, res) {
 
     // Fall back to AI approximation (Tier 3) if no solver match
     if (!analysis) {
-      analysis = analyzeScenario(analysisParams);
+      // Try Grok AI analysis first (Phase 3 upgrade)
+      analysis = await analyzeWithGrok(analysisParams);
+
+      // Fall back to rule-based if Grok fails
+      if (!analysis) {
+        analysis = analyzeScenario(analysisParams);
+      }
       dataTier = 3;
     }
 

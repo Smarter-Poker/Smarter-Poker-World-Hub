@@ -26,7 +26,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 
 export default async function handler(req, res) {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = getGrokClient();
 
     const result = {
         clipLibraryLoaded,

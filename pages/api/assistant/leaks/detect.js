@@ -5,14 +5,47 @@
  * Per Masterplan Section VI:
  * - Identify statistical leaks over time, NOT single-hand mistakes
  * - A leak requires: Repetition, Same situation class, Measurable EV loss
+ * 
+ * Phase 3: Grok AI Integration for personalized fix suggestions
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { getGrokClient } from '../../../../src/lib/grokClient';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
+
+/**
+ * Generate AI-powered personalized fix suggestion for a leak
+ */
+async function generateLeakFix(leak) {
+  try {
+    const openai = getGrokClient();
+
+    const prompt = `You are a poker coach. A player has this leak:
+
+LEAK: ${leak.situation_class}
+Current Frequency: ${leak.current_frequency}%
+Optimal Range: ${leak.optimal_frequency}%
+EV Loss: ${leak.avg_ev_loss_bb} BB/100
+
+Provide a concise, actionable fix in 2-3 sentences. Focus on specific adjustments they can make.`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o', // Mapped to grok-3
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.5,
+      max_tokens: 150,
+    });
+
+    return response.choices[0]?.message?.content || null;
+  } catch (error) {
+    console.error('[LeakDetect] AI fix generation failed:', error.message);
+    return null;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LEAK DETECTION PATTERNS
