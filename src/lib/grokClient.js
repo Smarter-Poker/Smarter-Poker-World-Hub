@@ -20,6 +20,7 @@ const USE_GROK = process.env.USE_GROK_API !== 'false';
 
 /**
  * Model mapping from OpenAI to Grok
+ * Updated 2026-01-29: Using correct xAI model names
  */
 const MODEL_MAP = {
     'gpt-4o': 'grok-3',
@@ -27,9 +28,9 @@ const MODEL_MAP = {
     'gpt-3.5-turbo': 'grok-3',
     'gpt-4': 'grok-3',
     'gpt-4-turbo': 'grok-3',
-    'gpt-4-vision-preview': 'grok-2-vision-1212',
-    'dall-e-3': 'grok-2-image-1212',
-    'dall-e-2': 'grok-2-image-1212',
+    'gpt-4-vision-preview': 'grok-2-vision',
+    'dall-e-3': 'grok-2-image',
+    'dall-e-2': 'grok-2-image',
 };
 
 /**
