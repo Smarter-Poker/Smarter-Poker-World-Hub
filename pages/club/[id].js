@@ -313,7 +313,7 @@ export default function ClubPage() {
     }
 
     try {
-      const res = await fetch(`/api/captain/venues/${id}/follow`, {
+      const res = await fetch(`/api/commander/venues/${id}/follow`, {
         method: isFollowing ? 'DELETE' : 'POST',
         headers: {
           'Authorization': `Bearer ${user.token}`
@@ -506,7 +506,7 @@ export default function ClubPage() {
             {/* Left Sidebar - Live Info */}
             <div className="space-y-4">
               {/* Live Games */}
-              {venue.captain_enabled && liveGames.length > 0 && (
+              {venue.commander_enabled && liveGames.length > 0 && (
                 <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse" />
@@ -518,7 +518,7 @@ export default function ClubPage() {
                     ))}
                   </div>
                   <Link
-                    href={`/hub/captain/waitlist?venue=${id}`}
+                    href={`/hub/commander/waitlist?venue=${id}`}
                     className="block mt-3 text-center text-sm font-medium text-[#1877F2] hover:underline"
                   >
                     Join Waitlist

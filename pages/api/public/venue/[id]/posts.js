@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
     // Fetch published posts, pinned first then by date
     const { data: posts, error, count } = await supabase
-      .from('captain_venue_posts')
+      .from('commander_venue_posts')
       .select(`
         id,
         author_name,

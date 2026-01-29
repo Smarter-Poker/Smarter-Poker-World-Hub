@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     }
 
     let query = supabase
-      .from('captain_venue_photos')
+      .from('commander_venue_photos')
       .select(`
         id,
         url,

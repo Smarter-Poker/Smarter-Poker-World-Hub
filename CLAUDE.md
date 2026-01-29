@@ -4,26 +4,26 @@
 
 This is the Smarter.Poker platform - a comprehensive poker training and community application.
 
-## Key Project: Smarter Captain
+## Key Project: Club Commander
 
-**Smarter Captain** is a poker room management platform (competing with PokerAtlas TableCaptain).
+**Club Commander** is a poker room management platform (competing with PokerAtlas Table Captain).
 
-### MANDATORY: Before Working on Smarter Captain
+### MANDATORY: Before Working on Club Commander
 
 **STOP. Read these files IN ORDER before writing any code:**
 
 ```
-1. .agent/skills/smarter-captain/AGENT_INSTRUCTIONS.md  # ENFORCEMENT RULES - READ FIRST
-2. .agent/skills/smarter-captain/SKILL.md               # Overview
-3. .agent/skills/smarter-captain/IMPLEMENTATION_PHASES.md   # Step-by-step guide
-4. .agent/skills/smarter-captain/DATABASE_SCHEMA.sql    # Table structures
-5. .agent/skills/smarter-captain/API_REFERENCE.md       # Endpoint specs
-6. .agent/skills/smarter-captain/ENHANCEMENTS.md        # UI design system
+1. .agent/skills/club-commander/AGENT_INSTRUCTIONS.md  # ENFORCEMENT RULES - READ FIRST
+2. .agent/skills/club-commander/SKILL.md               # Overview
+3. .agent/skills/club-commander/IMPLEMENTATION_PHASES.md   # Step-by-step guide
+4. .agent/skills/club-commander/DATABASE_SCHEMA.sql    # Table structures
+5. .agent/skills/club-commander/API_REFERENCE.md       # Endpoint specs
+6. .agent/skills/club-commander/ENHANCEMENTS.md        # UI design system
 ```
 
 **You MUST provide the confirmation from AGENT_INSTRUCTIONS.md before starting work.**
 
-### Critical Rules for Smarter Captain
+### Critical Rules for Club Commander
 
 1. **NO EMOJIS** - Clean, professional UI only
 2. **Facebook color scheme** - Primary: #1877F2, Background: #F9FAFB
@@ -32,16 +32,16 @@ This is the Smarter.Poker platform - a comprehensive poker training and communit
 5. **Check API_REFERENCE.md** before creating/modifying endpoints
 6. **Use Inter font** for all text
 
-### Smarter Captain File Locations
+### Club Commander File Locations
 
 ```
-Skill Documents:     .agent/skills/smarter-captain/
-API Routes:          pages/api/captain/
-Player UI:           pages/hub/captain/
-Staff UI:            pages/captain/
-Components:          src/components/captain/
-State:               src/stores/captainStore.js
-Utilities:           src/lib/captain/
+Skill Documents:     .agent/skills/club-commander/
+API Routes:          pages/api/commander/
+Player UI:           pages/hub/commander/
+Staff UI:            pages/commander/
+Components:          src/components/commander/
+State:               src/stores/commanderStore.js
+Utilities:           src/lib/commander/
 ```
 
 ### Build Phases
@@ -57,7 +57,7 @@ Utilities:           src/lib/captain/
 
 ### If Unsure
 
-1. Check `.agent/skills/smarter-captain/` first
+1. Check `.agent/skills/club-commander/` first
 2. The spec is comprehensive - the answer is likely there
 3. If truly not covered, document the gap and ask
 

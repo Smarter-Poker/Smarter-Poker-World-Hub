@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
     // First get the group by club code
     const { data: group, error: groupError } = await supabase
-      .from('captain_home_groups')
+      .from('commander_home_groups')
       .select('id, is_private')
       .eq('club_code', code)
       .eq('is_active', true)
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
     // Only return public posts
     const { data: posts, error, count } = await supabase
-      .from('captain_home_posts')
+      .from('commander_home_posts')
       .select(`
         id,
         content,

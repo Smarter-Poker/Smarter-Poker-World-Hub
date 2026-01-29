@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     }
 
     let query = supabase
-      .from('captain_venue_reviews')
+      .from('commander_venue_reviews')
       .select(`
         id,
         overall_rating,
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
 
     // Calculate rating distribution
     const { data: allReviews } = await supabase
-      .from('captain_venue_reviews')
+      .from('commander_venue_reviews')
       .select('overall_rating')
       .eq('venue_id', id)
       .eq('is_published', true);

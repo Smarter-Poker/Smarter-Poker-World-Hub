@@ -56,7 +56,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
     "Cyberpunk hacker with neon visor",
     "Ancient samurai with katana",
     "Space explorer in futuristic suit",
-    "Pirate captain with treasure map"
+    "Pirate commander with treasure map"
   ];
 
   // Matrix rain effect - vertical falling columns like the movie
