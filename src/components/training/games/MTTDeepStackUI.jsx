@@ -1,156 +1,171 @@
 /**
- * 🎯 MTT DEEP STACK UI — Game-Specific Training Component
+ * 🎯 MTT DEEP STACK UI — Template-Based Training Layout
  * ═══════════════════════════════════════════════════════════════════════════
- * Specialized UI for mtt-007: Deep Stack MTT training
- * 
- * Features:
- * - Stack depth visualizer (100-150bb)
- * - Position indicator
- * - Pot size display
- * - Board texture analyzer
- * - Range advantage indicator
+ * Layout Structure (matching template):
+ * 1. Blue question bar at top
+ * 2. Poker table visual in center with player stacks
+ * 3. Hero labeled as "Hero X BB" (using actual data)
+ * 4. 2x2 answer grid at bottom
+ * 5. Timer on left, "Question X of 25" on right
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useTrainingSettings } from '../../../contexts/TrainingSettingsContext';
 
-export default function MTTDeepStackUI({ question, onAnswer, showFeedback, feedbackResult }) {
+export default function MTTDeepStackUI({
+    question,
+    questionNumber = 1,
+    totalQuestions = 25,
+    onAnswer,
+    showFeedback,
+    feedbackResult
+}) {
+    const [selectedAnswer, setSelectedAnswer] = useState(null);
+    const [timeLeft, setTimeLeft] = useState(30); // 30 second timer
+    const { viewMode } = useTrainingSettings();
+
     if (!question) return null;
 
-    // Parse question data - handle both formats
+    // Parse question data
     const {
         scenario,
         question: questionText,
         options = [],
         correctAnswer,
-        explanation,
-        metadata = {}
+        explanation
     } = question;
 
-    // Format scenario - handle both string and object formats
-    let scenarioText = "";
-    if (typeof scenario === 'string') {
-        scenarioText = scenario;
-    } else if (typeof scenario === 'object' && scenario !== null) {
-        // Format object scenario into readable text
-        const {
-            heroPosition,
-            heroStack,
-            gameType,
-            heroHand,
-            board,
-            pot,
-            villainPosition,
-            villainStack,
-            action
-        } = scenario;
+    // Extract scenario data
+    const heroStack = scenario?.heroStack || 150;
+    const heroPosition = scenario?.heroPosition || 'BTN';
+    const heroHand = scenario?.heroHand || 'AK';
+    const board = scenario?.board || '';
+    const pot = scenario?.pot || 0;
+    const villainPosition = scenario?.villainPosition || 'BB';
+    const villainStack = scenario?.villainStack || 100;
+    const action = scenario?.action || '';
+    const gameType = scenario?.gameType || '9-Max Tournament (MTT)';
 
-        scenarioText = `${gameType || 'MTT'} - ${heroStack}bb effective\n` +
-            `Hero (${heroPosition}): ${heroHand || 'Unknown'}\n` +
-            `Villain (${villainPosition}): ${villainStack}bb\n` +
-            `Board: ${board || 'Preflop'}\n` +
-            `Pot: ${pot}bb\n` +
-            `Action: ${action || 'No action yet'}`;
-    } else {
-        scenarioText = questionText || "No scenario available";
-    }
+    // Format question text for blue bar
+    const formatQuestionText = () => {
+        if (typeof scenario === 'string') return scenario;
 
-    // Extract metadata with safe defaults
-    const {
-        stackSize = scenario?.heroStack || 120,
-        position = scenario?.heroPosition || 'BTN',
-        potSize = scenario?.pot || 15,
-        boardTexture = scenario?.board || 'Dry',
-        effectiveStack = stackSize || scenario?.heroStack || 120
-    } = metadata;
+        // Build question from scenario data
+        const posLabel = viewMode === 'standard' ? 'Your Position' : 'Position';
+        const stackLabel = viewMode === 'standard' ? 'Your Stack' : 'Hero';
 
-    // Calculate stack depth category
-    const getStackCategory = (bb) => {
-        if (bb < 50) return { label: 'SHORT', color: '#ef4444' };
-        if (bb < 100) return { label: 'MEDIUM', color: '#f59e0b' };
-        return { label: 'DEEP', color: '#22c55e' };
+        return questionText || `${posLabel}: ${heroPosition}. ${action}. What Is Your Best Move?`;
     };
 
-    const stackCategory = getStackCategory(effectiveStack);
+    const handleAnswer = (optionLetter) => {
+        if (showFeedback) return;
+        setSelectedAnswer(optionLetter);
+        onAnswer(optionLetter);
+    };
+
+    const getButtonStyle = (optionLetter) => {
+        let style = { ...styles.answerButton };
+
+        if (showFeedback) {
+            if (optionLetter === correctAnswer) {
+                style = { ...style, ...styles.answerButtonCorrect };
+            } else if (optionLetter === selectedAnswer) {
+                style = { ...style, ...styles.answerButtonWrong };
+            }
+        } else if (optionLetter === selectedAnswer) {
+            style = { ...style, ...styles.answerButtonSelected };
+        }
+
+        return style;
+    };
 
     return (
         <div style={styles.container}>
-            {/* Stack Visualizer */}
-            <div style={styles.stackSection}>
-                <div style={styles.stackLabel}>Effective Stack</div>
-                <div style={styles.stackDisplay}>
-                    <span style={{ ...styles.stackValue, color: stackCategory.color }}>
-                        {effectiveStack}bb
-                    </span>
-                    <span style={{ ...styles.stackCategory, background: stackCategory.color }}>
-                        {stackCategory.label}
-                    </span>
+            {/* Question Bar (Blue) - TOP */}
+            <div style={styles.questionBar}>
+                {formatQuestionText()}
+            </div>
+
+            {/* Poker Table Visual - CENTER */}
+            <div style={styles.tableContainer}>
+                {/* Table Background */}
+                <div style={styles.pokerTable}>
+                    {/* Pot Display */}
+                    {pot > 0 && (
+                        <div style={styles.potDisplay}>
+                            <div style={styles.potLabel}>POT: {pot}</div>
+                        </div>
+                    )}
+
+                    {/* Board Cards (if available) */}
+                    {board && (
+                        <div style={styles.boardDisplay}>
+                            <div style={styles.boardLabel}>Blind vs Blind</div>
+                            <div style={styles.boardSubtext}>Smarter.Poker</div>
+                        </div>
+                    )}
+
+                    {/* Villain Players (simplified - showing key villain) */}
+                    <div style={styles.villainContainer}>
+                        <div style={styles.playerBox}>
+                            <div style={styles.playerAvatar}>🎩</div>
+                            <div style={styles.playerLabel}>
+                                <div style={styles.playerName}>Villain {villainPosition}</div>
+                                <div style={styles.playerStack}>{villainStack} BB</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Hero (Bottom Center) */}
+                    <div style={styles.heroContainer}>
+                        <div style={styles.heroBox}>
+                            <div style={styles.heroAvatar}>👤</div>
+                            <div style={styles.heroLabel}>
+                                <div style={styles.heroName}>Hero</div>
+                                <div style={styles.heroStack}>{heroStack} BB</div>
+                            </div>
+                        </div>
+                        {/* Hero Cards */}
+                        {heroHand && (
+                            <div style={styles.heroCards}>
+                                {heroHand.split('').map((card, i) => (
+                                    <div key={i} style={styles.card}>
+                                        <span style={styles.cardRank}>{card}</span>
+                                        <span style={styles.cardSuit}>♥</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* Stack Depth Bar */}
-                <div style={styles.stackBar}>
-                    <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min((effectiveStack / 150) * 100, 100)}%` }}
-                        transition={{ duration: 0.8, ease: 'easeOut' }}
-                        style={{ ...styles.stackFill, background: stackCategory.color }}
-                    />
+                {/* Timer (Left) and Question Counter (Right) */}
+                <div style={styles.bottomRow}>
+                    <div style={styles.timer}>{timeLeft}</div>
+                    <div style={styles.questionCounter}>
+                        Question {questionNumber} of {totalQuestions}
+                    </div>
                 </div>
             </div>
 
-            {/* Game Info Row */}
-            <div style={styles.infoRow}>
-                <div style={styles.infoChip}>
-                    <span style={styles.infoLabel}>Position</span>
-                    <span style={styles.infoValue}>{position}</span>
-                </div>
-                <div style={styles.infoChip}>
-                    <span style={styles.infoLabel}>Pot</span>
-                    <span style={styles.infoValue}>{potSize}bb</span>
-                </div>
-                <div style={styles.infoChip}>
-                    <span style={styles.infoLabel}>Board</span>
-                    <span style={styles.infoValue}>{boardTexture}</span>
-                </div>
-            </div>
-
-            {/* Scenario Text */}
-            <div style={styles.scenarioBox}>
-                <div style={styles.scenarioLabel}>Scenario</div>
-                <p style={{ ...styles.scenarioText, whiteSpace: 'pre-line' }}>{scenarioText}</p>
-            </div>
-
-            {/* Answer Options */}
-            <div style={styles.optionsContainer}>
-                {Array.isArray(options) && options.map((option, index) => {
-                    // Handle both string array and object array formats
-                    const optionText = typeof option === 'string' ? option : (option.text || option.label || 'Unknown');
-                    const optionId = typeof option === 'object' && option.id ? option.id : String.fromCharCode(65 + index);
+            {/* Answer Grid (2x2) - BOTTOM */}
+            <div style={styles.answersGrid}>
+                {options.map((option, index) => {
                     const optionLetter = String.fromCharCode(65 + index); // A, B, C, D
-                    const isCorrect = optionLetter === correctAnswer || optionId === correctAnswer;
-                    const isSelected = showFeedback; // Simplified for now
-
-                    let optionStyle = styles.option;
-                    if (showFeedback) {
-                        if (isCorrect) {
-                            optionStyle = { ...styles.option, ...styles.optionCorrect };
-                        } else if (feedbackResult === 'wrong') {
-                            optionStyle = { ...styles.option, ...styles.optionWrong };
-                        }
-                    }
+                    const optionText = typeof option === 'string' ? option : (option.text || option.label || 'Unknown');
 
                     return (
                         <motion.button
                             key={index}
-                            onClick={() => !showFeedback && onAnswer(optionLetter)}
+                            onClick={() => handleAnswer(optionLetter)}
                             disabled={showFeedback}
-                            style={optionStyle}
+                            style={getButtonStyle(optionLetter)}
                             whileHover={!showFeedback ? { scale: 1.02 } : {}}
                             whileTap={!showFeedback ? { scale: 0.98 } : {}}
                         >
-                            <span style={styles.optionLetter}>{optionLetter}</span>
-                            <span style={styles.optionText}>{optionText}</span>
+                            {optionText}
                         </motion.button>
                     );
                 })}
@@ -174,198 +189,315 @@ export default function MTTDeepStackUI({ question, onAnswer, showFeedback, feedb
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STYLES
+// STYLES - Matching Template Layout
 // ═══════════════════════════════════════════════════════════════════════════
 
 const styles = {
     container: {
         width: '100%',
-        maxWidth: 700,
-        margin: '0 auto',
-        padding: 20,
-        fontFamily: "'Inter', sans-serif",
-    },
-
-    // Stack Visualizer
-    stackSection: {
-        marginBottom: 24,
-        padding: 20,
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6))',
-        borderRadius: 16,
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-    },
-
-    stackLabel: {
-        fontSize: 11,
-        fontWeight: 700,
-        color: '#94a3b8',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: 8,
-    },
-
-    stackDisplay: {
+        height: '100vh',
         display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 12,
-    },
-
-    stackValue: {
-        fontSize: 32,
-        fontWeight: 900,
-        fontFamily: "'Orbitron', sans-serif",
-    },
-
-    stackCategory: {
-        padding: '4px 12px',
-        borderRadius: 12,
-        fontSize: 10,
-        fontWeight: 800,
-        color: '#fff',
-        letterSpacing: 0.5,
-    },
-
-    stackBar: {
-        width: '100%',
-        height: 8,
-        background: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 4,
+        flexDirection: 'column',
+        background: '#000',
+        fontFamily: "'Inter', sans-serif",
         overflow: 'hidden',
     },
 
-    stackFill: {
-        height: '100%',
-        borderRadius: 4,
+    // Question Bar (Blue) - TOP
+    questionBar: {
+        width: '100%',
+        padding: '16px 24px',
+        background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)',
+        color: '#00d4ff',
+        fontSize: '16px',
+        fontWeight: '600',
+        textAlign: 'center',
+        borderBottom: '2px solid rgba(0, 212, 255, 0.3)',
     },
 
-    // Info Row
-    infoRow: {
-        display: 'flex',
-        gap: 12,
-        marginBottom: 24,
-    },
-
-    infoChip: {
+    // Poker Table - CENTER
+    tableContainer: {
         flex: 1,
-        padding: '12px 16px',
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 12,
-        border: '1px solid rgba(255, 255, 255, 0.1)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 4,
-    },
-
-    infoLabel: {
-        fontSize: 10,
-        fontWeight: 600,
-        color: '#94a3b8',
-        textTransform: 'uppercase',
-    },
-
-    infoValue: {
-        fontSize: 16,
-        fontWeight: 700,
-        color: '#fff',
-    },
-
-    // Scenario
-    scenarioBox: {
-        padding: 20,
-        background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05))',
-        borderRadius: 12,
-        border: '1px solid rgba(59, 130, 246, 0.3)',
-        marginBottom: 24,
-    },
-
-    scenarioLabel: {
-        fontSize: 11,
-        fontWeight: 700,
-        color: '#60a5fa',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: 8,
-    },
-
-    scenarioText: {
-        fontSize: 15,
-        lineHeight: 1.6,
-        color: '#e2e8f0',
-        margin: 0,
-    },
-
-    // Options
-    optionsContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        marginBottom: 24,
-    },
-
-    option: {
-        display: 'flex',
+        justifyContent: 'center',
         alignItems: 'center',
-        gap: 16,
-        padding: '16px 20px',
-        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.6))',
-        border: '2px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: 12,
-        cursor: 'pointer',
-        transition: 'all 0.2s',
-        textAlign: 'left',
+        padding: '20px',
+        position: 'relative',
     },
 
-    optionCorrect: {
-        background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.1))',
-        border: '2px solid #22c55e',
-    },
-
-    optionWrong: {
-        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1))',
-        border: '2px solid #ef4444',
-    },
-
-    optionLetter: {
-        width: 32,
-        height: 32,
+    pokerTable: {
+        width: '90%',
+        maxWidth: '800px',
+        aspectRatio: '16/10',
+        background: 'radial-gradient(ellipse at center, #1a4d2e 0%, #0d2818 100%)',
+        borderRadius: '50%',
+        border: '8px solid #d4af37',
+        boxShadow: '0 0 40px rgba(212, 175, 55, 0.3), inset 0 0 60px rgba(0,0,0,0.5)',
+        position: 'relative',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 8,
-        fontSize: 14,
-        fontWeight: 800,
-        color: '#fff',
-        flexShrink: 0,
     },
 
-    optionText: {
-        fontSize: 14,
-        fontWeight: 500,
-        color: '#e2e8f0',
-        flex: 1,
+    // Pot Display (Center)
+    potDisplay: {
+        position: 'absolute',
+        top: '30%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 2,
+    },
+
+    potLabel: {
+        background: 'rgba(0,0,0,0.8)',
+        color: '#fff',
+        padding: '6px 12px',
+        borderRadius: '20px',
+        fontSize: '14px',
+        fontWeight: '700',
+        border: '1px solid rgba(255,255,255,0.3)',
+    },
+
+    // Board Display
+    boardDisplay: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        textAlign: 'center',
+        zIndex: 1,
+    },
+
+    boardLabel: {
+        color: '#fff',
+        fontSize: '18px',
+        fontWeight: '700',
+        marginBottom: '4px',
+    },
+
+    boardSubtext: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: '12px',
+    },
+
+    // Villain Container (Top)
+    villainContainer: {
+        position: 'absolute',
+        top: '10%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+    },
+
+    playerBox: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '8px',
+    },
+
+    playerAvatar: {
+        width: '60px',
+        height: '60px',
+        borderRadius: '50%',
+        background: 'linear-gradient(135deg, #4a5568, #2d3748)',
+        border: '3px solid #d4af37',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '32px',
+    },
+
+    playerLabel: {
+        background: 'rgba(212, 175, 55, 0.9)',
+        padding: '6px 12px',
+        borderRadius: '8px',
+        border: '2px solid #d4af37',
+        textAlign: 'center',
+    },
+
+    playerName: {
+        color: '#000',
+        fontSize: '12px',
+        fontWeight: '700',
+    },
+
+    playerStack: {
+        color: '#000',
+        fontSize: '14px',
+        fontWeight: '900',
+    },
+
+    // Hero Container (Bottom)
+    heroContainer: {
+        position: 'absolute',
+        bottom: '5%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '12px',
+    },
+
+    heroBox: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '8px',
+    },
+
+    heroAvatar: {
+        width: '70px',
+        height: '70px',
+        borderRadius: '50%',
+        background: 'linear-gradient(135deg, #3b82f6, #1e40af)',
+        border: '3px solid #d4af37',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '36px',
+    },
+
+    heroLabel: {
+        background: 'rgba(212, 175, 55, 0.95)',
+        padding: '8px 16px',
+        borderRadius: '8px',
+        border: '2px solid #d4af37',
+        textAlign: 'center',
+    },
+
+    heroName: {
+        color: '#000',
+        fontSize: '14px',
+        fontWeight: '700',
+    },
+
+    heroStack: {
+        color: '#000',
+        fontSize: '16px',
+        fontWeight: '900',
+    },
+
+    // Hero Cards
+    heroCards: {
+        display: 'flex',
+        gap: '8px',
+    },
+
+    card: {
+        width: '50px',
+        height: '70px',
+        background: '#fff',
+        borderRadius: '6px',
+        border: '2px solid #000',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+    },
+
+    cardRank: {
+        fontSize: '24px',
+        fontWeight: '900',
+        color: '#e41e3f',
+    },
+
+    cardSuit: {
+        fontSize: '20px',
+        color: '#e41e3f',
+    },
+
+    // Bottom Row (Timer + Question Counter)
+    bottomRow: {
+        width: '90%',
+        maxWidth: '800px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: '20px',
+    },
+
+    timer: {
+        width: '60px',
+        height: '60px',
+        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+        border: '3px solid #fca5a5',
+        borderRadius: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '28px',
+        fontWeight: '900',
+        color: '#fff',
+    },
+
+    questionCounter: {
+        background: 'rgba(0,0,0,0.8)',
+        color: '#fff',
+        padding: '12px 20px',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: '600',
+        border: '1px solid rgba(255,255,255,0.3)',
+    },
+
+    // Answer Grid (2x2) - BOTTOM
+    answersGrid: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '12px',
+        padding: '20px',
+        background: 'rgba(0,0,0,0.5)',
+        borderTop: '2px solid rgba(255,255,255,0.1)',
+    },
+
+    answerButton: {
+        padding: '20px',
+        background: 'linear-gradient(135deg, #1e40af, #1e3a8a)',
+        border: '2px solid #3b82f6',
+        borderRadius: '12px',
+        color: '#fff',
+        fontSize: '16px',
+        fontWeight: '600',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        textAlign: 'center',
+    },
+
+    answerButtonSelected: {
+        background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+        border: '2px solid #a855f7',
+    },
+
+    answerButtonCorrect: {
+        background: 'linear-gradient(135deg, #16a34a, #15803d)',
+        border: '2px solid #22c55e',
+    },
+
+    answerButtonWrong: {
+        background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+        border: '2px solid #ef4444',
     },
 
     // Explanation
     explanationBox: {
-        padding: 20,
-        background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(147, 51, 234, 0.05))',
-        borderRadius: 12,
-        border: '1px solid rgba(168, 85, 247, 0.3)',
+        padding: '20px',
+        background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(147, 51, 234, 0.1))',
+        borderTop: '2px solid rgba(168, 85, 247, 0.5)',
+        color: '#e2e8f0',
     },
 
     explanationLabel: {
-        fontSize: 13,
-        fontWeight: 700,
-        color: '#a78bfa',
-        marginBottom: 8,
+        fontSize: '16px',
+        fontWeight: '700',
+        marginBottom: '8px',
     },
 
     explanationText: {
-        fontSize: 14,
+        fontSize: '14px',
         lineHeight: 1.6,
-        color: '#e2e8f0',
         margin: 0,
     },
 };

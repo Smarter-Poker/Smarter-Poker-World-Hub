@@ -516,6 +516,9 @@ export default function TrainingPage() {
     });
     const introVideoRef = useRef(null);
 
+    // 🎛️ SETTINGS MENU STATE
+    const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+
     // Mark intro as seen when it ends
     const handleIntroEnd = useCallback(() => {
         sessionStorage.setItem('training-intro-seen', 'true');
@@ -784,8 +787,16 @@ export default function TrainingPage() {
                     />
 
                     <div className="training-page" style={styles.page}>
-                        {/* Fixed Header - Universal Header with Hub navigation */}
-                        <UniversalHeader pageDepth={1} />
+                        {/* Fixed Header - Universal Header with Hub navigation + Settings Menu */}
+                        <UniversalHeader
+                            pageDepth={1}
+                            onMenuClick={() => setShowSettingsMenu(true)}
+                        />
+
+                        {/* Training Settings Drawer */}
+                        {showSettingsMenu && (
+                            <TrainingSettingsMenu onClose={() => setShowSettingsMenu(false)} />
+                        )}
 
                         {/* Promo/Ad Section */}
                         <PromoSection onPlayFeatured={handlePlayFeatured} />
