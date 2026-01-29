@@ -541,35 +541,54 @@ export default function ProfilePage() {
 
         setMessage('Uploading cover photo...');
 
-        const fileExt = file.name.split('.').pop();
-        const filePath = `${user.id}/cover.${fileExt}`;
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `cover-${Date.now()}.${fileExt}`;
+            const filePath = `${user.id}/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(filePath, file, { upsert: true });
+            // Use FormData for upload to avoid abort signal issues
+            const formData = new FormData();
+            formData.append('file', file);
 
-        if (uploadError) {
-            setMessage('Error uploading cover photo: ' + uploadError.message);
-            console.error('Upload error:', uploadError);
-            return;
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+            const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+
+            // Upload using fetch to avoid abort signal issues
+            const uploadResponse = await fetch(`${supabaseUrl}/storage/v1/object/avatars/${filePath}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${supabaseKey}`,
+                    'apikey': supabaseKey,
+                },
+                body: formData
+            });
+
+            if (!uploadResponse.ok) {
+                const errorData = await uploadResponse.json();
+                throw new Error(errorData.message || 'Upload failed');
+            }
+
+            // Get public URL
+            const publicUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${filePath}`;
+
+            // Update database
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ cover_photo_url: publicUrl, updated_at: new Date().toISOString() })
+                .eq('id', user.id);
+
+            if (updateError) {
+                setMessage('Error saving cover photo: ' + updateError.message);
+                console.error('Save error:', updateError);
+                return;
+            }
+
+            setProfile(prev => ({ ...prev, cover_photo_url: publicUrl }));
+            setMessage('✓ Cover photo saved!');
+        } catch (error) {
+            setMessage('Error uploading cover photo: ' + error.message);
+            console.error('Upload error:', error);
         }
-
-        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-
-        // Auto-save to database immediately
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ cover_photo_url: publicUrl, updated_at: new Date().toISOString() })
-            .eq('id', user.id);
-
-        if (updateError) {
-            setMessage('Error saving cover photo: ' + updateError.message);
-            console.error('Save error:', updateError);
-            return;
-        }
-
-        setProfile(prev => ({ ...prev, cover_photo_url: publicUrl }));
-        setMessage('✓ Cover photo saved!');
     };
 
     const handleCoverPhotoRemove = async (e) => {
@@ -718,7 +737,7 @@ export default function ProfilePage() {
                         height: 200,
                         background: profile.cover_photo_url
                             ? `url(${profile.cover_photo_url}) center/cover no-repeat`
-                            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            : '#E5E7EB',
                         position: 'relative',
                         cursor: 'pointer'
                     }}
