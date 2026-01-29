@@ -97,73 +97,57 @@ export default async function handler(req, res) {
         } else {
             console.log('[Training] ⚠️ No cached questions found, will try Grok');
         }
-                .limit(10); // Get 10 random candidates
-
-        if (cachedQuestions && cachedQuestions.length > 0) {
-            // Pick random question from cache
-            const randomIndex = Math.floor(Math.random() * cachedQuestions.length);
-            question = cachedQuestions[randomIndex].question_data;
-
-            // Increment times_used counter
-            await supabase
-                .from('training_question_cache')
-                .update({ times_used: supabase.raw('times_used + 1') })
-                .eq('question_id', cachedQuestions[randomIndex].question_id);
-
-            console.log('[Training] ✅ Loaded from cache:', question.question);
-        }
-    }
 
         // ═══════════════════════════════════════════════════════════════════
         // STEP 4: GENERATE WITH GROK AI (Last Resort)
         // ═══════════════════════════════════════════════════════════════════
         if (!question) {
-        console.log('[Training] 💡 No cached question found, generating with Grok AI...');
-        question = await generateQuestionWithGrok(gameId, engineType, level, gameType, game, gameConfig);
+            console.log('[Training] 💡 No cached question found, generating with Grok AI...');
+            question = await generateQuestionWithGrok(gameId, engineType, level, gameType, game, gameConfig);
 
-        // Save to cache for future use
-        if (question) {
-            try {
-                await supabase
-                    .from('training_question_cache')
-                    .insert({
-                        question_id: question.id,
-                        game_id: gameId,
-                        engine_type: engineType.toUpperCase(),
-                        game_type: gameType,
-                        level: parseInt(level),
-                        question_data: question,
-                        times_used: 1,
-                    });
-                console.log('[Training] 💾 Saved to cache:', question.id);
-            } catch (cacheError) {
-                // Ignore duplicate errors (question already cached)
-                if (!cacheError.message?.includes('duplicate')) {
-                    console.error('[Training] ⚠️ Cache save failed:', cacheError.message);
+            // Save to cache for future use
+            if (question) {
+                try {
+                    await supabase
+                        .from('training_question_cache')
+                        .insert({
+                            question_id: question.id,
+                            game_id: gameId,
+                            engine_type: engineType.toUpperCase(),
+                            game_type: gameType,
+                            level: parseInt(level),
+                            question_data: question,
+                            times_used: 1,
+                        });
+                    console.log('[Training] 💾 Saved to cache:', question.id);
+                } catch (cacheError) {
+                    // Ignore duplicate errors (question already cached)
+                    if (!cacheError.message?.includes('duplicate')) {
+                        console.error('[Training] ⚠️ Cache save failed:', cacheError.message);
+                    }
                 }
             }
         }
-    }
 
-    if (!question) {
-        return res.status(404).json({
-            error: 'No questions available',
-            message: 'All questions for this game have been completed'
+        if (!question) {
+            return res.status(404).json({
+                error: 'No questions available',
+                message: 'All questions for this game have been completed'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            question,
+            level: parseInt(level),
+            passThreshold: TRAINING_CONFIG.passThresholds[level] || 85,
+            gameType, // Return game type for debugging
         });
+
+    } catch (error) {
+        console.error('[Training] ❌ Get question error:', error);
+        return res.status(500).json({ error: error.message });
     }
-
-    return res.status(200).json({
-        success: true,
-        question,
-        level: parseInt(level),
-        passThreshold: TRAINING_CONFIG.passThresholds[level] || 85,
-        gameType, // Return game type for debugging
-    });
-
-} catch (error) {
-    console.error('[Training] ❌ Get question error:', error);
-    return res.status(500).json({ error: error.message });
-}
 }
 
 /**
