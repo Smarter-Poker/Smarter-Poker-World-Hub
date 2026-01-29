@@ -7,15 +7,36 @@
  * 2. Ready popup shows with game title, description, and "Ready" button
  * 3. User clicks "Ready" to start the game
  * 
+ * PRELOAD: Arena page is prefetched during video to eliminate loading screens
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/router';
 
 export default function GameIntroSplash({ isVisible, game, onComplete }) {
+    const router = useRouter();
     const videoRef = useRef(null);
     const [phase, setPhase] = useState('video'); // 'video' | 'ready'
+
+    // 🚀 PRELOAD: Start loading the arena page as soon as video begins
+    useEffect(() => {
+        if (isVisible && game?.id) {
+            // Prefetch the play page route during video playback
+            const playRoute = `/hub/training/play/${game.id}`;
+            console.log('🎬 Prefetching arena page:', playRoute);
+            router.prefetch(playRoute);
+
+            // Also prefetch the arena routes
+            router.prefetch(`/hub/training/arena/${game.id}`);
+
+            // Fetch the first question in the background to warm up the API
+            fetch(`/api/training/get-question?gameId=${game.id}&engineType=PIO&level=1`)
+                .then(() => console.log('✅ Question API warmed up'))
+                .catch(() => { }); // Silently fail
+        }
+    }, [isVisible, game?.id, router]);
 
     useEffect(() => {
         if (isVisible) {
@@ -24,11 +45,23 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
 
             if (videoRef.current) {
                 videoRef.current.currentTime = 0;
-                videoRef.current.play().catch(err => {
-                    console.warn('Video autoplay blocked:', err);
-                    // If autoplay is blocked, skip to ready popup
-                    setPhase('ready');
-                });
+                // Start muted to ensure autoplay works, then try to unmute
+                videoRef.current.muted = true;
+                videoRef.current.play()
+                    .then(() => {
+                        console.log('🎬 Video playing, attempting unmute...');
+                        // Try to unmute after playback starts (user interaction may be needed)
+                        setTimeout(() => {
+                            if (videoRef.current) {
+                                videoRef.current.muted = false;
+                            }
+                        }, 100);
+                    })
+                    .catch(err => {
+                        console.warn('Video autoplay blocked:', err);
+                        // If autoplay is blocked, skip to ready popup
+                        setPhase('ready');
+                    });
             }
         }
     }, [isVisible]);
@@ -84,7 +117,8 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
                                 style={styles.video}
                                 onEnded={handleVideoEnd}
                                 onError={handleVideoError}
-                                muted={false}
+                                autoPlay
+                                muted
                                 playsInline
                                 preload="auto"
                             />
