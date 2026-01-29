@@ -186,13 +186,13 @@ export default async function handler(req, res) {
             if (postsAttempted >= CONFIG.HORSES_PER_TRIGGER) break;
 
             // Check if horse should post today
-            if (!shouldHorseBeActive(horse.id)) {
+            if (!shouldHorseBeActive(horse.profile_id)) {
                 console.log(`${horse.name} has a quiet day today, skipping`);
                 continue;
             }
 
             // Check if it's an active hour for this horse
-            if (!isHorseActiveHour(horse.id)) {
+            if (!isHorseActiveHour(horse.profile_id)) {
                 console.log(`${horse.name} not active this hour, skipping`);
                 continue;
             }
