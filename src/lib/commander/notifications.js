@@ -1,32 +1,11 @@
 /**
- * Commander Notifications Service - Twilio SMS Integration
+ * Commander Notifications Service - SMS Integration
  * Reference: IMPLEMENTATION_PHASES.md - Step 1.6
+ *
+ * Delegates SMS sending to the shared twilio.js module to avoid
+ * duplicate client initialization.
  */
-
-// Twilio client initialization
-let twilioClient = null;
-
-function getTwilioClient() {
-  if (!twilioClient) {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-    if (!accountSid || !authToken) {
-      console.warn('Twilio credentials not configured');
-      return null;
-    }
-
-    try {
-      const twilio = require('twilio');
-      twilioClient = twilio(accountSid, authToken);
-    } catch (error) {
-      console.error('Failed to initialize Twilio client:', error);
-      return null;
-    }
-  }
-
-  return twilioClient;
-}
+import { sendSMS, isTwilioConfigured } from './twilio';
 
 /**
  * Send SMS notification for seat availability
@@ -55,52 +34,25 @@ export async function sendTournamentNotification(phone, venue, tournament, minut
 
 /**
  * Send custom SMS notification
+ * Delegates to shared twilio.js module.
  * @param {string} phone - Phone number
  * @param {string} message - Message content
  * @returns {Promise<object>} - Message result
  */
 export async function sendSms(phone, message) {
-  const client = getTwilioClient();
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
-
-  if (!client || !fromNumber) {
-    console.warn('SMS not sent - Twilio not configured');
-    return {
-      success: false,
-      error: 'SMS service not configured',
-      mock: true
-    };
+  const normalizedPhone = normalizePhoneNumber(phone);
+  if (!normalizedPhone) {
+    return { success: false, error: 'Invalid phone number format' };
   }
-
-  try {
-    // Normalize phone number
-    const normalizedPhone = normalizePhoneNumber(phone);
-
-    if (!normalizedPhone) {
-      return {
-        success: false,
-        error: 'Invalid phone number format'
-      };
-    }
-
-    const result = await client.messages.create({
-      body: message,
-      from: fromNumber,
-      to: normalizedPhone
-    });
-
-    return {
-      success: true,
-      messageId: result.sid,
-      status: result.status
-    };
-  } catch (error) {
-    console.error('SMS send error:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
+  const result = await sendSMS(normalizedPhone, message);
+  // Map twilio.js response format to notifications format for backward compatibility
+  return {
+    success: result.success,
+    messageId: result.messageId || undefined,
+    status: result.status || undefined,
+    error: result.reason || undefined,
+    mock: !isTwilioConfigured() || undefined
+  };
 }
 
 /**
@@ -128,15 +80,11 @@ export function normalizePhoneNumber(phone) {
 }
 
 /**
- * Check if Twilio is configured
+ * Check if SMS/Twilio is configured
  * @returns {boolean}
  */
 export function isSmsConfigured() {
-  return !!(
-    process.env.TWILIO_ACCOUNT_SID &&
-    process.env.TWILIO_AUTH_TOKEN &&
-    process.env.TWILIO_PHONE_NUMBER
-  );
+  return isTwilioConfigured();
 }
 
 /**

@@ -4,6 +4,7 @@
  * Reference: API_REFERENCE.md - Staff Management section
  */
 import { createClient } from '@supabase/supabase-js';
+import { verifyManagerSession } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,43 +12,6 @@ const supabase = createClient(
 );
 
 const VALID_ROLES = ['owner', 'manager', 'floor', 'brush', 'dealer'];
-const MANAGER_ROLES = ['owner', 'manager'];
-
-async function verifyManagerAuth(req, venueId) {
-  const staffSession = req.headers['x-staff-session'];
-  if (!staffSession) {
-    return { error: { status: 401, code: 'AUTH_REQUIRED', message: 'Staff authentication required' } };
-  }
-
-  let sessionData;
-  try {
-    sessionData = JSON.parse(staffSession);
-  } catch {
-    return { error: { status: 401, code: 'INVALID_SESSION', message: 'Invalid session format' } };
-  }
-
-  const { data: staff, error: staffError } = await supabase
-    .from('commander_staff')
-    .select('id, venue_id, role, is_active')
-    .eq('id', sessionData.id)
-    .eq('is_active', true)
-    .single();
-
-  if (staffError || !staff) {
-    return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff member not found or inactive' } };
-  }
-
-  // Verify staff belongs to this venue and has manager role
-  if (venueId && staff.venue_id !== parseInt(venueId)) {
-    return { error: { status: 403, code: 'FORBIDDEN', message: 'Not authorized for this venue' } };
-  }
-
-  if (!MANAGER_ROLES.includes(staff.role)) {
-    return { error: { status: 403, code: 'FORBIDDEN', message: 'Manager role required' } };
-  }
-
-  return { staff };
-}
 
 export default async function handler(req, res) {
   switch (req.method) {
@@ -75,7 +39,7 @@ async function handleGet(req, res) {
     }
 
     // Verify manager authentication
-    const authResult = await verifyManagerAuth(req, venue_id);
+    const authResult = await verifyManagerSession(req, venue_id);
     if (authResult.error) {
       return res.status(authResult.error.status).json({
         success: false,
@@ -123,7 +87,7 @@ async function handlePost(req, res) {
     const { venue_id: bodyVenueId } = req.body;
 
     // Verify manager authentication
-    const authResult = await verifyManagerAuth(req, bodyVenueId);
+    const authResult = await verifyManagerSession(req, bodyVenueId);
     if (authResult.error) {
       return res.status(authResult.error.status).json({
         success: false,

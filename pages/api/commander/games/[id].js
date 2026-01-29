@@ -4,6 +4,7 @@
  * Reference: API_REFERENCE.md - Games section
  */
 import { createClient } from '@supabase/supabase-js';
+import { verifyStaffSession } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,33 +12,6 @@ const supabase = createClient(
 );
 
 const VALID_STATUSES = ['waiting', 'running', 'breaking', 'closed'];
-
-async function verifyStaffAuth(req) {
-  const staffSession = req.headers['x-staff-session'];
-  if (!staffSession) {
-    return { error: { status: 401, code: 'AUTH_REQUIRED', message: 'Staff authentication required' } };
-  }
-
-  let sessionData;
-  try {
-    sessionData = JSON.parse(staffSession);
-  } catch {
-    return { error: { status: 401, code: 'INVALID_SESSION', message: 'Invalid session format' } };
-  }
-
-  const { data: staff, error: staffError } = await supabase
-    .from('commander_staff')
-    .select('id, venue_id, role, is_active')
-    .eq('id', sessionData.id)
-    .eq('is_active', true)
-    .single();
-
-  if (staffError || !staff) {
-    return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff member not found or inactive' } };
-  }
-
-  return { staff };
-}
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -117,7 +91,7 @@ async function handleGet(req, res, gameId) {
 async function handlePatch(req, res, gameId) {
   try {
     // Verify staff authentication
-    const authResult = await verifyStaffAuth(req);
+    const authResult = await verifyStaffSession(req);
     if (authResult.error) {
       return res.status(authResult.error.status).json({
         success: false,
@@ -219,7 +193,7 @@ async function handlePatch(req, res, gameId) {
 async function handleDelete(req, res, gameId) {
   try {
     // Verify staff authentication
-    const authResult = await verifyStaffAuth(req);
+    const authResult = await verifyStaffSession(req);
     if (authResult.error) {
       return res.status(authResult.error.status).json({
         success: false,

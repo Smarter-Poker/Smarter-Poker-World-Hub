@@ -30,9 +30,12 @@ export default async function handler(req, res) {
   // Mark all unread notifications as read
   const { data, error } = await supabase
     .from('commander_notifications')
-    .update({ read_at: new Date().toISOString() })
+    .update({
+      is_read: true,
+      read_at: new Date().toISOString()
+    })
     .eq('player_id', user.id)
-    .is('read_at', null)
+    .eq('is_read', false)
     .select();
 
   if (error) {
