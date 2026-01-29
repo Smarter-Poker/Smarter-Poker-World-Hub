@@ -257,6 +257,12 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
 
             const videoId = extractVideoIdFromUrl(candidate.source_url) || candidate.video_id;
 
+            // CRITICAL: Also check if video ID is in session (prevents race condition)
+            if (usedClipsThisSession.has(videoId)) {
+                console.log(`   Skipping ${videoId} (video ID already used this session)`);
+                continue;
+            }
+
             // CRITICAL: Check if this video has EVER been posted by ANY horse
             if (dedupLoaded && ClipDeduplicationService) {
                 const alreadyPosted = await ClipDeduplicationService.isClipAlreadyPosted(videoId);
@@ -271,6 +277,16 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 console.log(`   ✅ Pre-verified clip: ${videoId}`);
                 clip = candidate;
                 usedClipsThisSession.add(candidate.id);
+                usedClipsThisSession.add(videoId); // CRITICAL: Also add video ID to prevent race condition
+                // Mark as posted IMMEDIATELY to prevent other horses from selecting it
+                if (dedupLoaded && ClipDeduplicationService) {
+                    await ClipDeduplicationService.markClipAsPosted({
+                        videoId,
+                        sourceUrl: candidate.source_url,
+                        clipSource: candidate.source,
+                        horseId: horse.profile_id
+                    });
+                }
                 break;
             }
 
@@ -282,10 +298,20 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 continue;
             }
 
-            // Video ID is valid - accept this clip
+            // Video ID is valid - accept this clip and IMMEDIATELY mark as reserved
             clip = candidate;
             usedClipsThisSession.add(candidate.id);
-            console.log(`   ✅ Validated: ${videoId}`);
+            usedClipsThisSession.add(videoId); // CRITICAL: Also add video ID to prevent race condition
+            // Mark as posted IMMEDIATELY to prevent other horses from selecting it
+            if (dedupLoaded && ClipDeduplicationService) {
+                await ClipDeduplicationService.markClipAsPosted({
+                    videoId,
+                    sourceUrl: candidate.source_url,
+                    clipSource: candidate.source,
+                    horseId: horse.profile_id
+                });
+            }
+            console.log(`   ✅ Validated and reserved: ${videoId}`);
         }
 
         if (!clip) {
