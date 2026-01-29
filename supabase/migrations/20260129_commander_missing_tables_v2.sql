@@ -7,7 +7,7 @@
 CREATE TABLE IF NOT EXISTS commander_high_hands (
   id BIGSERIAL PRIMARY KEY,
   venue_id INTEGER NOT NULL REFERENCES poker_venues(id),
-  promotion_id BIGINT REFERENCES commander_promotions(id),
+  promotion_id UUID REFERENCES commander_promotions(id),
   player_id UUID REFERENCES profiles(id),
   table_id BIGINT REFERENCES commander_tables(id),
   game_id BIGINT REFERENCES commander_games(id),
