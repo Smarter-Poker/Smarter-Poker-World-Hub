@@ -465,7 +465,8 @@ async function postNewsArticle(horse, article, timeEnergy = null) {
     const commentary = await generateCommentary(horse, article, timeEnergy);
 
     // Create post with link - just the commentary, link metadata handles the rest
-    const postContent = commentary;
+    // Append article link to commentary
+    const postContent = `${commentary}\n\n🔗 ${article.link}`;
 
     const { data: post, error } = await supabase
         .from('social_posts')
