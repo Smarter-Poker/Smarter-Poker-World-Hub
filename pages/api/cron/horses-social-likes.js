@@ -9,14 +9,6 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-    // Verify cron secret in production
-    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-        // Allow in development
-        if (process.env.NODE_ENV === 'production') {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-    }
-
     console.log('🐴 Starting horses-social-likes cron...');
 
     try {
