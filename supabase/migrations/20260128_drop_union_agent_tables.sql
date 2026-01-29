@@ -1,8 +1,8 @@
 -- =====================================================
 -- DROP UNION/AGENT TABLES
 -- =====================================================
--- These tables are NOT part of Club Commander (TableCaptain)
--- TableCaptain is for physical poker room management only
+-- These tables are NOT part of Club Commander (Club Commander)
+-- Club Commander is for physical poker room management only
 -- =====================================================
 
 -- Drop triggers first

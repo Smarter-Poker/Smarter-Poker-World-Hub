@@ -141,7 +141,7 @@
 
 ---
 
-## Part 2: Advanced Features Beyond TableCaptain
+## Part 2: Advanced Features Beyond PokerAtlas
 
 ### 2.1 AI-Powered Intelligence
 
@@ -1056,7 +1056,7 @@ CREATE INDEX idx_exclusions_player ON commander_self_exclusions(player_id, expir
 
 ### What Makes This Unbeatable
 
-| Feature | TableCaptain | Bravo | Club Commander |
+| Feature | PokerAtlas | Bravo | Club Commander |
 |---------|--------------|-------|-----------------|
 | AI Wait Time Prediction | No | No | Yes |
 | Game Recommendations | No | No | Yes |

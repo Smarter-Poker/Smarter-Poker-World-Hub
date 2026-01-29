@@ -1,6 +1,6 @@
 /**
  * Commander Staff Dashboard - Main terminal view
- * Based on PokerAtlas TableCaptain / Bravo Poker patterns
+ * Based on PokerAtlas / Bravo Poker patterns
  * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect, useCallback } from 'react';

@@ -6,7 +6,7 @@ This is the Smarter.Poker platform - a comprehensive poker training and communit
 
 ## Key Project: Club Commander
 
-**Club Commander** is a poker room management platform (competing with PokerAtlas Table Captain).
+**Club Commander** is a poker room management platform (competing with PokerAtlas).
 
 ### MANDATORY: Before Working on Club Commander
 

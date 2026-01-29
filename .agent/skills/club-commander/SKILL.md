@@ -2,7 +2,7 @@
 
 ## Overview
 
-Club Commander is Smarter.Poker's poker room management platform designed to compete with and surpass PokerAtlas TableCaptain. It provides cloud-based software for poker clubs, casinos, and home games while serving as a user acquisition funnel for the Smarter.Poker ecosystem.
+Club Commander is Smarter.Poker's poker room management platform designed to compete with and surpass PokerAtlas. It provides cloud-based software for poker clubs, casinos, and home games while serving as a user acquisition funnel for the Smarter.Poker ecosystem.
 
 ## Skill Documents
 
@@ -11,7 +11,7 @@ This skill contains comprehensive documentation across multiple reference files:
 | Document | Purpose |
 |----------|---------|
 | `SKILL.md` | This file - overview and quick reference |
-| `COMPETITOR_ANALYSIS.md` | Complete TableCaptain feature analysis |
+| `COMPETITOR_ANALYSIS.md` | Complete PokerAtlas feature analysis |
 | `BUILD_PLAN.md` | Core architecture, database, APIs, build phases |
 | `ENHANCEMENTS.md` | UI design system, advanced features, AI/ML |
 | `DEPLOYMENT.md` | Hardware-as-a-Service, turnkey deployment |
@@ -24,7 +24,7 @@ This skill contains comprehensive documentation across multiple reference files:
 ### Business Model
 
 ```
-Traditional (TableCaptain): Club pays $500+/mo for software
+Traditional (PokerAtlas): Club pays $500+/mo for software
 Club Commander: Club pays $0-149/mo, players MUST create Smarter.Poker account
 Result: User acquisition funnel that pays for itself
 ```
@@ -200,9 +200,9 @@ Result: User acquisition funnel that pays for itself
 5. **Phase 5 (Weeks 17-20)**: Promotions & Analytics
 6. **Phase 6 (Weeks 21-24)**: Scale & Polish
 
-### Key Differentiators vs TableCaptain
+### Key Differentiators vs PokerAtlas
 
-| Feature | TableCaptain | Club Commander |
+| Feature | PokerAtlas | Club Commander |
 |---------|--------------|-----------------|
 | Price | ~$500+/mo | $0-149/mo |
 | Home Games | No | Yes |
