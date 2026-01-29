@@ -263,14 +263,9 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 continue;
             }
 
-            // CRITICAL: Check if this video has EVER been posted by ANY horse
-            if (dedupLoaded && ClipDeduplicationService) {
-                const alreadyPosted = await ClipDeduplicationService.isClipAlreadyPosted(videoId);
-                if (alreadyPosted) {
-                    console.log(`   🚫 DUPLICATE BLOCKED: ${videoId} already posted`);
-                    continue;
-                }
-            }
+            // REMOVED: isClipAlreadyPosted() check - it's racy!
+            // Instead, we rely ENTIRELY on the atomic insert with unique constraint
+            // If the clip is already posted, the insert will fail and we'll try the next clip
 
             // If it's a verified clip, validate and try to reserve atomically
             if (VERIFIED_CLIP_IDS.includes(videoId)) {
