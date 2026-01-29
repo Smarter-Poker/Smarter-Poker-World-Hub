@@ -100,6 +100,8 @@ function getYouTubeThumbnail(linkUrl) {
 
 // Story Avatar - individual story in the bar
 function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive }) {
+    const [thumbnailFailed, setThumbnailFailed] = useState(false);
+
     // Show ring if: other user has unviewed story, OR this is user's own story and they have stories
     const hasUnviewed = !story?.is_viewed && !isOwn;
     const showRing = hasUnviewed || (isOwn && hasStory);
@@ -108,7 +110,10 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
     const youtubeThumb = getYouTubeThumbnail(story?.link_url);
     const thumbnailUrl = youtubeThumb || story?.media_url;
 
-
+    // If thumbnail failed, use profile avatar instead
+    const displayUrl = (thumbnailFailed || !thumbnailUrl)
+        ? (story?.author_avatar || '/default-avatar.png')
+        : thumbnailUrl;
 
     return (
         <div
@@ -125,7 +130,7 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
         >
             <StoryRing hasUnviewed={showRing} isLive={isLive} size={64}>
                 <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', background: '#E4E6EB' }}>
-                    {/* Priority: gradient background > thumbnail (YouTube or uploaded) > profile avatar */}
+                    {/* Priority: gradient background > thumbnail (if not failed) > profile avatar */}
                     {story?.background_color ? (
                         <div style={{
                             width: '100%',
@@ -137,20 +142,16 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
                         }}>
                             <span style={{ fontSize: 24, color: 'white' }}>Aa</span>
                         </div>
-                    ) : thumbnailUrl ? (
-                        <img
-                            src={thumbnailUrl}
-                            onError={(e) => {
-                                // Fallback to profile avatar if thumbnail fails to load
-                                e.target.src = story?.author_avatar || '/default-avatar.png';
-                            }}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
                     ) : (
                         <img
-                            src={story?.author_avatar || '/default-avatar.png'}
+                            src={displayUrl}
                             onError={(e) => {
-                                e.target.src = '/default-avatar.png';
+                                // Mark thumbnail as failed and switch to profile avatar
+                                if (!thumbnailFailed && thumbnailUrl) {
+                                    setThumbnailFailed(true);
+                                }
+                                // Immediate fallback
+                                e.target.src = story?.author_avatar || '/default-avatar.png';
                             }}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />

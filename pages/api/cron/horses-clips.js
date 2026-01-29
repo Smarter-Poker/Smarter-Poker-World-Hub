@@ -56,6 +56,23 @@ async function loadClipLibrary() {
     }
 }
 
+// ClipDeduplicationService - CRITICAL for preventing duplicate posts
+let ClipDeduplicationService;
+let deduplicationLoaded = false;
+
+async function loadDeduplicationService() {
+    if (deduplicationLoaded) return true;
+    try {
+        ClipDeduplicationService = await import('../../../src/services/ClipDeduplicationService.js');
+        deduplicationLoaded = true;
+        console.log('✅ ClipDeduplicationService loaded successfully');
+        return true;
+    } catch (e) {
+        console.error('❌ Failed to load ClipDeduplicationService:', e.message);
+        return false;
+    }
+}
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
