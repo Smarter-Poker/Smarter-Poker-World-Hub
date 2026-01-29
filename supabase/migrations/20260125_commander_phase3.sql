@@ -48,6 +48,9 @@ CREATE TABLE IF NOT EXISTS commander_tournaments (
   break_schedule JSONB DEFAULT '[]',
   payout_structure JSONB DEFAULT '[]',
 
+  -- Clock state (persisted for server-restart resilience)
+  clock_state JSONB,
+
   -- Rebuy/Addon settings
   allows_rebuys BOOLEAN DEFAULT false,
   rebuy_amount INTEGER,

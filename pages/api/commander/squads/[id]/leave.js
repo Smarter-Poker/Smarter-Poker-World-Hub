@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     // Get squad
     const { data: squad, error: squadError } = await supabase
       .from('commander_waitlist_groups')
-      .select('id, leader_id, group_status')
+      .select('id, leader_id, status')
       .eq('id', id)
       .single();
 
@@ -61,8 +61,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check if squad is still forming
-    if (squad.group_status !== 'forming') {
+    // Check if squad is still forming (not yet submitted to waitlist)
+    if (squad.status !== 'forming') {
       return res.status(400).json({
         success: false,
         error: { code: 'CANNOT_LEAVE', message: 'Cannot leave squad after joining waitlist' }

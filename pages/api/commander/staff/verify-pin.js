@@ -4,55 +4,12 @@
  * Reference: API_REFERENCE.md - Staff Management section
  */
 import { createClient } from '@supabase/supabase-js';
+import { DEFAULT_PERMISSIONS } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-
-// Default permissions by role
-const DEFAULT_PERMISSIONS = {
-  owner: {
-    manage_staff: true,
-    manage_games: true,
-    manage_waitlist: true,
-    manage_settings: true,
-    view_analytics: true,
-    send_notifications: true
-  },
-  manager: {
-    manage_staff: true,
-    manage_games: true,
-    manage_waitlist: true,
-    manage_settings: true,
-    view_analytics: true,
-    send_notifications: true
-  },
-  floor: {
-    manage_staff: false,
-    manage_games: true,
-    manage_waitlist: true,
-    manage_settings: false,
-    view_analytics: false,
-    send_notifications: true
-  },
-  brush: {
-    manage_staff: false,
-    manage_games: false,
-    manage_waitlist: true,
-    manage_settings: false,
-    view_analytics: false,
-    send_notifications: true
-  },
-  dealer: {
-    manage_staff: false,
-    manage_games: false,
-    manage_waitlist: false,
-    manage_settings: false,
-    view_analytics: false,
-    send_notifications: false
-  }
-};
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
