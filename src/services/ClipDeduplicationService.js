@@ -37,32 +37,43 @@ export async function isClipAlreadyPosted(videoId) {
 }
 
 /**
- * Mark a clip as posted
+ * Mark a clip as posted (ATOMIC - returns false if already posted)
  */
 export async function markClipAsPosted(clipData) {
-    const { videoId, sourceUrl, clipSource, clipTitle, postedBy, postId, clipType = 'poker', category } = clipData;
+    const { videoId, sourceUrl, clipSource, clipTitle, postedBy, postId, clipType = 'poker', category, horseId } = clipData;
 
-    const { data, error } = await supabase
-        .from('posted_clips')
-        .insert({
-            video_id: videoId,
-            source_url: sourceUrl,
-            clip_source: clipSource,
-            clip_title: clipTitle,
-            posted_by: postedBy,
-            post_id: postId,
-            clip_type: clipType,
-            category: category
-        })
-        .select()
-        .single();
+    try {
+        const { data, error } = await supabase
+            .from('posted_clips')
+            .insert({
+                video_id: videoId,
+                source_url: sourceUrl,
+                clip_source: clipSource,
+                clip_title: clipTitle,
+                posted_by: postedBy || horseId, // Use horseId if postedBy not provided
+                post_id: postId,
+                clip_type: clipType,
+                category: category
+            })
+            .select()
+            .single();
 
-    if (error) {
-        console.error('Error marking clip as posted:', error);
-        return null;
+        if (error) {
+            // Check if it's a unique constraint violation (clip already posted)
+            if (error.code === '23505' || error.message?.includes('duplicate') || error.message?.includes('unique')) {
+                console.log(`   🔒 Clip ${videoId} already reserved by another horse`);
+                return false; // Clip already claimed
+            }
+            console.error('Error marking clip as posted:', error);
+            return false;
+        }
+
+        console.log(`   ✅ Clip ${videoId} successfully reserved`);
+        return data;
+    } catch (error) {
+        console.error('Exception marking clip as posted:', error);
+        return false;
     }
-
-    return data;
 }
 
 /**

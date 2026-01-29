@@ -272,25 +272,40 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 }
             }
 
-            // If it's a verified clip, accept immediately without validation
+            // If it's a verified clip, validate and try to reserve atomically
             if (VERIFIED_CLIP_IDS.includes(videoId)) {
                 console.log(`   ✅ Pre-verified clip: ${videoId}`);
+
+                // ATOMIC RESERVATION: Try to claim this clip in the database FIRST
+                // If another horse already claimed it, this will fail and we skip to next clip
+                if (dedupLoaded && ClipDeduplicationService) {
+                    try {
+                        const reserved = await ClipDeduplicationService.markClipAsPosted({
+                            videoId,
+                            sourceUrl: candidate.source_url,
+                            clipSource: candidate.source,
+                            horseId: horse.profile_id,
+                            postId: null // Will be updated after post creation
+                        });
+
+                        if (!reserved) {
+                            console.log(`   ⚠️ Failed to reserve ${videoId} - already claimed`);
+                            continue;
+                        }
+                        console.log(`   🔒 RESERVED: ${videoId} for ${horse.name}`);
+                    } catch (error) {
+                        console.log(`   ⚠️ Reservation failed for ${videoId}: ${error.message}`);
+                        continue;
+                    }
+                }
+
                 clip = candidate;
                 usedClipsThisSession.add(candidate.id);
-                usedClipsThisSession.add(videoId); // CRITICAL: Also add video ID to prevent race condition
-                // Mark as posted IMMEDIATELY to prevent other horses from selecting it
-                if (dedupLoaded && ClipDeduplicationService) {
-                    await ClipDeduplicationService.markClipAsPosted({
-                        videoId,
-                        sourceUrl: candidate.source_url,
-                        clipSource: candidate.source,
-                        horseId: horse.profile_id
-                    });
-                }
+                usedClipsThisSession.add(videoId);
                 break;
             }
 
-            // Otherwise validate the video ID
+            // Otherwise validate the video ID first
             const isValid = await validateYouTubeVideoId(videoId);
 
             if (!isValid) {
@@ -298,19 +313,31 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 continue;
             }
 
-            // Video ID is valid - accept this clip and IMMEDIATELY mark as reserved
+            // Video ID is valid - try to reserve atomically
+            if (dedupLoaded && ClipDeduplicationService) {
+                try {
+                    const reserved = await ClipDeduplicationService.markClipAsPosted({
+                        videoId,
+                        sourceUrl: candidate.source_url,
+                        clipSource: candidate.source,
+                        horseId: horse.profile_id,
+                        postId: null // Will be updated after post creation
+                    });
+
+                    if (!reserved) {
+                        console.log(`   ⚠️ Failed to reserve ${videoId} - already claimed`);
+                        continue;
+                    }
+                    console.log(`   🔒 RESERVED and validated: ${videoId} for ${horse.name}`);
+                } catch (error) {
+                    console.log(`   ⚠️ Reservation failed for ${videoId}: ${error.message}`);
+                    continue;
+                }
+            }
+
             clip = candidate;
             usedClipsThisSession.add(candidate.id);
-            usedClipsThisSession.add(videoId); // CRITICAL: Also add video ID to prevent race condition
-            // Mark as posted IMMEDIATELY to prevent other horses from selecting it
-            if (dedupLoaded && ClipDeduplicationService) {
-                await ClipDeduplicationService.markClipAsPosted({
-                    videoId,
-                    sourceUrl: candidate.source_url,
-                    clipSource: candidate.source,
-                    horseId: horse.profile_id
-                });
-            }
+            usedClipsThisSession.add(videoId);
             console.log(`   ✅ Validated and reserved: ${videoId}`);
         }
 
