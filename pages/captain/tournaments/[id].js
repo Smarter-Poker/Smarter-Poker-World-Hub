@@ -1,7 +1,7 @@
 /**
  * Tournament Detail Page - Manage a specific tournament
  * Shows clock, entries, eliminations, and payouts
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -26,13 +26,13 @@ import EliminatePlayerModal from '../../../src/components/captain/modals/Elimina
 import PayoutModal from '../../../src/components/captain/modals/PayoutModal';
 
 const STATUS_CONFIG = {
-  scheduled: { bg: 'bg-[#F3F4F6]', text: 'text-[#6B7280]', label: 'Scheduled' },
-  registering: { bg: 'bg-[#DBEAFE]', text: 'text-[#1D4ED8]', label: 'Registration Open' },
-  running: { bg: 'bg-[#D1FAE5]', text: 'text-[#059669]', label: 'Running' },
-  break: { bg: 'bg-[#FEF3C7]', text: 'text-[#D97706]', label: 'On Break' },
-  final_table: { bg: 'bg-[#EDE9FE]', text: 'text-[#7C3AED]', label: 'Final Table' },
-  completed: { bg: 'bg-[#E5E7EB]', text: 'text-[#374151]', label: 'Completed' },
-  cancelled: { bg: 'bg-[#FEE2E2]', text: 'text-[#DC2626]', label: 'Cancelled' }
+  scheduled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]', label: 'Scheduled' },
+  registering: { bg: 'bg-[#22D3EE]/10', text: 'text-[#22D3EE]', label: 'Registration Open' },
+  running: { bg: 'bg-[#10B981]/10', text: 'text-[#10B981]', label: 'Running' },
+  break: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', label: 'On Break' },
+  final_table: { bg: 'bg-[#8B5CF6]/10', text: 'text-[#8B5CF6]', label: 'Final Table' },
+  completed: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]', label: 'Completed' },
+  cancelled: { bg: 'bg-[#EF4444]/10', text: 'text-[#EF4444]', label: 'Cancelled' }
 };
 
 function formatTime(seconds) {
@@ -173,21 +173,21 @@ export default function TournamentDetailPage() {
 
   if (!staff || loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
 
   if (!tournament) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
+      <div className="cap-page flex items-center justify-center">
         <div className="text-center">
-          <Trophy className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-          <p className="text-[#6B7280]">Tournament not found</p>
+          <Trophy className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+          <p className="text-[#64748B]">Tournament not found</p>
           <button
             onClick={() => router.push('/captain/tournaments')}
-            className="mt-4 px-4 py-2 bg-[#1877F2] text-white rounded-lg"
+            className="mt-4 px-4 py-2 cap-btn cap-btn-primary rounded-lg"
           >
             Back to Tournaments
           </button>
@@ -203,19 +203,19 @@ export default function TournamentDetailPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
+        <header className="cap-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/captain/tournaments')}
-                className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#6B7280]" />
+                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
               </button>
               <div>
-                <h1 className="font-bold text-[#1F2937]">{tournament.name}</h1>
+                <h1 className="font-bold text-white">{tournament.name}</h1>
                 <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${status.bg} ${status.text}`}>
                   {status.label}
                 </span>
@@ -225,16 +225,16 @@ export default function TournamentDetailPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={fetchTournament}
-                className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <RefreshCw className="w-5 h-5 text-[#6B7280]" />
+                <RefreshCw className="w-5 h-5 text-[#64748B]" />
               </button>
               <button
                 onClick={openPublicClock}
-                className="flex items-center gap-2 px-3 py-2 border border-[#E5E7EB] rounded-lg hover:bg-[#F3F4F6] transition-colors"
+                className="flex items-center gap-2 px-3 py-2 border border-[#4A5E78] rounded-lg hover:bg-[#132240] transition-colors"
               >
-                <ExternalLink className="w-4 h-4 text-[#6B7280]" />
-                <span className="text-sm font-medium text-[#1F2937]">Public Clock</span>
+                <ExternalLink className="w-4 h-4 text-[#64748B]" />
+                <span className="text-sm font-medium text-white">Public Clock</span>
               </button>
             </div>
           </div>
@@ -283,27 +283,27 @@ export default function TournamentDetailPage() {
 
           {/* Stats Row */}
           <div className="grid grid-cols-4 gap-4">
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
-              <Users className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
-              <p className="text-2xl font-bold text-[#1F2937]">{activeEntries.length}</p>
-              <p className="text-xs text-[#6B7280]">Remaining</p>
+            <div className="cap-panel p-4 text-center">
+              <Users className="w-5 h-5 text-[#22D3EE] mx-auto mb-1" />
+              <p className="text-2xl font-bold text-white">{activeEntries.length}</p>
+              <p className="text-xs text-[#64748B]">Remaining</p>
             </div>
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
+            <div className="cap-panel p-4 text-center">
               <Trophy className="w-5 h-5 text-[#F59E0B] mx-auto mb-1" />
-              <p className="text-2xl font-bold text-[#1F2937]">{entries.length}</p>
-              <p className="text-xs text-[#6B7280]">Entries</p>
+              <p className="text-2xl font-bold text-white">{entries.length}</p>
+              <p className="text-xs text-[#64748B]">Entries</p>
             </div>
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
+            <div className="cap-panel p-4 text-center">
               <DollarSign className="w-5 h-5 text-[#10B981] mx-auto mb-1" />
               <p className="text-2xl font-bold text-[#10B981]">
                 ${(tournament.actual_prizepool || entries.length * (tournament.buyin_amount || 0)).toLocaleString()}
               </p>
-              <p className="text-xs text-[#6B7280]">Prize Pool</p>
+              <p className="text-xs text-[#64748B]">Prize Pool</p>
             </div>
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
+            <div className="cap-panel p-4 text-center">
               <Clock className="w-5 h-5 text-[#8B5CF6] mx-auto mb-1" />
-              <p className="text-2xl font-bold text-[#1F2937]">{tournament.current_level || 1}</p>
-              <p className="text-xs text-[#6B7280]">Level</p>
+              <p className="text-2xl font-bold text-white">{tournament.current_level || 1}</p>
+              <p className="text-xs text-[#64748B]">Level</p>
             </div>
           </div>
 
@@ -312,7 +312,7 @@ export default function TournamentDetailPage() {
             {tournament.status === 'scheduled' && (
               <button
                 onClick={() => handleStatusChange('registering')}
-                className="flex items-center justify-center gap-2 p-4 bg-[#1877F2] text-white rounded-xl font-medium hover:bg-[#1664d9] transition-colors"
+                className="flex items-center justify-center gap-2 p-4 cap-btn cap-btn-primary rounded-xl font-medium transition-colors"
               >
                 <UserPlus className="w-5 h-5" />
                 Open Registration
@@ -362,29 +362,29 @@ export default function TournamentDetailPage() {
           {/* Players Section */}
           <div className="grid md:grid-cols-2 gap-6">
             {/* Active Players */}
-            <div className="bg-white rounded-xl border border-[#E5E7EB]">
-              <div className="p-4 border-b border-[#E5E7EB]">
-                <h3 className="font-semibold text-[#1F2937]">
+            <div className="cap-panel">
+              <div className="p-4 border-b border-[#4A5E78]">
+                <h3 className="font-semibold text-white">
                   Active Players ({activeEntries.length})
                 </h3>
               </div>
-              <div className="divide-y divide-[#E5E7EB] max-h-80 overflow-y-auto">
+              <div className="divide-y divide-[#4A5E78] max-h-80 overflow-y-auto">
                 {activeEntries.length === 0 ? (
-                  <div className="p-4 text-center text-[#6B7280]">
+                  <div className="p-4 text-center text-[#64748B]">
                     No active players
                   </div>
                 ) : (
                   activeEntries.map((entry) => (
                     <div key={entry.id} className="p-3 flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-[#1F2937]">
+                        <p className="font-medium text-white">
                           {entry.player_name || entry.profiles?.display_name || 'Unknown'}
                         </p>
                         {entry.seat_number && (
-                          <p className="text-sm text-[#6B7280]">Seat {entry.seat_number}</p>
+                          <p className="text-sm text-[#64748B]">Seat {entry.seat_number}</p>
                         )}
                       </div>
-                      <span className="text-sm text-[#6B7280]">
+                      <span className="text-sm text-[#64748B]">
                         ${entry.total_chips?.toLocaleString() || tournament.starting_chips?.toLocaleString() || '10,000'}
                       </span>
                     </div>
@@ -394,27 +394,27 @@ export default function TournamentDetailPage() {
             </div>
 
             {/* Eliminated Players */}
-            <div className="bg-white rounded-xl border border-[#E5E7EB]">
-              <div className="p-4 border-b border-[#E5E7EB]">
-                <h3 className="font-semibold text-[#1F2937]">
+            <div className="cap-panel">
+              <div className="p-4 border-b border-[#4A5E78]">
+                <h3 className="font-semibold text-white">
                   Eliminated ({eliminatedEntries.length})
                 </h3>
               </div>
-              <div className="divide-y divide-[#E5E7EB] max-h-80 overflow-y-auto">
+              <div className="divide-y divide-[#4A5E78] max-h-80 overflow-y-auto">
                 {eliminatedEntries.length === 0 ? (
-                  <div className="p-4 text-center text-[#6B7280]">
+                  <div className="p-4 text-center text-[#64748B]">
                     No eliminations yet
                   </div>
                 ) : (
                   eliminatedEntries.map((entry) => (
                     <div key={entry.id} className="p-3 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-[#F3F4F6] rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-[#6B7280]">
+                        <div className="w-8 h-8 bg-[#0D192E] rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-[#64748B]">
                             {entry.finish_position || '-'}
                           </span>
                         </div>
-                        <p className="font-medium text-[#1F2937]">
+                        <p className="font-medium text-white">
                           {entry.player_name || entry.profiles?.display_name || 'Unknown'}
                         </p>
                       </div>

@@ -1,7 +1,7 @@
 /**
  * PromotionEditor Component
  * Reference: IMPLEMENTATION_PHASES.md - Phase 5
- * Create or edit promotions
+ * Dark industrial sci-fi gaming theme
  */
 import React, { useState, useEffect } from 'react';
 import { X, Save, Trash2, Calendar, Clock, DollarSign } from 'lucide-react';
@@ -139,59 +139,45 @@ export default function PromotionEditor({
     onSave(data);
   };
 
-  const inputStyle = {
-    backgroundColor: '#111827',
-    borderColor: '#374151',
-    color: '#E5E7EB'
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
-      <div
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl"
-        style={{ backgroundColor: '#1F2937' }}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto cap-panel cap-corner-lights">
         {/* Header */}
-        <div
-          className="sticky top-0 z-10 flex items-center justify-between p-4 border-b"
-          style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-        >
+        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-[#4A5E78] bg-[#132240] rounded-t-xl">
           <h2 className="text-lg font-semibold text-white">
             {promotion ? 'Edit Promotion' : 'New Promotion'}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-lg hover:bg-[#132240] transition-colors"
           >
-            <X size={20} className="text-gray-400" />
+            <X size={20} className="text-[#64748B]" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-6">
           {/* Basic Info */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-400 uppercase">Basic Information</h3>
+            <h3 className="text-sm font-medium text-[#64748B] uppercase">Basic Information</h3>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Name *</label>
+              <label className="block text-sm text-[#64748B] mb-1">Name *</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleChange('name', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                style={inputStyle}
+                className="cap-input w-full px-3 py-2"
                 placeholder="e.g., High Hand Bonus"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Description</label>
+              <label className="block text-sm text-[#64748B] mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => handleChange('description', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                style={inputStyle}
+                className="cap-input w-full px-3 py-2"
                 rows={3}
                 placeholder="Describe the promotion..."
               />
@@ -199,12 +185,11 @@ export default function PromotionEditor({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Promotion Type *</label>
+                <label className="block text-sm text-[#64748B] mb-1">Promotion Type *</label>
                 <select
                   value={formData.promotion_type}
                   onChange={(e) => handleChange('promotion_type', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                  style={inputStyle}
+                  className="cap-input w-full px-3 py-2"
                   required
                 >
                   {PROMOTION_TYPES.map(type => (
@@ -214,12 +199,11 @@ export default function PromotionEditor({
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Status</label>
+                <label className="block text-sm text-[#64748B] mb-1">Status</label>
                 <select
                   value={formData.status}
                   onChange={(e) => handleChange('status', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                  style={inputStyle}
+                  className="cap-input w-full px-3 py-2"
                 >
                   <option value="draft">Draft</option>
                   <option value="scheduled">Scheduled</option>
@@ -233,19 +217,18 @@ export default function PromotionEditor({
 
           {/* Prize */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-400 uppercase flex items-center gap-2">
+            <h3 className="text-sm font-medium text-[#64748B] uppercase flex items-center gap-2">
               <DollarSign size={14} />
               Prize Details
             </h3>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Prize Type</label>
+                <label className="block text-sm text-[#64748B] mb-1">Prize Type</label>
                 <select
                   value={formData.prize_type}
                   onChange={(e) => handleChange('prize_type', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                  style={inputStyle}
+                  className="cap-input w-full px-3 py-2"
                 >
                   {PRIZE_TYPES.map(type => (
                     <option key={type.value} value={type.value}>{type.label}</option>
@@ -254,25 +237,23 @@ export default function PromotionEditor({
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Prize Value</label>
+                <label className="block text-sm text-[#64748B] mb-1">Prize Value</label>
                 <input
                   type="number"
                   value={formData.prize_value}
                   onChange={(e) => handleChange('prize_value', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                  style={inputStyle}
+                  className="cap-input w-full px-3 py-2"
                   placeholder="100"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <label className="block text-sm text-[#64748B] mb-1">Description</label>
                 <input
                   type="text"
                   value={formData.prize_description}
                   onChange={(e) => handleChange('prize_description', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                  style={inputStyle}
+                  className="cap-input w-full px-3 py-2"
                   placeholder="e.g., $100 cash"
                 />
               </div>
@@ -281,61 +262,57 @@ export default function PromotionEditor({
 
           {/* Schedule */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-400 uppercase flex items-center gap-2">
+            <h3 className="text-sm font-medium text-[#64748B] uppercase flex items-center gap-2">
               <Calendar size={14} />
               Schedule
             </h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Start Date</label>
+                <label className="block text-sm text-[#64748B] mb-1">Start Date</label>
                 <input
                   type="date"
                   value={formData.start_date}
                   onChange={(e) => handleChange('start_date', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                  style={inputStyle}
+                  className="cap-input w-full px-3 py-2"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">End Date</label>
+                <label className="block text-sm text-[#64748B] mb-1">End Date</label>
                 <input
                   type="date"
                   value={formData.end_date}
                   onChange={(e) => handleChange('end_date', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                  style={inputStyle}
+                  className="cap-input w-full px-3 py-2"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Start Time</label>
+                <label className="block text-sm text-[#64748B] mb-1">Start Time</label>
                 <input
                   type="time"
                   value={formData.start_time}
                   onChange={(e) => handleChange('start_time', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                  style={inputStyle}
+                  className="cap-input w-full px-3 py-2"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">End Time</label>
+                <label className="block text-sm text-[#64748B] mb-1">End Time</label>
                 <input
                   type="time"
                   value={formData.end_time}
                   onChange={(e) => handleChange('end_time', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                  style={inputStyle}
+                  className="cap-input w-full px-3 py-2"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Days of Week</label>
+              <label className="block text-sm text-[#64748B] mb-2">Days of Week</label>
               <div className="flex gap-2">
                 {DAYS_OF_WEEK.map(day => (
                   <button
@@ -344,14 +321,9 @@ export default function PromotionEditor({
                     onClick={() => handleDayToggle(day.value)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                       formData.days_of_week.includes(day.value)
-                        ? 'text-white'
-                        : 'text-gray-400'
+                        ? 'bg-[#22D3EE] text-white'
+                        : 'bg-[#0D192E] text-[#64748B]'
                     }`}
-                    style={{
-                      backgroundColor: formData.days_of_week.includes(day.value)
-                        ? '#1877F2'
-                        : '#374151'
-                    }}
                   >
                     {day.label}
                   </button>
@@ -364,7 +336,7 @@ export default function PromotionEditor({
                 type="checkbox"
                 checked={formData.is_recurring}
                 onChange={(e) => handleChange('is_recurring', e.target.checked)}
-                className="w-4 h-4 rounded border-gray-600"
+                className="w-4 h-4 rounded text-[#22D3EE] focus:ring-[#22D3EE] border-[#4A5E78]"
               />
               <span className="text-sm text-gray-300">Recurring promotion</span>
             </label>
@@ -372,49 +344,46 @@ export default function PromotionEditor({
 
           {/* Requirements */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-400 uppercase">Requirements</h3>
+            <h3 className="text-sm font-medium text-[#64748B] uppercase">Requirements</h3>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Min Stakes</label>
+                <label className="block text-sm text-[#64748B] mb-1">Min Stakes</label>
                 <input
                   type="text"
                   value={formData.min_stakes}
                   onChange={(e) => handleChange('min_stakes', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                  style={inputStyle}
+                  className="cap-input w-full px-3 py-2"
                   placeholder="1/2"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Min Hours</label>
+                <label className="block text-sm text-[#64748B] mb-1">Min Hours</label>
                 <input
                   type="number"
                   step="0.5"
                   value={formData.min_hours_played}
                   onChange={(e) => handleChange('min_hours_played', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                  style={inputStyle}
+                  className="cap-input w-full px-3 py-2"
                   placeholder="2"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Min Buy-in</label>
+                <label className="block text-sm text-[#64748B] mb-1">Min Buy-in</label>
                 <input
                   type="number"
                   value={formData.min_buyin}
                   onChange={(e) => handleChange('min_buyin', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                  style={inputStyle}
+                  className="cap-input w-full px-3 py-2"
                   placeholder="100"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Eligible Games</label>
+              <label className="block text-sm text-[#64748B] mb-2">Eligible Games</label>
               <div className="flex flex-wrap gap-2">
                 {GAME_TYPES.map(game => (
                   <button
@@ -423,14 +392,9 @@ export default function PromotionEditor({
                     onClick={() => handleGameTypeToggle(game.value)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                       formData.game_types.includes(game.value)
-                        ? 'text-white'
-                        : 'text-gray-400'
+                        ? 'bg-[#22D3EE] text-white'
+                        : 'bg-[#0D192E] text-[#64748B]'
                     }`}
-                    style={{
-                      backgroundColor: formData.game_types.includes(game.value)
-                        ? '#1877F2'
-                        : '#374151'
-                    }}
                   >
                     {game.label}
                   </button>
@@ -439,13 +403,12 @@ export default function PromotionEditor({
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Qualifying Hands</label>
+              <label className="block text-sm text-[#64748B] mb-1">Qualifying Hands</label>
               <input
                 type="text"
                 value={formData.qualifying_hands}
                 onChange={(e) => handleChange('qualifying_hands', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                style={inputStyle}
+                className="cap-input w-full px-3 py-2"
                 placeholder="e.g., Aces full or better"
               />
             </div>
@@ -453,25 +416,24 @@ export default function PromotionEditor({
 
           {/* Options */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-400 uppercase">Options</h3>
+            <h3 className="text-sm font-medium text-[#64748B] uppercase">Options</h3>
 
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.is_featured}
                 onChange={(e) => handleChange('is_featured', e.target.checked)}
-                className="w-4 h-4 rounded border-gray-600"
+                className="w-4 h-4 rounded text-[#22D3EE] focus:ring-[#22D3EE] border-[#4A5E78]"
               />
               <span className="text-sm text-gray-300">Featured promotion (highlighted)</span>
             </label>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Terms & Conditions</label>
+              <label className="block text-sm text-[#64748B] mb-1">Terms & Conditions</label>
               <textarea
                 value={formData.terms_conditions}
                 onChange={(e) => handleChange('terms_conditions', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
-                style={inputStyle}
+                className="cap-input w-full px-3 py-2"
                 rows={3}
                 placeholder="Enter any terms and conditions..."
               />
@@ -479,7 +441,7 @@ export default function PromotionEditor({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-between pt-4 border-t" style={{ borderColor: '#374151' }}>
+          <div className="flex items-center justify-between pt-4 border-t border-[#4A5E78]">
             {promotion && onDelete ? (
               <button
                 type="button"
@@ -498,15 +460,14 @@ export default function PromotionEditor({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-700 transition-colors"
+                className="cap-btn cap-btn-secondary px-4 py-2"
                 disabled={isLoading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                style={{ backgroundColor: '#1877F2', color: '#FFFFFF' }}
+                className="cap-btn cap-btn-primary flex items-center gap-2 px-6 py-2 disabled:opacity-50"
                 disabled={isLoading || !formData.name}
               >
                 <Save size={16} />

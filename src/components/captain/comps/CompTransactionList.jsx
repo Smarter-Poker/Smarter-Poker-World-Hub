@@ -1,7 +1,7 @@
 /**
  * CompTransactionList Component
  * Reference: IMPLEMENTATION_PHASES.md - Phase 5
- * Shows comp transaction history
+ * Dark industrial sci-fi gaming theme
  */
 import React from 'react';
 import { TrendingUp, TrendingDown, RefreshCw, Gift, Clock, User } from 'lucide-react';
@@ -28,8 +28,7 @@ export default function CompTransactionList({
         {[1, 2, 3].map(i => (
           <div
             key={i}
-            className="h-16 rounded-lg animate-pulse"
-            style={{ backgroundColor: '#374151' }}
+            className="h-16 rounded-lg animate-pulse bg-[#0D192E]"
           />
         ))}
       </div>
@@ -38,12 +37,9 @@ export default function CompTransactionList({
 
   if (transactions.length === 0) {
     return (
-      <div
-        className="p-8 rounded-xl border text-center"
-        style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-      >
-        <Clock size={32} className="mx-auto text-gray-600 mb-2" />
-        <p className="text-gray-400">No transactions yet</p>
+      <div className="cap-panel p-8 text-center">
+        <Clock size={32} className="mx-auto text-[#4A5E78] mb-2" />
+        <p className="text-[#64748B]">No transactions yet</p>
       </div>
     );
   }
@@ -81,11 +77,8 @@ export default function CompTransactionList({
     <div className="space-y-4">
       {Object.entries(groupedTransactions).map(([date, txs]) => (
         <div key={date}>
-          <div className="text-xs text-gray-500 mb-2 px-1">{date}</div>
-          <div
-            className="rounded-xl border overflow-hidden divide-y"
-            style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-          >
+          <div className="text-xs text-[#4A5E78] mb-2 px-1">{date}</div>
+          <div className="cap-panel overflow-hidden divide-y divide-[#4A5E78]">
             {txs.map((tx) => {
               const style = TRANSACTION_STYLES[tx.transaction_type] || TRANSACTION_STYLES.adjust;
               const Icon = style.icon;
@@ -96,7 +89,6 @@ export default function CompTransactionList({
                 <div
                   key={tx.id}
                   className="p-3 flex items-center gap-3"
-                  style={{ borderColor: '#374151' }}
                 >
                   {/* Icon */}
                   <div
@@ -113,12 +105,12 @@ export default function CompTransactionList({
                         {style.label}
                       </span>
                       {showPlayer && tx.profiles && (
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-[#4A5E78]">
                           - {tx.profiles.display_name}
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-gray-500 truncate">
+                    <div className="text-xs text-[#4A5E78] truncate">
                       {tx.description || (tx.source_type === 'session'
                         ? `${tx.hours_played?.toFixed(1)}h played`
                         : style.label
@@ -133,7 +125,7 @@ export default function CompTransactionList({
                     }`}>
                       {isPositive ? '+' : ''}${Math.abs(amount).toFixed(2)}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-[#4A5E78]">
                       {formatDate(tx.created_at)}
                     </div>
                   </div>
@@ -149,7 +141,7 @@ export default function CompTransactionList({
         <button
           onClick={onLoadMore}
           disabled={isLoading}
-          className="w-full py-3 text-center text-sm font-medium text-blue-400 hover:bg-gray-700/50 rounded-lg transition-colors"
+          className="w-full py-3 text-center text-sm font-medium text-[#22D3EE] hover:bg-[#132240] rounded-lg transition-colors"
         >
           {isLoading ? 'Loading...' : 'Load more transactions'}
         </button>

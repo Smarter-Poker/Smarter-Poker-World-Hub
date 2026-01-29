@@ -2,6 +2,7 @@
  * Admin Dashboard - Multi-venue management
  * Reference: IMPLEMENTATION_PHASES.md - Phase 6
  * /captain/admin - Admin dashboard for managers
+ * Dark industrial sci-fi gaming theme
  */
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
@@ -114,21 +115,21 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1F2937] rounded-xl w-full max-w-lg border border-[#374151]">
-        <div className="flex items-center justify-between p-4 border-b border-[#374151]">
+      <div className="cap-panel cap-corner-lights w-full max-w-lg">
+        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
           <h3 className="text-lg font-semibold text-white">API Keys</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#374151] rounded-lg">
-            <X className="w-5 h-5 text-gray-400" />
+          <button onClick={onClose} className="p-2 hover:bg-[#132240] rounded-lg">
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         <div className="p-4">
           {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+            <div className="mb-4 p-3 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-lg text-[#EF4444] text-sm">
               {error}
             </div>
           )}
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-[#64748B] mb-4">
             API keys allow external systems to access Captain data. Keep your keys secure.
           </p>
 
@@ -139,12 +140,12 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
               value={newKeyName}
               onChange={(e) => setNewKeyName(e.target.value)}
               placeholder="Key name (e.g., POS System)"
-              className="flex-1 h-10 px-4 bg-[#374151] border-none rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+              className="cap-input flex-1"
             />
             <button
               onClick={handleCreateKey}
               disabled={!newKeyName.trim() || creating}
-              className="px-4 py-2 bg-[#1877F2] text-white font-medium rounded-lg hover:bg-[#1664d9] disabled:opacity-50 flex items-center gap-2"
+              className="cap-btn cap-btn-primary px-4 py-2 flex items-center gap-2"
             >
               {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               Create
@@ -154,10 +155,10 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
           {/* Keys List */}
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#64748B]" />
             </div>
           ) : apiKeys.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-[#64748B]">
               <Key className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>No API keys yet</p>
             </div>
@@ -166,17 +167,17 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
               {apiKeys.map((key) => (
                 <div
                   key={key.id}
-                  className="flex items-center justify-between p-3 bg-[#374151] rounded-lg"
+                  className="flex items-center justify-between p-3 bg-[#0D192E] rounded-lg"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-white truncate">{key.name}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <code className="text-xs text-gray-400 font-mono">
+                      <code className="text-xs text-[#64748B] font-mono">
                         {showKey[key.id] ? key.api_key : `${key.api_key?.substring(0, 8)}...`}
                       </code>
                       <button
                         onClick={() => setShowKey(prev => ({ ...prev, [key.id]: !prev[key.id] }))}
-                        className="text-gray-400 hover:text-white"
+                        className="text-[#64748B] hover:text-white"
                       >
                         {showKey[key.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                       </button>
@@ -185,13 +186,13 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
                   <div className="flex items-center gap-2 ml-2">
                     <button
                       onClick={() => handleCopyKey(key)}
-                      className="p-2 text-gray-400 hover:text-white hover:bg-[#4B5563] rounded"
+                      className="p-2 text-[#64748B] hover:text-white hover:bg-[#132240] rounded"
                     >
-                      {copiedKey === key.id ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                      {copiedKey === key.id ? <Check className="w-4 h-4 text-[#10B981]" /> : <Copy className="w-4 h-4" />}
                     </button>
                     <button
                       onClick={() => handleDeleteKey(key.id)}
-                      className="p-2 text-gray-400 hover:text-red-400 hover:bg-[#4B5563] rounded"
+                      className="p-2 text-[#64748B] hover:text-[#EF4444] hover:bg-[#132240] rounded"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -263,24 +264,24 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1F2937] rounded-xl w-full max-w-lg border border-[#374151]">
-        <div className="flex items-center justify-between p-4 border-b border-[#374151]">
+      <div className="cap-panel cap-corner-lights w-full max-w-lg">
+        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
           <h3 className="text-lg font-semibold text-white">{venue.name} Settings</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#374151] rounded-lg">
-            <X className="w-5 h-5 text-gray-400" />
+          <button onClick={onClose} className="p-2 hover:bg-[#132240] rounded-lg">
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
           {/* Comp Rate */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Comp Rate ($/hr)</label>
+            <label className="block text-sm font-medium text-[#94A3B8] mb-2">Comp Rate ($/hr)</label>
             <input
               type="number"
               step="0.25"
               value={settings.comp_rate}
               onChange={(e) => setSettings(prev => ({ ...prev, comp_rate: parseFloat(e.target.value) || 0 }))}
-              className="w-full h-10 px-4 bg-[#374151] border-none rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+              className="cap-input w-full"
             />
           </div>
 
@@ -288,7 +289,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium text-white">Auto Text Notifications</p>
-              <p className="text-sm text-gray-400">Send automatic SMS to players when called</p>
+              <p className="text-sm text-[#64748B]">Send automatic SMS to players when called</p>
             </div>
             <label className="relative inline-flex cursor-pointer">
               <input
@@ -297,16 +298,16 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                 onChange={(e) => setSettings(prev => ({ ...prev, auto_text_enabled: e.target.checked }))}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-[#374151] peer-focus:ring-2 peer-focus:ring-[#1877F2] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1877F2]"></div>
+              <div className="w-11 h-6 bg-[#4A5E78] peer-focus:ring-2 peer-focus:ring-[#22D3EE] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#22D3EE]"></div>
             </label>
           </div>
 
           {/* Waitlist Settings */}
-          <div className="pt-3 border-t border-[#374151]">
+          <div className="pt-3 border-t border-[#4A5E78]">
             <p className="font-medium text-white mb-3">Waitlist Settings</p>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Max Call Attempts</span>
+                <span className="text-sm text-[#64748B]">Max Call Attempts</span>
                 <input
                   type="number"
                   min="1"
@@ -316,11 +317,11 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                     ...prev,
                     waitlist_settings: { ...prev.waitlist_settings, max_call_count: parseInt(e.target.value) || 3 }
                   }))}
-                  className="w-20 h-8 px-3 bg-[#374151] border-none rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                  className="cap-input w-20 h-8 px-3 text-sm"
                 />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Call Timeout (minutes)</span>
+                <span className="text-sm text-[#64748B]">Call Timeout (minutes)</span>
                 <input
                   type="number"
                   min="1"
@@ -330,11 +331,11 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                     ...prev,
                     waitlist_settings: { ...prev.waitlist_settings, call_timeout_minutes: parseInt(e.target.value) || 5 }
                   }))}
-                  className="w-20 h-8 px-3 bg-[#374151] border-none rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+                  className="cap-input w-20 h-8 px-3 text-sm"
                 />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Allow Remote Check-in</span>
+                <span className="text-sm text-[#64748B]">Allow Remote Check-in</span>
                 <label className="relative inline-flex cursor-pointer">
                   <input
                     type="checkbox"
@@ -345,18 +346,18 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                     }))}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-[#374151] peer-focus:ring-2 peer-focus:ring-[#1877F2] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#1877F2]"></div>
+                  <div className="w-9 h-5 bg-[#4A5E78] peer-focus:ring-2 peer-focus:ring-[#22D3EE] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#22D3EE]"></div>
                 </label>
               </div>
             </div>
           </div>
 
           {/* Display Settings */}
-          <div className="pt-3 border-t border-[#374151]">
+          <div className="pt-3 border-t border-[#4A5E78]">
             <p className="font-medium text-white mb-3">Display Settings</p>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Show Waitlist Count Publicly</span>
+                <span className="text-sm text-[#64748B]">Show Waitlist Count Publicly</span>
                 <label className="relative inline-flex cursor-pointer">
                   <input
                     type="checkbox"
@@ -367,11 +368,11 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                     }))}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-[#374151] peer-focus:ring-2 peer-focus:ring-[#1877F2] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#1877F2]"></div>
+                  <div className="w-9 h-5 bg-[#4A5E78] peer-focus:ring-2 peer-focus:ring-[#22D3EE] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#22D3EE]"></div>
                 </label>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Show Game Stakes</span>
+                <span className="text-sm text-[#64748B]">Show Game Stakes</span>
                 <label className="relative inline-flex cursor-pointer">
                   <input
                     type="checkbox"
@@ -382,11 +383,11 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                     }))}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-[#374151] peer-focus:ring-2 peer-focus:ring-[#1877F2] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#1877F2]"></div>
+                  <div className="w-9 h-5 bg-[#4A5E78] peer-focus:ring-2 peer-focus:ring-[#22D3EE] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#22D3EE]"></div>
                 </label>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Show Player Names on Display</span>
+                <span className="text-sm text-[#64748B]">Show Player Names on Display</span>
                 <label className="relative inline-flex cursor-pointer">
                   <input
                     type="checkbox"
@@ -397,18 +398,18 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                     }))}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-[#374151] peer-focus:ring-2 peer-focus:ring-[#1877F2] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#1877F2]"></div>
+                  <div className="w-9 h-5 bg-[#4A5E78] peer-focus:ring-2 peer-focus:ring-[#22D3EE] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#22D3EE]"></div>
                 </label>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="p-4 border-t border-[#374151]">
+        <div className="p-4 border-t border-[#4A5E78]">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full h-11 bg-[#1877F2] text-white font-semibold rounded-lg hover:bg-[#1664d9] disabled:opacity-50 flex items-center justify-center gap-2"
+            className="cap-btn cap-btn-primary w-full h-11 flex items-center justify-center gap-2"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
             Save Settings
@@ -566,20 +567,20 @@ export default function AdminDashboard() {
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
 
-      <div className="min-h-screen" style={{ backgroundColor: '#111827', fontFamily: 'Inter, sans-serif' }}>
+      <div className="cap-page" style={{ fontFamily: 'Inter, sans-serif' }}>
         {/* Header */}
-        <header className="border-b" style={{ borderColor: '#374151', backgroundColor: '#1F2937' }}>
+        <header className="cap-header-bar">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h1 className="text-xl font-bold" style={{ color: '#1877F2' }}>
+              <h1 className="text-xl font-bold text-[#22D3EE]">
                 Smarter Captain
               </h1>
-              <span className="text-gray-600">|</span>
+              <span className="text-[#4A5E78]">|</span>
               <span className="font-medium text-white">Admin Dashboard</span>
             </div>
             <button
               onClick={loadAdminData}
-              className="p-2 rounded-lg hover:bg-gray-700 text-gray-400"
+              className="p-2 rounded-lg hover:bg-[#132240] text-[#64748B]"
             >
               <RefreshCw size={20} />
             </button>
@@ -587,7 +588,7 @@ export default function AdminDashboard() {
         </header>
 
         {/* Tabs */}
-        <div className="border-b" style={{ borderColor: '#374151', backgroundColor: '#1F2937' }}>
+        <div className="border-b border-[#4A5E78] bg-[#0F1D32]">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex gap-1">
               {TABS.map(tab => {
@@ -599,8 +600,8 @@ export default function AdminDashboard() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                       isActive
-                        ? 'border-blue-500 text-blue-400'
-                        : 'border-transparent text-gray-400 hover:text-white'
+                        ? 'border-[#22D3EE] text-[#22D3EE]'
+                        : 'border-transparent text-[#64748B] hover:text-white'
                     }`}
                   >
                     <Icon size={18} />
@@ -636,15 +637,14 @@ export default function AdminDashboard() {
             <div>
               {venues.length > 1 && (
                 <div className="mb-4">
-                  <label className="block text-sm text-gray-400 mb-2">Select Venue</label>
+                  <label className="block text-sm text-[#64748B] mb-2">Select Venue</label>
                   <select
                     value={selectedVenue?.id || ''}
                     onChange={(e) => {
                       const v = venues.find(v => v.id === parseInt(e.target.value));
                       setSelectedVenue(v);
                     }}
-                    className="px-3 py-2 rounded-lg text-white"
-                    style={{ backgroundColor: '#374151', border: 'none' }}
+                    className="cap-input"
                   >
                     <option value="">All Venues</option>
                     {venues.map(v => (
@@ -664,46 +664,38 @@ export default function AdminDashboard() {
 
           {activeTab === 'settings' && (
             <div className="space-y-6">
-              <div
-                className="p-6 rounded-xl border"
-                style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-              >
+              <div className="cap-panel p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">API Keys</h3>
-                <p className="text-gray-400 mb-4">
+                <p className="text-[#64748B] mb-4">
                   Create API keys for external integrations like POS systems, player tracking software, or custom displays.
                 </p>
                 <button
                   onClick={() => setShowApiKeysModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
-                  style={{ backgroundColor: '#1877F2' }}
+                  className="cap-btn cap-btn-primary flex items-center gap-2"
                 >
                   <Key size={16} />
                   Manage API Keys
                 </button>
               </div>
 
-              <div
-                className="p-6 rounded-xl border"
-                style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-              >
+              <div className="cap-panel p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Venue Settings</h3>
-                <p className="text-gray-400 mb-4">
+                <p className="text-[#64748B] mb-4">
                   Configure venue-specific settings like comp rates, notification preferences, and display options.
                 </p>
                 <div className="space-y-3">
                   {venues.map(venue => (
                     <div
                       key={venue.id}
-                      className="flex items-center justify-between p-3 rounded-lg"
-                      style={{ backgroundColor: '#374151' }}
+                      className="flex items-center justify-between p-3 rounded-lg bg-[#0D192E]"
                     >
                       <div className="flex items-center gap-3">
-                        <Building2 size={20} className="text-gray-400" />
+                        <Building2 size={20} className="text-[#64748B]" />
                         <span className="text-white">{venue.name}</span>
                       </div>
                       <button
                         onClick={() => handleConfigureVenue(venue)}
-                        className="text-blue-400 text-sm hover:underline"
+                        className="text-[#22D3EE] text-sm hover:underline"
                       >
                         Configure
                       </button>

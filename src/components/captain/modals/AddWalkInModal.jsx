@@ -1,6 +1,6 @@
 /**
  * AddWalkInModal - Modal for adding walk-in players to waitlist
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState } from 'react';
 import { X, UserPlus, Phone } from 'lucide-react';
@@ -86,35 +86,35 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="cap-panel cap-corner-lights w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB]">
+        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#10B981] rounded-lg flex items-center justify-center">
               <UserPlus className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-lg font-semibold text-[#1F2937]">Add Walk-In</h2>
+            <h2 className="text-lg font-semibold text-white">Add Walk-In</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#6B7280]" />
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {error && (
-            <div className="p-3 bg-[#FEF2F2] rounded-lg">
+            <div className="p-3 bg-[#EF4444]/10 rounded-lg">
               <p className="text-sm text-[#EF4444]">{error}</p>
             </div>
           )}
 
           {/* Player Name */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-1">
+            <label className="block text-sm font-medium text-white mb-1">
               Player Name
             </label>
             <input
@@ -122,32 +122,32 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
               placeholder="Optional - for announcements"
-              className="w-full h-12 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+              className="cap-input w-full h-12"
             />
           </div>
 
           {/* Player Phone */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-1">
+            <label className="block text-sm font-medium text-white mb-1">
               Phone Number
             </label>
             <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#4A5E78]" />
               <input
                 type="tel"
                 value={playerPhone}
                 onChange={(e) => setPlayerPhone(formatPhoneNumber(e.target.value))}
                 placeholder="(555) 555-5555"
-                className="w-full h-12 pl-10 pr-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                className="cap-input w-full h-12 pl-10 pr-3"
               />
             </div>
-            <p className="text-xs text-[#6B7280] mt-1">For SMS notifications when seat is ready</p>
+            <p className="text-xs text-[#64748B] mt-1">For SMS notifications when seat is ready</p>
           </div>
 
           {/* Quick Select from Active Games */}
           {activeGameOptions.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-[#1F2937] mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Active Games
               </label>
               <div className="flex flex-wrap gap-2">
@@ -161,8 +161,8 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
                     }}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       gameType === game.gameType && stakes === game.stakes
-                        ? 'bg-[#1877F2] text-white'
-                        : 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
+                        ? 'bg-[#22D3EE] text-white'
+                        : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                     }`}
                   >
                     {game.stakes} {game.gameType.toUpperCase()}
@@ -174,13 +174,13 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
 
           {/* Game Type */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-1">
+            <label className="block text-sm font-medium text-white mb-1">
               Game Type
             </label>
             <select
               value={gameType}
               onChange={(e) => setGameType(e.target.value)}
-              className="w-full h-12 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+              className="cap-input w-full h-12"
             >
               {GAME_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -192,7 +192,7 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
 
           {/* Stakes */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-1">
+            <label className="block text-sm font-medium text-white mb-1">
               Stakes
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -203,8 +203,8 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
                   onClick={() => setStakes(s)}
                   className={`h-10 rounded-lg text-sm font-medium transition-colors ${
                     stakes === s
-                      ? 'bg-[#1877F2] text-white'
-                      : 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                   }`}
                 >
                   {s}
@@ -215,7 +215,7 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-1">
+            <label className="block text-sm font-medium text-white mb-1">
               Notes
             </label>
             <input
@@ -223,7 +223,7 @@ export default function AddWalkInModal({ isOpen, onClose, onSubmit, venueId, act
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Optional notes"
-              className="w-full h-12 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+              className="cap-input w-full h-12"
             />
           </div>
 

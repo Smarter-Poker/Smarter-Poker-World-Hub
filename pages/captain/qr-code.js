@@ -1,7 +1,7 @@
 /**
  * Venue QR Code Display Page
  * Staff can display QR code for player check-in
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -74,8 +74,8 @@ export default function VenueQRCodePage() {
 
   if (!staff) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <div className="animate-pulse text-[#6B7280]">Loading...</div>
+      <div className="cap-page flex items-center justify-center">
+        <div className="animate-pulse text-[#64748B]">Loading...</div>
       </div>
     );
   }
@@ -86,14 +86,14 @@ export default function VenueQRCodePage() {
         className="min-h-screen bg-white flex flex-col items-center justify-center p-8 cursor-pointer"
         onClick={toggleFullscreen}
       >
-        <h1 className="text-4xl font-bold text-[#1877F2] mb-2">{venue?.name}</h1>
-        <p className="text-xl text-[#6B7280] mb-8">Scan to Check In</p>
+        <h1 className="text-4xl font-bold text-[#22D3EE] mb-2">{venue?.name}</h1>
+        <p className="text-xl text-[#64748B] mb-8">Scan to Check In</p>
         <img
           src={getQRCodeUrl(400)}
           alt="Check-in QR Code"
           className="w-96 h-96"
         />
-        <p className="text-sm text-[#9CA3AF] mt-8">Tap anywhere to exit fullscreen</p>
+        <p className="text-sm text-[#4A5E78] mt-8">Tap anywhere to exit fullscreen</p>
       </div>
     );
   }
@@ -105,20 +105,20 @@ export default function VenueQRCodePage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB]">
+        <header className="cap-header-bar">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/captain/dashboard')}
-                className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#6B7280]" />
+                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
               </button>
               <div>
-                <h1 className="font-bold text-[#1F2937]">Check-In QR Code</h1>
-                <p className="text-sm text-[#6B7280]">{venue?.name}</p>
+                <h1 className="font-bold text-white">Check-In QR Code</h1>
+                <p className="text-sm text-[#64748B]">{venue?.name}</p>
               </div>
             </div>
           </div>
@@ -126,20 +126,20 @@ export default function VenueQRCodePage() {
 
         <main className="max-w-2xl mx-auto px-4 py-8">
           {/* QR Code Display */}
-          <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-            <div className="w-20 h-20 bg-[#1877F2]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <QrCode className="w-10 h-10 text-[#1877F2]" />
+          <div className="cap-panel p-8 text-center">
+            <div className="w-20 h-20 bg-[#22D3EE]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <QrCode className="w-10 h-10 text-[#22D3EE]" />
             </div>
 
-            <h2 className="text-xl font-bold text-[#1F2937] mb-2">
+            <h2 className="text-xl font-bold text-white mb-2">
               Player Check-In
             </h2>
-            <p className="text-[#6B7280] mb-6">
+            <p className="text-[#64748B] mb-6">
               Display this QR code for players to scan and check in
             </p>
 
-            {/* QR Code Image */}
-            <div className="bg-[#F9FAFB] rounded-xl p-6 mb-6 inline-block">
+            {/* QR Code Image - keep white background for QR readability */}
+            <div className="bg-white rounded-xl p-6 mb-6 inline-block">
               {qrUrl ? (
                 <img
                   src={getQRCodeUrl(250)}
@@ -152,23 +152,23 @@ export default function VenueQRCodePage() {
             </div>
 
             {/* URL Display */}
-            <div className="bg-[#F3F4F6] rounded-lg p-3 mb-6">
-              <p className="text-xs text-[#6B7280] mb-1">Check-in URL</p>
-              <p className="text-sm text-[#1F2937] font-mono break-all">{qrUrl}</p>
+            <div className="bg-[#0D192E] rounded-lg p-3 mb-6">
+              <p className="text-xs text-[#64748B] mb-1">Check-in URL</p>
+              <p className="text-sm text-white font-mono break-all">{qrUrl}</p>
             </div>
 
             {/* Action Buttons */}
             <div className="flex gap-3 justify-center">
               <button
                 onClick={handleDownload}
-                className="flex items-center gap-2 px-6 py-3 border border-[#E5E7EB] rounded-lg font-medium text-[#1F2937] hover:bg-[#F3F4F6] transition-colors"
+                className="cap-btn cap-btn-secondary flex items-center gap-2 px-6 py-3"
               >
                 <Download className="w-5 h-5" />
                 Download
               </button>
               <button
                 onClick={toggleFullscreen}
-                className="flex items-center gap-2 px-6 py-3 bg-[#1877F2] text-white rounded-lg font-medium hover:bg-[#1664d9] transition-colors"
+                className="cap-btn cap-btn-primary flex items-center gap-2 px-6 py-3"
               >
                 <Maximize2 className="w-5 h-5" />
                 Fullscreen
@@ -177,9 +177,9 @@ export default function VenueQRCodePage() {
           </div>
 
           {/* Tips */}
-          <div className="mt-6 bg-[#1877F2]/5 rounded-xl p-4">
-            <h3 className="font-medium text-[#1877F2] mb-2">Tips</h3>
-            <ul className="text-sm text-[#6B7280] space-y-1">
+          <div className="mt-6 bg-[#22D3EE]/5 rounded-xl p-4">
+            <h3 className="font-medium text-[#22D3EE] mb-2">Tips</h3>
+            <ul className="text-sm text-[#64748B] space-y-1">
               <li>Display on a tablet near the entrance</li>
               <li>Print and post at the check-in desk</li>
               <li>Use fullscreen mode for TV displays</li>

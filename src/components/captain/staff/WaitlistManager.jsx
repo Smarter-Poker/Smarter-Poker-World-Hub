@@ -1,7 +1,7 @@
 /**
  * WaitlistManager Component - Manages waitlist for staff
  * Reference: IMPLEMENTATION_PHASES.md - Step 1.5
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState } from 'react';
 import { Phone, Bell, UserCheck, UserX, Clock, Plus } from 'lucide-react';
@@ -22,13 +22,13 @@ export default function WaitlistManager({
 
   if (groupedWaitlists.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-[#E5E7EB] p-8 text-center">
-        <Clock className="w-12 h-12 mx-auto mb-2 text-[#6B7280] opacity-50" />
-        <p className="text-[#6B7280]">No players on waitlist</p>
+      <div className="cap-panel p-8 text-center">
+        <Clock className="w-12 h-12 mx-auto mb-2 text-[#64748B] opacity-50" />
+        <p className="text-[#64748B]">No players on waitlist</p>
         {onAddWalkIn && (
           <button
             onClick={onAddWalkIn}
-            className="mt-4 px-4 py-2 bg-[#1877F2] text-white rounded-lg font-medium hover:bg-[#1664d9] transition-colors min-h-[44px] inline-flex items-center gap-2"
+            className="mt-4 px-4 py-2 cap-btn cap-btn-primary min-h-[44px] inline-flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Add Walk-In
@@ -48,8 +48,8 @@ export default function WaitlistManager({
             onClick={() => setSelectedWaitlist(index)}
             className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap min-h-[44px] transition-colors ${
               selectedWaitlist === index || (selectedWaitlist === null && index === 0)
-                ? 'bg-[#1877F2] text-white'
-                : 'bg-white border border-[#E5E7EB] text-[#1F2937] hover:border-[#1877F2]'
+                ? 'bg-[#22D3EE] text-white'
+                : 'bg-[#132240] border border-[#4A5E78] text-white hover:border-[#22D3EE]'
             }`}
           >
             {wl.game_type?.toUpperCase()} {wl.stakes}
@@ -61,7 +61,7 @@ export default function WaitlistManager({
         {onAddWalkIn && (
           <button
             onClick={onAddWalkIn}
-            className="px-4 py-2 rounded-lg font-medium whitespace-nowrap min-h-[44px] border border-dashed border-[#6B7280] text-[#6B7280] hover:border-[#1877F2] hover:text-[#1877F2] transition-colors inline-flex items-center gap-2"
+            className="px-4 py-2 rounded-lg font-medium whitespace-nowrap min-h-[44px] border border-dashed border-[#64748B] text-[#64748B] hover:border-[#22D3EE] hover:text-[#22D3EE] transition-colors inline-flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Walk-In
@@ -70,7 +70,7 @@ export default function WaitlistManager({
       </div>
 
       {/* Waitlist Players */}
-      <div className="bg-white rounded-lg border border-[#E5E7EB] overflow-hidden">
+      <div className="cap-panel overflow-hidden">
         {(groupedWaitlists[selectedWaitlist ?? 0]?.players || []).map((player, index) => (
           <WaitlistRow
             key={player.id}
@@ -93,15 +93,15 @@ function WaitlistRow({ player, position, onCall, onSeat, onRemove }) {
     : 0;
 
   return (
-    <div className={`flex items-center justify-between p-4 border-b border-[#E5E7EB] last:border-b-0 ${
-      isCalled ? 'bg-[#FEF3C7]' : ''
+    <div className={`flex items-center justify-between p-4 border-b border-[#4A5E78] last:border-b-0 ${
+      isCalled ? 'bg-[#F59E0B]/10' : ''
     }`}>
       <div className="flex items-center gap-4">
-        <div className="w-8 h-8 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-semibold text-sm">
+        <div className="w-8 h-8 rounded-full bg-[#22D3EE] text-white flex items-center justify-center font-semibold text-sm">
           {position}
         </div>
         <div>
-          <p className="font-medium text-[#1F2937]">
+          <p className="font-medium text-white">
             {player.player_name || 'Player'}
             {isCalled && (
               <span className="ml-2 text-xs bg-[#F59E0B] text-white px-2 py-0.5 rounded">
@@ -109,7 +109,7 @@ function WaitlistRow({ player, position, onCall, onSeat, onRemove }) {
               </span>
             )}
           </p>
-          <div className="flex items-center gap-3 text-sm text-[#6B7280]">
+          <div className="flex items-center gap-3 text-sm text-[#64748B]">
             <span className="inline-flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {waitTime}m
@@ -126,7 +126,7 @@ function WaitlistRow({ player, position, onCall, onSeat, onRemove }) {
         {!isCalled ? (
           <button
             onClick={onCall}
-            className="p-3 rounded-lg bg-[#1877F2] text-white hover:bg-[#1664d9] transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
+            className="p-3 rounded-lg cap-btn cap-btn-primary min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
             title="Call Player"
           >
             <Bell className="w-5 h-5" />
@@ -142,7 +142,7 @@ function WaitlistRow({ player, position, onCall, onSeat, onRemove }) {
         )}
         <button
           onClick={onRemove}
-          className="p-3 rounded-lg bg-white border border-[#E5E7EB] text-[#6B7280] hover:border-[#EF4444] hover:text-[#EF4444] transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
+          className="p-3 rounded-lg bg-[#132240] border border-[#4A5E78] text-[#64748B] hover:border-[#EF4444] hover:text-[#EF4444] transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
           title="Remove Player"
         >
           <UserX className="w-5 h-5" />

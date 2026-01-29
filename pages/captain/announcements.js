@@ -1,6 +1,6 @@
 /**
  * Captain Announcements Page - Send broadcasts to players
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -104,8 +104,8 @@ export default function CaptainAnnouncementsPage() {
 
   if (!staff) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
@@ -117,19 +117,19 @@ export default function CaptainAnnouncementsPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-50">
+        <header className="cap-header-bar sticky top-0 z-50">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => router.push('/captain/dashboard')}
-              className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+              className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
             >
-              <ArrowLeft className="w-5 h-5 text-[#6B7280]" />
+              <ArrowLeft className="w-5 h-5 text-[#64748B]" />
             </button>
             <div>
-              <h1 className="font-bold text-[#1F2937] text-lg">Announcements</h1>
-              <p className="text-sm text-[#6B7280]">{venue?.name}</p>
+              <h1 className="font-bold text-white text-lg">Announcements</h1>
+              <p className="text-sm text-[#64748B]">{venue?.name}</p>
             </div>
           </div>
         </header>
@@ -138,24 +138,24 @@ export default function CaptainAnnouncementsPage() {
         <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
           {/* Alerts */}
           {success && (
-            <div className="p-4 bg-[#D1FAE5] rounded-xl flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-[#059669]" />
-              <p className="text-sm text-[#059669] font-medium">{success}</p>
+            <div className="p-4 bg-[#10B981]/10 rounded-xl flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-[#10B981]" />
+              <p className="text-sm text-[#10B981] font-medium">{success}</p>
             </div>
           )}
           {error && (
-            <div className="p-4 bg-[#FEF2F2] rounded-xl">
+            <div className="p-4 bg-[#EF4444]/10 rounded-xl">
               <p className="text-sm text-[#EF4444]">{error}</p>
             </div>
           )}
 
           {/* Compose */}
-          <section className="bg-white rounded-xl border border-[#E5E7EB] p-4 space-y-4">
-            <h2 className="font-semibold text-[#1F2937]">Send Announcement</h2>
+          <section className="cap-panel p-4 space-y-4">
+            <h2 className="font-semibold text-white">Send Announcement</h2>
 
             {/* Target Selection */}
             <div>
-              <label className="block text-sm font-medium text-[#6B7280] mb-2">
+              <label className="block text-sm font-medium text-[#64748B] mb-2">
                 Send to
               </label>
               <div className="flex gap-2">
@@ -170,8 +170,8 @@ export default function CaptainAnnouncementsPage() {
                     onClick={() => setSendTo(value)}
                     className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       sendTo === value
-                        ? 'bg-[#1877F2] text-white'
-                        : 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
+                        ? 'bg-[#22D3EE] text-white'
+                        : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -183,7 +183,7 @@ export default function CaptainAnnouncementsPage() {
 
             {/* Quick Messages */}
             <div>
-              <label className="block text-sm font-medium text-[#6B7280] mb-2">
+              <label className="block text-sm font-medium text-[#64748B] mb-2">
                 Quick Messages
               </label>
               <div className="flex flex-wrap gap-2">
@@ -192,7 +192,7 @@ export default function CaptainAnnouncementsPage() {
                     key={item.label}
                     type="button"
                     onClick={() => handleQuickMessage(item.message)}
-                    className="px-3 py-1.5 bg-[#F3F4F6] text-[#1F2937] text-sm rounded-full hover:bg-[#E5E7EB] transition-colors"
+                    className="px-3 py-1.5 bg-[#0D192E] text-white text-sm rounded-full hover:bg-[#132240] transition-colors"
                   >
                     {item.label}
                   </button>
@@ -202,7 +202,7 @@ export default function CaptainAnnouncementsPage() {
 
             {/* Message Input */}
             <div>
-              <label className="block text-sm font-medium text-[#6B7280] mb-2">
+              <label className="block text-sm font-medium text-[#64748B] mb-2">
                 Message
               </label>
               <textarea
@@ -210,9 +210,9 @@ export default function CaptainAnnouncementsPage() {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type your announcement..."
                 rows={3}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent resize-none"
+                className="w-full px-3 py-2 cap-input resize-none"
               />
-              <p className="text-xs text-[#9CA3AF] mt-1">
+              <p className="text-xs text-[#4A5E78] mt-1">
                 {message.length}/160 characters
               </p>
             </div>
@@ -221,7 +221,7 @@ export default function CaptainAnnouncementsPage() {
             <button
               onClick={handleSend}
               disabled={!message.trim() || sending}
-              className="w-full h-12 bg-[#1877F2] text-white font-semibold rounded-lg hover:bg-[#1664d9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full h-12 cap-btn cap-btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {sending ? (
                 <>
@@ -240,14 +240,14 @@ export default function CaptainAnnouncementsPage() {
           {/* Recent Announcements */}
           {recentAnnouncements.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-[#6B7280] uppercase tracking-wide mb-3">
+              <h2 className="text-sm font-semibold text-[#64748B] uppercase tracking-wide mb-3">
                 Recent Announcements
               </h2>
-              <div className="bg-white rounded-xl border border-[#E5E7EB] divide-y divide-[#E5E7EB]">
+              <div className="cap-panel divide-y divide-[#4A5E78]">
                 {recentAnnouncements.map((ann) => (
                   <div key={ann.id} className="p-4">
-                    <p className="text-[#1F2937]">{ann.message}</p>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-[#6B7280]">
+                    <p className="text-white">{ann.message}</p>
+                    <div className="flex items-center gap-4 mt-2 text-xs text-[#64748B]">
                       <span>Sent to {ann.sent_count} players</span>
                       <span>{new Date(ann.sent_at).toLocaleTimeString()}</span>
                     </div>

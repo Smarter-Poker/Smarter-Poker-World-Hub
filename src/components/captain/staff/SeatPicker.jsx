@@ -1,7 +1,7 @@
 /**
  * SeatPicker Component - Visual seat selection for seating players
  * Reference: SCOPE_LOCK.md - Phase 2 Components
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { User, UserX } from 'lucide-react';
 
@@ -52,9 +52,9 @@ export default function SeatPicker({
             disabled={!isAvailable || disabled}
             className={`absolute w-12 h-12 rounded-full flex flex-col items-center justify-center transition-all ${
               isSelected
-                ? 'bg-[#1877F2] text-white ring-4 ring-[#1877F2]/30'
+                ? 'bg-[#22D3EE] text-white ring-4 ring-[#22D3EE]/30'
                 : isAvailable
-                  ? 'bg-white border-2 border-[#E5E7EB] hover:border-[#1877F2] text-[#1F2937]'
+                  ? 'bg-[#132240] border-2 border-[#4A5E78] hover:border-[#22D3EE] text-white'
                   : 'bg-[#6B7280] text-white cursor-not-allowed'
             }`}
             style={position}
@@ -103,10 +103,10 @@ export function SeatPickerList({
             disabled={!isAvailable || disabled}
             className={`p-3 rounded-lg flex flex-col items-center justify-center min-h-[60px] transition-all ${
               isSelected
-                ? 'bg-[#1877F2] text-white'
+                ? 'bg-[#22D3EE] text-white'
                 : isAvailable
-                  ? 'bg-white border border-[#E5E7EB] hover:border-[#1877F2] text-[#1F2937]'
-                  : 'bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed'
+                  ? 'bg-[#132240] border border-[#4A5E78] hover:border-[#22D3EE] text-white'
+                  : 'bg-[#0D192E] text-[#4A5E78] cursor-not-allowed'
             }`}
           >
             <span className="text-lg font-bold">{seat.seat_number}</span>

@@ -1,7 +1,7 @@
 /**
  * MustMoveModal - Manage must-move game relationships
  * When main game is full, players go to must-move game first
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
 import { X, ArrowRight, Users, Loader2, Link2, Unlink } from 'lucide-react';
@@ -99,40 +99,40 @@ export default function MustMoveModal({
   if (!isOpen || !game) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-md">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="cap-panel cap-corner-lights w-full max-w-md">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB]">
+        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#8B5CF6] rounded-lg flex items-center justify-center">
               <Link2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[#1F2937]">Must-Move Setup</h2>
-              <p className="text-sm text-[#6B7280]">
+              <h2 className="text-lg font-semibold text-white">Must-Move Setup</h2>
+              <p className="text-sm text-[#64748B]">
                 {game.stakes} {game.game_type?.toUpperCase()} - Table {game.table_number}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#6B7280]" />
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         {/* Content */}
         <div className="p-4 space-y-4">
           {error && (
-            <div className="p-3 bg-[#FEF2F2] rounded-lg">
+            <div className="p-3 bg-[#EF4444]/10 rounded-lg">
               <p className="text-sm text-[#EF4444]">{error}</p>
             </div>
           )}
 
           {/* Info box */}
-          <div className="p-3 bg-[#F3F4F6] rounded-lg">
-            <p className="text-sm text-[#6B7280]">
+          <div className="p-3 bg-[#0D192E] rounded-lg">
+            <p className="text-sm text-[#64748B]">
               When the main game is full, new players are seated at the must-move game.
               As seats open in the main game, players move up in order.
             </p>
@@ -144,18 +144,18 @@ export default function MustMoveModal({
               <div className="p-4 bg-[#8B5CF6]/10 rounded-lg">
                 <p className="text-sm font-medium text-[#8B5CF6] mb-2">Currently Linked</p>
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 p-3 bg-white rounded-lg border border-[#E5E7EB]">
-                    <p className="font-medium text-[#1F2937]">
+                  <div className="flex-1 p-3 bg-[#0B1426] rounded-lg border border-[#4A5E78]">
+                    <p className="font-medium text-white">
                       Table {game.table_number}
                     </p>
-                    <p className="text-sm text-[#6B7280]">Main Game</p>
+                    <p className="text-sm text-[#64748B]">Main Game</p>
                   </div>
                   <ArrowRight className="w-5 h-5 text-[#8B5CF6]" />
-                  <div className="flex-1 p-3 bg-white rounded-lg border border-[#E5E7EB]">
-                    <p className="font-medium text-[#1F2937]">
+                  <div className="flex-1 p-3 bg-[#0B1426] rounded-lg border border-[#4A5E78]">
+                    <p className="font-medium text-white">
                       Table {linkedGame.table_number}
                     </p>
-                    <p className="text-sm text-[#6B7280]">Must-Move</p>
+                    <p className="text-sm text-[#64748B]">Must-Move</p>
                   </div>
                 </div>
               </div>
@@ -183,16 +183,16 @@ export default function MustMoveModal({
             <div className="space-y-4">
               {availableGames.length === 0 ? (
                 <div className="text-center py-8">
-                  <Users className="w-12 h-12 text-[#9CA3AF] mx-auto mb-2" />
-                  <p className="text-[#6B7280]">No compatible games available</p>
-                  <p className="text-sm text-[#9CA3AF] mt-1">
+                  <Users className="w-12 h-12 text-[#4A5E78] mx-auto mb-2" />
+                  <p className="text-[#64748B]">No compatible games available</p>
+                  <p className="text-sm text-[#4A5E78] mt-1">
                     Open another {game.stakes} {game.game_type?.toUpperCase()} game first
                   </p>
                 </div>
               ) : (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-[#1F2937] mb-2">
+                    <label className="block text-sm font-medium text-white mb-2">
                       Select Must-Move Game
                     </label>
                     <div className="space-y-2">
@@ -203,7 +203,7 @@ export default function MustMoveModal({
                           className={`w-full p-3 rounded-lg text-left transition-colors ${
                             selectedGameId === g.id
                               ? 'bg-[#8B5CF6] text-white'
-                              : 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
+                              : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                           }`}
                         >
                           <div className="flex items-center justify-between">
@@ -211,7 +211,7 @@ export default function MustMoveModal({
                               <p className="font-medium">
                                 {g.table_name || `Table ${g.table_number}`}
                               </p>
-                              <p className={`text-sm ${selectedGameId === g.id ? 'text-white/80' : 'text-[#6B7280]'}`}>
+                              <p className={`text-sm ${selectedGameId === g.id ? 'text-white/80' : 'text-[#64748B]'}`}>
                                 {g.player_count || 0}/{g.max_players} players
                               </p>
                             </div>

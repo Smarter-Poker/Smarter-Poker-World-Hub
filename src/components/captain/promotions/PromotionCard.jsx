@@ -1,7 +1,7 @@
 /**
  * PromotionCard Component
  * Reference: IMPLEMENTATION_PHASES.md - Phase 5
- * Displays a single promotion with details
+ * Dark industrial sci-fi gaming theme
  */
 import React from 'react';
 import { Gift, Clock, Calendar, DollarSign, Users, Trophy, Star } from 'lucide-react';
@@ -27,7 +27,7 @@ const PROMOTION_TYPE_COLORS = {
   happy_hour: '#F59E0B',
   new_player: '#8B5CF6',
   referral: '#EC4899',
-  loyalty: '#1877F2',
+  loyalty: '#22D3EE',
   tournament_bonus: '#14B8A6',
   cash_back: '#6366F1',
   drawing: '#F97316',
@@ -35,11 +35,11 @@ const PROMOTION_TYPE_COLORS = {
 };
 
 const STATUS_STYLES = {
-  draft: { bg: '#374151', text: '#9CA3AF' },
+  draft: { bg: '#0D192E', text: '#4A5E78' },
   scheduled: { bg: '#1E40AF', text: '#93C5FD' },
   active: { bg: '#166534', text: '#86EFAC' },
   paused: { bg: '#92400E', text: '#FCD34D' },
-  completed: { bg: '#1F2937', text: '#9CA3AF' },
+  completed: { bg: '#0D192E', text: '#4A5E78' },
   cancelled: { bg: '#7F1D1D', text: '#FCA5A5' }
 };
 
@@ -82,8 +82,7 @@ export default function PromotionCard({
   if (compact) {
     return (
       <div
-        className="p-3 rounded-lg border cursor-pointer hover:border-blue-400 transition-colors"
-        style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
+        className="cap-panel p-3 cursor-pointer hover:border-[#22D3EE] transition-colors"
         onClick={() => onEdit?.(promotion)}
       >
         <div className="flex items-center justify-between">
@@ -101,7 +100,7 @@ export default function PromotionCard({
             {promotion.status}
           </span>
         </div>
-        <div className="mt-1 text-xs text-gray-400">
+        <div className="mt-1 text-xs text-[#64748B]">
           {PROMOTION_TYPE_LABELS[promotion.promotion_type]} - {formatPrize()}
         </div>
       </div>
@@ -109,15 +108,9 @@ export default function PromotionCard({
   }
 
   return (
-    <div
-      className="rounded-xl border overflow-hidden"
-      style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-    >
+    <div className="cap-panel overflow-hidden">
       {/* Header */}
-      <div
-        className="p-4 border-b"
-        style={{ borderColor: '#374151' }}
-      >
+      <div className="p-4 border-b border-[#4A5E78]">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div
@@ -147,7 +140,7 @@ export default function PromotionCard({
         </div>
 
         {promotion.description && (
-          <p className="mt-3 text-sm text-gray-400 line-clamp-2">
+          <p className="mt-3 text-sm text-[#64748B] line-clamp-2">
             {promotion.description}
           </p>
         )}
@@ -158,15 +151,15 @@ export default function PromotionCard({
         {/* Prize */}
         <div className="flex items-center gap-2 text-sm">
           <DollarSign size={16} className="text-green-400" />
-          <span className="text-gray-400">Prize:</span>
+          <span className="text-[#64748B]">Prize:</span>
           <span className="text-white font-medium">{formatPrize()}</span>
         </div>
 
         {/* Schedule */}
         {(promotion.start_date || promotion.end_date) && (
           <div className="flex items-center gap-2 text-sm">
-            <Calendar size={16} className="text-blue-400" />
-            <span className="text-gray-400">
+            <Calendar size={16} className="text-[#22D3EE]" />
+            <span className="text-[#64748B]">
               {formatDate(promotion.start_date)} - {formatDate(promotion.end_date)}
             </span>
           </div>
@@ -176,7 +169,7 @@ export default function PromotionCard({
         {(promotion.start_time || promotion.end_time) && (
           <div className="flex items-center gap-2 text-sm">
             <Clock size={16} className="text-purple-400" />
-            <span className="text-gray-400">
+            <span className="text-[#64748B]">
               {formatTime(promotion.start_time)} - {formatTime(promotion.end_time)}
             </span>
           </div>
@@ -186,7 +179,7 @@ export default function PromotionCard({
         {(promotion.min_stakes || promotion.qualifying_hands) && (
           <div className="flex items-center gap-2 text-sm">
             <Trophy size={16} className="text-yellow-400" />
-            <span className="text-gray-400">
+            <span className="text-[#64748B]">
               {promotion.min_stakes && `Min Stakes: ${promotion.min_stakes}`}
               {promotion.min_stakes && promotion.qualifying_hands && ' | '}
               {promotion.qualifying_hands}
@@ -195,14 +188,14 @@ export default function PromotionCard({
         )}
 
         {/* Stats */}
-        <div className="flex items-center gap-4 pt-2 border-t" style={{ borderColor: '#374151' }}>
+        <div className="flex items-center gap-4 pt-2 border-t border-[#4A5E78]">
           <div className="flex items-center gap-1 text-sm">
-            <Users size={14} className="text-gray-500" />
-            <span className="text-gray-400">{promotion.total_awarded || 0} awarded</span>
+            <Users size={14} className="text-[#4A5E78]" />
+            <span className="text-[#64748B]">{promotion.total_awarded || 0} awarded</span>
           </div>
           <div className="flex items-center gap-1 text-sm">
-            <DollarSign size={14} className="text-gray-500" />
-            <span className="text-gray-400">
+            <DollarSign size={14} className="text-[#4A5E78]" />
+            <span className="text-[#64748B]">
               ${(promotion.total_value_awarded || 0).toLocaleString()} total
             </span>
           </div>
@@ -211,15 +204,11 @@ export default function PromotionCard({
 
       {/* Actions */}
       {(onEdit || onViewAwards) && (
-        <div
-          className="px-4 py-3 flex items-center gap-2 border-t"
-          style={{ borderColor: '#374151', backgroundColor: '#111827' }}
-        >
+        <div className="px-4 py-3 flex items-center gap-2 border-t border-[#4A5E78] bg-[#0B1426]">
           {onEdit && (
             <button
               onClick={() => onEdit(promotion)}
-              className="flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors"
-              style={{ backgroundColor: '#374151', color: '#E5E7EB' }}
+              className="cap-btn cap-btn-secondary flex-1 py-2 text-sm"
             >
               Edit
             </button>
@@ -227,8 +216,7 @@ export default function PromotionCard({
           {onViewAwards && (
             <button
               onClick={() => onViewAwards(promotion)}
-              className="flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors"
-              style={{ backgroundColor: '#1877F2', color: '#FFFFFF' }}
+              className="cap-btn cap-btn-primary flex-1 py-2 text-sm"
             >
               View Awards
             </button>

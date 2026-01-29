@@ -1,7 +1,7 @@
 /**
  * GroupCard Component - Display home game group summary
  * Reference: SCOPE_LOCK.md - Phase 4 Components
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { Users, MapPin, Calendar, Lock, Globe } from 'lucide-react';
 
@@ -22,20 +22,20 @@ export default function GroupCard({
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-lg border border-[#E5E7EB] p-4 hover:border-[#1877F2] transition-colors cursor-pointer"
+      className="cap-panel p-4 hover:border-[#22D3EE] transition-colors cursor-pointer"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-[#1F2937]">{group.name}</h3>
+            <h3 className="font-semibold text-white">{group.name}</h3>
             {group.is_private ? (
-              <Lock className="w-4 h-4 text-[#6B7280]" />
+              <Lock className="w-4 h-4 text-[#64748B]" />
             ) : (
               <Globe className="w-4 h-4 text-[#10B981]" />
             )}
           </div>
           {group.description && (
-            <p className="text-sm text-[#6B7280] mt-1 line-clamp-2">
+            <p className="text-sm text-[#64748B] mt-1 line-clamp-2">
               {group.description}
             </p>
           )}
@@ -49,7 +49,7 @@ export default function GroupCard({
         )}
       </div>
 
-      <div className="flex flex-wrap gap-3 text-sm text-[#6B7280]">
+      <div className="flex flex-wrap gap-3 text-sm text-[#64748B]">
         <span className="flex items-center gap-1">
           <Users className="w-4 h-4" />
           {group.member_count} member{group.member_count !== 1 ? 's' : ''}
@@ -70,13 +70,13 @@ export default function GroupCard({
         )}
       </div>
 
-      <div className="mt-3 pt-3 border-t border-[#E5E7EB] flex items-center justify-between">
+      <div className="mt-3 pt-3 border-t border-[#4A5E78] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="px-2 py-1 bg-[#F3F4F6] rounded text-xs font-medium text-[#1F2937]">
+          <span className="px-2 py-1 bg-[#0D192E] rounded text-xs font-medium text-white">
             {gameType}
           </span>
           {group.default_stakes && (
-            <span className="px-2 py-1 bg-[#E0F2FE] rounded text-xs font-medium text-[#1877F2]">
+            <span className="px-2 py-1 bg-[#22D3EE]/10 rounded text-xs font-medium text-[#22D3EE]">
               {group.default_stakes}
             </span>
           )}
@@ -88,20 +88,20 @@ export default function GroupCard({
               e.stopPropagation();
               onClick?.();
             }}
-            className="px-3 py-1 bg-[#1877F2] text-white text-sm font-medium rounded-lg hover:bg-[#1664D9] transition-colors"
+            className="cap-btn cap-btn-primary px-3 py-1 text-sm"
           >
             {group.is_private ? 'Request to Join' : 'Join'}
           </button>
         )}
 
         {group.my_membership?.status === 'pending' && (
-          <span className="px-3 py-1 bg-[#FEF3C7] text-[#D97706] text-sm font-medium rounded-lg">
+          <span className="px-3 py-1 bg-[#F59E0B]/10 text-[#D97706] text-sm font-medium rounded-lg">
             Pending
           </span>
         )}
 
         {group.my_membership?.status === 'approved' && (
-          <span className="px-3 py-1 bg-[#D1FAE5] text-[#10B981] text-sm font-medium rounded-lg">
+          <span className="px-3 py-1 bg-[#10B981]/10 text-[#10B981] text-sm font-medium rounded-lg">
             Member
           </span>
         )}
@@ -115,17 +115,17 @@ export function GroupCardCompact({ group, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-[#F9FAFB] text-left transition-colors"
+      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-[#0B1426] text-left transition-colors"
     >
-      <div className="w-12 h-12 rounded-lg bg-[#1877F2]/10 flex items-center justify-center">
-        <Users className="w-6 h-6 text-[#1877F2]" />
+      <div className="w-12 h-12 rounded-lg bg-[#22D3EE]/10 flex items-center justify-center">
+        <Users className="w-6 h-6 text-[#22D3EE]" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <h4 className="font-medium text-[#1F2937] truncate">{group.name}</h4>
-          {group.is_private && <Lock className="w-3 h-3 text-[#6B7280]" />}
+          <h4 className="font-medium text-white truncate">{group.name}</h4>
+          {group.is_private && <Lock className="w-3 h-3 text-[#64748B]" />}
         </div>
-        <p className="text-sm text-[#6B7280]">
+        <p className="text-sm text-[#64748B]">
           {group.member_count} members
           {group.city && ` • ${group.city}`}
         </p>

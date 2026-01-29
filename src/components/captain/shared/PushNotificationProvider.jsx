@@ -1,6 +1,6 @@
 /**
  * OneSignal Push Notification Provider
- * Wrap your app with this to enable push notifications
+ * Dark industrial sci-fi gaming theme
  *
  * Usage in _app.js:
  * import PushNotificationProvider from '../src/components/captain/shared/PushNotificationProvider';
@@ -197,7 +197,7 @@ export function PushNotificationButton({ className = '' }) {
 
   if (permission === 'denied') {
     return (
-      <div className={`text-sm text-gray-500 ${className}`}>
+      <div className={`text-sm text-[#4A5E78] ${className}`}>
         Notifications blocked. Enable in browser settings.
       </div>
     );
@@ -207,7 +207,7 @@ export function PushNotificationButton({ className = '' }) {
     return (
       <button
         onClick={unsubscribe}
-        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-700 ${className}`}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#10B981]/10 text-[#10B981] ${className}`}
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -220,8 +220,7 @@ export function PushNotificationButton({ className = '' }) {
   return (
     <button
       onClick={subscribe}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white ${className}`}
-      style={{ backgroundColor: '#1877F2' }}
+      className={`cap-btn cap-btn-primary flex items-center gap-2 px-4 py-2 text-sm ${className}`}
     >
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />

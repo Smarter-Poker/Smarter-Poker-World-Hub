@@ -1,6 +1,6 @@
 /**
  * Captain Settings Page - Venue and staff settings
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -99,8 +99,8 @@ export default function CaptainSettingsPage() {
 
   if (!staff || loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
@@ -115,20 +115,20 @@ export default function CaptainSettingsPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-50">
+        <header className="cap-header-bar sticky top-0 z-50">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/captain/dashboard')}
-                className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#6B7280]" />
+                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
               </button>
               <div>
-                <h1 className="font-bold text-[#1F2937] text-lg">Settings</h1>
-                <p className="text-sm text-[#6B7280]">{venue?.name}</p>
+                <h1 className="font-bold text-white text-lg">Settings</h1>
+                <p className="text-sm text-[#64748B]">{venue?.name}</p>
               </div>
             </div>
 
@@ -136,7 +136,7 @@ export default function CaptainSettingsPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white font-medium rounded-lg hover:bg-[#1664d9] transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 cap-btn cap-btn-primary disabled:opacity-50"
               >
                 {saving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -153,35 +153,35 @@ export default function CaptainSettingsPage() {
         <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
           {/* Alerts */}
           {success && (
-            <div className="p-4 bg-[#D1FAE5] rounded-xl">
-              <p className="text-sm text-[#059669] font-medium">{success}</p>
+            <div className="p-4 bg-[#10B981]/10 rounded-xl">
+              <p className="text-sm text-[#10B981] font-medium">{success}</p>
             </div>
           )}
           {error && (
-            <div className="p-4 bg-[#FEF2F2] rounded-xl">
+            <div className="p-4 bg-[#EF4444]/10 rounded-xl">
               <p className="text-sm text-[#EF4444]">{error}</p>
             </div>
           )}
 
           {!canManageSettings && (
-            <div className="p-4 bg-[#FEF3C7] rounded-xl">
-              <p className="text-sm text-[#D97706]">
+            <div className="p-4 bg-[#F59E0B]/10 rounded-xl">
+              <p className="text-sm text-[#F59E0B]">
                 You don't have permission to modify settings. Contact a manager.
               </p>
             </div>
           )}
 
           {/* Notifications */}
-          <section className="bg-white rounded-xl border border-[#E5E7EB]">
-            <div className="p-4 border-b border-[#E5E7EB]">
+          <section className="cap-panel">
+            <div className="p-4 border-b border-[#4A5E78]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#DBEAFE] rounded-lg flex items-center justify-center">
-                  <Bell className="w-5 h-5 text-[#2563EB]" />
+                <div className="w-10 h-10 bg-[#22D3EE]/10 rounded-lg flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-[#22D3EE]" />
                 </div>
-                <h2 className="font-semibold text-[#1F2937]">Notifications</h2>
+                <h2 className="font-semibold text-white">Notifications</h2>
               </div>
             </div>
-            <div className="divide-y divide-[#E5E7EB]">
+            <div className="divide-y divide-[#4A5E78]">
               <SettingToggle
                 label="SMS Notifications"
                 description="Send text messages when calling players"
@@ -200,16 +200,16 @@ export default function CaptainSettingsPage() {
           </section>
 
           {/* Waitlist */}
-          <section className="bg-white rounded-xl border border-[#E5E7EB]">
-            <div className="p-4 border-b border-[#E5E7EB]">
+          <section className="cap-panel">
+            <div className="p-4 border-b border-[#4A5E78]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#FEF3C7] rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-[#D97706]" />
+                <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-[#F59E0B]" />
                 </div>
-                <h2 className="font-semibold text-[#1F2937]">Waitlist</h2>
+                <h2 className="font-semibold text-white">Waitlist</h2>
               </div>
             </div>
-            <div className="divide-y divide-[#E5E7EB]">
+            <div className="divide-y divide-[#4A5E78]">
               <SettingNumber
                 label="Call Timeout (minutes)"
                 description="Time player has to respond after being called"
@@ -241,16 +241,16 @@ export default function CaptainSettingsPage() {
           </section>
 
           {/* Display */}
-          <section className="bg-white rounded-xl border border-[#E5E7EB]">
-            <div className="p-4 border-b border-[#E5E7EB]">
+          <section className="cap-panel">
+            <div className="p-4 border-b border-[#4A5E78]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#D1FAE5] rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-[#059669]" />
+                <div className="w-10 h-10 bg-[#10B981]/10 rounded-lg flex items-center justify-center">
+                  <Users className="w-5 h-5 text-[#10B981]" />
                 </div>
-                <h2 className="font-semibold text-[#1F2937]">Display</h2>
+                <h2 className="font-semibold text-white">Display</h2>
               </div>
             </div>
-            <div className="divide-y divide-[#E5E7EB]">
+            <div className="divide-y divide-[#4A5E78]">
               <SettingToggle
                 label="Show Player Names"
                 description="Display full names on public screens"
@@ -271,20 +271,20 @@ export default function CaptainSettingsPage() {
           </section>
 
           {/* Navigation Links */}
-          <section className="bg-white rounded-xl border border-[#E5E7EB] divide-y divide-[#E5E7EB]">
+          <section className="cap-panel divide-y divide-[#4A5E78]">
             <button
               onClick={() => router.push('/captain/tables')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors"
+              className="w-full p-4 flex items-center justify-between hover:bg-[#0B1426] transition-colors"
             >
-              <span className="font-medium text-[#1F2937]">Manage Tables</span>
-              <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
+              <span className="font-medium text-white">Manage Tables</span>
+              <ChevronRight className="w-5 h-5 text-[#4A5E78]" />
             </button>
             <button
               onClick={() => router.push('/captain/staff')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#F9FAFB] transition-colors"
+              className="w-full p-4 flex items-center justify-between hover:bg-[#0B1426] transition-colors"
             >
-              <span className="font-medium text-[#1F2937]">Manage Staff</span>
-              <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
+              <span className="font-medium text-white">Manage Staff</span>
+              <ChevronRight className="w-5 h-5 text-[#4A5E78]" />
             </button>
           </section>
         </main>
@@ -297,14 +297,14 @@ function SettingToggle({ label, description, enabled, onChange, disabled }) {
   return (
     <div className="p-4 flex items-center justify-between">
       <div>
-        <p className="font-medium text-[#1F2937]">{label}</p>
-        <p className="text-sm text-[#6B7280]">{description}</p>
+        <p className="font-medium text-white">{label}</p>
+        <p className="text-sm text-[#64748B]">{description}</p>
       </div>
       <button
         onClick={onChange}
         disabled={disabled}
         className={`w-12 h-7 rounded-full transition-colors relative ${
-          enabled ? 'bg-[#1877F2]' : 'bg-[#E5E7EB]'
+          enabled ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <span
@@ -321,8 +321,8 @@ function SettingNumber({ label, description, value, onChange, min, max, disabled
   return (
     <div className="p-4 flex items-center justify-between">
       <div>
-        <p className="font-medium text-[#1F2937]">{label}</p>
-        <p className="text-sm text-[#6B7280]">{description}</p>
+        <p className="font-medium text-white">{label}</p>
+        <p className="text-sm text-[#64748B]">{description}</p>
       </div>
       <input
         type="number"
@@ -331,7 +331,7 @@ function SettingNumber({ label, description, value, onChange, min, max, disabled
         min={min}
         max={max}
         disabled={disabled}
-        className="w-20 h-10 px-3 border border-[#E5E7EB] rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-[#1877F2] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-20 h-10 px-3 cap-input text-center disabled:opacity-50 disabled:cursor-not-allowed"
       />
     </div>
   );

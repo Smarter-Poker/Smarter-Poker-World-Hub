@@ -1,6 +1,6 @@
 /**
  * Captain Staff Management Page
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -127,8 +127,8 @@ export default function CaptainStaffPage() {
 
   if (!currentStaff || loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
@@ -140,27 +140,27 @@ export default function CaptainStaffPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-50">
+        <header className="cap-header-bar sticky top-0 z-50">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/captain/dashboard')}
-                className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#6B7280]" />
+                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
               </button>
               <div>
-                <h1 className="font-bold text-[#1F2937] text-lg">Staff Management</h1>
-                <p className="text-sm text-[#6B7280]">{venue?.name}</p>
+                <h1 className="font-bold text-white text-lg">Staff Management</h1>
+                <p className="text-sm text-[#64748B]">{venue?.name}</p>
               </div>
             </div>
 
             {canManageStaff && (
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 cap-btn cap-btn-primary"
               >
                 <Plus className="w-4 h-4" />
                 Add Staff
@@ -172,29 +172,29 @@ export default function CaptainStaffPage() {
         {/* Main Content */}
         <main className="max-w-4xl mx-auto px-4 py-6">
           {!canManageStaff && (
-            <div className="mb-6 p-4 bg-[#FEF3C7] rounded-xl">
-              <p className="text-sm text-[#D97706]">
+            <div className="mb-6 p-4 bg-[#F59E0B]/10 rounded-xl">
+              <p className="text-sm text-[#F59E0B]">
                 You don't have permission to manage staff.
               </p>
             </div>
           )}
 
           {staffList.length === 0 ? (
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-              <User className="w-12 h-12 text-[#9CA3AF] mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-[#1F2937] mb-2">No Staff Yet</h2>
-              <p className="text-[#6B7280] mb-4">Add staff members to manage your venue</p>
+            <div className="cap-panel p-8 text-center">
+              <User className="w-12 h-12 text-[#4A5E78] mx-auto mb-4" />
+              <h2 className="text-lg font-semibold text-white mb-2">No Staff Yet</h2>
+              <p className="text-[#64748B] mb-4">Add staff members to manage your venue</p>
               {canManageStaff && (
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="px-4 py-2 bg-[#1877F2] text-white font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
+                  className="px-4 py-2 cap-btn cap-btn-primary"
                 >
                   Add First Staff Member
                 </button>
               )}
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-[#E5E7EB] divide-y divide-[#E5E7EB]">
+            <div className="cap-panel divide-y divide-[#4A5E78]">
               {staffList.map((staff) => {
                 const role = ROLES.find(r => r.value === staff.role) || ROLES[4];
                 return (
@@ -203,11 +203,11 @@ export default function CaptainStaffPage() {
                     className="p-4 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-[#F3F4F6] rounded-full flex items-center justify-center">
-                        <User className="w-6 h-6 text-[#6B7280]" />
+                      <div className="w-12 h-12 bg-[#0D192E] rounded-full flex items-center justify-center">
+                        <User className="w-6 h-6 text-[#64748B]" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-[#1F2937]">
+                        <h3 className="font-semibold text-white">
                           {staff.profiles?.display_name || staff.display_name || 'Staff Member'}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
@@ -215,7 +215,7 @@ export default function CaptainStaffPage() {
                             {role.label}
                           </span>
                           {staff.pin_code && (
-                            <span className="text-xs text-[#6B7280]">
+                            <span className="text-xs text-[#64748B]">
                               PIN: {staff.pin_code}
                             </span>
                           )}
@@ -227,13 +227,13 @@ export default function CaptainStaffPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => setEditingStaff(staff)}
-                          className="p-2 text-[#6B7280] hover:bg-[#F3F4F6] rounded-lg transition-colors"
+                          className="p-2 text-[#64748B] hover:bg-[#132240] rounded-lg transition-colors"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteStaff(staff.id)}
-                          className="p-2 text-[#EF4444] hover:bg-[#FEF2F2] rounded-lg transition-colors"
+                          className="p-2 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -286,24 +286,24 @@ function StaffModal({ staff, onClose, onSubmit }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB]">
-          <h2 className="text-lg font-semibold text-[#1F2937]">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="cap-panel cap-corner-lights w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+          <h2 className="text-lg font-semibold text-white">
             {staff ? 'Edit Staff' : 'Add Staff'}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#6B7280]" />
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Role */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               Role
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -314,8 +314,8 @@ function StaffModal({ staff, onClose, onSubmit }) {
                   onClick={() => setRole(r.value)}
                   className={`p-3 rounded-lg text-sm font-medium transition-colors ${
                     role === r.value
-                      ? 'bg-[#1877F2] text-white'
-                      : 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                   }`}
                 >
                   {r.label}
@@ -326,7 +326,7 @@ function StaffModal({ staff, onClose, onSubmit }) {
 
           {/* PIN Code */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-1">
+            <label className="block text-sm font-medium text-white mb-1">
               PIN Code
             </label>
             <input
@@ -334,19 +334,19 @@ function StaffModal({ staff, onClose, onSubmit }) {
               value={pinCode}
               onChange={(e) => setPinCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="4-6 digits"
-              className="w-full h-12 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2]"
+              className="w-full h-12 px-3 cap-input"
             />
-            <p className="text-xs text-[#6B7280] mt-1">Used for terminal login</p>
+            <p className="text-xs text-[#64748B] mt-1">Used for terminal login</p>
           </div>
 
           {/* Active Toggle */}
-          <div className="flex items-center justify-between p-3 bg-[#F3F4F6] rounded-lg">
-            <span className="font-medium text-[#1F2937]">Active</span>
+          <div className="flex items-center justify-between p-3 bg-[#0D192E] rounded-lg">
+            <span className="font-medium text-white">Active</span>
             <button
               type="button"
               onClick={() => setIsActive(!isActive)}
               className={`w-12 h-7 rounded-full transition-colors relative ${
-                isActive ? 'bg-[#1877F2]' : 'bg-[#E5E7EB]'
+                isActive ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
               }`}
             >
               <span
@@ -362,14 +362,14 @@ function StaffModal({ staff, onClose, onSubmit }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 h-12 border border-[#E5E7EB] text-[#6B7280] font-medium rounded-lg hover:bg-[#F3F4F6] transition-colors"
+              className="flex-1 h-12 cap-btn cap-btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 h-12 bg-[#1877F2] text-white font-semibold rounded-lg hover:bg-[#1664d9] transition-colors disabled:opacity-50"
+              className="flex-1 h-12 cap-btn cap-btn-primary disabled:opacity-50"
             >
               {submitting ? 'Saving...' : staff ? 'Update' : 'Add Staff'}
             </button>

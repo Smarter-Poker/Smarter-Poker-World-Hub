@@ -1,7 +1,7 @@
 /**
  * ActivityFeed Component - Shows recent activity
  * Reference: IMPLEMENTATION_PHASES.md - Step 1.5
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { UserCheck, UserPlus, UserX, Play, Square, Bell, Clock } from 'lucide-react';
 
@@ -17,7 +17,7 @@ const ACTIVITY_ICONS = {
 
 const ACTIVITY_COLORS = {
   player_seated: 'text-[#10B981] bg-[#10B981]/10',
-  player_joined: 'text-[#1877F2] bg-[#1877F2]/10',
+  player_joined: 'text-[#22D3EE] bg-[#22D3EE]/10',
   player_removed: 'text-[#EF4444] bg-[#EF4444]/10',
   game_started: 'text-[#10B981] bg-[#10B981]/10',
   game_closed: 'text-[#6B7280] bg-[#6B7280]/10',
@@ -30,19 +30,19 @@ export default function ActivityFeed({ activities = [], maxItems = 10 }) {
 
   if (displayActivities.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-[#E5E7EB] p-6 text-center">
-        <Clock className="w-8 h-8 mx-auto mb-2 text-[#6B7280] opacity-50" />
-        <p className="text-[#6B7280] text-sm">No recent activity</p>
+      <div className="cap-panel p-6 text-center">
+        <Clock className="w-8 h-8 mx-auto mb-2 text-[#64748B] opacity-50" />
+        <p className="text-[#64748B] text-sm">No recent activity</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-[#E5E7EB] overflow-hidden">
-      <div className="p-4 border-b border-[#E5E7EB]">
-        <h3 className="font-semibold text-[#1F2937]">Recent Activity</h3>
+    <div className="cap-panel overflow-hidden">
+      <div className="p-4 border-b border-[#4A5E78]">
+        <h3 className="font-semibold text-white">Recent Activity</h3>
       </div>
-      <div className="divide-y divide-[#E5E7EB] max-h-[400px] overflow-y-auto">
+      <div className="divide-y divide-[#4A5E78] max-h-[400px] overflow-y-auto">
         {displayActivities.map((activity, index) => (
           <ActivityItem key={activity.id || index} activity={activity} />
         ))}
@@ -65,13 +65,13 @@ function ActivityItem({ activity }) {
         <Icon className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-[#1F2937]">{activity.message}</p>
+        <p className="text-sm text-white">{activity.message}</p>
         {activity.details && (
-          <p className="text-xs text-[#6B7280] mt-0.5">{activity.details}</p>
+          <p className="text-xs text-[#64748B] mt-0.5">{activity.details}</p>
         )}
       </div>
       {timeAgo && (
-        <span className="text-xs text-[#6B7280] whitespace-nowrap">{timeAgo}</span>
+        <span className="text-xs text-[#64748B] whitespace-nowrap">{timeAgo}</span>
       )}
     </div>
   );

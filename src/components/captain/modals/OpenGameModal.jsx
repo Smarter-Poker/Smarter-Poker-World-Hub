@@ -1,6 +1,6 @@
 /**
  * OpenGameModal - Modal for opening a new game on a table
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
 import { X, Play, Users } from 'lucide-react';
@@ -90,35 +90,35 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="cap-panel cap-corner-lights w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB]">
+        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#1877F2] rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-[#22D3EE] rounded-lg flex items-center justify-center">
               <Play className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-lg font-semibold text-[#1F2937]">Open Game</h2>
+            <h2 className="text-lg font-semibold text-white">Open Game</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#6B7280]" />
+            <X className="w-5 h-5 text-[#64748B]" />
           </button>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {error && (
-            <div className="p-3 bg-[#FEF2F2] rounded-lg">
+            <div className="p-3 bg-[#EF4444]/10 rounded-lg">
               <p className="text-sm text-[#EF4444]">{error}</p>
             </div>
           )}
 
           {/* Table Selection */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-1">
+            <label className="block text-sm font-medium text-white mb-1">
               Table
             </label>
             {availableTables.length === 0 ? (
@@ -127,7 +127,7 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
               <select
                 value={selectedTable}
                 onChange={(e) => setSelectedTable(e.target.value)}
-                className="w-full h-12 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                className="cap-input w-full h-12"
                 required
               >
                 {availableTables.map((table) => (
@@ -141,13 +141,13 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
 
           {/* Game Type */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-1">
+            <label className="block text-sm font-medium text-white mb-1">
               Game Type
             </label>
             <select
               value={gameType}
               onChange={(e) => setGameType(e.target.value)}
-              className="w-full h-12 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+              className="cap-input w-full h-12"
             >
               {GAME_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -159,7 +159,7 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
 
           {/* Stakes */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-1">
+            <label className="block text-sm font-medium text-white mb-1">
               Stakes
             </label>
             <div className="grid grid-cols-4 gap-2 mb-2">
@@ -170,8 +170,8 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
                   onClick={() => setStakes(s)}
                   className={`h-10 rounded-lg text-sm font-medium transition-colors ${
                     stakes === s
-                      ? 'bg-[#1877F2] text-white'
-                      : 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                   }`}
                 >
                   {s}
@@ -182,8 +182,8 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
                 onClick={() => setStakes('custom')}
                 className={`h-10 rounded-lg text-sm font-medium transition-colors ${
                   stakes === 'custom'
-                    ? 'bg-[#1877F2] text-white'
-                    : 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
+                    ? 'bg-[#22D3EE] text-white'
+                    : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                 }`}
               >
                 Custom
@@ -195,7 +195,7 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
                 value={customStakes}
                 onChange={(e) => setCustomStakes(e.target.value)}
                 placeholder="e.g., 5/10/20"
-                className="w-full h-12 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                className="cap-input w-full h-12"
                 required
               />
             )}
@@ -203,7 +203,7 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
 
           {/* Max Players */}
           <div>
-            <label className="block text-sm font-medium text-[#1F2937] mb-1">
+            <label className="block text-sm font-medium text-white mb-1">
               Max Players
             </label>
             <div className="flex gap-2">
@@ -214,8 +214,8 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
                   onClick={() => setMaxPlayers(num)}
                   className={`flex-1 h-10 rounded-lg text-sm font-medium transition-colors ${
                     maxPlayers === num
-                      ? 'bg-[#1877F2] text-white'
-                      : 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                   }`}
                 >
                   {num}
@@ -227,25 +227,25 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
           {/* Buy-in Range */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-[#1F2937] mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Min Buy-in
               </label>
               <input
                 type="number"
                 value={minBuyin}
                 onChange={(e) => setMinBuyin(parseInt(e.target.value) || 0)}
-                className="w-full h-12 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                className="cap-input w-full h-12"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#1F2937] mb-1">
+              <label className="block text-sm font-medium text-white mb-1">
                 Max Buy-in
               </label>
               <input
                 type="number"
                 value={maxBuyin}
                 onChange={(e) => setMaxBuyin(parseInt(e.target.value) || 0)}
-                className="w-full h-12 px-3 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                className="cap-input w-full h-12"
               />
             </div>
           </div>
@@ -254,7 +254,7 @@ export default function OpenGameModal({ isOpen, onClose, onSubmit, tables = [], 
           <button
             type="submit"
             disabled={submitting || availableTables.length === 0}
-            className="w-full h-12 bg-[#1877F2] text-white font-semibold rounded-lg hover:bg-[#1664d9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full h-12 cap-btn cap-btn-primary flex items-center justify-center gap-2"
           >
             <Users className="w-5 h-5" />
             {submitting ? 'Opening...' : 'Open Game'}

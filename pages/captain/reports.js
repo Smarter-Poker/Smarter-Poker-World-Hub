@@ -1,7 +1,7 @@
 /**
  * Staff Daily Reports Page
  * View and generate daily venue performance reports
- * UI: Facebook color scheme, no emojis, Inter font
+ * Dark industrial sci-fi gaming theme
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -23,12 +23,12 @@ import {
   Gift
 } from 'lucide-react';
 
-function MetricCard({ label, value, change, changeLabel, icon: Icon, color = '#1877F2' }) {
+function MetricCard({ label, value, change, changeLabel, icon: Icon, color = '#22D3EE' }) {
   const isPositive = change > 0;
   const isNeutral = change === 0;
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+    <div className="cap-panel p-4">
       <div className="flex items-start justify-between mb-2">
         <div
           className="w-10 h-10 rounded-lg flex items-center justify-center"
@@ -43,10 +43,10 @@ function MetricCard({ label, value, change, changeLabel, icon: Icon, color = '#1
           </div>
         )}
       </div>
-      <p className="text-2xl font-bold text-[#1F2937]">{value}</p>
-      <p className="text-sm text-[#6B7280]">{label}</p>
+      <p className="text-2xl font-bold text-white">{value}</p>
+      <p className="text-sm text-[#64748B]">{label}</p>
       {changeLabel && (
-        <p className="text-xs text-[#9CA3AF] mt-1">{changeLabel}</p>
+        <p className="text-xs text-[#4A5E78] mt-1">{changeLabel}</p>
       )}
     </div>
   );
@@ -54,18 +54,18 @@ function MetricCard({ label, value, change, changeLabel, icon: Icon, color = '#1
 
 function GameSummaryRow({ game }) {
   return (
-    <div className="flex items-center justify-between p-3 border-b border-[#E5E7EB] last:border-b-0">
+    <div className="flex items-center justify-between p-3 border-b border-[#4A5E78] last:border-b-0">
       <div>
-        <p className="font-medium text-[#1F2937]">
+        <p className="font-medium text-white">
           {game.stakes} {game.game_type?.toUpperCase() || 'NLHE'}
         </p>
-        <p className="text-sm text-[#6B7280]">
+        <p className="text-sm text-[#64748B]">
           Table {game.table_number}
         </p>
       </div>
       <div className="text-right">
-        <p className="font-medium text-[#1F2937]">{game.hours_running}h</p>
-        <p className="text-sm text-[#6B7280]">{game.unique_players} players</p>
+        <p className="font-medium text-white">{game.hours_running}h</p>
+        <p className="text-sm text-[#64748B]">{game.unique_players} players</p>
       </div>
     </div>
   );
@@ -73,10 +73,10 @@ function GameSummaryRow({ game }) {
 
 function PromotionSummaryRow({ promotion }) {
   return (
-    <div className="flex items-center justify-between p-3 border-b border-[#E5E7EB] last:border-b-0">
+    <div className="flex items-center justify-between p-3 border-b border-[#4A5E78] last:border-b-0">
       <div>
-        <p className="font-medium text-[#1F2937]">{promotion.name}</p>
-        <p className="text-sm text-[#6B7280]">{promotion.winners} winners</p>
+        <p className="font-medium text-white">{promotion.name}</p>
+        <p className="text-sm text-[#64748B]">{promotion.winners} winners</p>
       </div>
       <p className="font-bold text-[#10B981]">${promotion.total_paid?.toLocaleString()}</p>
     </div>
@@ -181,8 +181,8 @@ export default function StaffReportsPage() {
 
   if (!staff) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+      <div className="cap-page flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
       </div>
     );
   }
@@ -194,7 +194,7 @@ export default function StaffReportsPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="cap-page">
         {/* Export Message */}
         {exportMessage && (
           <div
@@ -207,27 +207,27 @@ export default function StaffReportsPage() {
         )}
 
         {/* Header */}
-        <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
+        <header className="cap-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => router.push('/captain/dashboard')}
-                  className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+                  className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
                 >
-                  <ChevronLeft className="w-5 h-5 text-[#6B7280]" />
+                  <ChevronLeft className="w-5 h-5 text-[#64748B]" />
                 </button>
                 <div>
-                  <h1 className="text-xl font-bold text-[#1F2937] flex items-center gap-2">
-                    <FileText className="w-6 h-6 text-[#1877F2]" />
+                  <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                    <FileText className="w-6 h-6 text-[#22D3EE]" />
                     Daily Reports
                   </h1>
-                  <p className="text-sm text-[#6B7280]">{report?.venue_name || 'Loading...'}</p>
+                  <p className="text-sm text-[#64748B]">{report?.venue_name || 'Loading...'}</p>
                 </div>
               </div>
               <button
                 onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-lg hover:bg-[#1665D8] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 cap-btn cap-btn-primary"
               >
                 <Download className="w-4 h-4" />
                 Export
@@ -238,16 +238,16 @@ export default function StaffReportsPage() {
 
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           {/* Date Selector */}
-          <div className="flex items-center justify-center gap-4 bg-white rounded-xl border border-[#E5E7EB] p-4">
+          <div className="flex items-center justify-center gap-4 cap-panel p-4">
             <button
               onClick={() => changeDate(-1)}
-              className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors"
+              className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
             >
-              <ChevronLeft className="w-5 h-5 text-[#6B7280]" />
+              <ChevronLeft className="w-5 h-5 text-[#64748B]" />
             </button>
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-[#1877F2]" />
-              <span className="font-medium text-[#1F2937]">{formattedDate}</span>
+              <Calendar className="w-5 h-5 text-[#22D3EE]" />
+              <span className="font-medium text-white">{formattedDate}</span>
               {isToday && (
                 <span className="px-2 py-0.5 bg-[#10B981]/10 text-[#10B981] text-xs font-medium rounded">
                   Today
@@ -258,22 +258,22 @@ export default function StaffReportsPage() {
               onClick={() => changeDate(1)}
               disabled={isToday}
               className={`p-2 rounded-lg transition-colors ${
-                isToday ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#F3F4F6]'
+                isToday ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#132240]'
               }`}
             >
-              <ChevronRight className="w-5 h-5 text-[#6B7280]" />
+              <ChevronRight className="w-5 h-5 text-[#64748B]" />
             </button>
           </div>
 
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
             </div>
           ) : report ? (
             <>
               {/* Key Metrics */}
               <section>
-                <h2 className="font-semibold text-[#1F2937] mb-3">Key Metrics</h2>
+                <h2 className="font-semibold text-white mb-3">Key Metrics</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <MetricCard
                     icon={BarChart3}
@@ -281,7 +281,7 @@ export default function StaffReportsPage() {
                     value={report.summary?.totalGames || 0}
                     change={report.comparisons?.gamesChange}
                     changeLabel="vs last week"
-                    color="#1877F2"
+                    color="#22D3EE"
                   />
                   <MetricCard
                     icon={Users}
@@ -311,70 +311,70 @@ export default function StaffReportsPage() {
               {/* Secondary Metrics */}
               <section>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                    <p className="text-sm text-[#6B7280]">Check-ins</p>
-                    <p className="text-xl font-bold text-[#1F2937]">{report.summary?.totalCheckIns || 0}</p>
+                  <div className="cap-panel p-4">
+                    <p className="text-sm text-[#64748B]">Check-ins</p>
+                    <p className="text-xl font-bold text-white">{report.summary?.totalCheckIns || 0}</p>
                   </div>
-                  <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                    <p className="text-sm text-[#6B7280]">New Players</p>
-                    <p className="text-xl font-bold text-[#1F2937]">{report.summary?.newPlayers || 0}</p>
+                  <div className="cap-panel p-4">
+                    <p className="text-sm text-[#64748B]">New Players</p>
+                    <p className="text-xl font-bold text-white">{report.summary?.newPlayers || 0}</p>
                   </div>
-                  <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                    <p className="text-sm text-[#6B7280]">Avg Wait Time</p>
-                    <p className="text-xl font-bold text-[#1F2937]">{report.summary?.avgWaitTime || 0}m</p>
+                  <div className="cap-panel p-4">
+                    <p className="text-sm text-[#64748B]">Avg Wait Time</p>
+                    <p className="text-xl font-bold text-white">{report.summary?.avgWaitTime || 0}m</p>
                   </div>
-                  <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                    <p className="text-sm text-[#6B7280]">Comps Issued</p>
-                    <p className="text-xl font-bold text-[#1F2937]">${report.summary?.compsIssued || 0}</p>
+                  <div className="cap-panel p-4">
+                    <p className="text-sm text-[#64748B]">Comps Issued</p>
+                    <p className="text-xl font-bold text-white">${report.summary?.compsIssued || 0}</p>
                   </div>
                 </div>
               </section>
 
               {/* Games by Stakes */}
               <section>
-                <h2 className="font-semibold text-[#1F2937] mb-3">Games by Stakes</h2>
-                <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+                <h2 className="font-semibold text-white mb-3">Games by Stakes</h2>
+                <div className="cap-panel overflow-hidden">
                   {report.gamesByStakes?.length > 0 ? (
                     report.gamesByStakes.map((game, i) => (
                       <GameSummaryRow key={i} game={game} />
                     ))
                   ) : (
-                    <div className="p-6 text-center text-[#6B7280]">No games recorded</div>
+                    <div className="p-6 text-center text-[#64748B]">No games recorded</div>
                   )}
                 </div>
               </section>
 
               {/* Promotions Summary */}
               <section>
-                <h2 className="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+                <h2 className="font-semibold text-white mb-3 flex items-center gap-2">
                   <Gift className="w-5 h-5 text-[#F59E0B]" />
                   Promotions
                 </h2>
-                <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+                <div className="cap-panel overflow-hidden">
                   {report.promotions?.length > 0 ? (
                     report.promotions.map((promo, i) => (
                       <PromotionSummaryRow key={i} promotion={promo} />
                     ))
                   ) : (
-                    <div className="p-6 text-center text-[#6B7280]">No promotions ran</div>
+                    <div className="p-6 text-center text-[#64748B]">No promotions ran</div>
                   )}
                 </div>
               </section>
 
               {/* Hourly Breakdown */}
               <section>
-                <h2 className="font-semibold text-[#1F2937] mb-3">Hourly Activity</h2>
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                <h2 className="font-semibold text-white mb-3">Hourly Activity</h2>
+                <div className="cap-panel p-4">
                   <div className="overflow-x-auto">
                     <div className="flex gap-2 min-w-fit">
                       {report.hourlyBreakdown?.map((hour, i) => (
                         <div key={i} className="flex flex-col items-center min-w-[60px]">
                           <div
-                            className="w-8 bg-[#1877F2] rounded-t"
+                            className="w-8 bg-[#22D3EE] rounded-t"
                             style={{ height: `${Math.max(hour.games * 8, 8)}px` }}
                           />
-                          <p className="text-xs text-[#6B7280] mt-2">{hour.hour}</p>
-                          <p className="text-xs font-medium text-[#1F2937]">{hour.games}g</p>
+                          <p className="text-xs text-[#64748B] mt-2">{hour.hour}</p>
+                          <p className="text-xs font-medium text-white">{hour.games}g</p>
                         </div>
                       ))}
                     </div>
@@ -384,31 +384,31 @@ export default function StaffReportsPage() {
 
               {/* Staff on Duty */}
               <section>
-                <h2 className="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-[#6B7280]" />
+                <h2 className="font-semibold text-white mb-3 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-[#64748B]" />
                   Staff on Duty
                 </h2>
-                <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+                <div className="cap-panel overflow-hidden">
                   {report.staffOnDuty?.map((member, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between p-3 border-b border-[#E5E7EB] last:border-b-0"
+                      className="flex items-center justify-between p-3 border-b border-[#4A5E78] last:border-b-0"
                     >
                       <div>
-                        <p className="font-medium text-[#1F2937]">{member.name}</p>
-                        <p className="text-sm text-[#6B7280]">{member.role}</p>
+                        <p className="font-medium text-white">{member.name}</p>
+                        <p className="text-sm text-[#64748B]">{member.role}</p>
                       </div>
-                      <span className="text-sm text-[#6B7280]">{member.hours}h</span>
+                      <span className="text-sm text-[#64748B]">{member.hours}h</span>
                     </div>
                   ))}
                 </div>
               </section>
             </>
           ) : (
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
-              <FileText className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-              <p className="text-[#6B7280]">No report data available</p>
-              <p className="text-sm text-[#9CA3AF] mt-1">
+            <div className="cap-panel p-8 text-center">
+              <FileText className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+              <p className="text-[#64748B]">No report data available</p>
+              <p className="text-sm text-[#4A5E78] mt-1">
                 Reports are generated from daily activity
               </p>
             </div>
