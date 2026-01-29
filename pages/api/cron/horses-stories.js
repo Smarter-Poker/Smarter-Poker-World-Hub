@@ -92,7 +92,6 @@ async function validateYouTubeThumbnail(videoId) {
 
 async function postVideoStory(horse) {
     console.log(`🎬 ${horse.name}: Posting video story...`);
-    const { getRandomClip, getRandomCaption } = clipLibrary;
 
     try {
         // Try up to 5 different clips to find one with a valid thumbnail

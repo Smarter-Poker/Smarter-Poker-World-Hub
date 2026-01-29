@@ -173,6 +173,10 @@
       "schedule": "0 6 * * *"
     },
     {
+      "path": "/api/cron/scrape-sports-clips",
+      "schedule": "0 4 * * *"
+    },
+    {
       "path": "/api/cron/generate-trivia",
       "schedule": "59 5 * * *"
     }

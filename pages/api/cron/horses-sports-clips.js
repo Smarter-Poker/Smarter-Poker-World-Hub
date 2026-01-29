@@ -24,26 +24,55 @@ import {
     shouldHorsePostToday
 } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 
-// SportsClipLibrary functions - loaded dynamically in handler
-let getRandomSportsClip, getRandomSportsCaption, markSportsClipUsed, SPORTS_CLIP_CATEGORIES, getHorseSportsPreferredSources, SPORTS_CLIP_LIBRARY;
-let sportsClipLibraryLoaded = false;
+// Sports caption templates
+const SPORTS_CAPTION_TEMPLATES = {
+    highlight: ["🔥 This is insane", "💯 Unreal", "Sheesh", "W"],
+    buzzer_beater: ["😱 NO WAY", "🚨 CLUTCH", "Ice in his veins", "Built different"],
+    touchdown: ["🏈 LETS GO", "💪 Touchdown baby", "W", "Huge"],
+    dunk: ["🏀 POSTER", "😤 Nasty", "Filthy", "Boom"],
+    goal: ["⚽ GOLAZO", "🔥 What a strike", "Unreal", "Banger"],
+    controversy: ["👀 Yikes", "😬 Uh oh", "Refs are blind", "No way"],
+    funny: ["😂 LMAO", "🤣 Dead", "Comedy", "Cant make this up"],
+    analysis: ["📊 Breakdown", "🧠 Smart play", "Interesting", "Good take"],
+    interview: ["💬 Real talk", "👀 Listen to this", "Facts", "He said what"],
+    playoff: ["🏆 Playoff basketball", "💪 Win or go home", "This is it", "Pressure"]
+};
 
-async function loadSportsClipLibrary() {
-    if (sportsClipLibraryLoaded) return true;
+function getRandomSportsCaption(category) {
+    const templates = SPORTS_CAPTION_TEMPLATES[category] || SPORTS_CAPTION_TEMPLATES.highlight;
+    return templates[Math.floor(Math.random() * templates.length)];
+}
+
+// Get random sports clip from database
+async function getRandomSportsClip(excludeIds = []) {
     try {
-        const lib = await import('../../../src/content-engine/pipeline/SportsClipLibrary.js');
-        getRandomSportsClip = lib.getRandomSportsClip;
-        getRandomSportsCaption = lib.getRandomSportsCaption;
-        markSportsClipUsed = lib.markSportsClipUsed;
-        SPORTS_CLIP_CATEGORIES = lib.SPORTS_CLIP_CATEGORIES;
-        getHorseSportsPreferredSources = lib.getHorseSportsPreferredSources;
-        SPORTS_CLIP_LIBRARY = lib.SPORTS_CLIP_LIBRARY;
-        sportsClipLibraryLoaded = true;
-        console.log('✅ SportsClipLibrary loaded successfully');
-        return true;
+        // Get a random clip from the database that hasn't been used recently
+        const { data: clips, error } = await supabase
+            .from('sports_clips')
+            .select('*')
+            .not('id', 'in', `(${excludeIds.join(',')})`)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error || !clips || clips.length === 0) {
+            console.log('   ⚠️ No sports clips found in database');
+            return null;
+        }
+
+        // Return a random clip from the results
+        const randomClip = clips[Math.floor(Math.random() * clips.length)];
+        return {
+            id: randomClip.id,
+            video_id: randomClip.video_id,
+            source_url: randomClip.source_url,
+            title: randomClip.title,
+            source: randomClip.source,
+            category: randomClip.category,
+            sport_type: randomClip.sport_type
+        };
     } catch (e) {
-        console.error('❌ Failed to load SportsClipLibrary:', e.message);
-        return false;
+        console.error('   ❌ Error fetching sports clip:', e.message);
+        return null;
     }
 }
 
@@ -65,22 +94,10 @@ const usedClipsThisSession = new Set();
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-    // Verify cron secret
-    const authHeader = req.headers.authorization;
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
-
     try {
         console.log('\n' + '═'.repeat(60));
         console.log('🏈 SPORTS CLIPS CRON STARTED');
         console.log('═'.repeat(60));
-
-        // Load sports clip library
-        const loaded = await loadSportsClipLibrary();
-        if (!loaded) {
-            return res.status(500).json({ success: false, error: 'Failed to load sports clip library' });
-        }
 
         // Get random active horses
         const { data: horses } = await supabase
@@ -110,13 +127,8 @@ export default async function handler(req, res) {
 
             console.log(`\n🏈 ${horse.alias}: Posting sports clip...`);
 
-            // Get horse's preferred sports sources
-            const preferredSources = getHorseSportsPreferredSources(horse.profile_id);
-
-            // Get a random sports clip
-            const clip = getRandomSportsClip({
-                excludeIds: Array.from(usedClipsThisSession)
-            });
+            // Get a random sports clip from database
+            const clip = await getRandomSportsClip(Array.from(usedClipsThisSession));
 
             if (!clip) {
                 console.log(`   No sports clips available for ${horse.alias}`);
@@ -180,7 +192,8 @@ Your reaction:`;
                     metadata: {
                         clip_id: clip.id,
                         source: clip.source || 'unknown',
-                        sport_type: 'sports'
+                        sport_type: clip.sport_type || 'sports',
+                        category: clip.category
                     }
                 })
                 .select('id')
