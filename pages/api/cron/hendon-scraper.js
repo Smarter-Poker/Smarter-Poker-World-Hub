@@ -63,6 +63,7 @@ export default async function handler(req, res) {
                         p_total_cashes: scraped.totalCashes,
                         p_total_earnings: scraped.totalEarnings,
                         p_best_finish: scraped.bestFinish,
+                        p_biggest_cash: scraped.biggestCash,
                     });
 
                     // Log success
@@ -73,6 +74,7 @@ export default async function handler(req, res) {
                         total_cashes: scraped.totalCashes,
                         total_earnings: scraped.totalEarnings,
                         best_finish: scraped.bestFinish,
+                        biggest_cash: scraped.biggestCash,
                         raw_data: scraped.rawData,
                     });
 
@@ -113,7 +115,7 @@ export default async function handler(req, res) {
 
 /**
  * Scrape HendonMob profile page
- * Returns { totalCashes, totalEarnings, bestFinish, rawData }
+ * Returns { totalCashes, totalEarnings, bestFinish, biggestCash, rawData }
  */
 async function scrapeHendonMob(url) {
     if (!url || !url.includes('thehendonmob.com')) {
@@ -143,6 +145,7 @@ async function scrapeHendonMob(url) {
         let totalCashes = null;
         let totalEarnings = null;
         let bestFinish = null;
+        let biggestCash = null;
 
         // Try to find stats in the page
         // HendonMob typically shows: Total Live Earnings, Cashes, etc.
@@ -166,6 +169,25 @@ async function scrapeHendonMob(url) {
         if (finishMatch) {
             bestFinish = finishMatch[0];
         }
+
+        // Look for biggest cash in tournament results table
+        // HendonMob shows results with prize amounts
+        $('table').each((i, table) => {
+            $(table).find('tr').each((j, row) => {
+                const cells = $(row).find('td');
+                // Look for rows with prize money
+                cells.each((k, cell) => {
+                    const cellText = $(cell).text();
+                    const prizeMatch = cellText.match(/\$[\d,]+(?:\.\d{2})?/);
+                    if (prizeMatch) {
+                        const amount = parseFloat(prizeMatch[0].replace(/[$,]/g, ''));
+                        if (!biggestCash || amount > biggestCash) {
+                            biggestCash = amount;
+                        }
+                    }
+                });
+            });
+        });
 
         // Also try tables for more structured data
         $('table').each((i, table) => {
@@ -193,6 +215,7 @@ async function scrapeHendonMob(url) {
             totalCashes,
             totalEarnings,
             bestFinish,
+            biggestCash,
             rawData: {
                 url,
                 scrapedAt: new Date().toISOString(),
