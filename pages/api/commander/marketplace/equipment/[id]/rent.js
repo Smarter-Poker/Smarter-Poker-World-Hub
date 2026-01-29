@@ -79,7 +79,7 @@ export default async function handler(req, res) {
 
     // Get equipment listing
     const { data: equipment, error: equipError } = await supabase
-      .from('commander_marketplace_equipment')
+      .from('commander_equipment_rentals')
       .select('*, owner:owner_id (id, display_name, email)')
       .eq('id', id)
       .single();

@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
     // Get squads where user is a member
     let query = supabase
-      .from('commander_squad_members')
+      .from('commander_home_members')
       .select(`
         id,
         role,

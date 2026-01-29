@@ -99,7 +99,7 @@ export default async function handler(req, res) {
       if (error) throw error;
 
       // Log the settings change
-      await supabase.from('commander_audit_log').insert({
+      await supabase.from('commander_audit_logs').insert({
         venue_id: id,
         user_id: user.id,
         action_type: 'venue_settings_updated',

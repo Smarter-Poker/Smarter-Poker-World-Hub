@@ -48,7 +48,7 @@ export default async function handler(req, res) {
     // Verify user is host of the group
     if (group_id) {
       const { data: group, error: groupError } = await supabase
-        .from('commander_home_game_groups')
+        .from('commander_home_groups')
         .select('id, host_id')
         .eq('id', group_id)
         .single();
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
     }
 
     let query = supabase
-      .from('commander_escrow')
+      .from('commander_escrow_transactions')
       .select(`
         *,
         profiles:player_id (id, display_name, avatar_url)

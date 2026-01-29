@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     let streams = [];
     if (tableIds.length > 0) {
       const { data: streamData, error: streamError } = await supabase
-        .from('commander_streaming')
+        .from('commander_streams')
         .select('*')
         .in('table_id', tableIds);
 

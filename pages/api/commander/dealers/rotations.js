@@ -44,7 +44,7 @@ async function getRotations(req, res) {
   try {
     // Get active dealer assignments
     const { data: rotations, error } = await supabase
-      .from('commander_dealer_assignments')
+      .from('commander_dealer_rotations')
       .select(`
         id,
         started_at,
@@ -107,7 +107,7 @@ async function createRotation(req, res) {
     if (action === 'push') {
       // End current assignment
       await supabase
-        .from('commander_dealer_assignments')
+        .from('commander_dealer_rotations')
         .update({ ended_at: new Date().toISOString() })
         .eq('dealer_id', dealer_id)
         .is('ended_at', null);
@@ -115,7 +115,7 @@ async function createRotation(req, res) {
       // Create new assignment if table provided
       if (table_id) {
         const { data: assignment, error } = await supabase
-          .from('commander_dealer_assignments')
+          .from('commander_dealer_rotations')
           .insert({
             venue_id: parseInt(venue_id),
             dealer_id,
@@ -143,7 +143,7 @@ async function createRotation(req, res) {
     if (action === 'break') {
       // End current assignment and mark dealer on break
       await supabase
-        .from('commander_dealer_assignments')
+        .from('commander_dealer_rotations')
         .update({ ended_at: new Date().toISOString() })
         .eq('dealer_id', dealer_id)
         .is('ended_at', null);
@@ -188,21 +188,21 @@ async function createRotation(req, res) {
 
     // End any current assignment for this dealer
     await supabase
-      .from('commander_dealer_assignments')
+      .from('commander_dealer_rotations')
       .update({ ended_at: new Date().toISOString() })
       .eq('dealer_id', dealer_id)
       .is('ended_at', null);
 
     // End any current assignment for this table
     await supabase
-      .from('commander_dealer_assignments')
+      .from('commander_dealer_rotations')
       .update({ ended_at: new Date().toISOString() })
       .eq('table_id', parseInt(table_id))
       .is('ended_at', null);
 
     // Create new assignment
     const { data: assignment, error } = await supabase
-      .from('commander_dealer_assignments')
+      .from('commander_dealer_rotations')
       .insert({
         venue_id: parseInt(venue_id),
         dealer_id,
