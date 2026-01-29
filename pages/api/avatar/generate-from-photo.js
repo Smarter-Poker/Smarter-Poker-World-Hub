@@ -23,7 +23,7 @@ export const config = {
 };
 
 // Use Grok for image generation
-const openai = getGrokClient();
+const grok = getGrokClient();
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -121,8 +121,8 @@ export default async function handler(req, res) {
         console.log('📏 Photo base64 length:', photoBase64?.length || 0);
 
         // Step 1: Use Grok Vision to analyze the photo
-        const analysisResponse = await openai.chat.completions.create({
-            model: "gpt-4o",  // Mapped to grok-3 by grokClient
+        const analysisResponse = await grok.chat.completions.create({
+            model: "grok-3",  // Grok-3 for analysis
             messages: [
                 {
                     role: "user",
@@ -175,7 +175,7 @@ CRITICAL REQUIREMENTS:
 
 The goal is that if someone knows this person, they would IMMEDIATELY recognize this avatar.`;
 
-        const imageResponse = await openai.images.generate({
+        const imageResponse = await grok.images.generate({
             model: "dall-e-3",  // Mapped to grok-2-image by grokClient
             prompt: dallePrompt,
             n: 1,

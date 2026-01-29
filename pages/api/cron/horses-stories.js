@@ -34,7 +34,7 @@ async function loadClipLibrary() {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const openai = getGrokClient();
+const grok = getGrokClient();
 
 const CONFIG = {
     HORSES_PER_TRIGGER: 2,  // 2 stories per trigger (runs 4x/hour = 8 stories/hour)
@@ -110,11 +110,11 @@ async function postTextStory(horse) {
         const topic = TEXT_STORY_TOPICS[Math.floor(Math.random() * TEXT_STORY_TOPICS.length)];
         const gradient = STORY_GRADIENTS[Math.floor(Math.random() * STORY_GRADIENTS.length)];
 
-        // Generate unique content with OpenAI
+        // Generate unique content with Grok
         let content = topic;
         try {
-            const response = await openai.chat.completions.create({
-                model: 'gpt-4o-mini',
+            const response = await grok.chat.completions.create({
+                model: 'grok-3-mini',
                 messages: [{
                     role: 'user',
                     content: `Write a short, authentic poker story text (max 15 words). RULES: NO quotation marks. NO em-dashes. Natural casual text. Topic: ${topic}`
@@ -130,7 +130,7 @@ async function postTextStory(horse) {
                 .replace(/\s+/g, ' ')
                 .trim();
         } catch (e) {
-            console.log(`   Using default topic (OpenAI error)`);
+            console.log(`   Using default topic (Grok error)`);
         }
 
         const { data: storyId, error } = await supabase.rpc('fn_create_story', {

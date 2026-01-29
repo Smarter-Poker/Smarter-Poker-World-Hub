@@ -34,7 +34,7 @@ import {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const openai = getGrokClient();
+const grok = getGrokClient();
 
 // Configure RSS Parser with realistic User-Agent to avoid 403 blocks
 const rssParser = new Parser({
@@ -378,8 +378,8 @@ async function generateCommentary(horse, article, timeEnergy = null) {
 
     try {
         // Use GPT to generate meaningful, personality-driven commentary
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+        const response = await grok.chat.completions.create({
+            model: 'grok-3',
             messages: [{
                 role: 'system',
                 content: `You are ${horse.name}, a poker enthusiast sharing a news article.
@@ -504,7 +504,7 @@ export default async function handler(req, res) {
     console.log('\n🐴 HORSES NEWS CRON - Reposting Real Poker News');
     console.log('═'.repeat(60));
 
-    if (!SUPABASE_URL || !process.env.OPENAI_API_KEY) {
+    if (!SUPABASE_URL || !process.env.XAI_API_KEY) {
         return res.status(500).json({ error: 'Missing env vars' });
     }
 

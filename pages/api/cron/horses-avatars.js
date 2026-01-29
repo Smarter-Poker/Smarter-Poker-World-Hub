@@ -27,7 +27,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, IS_SERVICE_ROLE ? {
     }
 } : {});
 
-const openai = getGrokClient();
+const grok = getGrokClient();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PROMPT TEMPLATES - Law-compliant poker player avatars
@@ -89,7 +89,7 @@ async function generateAndUploadAvatar(horse) {
         console.log(`   Prompt: ${prompt.substring(0, 80)}...`);
 
         // Generate image with DALL-E
-        const response = await openai.images.generate({
+        const response = await grok.images.generate({
             model: 'dall-e-3',
             prompt,
             n: 1,
@@ -172,13 +172,13 @@ export default async function handler(req, res) {
     console.log('\n🐴 HORSE AVATAR GENERATOR');
     console.log('═'.repeat(50));
 
-    if (!SUPABASE_URL || !SUPABASE_KEY || !process.env.OPENAI_API_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_KEY || !process.env.XAI_API_KEY) {
         return res.status(500).json({
             error: 'Missing env vars',
             has_url: !!SUPABASE_URL,
             has_key: !!SUPABASE_KEY,
             is_service_role: IS_SERVICE_ROLE,
-            has_openai: !!process.env.OPENAI_API_KEY
+            has_xai: !!process.env.XAI_API_KEY
         });
     }
 

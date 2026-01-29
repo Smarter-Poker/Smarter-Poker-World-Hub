@@ -15,7 +15,7 @@ export const config = {
 };
 
 // Use Grok for image generation
-const openai = getGrokClient();
+const grok = getGrokClient();
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -127,8 +127,8 @@ export default async function handler(req, res) {
         // 2. Generate a new image with the requested edits applied to the description
 
         console.log('🔍 Analyzing current avatar...');
-        const analysisResponse = await openai.chat.completions.create({
-            model: "gpt-4o", // Mapped to grok-3 by grokClient
+        const analysisResponse = await grok.chat.completions.create({
+            model: "grok-3", // Grok-3 for analysis
             messages: [
                 {
                     role: "user",
@@ -178,7 +178,7 @@ STRICT RULES:
 - High quality 3D render`;
 
         console.log('🎨 Generating edited avatar...');
-        const imageResponse = await openai.images.generate({
+        const imageResponse = await grok.images.generate({
             model: "dall-e-3", // Mapped to grok-2-image by grokClient
             prompt: editedPrompt,
             n: 1,

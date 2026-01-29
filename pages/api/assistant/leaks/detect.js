@@ -22,7 +22,7 @@ const supabase = createClient(
  */
 async function generateLeakFix(leak) {
   try {
-    const openai = getGrokClient();
+    const grok = getGrokClient();
 
     const prompt = `You are a poker coach. A player has this leak:
 
@@ -33,8 +33,8 @@ EV Loss: ${leak.avg_ev_loss_bb} BB/100
 
 Provide a concise, actionable fix in 2-3 sentences. Focus on specific adjustments they can make.`;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o', // Mapped to grok-3
+    const response = await grok.chat.completions.create({
+      model: 'grok-3', // Grok-3
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.5,
       max_tokens: 150,

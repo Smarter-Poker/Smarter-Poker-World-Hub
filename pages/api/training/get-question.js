@@ -241,7 +241,7 @@ async function getScenarioQuestion(gameId, level, seenIds) {
  */
 async function generateQuestionWithGrok(gameId, engineType, level) {
     try {
-        const openai = getGrokClient();
+        const grok = getGrokClient();
 
         const prompt = `Generate a poker training question for a ${engineType} game at difficulty level ${level}/10.
 
@@ -265,8 +265,8 @@ Respond ONLY with valid JSON (no markdown, no explanation):
   "explanation": "Why this is correct"
 }`;
 
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+        const response = await grok.chat.completions.create({
+            model: 'grok-3',
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.7,
             max_tokens: 600,

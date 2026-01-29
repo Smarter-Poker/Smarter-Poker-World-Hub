@@ -1,22 +1,18 @@
 /**
- * Grok API Client (xAI)
+ * Grok API Client (xAI) - GROK ONLY
  * 
  * OpenAI-compatible wrapper for xAI's Grok API.
- * Uses a proxy to automatically map OpenAI model names to Grok equivalents.
+ * Uses a proxy to automatically map legacy OpenAI model names to Grok equivalents.
  * 
  * Base URL: https://api.x.ai/v1
  * API Key: XAI_API_KEY environment variable
+ * 
+ * NOTE: As of 2026-01-29, this is GROK ONLY - no OpenAI fallback.
  * 
  * @see https://docs.x.ai/docs/models
  */
 
 import OpenAI from 'openai';
-
-/**
- * Feature flag to enable/disable Grok API
- * Set USE_GROK_API=false to fallback to OpenAI
- */
-const USE_GROK = process.env.USE_GROK_API !== 'false';
 
 /**
  * Model mapping from OpenAI to Grok
@@ -34,13 +30,11 @@ const MODEL_MAP = {
 };
 
 /**
- * Map OpenAI model names to Grok equivalents
+ * Map legacy OpenAI model names to Grok equivalents
+ * This allows code using old gpt-4o references to work seamlessly
  */
-export function mapModelToGrok(openaiModel) {
-    if (!USE_GROK) {
-        return openaiModel;
-    }
-    return MODEL_MAP[openaiModel] || 'grok-3';
+export function mapModelToGrok(legacyModel) {
+    return MODEL_MAP[legacyModel] || 'grok-3';
 }
 
 /**
@@ -82,41 +76,18 @@ function createGrokProxyClient() {
     return baseClient;
 }
 
-/**
- * Create fallback OpenAI client
- */
-function createOpenAIClient() {
-    if (!process.env.OPENAI_API_KEY) {
-        return null;
-    }
-    return new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-    });
-}
-
-// Initialize clients
+// Initialize Grok client
 let grokClient = null;
-let openaiClient = null;
 
 /**
- * Get the active AI client (Grok or OpenAI fallback)
- * Returns a proxied client that automatically maps models when using Grok
+ * Get the Grok AI client
+ * Returns a proxied client that automatically maps legacy model names to Grok equivalents
  */
 export function getAIClient() {
-    if (USE_GROK) {
-        if (!grokClient) {
-            grokClient = createGrokProxyClient();
-        }
-        return grokClient;
-    } else {
-        if (!openaiClient) {
-            openaiClient = createOpenAIClient();
-        }
-        if (!openaiClient) {
-            throw new Error('OpenAI fallback is enabled but OPENAI_API_KEY is not set');
-        }
-        return openaiClient;
+    if (!grokClient) {
+        grokClient = createGrokProxyClient();
     }
+    return grokClient;
 }
 
 /**
@@ -141,17 +112,17 @@ export async function generateImage(params) {
 }
 
 /**
- * Check if Grok API is enabled
+ * Check if Grok API is enabled (always true now)
  */
 export function isGrokEnabled() {
-    return USE_GROK;
+    return true;
 }
 
 /**
  * Get the current provider name
  */
 export function getProviderName() {
-    return USE_GROK ? 'Grok (xAI)' : 'OpenAI';
+    return 'Grok (xAI)';
 }
 
 // Default export - the Grok client with auto model mapping

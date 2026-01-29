@@ -26,7 +26,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 
 export default async function handler(req, res) {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    const openai = getGrokClient();
+    const grok = getGrokClient();
 
     const result = {
         clipLibraryLoaded,
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
         env: {
             hasSupabaseUrl: !!SUPABASE_URL,
             hasSupabaseKey: !!SUPABASE_KEY,
-            hasOpenAI: !!process.env.OPENAI_API_KEY
+            hasXAI: !!process.env.XAI_API_KEY
         },
         randomClip: null,
         horseTest: null,
@@ -77,8 +77,8 @@ export default async function handler(req, res) {
     if (clip && horse) {
         try {
             const templateCaption = getRandomCaption(clip.category || CLIP_CATEGORIES.FUNNY);
-            const response = await openai.chat.completions.create({
-                model: 'gpt-4o',
+            const response = await grok.chat.completions.create({
+                model: 'grok-3',
                 messages: [{
                     role: 'user',
                     content: `Write 1 short poker clip caption (10 words max): ${templateCaption}`

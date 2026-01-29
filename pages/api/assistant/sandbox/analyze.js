@@ -21,7 +21,7 @@ import { getGrokClient } from '../../../../src/lib/grokClient';
 
 async function analyzeWithGrok(params) {
   try {
-    const openai = getGrokClient();
+    const grok = getGrokClient();
 
     const { heroHand, heroPosition, heroStack, gameType, villains, board, potSize } = params;
 
@@ -65,8 +65,8 @@ RULES:
 - Consider stack depth, position, and villain tendencies
 - Be specific about bet sizing`;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o', // Will be mapped to grok-3
+    const response = await grok.chat.completions.create({
+      model: 'grok-3', // Grok-3
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.3,
       max_tokens: 500,

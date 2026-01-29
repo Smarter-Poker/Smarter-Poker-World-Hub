@@ -12,7 +12,7 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const openai = getGrokClient();
+const grok = getGrokClient();
 
 // Avatar style prompts based on persona
 const AVATAR_STYLES = {
@@ -38,7 +38,7 @@ ${style}
 Photorealistic, high quality, 4K, professional photography.`;
 
     try {
-        const response = await openai.images.generate({
+        const response = await grok.images.generate({
             model: "dall-e-3",
             prompt: prompt,
             n: 1,

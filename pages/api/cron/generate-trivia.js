@@ -1,7 +1,7 @@
 /**
  * AI TRIVIA GENERATOR - Daily Cron Job
  * ═══════════════════════════════════════════════════════════════════════════
- * Generates 10 unique poker trivia questions daily using OpenAI
+ * Generates 10 unique poker trivia questions daily using Grok
  * Runs at 11:59 PM CST via Vercel Cron (5:59 AM UTC)
  * All dates are in CST (Central Standard Time / America/Chicago)
  *
@@ -23,7 +23,7 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const openai = getGrokClient();
+const grok = getGrokClient();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CATEGORY CONFIGURATION
@@ -117,8 +117,8 @@ Return a JSON object with this EXACT structure:
 Remember: correct_index is 0-based (0, 1, 2, or 3).`;
 
     try {
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+        const response = await grok.chat.completions.create({
+            model: 'grok-3',
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }

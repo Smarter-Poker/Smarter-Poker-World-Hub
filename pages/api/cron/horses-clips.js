@@ -59,7 +59,7 @@ async function loadClipLibrary() {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const openai = getGrokClient();
+const grok = getGrokClient();
 
 
 const CONFIG = {
@@ -281,8 +281,8 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
 
         let caption = templateCaption;
         try {
-            const response = await openai.chat.completions.create({
-                model: 'gpt-4o',
+            const response = await grok.chat.completions.create({
+                model: 'grok-3',
                 messages: [{
                     role: 'system',
                     content: `You are a poker enthusiast posting a video clip to your social feed.
@@ -332,7 +332,7 @@ BAD EXAMPLES:
             // Apply horse's unique writing style
             caption = applyWritingStyle(caption, horse.profile_id);
         } catch (e) {
-            console.log(`   Using template caption (OpenAI error: ${e.message})`);
+            console.log(`   Using template caption (Grok error: ${e.message})`);
             caption = applyWritingStyle(templateCaption, horse.profile_id);
         }
 
@@ -382,8 +382,8 @@ async function generateClipCaption(horse, clipData) {
 
     // Optionally personalize with GPT (brief, natural)
     try {
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+        const response = await grok.chat.completions.create({
+            model: 'grok-3',
             messages: [{
                 role: 'system',
                 content: `You are ${horse.name}, a poker player posting a video clip. 
@@ -465,8 +465,8 @@ async function generateOriginalText(horse, postType) {
     };
 
     try {
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
+        const response = await grok.chat.completions.create({
+            model: 'grok-3',
             messages: [{
                 role: 'system',
                 content: `You are ${horse.name}, a ${horse.stakes || '2/5'} poker player. 
@@ -494,7 +494,7 @@ async function generateOriginalImage(postType) {
     };
 
     try {
-        const response = await openai.images.generate({
+        const response = await grok.images.generate({
             model: 'dall-e-3',
             prompt: `${prompts[postType]}. Phone camera quality, no dramatic lighting, realistic amateur photo.`,
             n: 1,
@@ -554,7 +554,7 @@ export default async function handler(req, res) {
     console.log('\n🐴 HORSES CLIP CRON - 90% VIDEO CLIPS');
     console.log('═'.repeat(50));
 
-    if (!SUPABASE_URL || !process.env.OPENAI_API_KEY) {
+    if (!SUPABASE_URL || !process.env.XAI_API_KEY) {
         return res.status(500).json({ error: 'Missing env vars' });
     }
 

@@ -17,7 +17,7 @@ export const config = {
 };
 
 // Use Grok for image generation
-const openai = getGrokClient();
+const grok = getGrokClient();
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -153,7 +153,7 @@ IMPORTANT: This is for a poker player avatar - just the character portrait with 
         console.log('📡 Calling Grok image generation API...');
         let response;
         try {
-            response = await openai.images.generate({
+            response = await grok.images.generate({
                 model: "dall-e-3",  // Will be mapped to grok-2-image-1212 by grokClient
                 prompt: strictAvatarPrompt,
                 n: 1,
