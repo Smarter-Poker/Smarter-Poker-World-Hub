@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import MillionaireQuestion from './MillionaireQuestion';
+import GameUIRouter from './GameUIRouter';
 import useMillionaireGame from '../../hooks/useMillionaireGame';
 import TRAINING_CONFIG from '../../config/trainingConfig';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
@@ -218,7 +218,8 @@ export default function GodModeArena({
                         </button>
                     </div>
                 ) : (
-                    <MillionaireQuestion
+                    <GameUIRouter
+                        gameId={gameId}
                         question={currentQuestion}
                         level={currentLevel}
                         questionNumber={questionNumber}

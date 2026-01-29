@@ -28,17 +28,59 @@ export default function useTrainingProgress() {
     const [progress, setProgress] = useState({});
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Load from localStorage on mount
+    // Load from API on mount
     useEffect(() => {
-        try {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                setProgress(JSON.parse(stored));
+        const loadProgress = async () => {
+            try {
+                // Get user ID from auth
+                const { getAuthUser } = await import('../lib/authUtils');
+                const authUser = getAuthUser();
+
+                if (authUser?.id) {
+                    // Fetch from API
+                    const response = await fetch(`/api/training/get-progress?userId=${authUser.id}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.progress) {
+                            // Convert array to object keyed by game_id
+                            const progressObj = {};
+                            data.progress.forEach(p => {
+                                progressObj[p.game_id] = {
+                                    attempts: p.total_questions_answered || 0,
+                                    levelsCompleted: p.highest_level_completed || 0,
+                                    mastery: p.mastery_percentage || 0,
+                                    bestScore: 0, // Not tracked yet
+                                    totalXP: p.total_xp_earned || 0,
+                                    lastPlayed: p.last_played_at,
+                                    streakBest: p.best_streak || 0,
+                                    currentLevel: p.current_level || 1,
+                                };
+                            });
+                            setProgress(progressObj);
+                        }
+                    }
+                } else {
+                    // Fallback to localStorage for anonymous users
+                    const stored = localStorage.getItem(STORAGE_KEY);
+                    if (stored) {
+                        setProgress(JSON.parse(stored));
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to load training progress:', e);
+                // Fallback to localStorage
+                try {
+                    const stored = localStorage.getItem(STORAGE_KEY);
+                    if (stored) {
+                        setProgress(JSON.parse(stored));
+                    }
+                } catch (e2) {
+                    console.warn('Failed to load from localStorage:', e2);
+                }
             }
-        } catch (e) {
-            console.warn('Failed to load training progress:', e);
-        }
-        setIsLoaded(true);
+            setIsLoaded(true);
+        };
+        loadProgress();
     }, []);
 
     // Save to localStorage on change

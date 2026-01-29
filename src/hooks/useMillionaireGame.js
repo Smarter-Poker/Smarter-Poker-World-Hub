@@ -129,23 +129,55 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
     }, [currentQuestion, showFeedback, bestStreak, recordAnswer]);
 
     /**
-     * Advance to next question (after feedback)
+     * Save progress to database
+     */
+    const saveProgress = useCallback(async (passed, accuracy) => {
+        if (!userId || !gameId) return;
+
+        try {
+            await fetch('/api/training/save-progress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId,
+                    gameId,
+                    level,
+                    questionsAnswered: QUESTIONS_PER_LEVEL,
+                    questionsCorrect: correctCount,
+                    accuracy,
+                    passed,
+                    streak: bestStreak,
+                    xpEarned: totalXP,
+                    diamondsEarned: 0, // TODO: Calculate diamond rewards
+                    timeSpentSeconds: 0, // TODO: Track time
+                }),
+            });
+        } catch (err) {
+            console.warn('[MillionaireGame] Save progress error:', err);
+        }
+    }, [userId, gameId, level, correctCount, bestStreak, totalXP]);
+
+    /**
+     * Advance to next question or complete level
      */
     const nextQuestion = useCallback(() => {
+        setShowFeedback(false);
+
         if (questionNumber >= QUESTIONS_PER_LEVEL) {
-            // Level complete - check if passed
-            const passed = checkLevelPassed(level, correctCount);
-            const xpEarned = getXPReward(level, correctCount, bestStreak * 5);
+            // Level complete
+            const accuracy = Math.round((correctCount / QUESTIONS_PER_LEVEL) * 100);
+            const passed = checkLevelPassed(level, correctCount, QUESTIONS_PER_LEVEL);
 
             setLevelPassed(passed);
-            setTotalXP(prev => prev + xpEarned);
             setGameComplete(true);
+
+            // Save progress to database
+            saveProgress(passed, accuracy);
         } else {
-            // Go to next question
             setQuestionNumber(prev => prev + 1);
             fetchQuestion();
         }
-    }, [questionNumber, level, correctCount, bestStreak, fetchQuestion]);
+    }, [questionNumber, correctCount, level, fetchQuestion, saveProgress]);
 
     /**
      * Start next level (if passed)
