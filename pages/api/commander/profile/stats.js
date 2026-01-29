@@ -52,9 +52,9 @@ export default async function handler(req, res) {
     const venueSet = new Set();
 
     sessions?.forEach(session => {
-      totalHours += (session.total_minutes || 0) / 60;
+      totalHours += (session.total_time_minutes || 0) / 60;
       totalCompsEarned += parseFloat(session.comps_earned || 0);
-      totalXpEarned += session.xp_earned || 0;
+      totalXpEarned += session.metadata?.xp_earned || 0;
       if (session.venue_id) venueSet.add(session.venue_id);
     });
 
@@ -76,10 +76,10 @@ export default async function handler(req, res) {
       .eq('host_id', user.id);
 
     const { count: homeGamesAttended } = await supabase
-      .from('commander_home_game_rsvps')
+      .from('commander_home_rsvps')
       .select('id', { count: 'exact', head: true })
-      .eq('player_id', user.id)
-      .eq('status', 'approved');
+      .eq('user_id', user.id)
+      .eq('response', 'going');
 
     // Get waitlist stats
     const { data: waitlistHistory } = await supabase

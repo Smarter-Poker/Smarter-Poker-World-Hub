@@ -103,16 +103,20 @@ async function handlePatch(req, res, sessionId) {
       const hoursPlayed = Math.floor(totalMinutes / 60);
 
       updates.check_out_at = checkoutTime.toISOString();
-      updates.total_minutes = totalMinutes;
+      updates.total_time_minutes = totalMinutes;
 
-      // Award XP for session completion
+      // Award XP for session completion - stored in metadata JSONB
       // 50 XP base + 10 XP per hour played
       if (session.player_id && totalMinutes >= 30) {
         const XP_FOR_SESSION_COMPLETE = 50;
         const XP_PER_HOUR = 10;
         const bonusXP = XP_FOR_SESSION_COMPLETE + (hoursPlayed * XP_PER_HOUR);
+        const currentMetadata = session.metadata || {};
 
-        updates.xp_earned = (session.xp_earned || 0) + bonusXP;
+        updates.metadata = {
+          ...currentMetadata,
+          xp_earned: (currentMetadata.xp_earned || 0) + bonusXP
+        };
       }
     }
 

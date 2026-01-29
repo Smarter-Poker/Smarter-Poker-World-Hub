@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 }
 
 async function handlePayout(req, res, tournamentId) {
-  const { player_id, place, amount, paid_by } = req.body;
+  const { player_id, place, amount } = req.body;
 
   if (!player_id || !place || !amount) {
     return res.status(400).json({
@@ -36,15 +36,21 @@ async function handlePayout(req, res, tournamentId) {
   }
 
   try {
-    // Update entry with payout
+    // Get tournament for venue_id and buyin info
+    const { data: tournament } = await supabase
+      .from('commander_tournaments')
+      .select('venue_id, buyin_amount, buyin_fee')
+      .eq('id', tournamentId)
+      .single();
+
+    // Update entry with payout (use schema-valid columns only)
     const { data: entry, error } = await supabase
       .from('commander_tournament_entries')
       .update({
-        finish_place: place,
+        finish_position: place,
         payout_amount: amount,
-        payout_status: 'paid',
-        paid_at: new Date().toISOString(),
-        paid_by
+        payout_position: place,
+        status: 'winner'
       })
       .eq('tournament_id', tournamentId)
       .eq('player_id', player_id)
@@ -54,16 +60,17 @@ async function handlePayout(req, res, tournamentId) {
     if (error) throw error;
 
     // Check if this is a taxable event (>$5000)
-    if (amount >= 5000) {
+    if (amount >= 5000 && tournament) {
+      const totalBuyin = (tournament.buyin_amount || 0) + (tournament.buyin_fee || 0);
       await supabase
         .from('commander_tax_events')
         .insert({
-          venue_id: entry.venue_id,
+          venue_id: tournament.venue_id,
           player_id,
           event_type: 'tournament_win',
           gross_amount: amount,
-          buy_in: entry.buy_in_amount,
-          net_amount: amount - (entry.buy_in_amount || 0),
+          buy_in: totalBuyin,
+          net_amount: amount - totalBuyin,
           withholding_required: amount >= 5000
         });
     }
@@ -91,7 +98,7 @@ async function handleGetPayouts(req, res, tournamentId) {
       `)
       .eq('tournament_id', tournamentId)
       .not('payout_amount', 'is', null)
-      .order('finish_place', { ascending: true });
+      .order('finish_position', { ascending: true });
 
     if (error) throw error;
 
