@@ -66,23 +66,22 @@ export default async function handler(req, res) {
         }
 
         // ═══════════════════════════════════════════════════════════════════
-        // STEP 3: FETCH QUESTION BASED ON ENGINE TYPE
+        // STEP 3: TRY PIO DATABASE FIRST (NEW INTEGRATION)
         // ═══════════════════════════════════════════════════════════════════
         let question = null;
 
-        // Route to appropriate engine
-        switch (engineType.toUpperCase()) {
-            case 'PIO':
-                question = await getPIOQuestion(gameId, level, seenQuestionIds, gameType, game);
-                break;
-            case 'CHART':
-                question = await getChartQuestion(gameId, level, seenQuestionIds, gameType, game);
-                break;
-            case 'SCENARIO':
-                question = await getScenarioQuestion(gameId, level, seenQuestionIds, gameType, game);
-                break;
-            default:
-                question = await getPIOQuestion(gameId, level, seenQuestionIds, gameType, game);
+        // Import PIO Query Service
+        const { pioQueryService } = require('../../../src/services/PIOQueryService');
+
+        // Try to get question from PIO database
+        console.log('[Training] 🔍 Querying PIO database...');
+        const pioScenarios = await pioQueryService.queryScenarios(gameId, level, userId);
+
+        if (pioScenarios && pioScenarios.length > 0) {
+            console.log(`[Training] ✅ Found ${pioScenarios.length} PIO scenarios`);
+            question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
+        } else {
+            console.log('[Training] ⚠️ No PIO scenarios found, will try cache/Grok');
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -168,37 +167,114 @@ export default async function handler(req, res) {
 }
 
 /**
+ * Generate question from PIO solver data
+ * Transforms raw PIO scenarios into training questions
+ */
+async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
+    try {
+        // Pick a random scenario from the available ones
+        const scenario = pioScenarios[Math.floor(Math.random() * pioScenarios.length)];
+
+        console.log('[Training] 📊 Generating question from PIO scenario:', scenario.scenarioHash);
+
+        // Extract strategy matrix
+        const strategies = scenario.strategies || {};
+        const strategyKeys = Object.keys(strategies);
+
+        if (strategyKeys.length === 0) {
+            console.log('[Training] ⚠️ No strategies in scenario, falling back');
+            return null;
+        }
+
+        // Get a few sample hands from the strategy matrix
+        const sampleHands = strategyKeys.slice(0, 5).map(key => {
+            const strategy = strategies[key];
+            return {
+                hand: strategy.hand || key,
+                action: strategy.action || 'Unknown',
+                ev: strategy.ev || 0
+            };
+        });
+
+        // Find the optimal action (most common action in the matrix)
+        const actionCounts = {};
+        strategyKeys.forEach(key => {
+            const action = strategies[key].action || 'Check';
+            actionCounts[action] = (actionCounts[action] || 0) + 1;
+        });
+
+        const optimalAction = Object.keys(actionCounts).reduce((a, b) =>
+            actionCounts[a] > actionCounts[b] ? a : b
+        );
+
+        // Build question
+        const question = {
+            id: `pio_${scenario.id}_${Date.now()}`,
+            type: 'PIO',
+            source: 'PIO_DATABASE',
+            scenario: {
+                board: scenario.board.join(' '),
+                street: scenario.street,
+                stackDepth: scenario.stackDepth,
+                gameType: scenario.gameType,
+                scenarioHash: scenario.scenarioHash
+            },
+            question: `On the ${scenario.street}, the board is ${scenario.board.join(' ')}. You have ${scenario.stackDepth}BB. What is the GTO play?`,
+            options: buildOptionsFromActions(Object.keys(actionCounts)),
+            correctAnswer: optimalAction.toLowerCase().replace(/\s/g, '_'),
+            explanation: `According to PIO solver data, the optimal action on this ${scenario.street} is to ${optimalAction}. This board texture favors this line based on range advantage and equity distribution.`,
+            difficulty: level,
+            sampleHands: sampleHands.slice(0, 3) // Include a few example hands
+        };
+
+        console.log('[Training] ✅ Generated PIO question:', question.question);
+        return question;
+
+    } catch (error) {
+        console.error('[Training] ❌ Error generating PIO question:', error);
+        return null;
+    }
+}
+
+/**
+ * Build answer options from available actions
+ */
+function buildOptionsFromActions(actions) {
+    const allActions = ['Fold', 'Check', 'Call', 'Bet', 'Raise', 'All-In'];
+    const options = [];
+
+    // Add actions from PIO data
+    actions.forEach(action => {
+        options.push({
+            id: action.toLowerCase().replace(/\s/g, '_'),
+            text: action
+        });
+    });
+
+    // Fill with other common actions if needed
+    while (options.length < 4) {
+        const filler = allActions.find(a => !options.some(o => o.text === a));
+        if (filler) {
+            options.push({
+                id: filler.toLowerCase().replace(/\s/g, '_'),
+                text: filler
+            });
+        } else {
+            break;
+        }
+    }
+
+    return options.slice(0, 4);
+}
+
+/**
+ * DEPRECATED: Old PIO Engine (kept for reference)
  * PIO Engine: Get solver-based question from Supabase
  */
 async function getPIOQuestion(gameId, level, seenIds) {
-    // Query solver_templates for this game's scenario type
-    const { data: templates, error } = await supabase
-        .from('solver_templates')
-        .select('*')
-        .not('id', 'in', `(${seenIds.join(',') || 'null'})`)
-        .limit(1);
-
-    if (error || !templates || templates.length === 0) {
-        return null;
-    }
-
-    const template = templates[0];
-
-    return {
-        id: template.id,
-        type: 'PIO',
-        scenario: {
-            heroPosition: template.position_config,
-            heroStack: template.stack_depth_bb,
-            gameType: template.game_type,
-            boardTexture: template.board_texture,
-        },
-        question: `What is the GTO play in this ${template.position_config} spot with ${template.stack_depth_bb}bb?`,
-        options: buildPIOOptions(template),
-        correctAnswer: template.frequencies ? Object.keys(template.frequencies)[0] : 'fold',
-        explanation: template.explanation || 'Review the solver frequencies for this spot.',
-        difficulty: Math.min(10, Math.max(1, level)),
-    };
+    // This function is now deprecated in favor of generateQuestionFromPIO
+    // which uses the new PIO Query Service
+    return null;
 }
 
 /**

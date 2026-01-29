@@ -170,43 +170,65 @@ async function scrapeHendonMob(url) {
             bestFinish = finishMatch[0];
         }
 
-        // Look for biggest cash in tournament results table
-        // HendonMob shows results with prize amounts
-        $('table').each((i, table) => {
-            $(table).find('tr').each((j, row) => {
-                const cells = $(row).find('td');
-                // Look for rows with prize money
-                cells.each((k, cell) => {
-                    const cellText = $(cell).text();
-                    const prizeMatch = cellText.match(/\$[\d,]+(?:\.\d{2})?/);
-                    if (prizeMatch) {
-                        const amount = parseFloat(prizeMatch[0].replace(/[$,]/g, ''));
-                        if (!biggestCash || amount > biggestCash) {
-                            biggestCash = amount;
-                        }
-                    }
-                });
-            });
-        });
-
-        // Also try tables for more structured data
+        // Extract stats from summary table FIRST (to identify which tables to exclude)
+        const summaryStats = { totalCashes: null, totalEarnings: null };
         $('table').each((i, table) => {
             const tableText = $(table).text().toLowerCase();
+            // Look for summary stats table (contains "cashes" or "earnings" labels)
             if (tableText.includes('cashes') || tableText.includes('earnings')) {
-                // Found stats table
                 $(table).find('tr').each((j, row) => {
                     const cells = $(row).find('td');
                     if (cells.length >= 2) {
                         const label = $(cells[0]).text().toLowerCase();
                         const value = $(cells[1]).text().trim();
 
-                        if (label.includes('cashes') && !totalCashes) {
-                            totalCashes = parseInt(value.replace(/,/g, ''), 10);
+                        if (label.includes('cashes') && !summaryStats.totalCashes) {
+                            summaryStats.totalCashes = parseInt(value.replace(/,/g, ''), 10);
                         }
-                        if (label.includes('earnings') && !totalEarnings) {
-                            totalEarnings = parseFloat(value.replace(/[$,]/g, ''));
+                        if (label.includes('earnings') && !summaryStats.totalEarnings) {
+                            summaryStats.totalEarnings = parseFloat(value.replace(/[$,]/g, ''));
                         }
                     }
+                });
+            }
+        });
+
+        totalCashes = summaryStats.totalCashes;
+        totalEarnings = summaryStats.totalEarnings;
+
+        // Now look for biggest cash in tournament RESULTS tables only
+        // Skip tables that contain summary stats (identified by having the total earnings value)
+        $('table').each((i, table) => {
+            const tableText = $(table).text();
+
+            // Skip if this is the summary stats table
+            if (tableText.includes('cashes') || tableText.includes('earnings')) {
+                return; // Skip this table
+            }
+
+            // Look for tournament results (tables with Date, Event, Prize columns)
+            const hasDateColumn = tableText.toLowerCase().includes('date');
+            const hasEventColumn = tableText.toLowerCase().includes('event') || tableText.toLowerCase().includes('tournament');
+            const hasPrizeColumn = tableText.toLowerCase().includes('prize') || tableText.includes('$');
+
+            if (hasDateColumn || hasEventColumn || hasPrizeColumn) {
+                // This looks like a results table, scan for prize amounts
+                $(table).find('tr').each((j, row) => {
+                    const cells = $(row).find('td');
+                    cells.each((k, cell) => {
+                        const cellText = $(cell).text();
+                        const prizeMatch = cellText.match(/\$[\d,]+(?:\.\d{2})?/);
+                        if (prizeMatch) {
+                            const amount = parseFloat(prizeMatch[0].replace(/[$,]/g, ''));
+                            // Exclude the total earnings amount (it's not a single tournament cash)
+                            if (totalEarnings && Math.abs(amount - totalEarnings) < 0.01) {
+                                return; // Skip total earnings
+                            }
+                            if (!biggestCash || amount > biggestCash) {
+                                biggestCash = amount;
+                            }
+                        }
+                    });
                 });
             }
         });
