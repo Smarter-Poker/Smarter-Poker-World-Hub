@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/hub/club-arena",
-      "destination": "https://club-arena.vercel.app/hub/club-arena/?v=28012026"
+      "destination": "https://club-arena.vercel.app/hub/club-arena/?v=28012026v2"
     },
     {
       "source": "/hub/club-arena/:path*",
-      "destination": "https://club-arena.vercel.app/hub/club-arena/:path*"
+      "destination": "https://club-arena.vercel.app/hub/club-arena/:path*?v=28012026v2"
     }
   ],
   "headers": [

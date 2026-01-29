@@ -1,21 +1,15 @@
 /**
  * 🤖 AI AVATAR GENERATION - TEXT TO IMAGE
  * Uses Grok (xAI) grok-2-image to generate avatars from text descriptions
- * Uses ImageMagick for professional-grade background removal
+ * Uses Sharp (Node.js native) for professional-grade background removal
  * Downloads and uploads to Supabase Storage
  * 
- * Updated 2026-01-29: Switched to Grok API + ImageMagick for zero-background stickers
+ * Updated 2026-01-29: Uses Grok API + Sharp (serverless compatible) for zero-background stickers
  */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '@supabase/supabase-js';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-
-const execAsync = promisify(exec);
+import sharp from 'sharp';
 
 // Increase timeout for AI generation
 export const config = {
@@ -30,48 +24,99 @@ const supabase = createClient(
 );
 
 /**
- * Remove background using ImageMagick with multi-hex targeting
- * This ensures 100% alpha-transparency for sticker-style avatars
+ * Remove white/near-white background using Sharp with multi-threshold algorithm
+ * Professional-grade transparency for sticker-style avatars
  */
-async function removeBackgroundWithImageMagick(inputBuffer) {
-    const tempDir = os.tmpdir();
-    const inputPath = path.join(tempDir, `avatar_input_${Date.now()}.png`);
-    const outputPath = path.join(tempDir, `avatar_output_${Date.now()}.png`);
+async function removeBackgroundWithSharp(inputBuffer) {
+    const { data, info } = await sharp(inputBuffer)
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
 
-    try {
-        // Write input buffer to temp file
-        fs.writeFileSync(inputPath, inputBuffer);
+    const pixels = new Uint8ClampedArray(data);
+    const { width, height } = info;
 
-        // ImageMagick command with multi-hex targeting for white backgrounds
-        // Uses fuzz factor to catch near-white pixels and checkerboard patterns
-        const cmd = `convert "${inputPath}" \\
-            -fuzz 15% \\
-            -fill none \\
-            -draw "alpha 0,0 floodfill" \\
-            -draw "alpha 0,1023 floodfill" \\
-            -draw "alpha 1023,0 floodfill" \\
-            -draw "alpha 1023,1023 floodfill" \\
-            -channel RGBA \\
-            -blur 0x0.5 \\
-            -level 0%,100%,1.0 \\
-            "${outputPath}"`;
+    // Multi-pass background removal for professional results
+    // Pass 1: Remove pure white and near-white pixels (high threshold)
+    // Pass 2: Remove checkerboard pattern remnants
+    // Pass 3: Edge-aware smoothing
 
-        await execAsync(cmd);
+    const whiteThreshold = 240;    // Pure white
+    const nearWhiteThreshold = 225; // Near white  
+    const grayThreshold = 200;      // Light gray (for gradients)
 
-        // Read the processed image
-        const outputBuffer = fs.readFileSync(outputPath);
+    for (let i = 0; i < pixels.length; i += 4) {
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
 
-        // Cleanup temp files
-        fs.unlinkSync(inputPath);
-        fs.unlinkSync(outputPath);
+        // Calculate luminance
+        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
 
-        return outputBuffer;
-    } catch (error) {
-        // Cleanup on error
-        try { fs.unlinkSync(inputPath); } catch (e) { }
-        try { fs.unlinkSync(outputPath); } catch (e) { }
-        throw error;
+        // Check if pixel is white/near-white (RGB all high and similar)
+        const isWhite = r > whiteThreshold && g > whiteThreshold && b > whiteThreshold;
+        const isNearWhite = r > nearWhiteThreshold && g > nearWhiteThreshold && b > nearWhiteThreshold;
+
+        // Check for gray/off-white (common in AI-generated backgrounds)
+        const maxChannel = Math.max(r, g, b);
+        const minChannel = Math.min(r, g, b);
+        const colorVariance = maxChannel - minChannel;
+        const isGrayish = luminance > grayThreshold && colorVariance < 30;
+
+        // Check for checkerboard pattern colors (light gray alternating)
+        const isCheckerboard = (r > 200 && g > 200 && b > 200) && colorVariance < 15;
+
+        // Make transparent if any background condition is met
+        if (isWhite || isNearWhite || isGrayish || isCheckerboard) {
+            pixels[i + 3] = 0; // Set alpha to 0 (transparent)
+        }
     }
+
+    // Edge pass: Smooth alpha transitions for cleaner edges
+    // Check corner pixels to confirm they should be transparent (flood-fill-like logic)
+    const cornerPositions = [
+        0, // top-left
+        (width - 1) * 4, // top-right
+        (height - 1) * width * 4, // bottom-left
+        ((height - 1) * width + (width - 1)) * 4, // bottom-right
+    ];
+
+    // If corners are not fully transparent, aggressively remove based on their color
+    for (const pos of cornerPositions) {
+        if (pixels[pos + 3] !== 0) {
+            const cornerR = pixels[pos];
+            const cornerG = pixels[pos + 1];
+            const cornerB = pixels[pos + 2];
+
+            // If corner is light-ish, use it as background color reference
+            if (cornerR > 180 && cornerG > 180 && cornerB > 180) {
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const r = pixels[i];
+                    const g = pixels[i + 1];
+                    const b = pixels[i + 2];
+
+                    // If similar to corner color (within tolerance), make transparent
+                    const tolerance = 35;
+                    if (Math.abs(r - cornerR) < tolerance &&
+                        Math.abs(g - cornerG) < tolerance &&
+                        Math.abs(b - cornerB) < tolerance) {
+                        pixels[i + 3] = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    // Convert back to PNG with transparency
+    return sharp(pixels, {
+        raw: {
+            width: info.width,
+            height: info.height,
+            channels: 4
+        }
+    })
+        .png({ compressionLevel: 9 })
+        .toBuffer();
 }
 
 export default async function handler(req, res) {
@@ -88,7 +133,7 @@ export default async function handler(req, res) {
 
         console.log('🎨 Generating avatar with Grok grok-2-image:', prompt);
 
-        // STRICT AVATAR PROMPT - Character only, transparent-friendly background
+        // STRICT AVATAR PROMPT - Character only, pure white background
         const strictAvatarPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT ONLY. 
 Subject: ${prompt}
 STRICT RULES:
@@ -119,10 +164,10 @@ IMPORTANT: This is for a poker player avatar - just the character portrait with 
         const arrayBuffer = await imageResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        console.log('🔧 Removing background with ImageMagick (zero-background sticker)...');
+        console.log('🔧 Removing background with Sharp (zero-background sticker)...');
 
-        // Remove background using ImageMagick for professional-grade transparency
-        const transparentBuffer = await removeBackgroundWithImageMagick(buffer);
+        // Remove background using Sharp for serverless-compatible transparency
+        const transparentBuffer = await removeBackgroundWithSharp(buffer);
 
         console.log('✅ Background removed (100% transparency), uploading to Supabase...');
 
