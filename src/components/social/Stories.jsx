@@ -130,39 +130,26 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
         >
             <StoryRing hasUnviewed={showRing} isLive={isLive} size={64}>
                 <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', background: '#E4E6EB' }}>
-                    {/* Priority: gradient background > thumbnail (if not failed) > profile avatar */}
-                    {story?.background_color ? (
-                        <div style={{
-                            width: '100%',
-                            height: '100%',
-                            background: story.background_color,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}>
-                            <span style={{ fontSize: 24, color: 'white' }}>Aa</span>
-                        </div>
-                    ) : (
-                        <img
-                            src={displayUrl}
-                            onLoad={(e) => {
-                                // YouTube returns a 120x90 gray placeholder for invalid video IDs
-                                // Check if this is a placeholder and switch to profile avatar
-                                if (thumbnailUrl && e.target.naturalWidth <= 120) {
-                                    setThumbnailFailed(true);
-                                }
-                            }}
-                            onError={(e) => {
-                                // Mark thumbnail as failed and switch to profile avatar
-                                if (!thumbnailFailed && thumbnailUrl) {
-                                    setThumbnailFailed(true);
-                                }
-                                // Immediate fallback
-                                e.target.src = story?.author_avatar || '/default-avatar.png';
-                            }}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                    )}
+                    {/* Always show profile avatar in story ring - "Aa" only appears in full-screen viewer */}
+                    <img
+                        src={displayUrl}
+                        onLoad={(e) => {
+                            // YouTube returns a 120x90 gray placeholder for invalid video IDs
+                            // Check if this is a placeholder and switch to profile avatar
+                            if (thumbnailUrl && e.target.naturalWidth <= 120) {
+                                setThumbnailFailed(true);
+                            }
+                        }}
+                        onError={(e) => {
+                            // Mark thumbnail as failed and switch to profile avatar
+                            if (!thumbnailFailed && thumbnailUrl) {
+                                setThumbnailFailed(true);
+                            }
+                            // Immediate fallback
+                            e.target.src = story?.author_avatar || '/default-avatar.png';
+                        }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                     {isLive && (
                         <div style={{
                             position: 'absolute', bottom: -4, left: '50%', transform: 'translateX(-50%)',
