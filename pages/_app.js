@@ -21,7 +21,7 @@ import '../src/styles/worlds/diamond-arcade.css';
 import '../src/styles/worlds/personal-assistant.css';
 import '../src/styles/worlds/bankroll.css';
 import '../src/styles/worlds/trivia.css';
-import '../src/styles/captain-futuristic.css';
+import '../src/styles/commander-futuristic.css';
 import '../styles/landing.css';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';

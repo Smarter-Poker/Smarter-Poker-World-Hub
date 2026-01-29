@@ -34,7 +34,7 @@ export const VIP_AVATARS = [
     '/avatars/free/penguin.png',
     '/avatars/free/rabbit.png',
     '/avatars/free/shiba.png',
-    '/avatars/free/space_captain.png',
+    '/avatars/free/space_commander.png',
     '/avatars/free/teacher.png',
 ];
 

@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
     // Fetch home game group by club_code
     const { data: group, error: groupError } = await supabase
-      .from('captain_home_groups')
+      .from('commander_home_groups')
       .select(`
         id,
         name,
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
           upcoming_games: [],
           message: 'This is a private group. Request an invite to see details.',
           links: {
-            join_request: `/hub/captain/home-games/join?code=${code}`,
+            join_request: `/hub/commander/home-games/join?code=${code}`,
             smarter_poker: `https://smarter.poker/home-game/${code}`,
             poker_near_me: `https://pokernear.me/home-game/${code}`
           }
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
 
     // For public groups, fetch upcoming games
     const { data: upcomingGames } = await supabase
-      .from('captain_home_games')
+      .from('commander_home_games')
       .select(`
         id,
         title,
@@ -120,7 +120,7 @@ export default async function handler(req, res) {
 
     // Get recent game history (count only)
     const { count: recentGamesCount } = await supabase
-      .from('captain_home_games')
+      .from('commander_home_games')
       .select('*', { count: 'exact', head: true })
       .eq('group_id', group.id)
       .eq('status', 'completed')
@@ -158,7 +158,7 @@ export default async function handler(req, res) {
           total_members: group.member_count
         },
         links: {
-          join_request: `/hub/captain/home-games/join?code=${code}`,
+          join_request: `/hub/commander/home-games/join?code=${code}`,
           smarter_poker: `https://smarter.poker/home-game/${code}`,
           poker_near_me: `https://pokernear.me/home-game/${code}`
         }

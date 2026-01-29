@@ -61,7 +61,7 @@ export default async function handler(req, res) {
         google_rating,
         review_count,
         is_featured,
-        captain_enabled
+        commander_enabled
       `)
       .eq('id', id)
       .eq('is_active', true)
@@ -74,11 +74,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // Fetch active games if Captain is enabled
+    // Fetch active games if Commander is enabled
     let liveGames = [];
-    if (venue.captain_enabled) {
+    if (venue.commander_enabled) {
       const { data: games } = await supabase
-        .from('captain_games')
+        .from('commander_games')
         .select(`
           id,
           game_type,
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
 
     // Fetch upcoming tournaments
     const { data: tournaments } = await supabase
-      .from('captain_tournaments')
+      .from('commander_tournaments')
       .select(`
         id,
         name,
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
 
     // Fetch active promotions
     const { data: promotions } = await supabase
-      .from('captain_promotions')
+      .from('commander_promotions')
       .select(`
         id,
         name,
@@ -139,11 +139,11 @@ export default async function handler(req, res) {
       .eq('is_active', true)
       .limit(5);
 
-    // Calculate waitlist stats if Captain enabled
+    // Calculate waitlist stats if Commander enabled
     let waitlistStats = null;
-    if (venue.captain_enabled) {
+    if (venue.commander_enabled) {
       const { count: waitingCount } = await supabase
-        .from('captain_waitlist')
+        .from('commander_waitlist')
         .select('*', { count: 'exact', head: true })
         .eq('venue_id', id)
         .eq('status', 'waiting');
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
         links: {
           smarter_poker: `https://smarter.poker/club/${id}`,
           poker_near_me: `https://pokernear.me/venue/${id}`,
-          waitlist_join: venue.captain_enabled ? `/hub/captain/waitlist?venue=${id}` : null
+          waitlist_join: venue.commander_enabled ? `/hub/commander/waitlist?venue=${id}` : null
         }
       }
     });

@@ -44,6 +44,6 @@ const profile = data.profiles || { display_name: 'Unknown', avatar_url: null };
 - `MessagingService.js` - ✅ Protected
 - `UnifiedSocialService.js` - ✅ Protected
 - `social-media.js` - ✅ Has fallbacks
-- `Captain APIs` - ✅ Protected
+- `Commander APIs` - ✅ Protected
 
 // turbo-all

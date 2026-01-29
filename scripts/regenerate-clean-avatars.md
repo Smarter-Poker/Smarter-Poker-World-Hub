@@ -30,7 +30,7 @@ no circular borders, professional poker avatar, completely original character
 5. Business Pro - suit, tie, briefcase
 6. School Teacher - glasses, sweater, books
 7. Street Musician - guitar, casual clothes
-8. Pirate Captain - tricorn hat, eyepatch
+8. Pirate Commander - tricorn hat, eyepatch
 
 **Animals (6):**
 9. Poker Shark - sunglasses, gold chain ✅ DONE
@@ -50,7 +50,7 @@ no circular borders, professional poker avatar, completely original character
 
 **Mix (5):**
 21. Wizard Merlin - pointy hat, staff
-22. Space Captain - uniform, insignia
+22. Space Commander - uniform, insignia
 23. Viking Raider - horned helmet, beard
 24. Aztec Warrior - feathers, face paint
 25. Geisha - kimono, hair ornaments

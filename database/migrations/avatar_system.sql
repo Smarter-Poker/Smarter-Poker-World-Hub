@@ -146,7 +146,7 @@ BEGIN
       'teacher', 'musician', 'pirate', 'shark', 'penguin',
       'fox', 'owl', 'lion', 'rabbit', 'ninja',
       'knight', 'samurai', 'android', 'shiba', 'wizard',
-      'space_captain', 'viking', 'aztec', 'geisha', 'cowboy'
+      'space_commander', 'viking', 'aztec', 'geisha', 'cowboy'
     ]),
     'default'
   ON CONFLICT (user_id, avatar_id) DO NOTHING;

@@ -260,7 +260,7 @@ export default function HomeGamePage() {
       router.push('/auth/login?redirect=' + encodeURIComponent(router.asPath));
       return;
     }
-    router.push(`/hub/captain/home-games/join?code=${code}`);
+    router.push(`/hub/commander/home-games/join?code=${code}`);
   }
 
   if (loading) {
@@ -360,7 +360,7 @@ export default function HomeGamePage() {
                 <div className="flex gap-2">
                   {isMember ? (
                     <Link
-                      href={`/hub/captain/home-games/${group.id}`}
+                      href={`/hub/commander/home-games/${group.id}`}
                       className="px-4 py-2 bg-[#10B981] text-white font-medium rounded-lg hover:bg-[#059669] transition-colors"
                     >
                       Open Group

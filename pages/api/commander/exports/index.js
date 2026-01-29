@@ -1,0 +1,342 @@
+/**
+ * Export Jobs API
+ * Reference: IMPLEMENTATION_PHASES.md - Phase 6
+ * GET /api/commander/exports - List export jobs
+ * POST /api/commander/exports - Create export job
+ */
+import { createClient } from '@supabase/supabase-js';
+import { withRateLimit } from '../../../../src/lib/commander/rateLimit';
+import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+async function handler(req, res) {
+  if (req.method === 'GET') {
+    return listExports(req, res);
+  }
+
+  if (req.method === 'POST') {
+    return createExport(req, res);
+  }
+
+  res.setHeader('Allow', ['GET', 'POST']);
+  return res.status(405).json({ error: 'Method not allowed' });
+}
+
+async function listExports(req, res) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authorization required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    const { venue_id, status, limit = 20 } = req.query;
+
+    let query = supabase
+      .from('commander_export_jobs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(parseInt(limit));
+
+    if (venue_id) {
+      // Check if staff
+      const { data: staff } = await supabase
+        .from('commander_staff')
+        .select('id, role')
+        .eq('venue_id', parseInt(venue_id))
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single();
+
+      if (!staff || !['owner', 'manager'].includes(staff.role)) {
+        return res.status(403).json({ error: 'Manager access required' });
+      }
+
+      query = query.eq('venue_id', parseInt(venue_id));
+    } else {
+      query = query.eq('requested_by', user.id);
+    }
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return res.status(200).json({ exports: data });
+  } catch (error) {
+    console.error('List exports error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+async function createExport(req, res) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authorization required' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    const {
+      venue_id,
+      export_type,
+      date_from,
+      date_to,
+      filters = {},
+      format = 'csv'
+    } = req.body;
+
+    if (!venue_id || !export_type) {
+      return res.status(400).json({ error: 'Venue ID and export type required' });
+    }
+
+    // Check if staff
+    const { data: staff } = await supabase
+      .from('commander_staff')
+      .select('id, role')
+      .eq('venue_id', parseInt(venue_id))
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .single();
+
+    if (!staff || !['owner', 'manager'].includes(staff.role)) {
+      return res.status(403).json({ error: 'Manager access required to export data' });
+    }
+
+    // Create export job
+    const { data: exportJob, error } = await supabase
+      .from('commander_export_jobs')
+      .insert({
+        venue_id: parseInt(venue_id),
+        requested_by: user.id,
+        export_type,
+        date_from: date_from || null,
+        date_to: date_to || null,
+        filters,
+        format,
+        status: 'pending',
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Log audit
+    await logAction(AuditActions.EXPORT_REQUEST, {
+      venueId: venue_id,
+      userId: user.id,
+      staffId: staff.id,
+      actorType: 'staff',
+      targetType: 'export',
+      targetId: exportJob.id,
+      metadata: { export_type, format },
+      req
+    });
+
+    // Process export immediately for small datasets
+    // In production, this would be a background job
+    await processExport(exportJob.id);
+
+    // Get updated job
+    const { data: updatedJob } = await supabase
+      .from('commander_export_jobs')
+      .select('*')
+      .eq('id', exportJob.id)
+      .single();
+
+    return res.status(201).json({
+      export: updatedJob,
+      message: 'Export job created'
+    });
+  } catch (error) {
+    console.error('Create export error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+async function processExport(exportId) {
+  try {
+    // Update status to processing
+    await supabase
+      .from('commander_export_jobs')
+      .update({ status: 'processing', started_at: new Date().toISOString() })
+      .eq('id', exportId);
+
+    // Get export job
+    const { data: job } = await supabase
+      .from('commander_export_jobs')
+      .select('*')
+      .eq('id', exportId)
+      .single();
+
+    if (!job) return;
+
+    let data = [];
+    let query;
+
+    // Build query based on export type
+    switch (job.export_type) {
+      case 'players':
+        query = supabase
+          .from('commander_player_stats')
+          .select('*, profiles:player_id(display_name, email)')
+          .eq('venue_id', job.venue_id);
+        break;
+
+      case 'sessions':
+        query = supabase
+          .from('commander_player_sessions')
+          .select('*, profiles:player_id(display_name)')
+          .eq('venue_id', job.venue_id)
+          .eq('status', 'completed');
+        if (job.date_from) query = query.gte('check_in_time', job.date_from);
+        if (job.date_to) query = query.lte('check_in_time', job.date_to + 'T23:59:59');
+        break;
+
+      case 'tournaments':
+        query = supabase
+          .from('commander_tournaments')
+          .select('*, commander_tournament_entries(*)')
+          .eq('venue_id', job.venue_id);
+        if (job.date_from) query = query.gte('scheduled_start', job.date_from);
+        if (job.date_to) query = query.lte('scheduled_start', job.date_to + 'T23:59:59');
+        break;
+
+      case 'analytics':
+        query = supabase
+          .from('commander_analytics_daily')
+          .select('*')
+          .eq('venue_id', job.venue_id);
+        if (job.date_from) query = query.gte('date', job.date_from);
+        if (job.date_to) query = query.lte('date', job.date_to);
+        break;
+
+      case 'comps':
+        query = supabase
+          .from('commander_comp_transactions')
+          .select('*, profiles:player_id(display_name)')
+          .eq('venue_id', job.venue_id);
+        if (job.date_from) query = query.gte('created_at', job.date_from);
+        if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59');
+        break;
+
+      case 'audit_logs':
+        query = supabase
+          .from('commander_audit_logs')
+          .select('*')
+          .eq('venue_id', job.venue_id);
+        if (job.date_from) query = query.gte('created_at', job.date_from);
+        if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59');
+        break;
+
+      default:
+        throw new Error(`Unknown export type: ${job.export_type}`);
+    }
+
+    const { data: exportData, error } = await query.order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    data = exportData || [];
+
+    // Convert to format
+    let fileContent;
+    if (job.format === 'json') {
+      fileContent = JSON.stringify(data, null, 2);
+    } else {
+      // CSV format
+      fileContent = convertToCSV(data);
+    }
+
+    // In production, upload to storage and get URL
+    // For now, store as base64 in metadata
+    const fileUrl = `data:text/${job.format};base64,${Buffer.from(fileContent).toString('base64')}`;
+
+    // Update job as completed
+    await supabase
+      .from('commander_export_jobs')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        file_url: fileUrl,
+        file_size: fileContent.length,
+        row_count: data.length,
+        progress: 100
+      })
+      .eq('id', exportId);
+
+  } catch (error) {
+    console.error('Process export error:', error);
+    await supabase
+      .from('commander_export_jobs')
+      .update({
+        status: 'failed',
+        error_message: error.message
+      })
+      .eq('id', exportId);
+  }
+}
+
+function convertToCSV(data) {
+  if (!data || data.length === 0) return '';
+
+  // Flatten nested objects
+  const flatData = data.map(row => flattenObject(row));
+
+  // Get all unique keys
+  const allKeys = [...new Set(flatData.flatMap(row => Object.keys(row)))];
+
+  // Create header row
+  const header = allKeys.join(',');
+
+  // Create data rows
+  const rows = flatData.map(row => {
+    return allKeys.map(key => {
+      const value = row[key];
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    }).join(',');
+  });
+
+  return [header, ...rows].join('\n');
+}
+
+function flattenObject(obj, prefix = '') {
+  const result = {};
+  for (const key in obj) {
+    const newKey = prefix ? `${prefix}_${key}` : key;
+    if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+      Object.assign(result, flattenObject(obj[key], newKey));
+    } else if (Array.isArray(obj[key])) {
+      result[newKey] = JSON.stringify(obj[key]);
+    } else {
+      result[newKey] = obj[key];
+    }
+  }
+  return result;
+}
+
+export default withRateLimit(handler, 'export');
