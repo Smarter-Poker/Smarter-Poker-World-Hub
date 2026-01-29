@@ -11,17 +11,18 @@ module.exports = {
 
   // Club Arena rewrites - MUST be in next.config.js with beforeFiles
   // to take precedence over dynamic [orbId].js route
+  // Fixed: now pointing to club-arena.vercel.app (not deprecated club.smarter.poker)
   async rewrites() {
     return {
       beforeFiles: [
-        // Club Arena - served from club.smarter.poker
+        // Club Arena - served from club-arena.vercel.app
         {
           source: '/hub/club-arena',
-          destination: 'https://club.smarter.poker/',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/?v=28012026v3',
         },
         {
           source: '/hub/club-arena/:path*',
-          destination: 'https://club.smarter.poker/:path*',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/:path*',
         },
       ],
     };

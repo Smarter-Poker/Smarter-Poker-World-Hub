@@ -668,12 +668,13 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             );
                         }
 
-                        // Check for image markdown: 📷 [Image](url) or direct image URLs
-                        const imageMatch = content.match(/📷\s*\[Image\]\(([^)]+)\)/);
+
+                        // Check for image markdown: [Image](url) or 📷 [Image](url) - support both
+                        const imageMatch = content.match(/(?:📷\s*)?\[Image\]\(([^)]+)\)/);
                         const imageUrl = imageMatch?.[1] || message.media_url;
 
-                        // Check for video markdown: 🎬 [Video](url)
-                        const videoMatch = content.match(/🎬\s*\[Video\]\(([^)]+)\)/);
+                        // Check for video markdown: [Video](url) or 🎬 [Video](url) - support both
+                        const videoMatch = content.match(/(?:🎬\s*)?\[Video\]\(([^)]+)\)/);
                         const videoUrl = videoMatch?.[1];
 
                         // Check if content is just a direct image/video URL
@@ -697,7 +698,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                         onClick={() => window.open(url, '_blank')}
                                         onError={(e) => {
                                             e.target.style.display = 'none';
-                                            e.target.insertAdjacentHTML('afterend', '<span>📷 Image failed to load</span>');
+                                            e.target.insertAdjacentHTML('afterend', '<span>Image failed to load</span>');
                                         }}
                                     />
                                 </div>
@@ -719,7 +720,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                         }}
                                         onError={(e) => {
                                             e.target.style.display = 'none';
-                                            e.target.insertAdjacentHTML('afterend', '<span>🎬 Video failed to load</span>');
+                                            e.target.insertAdjacentHTML('afterend', '<span>Video failed to load</span>');
                                         }}
                                     />
                                 </div>
@@ -866,7 +867,15 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId }) {
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                 }}>
-                    {lastMsg?.slice(0, 35)}{lastMsg?.length > 35 ? '...' : ''}
+                    {(() => {
+                        // Clean up message preview - strip [CALL_RECEIPT] prefix
+                        let preview = lastMsg || '';
+                        if (preview.startsWith('[CALL_RECEIPT]')) {
+                            preview = preview.replace('[CALL_RECEIPT]', '');
+                        }
+                        const displayText = preview.slice(0, 35) + (preview.length > 35 ? '...' : '');
+                        return displayText;
+                    })()}
                     <span style={{ color: C.textSec }}> · {timeAgo(conversation.last_message_at)}</span>
                 </div>
             </div>
@@ -1773,7 +1782,7 @@ export default function MessengerPage() {
         const mediaPreview = URL.createObjectURL(file);
         const tempMessage = {
             id: tempId,
-            content: isImage ? `📷 Photo` : `🎬 Video`,
+            content: isImage ? `Photo` : `Video`,
             media_url: mediaPreview,
             media_type: isImage ? 'image' : 'video',
             created_at: new Date().toISOString(),
@@ -1815,8 +1824,8 @@ export default function MessengerPage() {
 
             // Send message with media URL
             const content = isImage
-                ? `📷 [Image](${urlData.publicUrl})`
-                : `🎬 [Video](${urlData.publicUrl})`;
+                ? `[Image](${urlData.publicUrl})`
+                : `[Video](${urlData.publicUrl})`;
 
             const { data, error } = await supabase.rpc('fn_send_message', {
                 p_conversation_id: activeConversation.id,
@@ -2080,7 +2089,7 @@ export default function MessengerPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        title: `${type === 'video' ? '📹' : '📞'} Incoming ${type === 'video' ? 'Video' : 'Voice'} Call`,
+                        title: `Incoming ${type === 'video' ? 'Video' : 'Voice'} Call`,
                         message: `${callerName} is calling you`,
                         url: `https://smarter.poker/hub/messenger`,
                         externalUserIds: [otherUser.id],
@@ -2154,8 +2163,7 @@ export default function MessengerPage() {
             const durationStr = callDuration >= 60
                 ? `${Math.floor(callDuration / 60)}m ${callDuration % 60}s`
                 : `${callDuration}s`;
-            const callTypeIcon = callType === 'video' ? '📹' : '📞';
-            const callMessage = `${callTypeIcon} ${callType === 'video' ? 'Video' : 'Voice'} call • ${durationStr}`;
+            const callMessage = `${callType === 'video' ? 'Video' : 'Voice'} call - ${durationStr}`;
 
             // Save call receipt as a message
             try {
@@ -2396,7 +2404,7 @@ export default function MessengerPage() {
                             marginBottom: 16,
                             animation: 'pulse 1.5s infinite',
                         }}>
-                            {incomingCall.callType === 'video' ? '📹' : '📞'}
+                            {incomingCall.callType === 'video' ? 'Video' : 'Voice'}
                         </div>
 
                         {/* Caller Avatar */}
