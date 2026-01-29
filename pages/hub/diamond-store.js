@@ -337,13 +337,13 @@ function VIPCard({ plan, isSelected, onSelect }) {
             style={{
                 position: 'relative',
                 background: isSelected
-                    ? 'linear-gradient(135deg, rgba(138, 43, 226, 0.3), rgba(255, 107, 157, 0.3))'
-                    : 'linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(255, 107, 157, 0.1))',
+                    ? 'linear-gradient(135deg, rgba(24, 119, 242, 0.3), rgba(66, 133, 244, 0.3))'
+                    : 'linear-gradient(135deg, rgba(24, 119, 242, 0.1), rgba(66, 133, 244, 0.1))',
                 border: isSelected
-                    ? '2px solid #8a2be2'
+                    ? '2px solid #1877F2'
                     : plan.popular
-                        ? '2px solid rgba(138, 43, 226, 0.5)'
-                        : '1px solid rgba(138, 43, 226, 0.3)',
+                        ? '2px solid rgba(24, 119, 242, 0.5)'
+                        : '1px solid rgba(24, 119, 242, 0.3)',
                 borderRadius: 16,
                 padding: 24,
                 cursor: 'pointer',
@@ -357,7 +357,7 @@ function VIPCard({ plan, isSelected, onSelect }) {
                     position: 'absolute',
                     top: -10,
                     right: 16,
-                    background: 'linear-gradient(135deg, #8a2be2, #ff6b9d)',
+                    background: 'linear-gradient(135deg, #1877F2, #4285F4)',
                     color: '#fff',
                     fontSize: 10,
                     fontWeight: 700,
@@ -1023,7 +1023,7 @@ export default function DiamondStorePage() {
 const styles = {
     container: {
         minHeight: '100vh',
-        background: '#0a1628',
+        background: '#F0F2F5',
         fontFamily: 'Inter, -apple-system, sans-serif',
         position: 'relative',
     },
@@ -1056,7 +1056,7 @@ const styles = {
         alignItems: 'center',
         padding: '16px 24px',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(10, 22, 40, 0.95)',
+        background: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(10px)',
         zIndex: 100,
     },
@@ -1067,7 +1067,7 @@ const styles = {
         gap: 8,
         padding: '16px 24px',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(10, 22, 40, 0.8)',
+        background: 'rgba(255, 255, 255, 0.95)',
         position: 'sticky',
         top: 0,
         zIndex: 99,
@@ -1077,7 +1077,7 @@ const styles = {
         background: 'rgba(255, 255, 255, 0.05)',
         border: '1px solid rgba(255, 255, 255, 0.15)',
         borderRadius: 10,
-        color: 'rgba(255, 255, 255, 0.7)',
+        color: 'rgba(0, 0, 0, 0.6)',
         fontSize: 14,
         fontWeight: 600,
         cursor: 'pointer',
@@ -1089,9 +1089,9 @@ const styles = {
         color: '#00D4FF',
     },
     tabButtonActiveVIP: {
-        background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(255, 107, 157, 0.2))',
-        border: '1px solid #8a2be2',
-        color: '#ff6b9d',
+        background: 'linear-gradient(135deg, rgba(24, 119, 242, 0.2), rgba(66, 133, 244, 0.2))',
+        border: '1px solid #1877F2',
+        color: '#1877F2',
     },
     backButton: {
         display: 'flex',
@@ -1110,7 +1110,7 @@ const styles = {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: 28,
         fontWeight: 700,
-        color: '#fff',
+        color: '#1C1E21',
     },
     content: {
         maxWidth: 900,
@@ -1123,7 +1123,7 @@ const styles = {
     },
     introText: {
         fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.7)',
+        color: 'rgba(0, 0, 0, 0.6)',
         maxWidth: 600,
         margin: '0 auto',
         lineHeight: 1.6,
@@ -1490,14 +1490,14 @@ const styles = {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: 32,
         fontWeight: 700,
-        background: 'linear-gradient(135deg, #8a2be2, #ff6b9d)',
+        background: 'linear-gradient(135deg, #1877F2, #4285F4)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         marginBottom: 12,
     },
     vipSubtitle: {
         fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.7)',
+        color: 'rgba(0, 0, 0, 0.6)',
         maxWidth: 500,
         margin: '0 auto',
         lineHeight: 1.6,
@@ -1513,7 +1513,7 @@ const styles = {
     },
     vipSubscribeButton: {
         padding: '16px 48px',
-        background: 'linear-gradient(135deg, #8a2be2, #ff6b9d)',
+        background: 'linear-gradient(135deg, #1877F2, #4285F4)',
         border: 'none',
         borderRadius: 12,
         color: '#fff',
@@ -1524,7 +1524,7 @@ const styles = {
     },
     vipCancelNote: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.5)',
+        color: 'rgba(0, 0, 0, 0.5)',
         marginTop: 12,
     },
     benefitsSection: {
@@ -1534,7 +1534,7 @@ const styles = {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: 20,
         fontWeight: 600,
-        color: '#fff',
+        color: '#1C1E21',
         marginBottom: 20,
         textAlign: 'center',
     },
@@ -1548,8 +1548,8 @@ const styles = {
         alignItems: 'center',
         gap: 12,
         padding: '14px 16px',
-        background: 'rgba(138, 43, 226, 0.1)',
-        border: '1px solid rgba(138, 43, 226, 0.2)',
+        background: 'rgba(24, 119, 242, 0.1)',
+        border: '1px solid rgba(24, 119, 242, 0.2)',
         borderRadius: 10,
     },
     benefitIcon: {
@@ -1563,11 +1563,11 @@ const styles = {
     benefitTitle: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#fff',
+        color: '#1C1E21',
     },
     benefitDesc: {
         fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.5)',
+        color: 'rgba(0, 0, 0, 0.5)',
     },
     benefitValue: {
         fontSize: 12,
@@ -1592,9 +1592,9 @@ const styles = {
     valueBoxHighlight: {
         textAlign: 'center',
         padding: '16px 32px',
-        background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(255, 107, 157, 0.2))',
+        background: 'linear-gradient(135deg, rgba(24, 119, 242, 0.2), rgba(66, 133, 244, 0.2))',
         borderRadius: 12,
-        border: '2px solid #8a2be2',
+        border: '2px solid #1877F2',
     },
     valueLabel: {
         fontSize: 12,
@@ -1614,7 +1614,7 @@ const styles = {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: 28,
         fontWeight: 700,
-        color: '#ff6b9d',
+        color: '#1877F2',
     },
     valueDivider: {
         fontSize: 24,
@@ -1625,7 +1625,7 @@ const styles = {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: 28,
         fontWeight: 700,
-        color: '#fff',
+        color: '#1C1E21',
         marginBottom: 12,
     },
     merchSection: {
@@ -1635,7 +1635,7 @@ const styles = {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: 18,
         fontWeight: 600,
-        color: '#fff',
+        color: '#1C1E21',
         marginBottom: 16,
     },
     merchGrid: {
