@@ -47,15 +47,22 @@ function getRandomSportsCaption(category) {
 async function getRandomSportsClip(excludeIds = []) {
     try {
         // Get a random clip from the database that hasn't been used recently
-        const { data: clips, error } = await supabase
+        let query = supabase
             .from('sports_clips')
-            .select('*')
-            .not('id', 'in', `(${excludeIds.join(',')})`)
+            .select('*');
+
+        // Only apply exclusion filter if there are IDs to exclude
+        if (excludeIds.length > 0) {
+            query = query.not('id', 'in', `(${excludeIds.join(',')})`);
+        }
+
+        const { data: clips, error } = await query
             .order('created_at', { ascending: false })
             .limit(50);
 
         if (error || !clips || clips.length === 0) {
             console.log('   ⚠️ No sports clips found in database');
+            console.log('   Error:', error?.message || 'No clips returned');
             return null;
         }
 
