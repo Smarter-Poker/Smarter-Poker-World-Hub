@@ -53,17 +53,10 @@ export default async function handler(req, res) {
 
         // Count unread messages - using social messaging schema
         // Get user's conversations with their last_read_at timestamp
-        // Join with social_conversations to only include conversations that have actual messages
         const { data: conversations } = await supabase
             .from('social_conversation_participants')
-            .select(`
-                conversation_id, 
-                last_read_at,
-                social_conversations!inner(last_message_at, last_message_preview)
-            `)
-            .eq('user_id', userId)
-            .not('social_conversations.last_message_at', 'is', null)
-            .not('social_conversations.last_message_preview', 'is', null);
+            .select('conversation_id, last_read_at')
+            .eq('user_id', userId);
 
         let unreadMessages = 0;
         if (conversations && conversations.length > 0) {

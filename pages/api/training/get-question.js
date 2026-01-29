@@ -208,6 +208,9 @@ async function getScenarioQuestion(gameId, level, seenIds) {
         scenarios = [];
     }
 
+    // If no scenarios, return null to fall back to Grok
+    if (!Array.isArray(scenarios) || scenarios.length === 0) return null;
+
     const available = scenarios.filter(s => !seenIds.includes(s.id));
     if (available.length === 0) return null;
 

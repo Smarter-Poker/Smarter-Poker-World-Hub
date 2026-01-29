@@ -30,17 +30,11 @@ export function UnreadProvider({ children }) {
         if (!userId) return;
 
         try {
-            // Get all conversations the user is in - ONLY those with actual messages
+            // Get all conversations the user is in
             const { data: participations } = await supabase
                 .from('social_conversation_participants')
-                .select(`
-                    conversation_id, 
-                    last_read_at,
-                    social_conversations!inner(last_message_at, last_message_preview)
-                `)
-                .eq('user_id', userId)
-                .not('social_conversations.last_message_at', 'is', null)
-                .not('social_conversations.last_message_preview', 'is', null);
+                .select('conversation_id, last_read_at')
+                .eq('user_id', userId);
 
             if (!participations?.length) {
                 setUnreadCount(0);

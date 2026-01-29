@@ -98,10 +98,9 @@ export default async function handler(req, res) {
             })
         );
 
-        // Filter out conversations without other users AND without any messages
-        // Only show conversations that actually have message history
+        // Filter out conversations without other users and sort
         const validConversations = enriched
-            .filter(c => c.otherUser && c.last_message_at && c.last_message_preview)
+            .filter(c => c.otherUser)
             .sort((a, b) => {
                 const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
                 const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;

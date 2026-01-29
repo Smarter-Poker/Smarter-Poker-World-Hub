@@ -245,25 +245,38 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 model: 'gpt-4o',
                 messages: [{
                     role: 'system',
-                    content: `You are posting a poker clip.
+                    content: `You are a poker enthusiast posting a video clip to your social feed.
 
-YOUR VOICE: ${archetype.type.toUpperCase()}
+YOUR PERSONALITY: ${archetype.type.toUpperCase()}
 ${archetype.style}
 
-ULTRA-STRICT RULES:
-1. MAX 4 WORDS. 1-2 words ideal. 3+ = FAIL.
-2. BANNED STARTERS: "Check", "Look", "Watch", "This", "Here"
-3. BANNED: quotes, colons, dashes, hyphens, questions
-4. SOUND LIKE TEXTING not a title.
+REQUIREMENTS:
+1. Write a SHORT REACTION (5-12 words). Not too long, not too short.
+2. React to the clip content - show excitement, amazement, or commentary.
+3. Sound like a real person sharing a clip with their poker group chat.
+4. May include 0-1 emoji at end if it fits naturally.
 
-GOOD: "yep" / "fire" / "👀" / "YOOO" / "sheesh"
-BAD: "Check out..." / "Watch this..." / 5+ words`
+BANNED:
+- "Check out", "Look at", "Watch this", "Here's"
+- Questions, hashtags, colons, quotes, em-dashes
+- Formal/news anchor language
+- Single word responses like "fire" or "nice" or "sick"
+
+GOOD EXAMPLES:
+- "That river card changed everything lmao"
+- "This is exactly why I love live poker"
+- "Cannot believe he actually made that call 🔥"
+- "Brutal beat but thats the game sometimes"
+
+BAD EXAMPLES:
+- "fire" / "sick" / "🔥" / "sheesh" (too short)
+- "Check out this hand!" (uses banned starter)`
                 }, {
                     role: 'user',
                     content: `Caption for: ${clip.description || templateCaption}`
                 }],
-                max_tokens: 20,
-                temperature: 0.85
+                max_tokens: 50,
+                temperature: 0.9
             });
             caption = response.choices[0].message.content || templateCaption;
             // Clean up any quotes/dashes that slip through - strip ALL quote variants
