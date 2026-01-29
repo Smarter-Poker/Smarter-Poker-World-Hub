@@ -1577,9 +1577,9 @@ export default function MessengerPage() {
                 })
             );
 
-            // Sort and set - filter out conversations without other users
+            // Sort and set - filter out conversations without other users AND without messages
             const sorted = enriched
-                .filter(c => c.otherUser)
+                .filter(c => c.otherUser && c.last_message_at && c.last_message_preview)
                 .sort((a, b) => {
                     const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
                     const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
