@@ -131,18 +131,7 @@ export const CLIP_LIBRARY = [
     // POKERGO
     { id: 'pokergo_1', video_id: 'dFKzQx8pzME', source_url: 'https://www.youtube.com/watch?v=dFKzQx8pzME', source: 'POKERGO', title: 'High Stakes Rivalry', category: CLIP_CATEGORIES.HIGH_STAKES },
     { id: 'pokergo_2', video_id: 'QBz8YCPr_uQ', source_url: 'https://www.youtube.com/watch?v=QBz8YCPr_uQ', source: 'POKERGO', title: 'Super High Stakes', category: CLIP_CATEGORIES.HIGH_STAKES },
-    // STONES
-    { id: 'stones_1', video_id: 'mXp3H8nK7Zo', source_url: 'https://www.youtube.com/watch?v=mXp3H8nK7Zo', source: 'STONES', title: 'Stones Action', category: CLIP_CATEGORIES.MASSIVE_POT },
-    { id: 'stones_2', video_id: 'qR8kL5nP2Yw', source_url: 'https://www.youtube.com/watch?v=qR8kL5nP2Yw', source: 'STONES', title: 'Big Bluff', category: CLIP_CATEGORIES.BLUFF },
-    // RESORTS
-    { id: 'resorts_1', video_id: 'pK9mN7qL3Xw', source_url: 'https://www.youtube.com/watch?v=pK9mN7qL3Xw', source: 'RESORTS', title: 'Resorts World Pot', category: CLIP_CATEGORIES.MASSIVE_POT },
-    { id: 'resorts_2', video_id: 'nJ8oL6pM2Vw', source_url: 'https://www.youtube.com/watch?v=nJ8oL6pM2Vw', source: 'RESORTS', title: 'Vegas Action', category: CLIP_CATEGORIES.HIGH_STAKES },
-    // WYNN
-    { id: 'wynn_1', video_id: 'mI7nK5oL1Uw', source_url: 'https://www.youtube.com/watch?v=mI7nK5oL1Uw', source: 'WYNN', title: 'Wynn High Stakes', category: CLIP_CATEGORIES.HIGH_STAKES },
-    { id: 'wynn_2', video_id: 'lH6mJ4nK0Tw', source_url: 'https://www.youtube.com/watch?v=lH6mJ4nK0Tw', source: 'WYNN', title: 'Wynn Drama', category: CLIP_CATEGORIES.TABLE_DRAMA },
-    // ARIA
-    { id: 'aria_1', video_id: 'kG5lI3mJ9Sw', source_url: 'https://www.youtube.com/watch?v=kG5lI3mJ9Sw', source: 'ARIA', title: 'Aria Action', category: CLIP_CATEGORIES.MASSIVE_POT },
-    { id: 'aria_2', video_id: 'jF4kH2lI8Rw', source_url: 'https://www.youtube.com/watch?v=jF4kH2lI8Rw', source: 'ARIA', title: 'Aria Bluff', category: CLIP_CATEGORIES.BLUFF },
+    // NOTE: STONES, RESORTS, WYNN, ARIA sources removed - all clips had invalid/fake video IDs
     // WSOP
     { id: 'wsop_1', video_id: 'cMzPl7zG8EQ', source_url: 'https://www.youtube.com/watch?v=cMzPl7zG8EQ', source: 'WSOP', title: 'Main Event Drama', category: CLIP_CATEGORIES.TOURNAMENT },
     { id: 'wsop_2', video_id: 'HXrCJ4LwwNE', source_url: 'https://www.youtube.com/watch?v=HXrCJ4LwwNE', source: 'WSOP', title: 'Bracelet on Line', category: CLIP_CATEGORIES.TOURNAMENT },

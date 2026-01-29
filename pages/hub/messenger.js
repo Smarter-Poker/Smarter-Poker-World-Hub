@@ -1617,12 +1617,16 @@ export default function MessengerPage() {
                 setMessages([]);
             }
 
-            // Mark as read
-            await supabase
-                .from('social_conversation_participants')
-                .update({ last_read_at: new Date().toISOString() })
-                .eq('conversation_id', conversationId)
-                .eq('user_id', user.id);
+            // Mark as read - use API with service role to bypass RLS
+            try {
+                await fetch('/api/messenger/mark-read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ conversationId, userId: user.id }),
+                });
+            } catch (e) {
+                console.error('Mark read failed:', e);
+            }
 
             // 🔔 Immediately refresh global unread count to clear header badge
             if (refreshUnread) refreshUnread();
