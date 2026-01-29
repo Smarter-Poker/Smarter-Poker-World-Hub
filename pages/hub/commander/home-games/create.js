@@ -15,8 +15,10 @@ import {
   DollarSign,
   Calendar,
   Loader2,
-  Check
+  Check,
+  ChevronRight
 } from 'lucide-react';
+import CreateGameForm from '../../../../src/components/commander/home-games/CreateGameForm';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: "No Limit Hold'em" },
@@ -41,6 +43,8 @@ export default function CreateHomeGamePage() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [createdGroup, setCreatedGroup] = useState(null);
+  const [eventSubmitting, setEventSubmitting] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -98,7 +102,8 @@ export default function CreateHomeGamePage() {
       const data = await res.json();
 
       if (data.success || data.group) {
-        router.push(`/hub/commander/home-games/${data.group.id}`);
+        setCreatedGroup(data.group);
+        setStep(4);
       } else {
         setError(data.error?.message || 'Failed to create group');
       }
@@ -128,7 +133,7 @@ export default function CreateHomeGamePage() {
             </button>
             <div>
               <h1 className="font-bold text-white">Host a Home Game</h1>
-              <p className="text-sm text-[#64748B]">Step {step} of 3</p>
+              <p className="text-sm text-[#64748B]">{step <= 3 ? `Step ${step} of 3` : 'Schedule First Game'}</p>
             </div>
           </div>
         </header>
@@ -510,6 +515,54 @@ export default function CreateHomeGamePage() {
                   )}
                 </button>
               </div>
+            </div>
+          )}
+          {/* Step 4: Group Created - Schedule First Event */}
+          {step === 4 && createdGroup && (
+            <div className="space-y-6">
+              <div className="cmd-panel p-6 text-center">
+                <div className="w-16 h-16 rounded-full bg-[#10B981]/20 flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-[#10B981]" />
+                </div>
+                <h2 className="text-xl font-bold text-white">Group Created</h2>
+                <p className="text-[#64748B] mt-1">{createdGroup.name} is ready. Schedule your first game below or skip for now.</p>
+              </div>
+
+              <CreateGameForm
+                groupId={createdGroup.id}
+                isLoading={eventSubmitting}
+                onSubmit={async (eventData) => {
+                  setEventSubmitting(true);
+                  try {
+                    const token = localStorage.getItem('smarter-poker-auth');
+                    const res = await fetch('/api/commander/home-games/events', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                      },
+                      body: JSON.stringify(eventData)
+                    });
+                    const data = await res.json();
+                    if (data.success || data.event) {
+                      router.push(`/hub/commander/home-games/${createdGroup.id}`);
+                    }
+                  } catch (err) {
+                    console.error('Schedule event error:', err);
+                  } finally {
+                    setEventSubmitting(false);
+                  }
+                }}
+                onCancel={() => router.push(`/hub/commander/home-games/${createdGroup.id}`)}
+              />
+
+              <button
+                onClick={() => router.push(`/hub/commander/home-games/${createdGroup.id}`)}
+                className="w-full text-center text-sm text-[#64748B] hover:text-white transition-colors py-2 flex items-center justify-center gap-2"
+              >
+                Skip - Go to Group
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           )}
         </main>

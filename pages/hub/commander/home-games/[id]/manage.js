@@ -29,6 +29,7 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
+import RSVPManager from '../../../../../src/components/commander/home-games/RSVPManager';
 
 function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   const [eventData, setEventData] = useState({
@@ -247,6 +248,9 @@ export default function ManageHomeGamePage() {
   const [processingEscrow, setProcessingEscrow] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+  const [expandedEventId, setExpandedEventId] = useState(null);
+  const [eventRsvps, setEventRsvps] = useState([]);
+  const [rsvpLoading, setRsvpLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -328,6 +332,40 @@ export default function ManageHomeGamePage() {
       fetchData();
     } catch (error) {
       console.error('Remove failed:', error);
+    }
+  }
+
+  async function loadEventRsvps(eventId) {
+    setRsvpLoading(true);
+    try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      const res = await fetch(`/api/commander/home-games/events/${eventId}/rsvp`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setEventRsvps(data.rsvps || data.data?.rsvps || []);
+    } catch (err) {
+      console.error('Load RSVPs failed:', err);
+      setEventRsvps([]);
+    } finally {
+      setRsvpLoading(false);
+    }
+  }
+
+  async function handleRsvpAction(rsvpId, action) {
+    try {
+      const token = localStorage.getItem('smarter-poker-auth');
+      await fetch(`/api/commander/home-games/rsvps/${rsvpId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: action })
+      });
+      if (expandedEventId) loadEventRsvps(expandedEventId);
+    } catch (err) {
+      console.error('RSVP action failed:', err);
     }
   }
 
@@ -549,33 +587,64 @@ export default function ManageHomeGamePage() {
                   return (
                     <div
                       key={event.id}
-                      className="cmd-panel p-4 flex items-center justify-between"
+                      className="cmd-panel p-4"
                     >
-                      <div>
-                        <p className="font-semibold text-white">
-                          {eventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                        </p>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-[#64748B]">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="w-4 h-4" />
-                            {event.rsvp_count || 0}/{event.max_players}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />
-                            {event.stakes}
-                          </span>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-white">
+                            {eventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                          </p>
+                          <div className="flex items-center gap-4 mt-1 text-sm text-[#64748B]">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Users className="w-4 h-4" />
+                              {event.rsvp_count || 0}/{event.max_players}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="w-4 h-4" />
+                              {event.stakes}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              if (expandedEventId === event.id) {
+                                setExpandedEventId(null);
+                              } else {
+                                setExpandedEventId(event.id);
+                                loadEventRsvps(event.id);
+                              }
+                            }}
+                            className="cmd-btn cmd-btn-secondary text-xs px-3 py-1"
+                          >
+                            {expandedEventId === event.id ? 'Hide RSVPs' : 'Manage RSVPs'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteEvent(event)}
+                            className="p-2 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
                         </div>
                       </div>
-                      <button
-                        onClick={() => handleDeleteEvent(event)}
-                        className="p-2 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      {expandedEventId === event.id && (
+                        <div className="mt-4 pt-4 border-t border-[#4A5E78]">
+                          <RSVPManager
+                            rsvps={eventRsvps}
+                            event={event}
+                            isHost={true}
+                            isLoading={rsvpLoading}
+                            onApprove={(rsvpId) => handleRsvpAction(rsvpId, 'yes')}
+                            onDecline={(rsvpId) => handleRsvpAction(rsvpId, 'no')}
+                            onWaitlist={(rsvpId) => handleRsvpAction(rsvpId, 'waitlist')}
+                            onRemove={(rsvpId) => handleRsvpAction(rsvpId, 'removed')}
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 })
