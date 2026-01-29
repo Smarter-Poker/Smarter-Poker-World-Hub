@@ -70,18 +70,28 @@ export default async function handler(req, res) {
         // ═══════════════════════════════════════════════════════════════════
         let question = null;
 
-        // Import PIO Query Service
-        const { pioQueryService } = require('../../../src/services/PIOQueryService');
+        // Import PIO Query Service with proper CommonJS/ES6 handling
+        let pioQueryService = null;
+        try {
+            const PIOModule = require('../../../src/services/PIOQueryService');
+            pioQueryService = PIOModule.pioQueryService || PIOModule.default?.pioQueryService;
+        } catch (err) {
+            console.log('[Training] ⚠️ PIOQueryService not available:', err.message);
+        }
 
-        // Try to get question from PIO database
-        console.log('[Training] 🔍 Querying PIO database...');
-        const pioScenarios = await pioQueryService.queryScenarios(gameId, level, userId);
+        // Try to get question from PIO database if service is available
+        if (pioQueryService && typeof pioQueryService.queryScenarios === 'function') {
+            console.log('[Training] 🔍 Querying PIO database...');
+            const pioScenarios = await pioQueryService.queryScenarios(gameId, level, userId);
 
-        if (pioScenarios && pioScenarios.length > 0) {
-            console.log(`[Training] ✅ Found ${pioScenarios.length} PIO scenarios`);
-            question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
+            if (pioScenarios && pioScenarios.length > 0) {
+                console.log(`[Training] ✅ Found ${pioScenarios.length} PIO scenarios`);
+                question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
+            } else {
+                console.log('[Training] ⚠️ No PIO scenarios found, will try cache/Grok');
+            }
         } else {
-            console.log('[Training] ⚠️ No PIO scenarios found, will try cache/Grok');
+            console.log('[Training] ⚠️ PIOQueryService not initialized, skipping PIO query');
         }
 
         // ═══════════════════════════════════════════════════════════════════
