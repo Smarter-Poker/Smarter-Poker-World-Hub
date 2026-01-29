@@ -18,6 +18,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { getGrokClient } from '../../../src/lib/grokClient.js';
 import {
     shouldHorseBeActive,
     isHorseActiveHour,

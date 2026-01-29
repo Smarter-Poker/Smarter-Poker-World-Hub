@@ -17,6 +17,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import Parser from 'rss-parser';
+import { getGrokClient } from '../../../src/lib/grokClient.js';
 import {
     applyWritingStyle,
     getHorseWritingStyle,

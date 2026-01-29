@@ -157,7 +157,15 @@ function buildPIOOptions(template) {
  */
 async function getChartQuestion(gameId, level, seenIds) {
     // Load from chart data files or database
-    const charts = require('../../../data/charts/push_fold_ranges.json');
+    let charts;
+    try {
+        charts = require('../../../data/charts/push_fold_ranges.json');
+    } catch {
+        charts = [];
+    }
+
+    // If no charts, return null to fall back to Grok
+    if (!Array.isArray(charts) || charts.length === 0) return null;
 
     // Find unseen chart scenario
     const available = charts.filter(c => !seenIds.includes(c.id));
