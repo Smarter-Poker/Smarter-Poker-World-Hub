@@ -644,6 +644,15 @@ export default function DiamondStorePage() {
                     >
                         🛍️ Merch
                     </button>
+                    <button
+                        onClick={() => setActiveTab('rewards')}
+                        style={{
+                            ...styles.tabButton,
+                            ...(activeTab === 'rewards' ? styles.tabButtonActive : {}),
+                        }}
+                    >
+                        🎁 Smarter Rewards
+                    </button>
                 </div>
 
                 {/* Main Content */}
@@ -810,201 +819,125 @@ export default function DiamondStorePage() {
                         </>
                     )}
 
-                    {/* YELLOW BALL: DIAMOND REWARD SYSTEM V1.0 */}
-                    <div style={styles.rewardSystem}>
-                        <h2 style={styles.earnTitle}>💰 Diamond Reward System</h2>
-
-                        {/* Daily Cap Banner */}
-                        <div style={styles.capBanner}>
-                            <div style={styles.capInfo}>
-                                <span style={styles.capNumber}>500</span>
-                                <span style={styles.capLabel}>Daily Cap</span>
+                    {/* ═══════════════════════════════════════════════════════════════════ */}
+                    {/* SMARTER REWARDS TAB */}
+                    {/* ═══════════════════════════════════════════════════════════════════ */}
+                    {activeTab === 'rewards' && (
+                        <>
+                            <div style={styles.intro}>
+                                <h2 style={styles.earnTitle}>🎁 Smarter Rewards</h2>
+                                <p style={styles.introText}>
+                                    Earn diamonds by playing, training, and engaging with the Smarter.Poker community.
+                                    <span style={{ color: '#00ff88' }}> Daily cap: 500 💎 with streak multipliers!</span>
+                                </p>
                             </div>
-                            <div style={styles.capDivider} />
-                            <div style={styles.streakMultipliers}>
-                                <div style={styles.multiplierItem}>
-                                    <span style={styles.multiplierValue}>1.5x</span>
-                                    <span style={styles.multiplierLabel}>Days 4-6</span>
-                                </div>
-                                <div style={styles.multiplierItem}>
-                                    <span style={styles.multiplierValueGold}>2.0x</span>
-                                    <span style={styles.multiplierLabel}>Day 7+</span>
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* Standard Payouts */}
-                        <div style={styles.payoutSection}>
-                            <h3 style={styles.payoutTitle}>📊 Standard Payouts</h3>
-                            <div style={styles.payoutGrid}>
-                                <div style={styles.payoutCard}>
-                                    <span style={styles.payoutIcon}>📅</span>
-                                    <div style={styles.payoutInfo}>
-                                        <span style={styles.payoutName}>Daily Login</span>
-                                        <span style={styles.payoutNote}>Scales with streak</span>
-                                    </div>
-                                    <span style={styles.payoutReward}>5-50 💎</span>
+                            {/* Daily Cap Banner */}
+                            <div style={styles.capBanner}>
+                                <div style={styles.capInfo}>
+                                    <span style={styles.capNumber}>500</span>
+                                    <span style={styles.capLabel}>Daily Cap</span>
                                 </div>
-                                <div style={styles.payoutCard}>
-                                    <span style={styles.payoutIcon}>🎯</span>
-                                    <div style={styles.payoutInfo}>
-                                        <span style={styles.payoutName}>First Training of Day</span>
+                                <div style={styles.capDivider} />
+                                <div style={styles.streakMultipliers}>
+                                    <div style={styles.multiplierItem}>
+                                        <span style={styles.multiplierValue}>1.5x</span>
+                                        <span style={styles.multiplierLabel}>Days 4-6</span>
                                     </div>
-                                    <span style={styles.payoutReward}>+25 💎</span>
-                                </div>
-                                <div style={styles.payoutCard}>
-                                    <span style={styles.payoutIcon}>✅</span>
-                                    <div style={styles.payoutInfo}>
-                                        <span style={styles.payoutName}>Level Complete (85%+)</span>
-                                    </div>
-                                    <span style={styles.payoutReward}>+10 💎</span>
-                                </div>
-                                <div style={styles.payoutCard}>
-                                    <span style={styles.payoutIcon}>💯</span>
-                                    <div style={styles.payoutInfo}>
-                                        <span style={styles.payoutName}>Perfect Score Bonus</span>
-                                    </div>
-                                    <span style={styles.payoutReward}>+5 💎</span>
-                                </div>
-                                <div style={styles.payoutCard}>
-                                    <span style={styles.payoutIcon}>🔓</span>
-                                    <div style={styles.payoutInfo}>
-                                        <span style={styles.payoutName}>New Level Unlocked</span>
-                                    </div>
-                                    <span style={styles.payoutReward}>+50 💎</span>
-                                </div>
-                                <div style={styles.payoutCard}>
-                                    <span style={styles.payoutIcon}>📝</span>
-                                    <div style={styles.payoutInfo}>
-                                        <span style={styles.payoutName}>Social Post Share</span>
-                                    </div>
-                                    <span style={styles.payoutReward}>+15 💎</span>
-                                </div>
-                                <div style={styles.payoutCard}>
-                                    <span style={styles.payoutIcon}>💬</span>
-                                    <div style={styles.payoutInfo}>
-                                        <span style={styles.payoutName}>Strategy Comment</span>
-                                    </div>
-                                    <span style={styles.payoutReward}>+5 💎</span>
-                                </div>
-                                <div style={styles.payoutCard}>
-                                    <span style={styles.payoutIcon}>⬆️</span>
-                                    <div style={styles.payoutInfo}>
-                                        <span style={styles.payoutName}>XP Level Up</span>
-                                    </div>
-                                    <span style={styles.payoutReward}>+100 💎</span>
-                                </div>
-                                <div style={styles.payoutCard}>
-                                    <span style={styles.payoutIcon}>📊</span>
-                                    <div style={styles.payoutInfo}>
-                                        <span style={styles.payoutName}>GTO Chart Study (3+ min)</span>
-                                    </div>
-                                    <span style={styles.payoutReward}>+10 💎</span>
-                                </div>
-                                <div style={{ ...styles.payoutCard, ...styles.referralCard }}>
-                                    <span style={styles.payoutIcon}>👥</span>
-                                    <div style={styles.payoutInfo}>
-                                        <span style={styles.payoutName}>Referral Success</span>
-                                        <span style={styles.bypassNote}>⚡ Bypasses Cap!</span>
-                                    </div>
-                                    <span style={styles.referralReward}>+500 💎</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 5-PILLAR EASTER EGG SYSTEM */}
-                        <div style={styles.easterSection}>
-                            <h3 style={styles.easterTitle}>🎯 5-Pillar Achievement System</h3>
-                            <p style={styles.easterSubtitle}>100 hidden achievements across 5 legendary pillars!</p>
-
-                            <div style={styles.pillarGrid}>
-                                {/* PILLAR 1: Arena Meta */}
-                                <div style={{ ...styles.pillarCard, borderColor: '#00D4FF' }}>
-                                    <div style={styles.pillarHeader}>
-                                        <span style={{ ...styles.pillarIcon, background: 'linear-gradient(135deg, #00D4FF, #0088cc)' }}>🏟️</span>
-                                        <div>
-                                            <div style={styles.pillarName}>Arena Meta & Interaction</div>
-                                            <div style={styles.pillarRange}>Pillar 1 • 20 Achievements</div>
-                                        </div>
-                                    </div>
-                                    <div style={styles.pillarExamples}>
-                                        <div style={styles.exampleRow}><span>🔍</span> The Searcher <span style={styles.exDiamonds}>+10</span></div>
-                                        <div style={styles.exampleRow}><span>💻</span> Terminal Pro <span style={styles.exDiamondsEpic}>+100</span></div>
-                                        <div style={styles.exampleRow}><span>🖥️</span> Hardware Flex <span style={styles.exDiamondsEpic}>+100</span></div>
-                                    </div>
-                                </div>
-
-                                {/* PILLAR 2: Social Velocity */}
-                                <div style={{ ...styles.pillarCard, borderColor: '#00ff88' }}>
-                                    <div style={styles.pillarHeader}>
-                                        <span style={{ ...styles.pillarIcon, background: 'linear-gradient(135deg, #00ff88, #00cc66)' }}>📢</span>
-                                        <div>
-                                            <div style={styles.pillarName}>Social Velocity & Recruitment</div>
-                                            <div style={styles.pillarRange}>Pillar 2 • 20 Achievements</div>
-                                        </div>
-                                    </div>
-                                    <div style={styles.pillarExamples}>
-                                        <div style={styles.exampleRow}><span>✅</span> Verified Referral <span style={styles.exDiamondsEpic}>+500</span></div>
-                                        <div style={styles.exampleRow}><span>🎖️</span> The Recruiter <span style={styles.exDiamondsLegendary}>+1,000</span></div>
-                                        <div style={styles.exampleRow}><span>👑</span> Legacy Recruiter <span style={styles.exDiamondsEpic}>+250</span></div>
-                                    </div>
-                                </div>
-
-                                {/* PILLAR 3: GTO Mastery */}
-                                <div style={{ ...styles.pillarCard, borderColor: '#8a2be2' }}>
-                                    <div style={styles.pillarHeader}>
-                                        <span style={{ ...styles.pillarIcon, background: 'linear-gradient(135deg, #8a2be2, #6a1ba2)' }}>🧠</span>
-                                        <div>
-                                            <div style={styles.pillarName}>GTO & Theory Mastery</div>
-                                            <div style={styles.pillarRange}>Pillar 3 • 20 Achievements</div>
-                                        </div>
-                                    </div>
-                                    <div style={styles.pillarExamples}>
-                                        <div style={styles.exampleRow}><span>📚</span> Deep Study <span style={styles.exDiamonds}>+20</span></div>
-                                        <div style={styles.exampleRow}><span>🎯</span> Zero Assistance <span style={styles.exDiamondsRare}>+50</span></div>
-                                        <div style={styles.exampleRow}><span>💪</span> The Grinder <span style={styles.exDiamondsEpic}>+100</span></div>
-                                    </div>
-                                </div>
-
-                                {/* PILLAR 4: Streak & Loyalty */}
-                                <div style={{ ...styles.pillarCard, borderColor: '#ff6b9d' }}>
-                                    <div style={styles.pillarHeader}>
-                                        <span style={{ ...styles.pillarIcon, background: 'linear-gradient(135deg, #ff6b9d, #cc5577)' }}>📈</span>
-                                        <div>
-                                            <div style={styles.pillarName}>Streak & Loyalty</div>
-                                            <div style={styles.pillarRange}>Pillar 4 • 20 Achievements</div>
-                                        </div>
-                                    </div>
-                                    <div style={styles.pillarExamples}>
-                                        <div style={styles.exampleRow}><span>🔒</span> Loyalty Lock (7-day) <span style={styles.exDiamondsRare}>+100</span></div>
-                                        <div style={styles.exampleRow}><span>5️⃣0️⃣</span> Half-Century <span style={styles.exDiamondsLegendary}>+500</span></div>
-                                        <div style={styles.exampleRow}><span>💯</span> The Centurion <span style={styles.exDiamondsLegendary}>+1,000</span></div>
-                                    </div>
-                                </div>
-
-                                {/* PILLAR 5: Arena Challenges */}
-                                <div style={{ ...styles.pillarCard, borderColor: '#FFD700' }}>
-                                    <div style={styles.pillarHeader}>
-                                        <span style={{ ...styles.pillarIcon, background: 'linear-gradient(135deg, #FFD700, #cc9900)' }}>🎰</span>
-                                        <div>
-                                            <div style={styles.pillarName}>Arena Challenges & Easter Eggs</div>
-                                            <div style={styles.pillarRange}>Pillar 5 • 20 Achievements</div>
-                                        </div>
-                                    </div>
-                                    <div style={styles.pillarExamples}>
-                                        <div style={styles.exampleRow}><span>🎰</span> The Jackpot (0.1%) <span style={styles.exDiamondsLegendary}>+777</span></div>
-                                        <div style={styles.exampleRow}><span>🎮</span> Konami Code <span style={styles.exDiamondsEpic}>+100</span></div>
-                                        <div style={styles.exampleRow}><span>🐋</span> The Whale <span style={styles.exDiamondsLegendary}>+5,000</span></div>
+                                    <div style={styles.multiplierItem}>
+                                        <span style={styles.multiplierValueGold}>2.0x</span>
+                                        <span style={styles.multiplierLabel}>Day 7+</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div style={styles.legendaryNote}>
-                                🏆 <strong>LEGENDARY DISCOVERIES:</strong> The Recruiter (+1,000 💎), Half-Century (+500 💎),
-                                The Centurion (+1,000 💎), Gold Member (+1,000 💎), The Whale (+5,000 💎), The Architect (+1,000 💎)
+                            {/* Standard Payouts */}
+                            <div style={styles.payoutSection}>
+                                <h3 style={styles.payoutTitle}>📊 Standard Payouts</h3>
+                                <div style={styles.payoutGrid}>
+                                    <div style={styles.payoutCard}>
+                                        <span style={styles.payoutIcon}>📅</span>
+                                        <div style={styles.payoutInfo}>
+                                            <span style={styles.payoutName}>Daily Login</span>
+                                            <span style={styles.payoutNote}>Scales with streak</span>
+                                        </div>
+                                        <span style={styles.payoutReward}>5-50 💎</span>
+                                    </div>
+                                    <div style={styles.payoutCard}>
+                                        <span style={styles.payoutIcon}>🎯</span>
+                                        <div style={styles.payoutInfo}>
+                                            <span style={styles.payoutName}>First Training of Day</span>
+                                            <span style={styles.payoutNote}></span>
+                                        </div>
+                                        <span style={styles.payoutReward}>+25 💎</span>
+                                    </div>
+                                    <div style={styles.payoutCard}>
+                                        <span style={styles.payoutIcon}>✅</span>
+                                        <div style={styles.payoutInfo}>
+                                            <span style={styles.payoutName}>Level Complete (85%+)</span>
+                                            <span style={styles.payoutNote}></span>
+                                        </div>
+                                        <span style={styles.payoutReward}>+10 💎</span>
+                                    </div>
+                                    <div style={styles.payoutCard}>
+                                        <span style={styles.payoutIcon}>💯</span>
+                                        <div style={styles.payoutInfo}>
+                                            <span style={styles.payoutName}>Perfect Score Bonus</span>
+                                            <span style={styles.payoutNote}></span>
+                                        </div>
+                                        <span style={styles.payoutReward}>+5 💎</span>
+                                    </div>
+                                    <div style={styles.payoutCard}>
+                                        <span style={styles.payoutIcon}>🔓</span>
+                                        <div style={styles.payoutInfo}>
+                                            <span style={styles.payoutName}>New Level Unlocked</span>
+                                            <span style={styles.payoutNote}></span>
+                                        </div>
+                                        <span style={styles.payoutReward}>+50 💎</span>
+                                    </div>
+                                    <div style={styles.payoutCard}>
+                                        <span style={styles.payoutIcon}>💬</span>
+                                        <div style={styles.payoutInfo}>
+                                            <span style={styles.payoutName}>Strategy Comment</span>
+                                            <span style={styles.payoutNote}></span>
+                                        </div>
+                                        <span style={styles.payoutReward}>+5 💎</span>
+                                    </div>
+                                    <div style={styles.payoutCard}>
+                                        <span style={styles.payoutIcon}>📸</span>
+                                        <div style={styles.payoutInfo}>
+                                            <span style={styles.payoutName}>Social Post Share</span>
+                                            <span style={styles.payoutNote}></span>
+                                        </div>
+                                        <span style={styles.payoutReward}>+15 💎</span>
+                                    </div>
+                                    <div style={styles.payoutCard}>
+                                        <span style={styles.payoutIcon}>📈</span>
+                                        <div style={styles.payoutInfo}>
+                                            <span style={styles.payoutName}>XP Level Up</span>
+                                            <span style={styles.payoutNote}></span>
+                                        </div>
+                                        <span style={styles.payoutReward}>+100 💎</span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+
+                            {/* Referral Rewards */}
+                            <div style={styles.referralSection}>
+                                <h3 style={styles.referralTitle}>👥 Referral Rewards</h3>
+                                <div style={styles.referralGrid}>
+                                    <div style={styles.referralCard}>
+                                        <span style={styles.referralIcon}>✅</span>
+                                        <div style={styles.referralInfo}>
+                                            <span style={styles.referralName}>Verified Referral</span>
+                                            <span style={styles.referralNote}>Friend completes signup</span>
+                                        </div>
+                                        <span style={styles.referralReward}>+500 💎</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     {/* Legal Note */}
                     <p style={styles.legalNote}>
