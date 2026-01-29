@@ -1,208 +1,136 @@
 /**
- * 🎯 MTT DEEP STACK UI — Template-Based Training Layout
+ * 🎮 MTT DEEP STACK UI — Training Game Wrapper
  * ═══════════════════════════════════════════════════════════════════════════
- * Layout Structure (matching template):
- * 1. Blue question bar at top
- * 2. Poker table visual in center with player stacks
- * 3. Hero labeled as "Hero X BB" (using actual data)
- * 4. 2x2 answer grid at bottom
- * 5. Timer on left, "Question X of 25" on right
+ * Uses the Golden Template Table component for consistent UI
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useTrainingSettings } from '../../../contexts/TrainingSettingsContext';
+import GoldenTemplateTable from '../poker/GoldenTemplateTable';
 
 export default function MTTDeepStackUI({
     question,
-    questionNumber = 1,
-    totalQuestions = 25,
+    questionNumber,
+    totalQuestions,
     onAnswer,
     showFeedback,
-    feedbackResult
+    feedbackResult,
+    explanation,
+    viewMode = 'standard',
+    timeLeft = 30,
 }) {
-    const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [timeLeft, setTimeLeft] = useState(30); // 30 second timer
-    const { viewMode } = useTrainingSettings();
-
-    if (!question) return null;
-
-    // Parse question data
-    const {
-        scenario,
-        question: questionText,
-        options = [],
-        correctAnswer,
-        explanation
-    } = question;
+    const scenario = question?.scenario || {};
+    const options = question?.options || [];
+    const questionText = question?.question || '';
+    const correctAnswer = question?.correctAnswer;
 
     // Extract scenario data
-    const heroStack = scenario?.heroStack || 150;
+    const heroStack = scenario?.heroStack || 45;
     const heroPosition = scenario?.heroPosition || 'BTN';
-    const heroHand = scenario?.heroHand || 'AK';
-    const board = scenario?.board || '';
+    const heroHand = scenario?.heroHand || 'AhKh';
     const pot = scenario?.pot || 0;
-    const villainPosition = scenario?.villainPosition || 'BB';
-    const villainStack = scenario?.villainStack || 100;
-    const action = scenario?.action || '';
-    const gameType = scenario?.gameType || '9-Max Tournament (MTT)';
+    const gameType = scenario?.gameType || 'Blind vs Blind';
+    const board = scenario?.board || '';
 
-    // Format question text for blue bar - BUILD FROM SCENARIO DATA
-    const formatQuestionText = () => {
-        if (typeof scenario === 'string') return scenario;
+    // Parse villain stacks (or use defaults)
+    const villainStacks = scenario?.villainStacks || [32, 28, 55, 41, 38, 62, 29, 51];
 
-        // Build descriptive question from scenario data (like template)
-        const posLabel = viewMode === 'standard' ? 'You Are' : 'Hero';
-        const actionText = action || 'Action is on you';
-
-        // Build question like: "You Are On The Button. The Player To Your Right Bets 2.5 BB. What Is Your Best Move?"
-        let questionParts = [];
-
-        if (heroPosition) {
-            const positionName = heroPosition === 'BTN' ? 'On The Button' :
-                heroPosition === 'SB' ? 'In The Small Blind' :
-                    heroPosition === 'BB' ? 'In The Big Blind' :
-                        `In ${heroPosition}`;
-            questionParts.push(`${posLabel} ${positionName}`);
+    // Build descriptive question text
+    const buildQuestionText = () => {
+        if (questionText && !questionText.includes('GTO play')) {
+            return questionText;
         }
+        const posName = heroPosition === 'BTN' ? 'On The Button' :
+            heroPosition === 'SB' ? 'In The Small Blind' :
+                heroPosition === 'BB' ? 'In The Big Blind' : heroPosition;
+        const action = scenario?.action || 'The Player To Your Right Bets 2.5 BB';
+        return `You Are ${posName}. ${action}. What Is Your Best Move?`;
+    };
 
-        if (action) {
-            questionParts.push(action);
+    // Parse hero cards to array format ["Ah", "Kh"]
+    const parseHeroCards = () => {
+        if (!heroHand) return ['Ah', 'Kh'];
+        const cards = [];
+        for (let i = 0; i < heroHand.length; i += 2) {
+            if (i + 1 < heroHand.length) {
+                cards.push(heroHand.substring(i, i + 2));
+            }
         }
+        return cards.length > 0 ? cards : ['Ah', 'Kh'];
+    };
 
-        questionParts.push('What Is Your Best Move?');
+    // Parse board cards
+    const parseBoardCards = () => {
+        if (!board) return [];
+        const cards = [];
+        for (let i = 0; i < board.length; i += 2) {
+            if (i + 1 < board.length) {
+                cards.push(board.substring(i, i + 2));
+            }
+        }
+        return cards;
+    };
 
-        return questionParts.join('. ');
+    // Build players array for table
+    const buildPlayers = () => {
+        const players = [
+            { id: 'hero', name: 'HERO', stack: heroStack, isFolded: false },
+        ];
+        for (let i = 0; i < 8; i++) {
+            players.push({
+                id: `v${i + 1}`,
+                name: `Villain ${i + 1}`,
+                stack: villainStacks[i] || 50,
+                isFolded: false,
+            });
+        }
+        return players;
     };
 
     const handleAnswer = (optionLetter) => {
         if (showFeedback) return;
-        setSelectedAnswer(optionLetter);
         onAnswer(optionLetter);
     };
 
     const getButtonStyle = (optionLetter) => {
-        let style = { ...styles.answerButton };
-
-        if (showFeedback) {
-            if (optionLetter === correctAnswer) {
-                style = { ...style, ...styles.answerButtonCorrect };
-            } else if (optionLetter === selectedAnswer) {
-                style = { ...style, ...styles.answerButtonWrong };
-            }
-        } else if (optionLetter === selectedAnswer) {
-            style = { ...style, ...styles.answerButtonSelected };
+        if (!showFeedback) return styles.answerButton;
+        if (optionLetter === correctAnswer) {
+            return { ...styles.answerButton, ...styles.correctButton };
         }
-
-        return style;
+        if (feedbackResult === 'wrong') {
+            return { ...styles.answerButton, ...styles.wrongButton };
+        }
+        return styles.answerButton;
     };
 
     return (
         <div style={styles.container}>
-            {/* Question Bar (Blue) - TOP */}
+            {/* Blue Question Bar - TOP */}
             <div style={styles.questionBar}>
-                {formatQuestionText()}
+                {buildQuestionText()}
             </div>
 
-            {/* Poker Table Visual - CENTER */}
-            <div style={styles.tableContainer}>
-                {/* Table Background */}
-                <div style={styles.pokerTable}>
-                    {/* Pot Display */}
-                    {pot > 0 && (
-                        <div style={styles.potDisplay}>
-                            <div style={styles.potLabel}>POT: {pot}</div>
-                        </div>
-                    )}
-
-                    {/* Board Cards (if available) */}
-                    {board && (
-                        <div style={styles.boardDisplay}>
-                            <div style={styles.boardLabel}>Blind vs Blind</div>
-                            <div style={styles.boardSubtext}>Smarter.Poker</div>
-                        </div>
-                    )}
-
-                    {/* Villain Players (simplified - showing key villain) */}
-                    <div style={styles.villainContainer}>
-                        <div style={styles.playerBox}>
-                            <div style={styles.playerAvatar}>🎩</div>
-                            <div style={styles.playerLabel}>
-                                <div style={styles.playerName}>Villain {villainPosition}</div>
-                                <div style={styles.playerStack}>{villainStack} BB</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Hero (Bottom Center) */}
-                    <div style={styles.heroContainer}>
-                        <div style={styles.heroBox}>
-                            <div style={styles.heroAvatar}>👤</div>
-                            <div style={styles.heroLabel}>
-                                <div style={styles.heroName}>Hero</div>
-                                <div style={styles.heroStack}>{heroStack} BB</div>
-                            </div>
-                        </div>
-                        {/* Hero Cards - Using Real Card Images */}
-                        {heroHand && (
-                            <div style={styles.heroCards}>
-                                {(() => {
-                                    // Parse heroHand: "AhKs" = Ace of hearts, King of spades
-                                    // Split into pairs: ["Ah", "Ks"]
-                                    const cards = [];
-                                    for (let i = 0; i < heroHand.length; i += 2) {
-                                        if (i + 1 < heroHand.length) {
-                                            cards.push(heroHand.substring(i, i + 2));
-                                        }
-                                    }
-
-                                    return cards.map((card, i) => {
-                                        // Parse card: "Ah" = rank "A", suit "h"
-                                        const rank = card[0].toLowerCase();
-                                        const suitChar = card[1].toLowerCase();
-
-                                        // Map suit character to full name
-                                        const suitMap = {
-                                            'h': 'hearts',
-                                            'd': 'diamonds',
-                                            'c': 'clubs',
-                                            's': 'spades'
-                                        };
-                                        const suit = suitMap[suitChar] || 'hearts';
-
-                                        // Map rank to card file name
-                                        const rankMap = {
-                                            'a': 'a', 'k': 'k', 'q': 'q', 'j': 'j',
-                                            't': '10', '9': '9', '8': '8', '7': '7',
-                                            '6': '6', '5': '5', '4': '4', '3': '3', '2': '2'
-                                        };
-                                        const cardRank = rankMap[rank] || rank;
-
-                                        const cardImage = `/cards/${suit}_${cardRank}.png`;
-
-                                        return (
-                                            <img
-                                                key={i}
-                                                src={cardImage}
-                                                alt={`${cardRank} of ${suit}`}
-                                                style={styles.cardImage}
-                                            />
-                                        );
-                                    });
-                                })()}
-                            </div>
-                        )}
-                    </div>
-                </div>
+            {/* Golden Template Table - CENTER */}
+            <div style={styles.tableWrapper}>
+                <GoldenTemplateTable
+                    players={buildPlayers()}
+                    heroCards={parseHeroCards()}
+                    communityCards={parseBoardCards()}
+                    pot={pot}
+                    dealerPosition={0}
+                    timer={timeLeft}
+                    questionNumber={questionNumber}
+                    totalQuestions={totalQuestions}
+                    gameTitle={gameType}
+                />
             </div>
 
-            {/* Answer Grid (2x2) */}
+            {/* Answer Grid (2x2) - BOTTOM */}
             <div style={styles.answersGrid}>
                 {options.map((option, index) => {
-                    const optionLetter = String.fromCharCode(65 + index); // A, B, C, D
+                    const optionLetter = String.fromCharCode(65 + index);
                     const optionText = typeof option === 'string' ? option : (option.text || option.label || 'Unknown');
-
                     return (
                         <motion.button
                             key={index}
@@ -218,15 +146,7 @@ export default function MTTDeepStackUI({
                 })}
             </div>
 
-            {/* Timer (Left) and Question Counter (Right) - AT THE VERY BOTTOM */}
-            <div style={styles.bottomRow}>
-                <div style={styles.timer}>{timeLeft}</div>
-                <div style={styles.questionCounter}>
-                    Question {questionNumber} of {totalQuestions}
-                </div>
-            </div>
-
-            {/* Explanation (shown after answer) */}
+            {/* Explanation (after answer) */}
             {showFeedback && explanation && (
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -244,7 +164,7 @@ export default function MTTDeepStackUI({
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STYLES - Matching Template Layout
+// STYLES
 // ═══════════════════════════════════════════════════════════════════════════
 
 const styles = {
@@ -253,290 +173,69 @@ const styles = {
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: '#000',
+        background: '#080810',
         fontFamily: "'Inter', sans-serif",
         overflow: 'hidden',
     },
 
-    // Question Bar (Blue) - TOP
+    // Blue Question Bar - TOP
     questionBar: {
         width: '100%',
-        padding: '16px 24px',
+        padding: '12px 24px',
         background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)',
-        color: '#00d4ff',
-        fontSize: '16px',
-        fontWeight: '600',
+        color: '#fbbf24',
+        fontSize: '14px',
+        fontWeight: '500',
         textAlign: 'center',
-        borderBottom: '2px solid rgba(0, 212, 255, 0.3)',
+        borderBottom: '1px solid rgba(251, 191, 36, 0.3)',
+        flexShrink: 0,
     },
 
-    // Poker Table - CENTER
-    tableContainer: {
+    // Table Wrapper - FILLS AVAILABLE SPACE
+    tableWrapper: {
         flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '20px',
         position: 'relative',
-    },
-
-    pokerTable: {
-        width: '100%',
-        maxWidth: '1000px',
-        height: '100%',
-        maxHeight: '500px',
-        backgroundImage: 'url(/images/poker-table-transparent.png)',
-        backgroundSize: 'contain',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-
-    // Pot Display (Center)
-    potDisplay: {
-        position: 'absolute',
-        top: '30%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 2,
-    },
-
-    potLabel: {
-        background: 'rgba(0,0,0,0.8)',
-        color: '#fff',
-        padding: '6px 12px',
-        borderRadius: '20px',
-        fontSize: '14px',
-        fontWeight: '700',
-        border: '1px solid rgba(255,255,255,0.3)',
-    },
-
-    // Board Display
-    boardDisplay: {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        textAlign: 'center',
-        zIndex: 1,
-    },
-
-    boardLabel: {
-        color: '#fff',
-        fontSize: '18px',
-        fontWeight: '700',
-        marginBottom: '4px',
-    },
-
-    boardSubtext: {
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: '12px',
-    },
-
-    // Villain Container (Top)
-    villainContainer: {
-        position: 'absolute',
-        top: '10%',
-        left: '50%',
-        transform: 'translateX(-50%)',
-    },
-
-    playerBox: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '8px',
-    },
-
-    playerAvatar: {
-        width: '60px',
-        height: '60px',
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, #4a5568, #2d3748)',
-        border: '3px solid #d4af37',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '32px',
-    },
-
-    playerLabel: {
-        background: 'rgba(212, 175, 55, 0.9)',
-        padding: '6px 12px',
-        borderRadius: '8px',
-        border: '2px solid #d4af37',
-        textAlign: 'center',
-    },
-
-    playerName: {
-        color: '#000',
-        fontSize: '12px',
-        fontWeight: '700',
-    },
-
-    playerStack: {
-        color: '#000',
-        fontSize: '14px',
-        fontWeight: '900',
-    },
-
-    // Hero Container (Bottom)
-    heroContainer: {
-        position: 'absolute',
-        bottom: '5%',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '12px',
-    },
-
-    heroBox: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '8px',
-    },
-
-    heroAvatar: {
-        width: '70px',
-        height: '70px',
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, #3b82f6, #1e40af)',
-        border: '3px solid #d4af37',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '36px',
-    },
-
-    heroLabel: {
-        background: 'rgba(212, 175, 55, 0.95)',
-        padding: '8px 16px',
-        borderRadius: '8px',
-        border: '2px solid #d4af37',
-        textAlign: 'center',
-    },
-
-    heroName: {
-        color: '#000',
-        fontSize: '14px',
-        fontWeight: '700',
-    },
-
-    heroStack: {
-        color: '#000',
-        fontSize: '16px',
-        fontWeight: '900',
-    },
-
-    // Hero Cards
-    heroCards: {
-        display: 'flex',
-        gap: '8px',
-    },
-
-    cardImage: {
-        width: '60px',
-        height: 'auto',
-        borderRadius: '6px',
-        boxShadow: '0 4px 8px rgba(0,0,0,0.4)',
-    },
-
-    // Bottom Row (Timer + Question Counter)
-    bottomRow: {
-        width: '90%',
-        maxWidth: '800px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: '20px',
-    },
-
-    timer: {
-        width: '60px',
-        height: '60px',
-        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-        border: '3px solid #fca5a5',
-        borderRadius: '8px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '28px',
-        fontWeight: '900',
-        color: '#fff',
-    },
-
-    questionCounter: {
-        background: 'rgba(0,0,0,0.8)',
-        color: '#fff',
-        padding: '12px 20px',
-        borderRadius: '8px',
-        fontSize: '14px',
-        fontWeight: '600',
-        border: '1px solid rgba(255,255,255,0.3)',
+        overflow: 'hidden',
     },
 
     // Answer Grid (2x2) - BOTTOM
     answersGrid: {
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '12px',
-        padding: '20px',
-        background: 'rgba(0,0,0,0.5)',
-        borderTop: '2px solid rgba(255,255,255,0.1)',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '8px',
+        padding: '12px 16px',
+        background: '#0a0a0f',
+        flexShrink: 0,
     },
-
     answerButton: {
-        padding: '20px',
-        background: 'linear-gradient(135deg, #1e40af, #1e3a8a)',
-        border: '2px solid #3b82f6',
-        borderRadius: '12px',
+        padding: '14px 16px',
+        background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)',
+        border: '1px solid rgba(59, 130, 246, 0.3)',
+        borderRadius: '8px',
         color: '#fff',
-        fontSize: '16px',
+        fontSize: '14px',
         fontWeight: '600',
         cursor: 'pointer',
-        transition: 'all 0.2s',
-        textAlign: 'center',
+        transition: 'all 0.2s ease',
+    },
+    correctButton: {
+        background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+        border: '1px solid #22c55e',
+    },
+    wrongButton: {
+        background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+        border: '1px solid #ef4444',
     },
 
-    answerButtonSelected: {
-        background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-        border: '2px solid #a855f7',
-    },
-
-    answerButtonCorrect: {
-        background: 'linear-gradient(135deg, #16a34a, #15803d)',
-        border: '2px solid #22c55e',
-    },
-
-    answerButtonWrong: {
-        background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
-        border: '2px solid #ef4444',
-    },
-
-    // Explanation
+    // Explanation Box
     explanationBox: {
-        padding: '20px',
-        background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(147, 51, 234, 0.1))',
-        borderTop: '2px solid rgba(168, 85, 247, 0.5)',
-        color: '#e2e8f0',
+        margin: '0 16px 16px',
+        padding: '12px 16px',
+        background: 'rgba(55, 65, 81, 0.9)',
+        borderRadius: '8px',
+        border: '1px solid rgba(107, 114, 128, 0.3)',
+        flexShrink: 0,
     },
-
-    explanationLabel: {
-        fontSize: '16px',
-        fontWeight: '700',
-        marginBottom: '8px',
-    },
-
-    explanationText: {
-        fontSize: '14px',
-        lineHeight: 1.6,
-        margin: 0,
-    },
+    explanationLabel: { color: '#fff', fontWeight: '600', marginBottom: '4px' },
+    explanationText: { color: '#d1d5db', fontSize: '13px', margin: 0 },
 };
