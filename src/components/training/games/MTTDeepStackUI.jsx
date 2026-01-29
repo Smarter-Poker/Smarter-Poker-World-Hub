@@ -144,15 +144,26 @@ export default function MTTDeepStackUI({
                                 <div style={styles.heroStack}>{heroStack} BB</div>
                             </div>
                         </div>
-                        {/* Hero Cards */}
+                        {/* Hero Cards - Using Real Card Images */}
                         {heroHand && (
                             <div style={styles.heroCards}>
-                                {heroHand.split('').map((card, i) => (
-                                    <div key={i} style={styles.card}>
-                                        <span style={styles.cardRank}>{card}</span>
-                                        <span style={styles.cardSuit}>♥</span>
-                                    </div>
-                                ))}
+                                {heroHand.split('').map((card, i) => {
+                                    // Parse card to get rank and suit
+                                    // Card format: "Ah" = Ace of hearts, "Ks" = King of spades
+                                    const rank = card.toLowerCase();
+                                    // For now, default to hearts for all cards (will need suit data from API)
+                                    const suit = 'hearts';
+                                    const cardImage = `/cards/${suit}_${rank}.png`;
+
+                                    return (
+                                        <img
+                                            key={i}
+                                            src={cardImage}
+                                            alt={`${rank} of ${suit}`}
+                                            style={styles.cardImage}
+                                        />
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -402,28 +413,11 @@ const styles = {
         gap: '8px',
     },
 
-    card: {
-        width: '50px',
-        height: '70px',
-        background: '#fff',
+    cardImage: {
+        width: '60px',
+        height: 'auto',
         borderRadius: '6px',
-        border: '2px solid #000',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-    },
-
-    cardRank: {
-        fontSize: '24px',
-        fontWeight: '900',
-        color: '#e41e3f',
-    },
-
-    cardSuit: {
-        fontSize: '20px',
-        color: '#e41e3f',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.4)',
     },
 
     // Bottom Row (Timer + Question Counter)
