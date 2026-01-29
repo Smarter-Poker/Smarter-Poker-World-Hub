@@ -1672,7 +1672,8 @@ export default function SocialMediaPage() {
                             url: p.hendon_url,
                             cashes: p.hendon_total_cashes,
                             earnings: p.hendon_total_earnings,
-                            bestFinish: p.hendon_best_finish
+                            bestFinish: p.hendon_best_finish,
+                            biggestCash: p.hendon_biggest_cash
                         } : null
                     });
                     await loadContacts(authUser.id);
@@ -2446,33 +2447,50 @@ export default function SocialMediaPage() {
 
                 {/* Poker Resume - Show when HendonMob is linked */}
                 {user?.hendon && (
-                    <div style={{
-                        margin: '0 12px 16px', padding: 16, borderRadius: 12,
-                        background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%)',
-                        border: '1px solid rgba(255, 215, 0, 0.3)'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                            <span style={{ fontSize: 24 }}>🏆</span>
-                            <div>
-                                <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 14 }}>POKER RESUME</div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>Tournament Stats</div>
+                    <Link
+                        href={user.username ? `/hub/user/${user.username}` : '/hub/profile'}
+                        onClick={() => setSidebarOpen(false)}
+                        style={{ textDecoration: 'none', display: 'block' }}
+                    >
+                        <div style={{
+                            margin: '0 12px 16px', padding: 16, borderRadius: 12,
+                            background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%)',
+                            border: '1px solid rgba(255, 215, 0, 0.3)',
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s, box-shadow 0.2s'
+                        }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 215, 0, 0.3)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                <span style={{ fontSize: 24 }}>🏆</span>
+                                <div>
+                                    <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 14 }}>POKER RESUME</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>Tournament Stats</div>
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ color: '#FFD700', fontSize: 18, fontWeight: 700 }}>{user.hendon.cashes || '—'}</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>CASHES</div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ color: '#00ff88', fontSize: 18, fontWeight: 700 }}>${user.hendon.earnings?.toLocaleString() || '—'}</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>EARNINGS</div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>${user.hendon.biggestCash?.toLocaleString() || user.hendon.bestFinish || '—'}</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>BIGGEST CASH</div>
+                                </div>
                             </div>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ color: '#FFD700', fontSize: 18, fontWeight: 700 }}>{user.hendon.cashes || '—'}</div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>CASHES</div>
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ color: '#00ff88', fontSize: 18, fontWeight: 700 }}>${user.hendon.earnings?.toLocaleString() || '—'}</div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>EARNINGS</div>
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>${user.hendon.biggestCash?.toLocaleString() || user.hendon.bestFinish || '—'}</div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>BIGGEST CASH</div>
-                            </div>
-                        </div>
-                    </div>
+                    </Link>
                 )}
 
                 {/* Your Shortcuts */}
