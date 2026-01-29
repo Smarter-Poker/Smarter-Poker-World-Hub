@@ -396,12 +396,8 @@ function StoryViewer({ storyGroup, onClose, userId }) {
             >✕</button>
 
             <div style={{
-                width: '100%',
-                maxWidth: 420,
-                height: '90vh',
-                maxHeight: 800,
-                borderRadius: 12,
-                overflow: 'hidden',
+                width: '100vw',
+                height: '100vh',
                 position: 'relative',
                 background: currentStory.background_color || currentStory.media_url ? 'black' : STORY_GRADIENTS[0],
             }}>
@@ -446,18 +442,31 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                 </div>
 
                 {/* Story content */}
-                {currentStory.media_url ? (
+                {currentStory.link_url && currentStory.link_url.includes('youtube') ? (
+                    // Embed YouTube video for video stories
+                    <iframe
+                        src={currentStory.link_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            border: 'none',
+                            objectFit: 'contain'
+                        }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    />
+                ) : currentStory.media_url ? (
                     currentStory.media_type === 'video' ? (
                         <video
                             src={currentStory.media_url}
                             autoPlay
                             muted
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
                     ) : (
                         <img
                             src={currentStory.media_url}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
                     )
                 ) : (
