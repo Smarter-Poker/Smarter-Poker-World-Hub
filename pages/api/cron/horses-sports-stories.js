@@ -168,9 +168,13 @@ export default async function handler(req, res) {
 
         if (horsesError || !horses || horses.length === 0) {
             console.error('Failed to fetch horses:', horsesError);
+            console.error('Horses data:', horses);
+            console.error('Horses count:', horses?.length);
             return res.status(500).json({
                 success: false,
                 error: 'Failed to fetch horses',
+                details: horsesError?.message || 'No horses found',
+                count: horses?.length || 0,
                 posted: 0
             });
         }
