@@ -1,364 +1,442 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   SMARTER CAPTAIN — FUTURISTIC SCI-FI UI SYSTEM
-   Dramatic neon glows, metallic frames, HUD-style elements
+   SMARTER CAPTAIN — INDUSTRIAL SCI-FI GAMING UI
+   Dark navy panels, thick metallic chrome frames, rivets, glowing accents
+   Inspired by mech cockpit / spaceship control panel aesthetic
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    COLOR VARIABLES
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-  /* Facebook Core Colors */
-  --captain-primary: #1877F2;
-  --captain-primary-dark: #1664d9;
-  --captain-primary-light: #4293f5;
+  /* Dark Navy Backgrounds */
+  --cap-bg-deep: #0B1426;
+  --cap-bg-dark: #0F1C32;
+  --cap-bg-panel: #132240;
+  --cap-bg-inset: #0D192E;
+  --cap-bg-input: #0A1525;
 
-  /* Neon Accents */
-  --captain-neon-cyan: #22D3EE;
-  --captain-neon-blue: #3B82F6;
-  --captain-neon-purple: #8B5CF6;
-  --captain-neon-green: #10B981;
+  /* Metallic Chrome */
+  --cap-chrome-light: #C0CDE0;
+  --cap-chrome-mid: #7A8EA8;
+  --cap-chrome-dark: #4A5E78;
+  --cap-chrome-shadow: #2A3A50;
 
-  /* Backgrounds - Light theme */
-  --captain-bg: #F0F2F5;
-  --captain-bg-card: #FFFFFF;
-  --captain-bg-card-gradient: linear-gradient(145deg, #FFFFFF 0%, #F8FAFC 50%, #F1F5F9 100%);
+  /* Accent Glow */
+  --cap-glow-cyan: #22D3EE;
+  --cap-glow-blue: #3B82F6;
+  --cap-accent-blue: #1877F2;
 
   /* Text */
-  --captain-text: #1F2937;
-  --captain-text-secondary: #6B7280;
-  --captain-text-muted: #9CA3AF;
+  --cap-text-white: #FFFFFF;
+  --cap-text-light: #CBD5E1;
+  --cap-text-muted: #64748B;
 
-  /* Borders & Metallic */
-  --captain-border: #E5E7EB;
-  --captain-border-metallic: #94A3B8;
-  --captain-border-light: #CBD5E1;
-  --captain-metallic-shine: linear-gradient(135deg, #E2E8F0 0%, #94A3B8 50%, #64748B 100%);
-
-  /* Glows */
-  --captain-glow-cyan: rgba(34, 211, 238, 0.7);
-  --captain-glow-blue: rgba(24, 119, 242, 0.6);
-  --captain-glow-green: rgba(16, 185, 129, 0.6);
-  --captain-glow-purple: rgba(139, 92, 246, 0.6);
-
-  /* Status Colors */
-  --captain-success: #10B981;
-  --captain-warning: #F59E0B;
-  --captain-error: #EF4444;
+  /* Status */
+  --cap-success: #10B981;
+  --cap-warning: #F59E0B;
+  --cap-error: #EF4444;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ANIMATIONS
    ═══════════════════════════════════════════════════════════════════════════ */
-@keyframes captain-glow-pulse {
-  0%, 100% {
-    box-shadow:
-      0 0 20px var(--captain-glow-blue),
-      0 0 40px rgba(24, 119, 242, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  }
-  50% {
-    box-shadow:
-      0 0 30px var(--captain-glow-blue),
-      0 0 60px rgba(24, 119, 242, 0.5),
-      0 0 80px rgba(34, 211, 238, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  }
+@keyframes cap-glow-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 
-@keyframes captain-border-flow {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+@keyframes cap-light-flicker {
+  0%, 100% { box-shadow: 0 0 8px var(--cap-glow-cyan), 0 0 20px rgba(34, 211, 238, 0.4); }
+  50% { box-shadow: 0 0 12px var(--cap-glow-cyan), 0 0 30px rgba(34, 211, 238, 0.6); }
 }
 
-@keyframes captain-pulse-dot {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-    box-shadow: 0 0 10px var(--captain-neon-green), 0 0 20px var(--captain-neon-green);
-  }
-  50% {
-    transform: scale(1.4);
-    opacity: 0.8;
-    box-shadow: 0 0 20px var(--captain-neon-green), 0 0 40px var(--captain-neon-green), 0 0 60px var(--captain-neon-green);
-  }
-}
-
-@keyframes captain-shimmer {
-  0% {
-    background-position: -200% center;
-  }
-  100% {
-    background-position: 200% center;
-  }
-}
-
-@keyframes captain-scanline {
-  0% {
-    transform: translateY(-100%);
-  }
-  100% {
-    transform: translateY(100%);
-  }
+@keyframes cap-scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC CARD FRAME — DRAMATIC VERSION
-   Bold metallic borders with neon glow
+   PAGE BACKGROUND
    ═══════════════════════════════════════════════════════════════════════════ */
-.captain-card {
-  background: var(--captain-bg-card-gradient);
-  border: 3px solid transparent;
-  border-radius: 16px;
-  position: relative;
-  overflow: hidden;
-  box-shadow:
-    0 0 20px rgba(24, 119, 242, 0.15),
-    0 10px 40px -10px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+.cap-page {
+  min-height: 100vh;
+  background: var(--cap-bg-deep);
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(24, 119, 242, 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, var(--cap-bg-deep) 0%, #0A1220 100%);
+  font-family: 'Inter', sans-serif;
+  color: var(--cap-text-white);
 }
 
-/* Metallic border effect */
-.captain-card::before {
+/* ═══════════════════════════════════════════════════════════════════════════
+   METALLIC FRAME PANEL — The core card element
+   Thick chrome border with rivets, dark navy interior
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cap-panel {
+  position: relative;
+  background: linear-gradient(180deg, var(--cap-bg-panel) 0%, var(--cap-bg-dark) 100%);
+  border: 4px solid var(--cap-chrome-mid);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow:
+    /* Outer glow */
+    0 0 20px rgba(34, 211, 238, 0.1),
+    /* Depth shadow */
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    /* Inner top highlight */
+    inset 0 1px 0 rgba(192, 205, 224, 0.15),
+    /* Inner bottom shadow */
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Metallic border gradient overlay */
+.cap-panel::before {
   content: '';
   position: absolute;
-  inset: -3px;
+  inset: -4px;
   border-radius: 18px;
   background: linear-gradient(
-    135deg,
-    var(--captain-neon-cyan) 0%,
-    var(--captain-primary) 25%,
-    var(--captain-border-metallic) 50%,
-    var(--captain-primary) 75%,
-    var(--captain-neon-cyan) 100%
+    180deg,
+    var(--cap-chrome-light) 0%,
+    var(--cap-chrome-mid) 20%,
+    var(--cap-chrome-dark) 50%,
+    var(--cap-chrome-mid) 80%,
+    var(--cap-chrome-light) 100%
   );
-  background-size: 300% 300%;
-  animation: captain-border-flow 4s ease infinite;
   z-index: -1;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  padding: 4px;
 }
 
-/* Inner frame line */
-.captain-card::after {
-  content: '';
-  position: absolute;
-  inset: 6px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 12px;
-  pointer-events: none;
+/* ═══════════════════════════════════════════════════════════════════════════
+   RIVETS — Decorative metallic bolts
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cap-rivet {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%,
+    var(--cap-chrome-light) 0%,
+    var(--cap-chrome-mid) 40%,
+    var(--cap-chrome-dark) 70%,
+    var(--cap-chrome-shadow) 100%
+  );
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
 }
 
-/* Corner brackets */
-.captain-card-corners {
+.cap-rivet-sm {
+  width: 7px;
+  height: 7px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CORNER GLOW LIGHTS — Cyan accent lights at corners
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cap-corner-lights {
   position: relative;
 }
 
-.captain-card-corners::before,
-.captain-card-corners::after {
+.cap-corner-lights .cap-light {
+  position: absolute;
+  width: 6px;
+  height: 24px;
+  background: var(--cap-glow-cyan);
+  border-radius: 3px;
+  animation: cap-light-flicker 2s ease-in-out infinite;
+}
+
+.cap-corner-lights .cap-light-tl {
+  top: 16px;
+  left: -3px;
+}
+
+.cap-corner-lights .cap-light-tr {
+  top: 16px;
+  right: -3px;
+}
+
+.cap-corner-lights .cap-light-bl {
+  bottom: 16px;
+  left: -3px;
+}
+
+.cap-corner-lights .cap-light-br {
+  bottom: 16px;
+  right: -3px;
+}
+
+/* Horizontal glow strips */
+.cap-glow-strip {
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, var(--cap-glow-cyan) 30%, var(--cap-glow-cyan) 70%, transparent 100%);
+  box-shadow: 0 0 10px var(--cap-glow-cyan), 0 0 20px rgba(34, 211, 238, 0.3);
+  border-radius: 2px;
+  animation: cap-glow-pulse 2s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BEVELED HEADER BAR — Hexagonal title plate
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cap-header-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 28px;
+  background: linear-gradient(180deg, var(--cap-chrome-dark) 0%, var(--cap-bg-panel) 50%, var(--cap-chrome-shadow) 100%);
+  border: 3px solid var(--cap-chrome-mid);
+  clip-path: polygon(
+    20px 0, calc(100% - 20px) 0,
+    100% 50%,
+    calc(100% - 20px) 100%, 20px 100%,
+    0 50%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(192, 205, 224, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+}
+
+.cap-header-bar-text {
+  font-size: 16px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--cap-text-white);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Full-width header */
+.cap-header-full {
+  background: linear-gradient(180deg, #1A2E4A 0%, var(--cap-bg-panel) 40%, var(--cap-bg-dark) 100%);
+  border-bottom: 4px solid var(--cap-chrome-mid);
+  position: relative;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(192, 205, 224, 0.1);
+}
+
+/* Top chrome rail on header */
+.cap-header-full::before {
   content: '';
   position: absolute;
-  width: 30px;
-  height: 30px;
-  border: 3px solid var(--captain-neon-cyan);
-  filter: drop-shadow(0 0 6px var(--captain-glow-cyan));
-}
-
-.captain-card-corners::before {
-  top: 8px;
-  left: 8px;
-  border-right: none;
-  border-bottom: none;
-  border-top-left-radius: 8px;
-}
-
-.captain-card-corners::after {
-  bottom: 8px;
-  right: 8px;
-  border-left: none;
-  border-top: none;
-  border-bottom-right-radius: 8px;
-}
-
-/* Card with intense glow */
-.captain-card-glow {
-  animation: captain-glow-pulse 2s ease-in-out infinite;
-}
-
-/* Scanline overlay effect */
-.captain-card-scanline::before {
-  content: '';
-  position: absolute;
-  top: 0;
+  bottom: -4px;
   left: 0;
   right: 0;
   height: 4px;
   background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--captain-glow-cyan) 50%,
-    transparent 100%
+    180deg,
+    var(--cap-chrome-light) 0%,
+    var(--cap-chrome-mid) 50%,
+    var(--cap-chrome-dark) 100%
   );
-  opacity: 0.6;
-  animation: captain-scanline 3s linear infinite;
-  pointer-events: none;
-  z-index: 10;
+}
+
+/* Glow strip under header */
+.cap-header-full::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 15%;
+  right: 15%;
+  height: 3px;
+  background: var(--cap-glow-cyan);
+  box-shadow: 0 0 15px var(--cap-glow-cyan), 0 0 30px rgba(34, 211, 238, 0.3);
+  border-radius: 2px;
+  animation: cap-glow-pulse 2s ease-in-out infinite;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC BUTTONS — DRAMATIC VERSION
-   Heavy beveled look with neon glow
+   INSET PANELS — Recessed dark input areas
    ═══════════════════════════════════════════════════════════════════════════ */
-.captain-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 14px 28px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  border: none;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  clip-path: polygon(
-    12px 0, calc(100% - 12px) 0,
-    100% 12px, 100% calc(100% - 12px),
-    calc(100% - 12px) 100%, 12px 100%,
-    0 calc(100% - 12px), 0 12px
-  );
-}
-
-/* Primary button - Intense blue glow */
-.captain-btn-primary {
-  background: linear-gradient(
-    180deg,
-    #60A5FA 0%,
-    var(--captain-primary) 30%,
-    var(--captain-primary-dark) 70%,
-    #1E40AF 100%
-  );
-  color: white;
+.cap-inset {
+  background: var(--cap-bg-input);
+  border: 2px solid var(--cap-chrome-dark);
+  border-radius: 10px;
   box-shadow:
-    0 0 30px var(--captain-glow-blue),
-    0 0 60px rgba(24, 119, 242, 0.3),
-    inset 0 2px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.3);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-.captain-btn-primary:hover {
-  background: linear-gradient(
-    180deg,
-    #93C5FD 0%,
-    var(--captain-primary-light) 30%,
-    var(--captain-primary) 100%
-  );
-  box-shadow:
-    0 0 40px var(--captain-glow-blue),
-    0 0 80px rgba(24, 119, 242, 0.5),
-    0 0 100px rgba(34, 211, 238, 0.2),
-    inset 0 2px 0 rgba(255, 255, 255, 0.5);
-  transform: translateY(-3px) scale(1.02);
-}
-
-.captain-btn-primary:active {
-  transform: translateY(0) scale(0.98);
-  box-shadow:
-    0 0 20px var(--captain-glow-blue),
-    inset 0 3px 6px rgba(0, 0, 0, 0.3);
-}
-
-/* Secondary button - Metallic outline */
-.captain-btn-secondary {
-  background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 50%, #E2E8F0 100%);
-  color: var(--captain-text);
-  border: 3px solid var(--captain-border-metallic);
-  box-shadow:
-    0 0 15px rgba(148, 163, 184, 0.3),
-    inset 0 2px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-}
-
-.captain-btn-secondary:hover {
-  border-color: var(--captain-neon-cyan);
-  box-shadow:
-    0 0 25px var(--captain-glow-cyan),
-    0 0 50px rgba(34, 211, 238, 0.2),
-    inset 0 2px 0 rgba(255, 255, 255, 1);
-  transform: translateY(-2px);
-}
-
-/* Success button - Neon green */
-.captain-btn-success {
-  background: linear-gradient(180deg, #34D399 0%, var(--captain-success) 50%, #059669 100%);
-  color: white;
-  box-shadow:
-    0 0 30px var(--captain-glow-green),
-    0 0 60px rgba(16, 185, 129, 0.3),
-    inset 0 2px 0 rgba(255, 255, 255, 0.4);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-/* Danger button - Neon red */
-.captain-btn-danger {
-  background: linear-gradient(180deg, #F87171 0%, var(--captain-error) 50%, #DC2626 100%);
-  color: white;
-  box-shadow:
-    0 0 30px rgba(239, 68, 68, 0.5),
-    0 0 60px rgba(239, 68, 68, 0.3),
-    inset 0 2px 0 rgba(255, 255, 255, 0.4);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    inset 0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 3px rgba(0, 0, 0, 0.3),
+    0 1px 0 rgba(192, 205, 224, 0.1);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC INPUTS — DRAMATIC VERSION
-   Inset metallic with intense focus glow
+   INPUTS — Dark recessed with chrome border
    ═══════════════════════════════════════════════════════════════════════════ */
-.captain-input {
+.cap-input {
   width: 100%;
   padding: 16px 20px;
   font-family: 'Inter', sans-serif;
   font-size: 15px;
   font-weight: 500;
-  color: var(--captain-text);
-  background: linear-gradient(180deg, #F1F5F9 0%, #FFFFFF 100%);
-  border: 3px solid var(--captain-border-metallic);
-  border-radius: 12px;
+  color: var(--cap-text-white);
+  background: var(--cap-bg-input);
+  border: 2px solid var(--cap-chrome-dark);
+  border-radius: 10px;
   outline: none;
   transition: all 0.3s ease;
   box-shadow:
-    inset 0 4px 8px rgba(0, 0, 0, 0.08),
-    inset 0 1px 2px rgba(0, 0, 0, 0.05),
-    0 2px 0 rgba(255, 255, 255, 0.8);
+    inset 0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 2px rgba(0, 0, 0, 0.3),
+    0 1px 0 rgba(192, 205, 224, 0.08);
 }
 
-.captain-input:focus {
-  border-color: var(--captain-neon-cyan);
+.cap-input:focus {
+  border-color: var(--cap-glow-cyan);
   box-shadow:
-    0 0 0 4px rgba(34, 211, 238, 0.2),
-    0 0 30px var(--captain-glow-cyan),
-    inset 0 4px 8px rgba(0, 0, 0, 0.05);
+    0 0 15px rgba(34, 211, 238, 0.3),
+    0 0 30px rgba(34, 211, 238, 0.1),
+    inset 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-.captain-input::placeholder {
-  color: var(--captain-text-muted);
-  font-weight: 400;
+.cap-input::placeholder {
+  color: var(--cap-text-muted);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC BADGES — DRAMATIC VERSION
-   Glowing status indicators
+   BUTTONS — Beveled metallic with glow
    ═══════════════════════════════════════════════════════════════════════════ */
-.captain-badge {
+.cap-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 32px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border: 3px solid var(--cap-chrome-mid);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  clip-path: polygon(
+    14px 0, calc(100% - 14px) 0,
+    100% 14px, 100% calc(100% - 14px),
+    calc(100% - 14px) 100%, 14px 100%,
+    0 calc(100% - 14px), 0 14px
+  );
+}
+
+.cap-btn-primary {
+  background: linear-gradient(180deg, #1E3A5F 0%, var(--cap-bg-panel) 40%, #0D192E 100%);
+  color: var(--cap-text-white);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 0 15px rgba(34, 211, 238, 0.2),
+    inset 0 1px 0 rgba(192, 205, 224, 0.15),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.cap-btn-primary:hover {
+  border-color: var(--cap-glow-cyan);
+  box-shadow:
+    0 0 25px rgba(34, 211, 238, 0.4),
+    0 0 50px rgba(34, 211, 238, 0.15),
+    inset 0 1px 0 rgba(192, 205, 224, 0.2);
+  transform: translateY(-2px);
+}
+
+.cap-btn-primary:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.cap-btn-secondary {
+  background: linear-gradient(180deg, var(--cap-chrome-mid) 0%, var(--cap-chrome-dark) 50%, var(--cap-chrome-shadow) 100%);
+  color: var(--cap-text-white);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.cap-btn-secondary:hover {
+  background: linear-gradient(180deg, var(--cap-chrome-light) 0%, var(--cap-chrome-mid) 50%, var(--cap-chrome-dark) 100%);
+  transform: translateY(-2px);
+}
+
+.cap-btn-danger {
+  background: linear-gradient(180deg, #7F1D1D 0%, #991B1B 50%, #7F1D1D 100%);
+  color: var(--cap-text-white);
+  border-color: #B91C1C;
+  box-shadow:
+    0 0 15px rgba(239, 68, 68, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.cap-btn-success {
+  background: linear-gradient(180deg, #064E3B 0%, #065F46 50%, #064E3B 100%);
+  color: var(--cap-text-white);
+  border-color: #10B981;
+  box-shadow:
+    0 0 15px rgba(16, 185, 129, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ICON BOX — Circular metallic porthole
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cap-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: radial-gradient(circle at center, var(--cap-bg-panel) 0%, var(--cap-bg-inset) 100%);
+  border: 4px solid var(--cap-chrome-mid);
+  border-radius: 50%;
+  color: var(--cap-glow-cyan);
+  box-shadow:
+    0 0 15px rgba(34, 211, 238, 0.15),
+    inset 0 2px 6px rgba(0, 0, 0, 0.4),
+    inset 0 -1px 0 rgba(192, 205, 224, 0.1);
+  position: relative;
+}
+
+/* Outer ring */
+.cap-icon-box::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 3px solid var(--cap-chrome-dark);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cap-chrome-light) 0%, var(--cap-chrome-dark) 100%);
+  z-index: -1;
+  mask: radial-gradient(transparent 60%, #000 61%);
+  -webkit-mask: radial-gradient(transparent 60%, #000 61%);
+}
+
+.cap-icon-box-glow {
+  box-shadow:
+    0 0 20px rgba(34, 211, 238, 0.4),
+    0 0 40px rgba(34, 211, 238, 0.15),
+    inset 0 0 15px rgba(34, 211, 238, 0.1),
+    inset 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Square version */
+.cap-icon-box-square {
+  border-radius: 12px;
+}
+
+.cap-icon-box-square::before {
+  border-radius: 16px;
+  mask: none;
+  -webkit-mask: none;
+  background: transparent;
+  border: 3px solid var(--cap-chrome-dark);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BADGES — Status indicators
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cap-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -367,413 +445,147 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  border-radius: 8px;
+  letter-spacing: 1.5px;
+  border-radius: 6px;
   border: 2px solid;
-  position: relative;
-  overflow: hidden;
 }
 
-/* Shimmer effect on badges */
-.captain-badge::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.4) 50%,
-    transparent 100%
-  );
-  animation: captain-shimmer 3s ease-in-out infinite;
-}
-
-.captain-badge-primary {
-  background: linear-gradient(135deg, rgba(24, 119, 242, 0.2) 0%, rgba(24, 119, 242, 0.1) 100%);
-  color: var(--captain-primary);
-  border-color: rgba(24, 119, 242, 0.5);
-  box-shadow: 0 0 15px rgba(24, 119, 242, 0.3);
-}
-
-.captain-badge-success {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
-  color: var(--captain-success);
-  border-color: rgba(16, 185, 129, 0.5);
+.cap-badge-live {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--cap-success);
+  border-color: var(--cap-success);
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+  animation: cap-glow-pulse 2s ease-in-out infinite;
 }
 
-.captain-badge-warning {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
-  color: var(--captain-warning);
+.cap-badge-primary {
+  background: rgba(24, 119, 242, 0.15);
+  color: var(--cap-glow-blue);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+}
+
+.cap-badge-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--cap-warning);
   border-color: rgba(245, 158, 11, 0.5);
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
 }
 
-.captain-badge-error {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
-  color: var(--captain-error);
+.cap-badge-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--cap-error);
   border-color: rgba(239, 68, 68, 0.5);
-  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
 }
 
-/* Intense glowing badge */
-.captain-badge-glow {
-  animation: captain-glow-pulse 2s ease-in-out infinite;
-}
-
-/* LIVE badge with pulse */
-.captain-badge-live {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(16, 185, 129, 0.15) 100%);
-  color: var(--captain-neon-green);
-  border-color: var(--captain-neon-green);
+.cap-badge-chrome {
+  background: linear-gradient(180deg, var(--cap-chrome-dark) 0%, var(--cap-chrome-shadow) 100%);
+  color: var(--cap-text-light);
+  border-color: var(--cap-chrome-mid);
   box-shadow:
-    0 0 20px var(--captain-glow-green),
-    0 0 40px rgba(16, 185, 129, 0.2);
-  animation: captain-glow-pulse 2s ease-in-out infinite;
+    inset 0 1px 0 rgba(192, 205, 224, 0.15),
+    0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC HEADER — DRAMATIC VERSION
-   Heavy metallic with animated accent
+   METALLIC PIPE RAIL — Side decorations
    ═══════════════════════════════════════════════════════════════════════════ */
-.captain-header {
-  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 50%, #F1F5F9 100%);
-  border-bottom: 4px solid transparent;
-  position: relative;
+.cap-pipe {
+  width: 12px;
+  background: linear-gradient(
+    90deg,
+    var(--cap-chrome-shadow) 0%,
+    var(--cap-chrome-mid) 30%,
+    var(--cap-chrome-light) 50%,
+    var(--cap-chrome-mid) 70%,
+    var(--cap-chrome-shadow) 100%
+  );
+  border-radius: 6px;
   box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.1),
-    inset 0 -1px 0 rgba(255, 255, 255, 1);
+    inset 0 0 4px rgba(0, 0, 0, 0.3),
+    0 0 6px rgba(0, 0, 0, 0.2);
 }
 
-/* Animated gradient border */
-.captain-header::before {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  right: 0;
+.cap-pipe-h {
+  height: 12px;
+  width: 100%;
+  background: linear-gradient(
+    180deg,
+    var(--cap-chrome-shadow) 0%,
+    var(--cap-chrome-mid) 30%,
+    var(--cap-chrome-light) 50%,
+    var(--cap-chrome-mid) 70%,
+    var(--cap-chrome-shadow) 100%
+  );
+  border-radius: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DIVIDER — Metallic separator with glow
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cap-divider {
   height: 4px;
   background: linear-gradient(
     90deg,
-    var(--captain-primary) 0%,
-    var(--captain-neon-cyan) 25%,
-    var(--captain-neon-purple) 50%,
-    var(--captain-neon-cyan) 75%,
-    var(--captain-primary) 100%
-  );
-  background-size: 200% 100%;
-  animation: captain-border-flow 3s linear infinite;
-}
-
-/* Glow effect under header */
-.captain-header::after {
-  content: '';
-  position: absolute;
-  bottom: -20px;
-  left: 10%;
-  right: 10%;
-  height: 20px;
-  background: radial-gradient(
-    ellipse at center,
-    var(--captain-glow-cyan) 0%,
-    transparent 70%
-  );
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC STATUS INDICATORS — DRAMATIC VERSION
-   Intense pulsing effects
-   ═══════════════════════════════════════════════════════════════════════════ */
-.captain-status-live {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.captain-status-live::before {
-  content: '';
-  width: 12px;
-  height: 12px;
-  background: var(--captain-neon-green);
-  border-radius: 50%;
-  animation: captain-pulse-dot 1.5s ease-in-out infinite;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC ICON CONTAINER — DRAMATIC VERSION
-   Metallic with glow effects
-   ═══════════════════════════════════════════════════════════════════════════ */
-.captain-icon-box {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  background: linear-gradient(145deg, #FFFFFF 0%, #F1F5F9 50%, #E2E8F0 100%);
-  border: 3px solid var(--captain-border-metallic);
-  border-radius: 14px;
-  color: var(--captain-primary);
-  position: relative;
-  box-shadow:
-    0 4px 15px rgba(0, 0, 0, 0.1),
-    inset 0 2px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-}
-
-/* Corner accents on icon box */
-.captain-icon-box::before,
-.captain-icon-box::after {
-  content: '';
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border: 2px solid var(--captain-neon-cyan);
-  opacity: 0.7;
-}
-
-.captain-icon-box::before {
-  top: -1px;
-  left: -1px;
-  border-right: none;
-  border-bottom: none;
-  border-top-left-radius: 6px;
-}
-
-.captain-icon-box::after {
-  bottom: -1px;
-  right: -1px;
-  border-left: none;
-  border-top: none;
-  border-bottom-right-radius: 6px;
-}
-
-.captain-icon-box-glow {
-  border-color: var(--captain-neon-cyan);
-  box-shadow:
-    0 0 25px var(--captain-glow-cyan),
-    0 0 50px rgba(34, 211, 238, 0.2),
-    inset 0 2px 0 rgba(255, 255, 255, 1);
-}
-
-.captain-icon-box-glow::before,
-.captain-icon-box-glow::after {
-  opacity: 1;
-  filter: drop-shadow(0 0 4px var(--captain-glow-cyan));
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC DIVIDER — DRAMATIC VERSION
-   Glowing center line
-   ═══════════════════════════════════════════════════════════════════════════ */
-.captain-divider {
-  height: 3px;
-  background: linear-gradient(
-    90deg,
     transparent 0%,
-    var(--captain-border-metallic) 15%,
-    var(--captain-neon-cyan) 40%,
-    var(--captain-primary) 50%,
-    var(--captain-neon-cyan) 60%,
-    var(--captain-border-metallic) 85%,
+    var(--cap-chrome-dark) 10%,
+    var(--cap-chrome-mid) 30%,
+    var(--cap-glow-cyan) 50%,
+    var(--cap-chrome-mid) 70%,
+    var(--cap-chrome-dark) 90%,
     transparent 100%
   );
-  margin: 32px 0;
-  position: relative;
+  margin: 24px 0;
   border-radius: 2px;
-  box-shadow: 0 0 20px var(--captain-glow-cyan);
-}
-
-/* Center diamond accent */
-.captain-divider::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%) rotate(45deg);
-  width: 10px;
-  height: 10px;
-  background: var(--captain-neon-cyan);
-  box-shadow: 0 0 15px var(--captain-glow-cyan);
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+  position: relative;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC TABLE — DRAMATIC VERSION
+   STAT DISPLAY — Large numbers
    ═══════════════════════════════════════════════════════════════════════════ */
-.captain-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.captain-table th {
-  padding: 16px 20px;
+.cap-stat-value {
   font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--captain-text-secondary);
-  background: linear-gradient(180deg, #F1F5F9 0%, #E2E8F0 100%);
-  border-bottom: 3px solid var(--captain-border-metallic);
-  text-align: left;
-}
-
-.captain-table td {
-  padding: 16px 20px;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  color: var(--captain-text);
-  border-bottom: 1px solid var(--captain-border);
-  transition: all 0.2s ease;
-}
-
-.captain-table tr:hover td {
-  background: rgba(34, 211, 238, 0.05);
-  box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.05);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC STATS DISPLAY
-   For showing numbers with impact
-   ═══════════════════════════════════════════════════════════════════════════ */
-.captain-stat {
-  text-align: center;
-}
-
-.captain-stat-value {
-  font-family: 'Inter', sans-serif;
-  font-size: 48px;
+  font-size: 44px;
   font-weight: 800;
-  color: var(--captain-primary);
+  color: var(--cap-glow-cyan);
   text-shadow:
-    0 0 20px var(--captain-glow-blue),
-    0 0 40px rgba(24, 119, 242, 0.3);
+    0 0 20px rgba(34, 211, 238, 0.5),
+    0 0 40px rgba(34, 211, 238, 0.2);
   line-height: 1;
 }
 
-.captain-stat-label {
-  font-family: 'Inter', sans-serif;
+.cap-stat-label {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 2px;
-  color: var(--captain-text-secondary);
+  color: var(--cap-text-muted);
   margin-top: 8px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC PROGRESS BAR — DRAMATIC VERSION
+   LIVE PULSE DOT
    ═══════════════════════════════════════════════════════════════════════════ */
-.captain-progress {
-  width: 100%;
+.cap-live-dot {
+  width: 12px;
   height: 12px;
-  background: linear-gradient(180deg, #E2E8F0 0%, #F1F5F9 100%);
-  border-radius: 6px;
-  overflow: hidden;
-  border: 2px solid var(--captain-border-metallic);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.captain-progress-fill {
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--captain-primary) 0%,
-    var(--captain-neon-cyan) 50%,
-    var(--captain-primary) 100%
-  );
-  background-size: 200% 100%;
-  animation: captain-border-flow 2s linear infinite;
-  border-radius: 4px;
-  box-shadow: 0 0 20px var(--captain-glow-cyan);
-  transition: width 0.5s ease;
+  background: var(--cap-success);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--cap-success), 0 0 20px var(--cap-success);
+  animation: cap-light-flicker 1.5s ease-in-out infinite;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FUTURISTIC MODAL — DRAMATIC VERSION
+   UTILITY
    ═══════════════════════════════════════════════════════════════════════════ */
-.captain-modal {
-  background: var(--captain-bg-card);
-  border: 4px solid var(--captain-border-metallic);
-  border-radius: 20px;
-  position: relative;
-  overflow: hidden;
-  box-shadow:
-    0 0 60px var(--captain-glow-blue),
-    0 25px 80px -20px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 1);
+.cap-text-glow {
+  text-shadow: 0 0 15px rgba(34, 211, 238, 0.5), 0 0 30px rgba(34, 211, 238, 0.2);
 }
 
-/* Animated border */
-.captain-modal::before {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 22px;
-  background: linear-gradient(
-    45deg,
-    var(--captain-neon-cyan) 0%,
-    var(--captain-primary) 25%,
-    var(--captain-neon-purple) 50%,
-    var(--captain-primary) 75%,
-    var(--captain-neon-cyan) 100%
-  );
-  background-size: 400% 400%;
-  animation: captain-border-flow 4s linear infinite;
-  z-index: -1;
-}
-
-/* Inner bracket frame */
-.captain-modal::after {
-  content: '';
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  border-radius: 14px;
-  pointer-events: none;
-}
-
-.captain-modal-header {
-  padding: 24px 28px;
-  border-bottom: 2px solid var(--captain-border);
-  background: linear-gradient(180deg, rgba(34, 211, 238, 0.08) 0%, transparent 100%);
-  border-radius: 16px 16px 0 0;
-}
-
-.captain-modal-title {
-  font-family: 'Inter', sans-serif;
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--captain-text);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   UTILITY CLASSES
-   ═══════════════════════════════════════════════════════════════════════════ */
-.captain-text-glow {
-  text-shadow: 0 0 20px currentColor;
-}
-
-.captain-neon-text {
-  color: var(--captain-neon-cyan);
-  text-shadow:
-    0 0 10px var(--captain-glow-cyan),
-    0 0 20px var(--captain-glow-cyan);
-}
-
-.captain-gradient-text {
-  background: linear-gradient(135deg, var(--captain-primary) 0%, var(--captain-neon-cyan) 100%);
+.cap-text-chrome {
+  background: linear-gradient(180deg, var(--cap-chrome-light) 0%, var(--cap-chrome-mid) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
