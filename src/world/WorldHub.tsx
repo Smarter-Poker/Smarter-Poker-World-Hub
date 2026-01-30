@@ -40,7 +40,7 @@ function useIsMobile() {
 }
 
 // UI Components
-import { DiamondStat, XPStat } from './components/HeaderStats';
+import { DiamondStat } from './components/HeaderStats';
 import { WelcomeBack } from './components/WelcomeMessage';
 import { StreakPopup } from './components/StreakPopup';
 import { SearchOrb, SearchOverlay } from './components/GlobalSearch';

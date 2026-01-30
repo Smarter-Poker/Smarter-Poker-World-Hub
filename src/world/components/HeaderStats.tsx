@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   HEADER STATS — Inline Diamond and XP displays for top bar
+   HEADER STATS — Inline Diamond displays for top bar
    LIVE DATA: Fetches real user profile from Supabase
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -9,20 +9,15 @@ import { getAuthUser } from '../../lib/authUtils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 📊 DEFAULT NEW USER STATS
-// These are the starting values for new users (300 diamonds, 50 XP, Level 1)
+// These are the starting values for new users (300 diamonds, Level 1)
 // ─────────────────────────────────────────────────────────────────────────────
 const DEFAULT_USER_STATS = {
     diamonds: 300,
-    xp: 50,
-    level: 1,
     streak: 0,
     streakMultiplier: 1.0,
 };
 
-// Calculate level from XP (every 500 XP = 1 level, minimum level 1)
-function calculateLevel(xp: number): number {
-    return Math.max(1, Math.floor(xp / 500) + 1);
-}
+// XP system removed
 
 // Shared bar height for consistency
 const BAR_HEIGHT = 32;
@@ -34,8 +29,6 @@ const FONT_SIZE = 13;
 function useUserProfile() {
     const [profile, setProfile] = useState<{
         diamonds: number;
-        xp: number;
-        level: number;
         streak: number;
         streakMultiplier: number;
         isLoading: boolean;
@@ -65,7 +58,7 @@ function useUserProfile() {
                 // Fetch user profile from Supabase
                 const { data: profileData, error: profileError } = await supabase
                     .from('profiles')
-                    .select('diamonds, xp_total, streak_days, diamond_multiplier')
+                    .select('diamonds, streak_days, diamond_multiplier')
                     .eq('id', user.id)
                     .single();
 
@@ -79,11 +72,8 @@ function useUserProfile() {
                 }
 
                 if (profileData && isMounted) {
-                    const xp = profileData.xp_total || 0;
                     setProfile({
                         diamonds: profileData.diamonds || DEFAULT_USER_STATS.diamonds,
-                        xp: xp,
-                        level: calculateLevel(xp),
                         streak: profileData.streak_days || 0,
                         streakMultiplier: profileData.diamond_multiplier || 1.0,
                         isLoading: false,
@@ -203,70 +193,7 @@ export function DiamondStat({ onBuyClick }: DiamondStatProps) {
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ⬆️ XP STAT — Shows "XP: total • LV level" (same height as Diamond)
-// ─────────────────────────────────────────────────────────────────────────────
-export function XPStat() {
-    const { xp, level, isLoading } = useUserProfile();
-
-    return (
-        <div
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                height: BAR_HEIGHT,
-                padding: '0 14px',
-                background: 'rgba(0, 20, 40, 0.6)',
-                borderRadius: 20,
-                border: '1px solid rgba(0, 212, 255, 0.4)',
-            }}
-        >
-            <span
-                style={{
-                    fontFamily: 'Orbitron, monospace',
-                    fontSize: FONT_SIZE,
-                    fontWeight: 600,
-                    color: '#ffffff',
-                    textTransform: 'uppercase',
-                }}
-            >
-                XP
-            </span>
-            <span
-                style={{
-                    fontFamily: 'Orbitron, monospace',
-                    fontSize: FONT_SIZE,
-                    fontWeight: 600,
-                    color: '#00d4ff',
-                    opacity: isLoading ? 0.5 : 1,
-                }}
-            >
-                {isLoading ? '...' : xp.toLocaleString()}
-            </span>
-            <span
-                style={{
-                    fontFamily: 'Orbitron, monospace',
-                    fontSize: 11,
-                    color: 'rgba(255, 255, 255, 0.5)',
-                }}
-            >
-                •
-            </span>
-            <span
-                style={{
-                    fontFamily: 'Orbitron, monospace',
-                    fontSize: FONT_SIZE,
-                    fontWeight: 600,
-                    color: '#ffffff',
-                    opacity: isLoading ? 0.5 : 1,
-                }}
-            >
-                LV {isLoading ? '...' : level}
-            </span>
-        </div>
-    );
-}
+// XP system removed - XPStat component deleted
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🔥 STREAK STAT (kept for compatibility)
