@@ -2867,31 +2867,30 @@ export default function MessengerPage() {
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                         {/* Jarvis Avatar */}
-                                        <div style={{
-                                            width: 48,
-                                            height: 48,
-                                            borderRadius: '50%',
-                                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: 24,
-                                            boxShadow: '0 2px 8px rgba(255, 215, 0, 0.3)',
-                                            position: 'relative'
-                                        }}>
-                                            🤖
-                                            {/* Always Online Indicator */}
-                                            <div style={{
-                                                position: 'absolute',
-                                                bottom: 0,
-                                                right: 0,
-                                                width: 14,
-                                                height: 14,
+                                        <img
+                                            src="/images/jarvis-avatar.png"
+                                            alt="Jarvis AI"
+                                            style={{
+                                                width: 48,
+                                                height: 48,
                                                 borderRadius: '50%',
-                                                background: C.green,
-                                                border: '2px solid white'
-                                            }} />
-                                        </div>
+                                                objectFit: 'cover',
+                                                boxShadow: '0 2px 8px rgba(255, 215, 0, 0.3)',
+                                                border: '2px solid #FFD700',
+                                                position: 'relative'
+                                            }}
+                                        />
+                                        {/* Always Online Indicator */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: 0,
+                                            left: 36,
+                                            width: 14,
+                                            height: 14,
+                                            borderRadius: '50%',
+                                            background: C.green,
+                                            border: '2px solid white'
+                                        }} />
 
                                         {/* Jarvis Info */}
                                         <div style={{ flex: 1, minWidth: 0 }}>
