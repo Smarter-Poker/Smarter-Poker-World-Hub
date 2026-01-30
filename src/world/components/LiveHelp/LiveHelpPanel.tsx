@@ -11,12 +11,19 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Agent, Message } from './useLiveHelp';
 import { AGENTS } from './useLiveHelp';
-import { QuickActions, getQuickActionMessage } from './QuickActions';
+import { DynamicQuickActions } from './DynamicQuickActions';
 import { MessageReactions } from './MessageReactions';
 import { CopyButton } from './CopyButton';
 import { VoiceInput } from './VoiceInput';
 import { EnhancedTypingIndicator } from './EnhancedTypingIndicator';
 import { useKeyboardShortcuts, KeyboardShortcutHints } from './KeyboardShortcuts';
+import { ThemeToggle, getThemeColors, type Theme } from './ThemeToggle';
+import { CompactModeToggle, getCompactStyles } from './CompactModeToggle';
+import { LanguageSelector, useTranslation, type Language } from './LanguageSelector';
+import { AutoComplete } from './AutoComplete';
+import { ConversationHistory } from './ConversationHistory';
+import { RichMediaRenderer } from './RichMediaRenderer';
+import { JarvisAvatar } from './JarvisAvatar';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -46,6 +53,17 @@ export function LiveHelpPanel({
     onSwitchAgent,
 }: LiveHelpPanelProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // State management for new features
+    const [theme, setTheme] = useState<Theme>('dark');
+    const [isCompact, setIsCompact] = useState(false);
+    const [language, setLanguage] = useState<Language>('en');
+    const [showAutoComplete, setShowAutoComplete] = useState(false);
+
+    // Get theme colors and compact styles
+    const colors = getThemeColors(theme);
+    const styles = getCompactStyles(isCompact);
+    const t = useTranslation(language);
 
     // Keyboard shortcuts
     useKeyboardShortcuts({
@@ -97,13 +115,13 @@ export function LiveHelpPanel({
                     right: 0,
                     top: 0,
                     bottom: 0,
-                    width: 420,
+                    width: styles.width,
                     maxWidth: '100vw',
-                    background: 'linear-gradient(180deg, rgba(0, 20, 45, 0.98), rgba(0, 10, 30, 0.99))',
-                    borderLeft: '1px solid rgba(0, 212, 255, 0.3)',
-                    boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.5)',
+                    background: colors.background,
+                    border: `1px solid ${colors.border}`,
+                    borderRight: 'none',
                     transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    transition: 'transform 0.3s ease',
                     zIndex: 201,
                     display: 'flex',
                     flexDirection: 'column',
@@ -112,54 +130,68 @@ export function LiveHelpPanel({
                 {/* Header */}
                 <div
                     style={{
-                        padding: '16px 20px',
-                        borderBottom: '1px solid rgba(0, 212, 255, 0.2)',
+                        padding: `${styles.padding}px ${styles.padding + 4}px`,
+                        borderBottom: `1px solid ${colors.border}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        gap: '12px'
                     }}
                 >
-                    <div>
-                        <h3
-                            style={{
-                                fontFamily: 'Orbitron, sans-serif',
-                                fontSize: 16,
-                                fontWeight: 600,
-                                color: '#ffffff',
-                                margin: 0,
-                            }}
-                        >
-                            Ask Jarvis
-                        </h3>
-                        <p
-                            style={{
-                                fontFamily: 'Inter, sans-serif',
-                                fontSize: 12,
-                                color: 'rgba(255, 255, 255, 0.6)',
-                                margin: '4px 0 0 0',
-                            }}
-                        >
-                            Smarter.Poker Expert
-                        </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <JarvisAvatar isTyping={isAgentTyping} size={styles.avatarSize} />
+                        <div>
+                            <h3
+                                style={{
+                                    fontFamily: 'Orbitron, sans-serif',
+                                    fontSize: styles.fontSize + 2,
+                                    fontWeight: 600,
+                                    color: colors.text,
+                                    margin: 0,
+                                }}
+                            >
+                                {t.askJarvis}
+                            </h3>
+                            <p
+                                style={{
+                                    fontFamily: 'Inter, sans-serif',
+                                    fontSize: styles.fontSize - 2,
+                                    color: colors.textSecondary,
+                                    margin: '4px 0 0 0',
+                                }}
+                            >
+                                Smarter.Poker Expert
+                            </p>
+                        </div>
                     </div>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            width: 32,
-                            height: 32,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            color: '#ffffff',
-                            cursor: 'pointer',
-                            fontSize: 18,
-                        }}
-                    >
-                        ×
-                    </button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <ConversationHistory
+                            onSelect={(id) => console.log('Resume conversation:', id)}
+                            onNewConversation={() => console.log('New conversation')}
+                        />
+                        <LanguageSelector onLanguageChange={setLanguage} />
+                        <CompactModeToggle onModeChange={setIsCompact} />
+                        <ThemeToggle onThemeChange={setTheme} />
+                        <button
+                            onClick={onClose}
+                            style={{
+                                width: 32,
+                                height: 32,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                border: 'none',
+                                borderRadius: '50%',
+                                color: colors.text,
+                                cursor: 'pointer',
+                                fontSize: 18,
+                            }}
+                        >
+                            ×
+                        </button>
+                    </div>
                 </div>
 
                 {/* Messages */}

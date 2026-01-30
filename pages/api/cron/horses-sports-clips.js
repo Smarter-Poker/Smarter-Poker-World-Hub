@@ -25,6 +25,33 @@ import {
 } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 import * as SportsClipDeduplicationService from '../../../src/services/SportsClipDeduplicationService.js';
 
+/**
+ * Extract video ID from YouTube URL
+ */
+function extractVideoIdFromUrl(url) {
+    if (!url) return null;
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
+    ];
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
+}
+
+/**
+ * Convert YouTube URL to embed format
+ */
+function convertToEmbedUrl(url) {
+    if (!url) return url;
+    const videoId = extractVideoIdFromUrl(url);
+    if (!videoId) return url;
+    return `https://www.youtube.com/embed/${videoId}`;
+}
+
 // Sports caption templates
 const SPORTS_CAPTION_TEMPLATES = {
     highlight: ["🔥 This is insane", "💯 Unreal", "Sheesh", "W"],
@@ -217,7 +244,7 @@ Your reaction:`;
                     author_id: horse.profile_id,
                     content: finalCaption,
                     content_type: 'video',
-                    media_urls: [clip.source_url],
+                    media_urls: [convertToEmbedUrl(clip.source_url)],
                     visibility: 'public',
                     metadata: {
                         clip_id: clip.id,

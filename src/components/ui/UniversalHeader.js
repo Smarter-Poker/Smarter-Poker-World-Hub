@@ -370,7 +370,7 @@ export default function UniversalHeader({
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 8px;
+                    gap: 4px;
                     background: transparent;
                     border: none;
                     padding: 0;
@@ -556,20 +556,20 @@ export default function UniversalHeader({
                             setShowFullDiamonds(!showFullDiamonds);
                         }
                     }}>
-                        <span><img src="/images/diamond.png" alt="Diamond" style={{ width: 20, height: 20, display: "inline-block", verticalAlign: "middle" }} /></span>
+                        <span><img src="/images/diamond.png" alt="Diamond" style={{ width: 28, height: 28, display: "inline-block", verticalAlign: "middle" }} /></span>
                         <span data-testid="header-diamonds" style={{ fontWeight: 700 }} title={stats.diamonds.toLocaleString() + ' diamonds'}>
                             {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
                         </span>
                         <span style={{
-                            width: 20,
-                            height: 20,
+                            width: 28,
+                            height: 28,
                             borderRadius: '50%',
                             background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(0, 150, 255, 0.4))',
                             border: '1.5px solid rgba(0, 212, 255, 0.6)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: 12,
+                            fontSize: 16,
                             fontWeight: 700,
                             color: '#00d4ff',
                             cursor: 'pointer',

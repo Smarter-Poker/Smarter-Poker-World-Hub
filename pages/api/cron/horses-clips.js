@@ -56,6 +56,21 @@ async function loadClipLibrary() {
     }
 }
 
+/**
+ * Convert YouTube URL to embed format
+ * Handles: youtube.com/watch?v=ID, youtube.com/shorts/ID, youtu.be/ID
+ */
+function convertToEmbedUrl(url) {
+    if (!url) return url;
+
+    // Extract video ID
+    const videoId = extractVideoIdFromUrl(url);
+    if (!videoId) return url;
+
+    // Convert to embed URL
+    return `https://www.youtube.com/embed/${videoId}`;
+}
+
 // ClipDeduplicationService - CRITICAL for preventing duplicate posts
 let ClipDeduplicationService;
 let deduplicationLoaded = false;
@@ -440,7 +455,7 @@ BAD EXAMPLES:
                 author_id: horse.profile_id,
                 content: finalCaption,
                 content_type: 'video',
-                media_urls: [clip.source_url],
+                media_urls: [convertToEmbedUrl(clip.source_url)],
                 visibility: 'public',
                 metadata: {
                     clip_id: clip.id,
