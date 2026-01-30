@@ -1,9 +1,47 @@
 import { createClient } from '@supabase/supabase-js';
+import allVenuesData from '../../../data/all-venues.json';
+import tourSeriesData from '../../../data/poker-tour-series-2026.json';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
+
+// Build lookup maps for page names
+function buildNameLookups() {
+  const venueNames = {};
+  (Array.isArray(allVenuesData) ? allVenuesData : allVenuesData.venues || []).forEach(v => {
+    if (v.id) venueNames[String(v.id)] = v.name || v.venue_name || 'Venue';
+    if (v.slug) venueNames[v.slug] = v.name || v.venue_name || 'Venue';
+  });
+  const tourNames = {};
+  const seriesNames = {};
+  (Array.isArray(tourSeriesData) ? tourSeriesData : tourSeriesData.tours || tourSeriesData.data || []).forEach(t => {
+    if (t.type === 'tour' || t.tour_code) {
+      var key = t.id || t.tour_code || t.code;
+      if (key) tourNames[String(key)] = t.name || t.tour_name || 'Tour';
+    }
+    if (t.type === 'series' || t.series_id) {
+      var key2 = t.id || t.series_id;
+      if (key2) seriesNames[String(key2)] = t.name || t.series_name || t.short_name || 'Series';
+    }
+    // Handle nested series inside tours
+    if (t.series && Array.isArray(t.series)) {
+      t.series.forEach(s => {
+        if (s.id) seriesNames[String(s.id)] = s.name || s.short_name || 'Series';
+      });
+    }
+  });
+  return { venueNames, tourNames, seriesNames };
+}
+
+function lookupPageName(lookups, pageType, pageId) {
+  var id = String(pageId);
+  if (pageType === 'venue') return lookups.venueNames[id] || null;
+  if (pageType === 'tour') return lookups.tourNames[id] || null;
+  if (pageType === 'series') return lookups.seriesNames[id] || null;
+  return null;
+}
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -65,12 +103,16 @@ export default async function handler(req, res) {
       console.error('Error fetching promotion notifications:', notifError);
     }
 
+    // Build name lookups for enrichment
+    const lookups = buildNameLookups();
+
     // Combine and sort by created_at
     const promotions = [
       ...(data || []).map(a => ({
         id: 'activity-' + a.id,
         page_type: a.page_type,
         page_id: a.page_id,
+        page_name: lookupPageName(lookups, a.page_type, a.page_id),
         title: null,
         content: a.content,
         source: 'activity',
@@ -80,6 +122,7 @@ export default async function handler(req, res) {
         id: 'notif-' + n.id,
         page_type: n.page_type,
         page_id: n.page_id,
+        page_name: lookupPageName(lookups, n.page_type, n.page_id),
         title: n.title,
         content: n.message,
         source: 'notification',
