@@ -136,26 +136,58 @@ function getHorseVoice(horseIndex) {
     return VOICE_PATTERNS[horseIndex % VOICE_PATTERNS.length];
 }
 
-// Strip emojis and clean text
+// AGGRESSIVE caption cleanup - strip ALL banned patterns
 function cleanCaption(text, horseIndex) {
+    if (!text) return '';
+
     // Strip ALL emojis
     const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2300}-\u{23FF}]|[\u{2B50}]|[\u{1F004}]|[\u{1F0CF}]|[\u{1F170}-\u{1F251}]/gu;
-    let clean = text.replace(emojiRegex, '').replace(/\s+/g, ' ').trim();
+    let clean = text.replace(emojiRegex, '');
 
-    // Remove banned phrases
-    const lower = clean.toLowerCase();
-    for (const banned of BANNED_PHRASES) {
-        if (lower.includes(banned)) {
-            clean = clean.replace(new RegExp(banned, 'gi'), '').trim();
-        }
+    // NUKE "yo" at start (any casing, with optional comma/space)
+    clean = clean.replace(/^[Yy][Oo][,\s]*/i, '');
+    clean = clean.replace(/^[Yy][Oo][,\s]*/i, ''); // double-check
+
+    // Remove banned phrases (case insensitive)
+    const bannedPatterns = [
+        /\byo\b[,\s]*/gi,
+        /\bjust saw this\b/gi,
+        /\bcheck out\b/gi,
+        /\bcheck this\b/gi,
+        /\bpretty cool\b/gi,
+        /\bwild stuff\b/gi,
+        /\bwilddddd+\b/gi,
+        /\bbruh\b/gi,
+        /\bgotta check\b/gi,
+        /\blook at this\b/gi,
+        /\bcool stuff\b/gi,
+        /\bawesome stuff\b/gi,
+        /\bso cool\b/gi,
+        /\bthis is fire\b/gi,
+        /\bfire content\b/gi,
+        /\bong\b/gi,
+        /\btbh\b/gi,
+        /\bfrfr\b/gi,
+        /\bno cap\b/gi,
+        /\bvibin\b/gi,
+        /\bvibes\b/gi,
+        /\bhey,\s*/gi
+    ];
+
+    for (const pattern of bannedPatterns) {
+        clean = clean.replace(pattern, '');
     }
 
-    // 1 in 20 chance for ONE emoji
-    if ((horseIndex + Date.now()) % 20 === 0) {
-        clean = clean + ' ';
+    // Clean up whitespace and punctuation
+    clean = clean.replace(/^[\s,.\-:!]+/, ''); // strip leading punctuation
+    clean = clean.replace(/\s+/g, ' ').trim();
+
+    // Capitalize first letter
+    if (clean.length > 0) {
+        clean = clean.charAt(0).toUpperCase() + clean.slice(1);
     }
 
-    return clean.replace(/\s+/g, ' ').trim();
+    return clean;
 }
 
 const rssParser = new Parser({
