@@ -81,7 +81,28 @@ export function LiveHelpPanel({
     const handleSend = () => {
         if (inputValue.trim()) {
             onSendMessage(inputValue);
+            setShowAutoComplete(false);
         }
+    };
+
+    // Handle auto-complete selection
+    const handleAutoCompleteSelect = (suggestion: string) => {
+        onInputChange(suggestion);
+        setShowAutoComplete(false);
+    };
+
+    // Handle input change with auto-complete trigger
+    const handleInputChange = (value: string) => {
+        onInputChange(value);
+        // Show auto-complete for certain triggers
+        const triggers = ['how', 'what', 'where', 'help', 'can'];
+        const shouldShow = triggers.some(trigger => value.toLowerCase().startsWith(trigger));
+        setShowAutoComplete(shouldShow && value.length > 2);
+    };
+
+    // Handle quick action click
+    const handleQuickAction = (message: string) => {
+        onInputChange(message);
     };
 
     // Handle enter key
@@ -220,61 +241,77 @@ export function LiveHelpPanel({
                     <div ref={messagesEndRef} />
                 </div>
 
+                {/* Dynamic Quick Actions */}
+                <DynamicQuickActions onActionClick={handleQuickAction} />
+
                 {/* Input */}
                 <div
                     style={{
-                        padding: '16px',
-                        borderTop: '1px solid rgba(0, 212, 255, 0.2)',
+                        padding: `${styles.padding}px`,
+                        borderTop: `1px solid ${colors.border}`,
                         display: 'flex',
-                        gap: 12,
+                        flexDirection: 'column',
+                        gap: 8,
+                        position: 'relative'
                     }}
                 >
-                    <input
-                        type="text"
-                        value={inputValue}
-                        onChange={e => onInputChange(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Type Your Question..."
-                        style={{
-                            flex: 1,
-                            padding: '12px 16px',
-                            background: 'rgba(0, 20, 40, 0.6)',
-                            border: '1px solid rgba(0, 212, 255, 0.3)',
-                            borderRadius: 24,
-                            color: '#ffffff',
-                            fontFamily: 'Inter, sans-serif',
-                            fontSize: 14,
-                            outline: 'none',
-                        }}
-                    />
-                    <VoiceInput
-                        onTranscript={(text) => {
-                            onInputChange(inputValue + (inputValue ? ' ' : '') + text);
-                        }}
-                        onError={(error) => console.error('Voice input error:', error)}
-                    />
-                    <button
-                        onClick={handleSend}
-                        disabled={!inputValue.trim()}
-                        style={{
-                            width: 44,
-                            height: 44,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: inputValue.trim()
-                                ? 'linear-gradient(135deg, #00d4ff, #0088ff)'
-                                : 'rgba(0, 212, 255, 0.2)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            cursor: inputValue.trim() ? 'pointer' : 'default',
-                            transition: 'all 0.2s ease',
-                        }}
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                            <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
-                        </svg>
-                    </button>
+                    {/* Auto-Complete */}
+                    {showAutoComplete && (
+                        <AutoComplete
+                            inputValue={inputValue}
+                            onSelect={handleAutoCompleteSelect}
+                        />
+                    )}
+
+                    {/* Input Row */}
+                    <div style={{ display: 'flex', gap: 12 }}>
+                        <input
+                            type="text"
+                            value={inputValue}
+                            onChange={e => handleInputChange(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder={t.typeYourQuestion}
+                            style={{
+                                flex: 1,
+                                padding: styles.inputPadding,
+                                background: colors.inputBackground,
+                                border: `1px solid ${colors.inputBorder}`,
+                                borderRadius: 24,
+                                color: colors.text,
+                                fontFamily: 'Inter, sans-serif',
+                                fontSize: styles.fontSize,
+                                outline: 'none',
+                            }}
+                        />
+                        <VoiceInput
+                            onTranscript={(text) => {
+                                handleInputChange(inputValue + (inputValue ? ' ' : '') + text);
+                            }}
+                            onError={(error) => console.error('Voice input error:', error)}
+                        />
+                        <button
+                            onClick={handleSend}
+                            disabled={!inputValue.trim()}
+                            style={{
+                                width: 48,
+                                height: 48,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: inputValue.trim()
+                                    ? 'linear-gradient(135deg, #00d4ff, #0088ff)'
+                                    : 'rgba(255, 255, 255, 0.1)',
+                                border: 'none',
+                                borderRadius: '50%',
+                                cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
+                                transition: 'all 0.2s ease',
+                            }}
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                                <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div >
         </>
@@ -363,17 +400,7 @@ function MessageBubble({ message, agent }: MessageBubbleProps) {
                     border: isUser ? 'none' : '1px solid rgba(0, 212, 255, 0.2)',
                 }}
             >
-                <p
-                    style={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontSize: 14,
-                        lineHeight: 1.5,
-                        color: '#ffffff',
-                        margin: 0,
-                    }}
-                >
-                    {message.content}
-                </p>
+                <RichMediaRenderer content={message.content} />
             </div>
 
             {/* Reactions and Copy Button for Jarvis messages */}
