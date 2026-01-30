@@ -84,9 +84,10 @@ export default function TourDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFollowed, setIsFollowed] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
   const [shareMessage, setShareMessage] = useState('');
 
-  // Load follow state from localStorage
+  // Load follow state - localStorage for instant UI, API for count
   useEffect(() => {
     if (!code) return;
     try {
@@ -95,6 +96,13 @@ export default function TourDetailPage() {
     } catch {
       setIsFollowed(false);
     }
+    // Fetch follower count from API
+    fetch(`/api/poker/follow?page_type=tour&page_id=${encodeURIComponent(code)}`)
+      .then(r => r.json())
+      .then(json => {
+        if (json.success) setFollowerCount(json.follower_count || 0);
+      })
+      .catch(() => {});
   }, [code]);
 
   // Fetch tour data
@@ -126,18 +134,47 @@ export default function TourDetailPage() {
   }, [code]);
 
   function handleFollow() {
+    const newState = !isFollowed;
+    setIsFollowed(newState);
+    setFollowerCount(prev => newState ? prev + 1 : Math.max(0, prev - 1));
+
+    // Update localStorage for instant persistence
     try {
       const followed = JSON.parse(localStorage.getItem('followed-tours') || '[]');
       let updated;
-      if (isFollowed) {
-        updated = followed.filter((c) => c !== code);
+      if (newState) {
+        updated = followed.includes(code) ? followed : [...followed, code];
       } else {
-        updated = [...followed, code];
+        updated = followed.filter((c) => c !== code);
       }
       localStorage.setItem('followed-tours', JSON.stringify(updated));
-      setIsFollowed(!isFollowed);
     } catch {
       // Silently fail
+    }
+
+    // Call API for server-side persistence
+    fetch('/api/poker/follow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page_type: 'tour',
+        page_id: code,
+        action: newState ? 'follow' : 'unfollow',
+        user_id: getAnonymousUserId(),
+      }),
+    }).catch(() => {});
+  }
+
+  function getAnonymousUserId() {
+    try {
+      let uid = localStorage.getItem('sp-anon-uid');
+      if (!uid) {
+        uid = 'anon-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('sp-anon-uid', uid);
+      }
+      return uid;
+    } catch {
+      return 'anon-fallback';
     }
   }
 
@@ -215,6 +252,7 @@ export default function TourDetailPage() {
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                       </svg>
                       {isFollowed ? 'Following' : 'Follow'}
+                      {followerCount > 0 && <span className="follow-count">{followerCount}</span>}
                     </button>
                     <button className="share-btn" onClick={handleShare}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -574,6 +612,19 @@ export default function TourDetailPage() {
         .follow-btn.followed {
           background: rgba(212, 168, 83, 0.15);
           border-color: rgba(212, 168, 83, 0.4);
+          color: #d4a853;
+        }
+        .follow-count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 20px;
+          height: 20px;
+          padding: 0 6px;
+          border-radius: 10px;
+          background: rgba(212, 168, 83, 0.2);
+          font-size: 11px;
+          font-weight: 700;
           color: #d4a853;
         }
         .share-message {

@@ -106,9 +106,10 @@ export default function SeriesDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
   const [shareMessage, setShareMessage] = useState('');
 
-  // Load follow state from localStorage
+  // Load follow state - localStorage for instant UI, API for count
   useEffect(() => {
     if (!id) return;
     try {
@@ -117,6 +118,13 @@ export default function SeriesDetailPage() {
     } catch {
       // ignore parse errors
     }
+    // Fetch follower count from API
+    fetch(`/api/poker/follow?page_type=series&page_id=${id}`)
+      .then(r => r.json())
+      .then(json => {
+        if (json.success) setFollowerCount(json.follower_count || 0);
+      })
+      .catch(() => {});
   }, [id]);
 
   // Fetch series data
@@ -151,22 +159,50 @@ export default function SeriesDetailPage() {
   }, [id]);
 
   const toggleFollow = () => {
+    const sid = String(id);
+    const newState = !isFollowing;
+    setIsFollowing(newState);
+    setFollowerCount(prev => newState ? prev + 1 : Math.max(0, prev - 1));
+
+    // Update localStorage for instant persistence
     try {
       const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
-      const sid = String(id);
       let updated;
-      if (followed.includes(sid)) {
-        updated = followed.filter(x => x !== sid);
-        setIsFollowing(false);
+      if (newState) {
+        updated = followed.includes(sid) ? followed : [...followed, sid];
       } else {
-        updated = [...followed, sid];
-        setIsFollowing(true);
+        updated = followed.filter(x => x !== sid);
       }
       localStorage.setItem('followed-series', JSON.stringify(updated));
     } catch {
       // ignore
     }
+
+    // Call API for server-side persistence
+    fetch('/api/poker/follow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page_type: 'series',
+        page_id: sid,
+        action: newState ? 'follow' : 'unfollow',
+        user_id: getAnonymousUserId(),
+      }),
+    }).catch(() => {});
   };
+
+  function getAnonymousUserId() {
+    try {
+      let uid = localStorage.getItem('sp-anon-uid');
+      if (!uid) {
+        uid = 'anon-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('sp-anon-uid', uid);
+      }
+      return uid;
+    } catch {
+      return 'anon-fallback';
+    }
+  }
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -305,6 +341,7 @@ export default function SeriesDetailPage() {
                     <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
                   </svg>
                   Following
+                  {followerCount > 0 && <span className="follow-count">{followerCount}</span>}
                 </>
               ) : (
                 <>
@@ -312,6 +349,7 @@ export default function SeriesDetailPage() {
                     <path d="M8 3v10M3 8h10" strokeLinecap="round"/>
                   </svg>
                   Follow
+                  {followerCount > 0 && <span className="follow-count">{followerCount}</span>}
                 </>
               )}
             </button>
@@ -595,6 +633,20 @@ const styles = `
   .follow-btn.following:hover {
     background: rgba(74, 222, 128, 0.22);
     border-color: #4ade80;
+  }
+
+  .follow-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: rgba(212, 168, 83, 0.2);
+    font-size: 11px;
+    font-weight: 700;
+    color: #d4a853;
   }
 
   .share-btn {

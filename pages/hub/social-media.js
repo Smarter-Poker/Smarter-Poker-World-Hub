@@ -2600,6 +2600,20 @@ export default function SocialMediaPage() {
                         <img src="/icons/tournaments.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
                     </Link>
+                    {/* Poker Pages - Venue/Tour/Series Pages */}
+                    <Link href="/hub/poker-near-me" onClick={() => setSidebarOpen(false)} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                    }}>
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <rect x="2" y="3" width="20" height="18" rx="2" fill="#1877F2" opacity="0.15" />
+                            <rect x="2" y="3" width="20" height="7" rx="2" fill="#1877F2" opacity="0.3" />
+                            <circle cx="8" cy="14" r="2" fill="#1877F2" />
+                            <rect x="12" y="13" width="8" height="2" rx="1" fill="#1877F2" opacity="0.6" />
+                            <rect x="12" y="17" width="5" height="1.5" rx="0.75" fill="#1877F2" opacity="0.3" />
+                        </svg>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Poker Pages</span>
+                    </Link>
                     {/* GTO Training - Custom AI icon */}
                     <Link href="/hub/gto-trainer" onClick={() => setSidebarOpen(false)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
