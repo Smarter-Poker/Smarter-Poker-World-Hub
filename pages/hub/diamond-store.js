@@ -565,7 +565,7 @@ function VIPCard({ plan, isSelected, onSelect }) {
                 marginBottom: 16,
             }}>
                 <img
-                    src="/images/vip-card.jpg"
+                    src="/images/vip-card.png"
                     alt="VIP Card"
                     style={{
                         width: '100%',
