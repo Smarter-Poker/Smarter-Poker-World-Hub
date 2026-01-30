@@ -654,8 +654,9 @@ export default function UniversalHeader({
                 </div>
             </header>
 
-            {/* Live Help Panel - renders on all pages with UniversalHeader */}
+            {/* Live Help Panel - DISABLED per user request (no Jarvis/Geeves popups)
             <LiveHelpPanel {...liveHelp} />
+            */}
         </>
     );
 }

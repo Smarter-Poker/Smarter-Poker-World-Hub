@@ -968,7 +968,7 @@ export default function WorldHub() {
                 ═══════════════════════════════════════════════════════════════ */}
                 <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
-                {/* Live Help Panel */}
+                {/* Live Help Panel - DISABLED per user request (no Jarvis/Geeves popups)
                 <LiveHelpPanel
                     isOpen={liveHelp.isOpen}
                     onClose={() => liveHelp.setIsOpen(false)}
@@ -980,6 +980,7 @@ export default function WorldHub() {
                     onSendMessage={liveHelp.sendMessage}
                     onSwitchAgent={liveHelp.switchAgent}
                 />
+                */}
             </div>
         </>
     );

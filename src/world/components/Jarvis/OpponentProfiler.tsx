@@ -1,9 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    OPPONENT PROFILER — Track and analyze opponent tendencies
    Build profiles from observations and get exploitative advice
+   Now with Supabase persistence for cross-session access
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../../../lib/supabase';
 
 interface OpponentProfile {
     id: string;
@@ -51,11 +53,98 @@ export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps
     const [profiles, setProfiles] = useState<OpponentProfile[]>([]);
     const [activeProfile, setActiveProfile] = useState<string | null>(null);
     const [newNote, setNewNote] = useState('');
+    const [userId, setUserId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Get active profile
+    // Get current profile
     const current = profiles.find(p => p.id === activeProfile);
 
-    const addProfile = () => {
+    // Load user and profiles on mount
+    useEffect(() => {
+        async function loadProfiles() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    setLoading(false);
+                    // Load from localStorage for unauthenticated users
+                    const saved = localStorage.getItem('jarvis_opponent_profiles');
+                    if (saved) {
+                        try { setProfiles(JSON.parse(saved)); } catch (e) { }
+                    }
+                    return;
+                }
+
+                setUserId(user.id);
+
+                // Load from Supabase
+                const { data, error } = await supabase
+                    .from('opponent_profiles')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Error loading opponent profiles:', error);
+                    // Fallback to localStorage
+                    const saved = localStorage.getItem('jarvis_opponent_profiles');
+                    if (saved) {
+                        try { setProfiles(JSON.parse(saved)); } catch (e) { }
+                    }
+                } else if (data && data.length > 0) {
+                    // Convert from DB format to local format
+                    const loaded: OpponentProfile[] = data.map(row => ({
+                        id: row.id,
+                        name: row.name,
+                        position: row.position || 'Unknown',
+                        notes: row.notes || [],
+                        style: row.style || 'unknown',
+                        stats: row.stats || { vpip: '?', pfr: '?', aggression: '?', foldToRaise: '?' },
+                        tags: row.tags || []
+                    }));
+                    setProfiles(loaded);
+                }
+            } catch (err) {
+                console.error('Failed to load profiles:', err);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        loadProfiles();
+    }, []);
+
+    // Save to Supabase when profiles change (debounced)
+    const saveProfile = useCallback(async (profile: OpponentProfile) => {
+        if (!userId) {
+            // Save to localStorage for non-authenticated users
+            localStorage.setItem('jarvis_opponent_profiles', JSON.stringify(profiles));
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('opponent_profiles')
+                .upsert({
+                    id: profile.id,
+                    user_id: userId,
+                    name: profile.name,
+                    position: profile.position,
+                    notes: profile.notes,
+                    style: profile.style,
+                    stats: profile.stats,
+                    tags: profile.tags,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'id' });
+
+            if (error) {
+                console.error('Error saving opponent profile:', error);
+            }
+        } catch (err) {
+            console.error('Failed to save profile:', err);
+        }
+    }, [userId, profiles]);
+
+    const addProfile = async () => {
         const newProfile: OpponentProfile = {
             id: Date.now().toString(),
             name: `Villain ${profiles.length + 1}`,
@@ -67,12 +156,22 @@ export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps
         };
         setProfiles([...profiles, newProfile]);
         setActiveProfile(newProfile.id);
+
+        // Save to DB
+        await saveProfile(newProfile);
     };
 
-    const updateProfile = (id: string, updates: Partial<OpponentProfile>) => {
-        setProfiles(profiles.map(p =>
+    const updateProfile = async (id: string, updates: Partial<OpponentProfile>) => {
+        const updated = profiles.map(p =>
             p.id === id ? { ...p, ...updates } : p
-        ));
+        );
+        setProfiles(updated);
+
+        // Save to DB
+        const profile = updated.find(p => p.id === id);
+        if (profile) {
+            await saveProfile(profile);
+        }
     };
 
     const addNote = () => {

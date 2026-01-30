@@ -24,6 +24,12 @@ const LiveKitCall = dynamic(
     { ssr: false }
 );
 
+// Dynamic import for Jarvis AI Widget (client-side only)
+const JarvisMessengerWidget = dynamic(
+    () => import('../../src/world/components/Jarvis/JarvisMessengerWidget'),
+    { ssr: false }
+);
+
 // God-Mode Stack
 import { useMessengerStore } from '../../src/stores/messengerStore';
 import { useOneSignal } from '../../src/contexts/OneSignalContext';
@@ -2984,6 +2990,9 @@ export default function MessengerPage() {
                             </div>
                         )}
                 </main >
+
+                {/* Jarvis AI Poker Assistant Widget */}
+                <JarvisMessengerWidget />
             </div >
         </>
     );
