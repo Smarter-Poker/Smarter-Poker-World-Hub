@@ -624,10 +624,32 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                         overflow: 'hidden',
                         zIndex: 20,
-                        minWidth: 120,
+                        minWidth: 180,
                     }}>
                         <button
-                            onClick={handleDelete}
+                            onClick={() => {
+                                onDelete(message.id, 'for_me');
+                                setShowMenu(false);
+                            }}
+                            style={{
+                                display: 'block',
+                                width: '100%',
+                                padding: '10px 16px',
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                color: C.text,
+                                fontSize: 14,
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >Delete for Me</button>
+                        <button
+                            onClick={() => {
+                                onDelete(message.id, 'for_everyone');
+                                setShowMenu(false);
+                            }}
                             style={{
                                 display: 'block',
                                 width: '100%',
@@ -641,7 +663,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             }}
                             onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        >🗑️ Delete</button>
+                        >Delete for Everyone</button>
                     </div>
                 )}
 
@@ -2867,16 +2889,16 @@ export default function MessengerPage() {
                                         padding: '12px 16px',
                                         cursor: 'pointer',
                                         background: activeConversation?.id === 'jarvis-ai'
-                                            ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.1))'
+                                            ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 150, 255, 0.1))'
                                             : 'transparent',
                                         borderBottom: `1px solid ${C.border}`,
-                                        borderLeft: activeConversation?.id === 'jarvis-ai' ? '3px solid #FFD700' : '3px solid transparent',
+                                        borderLeft: activeConversation?.id === 'jarvis-ai' ? '3px solid #00D4FF' : '3px solid transparent',
                                         transition: 'all 0.2s',
                                         position: 'relative'
                                     }}
                                     onMouseEnter={e => {
                                         if (activeConversation?.id !== 'jarvis-ai') {
-                                            e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)';
+                                            e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)';
                                         }
                                     }}
                                     onMouseLeave={e => {
@@ -2895,8 +2917,8 @@ export default function MessengerPage() {
                                                 height: 48,
                                                 borderRadius: '50%',
                                                 objectFit: 'cover',
-                                                boxShadow: '0 2px 8px rgba(255, 215, 0, 0.3)',
-                                                border: '2px solid #FFD700',
+                                                boxShadow: '0 2px 8px rgba(0, 212, 255, 0.3)',
+                                                border: '2px solid #00D4FF',
                                                 position: 'relative'
                                             }}
                                         />
