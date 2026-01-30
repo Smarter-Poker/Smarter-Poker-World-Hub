@@ -12,27 +12,24 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-// 9-Max seat positions (VERTICAL STADIUM - ON THE FELT SURFACE)
-// Reference image shows avatars sitting INSIDE the gold rail, ON the dark felt
+// 9-Max seat positions (VERTICAL STADIUM TABLE - portrait orientation)
+// Table is TALL (vertical), so avatars distribute along LEFT and RIGHT sides
+// Reference image: 4 avatars on left edge, 4 on right edge, hero at bottom center
 const SEAT_POSITIONS = [
-    // Hero at bottom center (ON felt, not on rail)
-    { id: 'hero', x: 50, y: 80, isHero: true },
-    // Villain 1 - bottom left (ON felt)
-    { id: 'v1', x: 28, y: 72 },
-    // Villain 2 - left middle-lower (ON felt)
-    { id: 'v2', x: 20, y: 52 },
-    // Villain 3 - left middle-upper (ON felt)
-    { id: 'v3', x: 25, y: 32 },
-    // Villain 4 - top left (ON felt)
-    { id: 'v4', x: 38, y: 20 },
-    // Villain 5 - top right (ON felt)
-    { id: 'v5', x: 62, y: 20 },
-    // Villain 6 - right middle-upper (ON felt)
-    { id: 'v6', x: 75, y: 32 },
-    // Villain 7 - right middle-lower (ON felt)
-    { id: 'v7', x: 80, y: 52 },
-    // Villain 8 - bottom right (ON felt)
-    { id: 'v8', x: 72, y: 72 },
+    // Hero at bottom center
+    { id: 'hero', x: 50, y: 85, isHero: true },
+
+    // LEFT SIDE (4 villains) - from bottom to top
+    { id: 'v1', x: 15, y: 70 },  // Bottom-left
+    { id: 'v2', x: 15, y: 50 },  // Mid-left
+    { id: 'v3', x: 15, y: 30 },  // Upper-mid-left
+    { id: 'v4', x: 25, y: 15 },  // Top-left (closer to center)
+
+    // RIGHT SIDE (4 villains) - from bottom to top
+    { id: 'v8', x: 85, y: 70 },  // Bottom-right
+    { id: 'v7', x: 85, y: 50 },  // Mid-right
+    { id: 'v6', x: 85, y: 30 },  // Upper-mid-right
+    { id: 'v5', x: 75, y: 15 },  // Top-right (closer to center)
 ];
 
 // Convert card notation (e.g., 'Ah' for Ace of Hearts) to image path
