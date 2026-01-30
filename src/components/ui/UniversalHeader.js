@@ -10,7 +10,6 @@
  * - Dark background with neon blue accents
  * - "Smarter.Poker" in white text 
  * - Diamond wallet with + (REAL balance from user_diamond_balance)
- * - XP display with level (REAL data from profiles.xp_total)
  * - Profile picture (REAL avatar from profiles.avatar_url)
  * - Neon orb icons for profile, messages, notifications, settings
  * - Return to Hub button (for major pages) or Back button (for nested pages)
@@ -200,7 +199,7 @@ export default function UniversalHeader({
                             } catch (e) { }
 
                             const response = await fetch(
-                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,xp_total,diamonds`,
+                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds`,
                                 {
                                     headers: {
                                         'apikey': SUPABASE_ANON_KEY,
@@ -550,7 +549,7 @@ export default function UniversalHeader({
                     <span className="brand-text">Smarter.Poker</span>
                 </div>
 
-                {/* CENTER: Diamond Wallet + XP */}
+                {/* CENTER: Diamond Wallet */}
                 <div className="header-center">
                     {/* Diamond Wallet - click to toggle full/compact */}
                     <Link href="/hub/diamond-store" className="diamond-wallet" onClick={(e) => {
