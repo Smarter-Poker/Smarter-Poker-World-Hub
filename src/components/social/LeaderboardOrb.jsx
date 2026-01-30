@@ -84,7 +84,7 @@ const LeaderboardEntry = ({ entry, index, isCurrentUser, onClick }) => {
                 </div>
                 {entry.diamonds_earned > 0 && (
                     <div className="stat diamonds">
-                        <span className="stat-icon">💎</span>
+                        <span className="stat-icon"><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/></span>
                         <span className="stat-value">{entry.diamonds_earned}</span>
                     </div>
                 )}

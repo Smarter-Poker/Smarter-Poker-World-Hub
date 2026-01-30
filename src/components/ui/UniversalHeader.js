@@ -559,7 +559,7 @@ export default function UniversalHeader({
                             setShowFullDiamonds(!showFullDiamonds);
                         }
                     }}>
-                        <span>💎</span>
+                        <span><img src="/images/diamond.png" alt="Diamond" style={{ width: 20, height: 20, display: "inline-block", verticalAlign: "middle" }} /></span>
                         <span data-testid="header-diamonds" style={{ fontWeight: 700 }} title={stats.diamonds.toLocaleString() + ' diamonds'}>
                             {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
                         </span>

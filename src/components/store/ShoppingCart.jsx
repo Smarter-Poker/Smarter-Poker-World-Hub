@@ -198,7 +198,7 @@ export default function ShoppingCartComponent({ onCheckout }) {
                                                             color: '#1877F2',
                                                             margin: 0
                                                         }}>
-                                                            💎 {item.diamonds} Diamonds
+                                                            <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> {item.diamonds} Diamonds
                                                             {item.bonus > 0 && ` + ${item.bonus} Bonus`}
                                                         </p>
                                                     )}

@@ -76,7 +76,7 @@ export default function FilterBrainBar({
 
                 {/* Diamonds */}
                 <div style={styles.statBlock}>
-                    <span style={styles.statLabel}>💎</span>
+                    <span style={styles.statLabel}><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/></span>
                     <span style={{ ...styles.statValue, color: '#00D4FF' }}>
                         {diamondBalance.toLocaleString()}
                     </span>

@@ -124,7 +124,7 @@ function useUserProfile() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 💎 DIAMOND STAT — With + button to buy more
+// <img src="/images/diamond.png" alt="Diamond" style={{ width: 20, height: 20, display: "inline-block", verticalAlign: "middle" }} /> DIAMOND STAT — With + button to buy more
 // ─────────────────────────────────────────────────────────────────────────────
 interface DiamondStatProps {
     onBuyClick?: () => void;
@@ -152,7 +152,7 @@ export function DiamondStat({ onBuyClick }: DiamondStatProps) {
                 border: '1px solid rgba(0, 212, 255, 0.4)',
             }}
         >
-            <span style={{ fontSize: 16 }}>💎</span>
+            <span style={{ fontSize: 16 }}><img src="/images/diamond.png" alt="Diamond" style={{ width: 20, height: 20, display: "inline-block", verticalAlign: "middle" }} /></span>
             <span
                 style={{
                     fontFamily: 'Orbitron, monospace',

@@ -253,7 +253,7 @@ function CelebrationPopup({
                     filter: `drop-shadow(0 0 20px ${config.color})`,
                     animation: 'bounceIcon 1s ease-in-out infinite',
                 }}>
-                    {celebration.icon || '💎'}
+                    {celebration.icon || '<img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>'}
                 </div>
 
                 {/* Message */}
@@ -279,7 +279,7 @@ function CelebrationPopup({
                     marginBottom: 8,
                     textShadow: `0 0 40px ${config.glow}`,
                 }}>
-                    +{celebration.diamonds.toLocaleString()} 💎
+                    +{celebration.diamonds.toLocaleString()} <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>
                 </div>
 
                 {/* Multiplier badge */}
@@ -340,9 +340,9 @@ export function CelebrationManager() {
                     ...data,
                     id: data.id || `${Date.now()}-${Math.random()}`,
                     rarity: data.rarity || 'common',
-                    icon: data.icon || '💎',
+                    icon: data.icon || '<img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>',
                     multiplier: data.multiplier || 1,
-                    message: data.message || '💎 DIAMONDS EARNED!',
+                    message: data.message || '<img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> DIAMONDS EARNED!',
                 }]);
             }
         };
@@ -421,7 +421,7 @@ export function useCelebration() {
 
 export function MiniCelebration({
     diamonds,
-    icon = '💎',
+    icon = '<img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>',
     onComplete,
 }: {
     diamonds: number;
@@ -462,7 +462,7 @@ export function MiniCelebration({
                 fontWeight: 700,
                 color: '#ffffff',
             }}>
-                +{diamonds} 💎
+                +{diamonds} <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>
             </span>
         </div>
     );

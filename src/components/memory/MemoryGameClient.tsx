@@ -737,7 +737,7 @@ export default function MemoryGameClient({
                             <div className="flex justify-between pt-2">
                                 <span className="text-slate-400">Diamonds Earned</span>
                                 <span className="font-bold text-yellow-400">
-                                    💎 +{displayDiamonds}
+                                    <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> +{displayDiamonds}
                                     {backendRewards === null && <span className="text-xs ml-2 text-slate-500">(processing...)</span>}
                                 </span>
                             </div>

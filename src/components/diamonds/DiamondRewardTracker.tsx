@@ -164,7 +164,7 @@ export function DiamondRewardTracker({ diamondsToday = 0, currentStreak = 0 }: R
                         />
                     </div>
                     <div style={styles.remainingText}>
-                        {remainingCap > 0 ? `${remainingCap} 💎 remaining` : '🎉 Cap reached!'}
+                        {remainingCap > 0 ? `${remainingCap} <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> remaining` : '🎉 Cap reached!'}
                     </div>
                 </div>
 
@@ -214,7 +214,7 @@ export function DiamondRewardTracker({ diamondsToday = 0, currentStreak = 0 }: R
                                 </div>
                                 <div style={styles.rewardDiamonds}>
                                     <span style={reward.bypasses ? styles.bypassAmount : styles.diamondAmount}>
-                                        +{reward.diamonds} 💎
+                                        +{reward.diamonds} <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>
                                     </span>
                                 </div>
                             </div>
@@ -260,7 +260,7 @@ export function DiamondRewardTracker({ diamondsToday = 0, currentStreak = 0 }: R
                                                 </div>
                                                 <div style={styles.eggReward}>
                                                     <RarityBadge rarity={egg.rarity} />
-                                                    <span style={styles.eggDiamonds}>+{egg.diamonds} 💎</span>
+                                                    <span style={styles.eggDiamonds}>+{egg.diamonds} <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/></span>
                                                 </div>
                                             </div>
                                         ))}
