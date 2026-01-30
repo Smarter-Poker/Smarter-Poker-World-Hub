@@ -323,6 +323,11 @@ export default function UserProfilePage() {
     const [postContent, setPostContent] = useState('');
     const [showPostComposer, setShowPostComposer] = useState(false);
 
+    // Poker Activity state
+    const [pokerCheckins, setPokerCheckins] = useState([]);
+    const [pokerReviews, setPokerReviews] = useState([]);
+    const [pokerFollowing, setPokerFollowing] = useState([]);
+
     // Tab state
     const [activeTab, setActiveTab] = useState('all');
     const [articleReader, setArticleReader] = useState({ open: false, url: '', title: '' });
@@ -465,6 +470,21 @@ export default function UserProfilePage() {
                     .order('created_at', { ascending: false })
                     .limit(30);
                 if (userReels) setReels(userReels);
+
+                // Fetch poker activity (check-ins, reviews, followed pages)
+                var anonUid = null;
+                try { anonUid = localStorage.getItem('sp-anon-uid'); } catch (ex) { /* ignore */ }
+                var pokerUid = data.id || anonUid;
+                if (pokerUid) {
+                    fetch('/api/poker/checkins?user_id=' + encodeURIComponent(pokerUid))
+                        .then(function(r) { return r.json(); })
+                        .then(function(j) { if (j.success) setPokerCheckins(j.checkins || j.data || []); })
+                        .catch(function() {});
+                    fetch('/api/poker/follow?user_id=' + encodeURIComponent(pokerUid))
+                        .then(function(r) { return r.json(); })
+                        .then(function(j) { if (j.success) setPokerFollowing(j.data || []); })
+                        .catch(function() {});
+                }
 
             } catch (e) {
                 console.error('Error fetching profile:', e);
@@ -735,7 +755,7 @@ export default function UserProfilePage() {
                     display: 'flex', borderBottom: `1px solid ${C.border}`,
                     marginTop: 16, background: C.card, padding: '0 16px'
                 }}>
-                    {['all', 'photos', 'videos', 'reels'].map(tab => (
+                    {['all', 'poker', 'photos', 'videos', 'reels'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -894,6 +914,125 @@ export default function UserProfilePage() {
                                 )}
                             </div>
                         </>
+                    )}
+
+                    {/* POKER ACTIVITY TAB */}
+                    {activeTab === 'poker' && (
+                        <div>
+                            {/* Followed Pages */}
+                            <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Followed Pages</h3>
+                                {pokerFollowing.length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                        {pokerFollowing.map((f, i) => {
+                                            var pageUrl = f.page_type === 'venue' ? `/hub/venues/${f.page_id}`
+                                                : f.page_type === 'tour' ? `/hub/tours/${f.page_id}`
+                                                : f.page_type === 'series' ? `/hub/series/${f.page_id}`
+                                                : '/hub/pages';
+                                            var typeLabel = f.page_type === 'venue' ? 'Venue'
+                                                : f.page_type === 'tour' ? 'Tour'
+                                                : f.page_type === 'series' ? 'Series' : 'Page';
+                                            var typeColor = f.page_type === 'venue' ? '#1877F2'
+                                                : f.page_type === 'tour' ? '#E74C3C'
+                                                : '#F39C12';
+                                            return (
+                                                <Link key={f.id || i} href={pageUrl} style={{ textDecoration: 'none' }}>
+                                                    <div style={{
+                                                        display: 'flex', alignItems: 'center', gap: 12,
+                                                        padding: '10px 12px', borderRadius: 8,
+                                                        border: `1px solid ${C.border}`, transition: 'background 0.15s',
+                                                        cursor: 'pointer'
+                                                    }}>
+                                                        <div style={{
+                                                            width: 40, height: 40, borderRadius: 8,
+                                                            background: typeColor + '18', color: typeColor,
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontWeight: 700, fontSize: 14, flexShrink: 0
+                                                        }}>{typeLabel.charAt(0)}</div>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ fontWeight: 600, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                {f.page_name || f.page_id}
+                                                            </div>
+                                                            <div style={{ fontSize: 12, color: C.textSec }}>{typeLabel}</div>
+                                                        </div>
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: 20, color: C.textSec }}>
+                                        <p style={{ margin: 0 }}>No followed pages yet</p>
+                                        <Link href="/hub/pages" style={{ color: C.blue, fontWeight: 600, fontSize: 14, marginTop: 8, display: 'inline-block', textDecoration: 'none' }}>Browse Pages</Link>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Recent Check-ins */}
+                            <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Recent Check-ins</h3>
+                                {pokerCheckins.length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                        {pokerCheckins.slice(0, 10).map((c, i) => {
+                                            var venueUrl = `/hub/venues/${c.page_id}`;
+                                            return (
+                                                <Link key={c.id || i} href={venueUrl} style={{ textDecoration: 'none' }}>
+                                                    <div style={{
+                                                        display: 'flex', alignItems: 'center', gap: 12,
+                                                        padding: '10px 12px', borderRadius: 8,
+                                                        border: `1px solid ${C.border}`, cursor: 'pointer'
+                                                    }}>
+                                                        <div style={{
+                                                            width: 40, height: 40, borderRadius: 8,
+                                                            background: 'rgba(66,183,42,0.1)', color: '#42B72A',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            flexShrink: 0
+                                                        }}>
+                                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                                        </div>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ fontWeight: 600, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                {c.venue_name || c.page_id}
+                                                            </div>
+                                                            <div style={{ fontSize: 12, color: C.textSec }}>{c.created_at ? timeAgo(c.created_at) : ''}</div>
+                                                        </div>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: 20, color: C.textSec }}>
+                                        <p style={{ margin: 0 }}>No check-ins yet</p>
+                                        <Link href="/hub/poker-near-me" style={{ color: C.blue, fontWeight: 600, fontSize: 14, marginTop: 8, display: 'inline-block', textDecoration: 'none' }}>Find Nearby Venues</Link>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Quick Links */}
+                            <div style={{ background: C.card, borderRadius: 12, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: C.text }}>Poker Hub</h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    {[
+                                        { href: '/hub/pages', label: 'Browse All Pages', icon: 'M2 3h20v18H2V3zm0 6h20' },
+                                        { href: '/hub/poker-near-me', label: 'Poker Near Me', icon: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z' },
+                                        { href: '/hub/daily-tournaments', label: 'Daily Tournaments', icon: 'M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z' },
+                                        { href: '/hub/promotions', label: 'Promotions & Deals', icon: 'M2 5h20v14H2V5zm0 5h20' },
+                                    ].map(link => (
+                                        <Link key={link.href} href={link.href} style={{
+                                            display: 'flex', alignItems: 'center', gap: 10,
+                                            padding: '10px 12px', borderRadius: 8, textDecoration: 'none',
+                                            color: C.text, fontSize: 14, fontWeight: 500,
+                                            border: `1px solid ${C.border}`, transition: 'background 0.15s'
+                                        }}>
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={link.icon}/></svg>
+                                            {link.label}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     )}
 
                     {/* PHOTOS TAB */}

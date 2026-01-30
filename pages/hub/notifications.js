@@ -43,20 +43,46 @@ export default function NotificationsPage() {
             const au = getAuthUser();
             if (au) {
                 setUser(au);
-                const { data } = await supabase
-                    .from('notifications')
-                    .select('*')
-                    .eq('user_id', au.id)
-                    .order('created_at', { ascending: false })
-                    .limit(50);
-                if (data && data.length > 0) {
+
+                // Fetch social notifications and poker page notifications in parallel
+                const [socialRes, pokerRes] = await Promise.all([
+                    supabase
+                        .from('notifications')
+                        .select('*')
+                        .eq('user_id', au.id)
+                        .order('created_at', { ascending: false })
+                        .limit(50),
+                    fetch('/api/poker/notifications?user_id=' + encodeURIComponent(au.id) + '&limit=30')
+                        .then(r => r.json())
+                        .catch(() => ({ success: false })),
+                ]);
+
+                // Merge poker page notifications into the stream
+                const pokerNotifs = (pokerRes.success && pokerRes.notifications) ? pokerRes.notifications.map(pn => ({
+                    id: 'poker-' + pn.id,
+                    user_id: au.id,
+                    title: pn.title || 'Page Update',
+                    message: pn.message || pn.content || '',
+                    type: pn.notification_type || 'page_update',
+                    read: pn.read || false,
+                    created_at: pn.created_at,
+                    data: { page_type: pn.page_type, page_id: pn.page_id },
+                    _source: 'poker',
+                })) : [];
+
+                const data = socialRes.data || [];
+                const combined = [...data.map(n => ({ ...n, _source: 'social' })), ...pokerNotifs]
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    .slice(0, 60);
+
+                if (combined.length > 0) {
                     // Collect actor IDs from the data JSONB column
-                    const actorIds = [...new Set(data.map(n =>
+                    const actorIds = [...new Set(combined.map(n =>
                         n.data?.actor_id || n.data?.sender_id || n.actor_id
                     ).filter(Boolean))];
 
                     // Also parse actor names from notification titles as fallback
-                    const actorNames = [...new Set(data.map(n => {
+                    const actorNames = [...new Set(combined.map(n => {
                         const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
                         return match ? match[1] : null;
                     }).filter(Boolean))];
@@ -84,7 +110,7 @@ export default function NotificationsPage() {
                     }
 
                     // Merge actor data
-                    const enriched = data.map(n => {
+                    const enriched = combined.map(n => {
                         // Get actor ID from the data JSONB column
                         const actorId = n.data?.actor_id || n.data?.sender_id || n.actor_id;
                         let profile = actorId ? profileById[actorId] : null;
@@ -107,8 +133,8 @@ export default function NotificationsPage() {
                     });
                     setNotifications(enriched);
 
-                    // Auto-mark as read
-                    const unreadIds = data.filter(n => !n.read).map(n => n.id);
+                    // Auto-mark social notifications as read (only social ones use supabase table)
+                    const unreadIds = enriched.filter(n => !n.read && n._source === 'social').map(n => n.id);
                     if (unreadIds.length > 0) {
                         await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
                         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -332,21 +358,33 @@ export default function NotificationsPage() {
                         </div>
                     ) : (
                         notifications.map(n => {
-                            const actionIcon = n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : n.type === 'friend_accepted' ? '✓' : n.type === 'new_follow' ? '💜' : n.type === 'live' ? '🔴' : '🔔';
-                            const iconBg = n.type === 'like' ? '#1877F2' : n.type === 'comment' ? '#44BD32' : n.type === 'live' ? '#FA383E' : n.type === 'friend_request' || n.type === 'friend_accepted' ? '#42B72A' : '#65676B';
+                            const isPoker = n._source === 'poker';
+                            const actionIcon = isPoker ? '♠' : n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : n.type === 'friend_accepted' ? '✓' : n.type === 'new_follow' ? '💜' : n.type === 'live' ? '🔴' : '🔔';
+                            const iconBg = isPoker ? '#2D8B4E' : n.type === 'like' ? '#1877F2' : n.type === 'comment' ? '#44BD32' : n.type === 'live' ? '#FA383E' : n.type === 'friend_request' || n.type === 'friend_accepted' ? '#42B72A' : '#65676B';
+
+                            // Navigate to page detail for poker, user profile for social
+                            const handleClick = () => {
+                                if (isPoker && n.data?.page_type && n.data?.page_id) {
+                                    const pt = n.data.page_type;
+                                    const pid = n.data.page_id;
+                                    if (pt === 'venue') router.push(`/hub/venues/${pid}`);
+                                    else if (pt === 'tour') router.push(`/hub/tours/${pid}`);
+                                    else if (pt === 'series') router.push(`/hub/series/${pid}`);
+                                    else router.push('/hub/pages');
+                                } else if (n.actor_username) {
+                                    router.push(`/hub/user/${n.actor_username}`);
+                                }
+                            };
+                            const isClickable = isPoker ? !!(n.data?.page_type && n.data?.page_id) : !!n.actor_username;
 
                             return (
                                 <div
                                     key={n.id}
-                                    onClick={() => {
-                                        if (n.actor_username) {
-                                            router.push(`/hub/user/${n.actor_username}`);
-                                        }
-                                    }}
+                                    onClick={handleClick}
                                     style={{
                                         padding: 16, display: 'flex', gap: 12, alignItems: 'flex-start',
                                         background: n.read ? C.card : 'rgba(24, 119, 242, 0.08)',
-                                        borderBottom: `1px solid ${C.border}`, cursor: n.actor_username ? 'pointer' : 'default'
+                                        borderBottom: `1px solid ${C.border}`, cursor: isClickable ? 'pointer' : 'default'
                                     }}
                                 >
                                     {/* Facebook-style avatar with action icon */}
