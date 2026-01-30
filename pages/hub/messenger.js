@@ -2711,15 +2711,115 @@ export default function MessengerPage() {
                                     }}>Search for people</button>
                             </div>
                         ) : (
-                            conversations.map(conv => (
-                                <ConversationItem
-                                    key={conv.id}
-                                    conversation={conv}
-                                    isActive={activeConversation?.id === conv.id}
-                                    onClick={() => handleSelectConversation(conv)}
-                                    currentUserId={user.id}
-                                />
-                            ))
+                            <>
+                                {/* Jarvis AI - Locked at Top */}
+                                <div
+                                    onClick={() => handleSelectConversation({
+                                        id: 'jarvis-ai',
+                                        isJarvis: true,
+                                        otherUser: {
+                                            id: 'jarvis',
+                                            username: 'jarvis',
+                                            full_name: 'Jarvis',
+                                            avatar_url: null
+                                        },
+                                        last_message_preview: 'Your Poker AI Assistant',
+                                        last_message_at: new Date().toISOString(),
+                                        unread_count: 0
+                                    })}
+                                    style={{
+                                        padding: '12px 16px',
+                                        cursor: 'pointer',
+                                        background: activeConversation?.id === 'jarvis-ai'
+                                            ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.1))'
+                                            : 'transparent',
+                                        borderBottom: `1px solid ${C.border}`,
+                                        borderLeft: activeConversation?.id === 'jarvis-ai' ? '3px solid #FFD700' : '3px solid transparent',
+                                        transition: 'all 0.2s',
+                                        position: 'relative'
+                                    }}
+                                    onMouseEnter={e => {
+                                        if (activeConversation?.id !== 'jarvis-ai') {
+                                            e.currentTarget.style.background = 'rgba(255, 215, 0, 0.05)';
+                                        }
+                                    }}
+                                    onMouseLeave={e => {
+                                        if (activeConversation?.id !== 'jarvis-ai') {
+                                            e.currentTarget.style.background = 'transparent';
+                                        }
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        {/* Jarvis Avatar */}
+                                        <div style={{
+                                            width: 48,
+                                            height: 48,
+                                            borderRadius: '50%',
+                                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: 24,
+                                            boxShadow: '0 2px 8px rgba(255, 215, 0, 0.3)',
+                                            position: 'relative'
+                                        }}>
+                                            🤖
+                                            {/* Always Online Indicator */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                bottom: 0,
+                                                right: 0,
+                                                width: 14,
+                                                height: 14,
+                                                borderRadius: '50%',
+                                                background: C.green,
+                                                border: '2px solid white'
+                                            }} />
+                                        </div>
+
+                                        {/* Jarvis Info */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                marginBottom: 4
+                                            }}>
+                                                <span style={{
+                                                    fontWeight: 600,
+                                                    fontSize: 15,
+                                                    color: '#FFD700'
+                                                }}>Jarvis</span>
+                                                <span style={{
+                                                    fontSize: 10,
+                                                    color: 'rgba(255, 215, 0, 0.6)',
+                                                    fontWeight: 500
+                                                }}>AI</span>
+                                            </div>
+                                            <div style={{
+                                                fontSize: 13,
+                                                color: 'rgba(255, 255, 255, 0.6)',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis'
+                                            }}>
+                                                Your Poker AI Assistant
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Regular Conversations */}
+                                {conversations.map(conv => (
+                                    <ConversationItem
+                                        key={conv.id}
+                                        conversation={conv}
+                                        isActive={activeConversation?.id === conv.id}
+                                        onClick={() => handleSelectConversation(conv)}
+                                        currentUserId={user.id}
+                                    />
+                                ))}
+                            </>
                         )}
                     </div>
 
@@ -2991,8 +3091,7 @@ export default function MessengerPage() {
                         )}
                 </main >
 
-                {/* Jarvis AI Poker Assistant Widget */}
-                <JarvisMessengerWidget />
+                {/* Jarvis is now integrated as a conversation in the list */}
             </div >
         </>
     );
