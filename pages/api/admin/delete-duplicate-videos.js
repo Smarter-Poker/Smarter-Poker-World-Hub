@@ -1,7 +1,9 @@
 /**
- * 🧹 DELETE DUPLICATE VIDEOS - Direct SQL approach
+ * 🧹 DELETE DUPLICATE VIDEOS - Simple and Direct
  * 
- * Uses raw SQL to bypass any RLS issues and directly delete duplicates
+ * 1. Find all video posts
+ * 2. Group by video URL
+ * 3. Keep oldest, delete rest
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -11,81 +13,106 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+function extractVideoId(url) {
+    if (!url) return null;
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
+    ];
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    const { dryRun = true } = req.body;
+
     try {
-        // Step 1: Find all duplicates using SQL
-        const { data: duplicates, error: findError } = await supabase.rpc('find_duplicate_videos');
+        // 1. Get ALL video posts
+        const { data: posts, error: fetchError } = await supabase
+            .from('social_posts')
+            .select('id, media_urls, created_at, author_id')
+            .eq('content_type', 'video')
+            .order('created_at', { ascending: true });
 
-        if (findError) {
-            // If RPC doesn't exist, use direct query
-            const query = `
-                WITH video_counts AS (
-                    SELECT 
-                        (media_urls->0)::text as video_url,
-                        COUNT(*) as post_count,
-                        MIN(created_at) as first_posted,
-                        array_agg(id ORDER BY created_at) as post_ids
-                    FROM social_posts
-                    WHERE content_type = 'video'
-                        AND media_urls IS NOT NULL
-                        AND jsonb_array_length(media_urls) > 0
-                    GROUP BY (media_urls->0)::text
-                    HAVING COUNT(*) > 1
-                )
-                SELECT * FROM video_counts;
-            `;
+        if (fetchError) throw fetchError;
 
-            const { data: queryData, error: queryError } = await supabase.rpc('exec_sql', { query });
+        // 2. Group by video ID
+        const videoGroups = {};
+        for (const post of posts) {
+            const url = post.media_urls?.[0];
+            if (!url) continue;
 
-            if (queryError) {
-                return res.status(500).json({
-                    error: 'Could not find duplicates',
-                    details: queryError.message
+            const videoId = extractVideoId(url);
+            if (!videoId) continue;
+
+            if (!videoGroups[videoId]) {
+                videoGroups[videoId] = [];
+            }
+            videoGroups[videoId].push(post);
+        }
+
+        // 3. Find duplicates (keep first, mark rest for deletion)
+        const toDelete = [];
+        const duplicateGroups = [];
+
+        for (const [videoId, group] of Object.entries(videoGroups)) {
+            if (group.length > 1) {
+                const [keep, ...duplicates] = group; // First is oldest (we sorted by created_at ASC)
+                toDelete.push(...duplicates.map(d => d.id));
+                duplicateGroups.push({
+                    video_id: videoId,
+                    total: group.length,
+                    keeping: keep.id,
+                    deleting: duplicates.map(d => d.id)
                 });
             }
         }
 
-        // Step 2: Delete duplicates (keep first, delete rest)
-        const deleteQuery = `
-            WITH duplicates AS (
-                SELECT 
-                    (media_urls->0)::text as video_url,
-                    id,
-                    created_at,
-                    ROW_NUMBER() OVER (PARTITION BY (media_urls->0)::text ORDER BY created_at) as rn
-                FROM social_posts
-                WHERE content_type = 'video'
-                    AND media_urls IS NOT NULL
-                    AND jsonb_array_length(media_urls) > 0
-            )
-            DELETE FROM social_posts
-            WHERE id IN (
-                SELECT id FROM duplicates WHERE rn > 1
-            )
-            RETURNING id;
-        `;
+        // 4. Delete if not dry run
+        let deletedCount = 0;
+        if (!dryRun && toDelete.length > 0) {
+            // Delete in batches of 100 to avoid query limits
+            const batchSize = 100;
+            for (let i = 0; i < toDelete.length; i += batchSize) {
+                const batch = toDelete.slice(i, i + batchSize);
+                const { error: deleteError, count } = await supabase
+                    .from('social_posts')
+                    .delete({ count: 'exact' })
+                    .in('id', batch);
 
-        const { data: deleted, error: deleteError } = await supabase.rpc('exec_sql', { query: deleteQuery });
-
-        if (deleteError) {
-            return res.status(500).json({
-                error: 'Delete failed',
-                details: deleteError.message
-            });
+                if (deleteError) {
+                    console.error(`Batch ${i / batchSize + 1} error:`, deleteError);
+                } else {
+                    deletedCount += count || batch.length;
+                }
+            }
         }
 
         return res.status(200).json({
             success: true,
-            deleted_count: deleted?.length || 0,
-            message: `Deleted ${deleted?.length || 0} duplicate video posts`
+            mode: dryRun ? 'DRY RUN' : 'EXECUTED',
+            summary: {
+                total_posts: posts.length,
+                duplicate_groups: duplicateGroups.length,
+                posts_to_delete: toDelete.length,
+                actually_deleted: deletedCount
+            },
+            duplicates: duplicateGroups.slice(0, 10), // Show first 10
+            message: dryRun
+                ? `DRY RUN: Would delete ${toDelete.length} duplicates. Set dryRun=false to execute.`
+                : `Deleted ${deletedCount} duplicate posts.`
         });
 
     } catch (error) {
-        console.error('Cleanup error:', error);
+        console.error('Error:', error);
         return res.status(500).json({
             success: false,
             error: error.message
