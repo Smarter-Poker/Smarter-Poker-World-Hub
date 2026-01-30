@@ -87,17 +87,23 @@ export default async function handler(req, res) {
         if (pokerClips?.length) {
             clips = pokerClips;
             clipSource = 'poker_clips';
+            console.log(`   📹 Found ${pokerClips.length} poker clips`);
         } else {
-            // Try sports clips as fallback
-            const { data: sportsClips } = await supabase
+            console.log(`   📹 No poker clips, trying sports_clips...`);
+            // Try sports clips as fallback - don't order by last_used_at (may not exist)
+            const { data: sportsClips, error: sportsError } = await supabase
                 .from('sports_clips')
                 .select('*')
-                .order('last_used_at', { ascending: true, nullsFirst: true })
                 .limit(20);
 
-            if (sportsClips?.length) {
+            if (sportsError) {
+                console.log(`   ❌ Sports clips error: ${sportsError.message}`);
+            } else if (sportsClips?.length) {
                 clips = sportsClips;
                 clipSource = 'sports_clips';
+                console.log(`   📹 Found ${sportsClips.length} sports clips`);
+            } else {
+                console.log(`   📹 No sports clips found`);
             }
         }
 

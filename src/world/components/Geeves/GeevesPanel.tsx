@@ -15,6 +15,7 @@ import { PokerQuickTopics } from './PokerQuickTopics';
 import { MessageContent } from './MessageContent';
 import { RatingStars } from './RatingStars';
 import { ConversationList } from './ConversationList';
+import { PokerToolsToolbar } from './PokerToolsToolbar';
 
 interface Message {
     id: string;
@@ -481,6 +482,9 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
 
                 {/* Quick Topics */}
                 <PokerQuickTopics onTopicClick={handleQuickTopic} />
+
+                {/* Poker Tools Toolbar */}
+                <PokerToolsToolbar onAskQuestion={sendMessage} />
 
                 {/* Input */}
                 <div style={{
