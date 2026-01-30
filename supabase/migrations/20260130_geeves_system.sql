@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS geeves_analytics (
     question TEXT,
     response_length INT,
     user_rating INT CHECK (user_rating >= 1 AND user_rating <= 5),
+    metadata JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -1,17 +1,29 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   GEEVES PANEL — Poker strategy expert AI assistant
-   Grok-powered poker knowledge companion to Jarvis
+   GEEVES PANEL v2.0 — Enhanced poker strategy expert AI assistant
+   Features:
+   - Smart caching indicator
+   - User ratings (1-5 stars)
+   - Markdown rendering
+   - Copy button
+   - Conversation history
+   - Range visualizer
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GeevesAvatar } from './GeevesAvatar';
 import { PokerQuickTopics } from './PokerQuickTopics';
+import { MessageContent } from './MessageContent';
+import { RatingStars } from './RatingStars';
+import { ConversationList } from './ConversationList';
 
 interface Message {
     id: string;
     content: string;
     isUser: boolean;
     timestamp: Date;
+    cacheId?: string;
+    fromCache?: boolean;
+    rating?: number;
 }
 
 interface GeevesPanelProps {
@@ -24,6 +36,8 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [conversationId, setConversationId] = useState<string | null>(null);
+    const [showHistory, setShowHistory] = useState(false);
+    const [cacheStats, setCacheStats] = useState({ hits: 0, total: 0 });
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom
@@ -61,7 +75,6 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                 const data = await response.json();
                 setConversationId(data.conversationId);
 
-                // Add greeting message
                 setMessages([{
                     id: Date.now().toString(),
                     content: data.greeting,
@@ -74,10 +87,36 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
         }
     };
 
+    const loadConversation = async (convId: string) => {
+        try {
+            const token = getAuthToken();
+            if (!token) return;
+
+            const response = await fetch(`/api/geeves/conversation/${convId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setConversationId(convId);
+                setMessages(data.messages.map((msg: any) => ({
+                    id: msg.id,
+                    content: msg.content,
+                    isUser: msg.isUser,
+                    timestamp: new Date(msg.timestamp),
+                    cacheId: msg.cacheId,
+                    fromCache: msg.fromCache
+                })));
+                setShowHistory(false);
+            }
+        } catch (error) {
+            console.error('[Geeves] Failed to load conversation:', error);
+        }
+    };
+
     const sendMessage = async (content: string) => {
         if (!content.trim()) return;
 
-        // Add user message
         const userMessage: Message = {
             id: Date.now().toString(),
             content,
@@ -92,7 +131,6 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
             const token = getAuthToken();
             if (!token) throw new Error('Not authenticated');
 
-            // Build conversation history for context
             const conversationHistory = messages.map(msg => ({
                 content: msg.content,
                 isUser: msg.isUser
@@ -115,14 +153,21 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
 
             const data = await response.json();
 
-            // Add Geeves response
             const geevesMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 content: data.answer,
                 isUser: false,
-                timestamp: new Date()
+                timestamp: new Date(),
+                cacheId: data.cacheId,
+                fromCache: data.fromCache
             };
             setMessages(prev => [...prev, geevesMessage]);
+
+            // Update cache stats
+            setCacheStats(prev => ({
+                hits: prev.hits + (data.fromCache ? 1 : 0),
+                total: prev.total + 1
+            }));
 
         } catch (error) {
             console.error('[Geeves] Error:', error);
@@ -138,6 +183,28 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
         }
     };
 
+    const handleRating = async (messageId: string, cacheId: string, rating: number) => {
+        try {
+            const token = getAuthToken();
+            if (!token) return;
+
+            await fetch('/api/geeves/rate', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ cacheId, rating })
+            });
+
+            setMessages(prev => prev.map(msg =>
+                msg.id === messageId ? { ...msg, rating } : msg
+            ));
+        } catch (error) {
+            console.error('[Geeves] Rating failed:', error);
+        }
+    };
+
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -148,6 +215,13 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
     const handleQuickTopic = (query: string) => {
         setInputValue(query);
         sendMessage(query);
+    };
+
+    const startNewConversation = () => {
+        setMessages([]);
+        setConversationId(null);
+        setCacheStats({ hits: 0, total: 0 });
+        startConversation();
     };
 
     if (!isOpen) return null;
@@ -172,7 +246,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                 top: 0,
                 right: 0,
                 bottom: 0,
-                width: '450px',
+                width: '480px',
                 maxWidth: '100vw',
                 background: 'linear-gradient(135deg, rgba(20, 10, 40, 0.98), rgba(40, 20, 60, 0.98))',
                 borderLeft: '2px solid rgba(255, 215, 0, 0.3)',
@@ -184,7 +258,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
             }}>
                 {/* Header */}
                 <div style={{
-                    padding: '20px',
+                    padding: '16px 20px',
                     borderBottom: '1px solid rgba(255, 215, 0, 0.2)',
                     display: 'flex',
                     alignItems: 'center',
@@ -207,43 +281,89 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                             </h3>
                             <p style={{
                                 margin: 0,
-                                fontSize: '12px',
+                                fontSize: '11px',
                                 color: 'rgba(255, 215, 0, 0.7)',
                                 fontStyle: 'italic'
                             }}>
                                 Poker Strategy Expert
+                                {cacheStats.total > 0 && (
+                                    <span style={{ marginLeft: '8px', color: 'rgba(100, 255, 100, 0.8)' }}>
+                                        ⚡ {cacheStats.hits}/{cacheStats.total} cached
+                                    </span>
+                                )}
                             </p>
                         </div>
                     </div>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#FFD700',
-                            fontSize: '28px',
-                            cursor: 'pointer',
-                            padding: 0,
-                            width: '32px',
-                            height: '32px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: '50%',
-                            transition: 'background 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-                    >
-                        ×
-                    </button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {/* History Button */}
+                        <button
+                            onClick={() => setShowHistory(!showHistory)}
+                            style={{
+                                background: showHistory ? 'rgba(255, 215, 0, 0.2)' : 'none',
+                                border: '1px solid rgba(255, 215, 0, 0.3)',
+                                color: '#FFD700',
+                                fontSize: '16px',
+                                cursor: 'pointer',
+                                padding: '6px 10px',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                            }}
+                            title="Conversation History"
+                        >
+                            📜
+                        </button>
+
+                        {/* New Chat Button */}
+                        <button
+                            onClick={startNewConversation}
+                            style={{
+                                background: 'none',
+                                border: '1px solid rgba(255, 215, 0, 0.3)',
+                                color: '#FFD700',
+                                fontSize: '16px',
+                                cursor: 'pointer',
+                                padding: '6px 10px',
+                                borderRadius: '8px'
+                            }}
+                            title="New Conversation"
+                        >
+                            ✨
+                        </button>
+
+                        {/* Close Button */}
+                        <button
+                            onClick={onClose}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#FFD700',
+                                fontSize: '24px',
+                                cursor: 'pointer',
+                                padding: '0 4px',
+                                marginLeft: '4px'
+                            }}
+                        >
+                            ×
+                        </button>
+                    </div>
                 </div>
+
+                {/* Conversation History Panel */}
+                {showHistory && (
+                    <ConversationList
+                        onSelectConversation={loadConversation}
+                        onClose={() => setShowHistory(false)}
+                    />
+                )}
 
                 {/* Messages */}
                 <div style={{
                     flex: 1,
                     overflowY: 'auto',
-                    padding: '20px',
+                    padding: '16px 20px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '16px'
@@ -258,25 +378,83 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                             }}
                         >
                             <div style={{
-                                maxWidth: '85%',
+                                maxWidth: '90%',
                                 padding: '12px 16px',
                                 borderRadius: '12px',
                                 background: message.isUser
                                     ? 'linear-gradient(135deg, #FFD700, #FFA500)'
-                                    : 'rgba(255, 215, 0, 0.1)',
+                                    : 'rgba(255, 215, 0, 0.08)',
                                 border: message.isUser
                                     ? 'none'
                                     : '1px solid rgba(255, 215, 0, 0.2)',
                                 color: message.isUser ? '#000' : '#fff',
                                 fontSize: '14px',
-                                lineHeight: 1.5,
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word'
+                                lineHeight: 1.6,
+                                position: 'relative'
                             }}>
-                                {message.content}
+                                {!message.isUser && message.fromCache && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '-8px',
+                                        right: '8px',
+                                        background: 'rgba(100, 255, 100, 0.2)',
+                                        color: 'rgba(100, 255, 100, 0.9)',
+                                        fontSize: '9px',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        fontWeight: 600
+                                    }}>
+                                        ⚡ INSTANT
+                                    </div>
+                                )}
+
+                                <MessageContent content={message.content} isUser={message.isUser} />
+
+                                {/* Actions for Geeves messages */}
+                                {!message.isUser && (
+                                    <div style={{
+                                        marginTop: '12px',
+                                        paddingTop: '8px',
+                                        borderTop: '1px solid rgba(255, 215, 0, 0.1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between'
+                                    }}>
+                                        {/* Rating */}
+                                        {message.cacheId && (
+                                            <RatingStars
+                                                rating={message.rating || 0}
+                                                onRate={(rating) => handleRating(message.id, message.cacheId!, rating)}
+                                            />
+                                        )}
+
+                                        {/* Copy Button */}
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(message.content);
+                                            }}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                color: 'rgba(255, 215, 0, 0.6)',
+                                                fontSize: '12px',
+                                                cursor: 'pointer',
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                            }}
+                                            title="Copy response"
+                                        >
+                                            📋 Copy
+                                        </button>
+                                    </div>
+                                )}
                             </div>
+
                             <div style={{
-                                fontSize: '11px',
+                                fontSize: '10px',
                                 color: 'rgba(255, 215, 0, 0.4)',
                                 marginTop: '4px'
                             }}>
@@ -294,7 +472,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                             fontSize: '14px'
                         }}>
                             <GeevesAvatar isTyping={true} size={24} />
-                            <span style={{ fontStyle: 'italic' }}>Geeves is thinking...</span>
+                            <span style={{ fontStyle: 'italic' }}>Geeves is consulting his poker wisdom...</span>
                         </div>
                     )}
 
@@ -306,46 +484,48 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
 
                 {/* Input */}
                 <div style={{
-                    padding: '20px',
+                    padding: '16px 20px',
                     borderTop: '1px solid rgba(255, 215, 0, 0.2)',
                     background: 'rgba(0, 0, 0, 0.2)'
                 }}>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                        <input
-                            type="text"
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <textarea
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            placeholder="Ask me anything about poker..."
+                            placeholder="Ask any poker question..."
+                            rows={2}
                             style={{
                                 flex: 1,
-                                padding: '12px 16px',
+                                padding: '10px 14px',
                                 background: 'rgba(255, 215, 0, 0.05)',
                                 border: '1px solid rgba(255, 215, 0, 0.3)',
-                                borderRadius: '12px',
+                                borderRadius: '10px',
                                 color: '#fff',
                                 fontSize: '14px',
-                                outline: 'none'
+                                outline: 'none',
+                                resize: 'none',
+                                fontFamily: 'inherit'
                             }}
                         />
                         <button
                             onClick={() => sendMessage(inputValue)}
                             disabled={!inputValue.trim() || isTyping}
                             style={{
-                                padding: '12px 24px',
+                                padding: '10px 20px',
                                 background: inputValue.trim() && !isTyping
                                     ? 'linear-gradient(135deg, #FFD700, #FFA500)'
                                     : 'rgba(255, 215, 0, 0.2)',
                                 border: 'none',
-                                borderRadius: '12px',
+                                borderRadius: '10px',
                                 color: inputValue.trim() && !isTyping ? '#000' : 'rgba(255, 255, 255, 0.3)',
                                 fontSize: '14px',
                                 fontWeight: 600,
                                 cursor: inputValue.trim() && !isTyping ? 'pointer' : 'not-allowed',
-                                transition: 'all 0.2s ease'
+                                alignSelf: 'flex-end'
                             }}
                         >
-                            Send
+                            Ask
                         </button>
                     </div>
                 </div>

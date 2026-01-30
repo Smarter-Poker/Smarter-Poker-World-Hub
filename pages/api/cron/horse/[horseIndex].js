@@ -73,34 +73,44 @@ export default async function handler(req, res) {
         const horse = horses[index];
         console.log(`   🎯 Processing: ${horse.name} (${horse.alias})`);
 
-        // Get a random unused clip from the database
-        const { data: clips, error: clipError } = await supabase
+        // Get a random unused clip from the database (try poker_clips first, then sports_clips)
+        let clips = [];
+        let clipSource = 'poker_clips';
+
+        const { data: pokerClips } = await supabase
             .from('poker_clips')
             .select('*')
             .eq('is_active', true)
             .order('last_used_at', { ascending: true, nullsFirst: true })
-            .limit(10);
+            .limit(20);
 
-        if (!clips?.length) {
+        if (pokerClips?.length) {
+            clips = pokerClips;
+            clipSource = 'poker_clips';
+        } else {
             // Try sports clips as fallback
             const { data: sportsClips } = await supabase
                 .from('sports_clips')
                 .select('*')
                 .order('last_used_at', { ascending: true, nullsFirst: true })
-                .limit(10);
+                .limit(20);
 
-            if (!sportsClips?.length) {
-                return res.status(200).json({
-                    success: false,
-                    error: 'No clips available',
-                    horse: horse.name
-                });
+            if (sportsClips?.length) {
+                clips = sportsClips;
+                clipSource = 'sports_clips';
             }
         }
 
+        if (!clips.length) {
+            return res.status(200).json({
+                success: false,
+                error: 'No clips available in either table',
+                horse: horse.name
+            });
+        }
+
         // Pick a random clip from the least-used ones
-        const availableClips = clips || [];
-        const clip = availableClips[Math.floor(Math.random() * Math.min(5, availableClips.length))];
+        const clip = clips[Math.floor(Math.random() * Math.min(10, clips.length))];
 
         if (!clip) {
             return res.status(200).json({ success: false, error: 'No clip selected' });
@@ -110,7 +120,7 @@ export default async function handler(req, res) {
         const reserved = await ClipDeduplicationService.markClipAsPosted({
             videoId: clip.video_id,
             sourceUrl: clip.source_url,
-            clipSource: clip.source || 'poker_clips',
+            clipSource: clipSource,
             horseId: horse.profile_id
         });
 
@@ -167,9 +177,9 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: postError.message });
         }
 
-        // Update clip's last_used_at
+        // Update clip's last_used_at in the correct table
         await supabase
-            .from('poker_clips')
+            .from(clipSource)
             .update({ last_used_at: new Date().toISOString() })
             .eq('id', clip.id);
 
