@@ -33,6 +33,15 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: 'Invalid token' });
         }
 
+        // Fetch user profile for personalized greeting
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name, username')
+            .eq('id', user.id)
+            .single();
+
+        const userName = profile?.first_name || profile?.username || 'there';
+
         const { agentId, context } = req.body;
 
         // Check for existing active conversation
@@ -62,9 +71,8 @@ export default async function handler(req, res) {
             .from('live_help_conversations')
             .insert({
                 user_id: user.id,
-                agent_id: selectedAgent,
-                status: 'active',
-                context: context || {}
+                agent_id: 'jarvis',
+                status: 'active'
             })
             .select()
             .single();
@@ -84,16 +92,16 @@ export default async function handler(req, res) {
             });
         }
 
-        // Create greeting message
-        const greetingText = getAgentGreeting(selectedAgent);
+        // Create personalized greeting message
+        const greetingMessage = `Hi ${userName}! I'm Jarvis, your Smarter.Poker expert. I can help you with:\n\n• Training games and GTO strategy\n• Club Arena and tournament management\n• Diamond Store and VIP features\n• Social features and messaging\n• Technical support and troubleshooting\n\nWhat can I help you with today?`;
 
-        const { data: greetingMessage, error: msgError } = await supabase
+        const { data: greeting, error: greetingError } = await supabase
             .from('live_help_messages')
             .insert({
                 conversation_id: conversation.id,
                 sender_type: 'agent',
                 agent_id: selectedAgent,
-                content: greetingText,
+                content: greetingMessage,
                 metadata: { isGreeting: true }
             })
             .select()

@@ -279,6 +279,74 @@ export function useLiveHelp() {
         }
     }, [conversationId]);
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 🔄 RESUME CONVERSATION
+    // ─────────────────────────────────────────────────────────────────────────────
+    const resumeConversation = useCallback(async (conversationId: string) => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const token = getAuthToken();
+            if (!token) throw new Error('Not authenticated');
+
+            const response = await fetch(`/api/live-help/get-conversation?id=${conversationId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) throw new Error('Failed to load conversation');
+
+            const data = await response.json();
+            setConversationId(data.conversation.id);
+            setMessages(data.messages.map((msg: any) => ({
+                id: msg.id,
+                agentId: msg.agent_id || 'jarvis',
+                content: msg.content,
+                timestamp: new Date(msg.created_at),
+                isUser: msg.is_user
+            })));
+        } catch (err) {
+            console.error('[LiveHelp] Resume error:', err);
+            setError('Failed to resume conversation');
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 🆕 START NEW CONVERSATION
+    // ─────────────────────────────────────────────────────────────────────────────
+    const startNewConversation = useCallback(async () => {
+        setMessages([]);
+        setConversationId(null);
+        await startConversation();
+    }, []);
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 📊 TRACK ANALYTICS
+    // ─────────────────────────────────────────────────────────────────────────────
+    const trackAnalytics = useCallback(async (eventType: string, metadata?: any) => {
+        try {
+            const token = getAuthToken();
+            if (!token) return;
+
+            await fetch('/api/live-help/track-analytics', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    event_type: eventType,
+                    conversation_id: conversationId,
+                    metadata
+                })
+            });
+        } catch (err) {
+            console.error('[LiveHelp] Analytics error:', err);
+        }
+    }, [conversationId]);
+
     return {
         isOpen,
         setIsOpen,
@@ -291,6 +359,9 @@ export function useLiveHelp() {
         onSendMessage: sendMessage,
         onSwitchAgent: switchAgent,
         createTicket,
+        resumeConversation,
+        startNewConversation,
+        trackAnalytics,
         isLoading,
         error
     };
