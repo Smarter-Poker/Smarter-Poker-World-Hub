@@ -10,7 +10,9 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const AGENTS = ['daniel', 'sarah', 'alice', 'michael', 'jenny'];
+
+const AGENTS = ['jarvis']; // Single comprehensive expert
+
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -115,16 +117,9 @@ export default async function handler(req, res) {
 }
 
 /**
- * Get greeting message for agent
+ * Get greeting message for Jarvis
  */
 function getAgentGreeting(agentId) {
-    const greetings = {
-        daniel: "Hi there! I'm Daniel, your GTO Strategy Coach. What can I help you with today?",
-        sarah: "Hey! I'm Sarah, here to help with mindset and performance. How are you feeling about your game?",
-        alice: "I'm Alice, your Drill Master. Ready to level up your skills? What do you want to work on?",
-        michael: "Hi! I'm Michael, your Bankroll Advisor. Let's talk about building your bankroll sustainably. What's on your mind?",
-        jenny: "Hey there! I'm Jenny, your Live Game Expert. Want to talk reads, tells, or table dynamics? What's up?"
-    };
-
-    return greetings[agentId] || "Hi! How can I help you today?";
+    return "Hi! I'm Jarvis, I can help you with anything you have a question about. What can I help you with?";
 }
+

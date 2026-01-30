@@ -8,9 +8,16 @@
    - Subtle, non-intrusive design
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Agent, Message } from './useLiveHelp';
 import { AGENTS } from './useLiveHelp';
+import { QuickActions, getQuickActionMessage } from './QuickActions';
+import { MessageReactions } from './MessageReactions';
+import { CopyButton } from './CopyButton';
+import { VoiceInput } from './VoiceInput';
+import { EnhancedTypingIndicator } from './EnhancedTypingIndicator';
+import { useKeyboardShortcuts, KeyboardShortcutHints } from './KeyboardShortcuts';
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🎨 PANEL COMPONENT
@@ -39,6 +46,13 @@ export function LiveHelpPanel({
     onSwitchAgent,
 }: LiveHelpPanelProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Keyboard shortcuts
+    useKeyboardShortcuts({
+        onOpenJarvis: () => { },
+        onCloseJarvis: onClose,
+        isOpen
+    });
 
     // Auto-scroll to bottom
     useEffect(() => {

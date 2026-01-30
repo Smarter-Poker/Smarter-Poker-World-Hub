@@ -23,6 +23,7 @@ import {
     getTimeOfDayEnergy,
     shouldHorsePostToday
 } from '../../../src/content-engine/pipeline/HorseScheduler.js';
+import * as SportsClipDeduplicationService from '../../../src/services/SportsClipDeduplicationService.js';
 
 // Sports caption templates
 const SPORTS_CAPTION_TEMPLATES = {
@@ -150,8 +151,22 @@ export default async function handler(req, res) {
                 continue;
             }
 
+            // ATOMIC RESERVATION: Try to claim this clip BEFORE posting
+            const reserved = await SportsClipDeduplicationService.markSportsClipAsPosted({
+                videoId: clip.video_id,
+                sourceUrl: clip.source_url,
+                clipSource: clip.source,
+                horseId: horse.profile_id
+            });
+
+            if (!reserved) {
+                console.log(`   ⚠️ Clip ${clip.video_id} already claimed by another horse, trying next...`);
+                continue;
+            }
+
             usedClipsThisSession.add(clip.id);
             console.log(`   📺 Selected: ${clip.title} from ${clip.source}`);
+            console.log(`   🔒 RESERVED: ${clip.video_id} for ${horse.alias}`);
 
             // Generate caption using Grok
             let caption = '';
