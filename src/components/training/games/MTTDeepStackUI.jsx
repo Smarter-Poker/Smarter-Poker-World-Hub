@@ -34,6 +34,24 @@ const SEAT_POSITIONS = [
     { id: 'v8', x: 82, y: 75 },
 ];
 
+// Convert card notation (e.g., 'Ah' for Ace of Hearts) to image path
+function getCardPath(card) {
+    if (!card || card.length < 2) return '/cards/hearts_a.png';
+
+    const rank = card[0].toLowerCase();
+    const suit = card[1].toLowerCase();
+
+    const suitMap = {
+        'h': 'hearts',
+        'd': 'diamonds',
+        'c': 'clubs',
+        's': 'spades'
+    };
+
+    const suitName = suitMap[suit] || 'hearts';
+    return `/cards/${suitName}_${rank}.png`;
+}
+
 // 3D Illustrated avatar images
 const AVATARS = [
     '/avatars/table/free_fox.png',          // Hero
@@ -156,8 +174,8 @@ export default function MTTDeepStackUI({
                                 {/* Hero Cards */}
                                 {isHero && (
                                     <div style={styles.heroCards}>
-                                        <img src={`/cards/${card1}.svg`} alt={card1} style={styles.card} />
-                                        <img src={`/cards/${card2}.svg`} alt={card2} style={styles.card} />
+                                        <img src={getCardPath(card1)} alt={card1} style={styles.card} />
+                                        <img src={getCardPath(card2)} alt={card2} style={styles.card} />
                                     </div>
                                 )}
                             </div>

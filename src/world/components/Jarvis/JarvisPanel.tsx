@@ -76,7 +76,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
             const token = getAuthToken();
             if (!token) return;
 
-            const response = await fetch('/api/jarvis/start-conversation', {
+            const response = await fetch('/api/geeves/start-conversation', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -104,7 +104,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
             const token = getAuthToken();
             if (!token) return;
 
-            const response = await fetch(`/api/jarvis/conversation/${convId}`, {
+            const response = await fetch(`/api/geeves/conversation/${convId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -148,7 +148,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
                 isUser: msg.isUser
             }));
 
-            const response = await fetch('/api/jarvis/ask', {
+            const response = await fetch('/api/geeves/ask', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -200,7 +200,7 @@ export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
             const token = getAuthToken();
             if (!token) return;
 
-            await fetch('/api/jarvis/rate', {
+            await fetch('/api/geeves/rate', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
