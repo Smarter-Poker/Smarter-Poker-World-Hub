@@ -117,7 +117,7 @@ export default function MTTDeepStackUI({
             <div style={styles.tableArea}>
                 {/* EXACT TABLE IMAGE */}
                 <img
-                    src="/images/training/table-vertical-stadium.jpg"
+                    src="/images/training/table-vertical-stadium-transparent.png"
                     alt="Poker Table"
                     style={styles.tableImage}
                 />
@@ -419,7 +419,7 @@ const styles = {
         gridTemplateColumns: '1fr 1fr',
         gridTemplateRows: '1fr 1fr',
         gap: 12,
-        padding: '0 20px 20px 20px',
+        padding: '0 0 20px 0', // No side padding - full width
         width: '100%',
         flexShrink: 0,
     },
