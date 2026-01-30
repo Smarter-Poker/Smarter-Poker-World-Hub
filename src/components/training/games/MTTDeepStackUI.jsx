@@ -171,16 +171,16 @@ export default function MTTDeepStackUI({
                                     <div style={styles.badgeStack}>{stackSize} BB</div>
                                 </div>
 
-                                {/* Hero Cards */}
-                                {isHero && (
-                                    <div style={styles.heroCards}>
-                                        <img src={getCardPath(card1)} alt={card1} style={styles.card} />
-                                        <img src={getCardPath(card2)} alt={card2} style={styles.card} />
-                                    </div>
-                                )}
+
                             </div>
                         );
                     })}
+                </div>
+
+                {/* HERO CARDS - Bottom center below hero avatar */}
+                <div style={styles.heroCardsContainer}>
+                    <img src={getCardPath(card1)} alt={card1} style={styles.card} />
+                    <img src={getCardPath(card2)} alt={card2} style={styles.card} />
                 </div>
 
                 {/* POT - Center top */}
@@ -269,15 +269,15 @@ const styles = {
         flexShrink: 0,
     },
 
-    // 🎰 PREMIUM QUESTION TEXT - Glowing gold with HUD styling
+    // 🎰 PREMIUM QUESTION TEXT - White with HUD styling
     questionText: {
-        color: '#fbbf24',
+        color: '#ffffff',
         fontSize: 18,
         fontWeight: 'bold',
         fontFamily: "'Orbitron', 'Courier New', monospace",
         lineHeight: 1.4,
         textAlign: 'center',
-        textShadow: '0 0 12px rgba(251, 191, 36, 0.6)',
+        textShadow: '0 0 8px rgba(255, 255, 255, 0.4)',
     },
 
     // TABLE AREA - Center (fills remaining space)
@@ -362,6 +362,17 @@ const styles = {
         display: 'flex',
         gap: 4,
         marginTop: 4,
+    },
+
+    // Hero cards positioned at bottom center (below hero avatar)
+    heroCardsContainer: {
+        position: 'absolute',
+        bottom: '8%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: 8,
+        zIndex: 10,
     },
 
     card: {
