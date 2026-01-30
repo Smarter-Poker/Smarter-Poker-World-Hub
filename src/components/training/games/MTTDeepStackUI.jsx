@@ -259,21 +259,25 @@ const styles = {
         overflow: 'hidden',
     },
 
-    // LARGE QUESTION BAR (user requirement: "WAY TOO SMALL" - now MUCH larger)
+    // 🎰 PREMIUM CASINO QUESTION BAR - Industrial metal frame with HUD display
     questionBar: {
         width: '100%',
-        padding: '20px 24px', // Increased from 10px to 20px
-        background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)',
-        borderBottom: '2px solid #3b82f6',
+        padding: '20px 24px',
+        background: 'linear-gradient(180deg, #3a3a4a 0%, #1a1a24 100%)',
+        borderBottom: '3px solid #00d4ff',
+        boxShadow: '0 0 20px rgba(0, 212, 255, 0.2), inset 0 2px 4px rgba(255,255,255,0.05)',
         flexShrink: 0,
     },
 
+    // 🎰 PREMIUM QUESTION TEXT - Glowing gold with HUD styling
     questionText: {
         color: '#fbbf24',
-        fontSize: 18, // Increased from 13px to 18px
+        fontSize: 18,
         fontWeight: 'bold',
+        fontFamily: "'Orbitron', 'Courier New', monospace",
         lineHeight: 1.4,
         textAlign: 'center',
+        textShadow: '0 0 12px rgba(251, 191, 36, 0.6)',
     },
 
     // TABLE AREA - Center (fills remaining space)
@@ -317,24 +321,31 @@ const styles = {
         gap: 4,
     },
 
+    // 🎰 PREMIUM CASINO AVATAR - Metal frame with cyan glow ring
     avatar: {
         width: 50,
         height: 50,
         borderRadius: '50%',
-        border: '2px solid #fbbf24',
+        border: '3px solid #4a4a5a',
+        boxShadow: '0 0 12px rgba(0, 212, 255, 0.4), inset 0 0 4px rgba(0,0,0,0.5)',
         objectFit: 'cover',
+        background: 'linear-gradient(135deg, #2d2d3a, #1a1a24)',
     },
 
+    // 🎰 PREMIUM CASINO BADGE - Industrial metal with gold accents
     badge: {
-        background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-        padding: '4px 10px',
+        background: 'linear-gradient(180deg, #4a4a5a 0%, #2d2d3a 50%, #1a1a24 100%)',
+        padding: '6px 12px',
         borderRadius: 6,
         fontSize: 11,
         fontWeight: 'bold',
-        color: '#000',
+        color: '#00d4ff',
+        fontFamily: "'Orbitron', 'Courier New', monospace",
         textAlign: 'center',
         whiteSpace: 'nowrap',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        border: '1px solid #555',
+        boxShadow: '0 0 8px rgba(0, 212, 255, 0.2), 0 3px 6px rgba(0,0,0,0.4)',
+        textShadow: '0 0 4px rgba(0, 212, 255, 0.5)',
     },
 
     badgeLabel: {
@@ -408,27 +419,36 @@ const styles = {
         flexShrink: 0,
     },
 
+    // 🎰 PREMIUM CASINO TIMER - Skeuomorphic metal with LED display
     timer: {
-        width: 50,
+        width: 70,
         height: 50,
-        background: 'linear-gradient(135deg, #dc2626, #991b1b)',
-        color: '#fff',
-        fontSize: 20,
+        background: 'linear-gradient(180deg, #4a4a5a 0%, #2d2d3a 50%, #1a1a24 100%)',
+        color: '#ff3b3b',
+        fontSize: 24,
         fontWeight: 'bold',
+        fontFamily: "'Orbitron', 'Courier New', monospace",
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 8,
-        boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)',
+        border: '2px solid #666',
+        boxShadow: '0 0 15px rgba(255, 59, 59, 0.5), inset 0 2px 4px rgba(255,255,255,0.1), 0 4px 8px rgba(0,0,0,0.5)',
+        textShadow: '0 0 10px rgba(255, 59, 59, 0.8)',
     },
 
+    // 🎰 PREMIUM CASINO COUNTER - HUD style with cyan glow
     questionCounter: {
-        color: '#94a3b8',
+        color: '#00d4ff',
         fontSize: 13,
         fontWeight: 'bold',
-        background: 'rgba(148, 163, 184, 0.1)',
-        padding: '8px 16px',
-        borderRadius: 8,
+        fontFamily: "'Orbitron', 'Courier New', monospace",
+        background: 'linear-gradient(180deg, #3a3a4a 0%, #1a1a24 100%)',
+        padding: '10px 18px',
+        borderRadius: 10,
+        border: '1px solid #00d4ff',
+        boxShadow: '0 0 12px rgba(0, 212, 255, 0.3), inset 0 1px 2px rgba(255,255,255,0.05)',
+        textShadow: '0 0 6px rgba(0, 212, 255, 0.6)',
     },
 
     // 2x2 ANSWER GRID - ENTIRE BOTTOM WIDTH (user requirement)
@@ -442,27 +462,40 @@ const styles = {
         flexShrink: 0,
     },
 
+    // 🎰 PREMIUM CASINO ACTION BUTTON - Skeuomorphic metal with HUD glow
     answerButton: {
-        padding: '20px',
-        fontSize: 16,
+        padding: '18px 20px',
+        fontSize: 15,
         fontWeight: 'bold',
-        background: 'linear-gradient(135deg, #1e3a8a, #1e40af)',
-        border: '2px solid #3b82f6',
-        borderRadius: 12,
-        color: '#fff',
+        fontFamily: "'Orbitron', 'Courier New', monospace",
+        textTransform: 'uppercase',
+        letterSpacing: '1px',
+        background: 'linear-gradient(180deg, #4a4a5a 0%, #2d2d3a 40%, #1a1a24 100%)',
+        border: '2px solid #555',
+        borderRadius: 10,
+        color: '#00d4ff',
         cursor: 'pointer',
         transition: 'all 0.2s',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        boxShadow: '0 0 15px rgba(0, 212, 255, 0.2), inset 0 2px 4px rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.5)',
+        textShadow: '0 0 8px rgba(0, 212, 255, 0.6)',
     },
 
+    // 🎰 CORRECT FEEDBACK - Green HUD glow
     correctButton: {
-        background: 'linear-gradient(135deg, #16a34a, #22c55e)',
+        background: 'linear-gradient(180deg, #1a4a2a 0%, #0d3018 100%)',
         border: '2px solid #22c55e',
+        color: '#22c55e',
+        boxShadow: '0 0 20px rgba(34, 197, 94, 0.5), inset 0 2px 4px rgba(255,255,255,0.1)',
+        textShadow: '0 0 10px rgba(34, 197, 94, 0.8)',
     },
 
+    // 🎰 INCORRECT FEEDBACK - Red HUD glow
     incorrectButton: {
-        background: 'linear-gradient(135deg, #991b1b, #dc2626)',
+        background: 'linear-gradient(180deg, #4a1a1a 0%, #301010 100%)',
         border: '2px solid #ef4444',
+        color: '#ef4444',
+        boxShadow: '0 0 20px rgba(239, 68, 68, 0.5), inset 0 2px 4px rgba(255,255,255,0.1)',
+        textShadow: '0 0 10px rgba(239, 68, 68, 0.8)',
     },
 
     // Explanation overlay
