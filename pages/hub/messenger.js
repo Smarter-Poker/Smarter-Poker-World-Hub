@@ -1690,6 +1690,41 @@ export default function MessengerPage() {
     const handleSelectConversation = async (conversation) => {
         setActiveConversation(conversation);
         if (isMobile) setShowSidebar(false);
+
+        // Special handling for Jarvis AI
+        if (conversation.isJarvis) {
+            // Load Jarvis conversation from localStorage
+            const saved = localStorage.getItem('jarvis_messenger_history');
+            if (saved) {
+                try {
+                    const history = JSON.parse(saved);
+                    setMessages(history);
+                } catch (e) {
+                    console.error('Failed to load Jarvis history:', e);
+                    setMessages([{
+                        id: 'welcome',
+                        content: "Hey! I'm Jarvis, your poker AI assistant. Ask me anything about strategy, hand analysis, or GTO concepts.",
+                        created_at: new Date().toISOString(),
+                        sender_id: 'jarvis',
+                        profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                        isJarvis: true
+                    }]);
+                }
+            } else {
+                // Show welcome message
+                setMessages([{
+                    id: 'welcome',
+                    content: "Hey! I'm Jarvis, your poker AI assistant. Ask me anything about strategy, hand analysis, or GTO concepts.",
+                    created_at: new Date().toISOString(),
+                    sender_id: 'jarvis',
+                    profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                    isJarvis: true
+                }]);
+            }
+            return;
+        }
+
+        // Regular conversation handling
         await loadMessages(conversation.id);
 
         // Update local unread count
@@ -1701,6 +1736,87 @@ export default function MessengerPage() {
     const handleSendMessage = async (content) => {
         if (!user || !activeConversation || !content.trim()) return;
 
+        // Special handling for Jarvis AI
+        if (activeConversation.isJarvis) {
+            const userMsg = {
+                id: `user-${Date.now()}`,
+                content: content.trim(),
+                created_at: new Date().toISOString(),
+                sender_id: user.id,
+                profiles: { id: user.id, username: user.username, avatar_url: user.avatar_url },
+                isUser: true
+            };
+
+            setMessages(prev => {
+                const updated = [...prev, userMsg];
+                localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                return updated;
+            });
+
+            // Show typing indicator
+            const typingMsg = {
+                id: 'typing',
+                content: 'Thinking...',
+                created_at: new Date().toISOString(),
+                sender_id: 'jarvis',
+                profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                isJarvis: true,
+                isTyping: true
+            };
+            setMessages(prev => [...prev, typingMsg]);
+
+            try {
+                const response = await fetch('/api/geeves/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: content,
+                        context: 'messenger',
+                        history: messages.slice(-6).map(m => ({
+                            role: m.isUser ? 'user' : 'assistant',
+                            content: m.content
+                        }))
+                    })
+                });
+
+                const data = await response.json();
+
+                // Remove typing indicator and add response
+                setMessages(prev => {
+                    const withoutTyping = prev.filter(m => m.id !== 'typing');
+                    const jarvisMsg = {
+                        id: `jarvis-${Date.now()}`,
+                        content: data.response || data.message || "I'm having trouble processing that. Try asking again.",
+                        created_at: new Date().toISOString(),
+                        sender_id: 'jarvis',
+                        profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                        isJarvis: true
+                    };
+                    const updated = [...withoutTyping, jarvisMsg];
+                    localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                    return updated;
+                });
+            } catch (error) {
+                console.error('Jarvis chat error:', error);
+                setMessages(prev => {
+                    const withoutTyping = prev.filter(m => m.id !== 'typing');
+                    const errorMsg = {
+                        id: `jarvis-error-${Date.now()}`,
+                        content: "Connection issue. Please try again.",
+                        created_at: new Date().toISOString(),
+                        sender_id: 'jarvis',
+                        profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                        isJarvis: true
+                    };
+                    const updated = [...withoutTyping, errorMsg];
+                    localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                    return updated;
+                });
+            }
+            return;
+        }
+
+        // Regular message handling
         // Optimistic update - show message immediately
         const tempId = `temp-${Date.now()}`;
         const optimisticMsg = {
