@@ -32,7 +32,7 @@ export default async function handler(req, res) {
         // Test profile fetch with known user
         const { data: profile, error } = await supabase
             .from('profiles')
-            .select('id, xp_total, diamonds')
+            .select('id, diamonds')
             .eq('id', TEST_USER_ID)
             .single();
 
@@ -63,8 +63,7 @@ export default async function handler(req, res) {
             latency_ms: latency,
             test_data: {
                 diamonds: profile.diamonds,
-                xp: profile.xp_total,
-                level: Math.max(1, Math.floor(Math.sqrt((profile.xp_total || 0) / 231)))
+                diamonds: profile.diamonds
             }
         });
 

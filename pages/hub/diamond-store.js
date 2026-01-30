@@ -22,44 +22,8 @@ import { getAuthUser } from '../../src/lib/authUtils';
 import { storePreferences } from '../../src/services/preferences-service';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// XP SYSTEM — Quadratic Progression (Infinite Levels)
-// Formula: Level = floor(sqrt(XP / 100)) + 1
-// Verified: 700,000 XP = Level 84
+// XP SYSTEM REMOVED - No longer tracking experience points
 // ═══════════════════════════════════════════════════════════════════════════
-
-// Calculate level from total XP
-function calculateLevelFromXP(xp) {
-    return Math.max(1, Math.floor(Math.sqrt(xp / 100)) + 1);
-}
-
-// Calculate total XP required for a given level
-function calculateXPForLevel(level) {
-    if (level <= 1) return 0;
-    return Math.pow(level - 1, 2) * 100;
-}
-
-// Calculate XP required to reach next level from current XP
-function calculateXPToNextLevel(currentXP) {
-    const currentLevel = calculateLevelFromXP(currentXP);
-    const xpForNextLevel = calculateXPForLevel(currentLevel + 1);
-    return xpForNextLevel - currentXP;
-}
-
-// Generate example milestones for display
-const XP_MILESTONES = [
-    { level: 1, xp: 0 },
-    { level: 5, xp: 1600 },
-    { level: 10, xp: 8100 },
-    { level: 15, xp: 19600 },
-    { level: 20, xp: 36100 },
-    { level: 25, xp: 57600 },
-    { level: 30, xp: 84100 },
-    { level: 40, xp: 152100 },
-    { level: 50, xp: 240100 },
-    { level: 75, xp: 547600 },
-    { level: 84, xp: 688900 }, // Verified production data
-    { level: 100, xp: 980100 },
-];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STANDARD DIAMOND REWARDS — 10 Ways to Earn (Daily Cap: 500 💎)

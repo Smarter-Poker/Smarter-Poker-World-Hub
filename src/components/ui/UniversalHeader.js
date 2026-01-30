@@ -90,7 +90,7 @@ export default function UniversalHeader({
 }) {
     const router = useRouter();
     const [user, setUser] = useState(null);
-    const [stats, setStats] = useState({ xp: 0, diamonds: 0, level: 1 });
+    const [stats, setStats] = useState({ diamonds: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [notificationCount, setNotificationCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
@@ -153,8 +153,8 @@ export default function UniversalHeader({
                             console.log(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
 
                             if (result.success && result.profile && mounted) {
-                                const { xp, diamonds, level, full_name, username, avatar_url } = result.profile;
-                                setStats({ xp, diamonds, level });
+                                const { diamonds, full_name, username, avatar_url } = result.profile;
+                                setStats({ diamonds });
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: avatar_url,
@@ -213,9 +213,7 @@ export default function UniversalHeader({
                             const profile = profiles?.[0];
 
                             if (profile && mounted) {
-                                const xpTotal = profile.xp_total || 0;
-                                const level = Math.max(1, Math.floor(Math.sqrt(xpTotal / 231)));
-                                setStats({ xp: xpTotal, diamonds: profile.diamonds || 0, level });
+                                setStats({ diamonds: profile.diamonds || 0 });
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: profile.avatar_url,

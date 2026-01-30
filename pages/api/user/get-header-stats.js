@@ -27,7 +27,7 @@ export default async function handler(req, res) {
         // Fetch profile data for header
         const { data: profile, error } = await supabase
             .from('profiles')
-            .select('username, full_name, avatar_url, xp_total, diamonds')
+            .select('username, full_name, avatar_url, diamonds')
             .eq('id', userId)
             .single();
 
@@ -40,9 +40,7 @@ export default async function handler(req, res) {
             return res.status(404).json({ error: 'Profile not found' });
         }
 
-        // Calculate level from XP
-        const xpTotal = profile.xp_total || 0;
-        const level = Math.max(1, Math.floor(Math.sqrt(xpTotal / 231)));
+        // Level system removed - no longer using XP
 
         // Count unread notifications
         const { count: notificationCount } = await supabase
@@ -81,9 +79,7 @@ export default async function handler(req, res) {
                 username: profile.username,
                 full_name: profile.full_name,
                 avatar_url: profile.avatar_url,
-                xp: xpTotal,
-                diamonds: profile.diamonds || 0,
-                level
+                diamonds: profile.diamonds || 0
             },
             notificationCount: notificationCount || 0,
             unreadMessages

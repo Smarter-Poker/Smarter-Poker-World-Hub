@@ -306,7 +306,7 @@ const styles = {
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: '#0a0a14',
+        background: 'transparent', // Transparent to match page background
         fontFamily: "'Inter', -apple-system, sans-serif",
         overflow: 'hidden',
     },

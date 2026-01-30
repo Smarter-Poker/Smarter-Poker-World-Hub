@@ -76,8 +76,6 @@ const CATEGORIES = [
 function TrainingHeader({ gamesPlayed = 0 }) {
     const router = useRouter();
     const [diamonds, setDiamonds] = useState(0);
-    const [xp, setXp] = useState(0);
-    const [level, setLevel] = useState(1);
     const [avatarUrl, setAvatarUrl] = useState(null);
 
     // Fetch user profile data using authUtils
@@ -87,18 +85,13 @@ function TrainingHeader({ gamesPlayed = 0 }) {
                 const { getAuthUser, queryProfiles, queryDiamondBalance } = await import('../../src/lib/authUtils');
                 const authUser = getAuthUser();
                 if (authUser) {
-                    // Fetch profile for XP and avatar
-                    const profile = await queryProfiles(authUser.id, 'avatar_url,xp_total');
+                    // Fetch profile for avatar only
+                    const profile = await queryProfiles(authUser.id, 'avatar_url');
                     // Fetch diamond balance from user_diamond_balance table
                     const diamondBalance = await queryDiamondBalance(authUser.id);
 
                     if (profile) {
                         setAvatarUrl(profile.avatar_url);
-                        const xpTotal = profile.xp_total || 0;
-                        setXp(xpTotal);
-                        // Level formula: Level 55 at 700k XP
-                        const calculatedLevel = Math.max(1, Math.floor(Math.sqrt(xpTotal / 231)));
-                        setLevel(calculatedLevel);
                     }
                     setDiamonds(diamondBalance);
                 }
@@ -141,11 +134,7 @@ function TrainingHeader({ gamesPlayed = 0 }) {
                     <span style={headerStyles.plusIcon}>+</span>
                 </div>
 
-                {/* XP */}
-                <div style={headerStyles.statChip}>
-                    <span style={{ fontSize: 12, color: '#FFD700' }}>XP</span>
-                    <span style={headerStyles.statValue}>{xp.toLocaleString()}</span>
-                </div>
+
 
                 {/* Settings Menu Button */}
                 <TrainingSettingsMenu />

@@ -297,7 +297,7 @@ const styles = {
     fullScreenContainer: {
         width: '100%',
         height: '100vh',
-        background: '#0a0a14',
+        background: 'transparent', // Transparent to match page background
         overflow: 'hidden',
     },
 
