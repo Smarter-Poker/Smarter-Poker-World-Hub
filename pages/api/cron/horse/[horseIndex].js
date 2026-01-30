@@ -130,8 +130,8 @@ function convertToEmbedUrl(url) {
 // ═══════════════════════════════════════════════════════════════════════════
 // CONTENT TYPE 1: VIDEO CLIPS
 // ═══════════════════════════════════════════════════════════════════════════
-async function postVideoClip(horse, assignedSources) {
-    console.log(`   📹 Posting VIDEO CLIP`);
+async function postVideoClip(horse, assignedSources, horseIndex) {
+    console.log(`   Posting VIDEO CLIP`);
 
     let clips = [];
     let clipSource = 'sports_clips';
@@ -184,7 +184,7 @@ async function postVideoClip(horse, assignedSources) {
     }
 
     caption = applyWritingStyle(caption, horse.profile_id);
-    caption = enforceEmojiLaw(caption, index, 'video_clip');
+    caption = enforceEmojiLaw(caption, horseIndex, 'video_clip');
 
     const { data: post, error: postError } = await supabase
         .from('social_posts')
@@ -209,8 +209,8 @@ async function postVideoClip(horse, assignedSources) {
 // ═══════════════════════════════════════════════════════════════════════════
 // CONTENT TYPE 2: POKER NEWS
 // ═══════════════════════════════════════════════════════════════════════════
-async function postPokerNews(horse) {
-    console.log(`   📰 Posting POKER NEWS`);
+async function postPokerNews(horse, horseIndex) {
+    console.log(`   Posting POKER NEWS`);
 
     const sources = getHorseNewsSources(horse.profile_id, POKER_NEWS_SOURCES);
 
@@ -239,7 +239,7 @@ async function postPokerNews(horse) {
                 }
 
                 commentary = applyWritingStyle(commentary, horse.profile_id);
-                commentary = enforceEmojiLaw(commentary, index, 'poker_news');
+                commentary = enforceEmojiLaw(commentary, horseIndex, 'poker_news');
                 const postContent = `${commentary}\n\n${article.link}`;
 
                 const { data: post, error: postError } = await supabase
@@ -270,8 +270,8 @@ async function postPokerNews(horse) {
 // ═══════════════════════════════════════════════════════════════════════════
 // CONTENT TYPE 3: SPORTS NEWS
 // ═══════════════════════════════════════════════════════════════════════════
-async function postSportsNews(horse) {
-    console.log(`   🏈 Posting SPORTS NEWS`);
+async function postSportsNews(horse, horseIndex) {
+    console.log(`   Posting SPORTS NEWS`);
 
     const sources = getHorseNewsSources(horse.profile_id, SPORTS_NEWS_SOURCES);
 
@@ -299,7 +299,7 @@ async function postSportsNews(horse) {
                 }
 
                 commentary = applyWritingStyle(commentary, horse.profile_id);
-                commentary = enforceEmojiLaw(commentary, index, 'sports_news');
+                commentary = enforceEmojiLaw(commentary, horseIndex, 'sports_news');
                 const postContent = `${commentary}\n\n${article.link}`;
 
                 const { data: post, error: postError } = await supabase
@@ -330,8 +330,8 @@ async function postSportsNews(horse) {
 // ═══════════════════════════════════════════════════════════════════════════
 // CONTENT TYPE 4: STORIES (Text posts)
 // ═══════════════════════════════════════════════════════════════════════════
-async function postStory(horse) {
-    console.log(`   💭 Posting STORY`);
+async function postStory(horse, horseIndex) {
+    console.log(`   Posting STORY`);
 
     const storyTopics = [
         'poker session update', 'day at the tables', 'poker thought',
@@ -355,7 +355,7 @@ async function postStory(horse) {
     }
 
     story = applyWritingStyle(story, horse.profile_id);
-    story = enforceEmojiLaw(story, index, 'story');
+    story = enforceEmojiLaw(story, horseIndex, 'story');
 
     const { data: post, error: postError } = await supabase
         .from('social_posts')
@@ -419,19 +419,19 @@ export default async function handler(req, res) {
         let result;
         switch (contentType) {
             case 'video_clip':
-                result = await postVideoClip(horse, assignedSources);
+                result = await postVideoClip(horse, assignedSources, index);
                 break;
             case 'poker_news':
-                result = await postPokerNews(horse);
+                result = await postPokerNews(horse, index);
                 break;
             case 'sports_news':
-                result = await postSportsNews(horse);
+                result = await postSportsNews(horse, index);
                 break;
             case 'story':
-                result = await postStory(horse);
+                result = await postStory(horse, index);
                 break;
             default:
-                result = await postVideoClip(horse, assignedSources);
+                result = await postVideoClip(horse, assignedSources, index);
         }
 
         console.log(`   ${result.success ? '✅' : '❌'} Result:`, result);
