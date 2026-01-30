@@ -235,23 +235,50 @@ function convertToEmbedUrl(url) {
     return url;
 }
 
-// POST VIDEO CLIP (with unique voice)
+// POST VIDEO CLIP (with unique voice + GLOBAL DEDUPLICATION)
 async function postVideoClip(horse, assignedSources, horseIndex) {
     console.log(`   Posting VIDEO CLIP for horse #${horseIndex}`);
 
     let clips = [];
     if (assignedSources.length > 0) {
-        const { data } = await supabase.from('sports_clips').select('*').in('source', assignedSources).limit(100);
+        const { data } = await supabase.from('sports_clips').select('*').in('source', assignedSources).limit(200);
         if (data?.length) clips = data;
     }
     if (!clips.length) {
         const offset = Math.floor(Math.random() * 5000);
-        const { data } = await supabase.from('sports_clips').select('*').range(offset, offset + 100);
+        const { data } = await supabase.from('sports_clips').select('*').range(offset, offset + 200);
         if (data?.length) clips = data;
     }
     if (!clips.length) return { success: false, error: 'No clips' };
 
-    const clip = clips[Math.floor(Math.random() * clips.length)];
+    // GLOBAL DEDUPLICATION: Check which video URLs were already posted (last 48h)
+    const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const { data: recentVideos } = await supabase
+        .from('social_posts')
+        .select('media_urls')
+        .eq('content_type', 'video')
+        .gte('created_at', since48h);
+
+    const usedUrls = new Set();
+    (recentVideos || []).forEach(p => {
+        if (p.media_urls) p.media_urls.forEach(url => usedUrls.add(url));
+    });
+    console.log(`   Found ${usedUrls.size} recently used video URLs, filtering...`);
+
+    // Filter out already-posted clips
+    const freshClips = clips.filter(c => {
+        const embedUrl = convertToEmbedUrl(c.source_url);
+        return !usedUrls.has(embedUrl) && !usedUrls.has(c.source_url);
+    });
+    console.log(`   ${freshClips.length}/${clips.length} clips are fresh`);
+
+    if (!freshClips.length) {
+        console.log(`   No fresh clips available`);
+        return { success: false, error: 'All clips already posted' };
+    }
+
+    // Pick random from FRESH clips only
+    const clip = freshClips[Math.floor(Math.random() * freshClips.length)];
     const voice = getHorseVoice(horseIndex);
 
     let caption = '';
@@ -283,7 +310,7 @@ async function postVideoClip(horse, assignedSources, horseIndex) {
     return { success: true, postId: post.id, type: 'video_clip', caption: caption.slice(0, 50) };
 }
 
-// POST NEWS LINK (with unique voice)
+// POST NEWS LINK (with unique voice + GLOBAL DEDUPLICATION)
 async function postNewsLink(horse, horseIndex, newsType) {
     console.log(`   Posting ${newsType} NEWS for horse #${horseIndex}`);
 
@@ -293,10 +320,31 @@ async function postNewsLink(horse, horseIndex, newsType) {
 
     try {
         const feed = await rssParser.parseURL(source.rss);
-        const articles = (feed.items || []).slice(0, 10);
-        if (!articles.length) return { success: false, error: 'No articles' };
+        const allArticles = (feed.items || []).slice(0, 20);
+        if (!allArticles.length) return { success: false, error: 'No articles' };
 
-        const article = articles[Math.floor(Math.random() * articles.length)];
+        // GLOBAL DEDUPLICATION: Check which links were already posted (last 48h)
+        const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        const { data: recentPosts } = await supabase
+            .from('social_posts')
+            .select('link_url')
+            .not('link_url', 'is', null)
+            .gte('created_at', since48h);
+
+        const usedLinks = new Set((recentPosts || []).map(p => p.link_url));
+        console.log(`   Found ${usedLinks.size} recently used links, filtering...`);
+
+        // Filter out already-posted articles
+        const freshArticles = allArticles.filter(a => !usedLinks.has(a.link));
+        console.log(`   ${freshArticles.length}/${allArticles.length} articles are fresh`);
+
+        if (!freshArticles.length) {
+            console.log(`   No fresh articles available for ${source.name}`);
+            return { success: false, error: 'All articles already posted' };
+        }
+
+        // Pick random from FRESH articles only
+        const article = freshArticles[Math.floor(Math.random() * freshArticles.length)];
         const voice = getHorseVoice(horseIndex);
 
         let caption = '';
