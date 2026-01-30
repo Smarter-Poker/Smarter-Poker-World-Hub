@@ -465,7 +465,7 @@ BAD EXAMPLES:
                 sourceUrl: clip.source_url,
                 clipSource: clip.source,
                 clipTitle: clip.description || clip.title,
-                postedBy: horse.profile_id,
+                horseId: horse.profile_id,
                 postId: post.id,
                 clipType: 'poker',
                 category: clip.category
