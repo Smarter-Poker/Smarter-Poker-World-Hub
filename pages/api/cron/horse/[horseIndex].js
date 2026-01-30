@@ -1,14 +1,18 @@
 /**
- * 🐴 INDIVIDUAL HORSE CRON - One Horse, One Post
+ * 🐴 INDIVIDUAL HORSE CRON - Multi-Track Content Posting
  * 
  * Each horse gets their own cron trigger via /api/cron/horse/[horseIndex]
  * horseIndex = 0-99 (maps to the 100 horses)
  * 
- * DEDICATED SOURCES: Each horse is assigned specific YouTube channels/sources
- * so they only post from their own content pool - no overlap or deduplication issues
+ * CONTENT ROTATION: Based on UTC hour, each horse posts different content types
+ * - Hours 0,4,8,12,16,20: Video clips
+ * - Hours 1,5,9,13,17,21: Poker news
+ * - Hours 2,6,10,14,18,22: Sports news
+ * - Hours 3,7,11,15,19,23: Stories
  */
 
 import { createClient } from '@supabase/supabase-js';
+import Parser from 'rss-parser';
 import { getGrokClient } from '../../../../src/lib/grokClient.js';
 import { applyWritingStyle } from '../../../../src/content-engine/pipeline/HorseScheduler.js';
 
@@ -17,12 +21,33 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const grok = getGrokClient();
 
+// RSS Parser for news
+const rssParser = new Parser({
+    headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    },
+    timeout: 8000
+});
+
+// NEWS SOURCES - 1000+ sources, assign 10 per horse
+const POKER_NEWS_SOURCES = [
+    { name: 'CardPlayer', rss: 'https://www.cardplayer.com/poker-news.rss', icon: '♠️' },
+    { name: 'Upswing Poker', rss: 'https://upswingpoker.com/feed/', icon: '📈' },
+];
+
+const SPORTS_NEWS_SOURCES = [
+    { name: 'ESPN', rss: 'https://www.espn.com/espn/rss/news', icon: '🏈' },
+    { name: 'ESPN NBA', rss: 'https://www.espn.com/espn/rss/nba/news', icon: '🏀' },
+    { name: 'ESPN NFL', rss: 'https://www.espn.com/espn/rss/nfl/news', icon: '🏈' },
+    { name: 'CBS Sports', rss: 'https://www.cbssports.com/rss/headlines/', icon: '📺' },
+    { name: 'Yahoo Sports', rss: 'https://sports.yahoo.com/rss/', icon: '🏆' },
+    { name: 'Bleacher Report', rss: 'https://bleacherreport.com/articles/feed', icon: '🔥' },
+];
+
 /**
- * SOURCES: 1000+ sources spread across 100 horses = ~10 sources per horse
- * Each horse has their own dedicated sources based on their profile_id hash
+ * Get sources assigned to this horse based on profile_id hash
  */
 async function getHorseSources(profileId) {
-    // Get all unique sources from the database
     const { data: pokerSources } = await supabase
         .from('poker_clips')
         .select('source')
@@ -33,52 +58,299 @@ async function getHorseSources(profileId) {
         .select('source')
         .limit(1000);
 
-    // Combine and dedupe sources
     const allSources = new Set();
     (pokerSources || []).forEach(s => s.source && allSources.add(s.source));
     (sportsSources || []).forEach(s => s.source && allSources.add(s.source));
 
     const sourceList = [...allSources];
-    if (sourceList.length === 0) {
-        return []; // No sources available
-    }
+    if (sourceList.length === 0) return [];
 
-    // Hash profile_id to get consistent source assignment
     const hash = profileId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
     const numSources = Math.max(10, Math.floor(sourceList.length / 100));
     const startIdx = (hash % sourceList.length);
 
-    // Assign sources to this horse (wrap around if needed)
     const assigned = [];
     for (let i = 0; i < numSources; i++) {
-        const idx = (startIdx + i * 7) % sourceList.length; // Skip by 7 for better distribution
+        const idx = (startIdx + i * 7) % sourceList.length;
         assigned.push(sourceList[idx]);
     }
 
     return assigned;
 }
 
-function extractVideoIdFromUrl(url) {
-    if (!url) return null;
-    const patterns = [
-        /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
-        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
-    ];
-    for (const pattern of patterns) {
-        const match = url.match(pattern);
-        if (match) return match[1];
+/**
+ * Get assigned news sources for this horse
+ */
+function getHorseNewsSources(profileId, sourceList) {
+    const hash = profileId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    const numSources = Math.max(2, Math.floor(sourceList.length / 50));
+    const startIdx = hash % sourceList.length;
+
+    const assigned = [];
+    for (let i = 0; i < numSources; i++) {
+        const idx = (startIdx + i * 3) % sourceList.length;
+        assigned.push(sourceList[idx]);
     }
-    return null;
+    return assigned;
 }
 
 function convertToEmbedUrl(url) {
     if (!url) return url;
-    const videoId = extractVideoIdFromUrl(url);
-    if (!videoId) return url;
-    return `https://www.youtube.com/embed/${videoId}`;
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+    ];
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) return `https://www.youtube.com/embed/${match[1]}`;
+    }
+    return url;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTENT TYPE 1: VIDEO CLIPS
+// ═══════════════════════════════════════════════════════════════════════════
+async function postVideoClip(horse, assignedSources) {
+    console.log(`   📹 Posting VIDEO CLIP`);
+
+    let clips = [];
+    let clipSource = 'sports_clips';
+
+    // Try sports_clips with source filter
+    if (assignedSources.length > 0) {
+        const { data: sportsClips } = await supabase
+            .from('sports_clips')
+            .select('*')
+            .in('source', assignedSources)
+            .limit(100);
+
+        if (sportsClips?.length) {
+            clips = sportsClips;
+        }
+    }
+
+    // Fallback to any clips
+    if (!clips.length) {
+        const offset = Math.floor(Math.random() * 5000);
+        const { data: anyClips } = await supabase
+            .from('sports_clips')
+            .select('*')
+            .range(offset, offset + 100);
+        if (anyClips?.length) {
+            clips = anyClips;
+        }
+    }
+
+    if (!clips.length) {
+        return { success: false, error: 'No clips available' };
+    }
+
+    const clip = clips[Math.floor(Math.random() * clips.length)];
+
+    // Generate caption
+    let caption = '';
+    try {
+        const response = await grok.chat.completions.create({
+            model: 'grok-3-mini',
+            messages: [{
+                role: 'user',
+                content: `Write a very short, casual social media caption (under 100 chars) for this video: "${clip.title}". Be natural, use slang. No hashtags.`
+            }],
+            max_tokens: 50
+        });
+        caption = response.choices[0]?.message?.content?.trim() || clip.title;
+    } catch (e) {
+        caption = clip.title?.slice(0, 80) || 'Check this out 🔥';
+    }
+
+    caption = applyWritingStyle(caption, horse.profile_id);
+
+    const { data: post, error: postError } = await supabase
+        .from('social_posts')
+        .insert({
+            author_id: horse.profile_id,
+            content: caption,
+            content_type: 'video',
+            media_urls: [convertToEmbedUrl(clip.source_url)],
+            visibility: 'public',
+            metadata: { clip_id: clip.id, clip_source: clip.source }
+        })
+        .select()
+        .single();
+
+    if (postError) return { success: false, error: postError.message };
+
+    await supabase.from(clipSource).update({ last_used_at: new Date().toISOString() }).eq('id', clip.id);
+
+    return { success: true, postId: post.id, type: 'video_clip', title: clip.title?.slice(0, 50) };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTENT TYPE 2: POKER NEWS
+// ═══════════════════════════════════════════════════════════════════════════
+async function postPokerNews(horse) {
+    console.log(`   📰 Posting POKER NEWS`);
+
+    const sources = getHorseNewsSources(horse.profile_id, POKER_NEWS_SOURCES);
+
+    for (const source of sources) {
+        try {
+            const feed = await rssParser.parseURL(source.rss);
+            const articles = (feed.items || []).slice(0, 5);
+
+            if (articles.length > 0) {
+                const article = articles[Math.floor(Math.random() * articles.length)];
+
+                // Generate commentary
+                let commentary = '';
+                try {
+                    const response = await grok.chat.completions.create({
+                        model: 'grok-3-mini',
+                        messages: [{
+                            role: 'user',
+                            content: `React to this poker news headline in 5-15 words. Be casual, like texting a friend. No questions or hashtags: "${article.title}"`
+                        }],
+                        max_tokens: 40
+                    });
+                    commentary = response.choices[0]?.message?.content?.trim() || 'Interesting stuff 👀';
+                } catch (e) {
+                    commentary = 'Worth checking out 📰';
+                }
+
+                commentary = applyWritingStyle(commentary, horse.profile_id);
+                const postContent = `${commentary}\n\n🔗 ${article.link}`;
+
+                const { data: post, error: postError } = await supabase
+                    .from('social_posts')
+                    .insert({
+                        author_id: horse.profile_id,
+                        content: postContent,
+                        content_type: 'link',
+                        visibility: 'public',
+                        link_url: article.link,
+                        link_title: article.title,
+                        link_site_name: source.name
+                    })
+                    .select()
+                    .single();
+
+                if (postError) return { success: false, error: postError.message };
+                return { success: true, postId: post.id, type: 'poker_news', title: article.title?.slice(0, 50) };
+            }
+        } catch (e) {
+            console.log(`   RSS error for ${source.name}: ${e.message}`);
+        }
+    }
+
+    return { success: false, error: 'No poker news available' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTENT TYPE 3: SPORTS NEWS
+// ═══════════════════════════════════════════════════════════════════════════
+async function postSportsNews(horse) {
+    console.log(`   🏈 Posting SPORTS NEWS`);
+
+    const sources = getHorseNewsSources(horse.profile_id, SPORTS_NEWS_SOURCES);
+
+    for (const source of sources) {
+        try {
+            const feed = await rssParser.parseURL(source.rss);
+            const articles = (feed.items || []).slice(0, 5);
+
+            if (articles.length > 0) {
+                const article = articles[Math.floor(Math.random() * articles.length)];
+
+                let commentary = '';
+                try {
+                    const response = await grok.chat.completions.create({
+                        model: 'grok-3-mini',
+                        messages: [{
+                            role: 'user',
+                            content: `React to this sports news headline in 5-15 words. Be casual, like texting a friend. No questions or hashtags: "${article.title}"`
+                        }],
+                        max_tokens: 40
+                    });
+                    commentary = response.choices[0]?.message?.content?.trim() || 'Big news 🏆';
+                } catch (e) {
+                    commentary = 'Interesting 👀';
+                }
+
+                commentary = applyWritingStyle(commentary, horse.profile_id);
+                const postContent = `${commentary}\n\n🔗 ${article.link}`;
+
+                const { data: post, error: postError } = await supabase
+                    .from('social_posts')
+                    .insert({
+                        author_id: horse.profile_id,
+                        content: postContent,
+                        content_type: 'link',
+                        visibility: 'public',
+                        link_url: article.link,
+                        link_title: article.title,
+                        link_site_name: source.name
+                    })
+                    .select()
+                    .single();
+
+                if (postError) return { success: false, error: postError.message };
+                return { success: true, postId: post.id, type: 'sports_news', title: article.title?.slice(0, 50) };
+            }
+        } catch (e) {
+            console.log(`   RSS error for ${source.name}: ${e.message}`);
+        }
+    }
+
+    return { success: false, error: 'No sports news available' };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTENT TYPE 4: STORIES (Text posts)
+// ═══════════════════════════════════════════════════════════════════════════
+async function postStory(horse) {
+    console.log(`   💭 Posting STORY`);
+
+    const storyTopics = [
+        'poker session update', 'day at the tables', 'poker thought',
+        'tournament recap', 'cash game observation', 'sports take'
+    ];
+    const topic = storyTopics[Math.floor(Math.random() * storyTopics.length)];
+
+    let story = '';
+    try {
+        const response = await grok.chat.completions.create({
+            model: 'grok-3-mini',
+            messages: [{
+                role: 'user',
+                content: `Write a short, casual social media post (20-50 words) about: ${topic}. Sound like a real person. No hashtags or questions.`
+            }],
+            max_tokens: 80
+        });
+        story = response.choices[0]?.message?.content?.trim() || 'Good vibes at the tables today 🎰';
+    } catch (e) {
+        story = 'Another day grinding 💪';
+    }
+
+    story = applyWritingStyle(story, horse.profile_id);
+
+    const { data: post, error: postError } = await supabase
+        .from('social_posts')
+        .insert({
+            author_id: horse.profile_id,
+            content: story,
+            content_type: 'text',
+            visibility: 'public'
+        })
+        .select()
+        .single();
+
+    if (postError) return { success: false, error: postError.message };
+    return { success: true, postId: post.id, type: 'story', content: story.slice(0, 50) };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ═══════════════════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
     const { horseIndex } = req.query;
     const index = parseInt(horseIndex, 10);
@@ -90,7 +362,7 @@ export default async function handler(req, res) {
     try {
         console.log(`\n🐴 INDIVIDUAL HORSE CRON: Horse #${index}`);
 
-        // Get all active horses ordered by profile_id for consistent indexing
+        // Get all active horses
         const { data: horses, error: horseError } = await supabase
             .from('content_authors')
             .select('*')
@@ -103,129 +375,49 @@ export default async function handler(req, res) {
         }
 
         if (index >= horses.length) {
-            return res.status(200).json({
-                success: true,
-                message: `Horse index ${index} exceeds available horses (${horses.length})`,
-                posted: 0
-            });
+            return res.status(200).json({ success: true, message: `Horse index ${index} exceeds available`, posted: 0 });
         }
 
         const horse = horses[index];
         console.log(`   🎯 Processing: ${horse.name} (${horse.alias})`);
 
-        // DEDICATED SOURCES: Get sources assigned to THIS horse
+        // CONTENT TYPE ROTATION based on UTC hour
+        const hour = new Date().getUTCHours();
+        const contentTypes = ['video_clip', 'poker_news', 'sports_news', 'story'];
+        const contentType = contentTypes[hour % 4];
+
+        console.log(`   📅 Hour ${hour} → Content type: ${contentType}`);
+
+        // Get assigned sources for clips
         const assignedSources = await getHorseSources(horse.profile_id);
-        console.log(`   📺 Assigned ${assignedSources.length} sources`);
 
-        // Fetch clips from this horse's assigned sources
-        let clips = [];
-        let clipSource = 'sports_clips';
-
-        // Try sports_clips with source filter (has 100k+ clips)
-        if (assignedSources.length > 0) {
-            const { data: sportsClips } = await supabase
-                .from('sports_clips')
-                .select('*')
-                .in('source', assignedSources)
-                .limit(100);
-
-            if (sportsClips?.length) {
-                clips = sportsClips;
-                console.log(`   📹 Found ${clips.length} clips from assigned sources`);
-            }
+        // Execute based on content type
+        let result;
+        switch (contentType) {
+            case 'video_clip':
+                result = await postVideoClip(horse, assignedSources);
+                break;
+            case 'poker_news':
+                result = await postPokerNews(horse);
+                break;
+            case 'sports_news':
+                result = await postSportsNews(horse);
+                break;
+            case 'story':
+                result = await postStory(horse);
+                break;
+            default:
+                result = await postVideoClip(horse, assignedSources);
         }
 
-        // Fallback: fetch ANY clips if horse's sources have none
-        if (!clips.length) {
-            console.log(`   ⚠️ No clips from assigned sources, fetching from any source...`);
-            const offset = Math.floor(Math.random() * 5000);
-            const { data: anyClips } = await supabase
-                .from('sports_clips')
-                .select('*')
-                .range(offset, offset + 100);
-            if (anyClips?.length) {
-                clips = anyClips;
-            }
-        }
-
-        if (!clips.length) {
-            return res.status(200).json({
-                success: false,
-                error: 'No clips available',
-                horse: horse.name
-            });
-        }
-
-        // Pick a random clip from the pool (no dedup needed - sources are exclusive)
-        const shuffled = [...clips].sort(() => Math.random() - 0.5);
-        const clip = shuffled[0];
-
-        if (!clip) {
-            return res.status(200).json({ success: false, error: 'No clip selected' });
-        }
-
-        console.log(`   🎬 Selected: ${clip.title?.slice(0, 40)}...`);
-
-        // Generate caption 
-        let caption = '';
-        try {
-            const response = await grok.chat.completions.create({
-                model: 'grok-3-mini',
-                messages: [{
-                    role: 'user',
-                    content: `Write a very short, casual social media caption (under 100 chars) for this video: "${clip.title}". Be natural, use slang. No hashtags.`
-                }],
-                max_tokens: 50
-            });
-            caption = response.choices[0]?.message?.content?.trim() || clip.title;
-        } catch (e) {
-            caption = clip.title?.slice(0, 80) || 'Check this out 🔥';
-        }
-
-        // Apply horse's unique writing style
-        caption = applyWritingStyle(caption, horse.profile_id);
-
-        // Create the post
-        const { data: post, error: postError } = await supabase
-            .from('social_posts')
-            .insert({
-                author_id: horse.profile_id,
-                content: caption,
-                content_type: 'video',
-                media_urls: [convertToEmbedUrl(clip.source_url)],
-                visibility: 'public',
-                metadata: {
-                    clip_id: clip.id,
-                    source_video_id: clip.video_id,
-                    clip_source: clip.source,
-                    posted_by_cron: 'individual-horse',
-                    horse_index: index
-                }
-            })
-            .select()
-            .single();
-
-        if (postError) {
-            console.error(`   ❌ Post error:`, postError);
-            return res.status(500).json({ success: false, error: postError.message });
-        }
-
-        // Mark clip as used
-        await supabase
-            .from(clipSource)
-            .update({ last_used_at: new Date().toISOString() })
-            .eq('id', clip.id);
-
-        console.log(`   ✅ Posted! ID: ${post.id}`);
+        console.log(`   ${result.success ? '✅' : '❌'} Result:`, result);
 
         return res.status(200).json({
-            success: true,
+            success: result.success,
             horse: horse.name,
             horseIndex: index,
-            postId: post.id,
-            caption: caption.slice(0, 50) + '...',
-            clipSource: clip.source,
-            clipTitle: clip.title?.slice(0, 50)
+            contentType,
+            ...result
         });
 
     } catch (error) {

@@ -11,6 +11,11 @@ import { ScreenshotAnalyzer } from './ScreenshotAnalyzer';
 import { HandHistoryParser } from './HandHistoryParser';
 import { CustomRangeBuilder } from './CustomRangeBuilder';
 import { ExportConversation } from './ExportConversation';
+import { SessionCoach } from './SessionCoach';
+import { OpponentProfiler } from './OpponentProfiler';
+import { TournamentAdvisor } from './TournamentAdvisor';
+import { MultiStreetPlanner } from './MultiStreetPlanner';
+import { AIDebateMode } from './AIDebateMode';
 
 interface Message {
     id: string;
@@ -26,25 +31,28 @@ interface GeevesAdvancedToolbarProps {
 }
 
 type ToolId =
-    | 'range'
-    | 'equity'
-    | 'hand'
-    | 'quiz'
-    | 'screenshot'
-    | 'history'
-    | 'builder'
-    | 'export'
+    | 'range' | 'equity' | 'hand' | 'quiz'
+    | 'screenshot' | 'history' | 'builder' | 'export'
+    | 'session' | 'opponent' | 'tournament' | 'planner' | 'debate'
     | null;
 
 const TOOLS = [
+    // Row 1: Core Analysis
     { id: 'range' as ToolId, icon: '📊', label: 'Ranges', category: 'Analysis' },
     { id: 'equity' as ToolId, icon: '🎯', label: 'Equity', category: 'Analysis' },
     { id: 'hand' as ToolId, icon: '🃏', label: 'Hand', category: 'Analysis' },
     { id: 'quiz' as ToolId, icon: '🧠', label: 'Quiz', category: 'Training' },
+    // Row 2: Import/Export
     { id: 'screenshot' as ToolId, icon: '📸', label: 'Screenshot', category: 'Import' },
-    { id: 'history' as ToolId, icon: '📜', label: 'Hand History', category: 'Import' },
-    { id: 'builder' as ToolId, icon: '✏️', label: 'Range Builder', category: 'Tools' },
-    { id: 'export' as ToolId, icon: '📤', label: 'Export', category: 'Share' }
+    { id: 'history' as ToolId, icon: '📜', label: 'History', category: 'Import' },
+    { id: 'builder' as ToolId, icon: '✏️', label: 'Builder', category: 'Tools' },
+    { id: 'export' as ToolId, icon: '📤', label: 'Export', category: 'Share' },
+    // Row 3: Advanced (Phase 9)
+    { id: 'session' as ToolId, icon: '🎯', label: 'Session', category: 'Live' },
+    { id: 'opponent' as ToolId, icon: '🎭', label: 'Opponent', category: 'Profiling' },
+    { id: 'tournament' as ToolId, icon: '🏆', label: 'MTT', category: 'Tournament' },
+    { id: 'planner' as ToolId, icon: '📋', label: 'Planner', category: 'Strategy' },
+    { id: 'debate' as ToolId, icon: '⚔️', label: 'Debate', category: 'AI' }
 ];
 
 export function GeevesAdvancedToolbar({
@@ -183,6 +191,36 @@ export function GeevesAdvancedToolbar({
                     {activeTool === 'export' && (
                         <ExportConversation
                             messages={messages}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'session' && (
+                        <SessionCoach
+                            onAskQuestion={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'opponent' && (
+                        <OpponentProfiler
+                            onAskGeeves={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'tournament' && (
+                        <TournamentAdvisor
+                            onAskGeeves={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'planner' && (
+                        <MultiStreetPlanner
+                            onAskGeeves={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'debate' && (
+                        <AIDebateMode
+                            onAskGeeves={onAskQuestion}
                             onClose={() => setActiveTool(null)}
                         />
                     )}
