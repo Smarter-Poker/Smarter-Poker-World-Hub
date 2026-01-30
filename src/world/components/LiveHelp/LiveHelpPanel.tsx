@@ -181,24 +181,9 @@ export function LiveHelpPanel({
                         />
                     ))}
 
-                    {/* Typing indicator */}
+                    {/* Enhanced Typing indicator */}
                     {isAgentTyping && (
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                padding: '12px 16px',
-                                background: 'rgba(0, 212, 255, 0.1)',
-                                borderRadius: 12,
-                                alignSelf: 'flex-start',
-                            }}
-                        >
-                            <span style={{ color: currentAgent.avatarColor, fontWeight: 600 }}>
-                                {currentAgent.name}
-                            </span>
-                            <TypingDots />
-                        </div>
+                        <EnhancedTypingIndicator />
                     )}
                     <div ref={messagesEndRef} />
                 </div>
@@ -229,6 +214,12 @@ export function LiveHelpPanel({
                             fontSize: 14,
                             outline: 'none',
                         }}
+                    />
+                    <VoiceInput
+                        onTranscript={(text) => {
+                            onInputChange(inputValue + (inputValue ? ' ' : '') + text);
+                        }}
+                        onError={(error) => console.error('Voice input error:', error)}
                     />
                     <button
                         onClick={handleSend}
@@ -352,6 +343,30 @@ function MessageBubble({ message, agent }: MessageBubbleProps) {
                     {message.content}
                 </p>
             </div>
+
+            {/* Reactions and Copy Button for Jarvis messages */}
+            {!isUser && (
+                <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    marginTop: '8px',
+                    marginLeft: '12px'
+                }}>
+                    <CopyButton
+                        content={message.content}
+                        onCopy={() => {
+                            // Track copy event
+                            console.log('Message copied:', message.id);
+                        }}
+                    />
+                    <MessageReactions
+                        messageId={message.id}
+                        onReact={(reaction) => {
+                            console.log('Reaction:', reaction, 'for message:', message.id);
+                        }}
+                    />
+                </div>
+            )}
         </div>
     );
 }
