@@ -120,11 +120,13 @@ export default function VenueDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFollowed, setIsFollowed] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
   const [copySuccess, setCopySuccess] = useState(false);
 
-  // Check follow status on mount
+  // Check follow status on mount - try API first, localStorage fallback
   useEffect(() => {
     if (!id) return;
+    // Check localStorage immediately for fast UI
     try {
       const stored = localStorage.getItem('followed-venues');
       const ids = stored ? JSON.parse(stored) : [];
@@ -132,6 +134,13 @@ export default function VenueDetailPage() {
     } catch {
       // ignore parse errors
     }
+    // Fetch follower count from API
+    fetch(`/api/poker/follow?page_type=venue&page_id=${id}`)
+      .then(r => r.json())
+      .then(json => {
+        if (json.success) setFollowerCount(json.follower_count || 0);
+      })
+      .catch(() => {});
   }, [id]);
 
   // Fetch venue data
@@ -166,23 +175,51 @@ export default function VenueDetailPage() {
   }, [id]);
 
   const handleFollow = () => {
+    const venueId = String(id);
+    const newState = !isFollowed;
+    setIsFollowed(newState);
+    setFollowerCount(prev => newState ? prev + 1 : Math.max(0, prev - 1));
+
+    // Update localStorage for instant persistence
     try {
       const stored = localStorage.getItem('followed-venues');
       let ids = stored ? JSON.parse(stored) : [];
-      const venueId = String(id);
-
-      if (ids.includes(venueId)) {
-        ids = ids.filter(x => x !== venueId);
-        setIsFollowed(false);
+      if (newState) {
+        if (!ids.includes(venueId)) ids.push(venueId);
       } else {
-        ids.push(venueId);
-        setIsFollowed(true);
+        ids = ids.filter(x => x !== venueId);
       }
       localStorage.setItem('followed-venues', JSON.stringify(ids));
     } catch {
       // ignore storage errors
     }
+
+    // Also call API for server-side persistence
+    fetch('/api/poker/follow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page_type: 'venue',
+        page_id: venueId,
+        action: newState ? 'follow' : 'unfollow',
+        user_id: getAnonymousUserId(),
+      }),
+    }).catch(() => {});
   };
+
+  // Get or create anonymous user ID for follow tracking
+  function getAnonymousUserId() {
+    try {
+      let uid = localStorage.getItem('sp-anon-uid');
+      if (!uid) {
+        uid = 'anon-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('sp-anon-uid', uid);
+      }
+      return uid;
+    } catch {
+      return 'anon-fallback';
+    }
+  }
 
   const handleShare = async () => {
     try {
@@ -333,6 +370,7 @@ export default function VenueDetailPage() {
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                   </svg>
                   {isFollowed ? 'Following' : 'Follow'}
+                  {followerCount > 0 && <span className="follow-count">{followerCount}</span>}
                 </button>
                 <button className="action-btn share-btn" onClick={handleShare}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -751,6 +789,19 @@ export default function VenueDetailPage() {
         .share-btn:hover {
           border-color: rgba(255, 255, 255, 0.3);
           color: #f1f5f9;
+        }
+        .follow-count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 20px;
+          height: 20px;
+          padding: 0 6px;
+          border-radius: 10px;
+          background: rgba(212, 168, 83, 0.2);
+          font-size: 11px;
+          font-weight: 700;
+          color: #d4a853;
         }
 
         /* Section Titles */
