@@ -57,10 +57,6 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/daily-content",
-      "schedule": "0 */4 * * *"
-    },
-    {
       "path": "/api/cron/scrape-news",
       "schedule": "0 * * * *"
     },
@@ -99,10 +95,6 @@
     {
       "path": "/api/cron/horses-social-friends",
       "schedule": "15 */6 * * *"
-    },
-    {
-      "path": "/api/cron/horses-batch-91-99",
-      "schedule": "30 * * * *"
     },
     {
       "path": "/api/cron/horse/0",
