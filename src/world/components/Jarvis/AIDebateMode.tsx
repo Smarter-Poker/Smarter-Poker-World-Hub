@@ -12,11 +12,11 @@ interface DebateMessage {
 }
 
 interface AIDebateModeProps {
-    onAskGeeves: (question: string) => void;
+    onAskJarvis: (question: string) => void;
     onClose?: () => void;
 }
 
-export function AIDebateMode({ onAskGeeves, onClose }: AIDebateModeProps) {
+export function AIDebateMode({ onAskJarvis, onClose }: AIDebateModeProps) {
     const [scenario, setScenario] = useState('');
     const [isDebating, setIsDebating] = useState(false);
     const [messages, setMessages] = useState<DebateMessage[]>([]);
@@ -50,7 +50,7 @@ Format your response exactly like this with clear separators:
 ⚖️ VERDICT:
 [Give a balanced conclusion on which approach is generally better and when to use each. Keep it short - 2-3 sentences.]`;
 
-        onAskGeeves(debatePrompt);
+        onAskJarvis(debatePrompt);
     };
 
     return (
@@ -247,7 +247,7 @@ Format your response exactly like this with clear separators:
                 color: 'rgba(255, 255, 255, 0.4)',
                 textAlign: 'center'
             }}>
-                Geeves will present both sides and give a verdict
+                Jarvis will present both sides and give a verdict
             </p>
         </div>
     );

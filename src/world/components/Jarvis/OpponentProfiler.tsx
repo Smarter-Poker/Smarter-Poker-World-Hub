@@ -21,7 +21,7 @@ interface OpponentProfile {
 }
 
 interface OpponentProfilerProps {
-    onAskGeeves: (question: string) => void;
+    onAskJarvis: (question: string) => void;
     onClose?: () => void;
 }
 
@@ -47,7 +47,7 @@ const TAG_OPTIONS = [
     '3-bets light', 'Slow plays', 'Punts stacks', 'Competent'
 ];
 
-export function OpponentProfiler({ onAskGeeves, onClose }: OpponentProfilerProps) {
+export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps) {
     const [profiles, setProfiles] = useState<OpponentProfile[]>([]);
     const [activeProfile, setActiveProfile] = useState<string | null>(null);
     const [newNote, setNewNote] = useState('');
@@ -104,7 +104,7 @@ export function OpponentProfiler({ onAskGeeves, onClose }: OpponentProfilerProps
 
 Give me 3 specific exploits for this player type.`;
 
-        onAskGeeves(question);
+        onAskJarvis(question);
     };
 
     return (

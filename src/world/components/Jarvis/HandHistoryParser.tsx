@@ -137,7 +137,7 @@ export function HandHistoryParser({ onHandParsed, onClose }: HandHistoryParserPr
         if (file) handleFileUpload(file);
     };
 
-    const askGeevesAboutHand = () => {
+    const askJarvisAboutHand = () => {
         if (!parsedHand) return;
 
         const question = `Please analyze this poker hand:
@@ -315,7 +315,7 @@ Dealt to Hero [Ah Kh]
 
             {/* Action Button */}
             <button
-                onClick={askGeevesAboutHand}
+                onClick={askJarvisAboutHand}
                 disabled={!parsedHand}
                 style={{
                     width: '100%',
@@ -331,7 +331,7 @@ Dealt to Hero [Ah Kh]
                     cursor: parsedHand ? 'pointer' : 'not-allowed'
                 }}
             >
-                🎩 Ask Geeves to Analyze
+                🎩 Ask Jarvis to Analyze
             </button>
         </div>
     );

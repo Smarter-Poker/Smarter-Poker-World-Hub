@@ -11,11 +11,11 @@ const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 interface CustomRangeBuilderProps {
     initialRange?: Record<string, number>;
     onSave?: (range: Record<string, number>) => void;
-    onAskGeeves?: (question: string) => void;
+    onAskJarvis?: (question: string) => void;
     onClose?: () => void;
 }
 
-export function CustomRangeBuilder({ initialRange, onSave, onAskGeeves, onClose }: CustomRangeBuilderProps) {
+export function CustomRangeBuilder({ initialRange, onSave, onAskJarvis, onClose }: CustomRangeBuilderProps) {
     const [customRange, setCustomRange] = useState<Record<string, number>>(initialRange || {});
     const [compareTo, setCompareTo] = useState<string>('BTN Open');
     const [brushMode, setBrushMode] = useState<'add' | 'remove' | 'mixed'>('add');
@@ -84,7 +84,7 @@ export function CustomRangeBuilder({ initialRange, onSave, onAskGeeves, onClose 
         setCustomRange({ ...preset });
     };
 
-    const askGeevesToReview = () => {
+    const askJarvisToReview = () => {
         const handsInRange = Object.entries(customRange)
             .filter(([_, freq]) => freq as number > 0)
             .map(([hand, freq]) => `${hand}(${Math.round((freq as number) * 100)}%)`)
@@ -100,7 +100,7 @@ Compare this to a standard ${compareTo} range and tell me:
 2. Am I too tight or too loose?
 3. Which hands should I add or remove?`;
 
-        onAskGeeves?.(question);
+        onAskJarvis?.(question);
         onClose?.();
     };
 
@@ -361,7 +361,7 @@ Compare this to a standard ${compareTo} range and tell me:
             </div>
 
             <button
-                onClick={askGeevesToReview}
+                onClick={askJarvisToReview}
                 disabled={Object.keys(customRange).length === 0}
                 style={{
                     width: '100%',
@@ -377,7 +377,7 @@ Compare this to a standard ${compareTo} range and tell me:
                     cursor: Object.keys(customRange).length > 0 ? 'pointer' : 'not-allowed'
                 }}
             >
-                🎩 Ask Geeves to Review My Range
+                🎩 Ask Jarvis to Review My Range
             </button>
         </div>
     );

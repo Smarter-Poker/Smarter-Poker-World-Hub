@@ -12,7 +12,7 @@ interface StreetPlan {
 }
 
 interface MultiStreetPlannerProps {
-    onAskGeeves: (question: string) => void;
+    onAskJarvis: (question: string) => void;
     onClose?: () => void;
 }
 
@@ -24,7 +24,7 @@ const ACTION_COLORS = {
     fold: '#607D8B'
 };
 
-export function MultiStreetPlanner({ onAskGeeves, onClose }: MultiStreetPlannerProps) {
+export function MultiStreetPlanner({ onAskJarvis, onClose }: MultiStreetPlannerProps) {
     const [hero, setHero] = useState({ hand: '', position: 'BTN' });
     const [flop, setFlop] = useState('');
     const [potSize, setPotSize] = useState('100');
@@ -62,7 +62,7 @@ For each street (flop, turn, river), what should my default plan be? Include:
 3. What bad cards should I be careful of?
 4. Adjustments for different runouts`;
 
-        onAskGeeves(question);
+        onAskJarvis(question);
     };
 
     const positions = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
@@ -318,7 +318,7 @@ For each street (flop, turn, river), what should my default plan be? Include:
                 </div>
             </div>
 
-            {/* Ask Geeves */}
+            {/* Ask Jarvis */}
             <button
                 onClick={askForPlan}
                 disabled={!hero.hand || !flop}
@@ -336,7 +336,7 @@ For each street (flop, turn, river), what should my default plan be? Include:
                     cursor: hero.hand && flop ? 'pointer' : 'not-allowed'
                 }}
             >
-                🧠 Get Full Street Plan from Geeves
+                🧠 Get Full Street Plan from Jarvis
             </button>
         </div>
     );

@@ -20,7 +20,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
 import PushNotificationBell from '../notifications/PushNotificationBell';
-import { useLiveHelp, LiveHelpPanel } from '../../world/components/LiveHelp';
+import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 
 // Dark theme colors matching hub
 const C = {
@@ -661,5 +661,5 @@ export default function UniversalHeader({
 }
 
 
-// LIVE HELP PANEL EXPORT
-export { LiveHelpPanel } from '../../world/components/LiveHelp';
+// GEEVES LIVE HELP PANEL EXPORT
+export { LiveHelpPanel } from '../../world/components/Geeves';

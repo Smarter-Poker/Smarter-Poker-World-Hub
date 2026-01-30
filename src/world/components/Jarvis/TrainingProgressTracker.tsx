@@ -27,7 +27,7 @@ interface TrainingStats {
 
 interface TrainingProgressTrackerProps {
     userId?: string;
-    onAskGeeves: (question: string) => void;
+    onAskJarvis: (question: string) => void;
     onClose?: () => void;
 }
 
@@ -51,7 +51,7 @@ const MOCK_STATS: TrainingStats = {
     ]
 };
 
-export function TrainingProgressTracker({ userId, onAskGeeves, onClose }: TrainingProgressTrackerProps) {
+export function TrainingProgressTracker({ userId, onAskJarvis, onClose }: TrainingProgressTrackerProps) {
     const [stats, setStats] = useState<TrainingStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'leaks'>('overview');
@@ -79,7 +79,7 @@ ${stats.categoryProgress.map(c => `- ${c.category}: ${c.accuracy}% (${c.gamesPla
 
 What are my biggest leaks and how should I focus my training?`;
 
-        onAskGeeves(question);
+        onAskJarvis(question);
     };
 
     const askForDrillRecommendation = () => {
@@ -91,7 +91,7 @@ What are my biggest leaks and how should I focus my training?`;
 
 What specific training games should I play next to improve fastest?`;
 
-        onAskGeeves(question);
+        onAskJarvis(question);
     };
 
     if (loading) {

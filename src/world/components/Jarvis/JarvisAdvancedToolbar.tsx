@@ -26,7 +26,7 @@ interface Message {
     timestamp: Date;
 }
 
-interface GeevesAdvancedToolbarProps {
+interface JarvisAdvancedToolbarProps {
     messages: Message[];
     onAskQuestion: (question: string) => void;
     onScreenshotAnalysis?: (analysis: string) => void;
@@ -61,11 +61,11 @@ const TOOLS = [
     { id: 'pio' as ToolId, icon: '🧮', label: 'PIO', category: 'GTO' }
 ];
 
-export function GeevesAdvancedToolbar({
+export function JarvisAdvancedToolbar({
     messages,
     onAskQuestion,
     onScreenshotAnalysis
-}: GeevesAdvancedToolbarProps) {
+}: JarvisAdvancedToolbarProps) {
     const [activeTool, setActiveTool] = useState<ToolId>(null);
     const [showAllTools, setShowAllTools] = useState(false);
 
@@ -190,7 +190,7 @@ export function GeevesAdvancedToolbar({
                     )}
                     {activeTool === 'builder' && (
                         <CustomRangeBuilder
-                            onAskGeeves={onAskQuestion}
+                            onAskJarvis={onAskQuestion}
                             onClose={() => setActiveTool(null)}
                         />
                     )}
@@ -208,37 +208,37 @@ export function GeevesAdvancedToolbar({
                     )}
                     {activeTool === 'opponent' && (
                         <OpponentProfiler
-                            onAskGeeves={onAskQuestion}
+                            onAskJarvis={onAskQuestion}
                             onClose={() => setActiveTool(null)}
                         />
                     )}
                     {activeTool === 'tournament' && (
                         <TournamentAdvisor
-                            onAskGeeves={onAskQuestion}
+                            onAskJarvis={onAskQuestion}
                             onClose={() => setActiveTool(null)}
                         />
                     )}
                     {activeTool === 'planner' && (
                         <MultiStreetPlanner
-                            onAskGeeves={onAskQuestion}
+                            onAskJarvis={onAskQuestion}
                             onClose={() => setActiveTool(null)}
                         />
                     )}
                     {activeTool === 'debate' && (
                         <AIDebateMode
-                            onAskGeeves={onAskQuestion}
+                            onAskJarvis={onAskQuestion}
                             onClose={() => setActiveTool(null)}
                         />
                     )}
                     {activeTool === 'training' && (
                         <TrainingProgressTracker
-                            onAskGeeves={onAskQuestion}
+                            onAskJarvis={onAskQuestion}
                             onClose={() => setActiveTool(null)}
                         />
                     )}
                     {activeTool === 'pio' && (
                         <PioInsights
-                            onAskGeeves={onAskQuestion}
+                            onAskJarvis={onAskQuestion}
                             onClose={() => setActiveTool(null)}
                         />
                     )}

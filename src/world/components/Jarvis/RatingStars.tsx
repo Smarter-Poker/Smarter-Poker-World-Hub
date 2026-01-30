@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   RATING STARS — 5-star rating component for Geeves answers
+   RATING STARS — 5-star rating component for Jarvis answers
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState } from 'react';

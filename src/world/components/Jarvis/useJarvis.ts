@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   USE GEEVES — Hook for Geeves panel state and keyboard shortcut
+   USE GEEVES — Hook for Jarvis panel state and keyboard shortcut
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
 
-export function useGeeves() {
+export function useJarvis() {
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
@@ -21,17 +21,17 @@ export function useGeeves() {
             }
         };
 
-        // Custom event to open Geeves from anywhere
-        const handleOpenGeeves = () => {
+        // Custom event to open Jarvis from anywhere
+        const handleOpenJarvis = () => {
             setIsOpen(true);
         };
 
         window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('open-geeves', handleOpenGeeves);
+        window.addEventListener('open-jarvis', handleOpenJarvis);
 
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
-            window.removeEventListener('open-geeves', handleOpenGeeves);
+            window.removeEventListener('open-jarvis', handleOpenJarvis);
         };
     }, [isOpen]);
 

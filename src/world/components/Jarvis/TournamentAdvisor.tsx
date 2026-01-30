@@ -15,7 +15,7 @@ interface TournamentState {
 }
 
 interface TournamentAdvisorProps {
-    onAskGeeves: (question: string) => void;
+    onAskJarvis: (question: string) => void;
     onClose?: () => void;
 }
 
@@ -28,7 +28,7 @@ const PHASE_INFO = {
     'heads-up': { label: 'Heads Up', color: '#f44336', strategy: 'Max aggression, adjust to villain' }
 };
 
-export function TournamentAdvisor({ onAskGeeves, onClose }: TournamentAdvisorProps) {
+export function TournamentAdvisor({ onAskJarvis, onClose }: TournamentAdvisorProps) {
     const [state, setState] = useState<TournamentState>({
         phase: 'early',
         playersLeft: 100,
@@ -69,7 +69,7 @@ export function TournamentAdvisor({ onAskGeeves, onClose }: TournamentAdvisorPro
 
 What adjustments should I make for this tournament stage? Give specific ICM advice.`;
 
-        onAskGeeves(question);
+        onAskJarvis(question);
     };
 
     const askShoveRange = () => {
@@ -80,7 +80,7 @@ What adjustments should I make for this tournament stage? Give specific ICM advi
 
 What hands should I shove from each position? Give me a quick chart.`;
 
-        onAskGeeves(question);
+        onAskJarvis(question);
     };
 
     return (

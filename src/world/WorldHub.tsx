@@ -45,8 +45,8 @@ import { WelcomeBack } from './components/WelcomeMessage';
 import { StreakPopup } from './components/StreakPopup';
 import { SearchOrb, SearchOverlay } from './components/GlobalSearch';
 import { ProfileDropdown } from './components/ProfileDropdown';
-import { LiveHelpOrb } from './components/LiveHelpOrb';
-import { useLiveHelp, LiveHelpPanel } from './components/LiveHelp';
+import { GeevesOrb } from './components/GeevesOrb';
+import { useLiveHelp, LiveHelpPanel } from './components/Geeves';
 import { SettingsOrb } from './components/SettingsOrb';
 
 

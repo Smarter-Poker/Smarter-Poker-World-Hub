@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MESSAGE CONTENT — Markdown renderer for Geeves responses
+   MESSAGE CONTENT — Markdown renderer for Jarvis responses
    Supports bold, bullets, code blocks, headers, and range formatting
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -15,7 +15,7 @@ export function MessageContent({ content, isUser }: MessageContentProps) {
         return <span style={{ whiteSpace: 'pre-wrap' }}>{content}</span>;
     }
 
-    // Parse and render markdown for Geeves messages
+    // Parse and render markdown for Jarvis messages
     const renderContent = () => {
         const lines = content.split('\n');
         const elements: React.ReactNode[] = [];

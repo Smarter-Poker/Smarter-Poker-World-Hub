@@ -4,12 +4,12 @@
 
 import React from 'react';
 
-interface GeevesAvatarProps {
+interface JarvisAvatarProps {
     isTyping?: boolean;
     size?: number;
 }
 
-export function GeevesAvatar({ isTyping = false, size = 40 }: GeevesAvatarProps) {
+export function JarvisAvatar({ isTyping = false, size = 40 }: JarvisAvatarProps) {
     return (
         <div style={{
             position: 'relative',

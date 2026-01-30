@@ -105,8 +105,9 @@ export const UI_COMPONENTS = {
     streakPopup: 'src/world/components/StreakPopup.tsx',
     globalSearch: 'src/world/components/GlobalSearch.tsx',
     profileDropdown: 'src/world/components/ProfileDropdown.tsx',
-    liveHelpOrb: 'src/world/components/LiveHelpOrb.tsx',
-    liveHelpPanel: 'src/world/components/LiveHelp/',
+    geevesOrb: 'src/world/components/GeevesOrb.tsx',     // Geeves = Live Help
+    geevesPanel: 'src/world/components/Geeves/',          // Geeves = Live Help
+    jarvisPanel: 'src/world/components/Jarvis/',          // Jarvis = Personal Assistant
     neuronLights: 'src/world/components/NeuronLights.tsx',
     settingsOrb: 'src/world/components/SettingsOrb.tsx',
 };

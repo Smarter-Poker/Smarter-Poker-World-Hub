@@ -14,7 +14,7 @@ interface PioSpot {
 }
 
 interface PioInsightsProps {
-    onAskGeeves: (question: string) => void;
+    onAskJarvis: (question: string) => void;
     onClose?: () => void;
 }
 
@@ -26,7 +26,7 @@ const ACTIONS = [
     'Postflop IP', 'Postflop OOP'
 ];
 
-export function PioInsights({ onAskGeeves, onClose }: PioInsightsProps) {
+export function PioInsights({ onAskJarvis, onClose }: PioInsightsProps) {
     const [spot, setSpot] = useState<PioSpot>({
         position: 'BTN',
         vsPosition: 'BB',
@@ -71,7 +71,7 @@ Explain:
                 break;
         }
 
-        onAskGeeves(question);
+        onAskJarvis(question);
     };
 
     return (

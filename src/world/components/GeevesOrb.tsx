@@ -1,16 +1,16 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   ASK JARVIS ORB — Header orb that opens the Ask Jarvis panel
-   Shows "Jarvis" text instead of icon
+   GEEVES ORB — Header orb that opens the Geeves Live Help panel
+   Shows "Geeves" text (renamed from Jarvis per user request)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState } from 'react';
 
-interface LiveHelpOrbProps {
+interface GeevesOrbProps {
     onClick?: () => void;
     size?: number;
 }
 
-export function LiveHelpOrb({ onClick, size = 48 }: LiveHelpOrbProps) {
+export function GeevesOrb({ onClick, size = 48 }: GeevesOrbProps) {
     const [isHovered, setIsHovered] = useState(false);
 
     return (
@@ -18,7 +18,7 @@ export function LiveHelpOrb({ onClick, size = 48 }: LiveHelpOrbProps) {
             onClick={onClick}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            title="Ask Jarvis"
+            title="Ask Geeves"
             style={{
                 width: size,
                 height: size,
@@ -49,10 +49,13 @@ export function LiveHelpOrb({ onClick, size = 48 }: LiveHelpOrbProps) {
                     transition: 'all 0.3s ease',
                 }}
             >
-                Jarvis
+                Geeves
             </span>
         </button>
     );
 }
 
-export default LiveHelpOrb;
+// Legacy alias for backward compatibility
+export const LiveHelpOrb = GeevesOrb;
+export default GeevesOrb;
+

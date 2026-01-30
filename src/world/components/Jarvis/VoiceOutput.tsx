@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   VOICE OUTPUT — Text-to-speech for Geeves responses
+   VOICE OUTPUT — Text-to-speech for Jarvis responses
    Uses Web Speech Synthesis API
    ═══════════════════════════════════════════════════════════════════════════ */
 

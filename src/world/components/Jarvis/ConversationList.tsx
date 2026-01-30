@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   CONVERSATION LIST — Shows user's Geeves conversation history
+   CONVERSATION LIST — Shows user's Jarvis conversation history
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState, useEffect } from 'react';
@@ -37,7 +37,7 @@ export function ConversationList({ onSelectConversation, onClose }: Conversation
             const token = getAuthToken();
             if (!token) return;
 
-            const response = await fetch('/api/geeves/conversations?limit=20', {
+            const response = await fetch('/api/jarvis/conversations?limit=20', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -46,7 +46,7 @@ export function ConversationList({ onSelectConversation, onClose }: Conversation
                 setConversations(data.conversations);
             }
         } catch (error) {
-            console.error('[Geeves] Failed to load conversations:', error);
+            console.error('[Jarvis] Failed to load conversations:', error);
         } finally {
             setLoading(false);
         }

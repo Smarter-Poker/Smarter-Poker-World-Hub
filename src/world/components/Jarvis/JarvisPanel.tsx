@@ -17,15 +17,15 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GeevesAvatar } from './GeevesAvatar';
+import { JarvisAvatar } from './JarvisAvatar';
 import { PokerQuickTopics } from './PokerQuickTopics';
 import { MessageContent } from './MessageContent';
 import { RatingStars } from './RatingStars';
 import { ConversationList } from './ConversationList';
 import { VoiceInput } from './VoiceInput';
 import { VoiceOutput } from './VoiceOutput';
-import { PersonalitySelector, GeevesPersonality, getPersonalityPrompt } from './PersonalitySelector';
-import { GeevesAdvancedToolbar } from './GeevesAdvancedToolbar';
+import { PersonalitySelector, JarvisPersonality, getPersonalityPrompt } from './PersonalitySelector';
+import { JarvisAdvancedToolbar } from './JarvisAdvancedToolbar';
 
 interface Message {
     id: string;
@@ -37,19 +37,19 @@ interface Message {
     rating?: number;
 }
 
-interface GeevesPanelProps {
+interface JarvisPanelProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
-export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
+export function JarvisPanel({ isOpen, onClose }: JarvisPanelProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [showHistory, setShowHistory] = useState(false);
     const [cacheStats, setCacheStats] = useState({ hits: 0, total: 0 });
-    const [personality, setPersonality] = useState<GeevesPersonality>('balanced');
+    const [personality, setPersonality] = useState<JarvisPersonality>('balanced');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom
@@ -76,7 +76,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
             const token = getAuthToken();
             if (!token) return;
 
-            const response = await fetch('/api/geeves/start-conversation', {
+            const response = await fetch('/api/jarvis/start-conversation', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -95,7 +95,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                 }]);
             }
         } catch (error) {
-            console.error('[Geeves] Failed to start conversation:', error);
+            console.error('[Jarvis] Failed to start conversation:', error);
         }
     };
 
@@ -104,7 +104,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
             const token = getAuthToken();
             if (!token) return;
 
-            const response = await fetch(`/api/geeves/conversation/${convId}`, {
+            const response = await fetch(`/api/jarvis/conversation/${convId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -122,7 +122,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                 setShowHistory(false);
             }
         } catch (error) {
-            console.error('[Geeves] Failed to load conversation:', error);
+            console.error('[Jarvis] Failed to load conversation:', error);
         }
     };
 
@@ -148,7 +148,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                 isUser: msg.isUser
             }));
 
-            const response = await fetch('/api/geeves/ask', {
+            const response = await fetch('/api/jarvis/ask', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -165,7 +165,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
 
             const data = await response.json();
 
-            const geevesMessage: Message = {
+            const jarvisMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 content: data.answer,
                 isUser: false,
@@ -173,7 +173,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                 cacheId: data.cacheId,
                 fromCache: data.fromCache
             };
-            setMessages(prev => [...prev, geevesMessage]);
+            setMessages(prev => [...prev, jarvisMessage]);
 
             // Update cache stats
             setCacheStats(prev => ({
@@ -182,7 +182,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
             }));
 
         } catch (error) {
-            console.error('[Geeves] Error:', error);
+            console.error('[Jarvis] Error:', error);
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 content: 'I apologize, but I encountered an error. Please try again.',
@@ -200,7 +200,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
             const token = getAuthToken();
             if (!token) return;
 
-            await fetch('/api/geeves/rate', {
+            await fetch('/api/jarvis/rate', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -213,7 +213,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                 msg.id === messageId ? { ...msg, rating } : msg
             ));
         } catch (error) {
-            console.error('[Geeves] Rating failed:', error);
+            console.error('[Jarvis] Rating failed:', error);
         }
     };
 
@@ -278,7 +278,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                     background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(139, 0, 139, 0.1))'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <GeevesAvatar isTyping={isTyping} size={40} />
+                        <JarvisAvatar isTyping={isTyping} size={40} />
                         <div>
                             <h3 style={{
                                 margin: 0,
@@ -289,7 +289,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                                 WebkitTextFillColor: 'transparent',
                                 fontFamily: 'Georgia, serif'
                             }}>
-                                Geeves
+                                Jarvis
                             </h3>
                             <p style={{
                                 margin: 0,
@@ -422,7 +422,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
 
                                 <MessageContent content={message.content} isUser={message.isUser} />
 
-                                {/* Actions for Geeves messages */}
+                                {/* Actions for Jarvis messages */}
                                 {!message.isUser && (
                                     <div style={{
                                         marginTop: '12px',
@@ -486,8 +486,8 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                             color: 'rgba(255, 215, 0, 0.6)',
                             fontSize: '14px'
                         }}>
-                            <GeevesAvatar isTyping={true} size={24} />
-                            <span style={{ fontStyle: 'italic' }}>Geeves is consulting his poker wisdom...</span>
+                            <JarvisAvatar isTyping={true} size={24} />
+                            <span style={{ fontStyle: 'italic' }}>Jarvis is consulting his poker wisdom...</span>
                         </div>
                     )}
 
@@ -504,7 +504,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                 <PokerQuickTopics onTopicClick={handleQuickTopic} />
 
                 {/* Advanced Tools Toolbar */}
-                <GeevesAdvancedToolbar
+                <JarvisAdvancedToolbar
                     messages={messages}
                     onAskQuestion={sendMessage}
                     onScreenshotAnalysis={(analysis) => {
