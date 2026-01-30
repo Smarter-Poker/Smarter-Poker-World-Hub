@@ -1499,6 +1499,291 @@ function ContactsSidebar({ contacts, onOpenChat, onSearch, searchResults }) {
     );
 }
 
+// ===== CLUB PAGES VIEW COMPONENT =====
+function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setCategory, search, setSearch, followingIds, setFollowingIds, onClose }) {
+    const router = useRouter();
+    const [searchInput, setSearchInput] = useState(search);
+    const [showFollowedOnly, setShowFollowedOnly] = useState(false);
+
+    function getAnonUserId() {
+        try {
+            let uid = localStorage.getItem('sp-anon-uid');
+            if (!uid) {
+                uid = 'anon-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+                localStorage.setItem('sp-anon-uid', uid);
+            }
+            return uid;
+        } catch { return 'anon-fallback'; }
+    }
+
+    // Fetch pages data
+    useEffect(() => {
+        const fetchClubPages = async () => {
+            setLoading(true);
+            try {
+                const params = new URLSearchParams({ category, sort: 'popular', limit: '80' });
+                if (search) params.set('search', search);
+                const uid = getAnonUserId();
+                if (uid) params.set('user_id', uid);
+                if (showFollowedOnly) params.set('followed_only', 'true');
+
+                const res = await fetch(`/api/poker/pages?${params}`);
+                const json = await res.json();
+                if (json.success) {
+                    setPages(json.data || []);
+                    const fSet = new Set();
+                    (json.data || []).forEach(p => { if (p.is_following) fSet.add(`${p.page_type}:${p.page_id}`); });
+                    setFollowingIds(fSet);
+                }
+            } catch (e) { console.error('Club pages fetch error:', e); }
+            setLoading(false);
+        };
+        fetchClubPages();
+    }, [category, search, showFollowedOnly]);
+
+    // Debounce search
+    useEffect(() => {
+        const t = setTimeout(() => setSearch(searchInput), 300);
+        return () => clearTimeout(t);
+    }, [searchInput]);
+
+    const handlePageFollow = async (pageType, pageId) => {
+        const key = `${pageType}:${pageId}`;
+        const isNowFollowing = !followingIds.has(key);
+        setFollowingIds(prev => {
+            const next = new Set(prev);
+            if (isNowFollowing) next.add(key); else next.delete(key);
+            return next;
+        });
+        setPages(prev => prev.map(p => {
+            if (p.page_type === pageType && p.page_id === pageId) {
+                return { ...p, is_following: isNowFollowing, follower_count: isNowFollowing ? (p.follower_count || 0) + 1 : Math.max(0, (p.follower_count || 0) - 1) };
+            }
+            return p;
+        }));
+        try {
+            const storageKey = `followed-${pageType === 'venue' ? 'venues' : pageType === 'tour' ? 'tours' : 'series'}`;
+            const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            if (isNowFollowing) { if (!stored.includes(pageId)) stored.push(pageId); }
+            else { const idx = stored.indexOf(pageId); if (idx !== -1) stored.splice(idx, 1); }
+            localStorage.setItem(storageKey, JSON.stringify(stored));
+        } catch {}
+        try {
+            await fetch('/api/poker/follow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow', user_id: getAnonUserId() }),
+            });
+        } catch {}
+    };
+
+    const cats = [
+        { key: 'all', label: 'All' },
+        { key: 'venues', label: 'Venues' },
+        { key: 'tours', label: 'Tours' },
+        { key: 'series', label: 'Series' },
+    ];
+
+    const typeColors = {
+        venue: { bg: '#1877F2', light: '#E7F3FF' },
+        tour: { bg: '#E74C3C', light: '#FDEDEC' },
+        series: { bg: '#F39C12', light: '#FEF5E7' },
+    };
+
+    return (
+        <div style={{ paddingBottom: 8 }}>
+            {/* Header */}
+            <div style={{ background: C.card, borderRadius: 12, padding: '16px 16px 12px', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div>
+                        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: C.text }}>Club Pages</h2>
+                        <p style={{ margin: '2px 0 0', fontSize: 13, color: C.textSec }}>Follow venues, tours & series</p>
+                    </div>
+                    <button onClick={onClose} style={{
+                        background: '#E4E6EB', border: 'none', borderRadius: 20, padding: '8px 16px',
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer', color: C.text, fontFamily: 'inherit'
+                    }}>Back to Feed</button>
+                </div>
+
+                {/* Search */}
+                <div style={{ position: 'relative', marginBottom: 10 }}>
+                    <input
+                        type="text"
+                        placeholder="Search pages..."
+                        value={searchInput}
+                        onChange={e => setSearchInput(e.target.value)}
+                        style={{
+                            width: '100%', padding: '10px 36px 10px 14px', border: '1px solid #CCD0D5',
+                            borderRadius: 20, fontSize: 14, background: '#F0F2F5', color: C.text,
+                            outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
+                        }}
+                    />
+                    {searchInput && (
+                        <button onClick={() => { setSearchInput(''); setSearch(''); }} style={{
+                            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                            background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: 4
+                        }}>x</button>
+                    )}
+                </div>
+
+                {/* Category Tabs */}
+                <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                    {cats.map(c => (
+                        <button key={c.key} onClick={() => setCategory(c.key)} style={{
+                            padding: '6px 14px', borderRadius: 20, border: 'none',
+                            background: category === c.key ? '#1877F2' : '#E4E6EB',
+                            color: category === c.key ? '#fff' : C.text,
+                            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                        }}>{c.label}</button>
+                    ))}
+                </div>
+
+                {/* Following Filter */}
+                <button onClick={() => setShowFollowedOnly(!showFollowedOnly)} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '6px 14px', borderRadius: 20,
+                    border: showFollowedOnly ? '1px solid #1877F2' : '1px solid #CCD0D5',
+                    background: showFollowedOnly ? '#E7F3FF' : 'transparent',
+                    color: showFollowedOnly ? '#1877F2' : C.textSec,
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill={showFollowedOnly ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                    {showFollowedOnly ? 'Following Only' : 'Show Following'}
+                </button>
+            </div>
+
+            {/* Pages List */}
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                    <div style={{ width: 32, height: 32, border: '3px solid #E4E6EB', borderTopColor: '#1877F2', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                    <p>Loading pages...</p>
+                </div>
+            ) : pages.length === 0 ? (
+                <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center' }}>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>
+                        {showFollowedOnly ? 'No followed pages' : 'No pages found'}
+                    </p>
+                    <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>
+                        {showFollowedOnly ? 'Follow some venues, tours, or series to see them here.' : 'Try a different search or category.'}
+                    </p>
+                    {showFollowedOnly && (
+                        <button onClick={() => setShowFollowedOnly(false)} style={{
+                            marginTop: 12, padding: '8px 20px', background: '#1877F2', border: 'none',
+                            borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                        }}>Browse All Pages</button>
+                    )}
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {pages.map(page => {
+                        const tc = typeColors[page.page_type] || typeColors.venue;
+                        const isFollowing = followingIds.has(`${page.page_type}:${page.page_id}`);
+                        return (
+                            <div key={`${page.page_type}-${page.page_id}`} style={{
+                                background: C.card, borderRadius: 10, border: '1px solid #E4E6EB', overflow: 'hidden'
+                            }}>
+                                {/* Banner */}
+                                <div style={{
+                                    background: tc.bg, padding: '6px 12px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                                }}>
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        {page.page_type === 'venue' ? 'Venue' : page.page_type === 'tour' ? 'Tour' : 'Series'}
+                                    </span>
+                                    {page.follower_count > 0 && (
+                                        <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
+                                            {page.follower_count} follower{page.follower_count !== 1 ? 's' : ''}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Body */}
+                                <div style={{ padding: '10px 12px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                        <div style={{
+                                            width: 36, height: 36, borderRadius: 8,
+                                            background: tc.light, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: tc.bg, flexShrink: 0
+                                        }}>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                {page.page_type === 'venue' && <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></>}
+                                                {page.page_type === 'tour' && <><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></>}
+                                                {page.page_type === 'series' && <><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></>}
+                                            </svg>
+                                        </div>
+                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                            <div onClick={() => router.push(page.detail_url)} style={{
+                                                fontSize: 14, fontWeight: 700, color: C.text, cursor: 'pointer',
+                                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                                            }}>{page.name}</div>
+                                            <div style={{ fontSize: 12, color: C.textSec }}>{page.category}</div>
+                                        </div>
+                                    </div>
+
+                                    {page.subtitle && (
+                                        <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 8px' }}>{page.subtitle}</p>
+                                    )}
+
+                                    {/* Meta tags */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+                                        {page.page_type === 'venue' && page.has_tournaments && (
+                                            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#E7F3FF', color: '#1877F2' }}>Tournaments</span>
+                                        )}
+                                        {page.page_type === 'series' && page.total_events && (
+                                            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#FFF4E5', color: '#E67E22' }}>{page.total_events} Events</span>
+                                        )}
+                                        {page.page_type === 'series' && page.start_date && (
+                                            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#E8EAF6', color: '#303F9F' }}>
+                                                {new Date(page.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            </span>
+                                        )}
+                                        {page.page_type === 'tour' && page.established && (
+                                            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#F3E5F5', color: '#7B1FA2' }}>Est. {page.established}</span>
+                                        )}
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button onClick={() => handlePageFollow(page.page_type, page.page_id)} style={{
+                                            flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
+                                            background: isFollowing ? '#E4E6EB' : '#1877F2',
+                                            color: isFollowing ? C.text : '#fff',
+                                            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                                        }}>
+                                            {isFollowing ? 'Following' : 'Follow'}
+                                        </button>
+                                        <button onClick={() => router.push(page.detail_url)} style={{
+                                            flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
+                                            background: '#E4E6EB', color: C.text,
+                                            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                                        }}>View Page</button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {/* Link to full pages page */}
+                    <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                        <button onClick={() => router.push('/hub/pages')} style={{
+                            padding: '10px 24px', background: '#E4E6EB', border: 'none',
+                            borderRadius: 8, color: C.text, fontSize: 14, fontWeight: 600,
+                            cursor: 'pointer', fontFamily: 'inherit'
+                        }}>View All Pages</button>
+                    </div>
+                </div>
+            )}
+
+            <style jsx>{`
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
+        </div>
+    );
+}
+
 export default function SocialMediaPage() {
     // Zustand Global State (replaces UI-related useState)
     const sidebarOpen = useSocialStore((s) => s.sidebarOpen);
@@ -1532,6 +1817,14 @@ export default function SocialMediaPage() {
 
     // Article Reader Modal State
     const [articleReader, setArticleReader] = useState({ open: false, url: null, title: null });
+
+    // Club Pages View State
+    const [showClubPages, setShowClubPages] = useState(false);
+    const [clubPages, setClubPages] = useState([]);
+    const [clubPagesLoading, setClubPagesLoading] = useState(false);
+    const [clubPagesCategory, setClubPagesCategory] = useState('all');
+    const [clubPagesSearch, setClubPagesSearch] = useState('');
+    const [clubPagesFollowing, setClubPagesFollowing] = useState(new Set());
 
     // ♾️ INFINITE SCROLL STATE
     const [feedOffset, setFeedOffset] = useState(0);
@@ -2600,10 +2893,10 @@ export default function SocialMediaPage() {
                         <img src="/icons/tournaments.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
                     </Link>
-                    {/* Poker Pages - Venue/Tour/Series Pages */}
-                    <Link href="/hub/poker-near-me" onClick={() => setSidebarOpen(false)} style={{
+                    {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
+                    <div onClick={() => { setShowClubPages(true); setSidebarOpen(false); }} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
-                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1', cursor: 'pointer'
                     }}>
                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
                             <rect x="2" y="3" width="20" height="18" rx="2" fill="#1877F2" opacity="0.15" />
@@ -2612,8 +2905,8 @@ export default function SocialMediaPage() {
                             <rect x="12" y="13" width="8" height="2" rx="1" fill="#1877F2" opacity="0.6" />
                             <rect x="12" y="17" width="5" height="1.5" rx="0.75" fill="#1877F2" opacity="0.3" />
                         </svg>
-                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Poker Pages</span>
-                    </Link>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Pages</span>
+                    </div>
                     {/* GTO Training - Custom AI icon */}
                     <Link href="/hub/gto-trainer" onClick={() => setSidebarOpen(false)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
@@ -2937,6 +3230,27 @@ export default function SocialMediaPage() {
 
                 {/* Main Feed - 800px Design Canvas */}
                 <main className="social-page-container" style={{ padding: '8px' }}>
+
+                    {/* ===== CLUB PAGES VIEW ===== */}
+                    {showClubPages && (
+                        <ClubPagesView
+                            C={C}
+                            pages={clubPages}
+                            setPages={setClubPages}
+                            loading={clubPagesLoading}
+                            setLoading={setClubPagesLoading}
+                            category={clubPagesCategory}
+                            setCategory={setClubPagesCategory}
+                            search={clubPagesSearch}
+                            setSearch={setClubPagesSearch}
+                            followingIds={clubPagesFollowing}
+                            setFollowingIds={setClubPagesFollowing}
+                            onClose={() => setShowClubPages(false)}
+                        />
+                    )}
+
+                    {/* ===== NORMAL FEED ===== */}
+                    {!showClubPages && <>
                     {/* Stories Bar */}
                     {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
 
@@ -3054,6 +3368,7 @@ export default function SocialMediaPage() {
                             `}</style>
                         </>
                     )}
+                    </>}
                 </main>
 
                 {/* Bottom Navigation Bar - Facebook Style with SVG Icons */}
