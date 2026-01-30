@@ -312,27 +312,30 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
                 />
             ) : children}
 
-            {/* Play Button Overlay - dim for invalid videos */}
-            <div style={{
-                position: 'absolute', top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 64, height: 64, borderRadius: '50%',
-                background: isVideoValid === false ? 'rgba(100,100,100,0.6)' : 'rgba(0,0,0,0.6)',
-                backdropFilter: 'blur(4px)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: isVideoValid === false ? '#888' : 'white',
-                fontSize: 28, pointerEvents: 'none'
-            }}>{isVideoValid === false ? '⚠️' : '▶'}</div>
+            {/* Only show overlay for invalid videos */}
+            {isVideoValid === false && (
+                <>
+                    <div style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 64, height: 64, borderRadius: '50%',
+                        background: 'rgba(100,100,100,0.6)',
+                        backdropFilter: 'blur(4px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#888',
+                        fontSize: 28, pointerEvents: 'none'
+                    }}>⚠️</div>
 
-            {/* Status hint */}
-            <div style={{
-                position: 'absolute', bottom: 8, left: 8,
-                background: isVideoValid === false ? 'rgba(200,50,50,0.8)' : 'rgba(0,0,0,0.6)',
-                padding: '4px 10px',
-                borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
-            }}>
-                {isVideoValid === false ? '⚠️ Video unavailable' : '▶ Tap to play'}
-            </div>
+                    <div style={{
+                        position: 'absolute', bottom: 8, left: 8,
+                        background: 'rgba(200,50,50,0.8)',
+                        padding: '4px 10px',
+                        borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
+                    }}>
+                        ⚠️ Video unavailable
+                    </div>
+                </>
+            )}
         </div>
     );
 }

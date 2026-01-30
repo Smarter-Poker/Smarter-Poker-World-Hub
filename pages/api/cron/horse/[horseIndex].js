@@ -21,6 +21,26 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const grok = getGrokClient();
 
+/**
+ * EMOJI LAW: 1 emoji allowed in only 1 out of 20 posts (5%)
+ * Strip ALL emojis, then maybe add 1 back if lottery hits
+ */
+function enforceEmojiLaw(text, horseIndex, contentType) {
+    // Strip ALL emojis
+    const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2300}-\u{23FF}]|[\u{2B50}]|[\u{1F004}]|[\u{1F0CF}]|[\u{1F170}-\u{1F251}]/gu;
+    let cleanText = text.replace(emojiRegex, '').replace(/\s+/g, ' ').trim();
+
+    // 1 in 20 chance (5%) to add ONE emoji back
+    const lottery = (horseIndex + Date.now()) % 20;
+    if (lottery === 0) {
+        const rareEmojis = ['👀', '💯', '🔥'];
+        const emoji = rareEmojis[Math.floor(Math.random() * rareEmojis.length)];
+        cleanText = cleanText + ' ' + emoji;
+    }
+
+    return cleanText;
+}
+
 // RSS Parser for news
 const rssParser = new Parser({
     headers: {
@@ -160,10 +180,11 @@ async function postVideoClip(horse, assignedSources) {
         });
         caption = response.choices[0]?.message?.content?.trim() || clip.title;
     } catch (e) {
-        caption = clip.title?.slice(0, 80) || 'Check this out 🔥';
+        caption = clip.title?.slice(0, 80) || 'Check this out';
     }
 
     caption = applyWritingStyle(caption, horse.profile_id);
+    caption = enforceEmojiLaw(caption, index, 'video_clip');
 
     const { data: post, error: postError } = await supabase
         .from('social_posts')
@@ -214,11 +235,12 @@ async function postPokerNews(horse) {
                     });
                     commentary = response.choices[0]?.message?.content?.trim() || 'Interesting stuff 👀';
                 } catch (e) {
-                    commentary = 'Worth checking out 📰';
+                    commentary = 'Worth checking out';
                 }
 
                 commentary = applyWritingStyle(commentary, horse.profile_id);
-                const postContent = `${commentary}\n\n🔗 ${article.link}`;
+                commentary = enforceEmojiLaw(commentary, index, 'poker_news');
+                const postContent = `${commentary}\n\n${article.link}`;
 
                 const { data: post, error: postError } = await supabase
                     .from('social_posts')
@@ -273,11 +295,12 @@ async function postSportsNews(horse) {
                     });
                     commentary = response.choices[0]?.message?.content?.trim() || 'Big news 🏆';
                 } catch (e) {
-                    commentary = 'Interesting 👀';
+                    commentary = 'Interesting';
                 }
 
                 commentary = applyWritingStyle(commentary, horse.profile_id);
-                const postContent = `${commentary}\n\n🔗 ${article.link}`;
+                commentary = enforceEmojiLaw(commentary, index, 'sports_news');
+                const postContent = `${commentary}\n\n${article.link}`;
 
                 const { data: post, error: postError } = await supabase
                     .from('social_posts')
@@ -328,10 +351,11 @@ async function postStory(horse) {
         });
         story = response.choices[0]?.message?.content?.trim() || 'Good vibes at the tables today 🎰';
     } catch (e) {
-        story = 'Another day grinding 💪';
+        story = 'Another day grinding';
     }
 
     story = applyWritingStyle(story, horse.profile_id);
+    story = enforceEmojiLaw(story, index, 'story');
 
     const { data: post, error: postError } = await supabase
         .from('social_posts')
