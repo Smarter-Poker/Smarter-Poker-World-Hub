@@ -1883,27 +1883,47 @@ export default function MessengerPage() {
         }
     };
 
-    // Handle message deletion
-    const handleDeleteMessage = async (messageId) => {
+    // Handle message deletion (Facebook-style: delete for me vs delete for everyone)
+    const handleDeleteMessage = async (messageId, deleteType = 'for_me') => {
         if (!user) return;
-        try {
-            const { data: success, error } = await supabase.rpc('fn_delete_message', {
-                p_message_id: messageId,
-                p_user_id: user.id,
+
+        // For Jarvis messages, just remove from localStorage
+        if (activeConversation?.isJarvis) {
+            setMessages(prev => {
+                const updated = deleteType === 'all'
+                    ? []
+                    : prev.filter(m => m.id !== messageId);
+                localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                return updated;
             });
+            setToast({ type: 'success', message: deleteType === 'all' ? 'All messages deleted' : 'Message deleted' });
+            return;
+        }
 
-            if (error) throw error;
+        try {
+            if (deleteType === 'for_everyone') {
+                // Delete for everyone (only if you sent it)
+                const { data: success, error } = await supabase.rpc('fn_delete_message', {
+                    p_message_id: messageId,
+                    p_user_id: user.id,
+                });
 
-            if (success) {
-                // Update UI to show deleted message
-                setMessages(prev => prev.map(m =>
-                    m.id === messageId
-                        ? { ...m, content: '[Message deleted]', is_deleted: true }
-                        : m
-                ));
-                setToast({ type: 'success', message: 'Message deleted' });
+                if (error) throw error;
+
+                if (success) {
+                    setMessages(prev => prev.map(m =>
+                        m.id === messageId
+                            ? { ...m, content: '[Message deleted]', is_deleted: true }
+                            : m
+                    ));
+                    setToast({ type: 'success', message: 'Message deleted for everyone' });
+                } else {
+                    setToast({ type: 'error', message: 'Could not delete message' });
+                }
             } else {
-                setToast({ type: 'error', message: 'Could not delete message' });
+                // Delete for me only (hide locally)
+                setMessages(prev => prev.filter(m => m.id !== messageId));
+                setToast({ type: 'success', message: 'Message removed' });
             }
         } catch (e) {
             console.error('Delete message error:', e);
@@ -2903,11 +2923,11 @@ export default function MessengerPage() {
                                                 <span style={{
                                                     fontWeight: 600,
                                                     fontSize: 15,
-                                                    color: '#FFD700'
+                                                    color: '#00D4FF'
                                                 }}>Jarvis</span>
                                                 <span style={{
                                                     fontSize: 10,
-                                                    color: 'rgba(255, 215, 0, 0.6)',
+                                                    color: 'rgba(0, 212, 255, 0.6)',
                                                     fontWeight: 500
                                                 }}>AI</span>
                                             </div>
