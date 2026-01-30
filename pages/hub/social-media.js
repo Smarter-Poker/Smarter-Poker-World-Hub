@@ -1369,6 +1369,18 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     )}
                 </div>
             )}
+            {/* 🔗 LINK PREVIEW for posts with link_url but NO media_urls (ghost fleet posts) */}
+            {(!post.mediaUrls || post.mediaUrls.length === 0) && post.link_url && (
+                <ArticleCard
+                    url={post.link_url}
+                    title={post.link_title}
+                    description={post.link_description}
+                    image={post.link_image}
+                    siteName={post.link_site_name}
+                    fallbackContent={post.content}
+                    onClick={onOpenArticle}
+                />
+            )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
                 <span>{likeCount > 0 && `👍 ${likeCount}`}</span>
                 <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
