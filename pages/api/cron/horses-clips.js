@@ -746,11 +746,12 @@ export default async function handler(req, res) {
             });
         }
 
-        // Select horses based on their activity rate (some post more than others)
-        const selectedHorses = activeHorses.filter(horse => {
-            const rate = getHorseActivityRate(horse.profile_id, 'post');
-            return Math.random() < rate;
-        }).slice(0, CONFIG.HORSES_PER_TRIGGER);
+        // Select horses RANDOMLY from all awake horses (no activity rate filter)
+        // This ensures ALL 100 horses get equal posting opportunities
+        const shuffled = [...activeHorses].sort(() => Math.random() - 0.5);
+        const selectedHorses = shuffled.slice(0, CONFIG.HORSES_PER_TRIGGER);
+
+        console.log(`🎲 Selected ${selectedHorses.length} random horses: ${selectedHorses.map(h => h.name).join(', ')}`);
 
         const results = [];
 
