@@ -52,7 +52,7 @@ export function ScreenshotAnalyzer({ onAnalysis, onClose }: ScreenshotAnalyzerPr
 
         setIsAnalyzing(true);
         try {
-            const response = await fetch('/api/jarvis/analyze-screenshot', {
+            const response = await fetch('/api/geeves/analyze-screenshot', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

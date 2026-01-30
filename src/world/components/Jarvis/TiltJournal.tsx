@@ -1,9 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    TILT JOURNAL — Log and analyze tilt triggers and patterns
    Track emotional states, identify patterns, get recovery strategies
+   Now with Supabase persistence for cross-device sync
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../../../lib/supabase';
 
 interface TiltJournalProps {
     onAskJarvis: (question: string) => void;
@@ -36,6 +38,7 @@ const COMMON_TRIGGERS = [
 export function TiltJournal({ onAskJarvis, onClose }: TiltJournalProps) {
     const [entries, setEntries] = useState<TiltEntry[]>([]);
     const [showAddForm, setShowAddForm] = useState(false);
+    const [userId, setUserId] = useState<string | null>(null);
     const [newEntry, setNewEntry] = useState({
         trigger: '',
         intensity: 3,
@@ -44,20 +47,77 @@ export function TiltJournal({ onAskJarvis, onClose }: TiltJournalProps) {
         outcome: ''
     });
 
-    // Load from localStorage
+    // Load from Supabase or localStorage
     useEffect(() => {
-        const saved = localStorage.getItem('jarvis_tilt_journal');
-        if (saved) {
+        const loadEntries = async () => {
             try {
-                setEntries(JSON.parse(saved));
-            } catch (e) { }
-        }
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    setUserId(user.id);
+                    const { data, error } = await supabase
+                        .from('tilt_journal')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('timestamp', { ascending: false });
+
+                    if (!error && data) {
+                        setEntries(data.map((e: any) => ({
+                            id: e.id,
+                            timestamp: e.timestamp,
+                            trigger: e.trigger,
+                            intensity: e.intensity,
+                            situation: e.situation || '',
+                            response: e.response || '',
+                            outcome: e.outcome || ''
+                        })));
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('[TiltJournal] Supabase error:', e);
+            }
+
+            // Fallback to localStorage
+            const saved = localStorage.getItem('jarvis_tilt_journal');
+            if (saved) {
+                try {
+                    setEntries(JSON.parse(saved));
+                } catch (e) { }
+            }
+        };
+        loadEntries();
     }, []);
 
-    // Save to localStorage
-    useEffect(() => {
-        localStorage.setItem('jarvis_tilt_journal', JSON.stringify(entries));
-    }, [entries]);
+    // Save to Supabase
+    const saveEntry = useCallback(async (entry: TiltEntry) => {
+        localStorage.setItem('jarvis_tilt_journal', JSON.stringify([entry, ...entries]));
+
+        if (!userId) return;
+
+        try {
+            await supabase.from('tilt_journal').upsert({
+                id: entry.id,
+                user_id: userId,
+                timestamp: entry.timestamp,
+                trigger: entry.trigger,
+                intensity: entry.intensity,
+                situation: entry.situation,
+                response: entry.response,
+                outcome: entry.outcome
+            });
+        } catch (e) {
+            console.error('[TiltJournal] Save error:', e);
+        }
+    }, [userId, entries]);
+
+    const deleteFromSupabase = useCallback(async (id: string) => {
+        if (!userId) return;
+        try {
+            await supabase.from('tilt_journal').delete().eq('id', id);
+        } catch (e) {
+            console.error('[TiltJournal] Delete error:', e);
+        }
+    }, [userId]);
 
     const addEntry = () => {
         if (!newEntry.trigger) return;
@@ -68,12 +128,15 @@ export function TiltJournal({ onAskJarvis, onClose }: TiltJournalProps) {
             ...newEntry
         };
         setEntries([entry, ...entries]);
+        saveEntry(entry); // Save to Supabase
         setNewEntry({ trigger: '', intensity: 3, situation: '', response: '', outcome: '' });
         setShowAddForm(false);
     };
 
     const deleteEntry = (id: string) => {
         setEntries(entries.filter(e => e.id !== id));
+        deleteFromSupabase(id); // Delete from Supabase
+        localStorage.setItem('jarvis_tilt_journal', JSON.stringify(entries.filter(e => e.id !== id)));
     };
 
     const analyzePatterns = () => {

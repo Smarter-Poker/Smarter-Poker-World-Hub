@@ -1,9 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    BANKROLL SYNC — Connect with Bankroll Manager and display trends
    Shows bankroll history and provides insights for proper bankroll management
+   Now with Supabase persistence for cross-device sync
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../../../lib/supabase';
 
 interface BankrollSyncProps {
     onAskJarvis: (question: string) => void;
@@ -28,34 +30,83 @@ export function BankrollSync({ onAskJarvis, onClose }: BankrollSyncProps) {
             { date: '2026-01-29', amount: 2500 }
         ],
         stakes: '1/2',
-        buyIns: 25 // Number of buy-ins for current stakes
+        buyIns: 25
     });
     const [newAmount, setNewAmount] = useState('');
+    const [userId, setUserId] = useState<string | null>(null);
 
-    // Load from localStorage
+    // Load from Supabase or localStorage
     useEffect(() => {
-        const saved = localStorage.getItem('jarvis_bankroll');
-        if (saved) {
+        const loadBankroll = async () => {
             try {
-                setBankroll(JSON.parse(saved));
-            } catch (e) { }
-        }
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    setUserId(user.id);
+                    const { data, error } = await supabase
+                        .from('bankroll_history')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+
+                    if (!error && data && data.length > 0) {
+                        const record = data[0];
+                        setBankroll({
+                            current: record.current_amount,
+                            history: record.history || [],
+                            stakes: record.stakes || '1/2',
+                            buyIns: record.buy_ins || 25
+                        });
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('[BankrollSync] Supabase error:', e);
+            }
+
+            // Fallback to localStorage
+            const saved = localStorage.getItem('jarvis_bankroll');
+            if (saved) {
+                try {
+                    setBankroll(JSON.parse(saved));
+                } catch (e) { }
+            }
+        };
+        loadBankroll();
     }, []);
 
-    // Save to localStorage
-    useEffect(() => {
-        localStorage.setItem('jarvis_bankroll', JSON.stringify(bankroll));
-    }, [bankroll]);
+    // Save to Supabase
+    const saveBankroll = useCallback(async (data: BankrollData) => {
+        localStorage.setItem('jarvis_bankroll', JSON.stringify(data));
+
+        if (!userId) return;
+
+        try {
+            await supabase.from('bankroll_history').upsert({
+                id: `${userId}_bankroll`,
+                user_id: userId,
+                current_amount: data.current,
+                history: data.history,
+                stakes: data.stakes,
+                buy_ins: data.buyIns,
+                updated_at: new Date().toISOString()
+            });
+        } catch (e) {
+            console.error('[BankrollSync] Save error:', e);
+        }
+    }, [userId]);
 
     const updateBankroll = () => {
         const amount = parseFloat(newAmount);
         if (isNaN(amount) || amount <= 0) return;
 
-        setBankroll({
+        const newData = {
             ...bankroll,
             current: amount,
             history: [...bankroll.history, { date: new Date().toISOString().split('T')[0], amount }]
-        });
+        };
+        setBankroll(newData);
+        saveBankroll(newData); // Save to Supabase
         setNewAmount('');
     };
 

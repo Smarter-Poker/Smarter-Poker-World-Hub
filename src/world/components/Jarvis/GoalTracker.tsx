@@ -1,9 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    GOAL TRACKER — Set and track poker improvement goals
    Create goals, track progress, celebrate achievements
+   Now with Supabase persistence for cross-device sync
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../../../lib/supabase';
 
 interface GoalTrackerProps {
     onAskJarvis: (question: string) => void;
@@ -36,23 +38,90 @@ export function GoalTracker({ onAskJarvis, onClose }: GoalTrackerProps) {
     const [goals, setGoals] = useState<PokerGoal[]>([]);
     const [showTemplates, setShowTemplates] = useState(false);
     const [newGoalTitle, setNewGoalTitle] = useState('');
+    const [userId, setUserId] = useState<string | null>(null);
 
-    // Load from localStorage on mount
+    // Load goals from Supabase or localStorage
     useEffect(() => {
-        const saved = localStorage.getItem('jarvis_poker_goals');
-        if (saved) {
+        const loadGoals = async () => {
             try {
-                setGoals(JSON.parse(saved));
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    setUserId(user.id);
+                    // Load from Supabase
+                    const { data, error } = await supabase
+                        .from('poker_goals')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false });
+
+                    if (!error && data) {
+                        setGoals(data.map((g: any) => ({
+                            id: g.id,
+                            title: g.title,
+                            description: g.description || '',
+                            category: g.category,
+                            target: g.target,
+                            current: g.current,
+                            unit: g.unit,
+                            deadline: g.deadline,
+                            completed: g.completed,
+                            createdAt: g.created_at
+                        })));
+                        return;
+                    }
+                }
             } catch (e) {
-                console.error('Failed to parse goals:', e);
+                console.error('[GoalTracker] Supabase error:', e);
             }
-        }
+
+            // Fallback to localStorage
+            const saved = localStorage.getItem('jarvis_poker_goals');
+            if (saved) {
+                try {
+                    setGoals(JSON.parse(saved));
+                } catch (e) {
+                    console.error('Failed to parse goals:', e);
+                }
+            }
+        };
+        loadGoals();
     }, []);
 
-    // Save to localStorage on change
+    // Save to Supabase when goals change (debounced)
+    const saveGoals = useCallback(async (goalsToSave: PokerGoal[]) => {
+        // Always save to localStorage as backup
+        localStorage.setItem('jarvis_poker_goals', JSON.stringify(goalsToSave));
+
+        if (!userId) return;
+
+        try {
+            // Upsert all goals
+            for (const goal of goalsToSave) {
+                await supabase.from('poker_goals').upsert({
+                    id: goal.id,
+                    user_id: userId,
+                    title: goal.title,
+                    description: goal.description,
+                    category: goal.category,
+                    target: goal.target,
+                    current: goal.current,
+                    unit: goal.unit,
+                    deadline: goal.deadline,
+                    completed: goal.completed,
+                    created_at: goal.createdAt,
+                    updated_at: new Date().toISOString()
+                });
+            }
+        } catch (e) {
+            console.error('[GoalTracker] Save error:', e);
+        }
+    }, [userId]);
+
     useEffect(() => {
-        localStorage.setItem('jarvis_poker_goals', JSON.stringify(goals));
-    }, [goals]);
+        if (goals.length > 0) {
+            saveGoals(goals);
+        }
+    }, [goals, saveGoals]);
 
     const addGoal = (template?: typeof GOAL_TEMPLATES[0]) => {
         const newGoal: PokerGoal = {
