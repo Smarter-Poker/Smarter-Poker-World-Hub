@@ -183,10 +183,96 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
 }
 
 // Post Card Component
-function PostCard({ post, author, isOwnProfile = false, onDelete }) {
+function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId }) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [liked, setLiked] = useState(false);
+    const [likeCount, setLikeCount] = useState(post.like_count || 0);
+    const [commentCount, setCommentCount] = useState(post.comment_count || 0);
+    const [showComments, setShowComments] = useState(false);
+    const [comments, setComments] = useState([]);
+    const [commentText, setCommentText] = useState('');
+    const [submittingComment, setSubmittingComment] = useState(false);
+    const [shareMsg, setShareMsg] = useState('');
     const isArticleOrLink = post.content_type === 'article' || post.content_type === 'link';
+
+    // Check if already liked on mount
+    useEffect(() => {
+        if (!currentUserId || !post.id) return;
+        fetch('/api/social/interactions?post_id=' + post.id + '&type=like')
+            .then(r => r.json())
+            .then(json => {
+                const myLike = (json.interactions || []).find(i => i.user_id === currentUserId);
+                if (myLike) setLiked(true);
+            })
+            .catch(() => {});
+    }, [currentUserId, post.id]);
+
+    const handleLike = async () => {
+        if (!currentUserId) return;
+        const wasLiked = liked;
+        setLiked(!wasLiked);
+        setLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
+        try {
+            await fetch('/api/social/interactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'like' })
+            });
+        } catch (e) {
+            setLiked(wasLiked);
+            setLikeCount(prev => wasLiked ? prev + 1 : Math.max(0, prev - 1));
+        }
+    };
+
+    const handleComment = async () => {
+        setShowComments(!showComments);
+        if (!showComments && comments.length === 0) {
+            try {
+                const res = await fetch('/api/social/interactions?post_id=' + post.id + '&type=comment');
+                const json = await res.json();
+                setComments(json.comments || []);
+            } catch (e) { console.error('Load comments error:', e); }
+        }
+    };
+
+    const submitComment = async () => {
+        if (!commentText.trim() || !currentUserId) return;
+        setSubmittingComment(true);
+        try {
+            const res = await fetch('/api/social/interactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'comment', content: commentText.trim() })
+            });
+            const json = await res.json();
+            if (json.comment) {
+                setComments(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);
+                setCommentCount(prev => prev + 1);
+            }
+            setCommentText('');
+        } catch (e) { console.error('Submit comment error:', e); }
+        setSubmittingComment(false);
+    };
+
+    const handleShare = async () => {
+        const url = window.location.origin + '/hub/user/' + (author?.username || '') + '?post=' + post.id;
+        try {
+            await navigator.clipboard.writeText(url);
+            setShareMsg('Link copied!');
+            setTimeout(() => setShareMsg(''), 2000);
+            if (currentUserId) {
+                fetch('/api/social/interactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'share' })
+                }).catch(() => {});
+            }
+        } catch {
+            setShareMsg('Share failed');
+            setTimeout(() => setShareMsg(''), 2000);
+        }
+    };
 
     const handleDelete = async () => {
         setDeleting(true);
@@ -258,7 +344,6 @@ function PostCard({ post, author, isOwnProfile = false, onDelete }) {
                 <div style={{ padding: '0 12px 12px', fontSize: 15, color: C.text, lineHeight: 1.4 }}>{post.content}</div>
             )}
             {isArticleOrLink ? (
-                // Use centralized ArticleCard for article/link posts
                 <ArticleCard
                     url={post.link_url || (() => {
                         const match = post.content?.match(/https?:\/\/[^\s"'<>]+/);
@@ -288,14 +373,60 @@ function PostCard({ post, author, isOwnProfile = false, onDelete }) {
                 </div>
             )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
-                <span>{post.like_count > 0 && `👍 ${post.like_count}`}</span>
-                <span>{post.comment_count > 0 && `${post.comment_count} comments`}</span>
+                <span>{likeCount > 0 && `👍 ${likeCount}`}</span>
+                <span>{commentCount > 0 && `${commentCount} comments`}{shareMsg && ` · ${shareMsg}`}</span>
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
-                <button style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>👍 Like</button>
-                <button style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>💬 Comment</button>
-                <button style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>↗️ Share</button>
+                <button onClick={handleLike} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: liked ? C.blue : C.textSec, fontWeight: liked ? 700 : 500, fontSize: 13, transition: 'all 0.2s' }}>👍 {liked ? 'Liked' : 'Like'}</button>
+                <button onClick={handleComment} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>💬 Comment</button>
+                <button onClick={handleShare} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>↗️ Share</button>
             </div>
+            {/* Comment Section */}
+            {showComments && (
+                <div style={{ borderTop: `1px solid ${C.border}`, padding: 12 }}>
+                    {comments.length > 0 && (
+                        <div style={{ marginBottom: 12, maxHeight: 300, overflowY: 'auto' }}>
+                            {comments.map((c, i) => (
+                                <div key={c.id || i} style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                                    <img src={c.author?.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                                    <div style={{ flex: 1, background: '#f0f2f5', borderRadius: 12, padding: '8px 12px' }}>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.author?.full_name || c.author?.username || 'User'}</div>
+                                        <div style={{ fontSize: 14, color: C.text, marginTop: 2 }}>{c.content}</div>
+                                        <div style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>{timeAgo(c.created_at)}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {comments.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: 16, color: C.textSec, fontSize: 13 }}>No comments yet. Be the first!</div>
+                    )}
+                    {currentUserId && (
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <input
+                                value={commentText}
+                                onChange={e => setCommentText(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
+                                placeholder="Write a comment..."
+                                style={{
+                                    flex: 1, padding: '10px 14px', background: '#f0f2f5', border: 'none',
+                                    borderRadius: 20, fontSize: 14, outline: 'none', color: C.text
+                                }}
+                            />
+                            <button
+                                onClick={submitComment}
+                                disabled={!commentText.trim() || submittingComment}
+                                style={{
+                                    padding: '8px 16px', background: C.blue, color: 'white',
+                                    border: 'none', borderRadius: 20, fontWeight: 600, fontSize: 13,
+                                    cursor: commentText.trim() ? 'pointer' : 'not-allowed',
+                                    opacity: commentText.trim() ? 1 : 0.5
+                                }}
+                            >{submittingComment ? '...' : 'Post'}</button>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
@@ -331,6 +462,10 @@ export default function UserProfilePage() {
     // Tab state
     const [activeTab, setActiveTab] = useState('all');
     const [articleReader, setArticleReader] = useState({ open: false, url: '', title: '' });
+
+    // Profile menu state
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [profileMenuMsg, setProfileMenuMsg] = useState('');
 
     useEffect(() => {
         if (!username) return;
@@ -741,10 +876,88 @@ export default function UserProfilePage() {
                                     flex: 1, padding: '10px 16px', background: C.blue, color: 'white',
                                     borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14
                                 }}>💬 Message</button>
-                                <button style={{
-                                    padding: '10px 14px', background: '#e4e6eb', color: C.text,
-                                    borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14
-                                }}>⋮</button>
+                                <div style={{ position: 'relative' }}>
+                                    <button onClick={() => setShowProfileMenu(!showProfileMenu)} style={{
+                                        padding: '10px 14px', background: '#e4e6eb', color: C.text,
+                                        borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14
+                                    }}>⋮</button>
+                                    {showProfileMenu && (
+                                        <div style={{
+                                            position: 'absolute', top: '100%', right: 0, marginTop: 4,
+                                            background: C.card, borderRadius: 10, padding: 4, minWidth: 220,
+                                            boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 100,
+                                            border: `1px solid ${C.border}`
+                                        }}>
+                                            <button onClick={() => {
+                                                navigator.clipboard.writeText(window.location.href);
+                                                setProfileMenuMsg('Link copied!');
+                                                setTimeout(() => setProfileMenuMsg(''), 2000);
+                                                setShowProfileMenu(false);
+                                            }} style={{
+                                                width: '100%', padding: '10px 14px', background: 'transparent',
+                                                border: 'none', textAlign: 'left', cursor: 'pointer',
+                                                fontSize: 14, color: C.text, borderRadius: 6, display: 'flex', gap: 10
+                                            }}>🔗 Copy profile link</button>
+                                            <button onClick={() => {
+                                                window.open(window.location.href, '_blank');
+                                                setShowProfileMenu(false);
+                                            }} style={{
+                                                width: '100%', padding: '10px 14px', background: 'transparent',
+                                                border: 'none', textAlign: 'left', cursor: 'pointer',
+                                                fontSize: 14, color: C.text, borderRadius: 6, display: 'flex', gap: 10
+                                            }}>↗️ Open in new tab</button>
+                                            <div style={{ height: 1, background: C.border, margin: '4px 0' }} />
+                                            <button onClick={async () => {
+                                                if (!currentUser) { setProfileMenuMsg('Log in to block'); return; }
+                                                const confirmed = confirm('Block ' + (profile?.full_name || profile?.username) + '? They won\'t be able to see your posts or message you.');
+                                                if (!confirmed) return;
+                                                try {
+                                                    await supabase.from('user_blocks').insert({
+                                                        blocker_id: currentUser.id,
+                                                        blocked_id: profile.id
+                                                    });
+                                                    setProfileMenuMsg('User blocked');
+                                                } catch (e) {
+                                                    setProfileMenuMsg('Already blocked or error');
+                                                }
+                                                setTimeout(() => setProfileMenuMsg(''), 2000);
+                                                setShowProfileMenu(false);
+                                            }} style={{
+                                                width: '100%', padding: '10px 14px', background: 'transparent',
+                                                border: 'none', textAlign: 'left', cursor: 'pointer',
+                                                fontSize: 14, color: '#F02849', borderRadius: 6, display: 'flex', gap: 10
+                                            }}>🚫 Block user</button>
+                                            <button onClick={async () => {
+                                                if (!currentUser) { setProfileMenuMsg('Log in to report'); return; }
+                                                const reason = prompt('Why are you reporting this user?');
+                                                if (!reason) return;
+                                                try {
+                                                    await supabase.from('user_reports').insert({
+                                                        reporter_id: currentUser.id,
+                                                        reported_id: profile.id,
+                                                        reason
+                                                    });
+                                                    setProfileMenuMsg('Report submitted');
+                                                } catch (e) {
+                                                    setProfileMenuMsg('Report failed');
+                                                }
+                                                setTimeout(() => setProfileMenuMsg(''), 2000);
+                                                setShowProfileMenu(false);
+                                            }} style={{
+                                                width: '100%', padding: '10px 14px', background: 'transparent',
+                                                border: 'none', textAlign: 'left', cursor: 'pointer',
+                                                fontSize: 14, color: '#F02849', borderRadius: 6, display: 'flex', gap: 10
+                                            }}>⚠️ Report user</button>
+                                        </div>
+                                    )}
+                                    {profileMenuMsg && (
+                                        <div style={{
+                                            position: 'absolute', top: '100%', right: 0, marginTop: 4,
+                                            background: C.text, color: 'white', padding: '6px 12px',
+                                            borderRadius: 6, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', zIndex: 101
+                                        }}>{profileMenuMsg}</div>
+                                    )}
+                                </div>
                             </>
                         )}
                     </div>
@@ -905,7 +1118,7 @@ export default function UserProfilePage() {
 
                                 {/* Posts Feed */}
                                 {posts.length > 0 ? (
-                                    posts.map(post => <PostCard key={post.id} post={post} author={profile} isOwnProfile={isOwnProfile} onDelete={handleDeletePost} />)
+                                    posts.map(post => <PostCard key={post.id} post={post} author={profile} isOwnProfile={isOwnProfile} onDelete={handleDeletePost} currentUserId={currentUser?.id} />)
                                 ) : (
                                     <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
                                         <div style={{ fontSize: 32, marginBottom: 12 }}>📝</div>
