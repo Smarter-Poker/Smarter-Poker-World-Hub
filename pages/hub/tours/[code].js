@@ -526,6 +526,48 @@ export default function TourDetailPage() {
               )}
             </section>
 
+            {/* Tour Venue Stops Section */}
+            {tour.stops_2026 && tour.stops_2026.length > 0 && (
+              <section className="tour-stops">
+                <h2 className="section-title">
+                  2026 Tour Stops
+                  <span className="series-count">{tour.stops_2026.length}</span>
+                </h2>
+                <div className="stops-list">
+                  {tour.stops_2026.map(function(stop, si) {
+                    var stopVenueId = null;
+                    if (tour.upcoming_series) {
+                      var matchingSeries = tour.upcoming_series.find(function(s) {
+                        return s.venue && stop.name && (
+                          s.venue.toLowerCase().indexOf(stop.name.toLowerCase()) !== -1 ||
+                          stop.name.toLowerCase().indexOf(s.venue.toLowerCase()) !== -1
+                        );
+                      });
+                      if (matchingSeries && matchingSeries.venue_id) {
+                        stopVenueId = matchingSeries.venue_id;
+                      }
+                    }
+                    return (
+                      <div key={si} className={'stop-row' + (stopVenueId ? ' stop-clickable' : '')}
+                        onClick={stopVenueId ? function() { router.push('/hub/venues/' + stopVenueId); } : undefined}>
+                        <div className="stop-index">{si + 1}</div>
+                        <div className="stop-info">
+                          <span className="stop-name">{stop.name}</span>
+                          <span className="stop-location">{stop.city}{stop.state ? ', ' + stop.state : ''}</span>
+                        </div>
+                        <div className="stop-dates">{stop.dates || 'TBD'}</div>
+                        {stopVenueId && (
+                          <div className="stop-link-icon">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* Activity Feed Section */}
             <section className="tour-activity">
               <h2 className="section-title">Latest Updates</h2>
@@ -1135,6 +1177,87 @@ const styles = `
   .empty-subtext {
     color: #64748b !important;
     font-size: 13px !important;
+  }
+
+  /* Tour Stops Section */
+  .tour-stops {
+    margin-bottom: 24px;
+  }
+  .stops-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stop-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .stop-row:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .stop-clickable {
+    cursor: pointer;
+  }
+  .stop-clickable:hover {
+    border-color: rgba(212, 168, 83, 0.3);
+  }
+  .stop-index {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(212, 168, 83, 0.15);
+    color: #d4a853;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .stop-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .stop-name {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+  .stop-clickable .stop-name {
+    color: #d4a853;
+  }
+  .stop-location {
+    display: block;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+  .stop-dates {
+    font-size: 13px;
+    color: #94a3b8;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .stop-link-icon {
+    flex-shrink: 0;
+  }
+  @media (max-width: 640px) {
+    .stop-row {
+      padding: 10px 12px;
+      gap: 10px;
+    }
+    .stop-name {
+      font-size: 13px;
+    }
+    .stop-dates {
+      font-size: 11px;
+    }
   }
 
   /* Activity Feed Section */

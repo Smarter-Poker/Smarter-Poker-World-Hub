@@ -461,6 +461,28 @@ export default function PokerNearMe() {
         maxBuyin: ''
     });
 
+    // --- NEW: Live games, favorites, sorting, pagination, search history ---
+    const [liveGames, setLiveGames] = useState([]);
+    const [liveLoading, setLiveLoading] = useState(false);
+    const liveRefreshRef = useRef(null);
+    const [favorites, setFavorites] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try { return JSON.parse(localStorage.getItem('sp-favorites') || '{}'); } catch { return {}; }
+        }
+        return {};
+    });
+    const [sortBy, setSortBy] = useState('default');
+    const [displayCount, setDisplayCount] = useState({ venues: 24, tours: 24, series: 24, daily: 30, live: 30 });
+    const [searchHistory, setSearchHistory] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try { return JSON.parse(localStorage.getItem('sp-search-history') || '[]'); } catch { return []; }
+        }
+        return [];
+    });
+    const [showSearchHistory, setShowSearchHistory] = useState(false);
+    const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
+    const [seriesViewMode, setSeriesViewMode] = useState('grid'); // 'grid' or 'calendar'
+
     // Load all venues for the map (from static JSON) on mount
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -520,6 +542,86 @@ export default function PokerNearMe() {
             }
         };
     }, [userLocation, allVenuesForMap]);
+
+    // --- NEW: Persist favorites to localStorage ---
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('sp-favorites', JSON.stringify(favorites));
+        }
+    }, [favorites]);
+
+    // --- NEW: Fetch promotion venue IDs on mount ---
+    useEffect(() => {
+        fetch('/api/poker/promotions?limit=200')
+            .then(r => r.json())
+            .then(json => {
+                const ids = new Set();
+                (json.promotions || json.data || []).forEach(p => { if (p.page_id) ids.add(String(p.page_id)); });
+                setPromotionVenueIds(ids);
+            })
+            .catch(() => {});
+    }, []);
+
+    // --- NEW: Auto-refresh live games when on live tab ---
+    useEffect(() => {
+        if (activeTab === 'live') {
+            fetchLiveGames();
+            liveRefreshRef.current = setInterval(fetchLiveGames, 120000); // 2 min
+        }
+        return () => { if (liveRefreshRef.current) clearInterval(liveRefreshRef.current); };
+    }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // --- NEW: Helper functions ---
+    const toggleFavorite = (type, id, e) => {
+        if (e) { e.stopPropagation(); e.preventDefault(); }
+        const key = type + '-' + id;
+        setFavorites(prev => {
+            const next = { ...prev };
+            if (next[key]) { delete next[key]; } else { next[key] = Date.now(); }
+            return next;
+        });
+    };
+
+    const isFavorited = (type, id) => !!favorites[type + '-' + id];
+
+    const addToSearchHistory = (query) => {
+        if (!query || !query.trim()) return;
+        const trimmed = query.trim();
+        setSearchHistory(prev => {
+            const filtered = prev.filter(s => s !== trimmed);
+            const next = [trimmed, ...filtered].slice(0, 8);
+            localStorage.setItem('sp-search-history', JSON.stringify(next));
+            return next;
+        });
+    };
+
+    const getSortedVenues = (venueList) => {
+        if (sortBy === 'default') return venueList;
+        const sorted = [...venueList];
+        switch (sortBy) {
+            case 'trust-desc': return sorted.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
+            case 'trust-asc': return sorted.sort((a, b) => (a.trust_score || 0) - (b.trust_score || 0));
+            case 'distance': return sorted.sort((a, b) => (a.distance_mi || 9999) - (b.distance_mi || 9999));
+            case 'name-az': return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            case 'name-za': return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+            default: return sorted;
+        }
+    };
+
+    const loadMore = (tab) => {
+        setDisplayCount(prev => ({ ...prev, [tab]: prev[tab] + 24 }));
+    };
+
+    const isNewcomerFriendly = (venue) => {
+        if (!venue) return false;
+        const hasLowStakes = venue.stakes_cash && venue.stakes_cash.some(s => {
+            const match = s.match(/\$?(\d+)/);
+            return match && parseInt(match[1]) <= 2;
+        });
+        const highTrust = (venue.trust_score || 0) >= 4.0;
+        const isCardRoom = venue.venue_type === 'card_room' || venue.venue_type === 'charity';
+        return (hasLowStakes && highTrust) || (isCardRoom && highTrust);
+    };
 
     const requestGpsLocation = () => {
         if (!navigator.geolocation) {
@@ -666,8 +768,23 @@ export default function PokerNearMe() {
         }
     };
 
+    const fetchLiveGames = async () => {
+        setLiveLoading(true);
+        try {
+            const res = await fetch('/api/poker/live-games?active=true');
+            const json = await res.json();
+            setLiveGames(json.games || json.data || []);
+        } catch (e) {
+            console.error('Fetch live games error:', e);
+            setLiveGames([]);
+        }
+        setLiveLoading(false);
+    };
+
     const handleSearch = (e) => {
         e.preventDefault();
+        addToSearchHistory(searchQuery);
+        setShowSearchHistory(false);
         fetchAllData();
     };
 
@@ -699,24 +816,38 @@ export default function PokerNearMe() {
         venues: venues.length,
         tours: tours.length,
         series: series.length,
-        daily: dailyTournaments.length
+        daily: dailyTournaments.length,
+        live: liveGames.length
     });
 
     const counts = getCounts();
+
+    // Loading skeleton component
+    const renderSkeletons = (count = 8) => (
+        <div className="card-grid">
+            {Array.from({ length: count }).map((_, i) => (
+                <div key={i} className="entity-card skeleton-card">
+                    <div className="skel skel-header"></div>
+                    <div className="skel skel-title"></div>
+                    <div className="skel skel-text"></div>
+                    <div className="skel skel-tags"></div>
+                    <div className="skel skel-footer"></div>
+                </div>
+            ))}
+        </div>
+    );
 
     // Render content based on active tab
     const renderContent = () => {
         if (activeTab === 'map') {
             return renderMap();
         }
+        if (activeTab === 'live') {
+            return renderLiveGames();
+        }
 
         if (loading) {
-            return (
-                <div className="loading-state">
-                    <div className="spinner"></div>
-                    <span>Loading poker data...</span>
-                </div>
-            );
+            return renderSkeletons(8);
         }
 
         switch (activeTab) {
@@ -746,46 +877,105 @@ export default function PokerNearMe() {
         if (venues.length === 0) {
             return (
                 <div className="empty-state">
-                    <p>No venues found</p>
-                    <button onClick={clearFilters}>Clear Filters</button>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+                    <p>No venues found matching your criteria</p>
+                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Try a different city, adjust filters, or use GPS</p>
+                    <button onClick={clearFilters}>Clear All Filters</button>
                 </div>
             );
         }
 
+        const sorted = getSortedVenues(venues);
+        const displayed = sorted.slice(0, displayCount.venues);
+
         return (
-            <div className="card-grid">
-                {venues.slice(0, 100).map((venue, i) => {
-                    const trust = getTrustLevel(venue.trust_score);
-                    return (
-                        <div key={venue.id || i} className="entity-card venue-card" onClick={() => router.push('/hub/venues/' + venue.id)} style={{ cursor: 'pointer' }}>
-                            <div className="card-header">
-                                <h4>{venue.name}</h4>
-                                <span className="badge venue-type">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
-                            </div>
-                            <p className="card-location">{venue.city}, {venue.state}</p>
-                            {venue.has_tournaments && <span className="tag format" style={{ marginBottom: 8, display: 'inline-block' }}>Tournaments</span>}
-                            <div className="card-tags">
-                                {venue.distance_mi && <span className="tag distance">{venue.distance_mi} mi</span>}
-                                {venue.games_offered && venue.games_offered.slice(0, 3).map(g => (
-                                    <span key={g} className="tag game">{g}</span>
-                                ))}
-                            </div>
-                            {venue.stakes_cash && venue.stakes_cash.length > 0 && (
-                                <p className="card-detail">Stakes: {venue.stakes_cash.slice(0, 3).join(', ')}</p>
-                            )}
-                            <div className="card-footer">
-                                <span className="trust-badge" style={{ color: trust.color }}>Trust: {trust.label}</span>
-                                <div className="card-actions">
-                                    {venue.phone && <a href={'tel:' + venue.phone} className="action-btn" onClick={e => e.stopPropagation()}>Call</a>}
-                                    <a href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(venue.name + ' ' + venue.city + ' ' + venue.state)}
-                                        target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Map</a>
-                                    <span className="action-btn primary">Details</span>
+            <>
+                {/* Sort & Results Bar */}
+                <div className="results-bar">
+                    <span className="results-count">Showing {displayed.length} of {venues.length} venues</span>
+                    <div className="sort-controls">
+                        <label>Sort:</label>
+                        <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="sort-select">
+                            <option value="default">Default</option>
+                            <option value="trust-desc">Trust (High to Low)</option>
+                            <option value="trust-asc">Trust (Low to High)</option>
+                            {userLocation && <option value="distance">Nearest First</option>}
+                            <option value="name-az">Name (A-Z)</option>
+                            <option value="name-za">Name (Z-A)</option>
+                        </select>
+                    </div>
+                </div>
+                <div className="card-grid">
+                    {displayed.map((venue, i) => {
+                        const trust = getTrustLevel(venue.trust_score);
+                        const fav = isFavorited('venue', venue.id);
+                        const newcomer = isNewcomerFriendly(venue);
+                        const hasPromo = promotionVenueIds.has(String(venue.id));
+                        return (
+                            <div key={venue.id || i} className="entity-card venue-card" onClick={() => router.push('/hub/venues/' + venue.id)} style={{ cursor: 'pointer' }}>
+                                {/* Favorite heart */}
+                                <button className={'fav-btn' + (fav ? ' active' : '')} onClick={(e) => toggleFavorite('venue', venue.id, e)} title={fav ? 'Remove from favorites' : 'Add to favorites'}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill={fav ? '#ef4444' : 'none'} stroke={fav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
+                                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                                    </svg>
+                                </button>
+                                <div className="card-header">
+                                    <h4>{venue.name}</h4>
+                                    <span className="badge venue-type">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
+                                </div>
+                                <p className="card-location">
+                                    {venue.address ? (venue.address + ' - ') : ''}{venue.city}, {venue.state}
+                                </p>
+                                {/* Badge row */}
+                                <div className="badge-row">
+                                    {venue.is_featured && <span className="mini-badge featured-badge">Featured</span>}
+                                    {newcomer && <span className="mini-badge newcomer-badge">Newcomer Friendly</span>}
+                                    {hasPromo && <span className="mini-badge promo-badge">Active Promo</span>}
+                                    {venue.has_tournaments && <span className="mini-badge tourney-badge">Tournaments</span>}
+                                </div>
+                                {/* Hours */}
+                                {venue.hours && (
+                                    <p className="card-hours">{venue.hours === '24/7' ? 'Open 24/7' : venue.hours}</p>
+                                )}
+                                <div className="card-tags">
+                                    {venue.distance_mi && <span className="tag distance">{venue.distance_mi} mi</span>}
+                                    {venue.games_offered && venue.games_offered.slice(0, 4).map(g => (
+                                        <span key={g} className="tag game">{g}</span>
+                                    ))}
+                                </div>
+                                {venue.stakes_cash && venue.stakes_cash.length > 0 && (
+                                    <p className="card-detail">Stakes: {venue.stakes_cash.slice(0, 3).join(', ')}</p>
+                                )}
+                                <div className="card-footer">
+                                    <span className="trust-badge" style={{ color: trust.color }}>Trust: {trust.label} ({venue.trust_score || '-'})</span>
+                                    <div className="card-actions">
+                                        {venue.website && (
+                                            <a href={venue.website} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Web</a>
+                                        )}
+                                        {venue.phone && <a href={'tel:' + venue.phone} className="action-btn" onClick={e => e.stopPropagation()}>Call</a>}
+                                        <a href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((venue.address || '') + ' ' + venue.name + ' ' + venue.city + ' ' + venue.state)}
+                                            target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Map</a>
+                                    </div>
+                                </div>
+                                {/* Quick actions */}
+                                <div className="quick-actions">
+                                    <button className="quick-btn checkin-btn" onClick={e => { e.stopPropagation(); router.push('/hub/venues/' + venue.id + '?action=checkin'); }}>Check In</button>
+                                    <button className="quick-btn review-btn" onClick={e => { e.stopPropagation(); router.push('/hub/venues/' + venue.id + '?action=review'); }}>Review</button>
+                                    <span className="action-btn primary" style={{ flex: 1, textAlign: 'center' }}>Details</span>
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
-            </div>
+                        );
+                    })}
+                </div>
+                {/* Load More */}
+                {displayCount.venues < venues.length && (
+                    <div className="load-more">
+                        <button className="load-more-btn" onClick={() => loadMore('venues')}>
+                            Load More ({venues.length - displayCount.venues} remaining)
+                        </button>
+                    </div>
+                )}
+            </>
         );
     };
 
@@ -793,52 +983,72 @@ export default function PokerNearMe() {
         if (tours.length === 0) {
             return (
                 <div className="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
                     <p>No tours found</p>
+                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Try clearing filters or searching for a specific tour</p>
                     <button onClick={clearFilters}>Clear Filters</button>
                 </div>
             );
         }
 
         return (
-            <div className="card-grid tours-grid">
-                {tours.map((tour, i) => (
-                    <div key={tour.tour_code || i} className="entity-card tour-card" onClick={() => router.push('/hub/tours/' + tour.tour_code)} style={{ cursor: 'pointer' }}>
-                        <div className="card-header">
-                            <TourBadge tourCode={tour.tour_code} />
-                            <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || tour.tour_type}</span>
-                        </div>
-                        <h4 className="tour-name">{tour.tour_name}</h4>
-                        <p className="card-location">{tour.headquarters}</p>
-                        {tour.typical_buyins && (
-                            <p className="card-detail">
-                                Buy-ins: {formatMoney(tour.typical_buyins.min)} - {formatMoney(tour.typical_buyins.max)}
-                            </p>
-                        )}
-                        {tour.regions && tour.regions.length > 0 && (
-                            <div className="card-tags">
-                                {tour.regions.map(r => <span key={r} className="tag region">{r}</span>)}
-                            </div>
-                        )}
-                        {tour.upcoming_series && tour.upcoming_series.length > 0 && (
-                            <div className="upcoming-series">
-                                <span className="upcoming-label">Next: {tour.upcoming_series[0].short_name || tour.upcoming_series[0].name}</span>
-                                <span className="upcoming-date">{formatDate(tour.upcoming_series[0].start_date)}</span>
-                            </div>
-                        )}
-                        <div className="card-footer">
-                            <span className="established">Est. {tour.established}</span>
-                            <div className="card-actions">
-                                <span className="action-btn primary">Details</span>
-                                {tour.official_website && (
-                                    <a href={tour.official_website} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>
-                                        Website
-                                    </a>
+            <>
+                <div className="results-bar">
+                    <span className="results-count">Showing {Math.min(displayCount.tours, tours.length)} of {tours.length} tours</span>
+                </div>
+                <div className="card-grid tours-grid">
+                    {tours.slice(0, displayCount.tours).map((tour, i) => {
+                        const fav = isFavorited('tour', tour.tour_code);
+                        return (
+                            <div key={tour.tour_code || i} className="entity-card tour-card" onClick={() => router.push('/hub/tours/' + tour.tour_code)} style={{ cursor: 'pointer' }}>
+                                <button className={'fav-btn' + (fav ? ' active' : '')} onClick={(e) => toggleFavorite('tour', tour.tour_code, e)}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill={fav ? '#ef4444' : 'none'} stroke={fav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
+                                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                                    </svg>
+                                </button>
+                                <div className="card-header">
+                                    <TourBadge tourCode={tour.tour_code} />
+                                    <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || tour.tour_type}</span>
+                                </div>
+                                <h4 className="tour-name">{tour.tour_name}</h4>
+                                <p className="card-location">{tour.headquarters}</p>
+                                {tour.typical_buyins && (
+                                    <p className="card-detail">
+                                        Buy-ins: {formatMoney(tour.typical_buyins.min)} - {formatMoney(tour.typical_buyins.max)}
+                                    </p>
                                 )}
+                                {tour.regions && tour.regions.length > 0 && (
+                                    <div className="card-tags">
+                                        {tour.regions.map(r => <span key={r} className="tag region">{r}</span>)}
+                                    </div>
+                                )}
+                                {tour.upcoming_series && tour.upcoming_series.length > 0 && (
+                                    <div className="upcoming-series">
+                                        <span className="upcoming-label">Next: {tour.upcoming_series[0].short_name || tour.upcoming_series[0].name}</span>
+                                        <span className="upcoming-date">{formatDate(tour.upcoming_series[0].start_date)}</span>
+                                    </div>
+                                )}
+                                <div className="card-footer">
+                                    <span className="established">Est. {tour.established}</span>
+                                    <div className="card-actions">
+                                        <span className="action-btn primary">Details</span>
+                                        {tour.official_website && (
+                                            <a href={tour.official_website} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Website</a>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        );
+                    })}
+                </div>
+                {displayCount.tours < tours.length && (
+                    <div className="load-more">
+                        <button className="load-more-btn" onClick={() => loadMore('tours')}>
+                            Load More ({tours.length - displayCount.tours} remaining)
+                        </button>
                     </div>
-                ))}
-            </div>
+                )}
+            </>
         );
     };
 
@@ -846,43 +1056,78 @@ export default function PokerNearMe() {
         if (series.length === 0) {
             return (
                 <div className="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     <p>No tournament series found</p>
+                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Try expanding the timeframe or clearing filters</p>
                     <button onClick={clearFilters}>Clear Filters</button>
                 </div>
             );
         }
 
         return (
-            <div className="card-grid">
-                {series.slice(0, 70).map((s, i) => (
-                    <div key={s.id || i} className="entity-card series-card" onClick={() => router.push('/hub/series/' + (s.id || (i + 1)))} style={{ cursor: 'pointer' }}>
-                        <div className="card-header">
-                            <TourBadge tourCode={s.tour_code || s.short_name} size="small" />
-                            <span className="badge series-type">{s.series_type}</span>
-                        </div>
-                        <h4>{s.name}</h4>
-                        <p className="card-location">{s.location || ((s.city || s.venue) + ', ' + (s.state || ''))}</p>
-                        <p className="card-dates">{formatDate(s.start_date)} - {formatDate(s.end_date)}</p>
-                        <div className="card-tags">
-                            {s.total_events && <span className="tag events">{s.total_events} Events</span>}
-                            {s.main_event_buyin && <span className="tag buyin">{formatMoney(s.main_event_buyin)} Main</span>}
-                        </div>
-                        {s.main_event_guaranteed && (
-                            <p className="card-detail guaranteed">{formatMoney(s.main_event_guaranteed)}+ GTD</p>
-                        )}
-                        <div className="card-footer">
-                            <div className="card-actions">
-                                <span className="action-btn primary">Details</span>
-                                {s.source_url && (
-                                    <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>
-                                        Source
-                                    </a>
-                                )}
-                            </div>
-                        </div>
+            <>
+                <div className="results-bar">
+                    <span className="results-count">Showing {Math.min(displayCount.series, series.length)} of {series.length} series</span>
+                    <div className="view-toggle">
+                        <button className={'view-btn' + (seriesViewMode === 'grid' ? ' active' : '')} onClick={() => setSeriesViewMode('grid')}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                            Grid
+                        </button>
+                        <button className={'view-btn' + (seriesViewMode === 'calendar' ? ' active' : '')} onClick={() => setSeriesViewMode('calendar')}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            Calendar
+                        </button>
                     </div>
-                ))}
-            </div>
+                </div>
+
+                {seriesViewMode === 'calendar' ? renderSeriesCalendar() : (
+                    <>
+                        <div className="card-grid">
+                            {series.slice(0, displayCount.series).map((s, i) => {
+                                const fav = isFavorited('series', s.id || (i + 1));
+                                return (
+                                    <div key={s.id || i} className="entity-card series-card" onClick={() => router.push('/hub/series/' + (s.id || (i + 1)))} style={{ cursor: 'pointer' }}>
+                                        <button className={'fav-btn' + (fav ? ' active' : '')} onClick={(e) => toggleFavorite('series', s.id || (i + 1), e)}>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill={fav ? '#ef4444' : 'none'} stroke={fav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
+                                                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                                            </svg>
+                                        </button>
+                                        <div className="card-header">
+                                            <TourBadge tourCode={s.tour_code || s.short_name} size="small" />
+                                            <span className="badge series-type">{s.series_type}</span>
+                                        </div>
+                                        <h4>{s.name}</h4>
+                                        <p className="card-location">{s.location || ((s.city || s.venue) + ', ' + (s.state || ''))}</p>
+                                        <p className="card-dates">{formatDate(s.start_date)} - {formatDate(s.end_date)}</p>
+                                        <div className="card-tags">
+                                            {s.total_events && <span className="tag events">{s.total_events} Events</span>}
+                                            {s.main_event_buyin && <span className="tag buyin">{formatMoney(s.main_event_buyin)} Main</span>}
+                                        </div>
+                                        {s.main_event_guaranteed && (
+                                            <p className="card-detail guaranteed">{formatMoney(s.main_event_guaranteed)}+ GTD</p>
+                                        )}
+                                        <div className="card-footer">
+                                            <div className="card-actions">
+                                                <span className="action-btn primary">Details</span>
+                                                {s.source_url && (
+                                                    <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Source</a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {displayCount.series < series.length && (
+                            <div className="load-more">
+                                <button className="load-more-btn" onClick={() => loadMore('series')}>
+                                    Load More ({series.length - displayCount.series} remaining)
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
+            </>
         );
     };
 
@@ -941,6 +1186,163 @@ export default function PokerNearMe() {
                     ))}
                 </div>
             </>
+        );
+    };
+
+    // --- NEW: Live Games Renderer ---
+    const renderLiveGames = () => {
+        if (liveLoading && liveGames.length === 0) {
+            return renderSkeletons(6);
+        }
+
+        if (liveGames.length === 0) {
+            return (
+                <div className="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
+                        <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
+                    </svg>
+                    <p>No live games reported right now</p>
+                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Be the first to report a game at your venue!</p>
+                    <p style={{ fontSize: 11, opacity: 0.3, marginTop: 8 }}>Auto-refreshes every 2 minutes</p>
+                </div>
+            );
+        }
+
+        // Group by venue
+        const byVenue = {};
+        liveGames.forEach(g => {
+            const key = g.venue_id || 'unknown';
+            if (!byVenue[key]) byVenue[key] = { venue_id: g.venue_id, venue_name: g.venue_name || 'Unknown Venue', games: [] };
+            byVenue[key].games.push(g);
+        });
+
+        const venueGroups = Object.values(byVenue);
+
+        return (
+            <>
+                <div className="results-bar">
+                    <span className="results-count">
+                        {liveGames.length} live game{liveGames.length !== 1 ? 's' : ''} at {venueGroups.length} venue{venueGroups.length !== 1 ? 's' : ''}
+                    </span>
+                    <div className="live-refresh">
+                        <span className="live-dot"></span>
+                        <span>Auto-refreshes every 2 min</span>
+                        <button className="refresh-btn" onClick={fetchLiveGames} disabled={liveLoading}>
+                            {liveLoading ? 'Refreshing...' : 'Refresh Now'}
+                        </button>
+                    </div>
+                </div>
+                <div className="card-grid">
+                    {venueGroups.slice(0, displayCount.live).map((group, i) => (
+                        <div key={group.venue_id || i} className="entity-card live-card"
+                            onClick={() => group.venue_id ? router.push('/hub/venues/' + group.venue_id) : null}
+                            style={{ cursor: group.venue_id ? 'pointer' : 'default' }}>
+                            <div className="card-header">
+                                <h4>{group.venue_name}</h4>
+                                <span className="live-badge">LIVE</span>
+                            </div>
+                            <div className="live-games-list">
+                                {group.games.map((game, gi) => (
+                                    <div key={gi} className="live-game-row">
+                                        <span className="live-game-type">{game.game_type || 'NLH'}</span>
+                                        <span className="live-game-stakes">{game.stakes || '-'}</span>
+                                        <span className="live-game-tables">{game.table_count || 1} table{(game.table_count || 1) !== 1 ? 's' : ''}</span>
+                                        {game.wait_time !== null && game.wait_time !== undefined && (
+                                            <span className="live-game-wait" style={{ color: game.wait_time <= 10 ? '#22c55e' : game.wait_time <= 30 ? '#d4a853' : '#ef4444' }}>
+                                                {game.wait_time === 0 ? 'No wait' : game.wait_time + ' min wait'}
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            {group.games[0].notes && <p className="card-detail">{group.games[0].notes}</p>}
+                            <div className="card-footer">
+                                <span className="live-time">Reported {group.games[0].created_at ? new Date(group.games[0].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'recently'}</span>
+                                {group.venue_id && <span className="action-btn primary">View Venue</span>}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                {displayCount.live < venueGroups.length && (
+                    <div className="load-more">
+                        <button className="load-more-btn" onClick={() => loadMore('live')}>
+                            Load More ({venueGroups.length - displayCount.live} remaining)
+                        </button>
+                    </div>
+                )}
+            </>
+        );
+    };
+
+    // --- NEW: Series Calendar Renderer ---
+    const renderSeriesCalendar = () => {
+        const today = new Date();
+        const months = [];
+        for (let m = 0; m < 4; m++) {
+            const d = new Date(today.getFullYear(), today.getMonth() + m, 1);
+            months.push({ year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) });
+        }
+
+        return (
+            <div className="calendar-view">
+                {months.map((mo, mi) => {
+                    const daysInMonth = new Date(mo.year, mo.month + 1, 0).getDate();
+                    const firstDay = new Date(mo.year, mo.month, 1).getDay();
+                    const monthSeries = series.filter(s => {
+                        if (!s.start_date) return false;
+                        const start = new Date(s.start_date);
+                        const end = s.end_date ? new Date(s.end_date) : start;
+                        const moStart = new Date(mo.year, mo.month, 1);
+                        const moEnd = new Date(mo.year, mo.month + 1, 0);
+                        return start <= moEnd && end >= moStart;
+                    });
+
+                    return (
+                        <div key={mi} className="calendar-month">
+                            <h3 className="calendar-month-title">{mo.label}</h3>
+                            <div className="calendar-grid-header">
+                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                                    <div key={d} className="cal-header-cell">{d}</div>
+                                ))}
+                            </div>
+                            <div className="calendar-grid-body">
+                                {Array.from({ length: firstDay }).map((_, i) => (
+                                    <div key={'empty-' + i} className="cal-cell empty"></div>
+                                ))}
+                                {Array.from({ length: daysInMonth }).map((_, di) => {
+                                    const dayNum = di + 1;
+                                    const dateStr = mo.year + '-' + String(mo.month + 1).padStart(2, '0') + '-' + String(dayNum).padStart(2, '0');
+                                    const dayDate = new Date(mo.year, mo.month, dayNum);
+                                    const daySeries = monthSeries.filter(s => {
+                                        const start = new Date(s.start_date);
+                                        const end = s.end_date ? new Date(s.end_date) : start;
+                                        return dayDate >= new Date(start.getFullYear(), start.getMonth(), start.getDate()) &&
+                                               dayDate <= new Date(end.getFullYear(), end.getMonth(), end.getDate());
+                                    });
+                                    const isToday = dayDate.toDateString() === today.toDateString();
+                                    return (
+                                        <div key={dayNum} className={'cal-cell' + (isToday ? ' today' : '') + (daySeries.length > 0 ? ' has-events' : '')}>
+                                            <span className="cal-day-num">{dayNum}</span>
+                                            {daySeries.slice(0, 2).map((s, si) => {
+                                                const tourColor = TOUR_COLORS[s.tour_code] || TOUR_COLORS.default;
+                                                return (
+                                                    <div key={si} className="cal-event"
+                                                        style={{ background: tourColor.border, color: tourColor.text === '#000' ? '#000' : '#fff' }}
+                                                        onClick={() => router.push('/hub/series/' + (s.id || si + 1))}
+                                                        title={s.name}>
+                                                        {(s.tour_code || s.short_name || '').slice(0, 5)}
+                                                    </div>
+                                                );
+                                            })}
+                                            {daySeries.length > 2 && <div className="cal-more">+{daySeries.length - 2}</div>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
         );
     };
 
@@ -1019,7 +1421,7 @@ export default function PokerNearMe() {
                 {/* Page Header */}
                 <div className="pnm-header">
                     <h1><span className="white">POKER</span> <span className="gold">NEAR</span> <span className="white">ME</span></h1>
-                    <span className="subtitle">VENUES | TOURS | SERIES | DAILY EVENTS | MAP</span>
+                    <span className="subtitle">VENUES | TOURS | SERIES | DAILY EVENTS | LIVE GAMES | MAP</span>
                 </div>
 
                 {/* Search Section */}
@@ -1029,12 +1431,31 @@ export default function PokerNearMe() {
                             <svg className="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
                             </svg>
-                            <input
-                                type="text"
-                                placeholder="Search venues, tours, series, or events..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
+                            <div className="search-input-wrapper">
+                                <input
+                                    type="text"
+                                    placeholder="Search venues, tours, series, or events..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onFocus={() => { if (searchHistory.length > 0) setShowSearchHistory(true); }}
+                                    onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
+                                />
+                                {showSearchHistory && searchHistory.length > 0 && (
+                                    <div className="search-history-dropdown">
+                                        <div className="search-history-header">
+                                            <span>Recent Searches</span>
+                                            <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); setShowSearchHistory(false); }}>Clear</button>
+                                        </div>
+                                        {searchHistory.map((item, i) => (
+                                            <button key={i} type="button" className="search-history-item"
+                                                onClick={() => { setSearchQuery(item); setShowSearchHistory(false); setTimeout(() => fetchAllData(), 0); }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                                {item}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                             <button type="submit" className="search-btn">Search</button>
                         </form>
 
@@ -1213,6 +1634,14 @@ export default function PokerNearMe() {
                         </span>
                         Daily <span className="tab-count">{counts.daily}</span>
                     </button>
+                    <button className={'tab' + (activeTab === 'live' ? ' active' : '')} onClick={() => setActiveTab('live')}>
+                        <span className="tab-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
+                            </svg>
+                        </span>
+                        Live <span className="tab-count live-count">{counts.live}</span>
+                    </button>
                     <button className={'tab' + (activeTab === 'map' ? ' active' : '')} onClick={() => setActiveTab('map')}>
                         <span className="tab-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1339,20 +1768,7 @@ export default function PokerNearMe() {
                         transform: translateY(-50%);
                         color: rgba(255,255,255,0.4);
                     }
-                    .search-form input {
-                        flex: 1;
-                        padding: 14px 16px 14px 48px;
-                        background: rgba(0,0,0,0.3);
-                        border: 1px solid rgba(255,255,255,0.15);
-                        border-radius: 12px;
-                        color: #fff;
-                        font-size: 15px;
-                        outline: none;
-                    }
-                    .search-form input:focus {
-                        border-color: rgba(212,168,83,0.5);
-                    }
-                    .search-form input::placeholder { color: rgba(255,255,255,0.4); }
+                    /* search-form input styles moved to .search-input-wrapper */
                     .search-btn {
                         padding: 14px 24px;
                         background: linear-gradient(135deg, #d4a853, #b8860b);
@@ -1825,6 +2241,483 @@ export default function PokerNearMe() {
                         color: #60a5fa;
                     }
 
+                    /* --- NEW STYLES --- */
+
+                    /* Favorite Button */
+                    .fav-btn {
+                        position: absolute;
+                        top: 10px;
+                        right: 10px;
+                        background: rgba(0,0,0,0.4);
+                        border: none;
+                        border-radius: 50%;
+                        width: 32px;
+                        height: 32px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        z-index: 2;
+                        transition: all 0.2s;
+                    }
+                    .fav-btn:hover {
+                        background: rgba(239,68,68,0.3);
+                        transform: scale(1.1);
+                    }
+                    .fav-btn.active {
+                        background: rgba(239,68,68,0.2);
+                    }
+                    .entity-card {
+                        position: relative;
+                    }
+
+                    /* Results Bar */
+                    .results-bar {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 10px 4px;
+                        margin-bottom: 12px;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                    }
+                    .results-count {
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.5);
+                    }
+                    .sort-controls {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+                    .sort-controls label {
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.4);
+                    }
+                    .sort-select {
+                        padding: 6px 12px;
+                        background: rgba(15,23,42,0.8);
+                        border: 1px solid rgba(255,255,255,0.15);
+                        border-radius: 8px;
+                        color: #fff;
+                        font-size: 13px;
+                        cursor: pointer;
+                    }
+
+                    /* Badge Row */
+                    .badge-row {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 6px;
+                        margin-bottom: 8px;
+                    }
+                    .mini-badge {
+                        padding: 2px 8px;
+                        border-radius: 4px;
+                        font-size: 10px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.3px;
+                    }
+                    .featured-badge {
+                        background: rgba(212,168,83,0.2);
+                        color: #d4a853;
+                        border: 1px solid rgba(212,168,83,0.3);
+                    }
+                    .newcomer-badge {
+                        background: rgba(34,197,94,0.15);
+                        color: #4ade80;
+                        border: 1px solid rgba(34,197,94,0.25);
+                    }
+                    .promo-badge {
+                        background: rgba(139,92,246,0.15);
+                        color: #a78bfa;
+                        border: 1px solid rgba(139,92,246,0.25);
+                    }
+                    .tourney-badge {
+                        background: rgba(239,68,68,0.12);
+                        color: #f87171;
+                        border: 1px solid rgba(239,68,68,0.2);
+                    }
+
+                    /* Card Hours */
+                    .card-hours {
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.5);
+                        margin: 0 0 8px;
+                        font-style: italic;
+                    }
+
+                    /* Quick Actions */
+                    .quick-actions {
+                        display: flex;
+                        gap: 6px;
+                        padding-top: 10px;
+                        border-top: 1px solid rgba(255,255,255,0.06);
+                        margin-top: 8px;
+                    }
+                    .quick-btn {
+                        flex: 1;
+                        padding: 7px 10px;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        border: none;
+                        transition: all 0.2s;
+                    }
+                    .checkin-btn {
+                        background: rgba(34,197,94,0.15);
+                        color: #4ade80;
+                        border: 1px solid rgba(34,197,94,0.3);
+                    }
+                    .checkin-btn:hover { background: rgba(34,197,94,0.25); }
+                    .review-btn {
+                        background: rgba(59,130,246,0.15);
+                        color: #60a5fa;
+                        border: 1px solid rgba(59,130,246,0.3);
+                    }
+                    .review-btn:hover { background: rgba(59,130,246,0.25); }
+
+                    /* Load More */
+                    .load-more {
+                        display: flex;
+                        justify-content: center;
+                        padding: 24px 0;
+                    }
+                    .load-more-btn {
+                        padding: 12px 32px;
+                        background: rgba(212,168,83,0.15);
+                        border: 1px solid rgba(212,168,83,0.3);
+                        border-radius: 10px;
+                        color: #d4a853;
+                        font-size: 14px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .load-more-btn:hover {
+                        background: rgba(212,168,83,0.25);
+                    }
+
+                    /* Live Games */
+                    .live-badge {
+                        padding: 3px 10px;
+                        border-radius: 6px;
+                        font-size: 11px;
+                        font-weight: 700;
+                        background: rgba(239,68,68,0.2);
+                        color: #f87171;
+                        border: 1px solid rgba(239,68,68,0.4);
+                        animation: livePulse 2s ease-in-out infinite;
+                    }
+                    @keyframes livePulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.6; }
+                    }
+                    .live-games-list {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 6px;
+                        margin: 8px 0;
+                    }
+                    .live-game-row {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 6px 8px;
+                        background: rgba(255,255,255,0.04);
+                        border-radius: 6px;
+                        font-size: 13px;
+                    }
+                    .live-game-type {
+                        font-weight: 600;
+                        color: #d4a853;
+                        min-width: 40px;
+                    }
+                    .live-game-stakes {
+                        color: #fff;
+                        font-weight: 500;
+                    }
+                    .live-game-tables {
+                        color: rgba(255,255,255,0.5);
+                        font-size: 12px;
+                    }
+                    .live-game-wait {
+                        margin-left: auto;
+                        font-size: 12px;
+                        font-weight: 500;
+                    }
+                    .live-time {
+                        font-size: 11px;
+                        color: rgba(255,255,255,0.4);
+                    }
+                    .live-refresh {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.4);
+                    }
+                    .live-dot {
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 50%;
+                        background: #ef4444;
+                        animation: livePulse 2s ease-in-out infinite;
+                    }
+                    .refresh-btn {
+                        padding: 4px 12px;
+                        background: rgba(255,255,255,0.1);
+                        border: 1px solid rgba(255,255,255,0.15);
+                        border-radius: 6px;
+                        color: rgba(255,255,255,0.7);
+                        font-size: 12px;
+                        cursor: pointer;
+                    }
+                    .refresh-btn:hover { background: rgba(255,255,255,0.15); }
+                    .live-count {
+                        background: rgba(239,68,68,0.3) !important;
+                    }
+
+                    /* View Toggle */
+                    .view-toggle {
+                        display: flex;
+                        gap: 4px;
+                    }
+                    .view-btn {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        padding: 6px 14px;
+                        background: rgba(0,0,0,0.3);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 8px;
+                        color: rgba(255,255,255,0.5);
+                        font-size: 12px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .view-btn.active {
+                        background: rgba(212,168,83,0.15);
+                        border-color: rgba(212,168,83,0.3);
+                        color: #d4a853;
+                    }
+
+                    /* Calendar View */
+                    .calendar-view {
+                        display: grid;
+                        gap: 24px;
+                    }
+                    .calendar-month {
+                        background: rgba(15,23,42,0.5);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 12px;
+                        padding: 16px;
+                    }
+                    .calendar-month-title {
+                        font-size: 18px;
+                        font-weight: 600;
+                        color: #d4a853;
+                        margin: 0 0 12px;
+                        text-align: center;
+                    }
+                    .calendar-grid-header {
+                        display: grid;
+                        grid-template-columns: repeat(7, 1fr);
+                        gap: 2px;
+                        margin-bottom: 4px;
+                    }
+                    .cal-header-cell {
+                        text-align: center;
+                        font-size: 11px;
+                        color: rgba(255,255,255,0.4);
+                        padding: 6px 0;
+                        font-weight: 600;
+                    }
+                    .calendar-grid-body {
+                        display: grid;
+                        grid-template-columns: repeat(7, 1fr);
+                        gap: 2px;
+                    }
+                    .cal-cell {
+                        min-height: 60px;
+                        padding: 4px;
+                        background: rgba(0,0,0,0.2);
+                        border-radius: 6px;
+                        border: 1px solid rgba(255,255,255,0.05);
+                    }
+                    .cal-cell.empty {
+                        background: transparent;
+                        border: none;
+                    }
+                    .cal-cell.today {
+                        border-color: rgba(212,168,83,0.4);
+                        background: rgba(212,168,83,0.08);
+                    }
+                    .cal-cell.has-events {
+                        background: rgba(59,130,246,0.06);
+                    }
+                    .cal-day-num {
+                        display: block;
+                        font-size: 11px;
+                        color: rgba(255,255,255,0.5);
+                        margin-bottom: 2px;
+                    }
+                    .cal-cell.today .cal-day-num {
+                        color: #d4a853;
+                        font-weight: 700;
+                    }
+                    .cal-event {
+                        padding: 1px 4px;
+                        border-radius: 3px;
+                        font-size: 9px;
+                        font-weight: 700;
+                        margin-bottom: 1px;
+                        cursor: pointer;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .cal-event:hover {
+                        opacity: 0.8;
+                    }
+                    .cal-more {
+                        font-size: 9px;
+                        color: rgba(255,255,255,0.4);
+                        text-align: center;
+                    }
+
+                    /* Search History Dropdown */
+                    .search-input-wrapper {
+                        flex: 1;
+                        position: relative;
+                    }
+                    .search-input-wrapper input {
+                        width: 100%;
+                        padding: 14px 16px 14px 48px;
+                        background: rgba(0,0,0,0.3);
+                        border: 1px solid rgba(255,255,255,0.15);
+                        border-radius: 12px;
+                        color: #fff;
+                        font-size: 15px;
+                        outline: none;
+                    }
+                    .search-input-wrapper input:focus {
+                        border-color: rgba(212,168,83,0.5);
+                    }
+                    .search-input-wrapper input::placeholder { color: rgba(255,255,255,0.4); }
+                    .search-history-dropdown {
+                        position: absolute;
+                        top: calc(100% + 4px);
+                        left: 0;
+                        right: 0;
+                        background: rgba(15,23,42,0.98);
+                        border: 1px solid rgba(255,255,255,0.15);
+                        border-radius: 10px;
+                        overflow: hidden;
+                        z-index: 50;
+                        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+                    }
+                    .search-history-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 8px 12px;
+                        border-bottom: 1px solid rgba(255,255,255,0.1);
+                        font-size: 11px;
+                        color: rgba(255,255,255,0.4);
+                    }
+                    .search-history-header button {
+                        background: none;
+                        border: none;
+                        color: #d4a853;
+                        font-size: 11px;
+                        cursor: pointer;
+                    }
+                    .search-history-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        width: 100%;
+                        padding: 10px 12px;
+                        background: transparent;
+                        border: none;
+                        color: rgba(255,255,255,0.7);
+                        font-size: 14px;
+                        text-align: left;
+                        cursor: pointer;
+                    }
+                    .search-history-item:hover {
+                        background: rgba(255,255,255,0.05);
+                    }
+
+                    /* Loading Skeletons */
+                    .skeleton-card {
+                        min-height: 180px;
+                    }
+                    .skel {
+                        border-radius: 6px;
+                        background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%);
+                        background-size: 200% 100%;
+                        animation: shimmer 1.5s ease-in-out infinite;
+                    }
+                    @keyframes shimmer {
+                        0% { background-position: 200% 0; }
+                        100% { background-position: -200% 0; }
+                    }
+                    .skel-header {
+                        height: 20px;
+                        width: 60%;
+                        margin-bottom: 12px;
+                    }
+                    .skel-title {
+                        height: 16px;
+                        width: 80%;
+                        margin-bottom: 10px;
+                    }
+                    .skel-text {
+                        height: 12px;
+                        width: 50%;
+                        margin-bottom: 10px;
+                    }
+                    .skel-tags {
+                        height: 24px;
+                        width: 70%;
+                        margin-bottom: 12px;
+                    }
+                    .skel-footer {
+                        height: 32px;
+                        width: 100%;
+                    }
+
+                    /* Mobile Filter Drawer */
+                    @media (max-width: 768px) {
+                        .filter-panel {
+                            position: fixed !important;
+                            bottom: 0 !important;
+                            left: 0 !important;
+                            right: 0 !important;
+                            top: auto !important;
+                            margin: 0 !important;
+                            border-radius: 16px 16px 0 0 !important;
+                            max-height: 70vh;
+                            overflow-y: auto;
+                            z-index: 1000;
+                            box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+                            padding: 20px 16px !important;
+                        }
+                        .filter-panel::before {
+                            content: '';
+                            display: block;
+                            width: 40px;
+                            height: 4px;
+                            background: rgba(255,255,255,0.2);
+                            border-radius: 2px;
+                            margin: 0 auto 16px;
+                        }
+                    }
+
                     /* Mobile */
                     @media (max-width: 640px) {
                         .pnm-header h1 {
@@ -1842,6 +2735,24 @@ export default function PokerNearMe() {
                         }
                         .tab-icon {
                             display: none;
+                        }
+                        .results-bar {
+                            flex-direction: column;
+                            align-items: flex-start;
+                            gap: 6px;
+                        }
+                        .quick-actions {
+                            flex-wrap: wrap;
+                        }
+                        .cal-cell {
+                            min-height: 45px;
+                            padding: 2px;
+                        }
+                        .cal-event {
+                            font-size: 7px;
+                        }
+                        .calendar-month {
+                            padding: 10px;
                         }
                     }
                 `}</style>
