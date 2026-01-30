@@ -38,6 +38,8 @@ import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
 import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
 import { ProactiveHelp } from '../src/world/components/LiveHelp/ProactiveHelp';
+import { GeevesPanel } from '../src/world/components/Geeves/GeevesPanel';
+import { useGeeves } from '../src/world/components/Geeves/useGeeves';
 // ═══════════════════════════════════════════════════════════════════════════
 // CACHE BUSTER — Clears stale caches on new deploys
 // Uses build timestamp to detect version changes
@@ -255,6 +257,8 @@ function NavigationGuard({ children }) {
  * If any requirement fails → fail-closed → SystemOffline screen
  */
 export default function App({ Component, pageProps }) {
+  const { isOpen: isGeevesOpen, onClose: onGeevesClose } = useGeeves();
+
   return (
     <AntiGravityProvider>
       <ThemeProvider>
@@ -280,6 +284,7 @@ export default function App({ Component, pageProps }) {
                           console.log('[ProactiveHelp] User dismissed help prompt');
                         }}
                       />
+                      <GeevesPanel isOpen={isGeevesOpen} onClose={onGeevesClose} />
                     </WorldThemeProvider>
                   </NavigationGuard>
                 </TrainingSettingsProvider>
