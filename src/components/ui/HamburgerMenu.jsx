@@ -16,6 +16,7 @@ export default function HamburgerMenu({
     direction = 'left',
     theme = 'light',
     user = null,
+    stats = { xp: 0, level: 1 },  // XP stats for progress bar
     menuItems = [],
     showProfile = true,
     profileExtras = null,

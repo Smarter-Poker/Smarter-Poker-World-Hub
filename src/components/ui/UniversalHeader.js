@@ -95,7 +95,6 @@ export default function UniversalHeader({
     const [notificationCount, setNotificationCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
-    const [showFullXP, setShowFullXP] = useState(false);
 
     // Live Help state
     const liveHelp = useLiveHelp();
@@ -386,20 +385,7 @@ export default function UniversalHeader({
                     box-sizing: border-box;
                 }
                 
-                .xp-display {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.2) 100%);
-                    border: 1px solid rgba(0, 212, 255, 0.4);
-                    padding: 0 10px;
-                    border-radius: 12px;
-                    width: 90px;
-                    height: 40px;
-                    box-sizing: border-box;
-                    line-height: 1.1;
-                }
+
                 
                 .orb-btn {
                     width: 36px;
@@ -495,8 +481,8 @@ export default function UniversalHeader({
                         display: inline; /* Keep Hub/Back text visible */
                     }
                     
-                    /* Diamond and XP boxes - EXACT SAME SIZE */
-                    .diamond-wallet, .xp-display {
+                    /* Diamond wallet - mobile sizing */
+                    .diamond-wallet {
                         width: 75px;
                         height: 36px;
                         padding: 0 6px;
@@ -586,20 +572,6 @@ export default function UniversalHeader({
                             fontSize: 10, fontWeight: 700
                         }}>+</span>
                     </Link>
-
-                    {/* XP + Level - click to toggle full/compact - STACKED layout */}
-                    <div className="xp-display" onClick={() => stats.xp >= 1000 && setShowFullXP(!showFullXP)} style={{ cursor: stats.xp >= 1000 ? 'pointer' : 'default' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                            <span style={{ color: C.white, fontWeight: 700, fontSize: 11 }}>XP</span>
-                            <span data-testid="header-xp" style={{ color: C.white, fontWeight: 700, fontSize: 11 }} title={stats.xp.toLocaleString() + ' XP'}>
-                                {showFullXP ? stats.xp.toLocaleString() : formatCompact(stats.xp)}
-                            </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                            <span style={{ color: C.white, fontWeight: 700, fontSize: 11 }}>LV</span>
-                            <span data-testid="header-level" style={{ color: C.white, fontWeight: 700, fontSize: 11 }}>{stats.level}</span>
-                        </div>
-                    </div>
                 </div>
 
                 {/* RIGHT: Orb Icons */}
