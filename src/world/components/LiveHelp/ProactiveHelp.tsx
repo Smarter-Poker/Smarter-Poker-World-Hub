@@ -9,19 +9,41 @@ interface ProactiveHelpProps {
     onDismiss: () => void;
 }
 
+const DISMISS_KEY = 'jarvis_proactive_dismissed';
+const DISMISS_EXPIRY_DAYS = 7; // Don't show again for 7 days after dismissal
+
 export function ProactiveHelp({ onAccept, onDismiss }: ProactiveHelpProps) {
     const [showPrompt, setShowPrompt] = useState(false);
     const [suggestion, setSuggestion] = useState('');
-    const [inactivityTimer, setInactivityTimer] = useState<NodeJS.Timeout | null>(null);
+    const [isDismissed, setIsDismissed] = useState(false);
 
+    // Check if user has previously dismissed
     useEffect(() => {
-        // Track user inactivity
+        try {
+            const dismissedData = localStorage.getItem(DISMISS_KEY);
+            if (dismissedData) {
+                const { timestamp } = JSON.parse(dismissedData);
+                const expiryTime = new Date(timestamp).getTime() + (DISMISS_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+                if (Date.now() < expiryTime) {
+                    setIsDismissed(true);
+                    return;
+                }
+            }
+        } catch (e) {
+            // Ignore localStorage errors
+        }
+    }, []);
+
+    // Track user inactivity (only if not dismissed)
+    useEffect(() => {
+        if (isDismissed) return;
+
         let timer: NodeJS.Timeout;
 
         const resetTimer = () => {
             if (timer) clearTimeout(timer);
             timer = setTimeout(() => {
-                // After 30 seconds of inactivity, show help
+                // After 45 seconds of inactivity, show help
                 const suggestions = [
                     'Need help navigating? I can guide you!',
                     'Looking for something specific? Ask me!',
@@ -31,7 +53,7 @@ export function ProactiveHelp({ onAccept, onDismiss }: ProactiveHelpProps) {
                 const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
                 setSuggestion(randomSuggestion);
                 setShowPrompt(true);
-            }, 30000); // 30 seconds
+            }, 45000); // 45 seconds (increased from 30)
         };
 
         // Reset timer on user activity
@@ -48,9 +70,27 @@ export function ProactiveHelp({ onAccept, onDismiss }: ProactiveHelpProps) {
                 document.removeEventListener(event, resetTimer);
             });
         };
-    }, []);
+    }, [isDismissed]);
 
-    if (!showPrompt) return null;
+    // Handle permanent dismiss
+    const handleDismiss = () => {
+        setShowPrompt(false);
+        setIsDismissed(true);
+
+        // Save dismissal to localStorage
+        try {
+            localStorage.setItem(DISMISS_KEY, JSON.stringify({
+                timestamp: new Date().toISOString(),
+                dismissed: true
+            }));
+        } catch (e) {
+            // Ignore localStorage errors
+        }
+
+        onDismiss();
+    };
+
+    if (!showPrompt || isDismissed) return null;
 
     return (
         <div style={{
@@ -87,10 +127,7 @@ export function ProactiveHelp({ onAccept, onDismiss }: ProactiveHelpProps) {
                     </span>
                 </div>
                 <button
-                    onClick={() => {
-                        setShowPrompt(false);
-                        onDismiss();
-                    }}
+                    onClick={handleDismiss}
                     style={{
                         background: 'none',
                         border: 'none',
@@ -140,10 +177,7 @@ export function ProactiveHelp({ onAccept, onDismiss }: ProactiveHelpProps) {
                     Yes, Help Me!
                 </button>
                 <button
-                    onClick={() => {
-                        setShowPrompt(false);
-                        onDismiss();
-                    }}
+                    onClick={handleDismiss}
                     style={{
                         padding: '8px 16px',
                         background: 'rgba(255, 255, 255, 0.2)',

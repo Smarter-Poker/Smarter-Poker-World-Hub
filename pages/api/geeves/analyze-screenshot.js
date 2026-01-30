@@ -2,7 +2,7 @@
    SCREENSHOT ANALYSIS API — Analyze poker table screenshots using Grok Vision
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { getGrokClient } from '../../../src/services/grokClient';
+import { getGrokClient } from '../../../src/lib/grokClient';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
