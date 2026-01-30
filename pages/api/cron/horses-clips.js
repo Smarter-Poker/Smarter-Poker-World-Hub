@@ -725,33 +725,35 @@ export default async function handler(req, res) {
 
         // FILTER: Only horses who are "awake" during their 12-hour active window
         // Each horse has a unique sleep schedule based on their profile_id hash
-        const activeHorses = allHorses.filter(horse => {
+        const awakeHorses = allHorses.filter(horse => {
             if (!horse.profile_id) return false;
-            const isAwake = isHorseActiveHour(horse.profile_id, currentHour);
-            if (!isAwake) {
-                console.log(`   💤 ${horse.name} is sleeping (not in active hours)`);
-            }
-            return isAwake;
+            return isHorseActiveHour(horse.profile_id, currentHour);
         });
 
         console.log(`⏰ Minute ${currentMinute}, Hour ${currentHour}`);
-        console.log(`🐴 Awake horses this hour: ${activeHorses.length}/${allHorses.length}`);
+        console.log(`🐴 Awake horses this hour: ${awakeHorses.length}/${allHorses.length}`);
 
-        if (activeHorses.length === 0) {
+        // INDIVIDUAL SCHEDULING: Each horse has their own assigned minute (0-59)
+        // shouldHorseBeActive checks if current minute is within ±7 of their slot
+        const selectedHorses = awakeHorses.filter(horse => {
+            const isMyTime = shouldHorseBeActive(horse.profile_id, currentMinute, 7);
+            if (isMyTime) {
+                console.log(`   ✅ ${horse.name}'s scheduled time slot!`);
+            }
+            return isMyTime;
+        });
+
+        console.log(`🎯 Horses in their time slot: ${selectedHorses.length}`);
+        console.log(`   Names: ${selectedHorses.map(h => h.name).join(', ') || 'none'}`);
+
+        if (selectedHorses.length === 0) {
             return res.status(200).json({
                 success: true,
-                message: 'No horses in their active slot this minute',
+                message: `No horses scheduled for minute ${currentMinute}`,
                 posted: 0,
-                activeHorses: 0
+                awakeHorses: awakeHorses.length
             });
         }
-
-        // Select horses RANDOMLY from all awake horses (no activity rate filter)
-        // This ensures ALL 100 horses get equal posting opportunities
-        const shuffled = [...activeHorses].sort(() => Math.random() - 0.5);
-        const selectedHorses = shuffled.slice(0, CONFIG.HORSES_PER_TRIGGER);
-
-        console.log(`🎲 Selected ${selectedHorses.length} random horses: ${selectedHorses.map(h => h.name).join(', ')}`);
 
         const results = [];
 

@@ -21,7 +21,8 @@ import { getGrokClient } from '../../../src/lib/grokClient.js';
 import {
     applyWritingStyle,
     getTimeOfDayEnergy,
-    shouldHorsePostToday
+    shouldHorseBeActive,
+    isHorseActiveHour
 } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 import * as SportsClipDeduplicationService from '../../../src/services/SportsClipDeduplicationService.js';
 
@@ -134,26 +135,50 @@ export default async function handler(req, res) {
         console.log('🏈 SPORTS CLIPS CRON STARTED');
         console.log('═'.repeat(60));
 
-        // Get ALL active horses (not limited) for true random selection
-        const { data: horses } = await supabase
+        // Get current time for per-horse scheduling
+        const now = new Date();
+        const currentMinute = now.getMinutes();
+        const currentHour = now.getHours();
+
+        // Get ALL active horses
+        const { data: allHorses } = await supabase
             .from('content_authors')
             .select('*')
             .eq('is_active', true)
             .not('profile_id', 'is', null);
 
-        if (!horses?.length) {
+        if (!allHorses?.length) {
             return res.status(200).json({ success: true, message: 'No horses available', posted: 0 });
         }
 
-        // TRUE RANDOM: Shuffle all horses and pick first N
-        const shuffledHorses = [...horses].sort(() => Math.random() - 0.5);
-        const selectedHorses = shuffledHorses.slice(0, CONFIG.HORSES_PER_TRIGGER);
-        const results = [];
+        // FILTER: Only horses who are awake (12-hour active window)
+        const awakeHorses = allHorses.filter(horse => {
+            if (!horse.profile_id) return false;
+            return isHorseActiveHour(horse.profile_id, currentHour);
+        });
 
-        // Get current time-of-day energy
+        // INDIVIDUAL SCHEDULING: Each horse has their own assigned minute
+        const selectedHorses = awakeHorses.filter(horse => {
+            const isMyTime = shouldHorseBeActive(horse.profile_id, currentMinute, 7);
+            if (isMyTime) {
+                console.log(`   ✅ ${horse.alias || horse.name}'s scheduled time slot!`);
+            }
+            return isMyTime;
+        });
+
+        const results = [];
         const timeEnergy = getTimeOfDayEnergy();
-        console.log(`   ⏰ Time-of-day mode: ${timeEnergy.mode}`);
-        console.log(`   🐴 Total horses: ${horses.length}, Selected: ${selectedHorses.map(h => h.alias || h.name).join(', ')}`);
+        console.log(`   ⏰ Minute ${currentMinute}, Hour ${currentHour}, Mode: ${timeEnergy.mode}`);
+        console.log(`   🐴 Total: ${allHorses.length}, Awake: ${awakeHorses.length}, Scheduled now: ${selectedHorses.length}`);
+
+        if (selectedHorses.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: `No horses scheduled for minute ${currentMinute}`,
+                posted: 0,
+                awakeHorses: awakeHorses.length
+            });
+        }
 
         for (const horse of selectedHorses) {
             console.log(`\n🏈 ${horse.alias || horse.name}: Posting sports clip...`);
