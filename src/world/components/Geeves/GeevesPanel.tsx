@@ -1,12 +1,19 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   GEEVES PANEL v2.0 — Enhanced poker strategy expert AI assistant
+   GEEVES PANEL v3.0 — Ultimate poker strategy expert AI assistant
    Features:
    - Smart caching indicator
    - User ratings (1-5 stars)
    - Markdown rendering
    - Copy button
    - Conversation history
-   - Range visualizer
+   - Range visualizer + Equity calculator + Hand diagrams
+   - Voice input/output (Web Speech API)
+   - 5 Personality modes
+   - Poker Quiz with diamond rewards
+   - Screenshot analysis (Grok Vision)
+   - Hand history parser
+   - Custom range builder
+   - Export/share conversations
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -15,7 +22,10 @@ import { PokerQuickTopics } from './PokerQuickTopics';
 import { MessageContent } from './MessageContent';
 import { RatingStars } from './RatingStars';
 import { ConversationList } from './ConversationList';
-import { PokerToolsToolbar } from './PokerToolsToolbar';
+import { VoiceInput } from './VoiceInput';
+import { VoiceOutput } from './VoiceOutput';
+import { PersonalitySelector, GeevesPersonality, getPersonalityPrompt } from './PersonalitySelector';
+import { GeevesAdvancedToolbar } from './GeevesAdvancedToolbar';
 
 interface Message {
     id: string;
@@ -39,6 +49,7 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [showHistory, setShowHistory] = useState(false);
     const [cacheStats, setCacheStats] = useState({ hits: 0, total: 0 });
+    const [personality, setPersonality] = useState<GeevesPersonality>('balanced');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom
@@ -480,11 +491,29 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                     <div ref={messagesEndRef} />
                 </div>
 
+                {/* Personality Selector */}
+                <PersonalitySelector
+                    selected={personality}
+                    onSelect={setPersonality}
+                />
+
                 {/* Quick Topics */}
                 <PokerQuickTopics onTopicClick={handleQuickTopic} />
 
-                {/* Poker Tools Toolbar */}
-                <PokerToolsToolbar onAskQuestion={sendMessage} />
+                {/* Advanced Tools Toolbar */}
+                <GeevesAdvancedToolbar
+                    messages={messages}
+                    onAskQuestion={sendMessage}
+                    onScreenshotAnalysis={(analysis) => {
+                        const msg: Message = {
+                            id: Date.now().toString(),
+                            content: analysis,
+                            isUser: false,
+                            timestamp: new Date()
+                        };
+                        setMessages(prev => [...prev, msg]);
+                    }}
+                />
 
                 {/* Input */}
                 <div style={{
@@ -492,12 +521,19 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                     borderTop: '1px solid rgba(255, 215, 0, 0.2)',
                     background: 'rgba(0, 0, 0, 0.2)'
                 }}>
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                        <VoiceInput
+                            onTranscript={(text) => {
+                                setInputValue(text);
+                                sendMessage(text);
+                            }}
+                            isDisabled={isTyping}
+                        />
                         <textarea
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            placeholder="Ask any poker question..."
+                            placeholder="Ask any poker question... (or use 🎤)"
                             rows={2}
                             style={{
                                 flex: 1,
