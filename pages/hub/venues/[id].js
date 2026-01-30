@@ -800,7 +800,7 @@ export default function VenueDetailPage() {
             <div className="error-icon">!</div>
             <h2>Venue Not Found</h2>
             <p>{error}</p>
-            <Link href="/hub/poker-near-me">
+            <Link href="/hub/poker-near-me" legacyBehavior>
               <a className="back-link-btn">Back to Poker Near Me</a>
             </Link>
           </div>
@@ -1051,8 +1051,7 @@ export default function VenueDetailPage() {
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="schedule-container">
                   {Object.entries(groupedSchedules).map(function([day, schedules]) {
-                    var isToday = day === DAYS_ORDER[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1]
-                      || day === ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()];
+                    var isToday = day === todayName;
                     return (
                       <div key={day} className={'day-group' + (isToday ? ' today' : '')}>
                         <div className="day-header">
