@@ -370,14 +370,12 @@ export default function UniversalHeader({
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 4px;
-                    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.2) 100%);
-                    border: 1px solid rgba(0, 212, 255, 0.4);
-                    padding: 0 10px;
-                    border-radius: 12px;
+                    gap: 8px;
+                    background: transparent;
+                    border: none;
+                    padding: 0;
                     text-decoration: none;
                     color: white;
-                    width: 90px;
                     height: 40px;
                     box-sizing: border-box;
                 }
@@ -563,11 +561,30 @@ export default function UniversalHeader({
                             {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
                         </span>
                         <span style={{
-                            width: 16, height: 16, borderRadius: '50%',
-                            background: 'rgba(0, 212, 255, 0.3)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 10, fontWeight: 700
-                        }}>+</span>
+                            width: 20,
+                            height: 20,
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(0, 150, 255, 0.4))',
+                            border: '1.5px solid rgba(0, 212, 255, 0.6)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: '#00d4ff',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 0 8px rgba(0, 212, 255, 0.3)'
+                        }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'scale(1.15)';
+                                e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 212, 255, 0.5)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'scale(1)';
+                                e.currentTarget.style.boxShadow = '0 0 8px rgba(0, 212, 255, 0.3)';
+                            }}
+                        >+</span>
                     </Link>
                 </div>
 
