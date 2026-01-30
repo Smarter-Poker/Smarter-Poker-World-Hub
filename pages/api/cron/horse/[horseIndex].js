@@ -408,18 +408,18 @@ export default async function handler(req, res) {
         const horse = horses[index];
         console.log(`   Horse: ${horse.name}`);
 
-        // CONTENT: video_clip (even hours) or news_link (odd hours)
+        // CONTENT: 50/50 POKER/SPORTS SPLIT
+        // Even hours (0,2,4,6,8,10,12,14,16,18,20,22) = POKER
+        // Odd hours (1,3,5,7,9,11,13,15,17,19,21,23) = SPORTS
         const hour = new Date().getUTCHours();
-        const contentTypes = ['video_clip', 'poker_news', 'video_clip', 'sports_news'];
-        const contentType = contentTypes[hour % 4];
+        const isPokerHour = hour % 2 === 0;
+        const contentType = isPokerHour ? 'poker_news' : 'sports_news';
 
         const assignedSources = await getHorseSources(horse.profile_id);
 
-        // Try primary, then fallback to video_clip
+        // Try primary content type, fallback to video_clip if it fails
         let result;
-        if (contentType === 'video_clip') {
-            result = await postVideoClip(horse, assignedSources, index);
-        } else if (contentType === 'poker_news') {
+        if (contentType === 'poker_news') {
             result = await postNewsLink(horse, index, 'poker');
             if (!result.success) result = await postVideoClip(horse, assignedSources, index);
         } else if (contentType === 'sports_news') {
