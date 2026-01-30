@@ -230,6 +230,18 @@ export function GeevesAdvancedToolbar({
                             onClose={() => setActiveTool(null)}
                         />
                     )}
+                    {activeTool === 'training' && (
+                        <TrainingProgressTracker
+                            onAskGeeves={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'pio' && (
+                        <PioInsights
+                            onAskGeeves={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
                 </div>
             )}
         </div>
