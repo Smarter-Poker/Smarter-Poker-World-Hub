@@ -266,7 +266,7 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: 0,
-        padding: '20px',
+        padding: '40px 20px 20px 20px', // Increased top padding to move table down
     },
 
     // EXACT TABLE IMAGE (user requirement: "this table only")
