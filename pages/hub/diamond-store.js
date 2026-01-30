@@ -509,19 +509,20 @@ function VIPCard({ plan, isSelected, onSelect }) {
             style={{
                 position: 'relative',
                 background: isSelected
-                    ? 'linear-gradient(135deg, rgba(24, 119, 242, 0.3), rgba(66, 133, 244, 0.3))'
-                    : 'linear-gradient(135deg, rgba(24, 119, 242, 0.1), rgba(66, 133, 244, 0.1))',
+                    ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(180, 134, 11, 0.15))'
+                    : 'linear-gradient(135deg, rgba(20, 20, 30, 0.9), rgba(30, 30, 45, 0.8))',
                 border: isSelected
-                    ? '2px solid #1877F2'
+                    ? '2px solid #ffd700'
                     : plan.popular
-                        ? '2px solid rgba(24, 119, 242, 0.5)'
-                        : '1px solid rgba(24, 119, 242, 0.3)',
+                        ? '2px solid rgba(255, 215, 0, 0.5)'
+                        : '1px solid rgba(255, 215, 0, 0.2)',
                 borderRadius: 16,
-                padding: 24,
+                padding: 20,
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
+                transition: 'all 0.3s ease',
                 transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                 flex: 1,
+                overflow: 'hidden',
             }}
         >
             {plan.popular && (
@@ -529,8 +530,8 @@ function VIPCard({ plan, isSelected, onSelect }) {
                     position: 'absolute',
                     top: -10,
                     right: 16,
-                    background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-                    color: '#fff',
+                    background: 'linear-gradient(135deg, #ffd700, #b8860b)',
+                    color: '#0a0a14',
                     fontSize: 10,
                     fontWeight: 700,
                     padding: '4px 10px',
@@ -557,25 +558,44 @@ function VIPCard({ plan, isSelected, onSelect }) {
                 </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                <span style={{ fontSize: 36 }}>👑</span>
-                <div>
-                    <div style={{
-                        fontFamily: 'Orbitron, sans-serif',
-                        fontSize: 20,
-                        fontWeight: 700,
-                        color: '#fff',
-                    }}>
-                        {plan.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
-                        All features included
-                    </div>
+            {/* VIP Card Image */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginBottom: 16,
+            }}>
+                <img
+                    src="/images/vip-card.jpg"
+                    alt="VIP Card"
+                    style={{
+                        width: '100%',
+                        maxWidth: 280,
+                        height: 'auto',
+                        borderRadius: 12,
+                        boxShadow: isSelected
+                            ? '0 8px 32px rgba(255, 215, 0, 0.4)'
+                            : '0 4px 16px rgba(0, 0, 0, 0.4)',
+                    }}
+                />
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+                <div style={{
+                    fontFamily: 'Orbitron, sans-serif',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: '#ffd700',
+                    marginBottom: 4,
+                }}>
+                    {plan.name}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 12 }}>
+                    All VIP features included
                 </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{ fontSize: 32, fontWeight: 700, color: '#fff' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
+                <span style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>
                     ${plan.price.toFixed(2)}
                 </span>
                 <span style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)' }}>
