@@ -15,16 +15,6 @@ export function getHandName(row, col) {
 // DIFFICULTY SETTINGS - Timer, complexity, and scoring adjustments
 // ═══════════════════════════════════════════════════════════════════════════
 export const LEVEL_CONFIG = {
-    1: { timer: 120, handsToPass: 70, xpMultiplier: 1.0, description: 'The basics of opening ranges' },
-    2: { timer: 110, handsToPass: 75, xpMultiplier: 1.2, description: 'Late position steals and wider ranges' },
-    3: { timer: 100, handsToPass: 75, xpMultiplier: 1.4, description: 'Defending your blinds effectively' },
-    4: { timer: 95, handsToPass: 78, xpMultiplier: 1.6, description: 'When and how to 3-bet' },
-    5: { timer: 90, handsToPass: 80, xpMultiplier: 1.8, description: 'Calling vs raising decisions' },
-    6: { timer: 85, handsToPass: 82, xpMultiplier: 2.0, description: 'Advanced 4-bet polarization' },
-    7: { timer: 80, handsToPass: 83, xpMultiplier: 2.2, description: 'Flop continuation betting' },
-    8: { timer: 75, handsToPass: 84, xpMultiplier: 2.5, description: 'Turn barrel strategies' },
-    9: { timer: 70, handsToPass: 85, xpMultiplier: 2.8, description: 'River value and bluffs' },
-    10: { timer: 60, handsToPass: 85, xpMultiplier: 3.5, description: 'Mixed strategies and GTO mastery' },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

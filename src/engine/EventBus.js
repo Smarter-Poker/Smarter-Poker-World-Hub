@@ -7,8 +7,6 @@
  */
 
 export const EventType = {
-    XP_EARNED: 'XP_EARNED',
-    XP_BONUS: 'XP_BONUS',
     STREAK_MILESTONE: 'STREAK_MILESTONE',
     STREAK_LOST: 'STREAK_LOST',
     COMBO_LEVEL_UP: 'COMBO_LEVEL_UP',
@@ -85,14 +83,11 @@ export const eventBus = new GlobalEventBus();
 
 // Convenience emit functions
 export const busEmit = {
-    xpEarned: (amount, source) =>
-        eventBus.emit(EventType.XP_EARNED, { amount, source }, 'XPEngine'),
-
     diamondsEarned: (amount, reason) =>
         eventBus.emit(EventType.DIAMONDS_EARNED, { amount, reason }, 'DiamondEngine'),
 
-    decisionCorrect: (xp, streak) =>
-        eventBus.emit(EventType.DECISION_CORRECT, { xp, streak }, 'TrainingArena'),
+    decisionCorrect: (streak) =>
+        eventBus.emit(EventType.DECISION_CORRECT, { streak }, 'TrainingArena'),
 
     decisionIncorrect: (lostStreak) =>
         eventBus.emit(EventType.DECISION_INCORRECT, { lostStreak }, 'TrainingArena'),

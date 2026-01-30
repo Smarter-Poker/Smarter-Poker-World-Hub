@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIVE HELP PANEL — The sliding conversation interface
+   ASK JARVIS PANEL — The sliding conversation interface
    
    Features:
-   - Agent selection bar at top
+   - Jarvis: Comprehensive Smarter.Poker expert
    - Message history with human-like typing
    - Input field with send button
    - Subtle, non-intrusive design
@@ -115,7 +115,7 @@ export function LiveHelpPanel({
                                 margin: 0,
                             }}
                         >
-                            Live Help
+                            Ask Jarvis
                         </h3>
                         <p
                             style={{
@@ -125,7 +125,7 @@ export function LiveHelpPanel({
                                 margin: '4px 0 0 0',
                             }}
                         >
-                            Speaking With {currentAgent.name}
+                            Smarter.Poker Expert
                         </p>
                     </div>
                     <button

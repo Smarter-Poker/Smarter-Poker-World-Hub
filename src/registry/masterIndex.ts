@@ -24,7 +24,7 @@ export const GATEWAY_NODES = {
     signUp: {
         path: 'pages/auth/signup.js',
         type: 'gateway',
-        description: 'Sign-Up Registration Node — Profile initialization (XP=0, Multiplier=1x)',
+        description: 'Sign-Up Registration Node — Profile initialization (Diamonds=0, Multiplier=1x)',
         redirectTo: '/hub',
         initializesProfile: true,
     },
@@ -127,7 +127,6 @@ export const SERVICES = {
     authMethod: 'Phone OTP via Twilio',
     profileTable: 'profiles',
     profileInitialization: {
-        xp_total: 0,
         diamonds: 0,
         diamond_multiplier: 1.0,
         streak_days: 0,

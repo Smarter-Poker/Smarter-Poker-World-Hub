@@ -4,7 +4,7 @@
    Production-ready version with real API integration, message persistence,
    and context awareness.
    
-   Five Fixed Agents: Daniel, Sarah, Alice, Michael, Jenny
+   Single Comprehensive Agent: Jarvis - Expert on all aspects of Smarter.Poker
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -26,50 +26,14 @@ export interface Agent {
 
 export const AGENTS: Agent[] = [
     {
-        id: 'daniel',
-        name: 'Daniel',
-        title: 'GTO Strategy Coach',
-        personality: 'Analytical and precise. Focuses on solver-backed reasoning with clear explanations.',
+        id: 'jarvis',
+        name: 'Jarvis',
+        title: 'Smarter.Poker Expert',
+        personality: 'Comprehensive and knowledgeable. Expert on all aspects of Smarter.Poker - from platform features to GTO training, Club Arena, Diamond Store, social features, and technical support.',
         avatarColor: '#00d4ff',
         typingSpeed: 'medium',
         tone: 'analytical',
-    },
-    {
-        id: 'sarah',
-        name: 'Sarah',
-        title: 'Mindset & Performance',
-        personality: 'Warm and supportive. Specializes in mental game, tilt control, and motivation.',
-        avatarColor: '#ff6b9d',
-        typingSpeed: 'slow',
-        tone: 'warm',
-    },
-    {
-        id: 'alice',
-        name: 'Alice',
-        title: 'Drill Master',
-        personality: 'Direct and efficient. Expert in training modes, drills, and skill progression.',
-        avatarColor: '#00ff88',
-        typingSpeed: 'fast',
-        tone: 'direct',
-    },
-    {
-        id: 'michael',
-        name: 'Michael',
-        title: 'Bankroll Advisor',
-        personality: 'Practical and encouraging. Focuses on bankroll management and long-term growth.',
-        avatarColor: '#ffa500',
-        typingSpeed: 'medium',
-        tone: 'encouraging',
-    },
-    {
-        id: 'jenny',
-        name: 'Jenny',
-        title: 'Live Game Expert',
-        personality: 'Playful yet insightful. Specializes in live play reads, tells, and social dynamics.',
-        avatarColor: '#bf6bff',
-        typingSpeed: 'medium',
-        tone: 'playful',
-    },
+    }
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

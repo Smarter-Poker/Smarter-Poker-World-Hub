@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIVE HELP ORB — Header orb that opens the Live Help panel
-   Shows "Help" text instead of icon
+   ASK JARVIS ORB — Header orb that opens the Ask Jarvis panel
+   Shows "Jarvis" text instead of icon
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState } from 'react';
@@ -18,7 +18,7 @@ export function LiveHelpOrb({ onClick, size = 48 }: LiveHelpOrbProps) {
             onClick={onClick}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            title="Live Help"
+            title="Ask Jarvis"
             style={{
                 width: size,
                 height: size,
@@ -49,7 +49,7 @@ export function LiveHelpOrb({ onClick, size = 48 }: LiveHelpOrbProps) {
                     transition: 'all 0.3s ease',
                 }}
             >
-                Help
+                Jarvis
             </span>
         </button>
     );

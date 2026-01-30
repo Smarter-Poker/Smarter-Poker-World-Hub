@@ -36,7 +36,6 @@ export const TRAINING_CLINICS = [
         description: 'Stop folding bottom-of-range winners against aggressive opponents',
         icon: '🛡️',
         badge: 'Iron Wall Master',
-        xpMultiplier: 1.5,
         laws: [8, 9], // Stack Awareness, Bully Archetype
         difficulty: 3,
         levels: 10,
@@ -88,7 +87,6 @@ export const TRAINING_CLINICS = [
         description: 'Maximize EV with strong holdings through precise bet sizing',
         icon: '💎',
         badge: 'Value Assassin',
-        xpMultiplier: 1.0,
         laws: [6], // Physical Slider
         difficulty: 4,
         levels: 10,
@@ -138,7 +136,6 @@ export const TRAINING_CLINICS = [
         description: 'Master Minimum Defense Frequency (MDF) to prevent profitable villain bluffs',
         icon: '⚖️',
         badge: 'MDF Master',
-        xpMultiplier: 1.0,
         laws: [9], // River Pressure
         difficulty: 4,
         levels: 10,
@@ -190,7 +187,6 @@ export const TRAINING_CLINICS = [
         description: 'Train seat-relative range mastery through rapid-fire drills',
         icon: '🔄',
         badge: 'Position Master',
-        xpMultiplier: 1.0,
         laws: [2, 3], // Table Re-orient, Button Motion
         difficulty: 3,
         levels: 10,
@@ -241,7 +237,6 @@ export const TRAINING_CLINICS = [
         description: 'Master continuation betting logic by identifying Range vs Nut advantage',
         icon: '💥',
         badge: 'C-Bet Pro',
-        xpMultiplier: 1.0,
         laws: [10], // Concept Mastery
         difficulty: 3,
         levels: 10,
@@ -258,7 +253,6 @@ export const TRAINING_CLINICS = [
         description: 'Eliminate timing tells by enforcing consistent action-rhythm',
         icon: '⏱️',
         badge: 'Rhythm Master',
-        xpMultiplier: 1.0,
         laws: [9], // Visual Rhythm
         difficulty: 2,
         levels: 10,
@@ -276,7 +270,6 @@ export const TRAINING_CLINICS = [
         description: 'Test emotional discipline through deliberate bad-beat sequences',
         icon: '🧊',
         badge: 'Ice Master',
-        xpMultiplier: 2.0,
         laws: [9], // Immersion
         difficulty: 5,
         levels: 10,
@@ -294,7 +287,6 @@ export const TRAINING_CLINICS = [
         description: 'Separate decision quality from outcome through self-assessment',
         icon: '🔍',
         badge: 'Clear Thinker',
-        xpMultiplier: 1.0,
         laws: [10], // Feedback
         difficulty: 3,
         levels: 10,
@@ -315,7 +307,6 @@ export const TRAINING_CLINICS = [
         description: 'Adapt to switching table types and stack depths mid-session',
         icon: '⚡',
         badge: 'Agility Master',
-        xpMultiplier: 1.5,
         laws: [2], // Instant Orientation
         difficulty: 5,
         levels: 10,
@@ -333,7 +324,6 @@ export const TRAINING_CLINICS = [
         description: 'Punish non-GTO opponents by identifying villain leaks',
         icon: '🎣',
         badge: 'Exploit Hunter',
-        xpMultiplier: 1.5,
         laws: [9], // Villain Immersion
         difficulty: 5,
         levels: 10,
@@ -351,7 +341,6 @@ export const TRAINING_CLINICS = [
         description: 'Stop folding when your range is condensed due to pre-flop calling',
         icon: '📦',
         badge: 'Range Defender',
-        xpMultiplier: 1.0,
         laws: [9], // Danger Immersion
         difficulty: 4,
         levels: 10,
@@ -368,7 +357,6 @@ export const TRAINING_CLINICS = [
         description: 'Master effective stack math and price-commitment thresholds',
         icon: '📐',
         badge: 'Stack Mathematician',
-        xpMultiplier: 1.0,
         laws: [8], // Effective Stack Math
         difficulty: 4,
         levels: 10,
@@ -390,7 +378,6 @@ export const TRAINING_CLINICS = [
         description: 'Comprehensive 150-level tournament engine: Push/Fold, ICM, ChipEV',
         icon: '🏆',
         badge: 'Tournament Master',
-        xpMultiplier: 1.5,
         laws: [3, 8, 9], // Button Rotation, Adaptive Difficulty, Environmental Pulse
         difficulty: 4,
         levels: 150,
@@ -515,7 +502,6 @@ export const TRAINING_CLINICS = [
         description: 'Adjust calling ranges based on bounty chip equivalents',
         icon: '💰',
         badge: 'Bounty Hunter',
-        xpMultiplier: 1.5,
         laws: [8, 9], // Bounty Math, Bounty Visuals
         difficulty: 4,
         levels: 10,
@@ -532,7 +518,6 @@ export const TRAINING_CLINICS = [
         description: 'Absolute survival GTO for tournament ticket bubbles',
         icon: '🎫',
         badge: 'Ticket Master',
-        xpMultiplier: 2.0,
         laws: [9, 10], // Survival Pressure, Survival Concepts
         difficulty: 5,
         levels: 10,
@@ -549,7 +534,6 @@ export const TRAINING_CLINICS = [
         description: 'Exploit ICM pressure when playing as a big stack',
         icon: '🦈',
         badge: 'Shark',
-        xpMultiplier: 1.5,
         laws: [8, 9], // Stack Awareness, Shark Mode
         difficulty: 4,
         levels: 10,
@@ -566,7 +550,6 @@ export const TRAINING_CLINICS = [
         description: 'Correct defense frequencies for BB Ante formats (67% larger pots)',
         icon: '🎰',
         badge: 'Ante Master',
-        xpMultiplier: 1.0,
         laws: [9, 12], // Large Pot Visual, Format Consistency
         difficulty: 3,
         levels: 10,
@@ -583,7 +566,6 @@ export const TRAINING_CLINICS = [
         description: 'Extreme discipline for pay-jump maximization',
         icon: '🪜',
         badge: 'Ladder Master',
-        xpMultiplier: 2.0,
         laws: [9, 10], // Patience Visual, ICM Survival
         difficulty: 5,
         levels: 10,
@@ -603,7 +585,6 @@ export const TRAINING_CLINICS = [
         description: 'Master pay-jump optimization at the final table',
         icon: '👑',
         badge: 'Final Table Champion',
-        xpMultiplier: 2.0,
         laws: [8, 9], // Stack Asymmetry, Pressure
         difficulty: 5,
         levels: 10,
@@ -620,7 +601,6 @@ export const TRAINING_CLINICS = [
         description: 'Specialized training for heads-up tournament finales',
         icon: '⚔️',
         badge: 'Duel Champion',
-        xpMultiplier: 1.5,
         laws: [2, 3], // Table Re-orient, Button Rotation
         difficulty: 5,
         levels: 10,
@@ -637,7 +617,6 @@ export const TRAINING_CLINICS = [
         description: 'Master push/fold ranges with 10-20BB stacks',
         icon: '🥷',
         badge: 'Short Stack Ninja',
-        xpMultiplier: 1.0,
         laws: [8], // Stack Awareness
         difficulty: 3,
         levels: 10,
@@ -654,7 +633,6 @@ export const TRAINING_CLINICS = [
         description: 'Master deep-stack play with 100BB+ effective stacks',
         icon: '📚',
         badge: 'Deep Stack Pro',
-        xpMultiplier: 1.0,
         laws: [8], // Stack Awareness
         difficulty: 4,
         levels: 10,
@@ -671,7 +649,6 @@ export const TRAINING_CLINICS = [
         description: 'Master blind vs blind battles with wide ranges',
         icon: '🥊',
         badge: 'Blind Warrior',
-        xpMultiplier: 1.0,
         laws: [2, 3], // Position awareness
         difficulty: 3,
         levels: 10,
@@ -688,7 +665,6 @@ export const TRAINING_CLINICS = [
         description: 'Adjust strategy for multi-way pot dynamics',
         icon: '👥',
         badge: 'Multi-Way Master',
-        xpMultiplier: 1.0,
         laws: [6, 8], // Dynamic Sizing, Stack Awareness
         difficulty: 4,
         levels: 10,
@@ -705,7 +681,6 @@ export const TRAINING_CLINICS = [
         description: 'Master the final street where decisions are most critical',
         icon: '🌊',
         badge: 'River Pro',
-        xpMultiplier: 1.5,
         laws: [9, 10], // Pressure, Concepts
         difficulty: 5,
         levels: 10,
@@ -722,7 +697,6 @@ export const TRAINING_CLINICS = [
         description: 'Master polarized overbetting for maximum EV extraction',
         icon: '💣',
         badge: 'Overbet Master',
-        xpMultiplier: 1.5,
         laws: [6], // Dynamic Sizing
         difficulty: 5,
         levels: 10,
@@ -739,7 +713,6 @@ export const TRAINING_CLINICS = [
         description: 'Master the check-raise for both value and bluffs',
         icon: '📈',
         badge: 'Check-Raise Artist',
-        xpMultiplier: 1.0,
         laws: [9], // Pressure
         difficulty: 4,
         levels: 10,
@@ -756,7 +729,6 @@ export const TRAINING_CLINICS = [
         description: 'Execute mixed strategies with precise solver frequencies',
         icon: '🎲',
         badge: 'Frequency Master',
-        xpMultiplier: 2.0,
         laws: [6], // Physical Slider
         difficulty: 5,
         levels: 10,

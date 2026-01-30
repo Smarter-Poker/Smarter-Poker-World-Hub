@@ -186,7 +186,6 @@ export default function MemoryGameClient({
     onLevelComplete
 }: MemoryGameClientProps) {
     // Economy integration
-    const addXP = useWorldStore(state => state.addXP);
     const addDiamonds = useWorldStore(state => state.addDiamonds);
     const [rewardService] = useState(() => new DiamondRewardService(supabase));
 
@@ -247,8 +246,6 @@ export default function MemoryGameClient({
     const processRewards = async () => {
         setRewardsProcessed(true);
 
-        // Award local XP
-        addXP(gameState.sessionXP);
 
         // Call backend reward service
         try {

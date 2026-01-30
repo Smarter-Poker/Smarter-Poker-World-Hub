@@ -82,7 +82,6 @@ export interface GameMode {
 
     // Rewards Configuration
     baseXP: number;
-    xpMultiplier: number;
     diamondMultiplier: number;
 
     // Unlock Requirements (optional)
@@ -113,7 +112,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         startingStack: 100,
         anteEnabled: false,
         baseXP: 100,
-        xpMultiplier: 1.0,
         diamondMultiplier: 1.0,
     },
 
@@ -133,7 +131,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         forcedPosition: 'bb',
         anteEnabled: false,
         baseXP: 100,
-        xpMultiplier: 1.0,
         diamondMultiplier: 1.0,
     },
 
@@ -153,7 +150,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         forcedPosition: 'button',
         anteEnabled: false,
         baseXP: 100,
-        xpMultiplier: 1.0,
         diamondMultiplier: 1.0,
     },
 
@@ -175,7 +171,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         startingStack: 100,
         anteEnabled: false,
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
     },
 
@@ -195,7 +190,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         anteEnabled: true,
         anteSize: 0.1,
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
     },
 
@@ -215,7 +209,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         anteEnabled: true,
         anteSize: 0.2,
         baseXP: 200,
-        xpMultiplier: 2.0,
         diamondMultiplier: 2.0,
     },
 
@@ -238,7 +231,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         anteEnabled: true,
         anteSize: 0.125,
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
     },
 
@@ -258,7 +250,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         anteEnabled: true,
         anteSize: 0.125,
         baseXP: 200,
-        xpMultiplier: 2.0,
         diamondMultiplier: 2.0,
     },
 
@@ -278,7 +269,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         anteEnabled: true,
         anteSize: 0.1,
         baseXP: 250,
-        xpMultiplier: 2.5,
         diamondMultiplier: 2.5,
         unlockLevel: 10,
     },
@@ -301,7 +291,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         startingStack: 100,
         anteEnabled: false,
         baseXP: 100,
-        xpMultiplier: 1.0,
         diamondMultiplier: 1.0,
     },
 
@@ -320,7 +309,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         startingStack: 100,
         anteEnabled: false,
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
     },
 
@@ -339,7 +327,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         startingStack: 200,
         anteEnabled: false,
         baseXP: 200,
-        xpMultiplier: 2.0,
         diamondMultiplier: 2.0,
         unlockLevel: 5,
     },
@@ -362,7 +349,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         startingStack: 100,
         anteEnabled: false,
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
     },
 
@@ -381,7 +367,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         startingStack: 100,
         anteEnabled: false,
         baseXP: 200,
-        xpMultiplier: 2.0,
         diamondMultiplier: 2.0,
         unlockLevel: 8,
     },
@@ -401,7 +386,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         startingStack: 100,
         anteEnabled: false,
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
     },
 
@@ -424,7 +408,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         anteEnabled: true,
         anteSize: 0.15,
         baseXP: 175,
-        xpMultiplier: 1.75,
         diamondMultiplier: 1.75,
     },
 
@@ -444,7 +427,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         anteEnabled: true,
         anteSize: 0.1,
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
     },
 
@@ -464,7 +446,6 @@ export const GAME_MODES: Record<string, GameMode> = {
         anteEnabled: true,
         anteSize: 0.125,
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
     },
 };

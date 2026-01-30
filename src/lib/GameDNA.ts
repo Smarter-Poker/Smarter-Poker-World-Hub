@@ -163,7 +163,6 @@ export interface DifficultyConfig {
 
 export interface RewardConfig {
     baseXP: number;
-    xpMultiplier: number;
     diamondMultiplier: number;
     streakBonus: boolean;       // Apply streak multiplier
     perfectBonus?: number;      // Bonus for 100% accuracy

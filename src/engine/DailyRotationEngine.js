@@ -267,7 +267,6 @@ class DailyRotationEngineClass {
                 title: 'Daily Challenge',
                 subtitle: 'Master GTO Play',
                 focus: 'Foundation Training',
-                xpMultiplier: 1.5,
                 streakBonus: true,
                 backgroundType: 'cinematic',
                 ctaText: 'PLAY NOW',
@@ -292,7 +291,6 @@ class DailyRotationEngineClass {
             subtitle: game.name,
             focus: focusText,
             difficulty: game.difficulty,
-            xpMultiplier: 1.0 + (game.difficulty * 0.25), // Higher diff = more XP
             streakBonus: true,
             backgroundType: 'cinematic',
             ctaText: 'PLAY NOW',

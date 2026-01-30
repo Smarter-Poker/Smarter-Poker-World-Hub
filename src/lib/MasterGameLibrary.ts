@@ -52,7 +52,6 @@ const cash_100bb_6max_btn_open: GameDefinition = {
 
     rewards: {
         baseXP: 100,
-        xpMultiplier: 1.0,
         diamondMultiplier: 1.0,
         streakBonus: true
     },
@@ -96,7 +95,6 @@ const cash_100bb_hu_blind_war: GameDefinition = {
 
     rewards: {
         baseXP: 125,
-        xpMultiplier: 1.25,
         diamondMultiplier: 1.25,
         streakBonus: true
     },
@@ -144,7 +142,6 @@ const cash_200bb_deep_3bp: GameDefinition = {
 
     rewards: {
         baseXP: 200,
-        xpMultiplier: 2.0,
         diamondMultiplier: 2.0,
         streakBonus: true
     },
@@ -198,7 +195,6 @@ const cash_live_9max_limped_pot: GameDefinition = {
 
     rewards: {
         baseXP: 125,
-        xpMultiplier: 1.25,
         diamondMultiplier: 1.25,
         streakBonus: true
     },
@@ -248,7 +244,6 @@ const cash_6max_cbet_defense: GameDefinition = {
 
     rewards: {
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
         streakBonus: true
     },
@@ -299,7 +294,6 @@ const mtt_15bb_push_fold: GameDefinition = {
 
     rewards: {
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
         streakBonus: true
     },
@@ -350,7 +344,6 @@ const mtt_30bb_reshove: GameDefinition = {
 
     rewards: {
         baseXP: 175,
-        xpMultiplier: 1.75,
         diamondMultiplier: 1.75,
         streakBonus: true
     },
@@ -402,7 +395,6 @@ const mtt_bubble_abuse: GameDefinition = {
 
     rewards: {
         baseXP: 200,
-        xpMultiplier: 2.0,
         diamondMultiplier: 2.0,
         streakBonus: true
     },
@@ -458,7 +450,6 @@ const mtt_final_table_hu: GameDefinition = {
 
     rewards: {
         baseXP: 250,
-        xpMultiplier: 2.5,
         diamondMultiplier: 2.5,
         streakBonus: true,
         perfectBonus: 100
@@ -519,7 +510,6 @@ const pko_bounty_hunting: GameDefinition = {
 
     rewards: {
         baseXP: 175,
-        xpMultiplier: 1.75,
         diamondMultiplier: 1.75,
         streakBonus: true
     },
@@ -572,7 +562,6 @@ const drill_cbet_wet_board: GameDefinition = {
 
     rewards: {
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
         streakBonus: true
     },
@@ -624,7 +613,6 @@ const drill_double_barrel: GameDefinition = {
 
     rewards: {
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
         streakBonus: true
     },
@@ -680,7 +668,6 @@ const drill_river_hero_call: GameDefinition = {
 
     rewards: {
         baseXP: 200,
-        xpMultiplier: 2.0,
         diamondMultiplier: 2.0,
         streakBonus: true
     },
@@ -734,7 +721,6 @@ const drill_monotone_flush: GameDefinition = {
 
     rewards: {
         baseXP: 175,
-        xpMultiplier: 1.75,
         diamondMultiplier: 1.75,
         streakBonus: true
     },
@@ -785,7 +771,6 @@ const drill_paired_board_defense: GameDefinition = {
 
     rewards: {
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
         streakBonus: true
     },
@@ -840,7 +825,6 @@ const spin_3max_hyper: GameDefinition = {
 
     rewards: {
         baseXP: 175,
-        xpMultiplier: 1.75,
         diamondMultiplier: 1.75,
         streakBonus: true
     },
@@ -891,7 +875,6 @@ const sat_bubble_folding: GameDefinition = {
 
     rewards: {
         baseXP: 250,
-        xpMultiplier: 2.5,
         diamondMultiplier: 2.5,
         streakBonus: true
     },
@@ -940,7 +923,6 @@ const hu_sng_turbo: GameDefinition = {
 
     rewards: {
         baseXP: 150,
-        xpMultiplier: 1.5,
         diamondMultiplier: 1.5,
         streakBonus: true
     },
@@ -989,7 +971,6 @@ const short_deck_ante_only: GameDefinition = {
 
     rewards: {
         baseXP: 175,
-        xpMultiplier: 1.75,
         diamondMultiplier: 1.75,
         streakBonus: true
     },
@@ -1055,7 +1036,6 @@ const bomb_pot_sim: GameDefinition = {
 
     rewards: {
         baseXP: 200,
-        xpMultiplier: 2.0,
         diamondMultiplier: 2.0,
         streakBonus: true
     },
