@@ -173,8 +173,9 @@ export default function TourDetailPage() {
     fetch('/api/poker/activity?page_type=tour&page_id=' + encodeURIComponent(code) + '&limit=10')
       .then(r => r.json())
       .then(json => {
-        if (json.success && Array.isArray(json.data)) {
-          setActivities(json.data);
+        if (json.success) {
+          var items = json.activities || json.data || [];
+          if (Array.isArray(items)) setActivities(items);
         }
       })
       .catch(() => {});

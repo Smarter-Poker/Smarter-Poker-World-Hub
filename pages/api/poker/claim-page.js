@@ -24,10 +24,10 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const { page_type, page_id, user_id, contact_name, contact_email, contact_phone, role, verification_notes } = req.body;
 
-      if (!page_type || !page_id || !user_id || !contact_name || !contact_email || !role || !verification_notes) {
+      if (!page_type || !page_id || !user_id || !contact_name || !contact_email || !role) {
         return res.status(400).json({
           success: false,
-          error: 'Missing required fields: page_type, page_id, user_id, contact_name, contact_email, role, verification_notes',
+          error: 'Missing required fields: page_type, page_id, user_id, contact_name, contact_email, role',
         });
       }
 
@@ -62,10 +62,12 @@ export default async function handler(req, res) {
         contact_name,
         contact_email,
         role,
-        verification_notes,
         status: 'pending',
         created_at: new Date().toISOString(),
       };
+      if (verification_notes) {
+        insertData.verification_notes = verification_notes;
+      }
       if (contact_phone !== undefined && contact_phone !== null) {
         insertData.contact_phone = contact_phone;
       }

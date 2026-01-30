@@ -198,10 +198,16 @@ export default function SeriesDetailPage() {
       .then(r => r.json())
       .then(json => {
         if (json.success) {
-          if (Array.isArray(json.data)) {
-            setResults(json.data);
+          // API returns { data: { results: [...], leaderboard: [...] } }
+          var payload = json.data || {};
+          if (payload.results && Array.isArray(payload.results)) {
+            setResults(payload.results);
+          } else if (Array.isArray(payload)) {
+            setResults(payload);
           }
-          if (Array.isArray(json.leaderboard)) {
+          if (payload.leaderboard && Array.isArray(payload.leaderboard)) {
+            setLeaderboard(payload.leaderboard);
+          } else if (Array.isArray(json.leaderboard)) {
             setLeaderboard(json.leaderboard);
           }
         }
@@ -215,8 +221,9 @@ export default function SeriesDetailPage() {
     fetch('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10')
       .then(r => r.json())
       .then(json => {
-        if (json.success && Array.isArray(json.data)) {
-          setActivities(json.data);
+        if (json.success) {
+          var items = json.activities || json.data || [];
+          if (Array.isArray(items)) setActivities(items);
         }
       })
       .catch(() => {});
