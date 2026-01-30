@@ -39,7 +39,10 @@ function getUpcomingSeries(tourCode) {
     const series = tourSeriesData.series_2026 || [];
     const today = new Date().toISOString().split('T')[0];
 
-    return series
+    // Assign global numeric IDs (matching series API: index + 1)
+    const withIds = series.map((s, i) => ({ ...s, id: i + 1 }));
+
+    return withIds
         .filter(s => {
             if (tourCode && s.tour !== tourCode) return false;
             return s.end_date >= today;

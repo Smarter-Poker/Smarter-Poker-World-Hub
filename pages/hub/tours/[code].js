@@ -300,14 +300,21 @@ export default function TourDetailPage() {
             {/* Header Section */}
             <section className="tour-header">
               <div className="header-content">
-                <Link href="/hub/poker-near-me" legacyBehavior>
-                  <a className="back-link">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                    Back to Poker Near Me
-                  </a>
-                </Link>
+                <nav className="breadcrumb-nav" aria-label="Breadcrumb">
+                  <ol className="breadcrumb-list">
+                    <li className="breadcrumb-item">
+                      <Link href="/hub" legacyBehavior><a className="breadcrumb-link">Hub</a></Link>
+                      <span className="breadcrumb-sep">/</span>
+                    </li>
+                    <li className="breadcrumb-item">
+                      <Link href="/hub/poker-near-me" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
+                      <span className="breadcrumb-sep">/</span>
+                    </li>
+                    <li className="breadcrumb-item breadcrumb-current">
+                      {tour.tour_name}
+                    </li>
+                  </ol>
+                </nav>
 
                 <div className="header-top-row">
                   <h1 className="tour-name">{tour.tour_name}</h1>
@@ -452,7 +459,7 @@ export default function TourDetailPage() {
                   {tour.upcoming_series.map((series, idx) => {
                     const seriesTypeBadge = getSeriesTypeBadge(series.series_type);
                     return (
-                      <Link key={idx} href={'/hub/series/' + (idx + 1)} legacyBehavior>
+                      <Link key={idx} href={'/hub/series/' + (series.id || idx + 1)} legacyBehavior>
                         <a className="series-card">
                           <div className="series-card-header">
                             <h3 className="series-name">{series.name}</h3>
@@ -743,19 +750,43 @@ const styles = `
     margin: 0 auto;
     padding-top: 20px;
   }
-  .back-link {
-    display: inline-flex;
+  .breadcrumb-nav {
+    margin-bottom: 20px;
+  }
+  .breadcrumb-list {
+    display: flex;
     align-items: center;
-    gap: 6px;
-    color: #94a3b8;
-    text-decoration: none;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .breadcrumb-item {
+    display: flex;
+    align-items: center;
     font-size: 13px;
     font-weight: 500;
-    margin-bottom: 20px;
+  }
+  .breadcrumb-link {
+    color: #94a3b8;
+    text-decoration: none;
     transition: color 0.2s;
   }
-  .back-link:hover {
+  .breadcrumb-link:hover {
     color: #d4a853;
+  }
+  .breadcrumb-sep {
+    margin: 0 8px;
+    color: #475569;
+  }
+  .breadcrumb-current {
+    color: #d4a853;
+    font-weight: 600;
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .header-top-row {
     display: flex;

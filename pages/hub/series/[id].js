@@ -141,6 +141,7 @@ export default function SeriesDetailPage() {
   const [results, setResults] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [expandedEvent, setExpandedEvent] = useState(null);
 
   // Load follow state - localStorage for instant UI, API for count
   useEffect(() => {
@@ -354,17 +355,28 @@ export default function SeriesDetailPage() {
       <UniversalHeader />
 
       <div className="series-page">
-        {/* Back Navigation */}
-        <div className="back-nav">
-          <Link href="/hub/poker-near-me" legacyBehavior>
-            <a className="back-link">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Back to Poker Near Me
-            </a>
-          </Link>
-        </div>
+        {/* Breadcrumb Navigation */}
+        <nav className="breadcrumb-nav" aria-label="Breadcrumb">
+          <ol className="breadcrumb-list">
+            <li className="breadcrumb-item">
+              <Link href="/hub" legacyBehavior><a className="breadcrumb-link">Hub</a></Link>
+              <span className="breadcrumb-sep">/</span>
+            </li>
+            <li className="breadcrumb-item">
+              <Link href="/hub/poker-near-me" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
+              <span className="breadcrumb-sep">/</span>
+            </li>
+            {series.tour && (
+              <li className="breadcrumb-item">
+                <Link href={'/hub/tours/' + series.tour.toLowerCase()} legacyBehavior><a className="breadcrumb-link">{series.tour}</a></Link>
+                <span className="breadcrumb-sep">/</span>
+              </li>
+            )}
+            <li className="breadcrumb-item breadcrumb-current">
+              {series.name}
+            </li>
+          </ol>
+        </nav>
 
         {/* Header Section */}
         <div className="series-header">
@@ -539,16 +551,99 @@ export default function SeriesDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {events.map((evt, i) => (
-                    <tr key={evt.event_number || i}>
-                      <td className="event-num">{evt.event_number || i + 1}</td>
-                      <td className="event-name">{evt.event_name || 'TBD'}</td>
-                      <td className="event-date">{formatEventDate(evt.start_date)}</td>
-                      <td className="event-buyin">{evt.buy_in ? formatMoney(evt.buy_in) : 'TBD'}</td>
-                      <td className="event-game">{evt.game_type || '--'}</td>
-                      <td className="event-format">{evt.format || '--'}</td>
-                    </tr>
-                  ))}
+                  {events.map((evt, i) => {
+                    var evtKey = evt.event_number || i + 1;
+                    var isExpanded = expandedEvent === evtKey;
+                    return (
+                      <>
+                        <tr
+                          key={evtKey}
+                          className={'event-row-clickable' + (isExpanded ? ' expanded' : '')}
+                          onClick={function() { setExpandedEvent(isExpanded ? null : evtKey); }}
+                        >
+                          <td className="event-num">{evtKey}</td>
+                          <td className="event-name">
+                            {evt.event_name || 'TBD'}
+                            <span className="expand-indicator">{isExpanded ? '\u25B2' : '\u25BC'}</span>
+                          </td>
+                          <td className="event-date">{formatEventDate(evt.start_date)}</td>
+                          <td className="event-buyin">{evt.buy_in ? formatMoney(evt.buy_in) : 'TBD'}</td>
+                          <td className="event-game">{evt.game_type || '--'}</td>
+                          <td className="event-format">{evt.format || '--'}</td>
+                        </tr>
+                        {isExpanded && (
+                          <tr key={evtKey + '-detail'} className="event-detail-row">
+                            <td colSpan="6">
+                              <div className="event-detail-content">
+                                <div className="event-detail-grid">
+                                  {evt.event_name && (
+                                    <div className="detail-field">
+                                      <span className="detail-label">Event</span>
+                                      <span className="detail-value">{evt.event_name}</span>
+                                    </div>
+                                  )}
+                                  {evt.start_date && (
+                                    <div className="detail-field">
+                                      <span className="detail-label">Date</span>
+                                      <span className="detail-value">{formatEventDate(evt.start_date)}{evt.end_date && evt.end_date !== evt.start_date ? ' - ' + formatEventDate(evt.end_date) : ''}</span>
+                                    </div>
+                                  )}
+                                  {evt.buy_in && (
+                                    <div className="detail-field">
+                                      <span className="detail-label">Buy-in</span>
+                                      <span className="detail-value detail-highlight">{formatMoney(evt.buy_in)}</span>
+                                    </div>
+                                  )}
+                                  {evt.guaranteed && (
+                                    <div className="detail-field">
+                                      <span className="detail-label">Guaranteed</span>
+                                      <span className="detail-value detail-highlight">{formatMoney(evt.guaranteed)}</span>
+                                    </div>
+                                  )}
+                                  {evt.game_type && (
+                                    <div className="detail-field">
+                                      <span className="detail-label">Game</span>
+                                      <span className="detail-value">{evt.game_type}</span>
+                                    </div>
+                                  )}
+                                  {evt.format && (
+                                    <div className="detail-field">
+                                      <span className="detail-label">Format</span>
+                                      <span className="detail-value">{evt.format}</span>
+                                    </div>
+                                  )}
+                                  {evt.starting_chips && (
+                                    <div className="detail-field">
+                                      <span className="detail-label">Starting Chips</span>
+                                      <span className="detail-value">{typeof evt.starting_chips === 'number' ? evt.starting_chips.toLocaleString() : evt.starting_chips}</span>
+                                    </div>
+                                  )}
+                                  {evt.blind_levels && (
+                                    <div className="detail-field">
+                                      <span className="detail-label">Blind Levels</span>
+                                      <span className="detail-value">{evt.blind_levels}</span>
+                                    </div>
+                                  )}
+                                  {evt.late_reg && (
+                                    <div className="detail-field">
+                                      <span className="detail-label">Late Registration</span>
+                                      <span className="detail-value">{evt.late_reg}</span>
+                                    </div>
+                                  )}
+                                  {evt.notes && (
+                                    <div className="detail-field full-width">
+                                      <span className="detail-label">Notes</span>
+                                      <span className="detail-value">{evt.notes}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -716,25 +811,45 @@ const styles = `
     color: #e2e8f0;
   }
 
-  /* Back Navigation */
-  .back-nav {
+  /* Breadcrumb Navigation */
+  .breadcrumb-nav {
     max-width: 900px;
     margin: 0 auto 20px;
   }
-
-  .back-link {
-    display: inline-flex;
+  .breadcrumb-list {
+    display: flex;
     align-items: center;
-    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .breadcrumb-item {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .breadcrumb-link {
     color: #94a3b8;
     text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
     transition: color 0.2s;
   }
-
-  .back-link:hover {
+  .breadcrumb-link:hover {
     color: #d4a853;
+  }
+  .breadcrumb-sep {
+    margin: 0 8px;
+    color: #475569;
+  }
+  .breadcrumb-current {
+    color: #d4a853;
+    font-weight: 600;
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Header */
@@ -1075,6 +1190,66 @@ const styles = `
   .event-format {
     color: #94a3b8;
     white-space: nowrap;
+  }
+
+  .event-row-clickable {
+    cursor: pointer;
+    user-select: none;
+  }
+  .event-row-clickable:hover {
+    background: rgba(212, 168, 83, 0.06) !important;
+  }
+  .event-row-clickable.expanded {
+    background: rgba(212, 168, 83, 0.08) !important;
+    border-bottom-color: transparent;
+  }
+  .event-row-clickable.expanded td {
+    border-bottom-color: transparent;
+  }
+  .expand-indicator {
+    margin-left: 8px;
+    font-size: 10px;
+    color: #64748b;
+    vertical-align: middle;
+  }
+  .event-detail-row td {
+    padding: 0 12px 16px !important;
+    border-bottom: 1px solid rgba(212, 168, 83, 0.15) !important;
+  }
+  .event-detail-content {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(212, 168, 83, 0.15);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .event-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .detail-field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .detail-field.full-width {
+    grid-column: 1 / -1;
+  }
+  .detail-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .detail-value {
+    font-size: 14px;
+    color: #e2e8f0;
+    font-weight: 500;
+  }
+  .detail-highlight {
+    color: #d4a853;
+    font-weight: 700;
   }
 
   /* No Events */
@@ -1446,9 +1621,16 @@ const styles = `
       flex-direction: column;
       gap: 10px;
     }
+
+    .event-detail-grid {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 
   @media (max-width: 480px) {
+    .event-detail-grid {
+      grid-template-columns: 1fr;
+    }
     .stats-grid {
       grid-template-columns: 1fr;
     }
