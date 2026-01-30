@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   GEEVES ADVANCED TOOLBAR — All Phases 3-9 tools in one toolbar
+   JARVIS ADVANCED TOOLBAR — All Phases 3-10+ tools in one toolbar
+   Expanded with Phase 2 features: HandHistoryLibrary, PreflopCharts, ICMCalculator, etc.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState } from 'react';
@@ -18,6 +19,17 @@ import { MultiStreetPlanner } from './MultiStreetPlanner';
 import { AIDebateMode } from './AIDebateMode';
 import { TrainingProgressTracker } from './TrainingProgressTracker';
 import { PioInsights } from './PioInsights';
+// Phase 2 New Tools
+import { HandHistoryLibrary } from './HandHistoryLibrary';
+import { PreflopCharts } from './PreflopCharts';
+import { ICMCalculator } from './ICMCalculator';
+import { QuickReference } from './QuickReference';
+import { DrillMode } from './DrillMode';
+import { GoalTracker } from './GoalTracker';
+import { TiltJournal } from './TiltJournal';
+import { StudyPlanAI } from './StudyPlanAI';
+import { SessionSummary } from './SessionSummary';
+import { BankrollSync } from './BankrollSync';
 
 interface Message {
     id: string;
@@ -37,6 +49,8 @@ type ToolId =
     | 'screenshot' | 'history' | 'builder' | 'export'
     | 'session' | 'opponent' | 'tournament' | 'planner' | 'debate'
     | 'training' | 'pio'
+    // Phase 2 tools
+    | 'library' | 'preflop' | 'icm' | 'reference' | 'drill' | 'goals' | 'tilt' | 'study' | 'recap' | 'bankroll'
     | null;
 
 const TOOLS = [
@@ -58,7 +72,18 @@ const TOOLS = [
     { id: 'debate' as ToolId, icon: '⚔️', label: 'Debate', category: 'AI' },
     // Row 4: Training Integration (Phase 5)
     { id: 'training' as ToolId, icon: '📈', label: 'Progress', category: 'Training' },
-    { id: 'pio' as ToolId, icon: '🧮', label: 'PIO', category: 'GTO' }
+    { id: 'pio' as ToolId, icon: '🧮', label: 'PIO', category: 'GTO' },
+    // Row 5: Phase 2 New Tools
+    { id: 'library' as ToolId, icon: '📚', label: 'Library', category: 'History' },
+    { id: 'preflop' as ToolId, icon: '🎲', label: 'Preflop', category: 'Charts' },
+    { id: 'icm' as ToolId, icon: '⚖️', label: 'ICM', category: 'Tournament' },
+    { id: 'reference' as ToolId, icon: '📋', label: 'Cheat Sheet', category: 'Reference' },
+    { id: 'drill' as ToolId, icon: '🔥', label: 'Drill', category: 'Training' },
+    { id: 'goals' as ToolId, icon: '🎯', label: 'Goals', category: 'Progress' },
+    { id: 'tilt' as ToolId, icon: '😤', label: 'Tilt', category: 'Mental' },
+    { id: 'study' as ToolId, icon: '📖', label: 'Study Plan', category: 'Learning' },
+    { id: 'recap' as ToolId, icon: '📝', label: 'Recap', category: 'Session' },
+    { id: 'bankroll' as ToolId, icon: '💰', label: 'Bankroll', category: 'Money' }
 ];
 
 export function JarvisAdvancedToolbar({
@@ -238,6 +263,67 @@ export function JarvisAdvancedToolbar({
                     )}
                     {activeTool === 'pio' && (
                         <PioInsights
+                            onAskJarvis={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {/* Phase 2 New Tools */}
+                    {activeTool === 'library' && (
+                        <HandHistoryLibrary
+                            onAskJarvis={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'preflop' && (
+                        <PreflopCharts
+                            onAskJarvis={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'icm' && (
+                        <ICMCalculator
+                            onAskJarvis={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'reference' && (
+                        <QuickReference
+                            onAskJarvis={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'drill' && (
+                        <DrillMode
+                            onAskJarvis={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'goals' && (
+                        <GoalTracker
+                            onAskJarvis={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'tilt' && (
+                        <TiltJournal
+                            onAskJarvis={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'study' && (
+                        <StudyPlanAI
+                            onAskJarvis={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'recap' && (
+                        <SessionSummary
+                            onAskJarvis={onAskQuestion}
+                            onClose={() => setActiveTool(null)}
+                        />
+                    )}
+                    {activeTool === 'bankroll' && (
+                        <BankrollSync
                             onAskJarvis={onAskQuestion}
                             onClose={() => setActiveTool(null)}
                         />
