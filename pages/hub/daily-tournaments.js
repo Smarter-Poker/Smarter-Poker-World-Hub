@@ -4,6 +4,7 @@
  */
 
 import Head from 'next/head';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
@@ -382,6 +383,29 @@ export default function DailyTournaments() {
                                     <circle cx="12" cy="10" r="3"/>
                                 </svg>
                                 Find Poker Rooms
+                            </a>
+                            <a href="/hub/pages" className="quick-link">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="2" y="3" width="20" height="18" rx="2"/>
+                                    <line x1="2" y1="9" x2="22" y2="9"/>
+                                </svg>
+                                Browse Venue Pages
+                            </a>
+                            <a href="/hub/events-calendar" className="quick-link">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                Events Calendar
+                            </a>
+                            <a href="/hub/promotions" className="quick-link">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                                    <line x1="2" y1="10" x2="22" y2="10"/>
+                                </svg>
+                                Promotions &amp; Deals
                             </a>
                         </div>
                     </aside>
@@ -915,7 +939,13 @@ function TournamentCard({ tournament }) {
                 <span className="card-time">{formatTime(t.start_time)}</span>
                 <span className="card-buyin">${t.buy_in}</span>
             </div>
-            <h4 className="card-venue">{t.venue_name}</h4>
+            {t.venue_id ? (
+                <Link href={`/hub/venues/${t.venue_id}`} legacyBehavior>
+                    <a className="card-venue card-venue-link">{t.venue_name}</a>
+                </Link>
+            ) : (
+                <h4 className="card-venue">{t.venue_name}</h4>
+            )}
             <p className="card-location">{t.city}, {t.state}</p>
             <div className="card-tags">
                 <span className={`tag game-type ${t.game_type?.toLowerCase()}`}>{t.game_type || 'NLH'}</span>
@@ -923,11 +953,18 @@ function TournamentCard({ tournament }) {
                 {t.guaranteed && <span className="tag guaranteed">{formatMoney(t.guaranteed)} GTD</span>}
                 <span className="tag venue-type">{t.venueType}</span>
             </div>
-            {t.pokerAtlasUrl && (
-                <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="card-link">
-                    View on PokerAtlas
-                </a>
-            )}
+            <div className="card-actions">
+                {t.venue_id && (
+                    <Link href={`/hub/venues/${t.venue_id}`} legacyBehavior>
+                        <a className="card-link venue-link">View Venue Page</a>
+                    </Link>
+                )}
+                {t.pokerAtlasUrl && (
+                    <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="card-link">
+                        View on PokerAtlas
+                    </a>
+                )}
+            </div>
 
             <style jsx>{`
                 .tournament-card {
@@ -1000,7 +1037,25 @@ function TournamentCard({ tournament }) {
                     background: rgba(34, 197, 94, 0.2);
                     color: #4ade80;
                 }
+                .card-venue-link {
+                    display: block;
+                    font-size: 16px;
+                    font-weight: 600;
+                    margin: 0 0 4px;
+                    color: #fff;
+                    text-decoration: none;
+                    transition: color 0.15s;
+                }
+                .card-venue-link:hover {
+                    color: #d4a853;
+                    text-decoration: underline;
+                }
+                .card-actions {
+                    display: flex;
+                    gap: 8px;
+                }
                 .card-link {
+                    flex: 1;
                     display: block;
                     text-align: center;
                     padding: 8px;
@@ -1015,6 +1070,14 @@ function TournamentCard({ tournament }) {
                 .card-link:hover {
                     background: rgba(255, 255, 255, 0.1);
                     color: #fff;
+                }
+                .card-link.venue-link {
+                    border-color: rgba(212, 168, 83, 0.3);
+                    color: #d4a853;
+                }
+                .card-link.venue-link:hover {
+                    background: rgba(212, 168, 83, 0.15);
+                    border-color: rgba(212, 168, 83, 0.5);
                 }
             `}</style>
         </div>
