@@ -26,11 +26,12 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Get all horse profiles
+        // Get all horse profiles from content_authors table
         const { data: horses, error: horsesError } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('is_horse', true)
+            .from('content_authors')
+            .select('profile_id')
+            .eq('is_active', true)
+            .not('profile_id', 'is', null)
             .order('created_at', { ascending: true });
 
         if (horsesError) {
@@ -50,14 +51,14 @@ export default async function handler(req, res) {
             const secondarySource = SOURCES[(i + 25) % SOURCES.length];
 
             assignments.push({
-                horse_id: horse.id,
+                horse_id: horse.profile_id,
                 source_name: primarySource,
                 is_primary: true
             });
 
             if (primarySource !== secondarySource) {
                 assignments.push({
-                    horse_id: horse.id,
+                    horse_id: horse.profile_id,
                     source_name: secondarySource,
                     is_primary: false
                 });
