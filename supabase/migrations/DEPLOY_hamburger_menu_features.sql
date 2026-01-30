@@ -182,6 +182,56 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ═══════════════════════════════════════════════════════════════════════════
+-- PART 6: ORDERS TABLE (for Diamond Store Order History)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS orders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    stripe_session_id TEXT,
+    stripe_payment_intent_id TEXT,
+    stripe_receipt_url TEXT,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'refunded')),
+    items JSONB NOT NULL DEFAULT '[]'::jsonb,
+    total_cents INTEGER NOT NULL DEFAULT 0,
+    currency TEXT DEFAULT 'usd',
+    shipping_address JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_stripe_session ON orders(stripe_session_id);
+
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own orders" ON orders;
+CREATE POLICY "Users can view their own orders"
+    ON orders FOR SELECT
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Service can create orders" ON orders;
+CREATE POLICY "Service can create orders"
+    ON orders FOR INSERT
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Service can update orders" ON orders;
+CREATE POLICY "Service can update orders"
+    ON orders FOR UPDATE
+    USING (true);
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- PART 7: MESSAGE REQUESTS SUPPORT (is_request column on conversations)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- Add is_request column to conversations table (for filtering message requests)
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS is_request BOOLEAN DEFAULT false;
+
+-- Create index for efficient filtering
+CREATE INDEX IF NOT EXISTS idx_conversations_is_request ON conversations(is_request) WHERE is_request = true;
+
+-- ═══════════════════════════════════════════════════════════════════════════
 -- DONE! All hamburger menu features are now enabled.
 -- ═══════════════════════════════════════════════════════════════════════════
 

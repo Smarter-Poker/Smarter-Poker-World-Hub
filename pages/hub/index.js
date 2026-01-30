@@ -35,7 +35,9 @@ export default function HubPage() {
     const [user, setUser] = useState(null);
 
     useEffect(() => {
-        getAuthUser().then(setUser);
+        // getAuthUser is synchronous, returns user or null
+        const authUser = getAuthUser();
+        setUser(authUser);
     }, []);
 
     const menuConfig = getMenuConfig('hub-home', user, {}, {});

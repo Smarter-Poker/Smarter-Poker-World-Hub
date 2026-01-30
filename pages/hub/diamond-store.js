@@ -723,7 +723,9 @@ export default function DiamondStorePage() {
 
     // Load user
     useEffect(() => {
-        getAuthUser().then(setUser);
+        // getAuthUser is synchronous
+        const authUser = getAuthUser();
+        setUser(authUser);
     }, []);
 
     // Load preferences from service (localStorage + Supabase)

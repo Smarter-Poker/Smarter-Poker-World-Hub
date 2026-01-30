@@ -15,6 +15,15 @@ import useMillionaireGame from '../../hooks/useMillionaireGame';
 import TRAINING_CONFIG from '../../config/trainingConfig';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
 
+// Games with custom full-screen UIs that DON'T need wrapper header/footer
+const FULL_SCREEN_UI_GAMES = [
+    'mtt-007', 'mtt-018',  // MTT games
+    'cash-002', 'cash-018', // Cash games
+    'spins-003', 'spins-007', // Spins games
+    'psy-003', 'psy-012', // Psychology games
+    'adv-001', 'adv-017', // Advanced games
+];
+
 /**
  * Determine engine type based on game data
  * - PSYCHOLOGY category → SCENARIO engine
@@ -181,6 +190,39 @@ export default function GodModeArena({
         );
     }
 
+    // Check if this game has a full-screen custom UI
+    const hasFullScreenUI = FULL_SCREEN_UI_GAMES.includes(gameId);
+
+    // For games with custom full-screen UIs, render only the GameUIRouter
+    if (hasFullScreenUI) {
+        return (
+            <div style={styles.fullScreenContainer}>
+                {error ? (
+                    <div style={styles.errorState}>
+                        <p style={{ color: '#ef4444', fontSize: 18 }}>⚠️ {error}</p>
+                        <button onClick={() => window.location.reload()} style={styles.retryButton}>
+                            Retry
+                        </button>
+                    </div>
+                ) : currentQuestion ? (
+                    <GameUIRouter
+                        gameId={gameId}
+                        question={currentQuestion}
+                        level={currentLevel}
+                        questionNumber={questionNumber}
+                        totalQuestions={totalQuestions}
+                        onAnswer={submitAnswer}
+                        showFeedback={showFeedback}
+                        feedbackResult={feedbackResult}
+                        explanation={explanation}
+                        onExit={onExit}
+                    />
+                ) : null}
+            </div>
+        );
+    }
+
+    // Default layout with header/footer for games without custom UIs
     return (
         <div style={styles.container}>
             {/* Header */}
@@ -251,6 +293,14 @@ export default function GodModeArena({
 // ═══════════════════════════════════════════════════════════════════════════
 
 const styles = {
+    // Full screen container for custom game UIs (no header/footer)
+    fullScreenContainer: {
+        width: '100%',
+        height: '100vh',
+        background: '#0a0a14',
+        overflow: 'hidden',
+    },
+
     container: {
         width: '100%',
         height: '100vh',
