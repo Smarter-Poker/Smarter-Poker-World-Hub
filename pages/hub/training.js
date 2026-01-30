@@ -42,7 +42,7 @@ import { useTrainingStore } from '../../src/stores/trainingStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import { masteryCelebration, achievementCelebration } from '../../src/utils/confetti';
 import toast from '../../src/stores/toastStore';
-import { trainingSounds } from '../../src/utils/trainingSounds'; // TODO: Add sounds when files are ready
+import { trainingSounds } from '../../src/utils/trainingSounds';
 
 // Register GSAP plugins
 if (typeof window !== 'undefined') {
@@ -602,7 +602,7 @@ export default function TrainingPage() {
                 origin: { y: 0.6 },
                 colors: ['#FFD700', '#FF6B35', '#00D4FF'],
             });
-            trainingSounds.play('mastery'); // TODO: Uncomment when sounds ready
+            trainingSounds.play('mastery');
             markGameCelebrated(game.id);
         }
 

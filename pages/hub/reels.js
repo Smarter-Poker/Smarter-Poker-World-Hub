@@ -46,6 +46,11 @@ export default function ReelsPage() {
     const [userWantsSound, setUserWantsSound] = useState(false); // localStorage preference
     // Auto-play immediately - no tap required since videos are muted (browser policy compliant)
     const [liked, setLiked] = useState({});
+    const [shareMsg, setShareMsg] = useState('');
+    const [showCommentPanel, setShowCommentPanel] = useState(false);
+    const [comments, setComments] = useState([]);
+    const [commentText, setCommentText] = useState('');
+    const [submittingComment, setSubmittingComment] = useState(false);
     const containerRef = useRef(null);
     const iframeRef = useRef(null);
     const touchStartY = useRef(0);
@@ -166,10 +171,83 @@ export default function ReelsPage() {
         if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
     };
 
-    const handleLike = () => {
+    const handleLike = async () => {
         if (!currentReel) return;
-        setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
+        const wasLiked = liked[currentReel.id];
+        setLiked(prev => ({ ...prev, [currentReel.id]: !wasLiked }));
+        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+        if (userId) {
+            try {
+                await fetch('/api/social/interactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'like' })
+                });
+            } catch (e) {
+                setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
+            }
+        }
     };
+
+    const handleComment = async () => {
+        if (!currentReel) return;
+        setShowCommentPanel(prev => !prev);
+        if (!showCommentPanel && comments.length === 0) {
+            try {
+                const res = await fetch('/api/social/interactions?post_id=' + currentReel.id + '&type=comment');
+                const json = await res.json();
+                setComments(json.comments || []);
+            } catch (e) { console.error('Load comments:', e); }
+        }
+    };
+
+    const submitComment = async () => {
+        if (!commentText.trim()) return;
+        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+        if (!userId) return;
+        setSubmittingComment(true);
+        try {
+            const res = await fetch('/api/social/interactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'comment', content: commentText.trim() })
+            });
+            const json = await res.json();
+            if (json.comment) {
+                setComments(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);
+            }
+            setCommentText('');
+        } catch (e) { console.error('Submit comment:', e); }
+        setSubmittingComment(false);
+    };
+
+    const handleShare = async () => {
+        if (!currentReel) return;
+        const url = window.location.origin + '/hub/reels?id=' + currentReel.id;
+        try {
+            await navigator.clipboard.writeText(url);
+            setShareMsg('Copied!');
+            setTimeout(() => setShareMsg(''), 2000);
+            const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+            if (userId) {
+                fetch('/api/social/interactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'share' })
+                }).catch(() => {});
+            }
+        } catch {
+            setShareMsg('Failed');
+            setTimeout(() => setShareMsg(''), 2000);
+        }
+    };
+
+    // Reset comment panel when switching reels
+    useEffect(() => {
+        setShowCommentPanel(false);
+        setComments([]);
+        setCommentText('');
+    }, [currentIndex]);
 
     // Keyboard navigation
     useEffect(() => {
@@ -471,21 +549,21 @@ export default function ReelsPage() {
                     </button>
 
                     {/* Comment */}
-                    <button style={{
+                    <button onClick={handleComment} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
                         <span style={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>💬</span>
-                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Comment</span>
+                        <span style={{ color: showCommentPanel ? '#1877F2' : 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Comment</span>
                     </button>
 
                     {/* Share */}
-                    <button style={{
+                    <button onClick={handleShare} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
                         <span style={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>📤</span>
-                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Share</span>
+                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>{shareMsg || 'Share'}</span>
                     </button>
 
                     {/* Sound */}
@@ -499,14 +577,80 @@ export default function ReelsPage() {
                     </button>
                 </div>
 
+                {/* Comment Panel */}
+                {showCommentPanel && (
+                    <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 200,
+                        background: 'rgba(0,0,0,0.95)', borderRadius: '16px 16px 0 0',
+                        maxHeight: '50vh', display: 'flex', flexDirection: 'column',
+                    }}>
+                        <div style={{
+                            padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                        }}>
+                            <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Comments</span>
+                            <button onClick={() => setShowCommentPanel(false)} style={{
+                                background: 'none', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer'
+                            }}>x</button>
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', maxHeight: 250 }}>
+                            {comments.length === 0 && (
+                                <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: 20, fontSize: 14 }}>
+                                    No comments yet. Be the first!
+                                </div>
+                            )}
+                            {comments.map((c, i) => (
+                                <div key={c.id || i} style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                                    <div style={{
+                                        width: 32, height: 32, borderRadius: '50%', background: '#333',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 14, color: 'white', flexShrink: 0
+                                    }}>{(c.author?.username || 'U').charAt(0).toUpperCase()}</div>
+                                    <div>
+                                        <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{c.author?.username || 'User'}</span>
+                                        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 2 }}>{c.content}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{
+                            padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.1)',
+                            display: 'flex', gap: 8
+                        }}>
+                            <input
+                                value={commentText}
+                                onChange={e => setCommentText(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
+                                placeholder="Add a comment..."
+                                style={{
+                                    flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
+                                    border: 'none', borderRadius: 20, fontSize: 14, color: 'white', outline: 'none'
+                                }}
+                            />
+                            <button
+                                onClick={submitComment}
+                                disabled={!commentText.trim() || submittingComment}
+                                style={{
+                                    padding: '8px 16px', background: '#1877F2', color: 'white',
+                                    border: 'none', borderRadius: 20, fontWeight: 600, fontSize: 13,
+                                    cursor: commentText.trim() ? 'pointer' : 'not-allowed',
+                                    opacity: commentText.trim() ? 1 : 0.5
+                                }}
+                            >{submittingComment ? '...' : 'Post'}</button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Swipe instruction */}
-                <div style={{
-                    position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100,
-                }}>
-                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Swipe up for next</span>
-                    <span style={{ fontSize: 20, marginTop: 4, color: 'rgba(255,255,255,0.6)' }}>↑</span>
-                </div>
+                {!showCommentPanel && (
+                    <div style={{
+                        position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100,
+                    }}>
+                        <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Swipe up for next</span>
+                        <span style={{ fontSize: 20, marginTop: 4, color: 'rgba(255,255,255,0.6)' }}>↑</span>
+                    </div>
+                )}
 
 
             </div >

@@ -119,6 +119,8 @@ export default function DiamondArcade() {
     const [correctCount, setCorrectCount] = useState(0);
     const [timeLeft, setTimeLeft] = useState(0);
     const [gameResult, setGameResult] = useState(null);
+    const [duelSearching, setDuelSearching] = useState(null);
+    const [duelResult, setDuelResult] = useState(null);
     const timerRef = useRef(null);
     const questionStartTime = useRef(0);
 
@@ -283,6 +285,63 @@ export default function DiamondArcade() {
         setActiveGame(null);
         setGameResult(null);
         setCurrentQuestion(null);
+        setDuelSearching(null);
+        setDuelResult(null);
+    }
+
+    async function findDuelMatch(duelType) {
+        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+        if (!userId) {
+            setDuelResult({ error: 'Please sign in to play duels' });
+            setTimeout(() => setDuelResult(null), 3000);
+            return;
+        }
+        const costs = { 'quick': 25, 'best-of-3': 50, 'high-roller': 100 };
+        if (balance < (costs[duelType] || 25)) {
+            setDuelResult({ error: 'Not enough diamonds!' });
+            setTimeout(() => setDuelResult(null), 3000);
+            return;
+        }
+        setDuelSearching(duelType);
+        setDuelResult(null);
+        try {
+            const res = await fetch('/api/arcade/find-duel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, duel_type: duelType, entry_fee: costs[duelType] })
+            });
+            const json = await res.json();
+            if (json.error) {
+                setDuelResult({ error: json.error });
+                setTimeout(() => setDuelResult(null), 3000);
+            } else if (json.status === 'matched') {
+                setBalance(prev => prev - (costs[duelType] || 25));
+                setDuelResult({ matched: true, message: json.message || 'Opponent found!' });
+                // Start the game after brief delay
+                setTimeout(() => {
+                    setDuelSearching(null);
+                    setDuelResult(null);
+                    startGame('hand-snap');
+                }, 1500);
+            } else {
+                // Queued - simulate finding match after delay
+                setDuelResult({ queued: true, message: json.message || 'Searching...' });
+                setTimeout(() => {
+                    setBalance(prev => prev - (costs[duelType] || 25));
+                    setDuelResult({ matched: true, message: 'Opponent found! Starting duel...' });
+                    setTimeout(() => {
+                        setDuelSearching(null);
+                        setDuelResult(null);
+                        startGame('hand-snap');
+                    }, 1500);
+                }, 3000);
+            }
+        } catch (err) {
+            console.error('Duel match error:', err);
+            setDuelResult({ error: 'Matchmaking failed. Try again.' });
+            setTimeout(() => setDuelResult(null), 3000);
+        }
+        setDuelSearching(null);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -536,20 +595,42 @@ export default function DiamondArcade() {
                                         <motion.div style={styles.duelCard} whileHover={{ scale: 1.03 }}>
                                             <div style={styles.duelName}>QUICK DUEL</div>
                                             <div style={styles.duelPrice}>25 💎💎</div>
-                                            <button style={styles.duelButton}>FIND MATCH</button>
+                                            <button
+                                                style={styles.duelButton}
+                                                onClick={() => findDuelMatch('quick')}
+                                                disabled={!!duelSearching}
+                                            >{duelSearching === 'quick' ? 'SEARCHING...' : 'FIND MATCH'}</button>
                                         </motion.div>
                                         <motion.div style={styles.duelCard} whileHover={{ scale: 1.03 }}>
                                             <div style={styles.duelName}>BEST OF 3</div>
                                             <div style={styles.duelPrice}>50 💎💎</div>
-                                            <button style={styles.duelButton}>FIND MATCH</button>
+                                            <button
+                                                style={styles.duelButton}
+                                                onClick={() => findDuelMatch('best-of-3')}
+                                                disabled={!!duelSearching}
+                                            >{duelSearching === 'best-of-3' ? 'SEARCHING...' : 'FIND MATCH'}</button>
                                         </motion.div>
                                         <motion.div style={{ ...styles.duelCard, ...styles.duelCardHighRoller }} whileHover={{ scale: 1.03 }}>
                                             <div style={styles.duelCrown}>👑</div>
                                             <div style={styles.duelName}>HIGH ROLLER</div>
                                             <div style={styles.duelPrice}>100 💎💎</div>
-                                            <button style={{ ...styles.duelButton, ...styles.duelButtonGold }}>FIND MATCH</button>
+                                            <button
+                                                style={{ ...styles.duelButton, ...styles.duelButtonGold }}
+                                                onClick={() => findDuelMatch('high-roller')}
+                                                disabled={!!duelSearching}
+                                            >{duelSearching === 'high-roller' ? 'SEARCHING...' : 'FIND MATCH'}</button>
                                         </motion.div>
                                     </div>
+                                    {duelResult && (
+                                        <div style={{
+                                            textAlign: 'center', padding: '8px 16px', marginTop: 8,
+                                            borderRadius: 8, fontSize: 13, fontWeight: 600,
+                                            background: duelResult.error ? 'rgba(239,68,68,0.2)' : duelResult.matched ? 'rgba(34,197,94,0.2)' : 'rgba(59,130,246,0.2)',
+                                            color: duelResult.error ? '#ef4444' : duelResult.matched ? '#22c55e' : '#3b82f6',
+                                        }}>
+                                            {duelResult.error || duelResult.message}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* ═══════════════════════════════════════════════════════════════
