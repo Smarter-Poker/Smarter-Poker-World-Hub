@@ -461,6 +461,9 @@ export function GeevesPanel({ isOpen, onClose }: GeevesPanelProps) {
                                         >
                                             📋 Copy
                                         </button>
+
+                                        {/* Voice Output */}
+                                        <VoiceOutput text={message.content} />
                                     </div>
                                 )}
                             </div>
