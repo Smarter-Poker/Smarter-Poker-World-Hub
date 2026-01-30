@@ -43,9 +43,9 @@ function timeAgo(dateStr) {
 }
 
 function getDetailUrl(pageType, pageId) {
-    if (pageType === 'venue') return `/hub/social-media/venue/${pageId}`;
-    if (pageType === 'tour') return `/hub/social-media/tour/${pageId}`;
-    if (pageType === 'series') return `/hub/social-media/series/${pageId}`;
+    if (pageType === 'venue') return `/hub/venues/${pageId}`;
+    if (pageType === 'tour') return `/hub/tours/${pageId}`;
+    if (pageType === 'series') return `/hub/series/${pageId}`;
     return '/hub/pages';
 }
 

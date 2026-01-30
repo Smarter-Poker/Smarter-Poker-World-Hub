@@ -220,8 +220,8 @@ function EventCard({ event, isToday }) {
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '6px' }}>
-            {event.venue_name && (
-              <Link href={`/hub/venues/${event.venue_id || ''}`} style={{
+            {event.venue_name && event.venue_id && (
+              <Link href={`/hub/venues/${event.venue_id}`} style={{
                 display: 'flex', alignItems: 'center', gap: '4px',
                 fontSize: '13px', color: C.blue, textDecoration: 'none', fontWeight: 500,
               }}>
@@ -229,14 +229,26 @@ function EventCard({ event, isToday }) {
                 {event.venue_name}
               </Link>
             )}
-            {event.series_name && (
-              <Link href={`/hub/series/${event.series_id || ''}`} style={{
+            {event.venue_name && !event.venue_id && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: C.textSec }}>
+                <VenueIcon />
+                {event.venue_name}
+              </span>
+            )}
+            {event.series_name && event.series_id && (
+              <Link href={`/hub/series/${event.series_id}`} style={{
                 display: 'flex', alignItems: 'center', gap: '4px',
                 fontSize: '13px', color: C.blue, textDecoration: 'none', fontWeight: 500,
               }}>
                 <TrophyIcon />
                 {event.series_name}
               </Link>
+            )}
+            {event.series_name && !event.series_id && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: C.textSec }}>
+                <TrophyIcon />
+                {event.series_name}
+              </span>
             )}
           </div>
         </div>
