@@ -1,29 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    TRAINING PROGRESS TRACKER — Shows user's training stats and progress
    Integrates with the GTO Training Engine to display achievements
+   Now wired to real training_sessions table via useTrainingStats hook
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import React, { useState, useEffect } from 'react';
-
-interface TrainingStats {
-    gamesPlayed: number;
-    totalAccuracy: number;
-    bestStreak: number;
-    weakestCategory: string;
-    strongestCategory: string;
-    recentSessions: {
-        date: string;
-        gameId: string;
-        gameName: string;
-        accuracy: number;
-        duration: number;
-    }[];
-    categoryProgress: {
-        category: string;
-        accuracy: number;
-        gamesPlayed: number;
-    }[];
-}
+import React, { useState } from 'react';
+import { useTrainingStats } from '../../../hooks/useAssistant';
 
 interface TrainingProgressTrackerProps {
     userId?: string;
@@ -31,38 +13,11 @@ interface TrainingProgressTrackerProps {
     onClose?: () => void;
 }
 
-// Mock data - in production, fetch from training_sessions table
-const MOCK_STATS: TrainingStats = {
-    gamesPlayed: 47,
-    totalAccuracy: 72.3,
-    bestStreak: 12,
-    weakestCategory: 'River Play',
-    strongestCategory: 'Preflop Ranges',
-    recentSessions: [
-        { date: '2026-01-30', gameId: '1', gameName: 'Opening Ranges', accuracy: 85, duration: 15 },
-        { date: '2026-01-29', gameId: '2', gameName: 'C-Bet Strategy', accuracy: 68, duration: 12 },
-        { date: '2026-01-29', gameId: '3', gameName: 'River Bluffs', accuracy: 55, duration: 20 },
-    ],
-    categoryProgress: [
-        { category: 'Preflop', accuracy: 82, gamesPlayed: 15 },
-        { category: 'Flop', accuracy: 71, gamesPlayed: 12 },
-        { category: 'Turn', accuracy: 68, gamesPlayed: 10 },
-        { category: 'River', accuracy: 58, gamesPlayed: 10 },
-    ]
-};
-
 export function TrainingProgressTracker({ userId, onAskJarvis, onClose }: TrainingProgressTrackerProps) {
-    const [stats, setStats] = useState<TrainingStats | null>(null);
-    const [loading, setLoading] = useState(true);
+    // Use real data from training_sessions table
+    const { stats, isLoading: loading } = useTrainingStats();
     const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'leaks'>('overview');
 
-    useEffect(() => {
-        // In production: fetch from /api/training/stats?userId=...
-        setTimeout(() => {
-            setStats(MOCK_STATS);
-            setLoading(false);
-        }, 500);
-    }, [userId]);
 
     const askForLeakAnalysis = () => {
         if (!stats) return;
