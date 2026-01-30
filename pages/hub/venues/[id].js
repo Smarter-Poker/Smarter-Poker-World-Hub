@@ -159,7 +159,7 @@ function StarRating({ rating, size, interactive, onRate }) {
 
 export default function VenueDetailPage() {
   const router = useRouter();
-  const { id } = router.query;
+  const { id, action } = router.query;
 
   const [venue, setVenue] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -284,8 +284,9 @@ export default function VenueDetailPage() {
     try {
       var res = await fetch('/api/poker/live-games?venue_id=' + id);
       var json = await res.json();
-      if (json.success && json.data) {
-        setLiveGames(Array.isArray(json.data) ? json.data : []);
+      if (json.success) {
+        var games = json.games || json.data || [];
+        setLiveGames(Array.isArray(games) ? games : []);
       }
     } catch (e) { /* silent */ }
   };
@@ -301,7 +302,8 @@ export default function VenueDetailPage() {
       var res = await fetch('/api/poker/checkins?venue_id=' + id);
       var json = await res.json();
       if (json.success) {
-        var data = Array.isArray(json.data) ? json.data : [];
+        var data = json.checkins || json.data || [];
+        data = Array.isArray(data) ? data : [];
         setCheckins(data);
         setCheckinCount(json.count || data.length);
         var uid = getAnonymousUserId();
@@ -325,9 +327,10 @@ export default function VenueDetailPage() {
       var res = await fetch('/api/poker/reviews?venue_id=' + id);
       var json = await res.json();
       if (json.success) {
-        var reviewData = Array.isArray(json.data) ? json.data : [];
+        var reviewData = json.reviews || json.data || [];
+        reviewData = Array.isArray(reviewData) ? reviewData : [];
         setReviews(reviewData);
-        setTotalReviews(json.total || reviewData.length);
+        setTotalReviews(json.total_reviews || json.total || reviewData.length);
         setAvgRating(json.avg_rating || (reviewData.length > 0
           ? reviewData.reduce(function(sum, r) { return sum + (r.rating || 0); }, 0) / reviewData.length
           : 0));
@@ -345,8 +348,9 @@ export default function VenueDetailPage() {
     try {
       var res = await fetch('/api/poker/activity?page_type=venue&page_id=' + id + '&limit=10');
       var json = await res.json();
-      if (json.success && json.data) {
-        setActivities(Array.isArray(json.data) ? json.data : []);
+      if (json.success) {
+        var items = json.activities || json.data || [];
+        setActivities(Array.isArray(items) ? items : []);
       }
     } catch (e) { /* silent */ }
   };
@@ -362,7 +366,11 @@ export default function VenueDetailPage() {
       var res = await fetch('/api/poker/claim-page?page_type=venue&page_id=' + id);
       var json = await res.json();
       if (json.success) {
-        setClaimStatus(json.status || null);
+        if (json.claimed && json.claim) {
+          setClaimStatus(json.claim.status || 'pending');
+        } else {
+          setClaimStatus(null);
+        }
       }
     } catch (e) { /* silent */ }
   };
@@ -371,6 +379,25 @@ export default function VenueDetailPage() {
     if (!id) return;
     fetchClaimStatus();
   }, [id]);
+
+  // Handle ?action= query parameter from geofence alerts
+  useEffect(function() {
+    if (!action || loading) return;
+    var sectionId = null;
+    if (action === 'checkin') {
+      sectionId = 'checkins-section';
+      setShowCheckinForm(true);
+    } else if (action === 'review') {
+      sectionId = 'reviews-section';
+      setShowReviewForm(true);
+    }
+    if (sectionId) {
+      setTimeout(function() {
+        var el = document.getElementById(sectionId);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  }, [action, loading]);
 
   // Handlers
   var handleFollow = function() {
@@ -1068,7 +1095,7 @@ export default function VenueDetailPage() {
             {/* ============================================ */}
             {/* CHECK-INS SECTION                            */}
             {/* ============================================ */}
-            <section className="checkins-section">
+            <section id="checkins-section" className="checkins-section">
               <div className="section-header-row">
                 <h2 className="section-title">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
@@ -1172,7 +1199,7 @@ export default function VenueDetailPage() {
             {/* ============================================ */}
             {/* REVIEWS & RATINGS SECTION                    */}
             {/* ============================================ */}
-            <section className="reviews-section">
+            <section id="reviews-section" className="reviews-section">
               <div className="section-header-row">
                 <h2 className="section-title">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
