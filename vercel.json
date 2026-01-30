@@ -77,6 +77,14 @@
       "schedule": "59 5 * * *"
     },
     {
+      "path": "/api/cron/post-official-news",
+      "schedule": "0 */2 * * *"
+    },
+    {
+      "path": "/api/cron/youtube-shorts",
+      "schedule": "30 */3 * * *"
+    },
+    {
       "path": "/api/cron/horses-social-likes",
       "schedule": "*/10 * * * *"
     },
