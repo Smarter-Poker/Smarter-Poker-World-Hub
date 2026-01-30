@@ -563,10 +563,10 @@ export default function UniversalHeader({
                             {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
                         </span>
                         <span style={{
-                            width: 16, height: 16, borderRadius: '50%',
+                            width: 20, height: 20, borderRadius: '50%',
                             background: 'rgba(0, 212, 255, 0.3)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 10, fontWeight: 700
+                            fontSize: 12, fontWeight: 700
                         }}>+</span>
                     </Link>
                 </div>
