@@ -159,24 +159,29 @@ export default async function handler(req, res) {
                 dup.delete.map(d => d.id)
             );
 
+            console.log(`[CLEANUP] Found ${allDuplicateIds.length} duplicate IDs to delete`);
+            console.log(`[CLEANUP] Sample IDs:`, allDuplicateIds.slice(0, 5));
+
             if (allDuplicateIds.length > 0) {
-                console.log(`Deleting ${allDuplicateIds.length} duplicate posts...`);
-                const { error: deleteError } = await supabase
+                console.log(`[CLEANUP] Executing batch delete...`);
+                const { data, error: deleteError } = await supabase
                     .from('social_posts')
                     .delete()
                     .in('id', allDuplicateIds);
 
+                console.log(`[CLEANUP] Delete response:`, { data, error: deleteError });
+
                 if (!deleteError) {
                     results.deleted = allDuplicateIds;
-                    console.log(`✅ Deleted ${allDuplicateIds.length} duplicates`);
+                    console.log(`[CLEANUP] ✅ Successfully deleted ${allDuplicateIds.length} duplicates`);
                 } else {
-                    console.error('Delete error:', deleteError);
+                    console.error('[CLEANUP] ❌ Delete error:', deleteError);
                 }
             }
 
             // Note: URL updates are skipped for performance
             // The frontend already converts URLs on-the-fly
-            console.log(`Skipping ${needsUpdate.length} URL updates (frontend handles conversion)`);
+            console.log(`[CLEANUP] Skipping ${needsUpdate.length} URL updates (frontend handles conversion)`);
         }
 
         return res.status(200).json({
