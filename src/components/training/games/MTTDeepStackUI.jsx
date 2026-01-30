@@ -1,23 +1,18 @@
 /**
- * 🎮 MTT DEEP STACK UI — EXACT REFERENCE TEMPLATE MATCH
+ * 🎮 MTT DEEP STACK UI — EXACT USER REQUIREMENTS
  * ═══════════════════════════════════════════════════════════════════════════
- * Matches the reference image EXACTLY:
- * - Smarter.Poker header at top (optional, or uses parent header)
- * - Yellow/gold question bar below header
- * - VERTICAL stadium poker table filling center
- * - All 9 seats with 3D illustrated avatars around table edge
- * - Hero at BOTTOM with large cards next to badge
- * - Red square timer in bottom-left corner
- * - "Question X of Y" in bottom-right corner
- * - 2x2 button grid at very bottom
+ * REQUIREMENTS:
+ * 1. LARGE question bar at top
+ * 2. Vertical stadium table image (ONLY this table allowed)
+ * 3. Timer (bottom-left) and Question counter (bottom-right) ABOVE buttons
+ * 4. 2x2 button grid spanning ENTIRE bottom width
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import React from 'react';
 import { motion } from 'framer-motion';
 
-// 9-Max seat positions (VERTICAL STADIUM - matching reference exactly)
-// Positions are % based for responsive scaling
+// 9-Max seat positions (VERTICAL STADIUM - positioned around table image)
 const SEAT_POSITIONS = [
     // Hero at absolute bottom center
     { id: 'hero', x: 50, y: 88, isHero: true },
@@ -48,89 +43,9 @@ const AVATARS = [
     '/avatars/table/vip_wolf.png',          // V4
     '/avatars/table/vip_spartan.png',       // V5
     '/avatars/table/vip_pharaoh.png',       // V6
-    '/avatars/table/free_cowboy.png',       // V7
-    '/avatars/table/free_pirate.png',       // V8
+    '/avatars/table/vip_pirate.png',        // V7
+    '/avatars/table/free_cowboy.png',       // V8
 ];
-
-// Card component - renders actual card images
-function HeroCard({ card, rotation = 0 }) {
-    if (!card || card.length < 2) return null;
-
-    const rank = card[0].toUpperCase();
-    const suitChar = card[1].toLowerCase();
-
-    const suitMap = { 'h': 'hearts', 'd': 'diamonds', 'c': 'clubs', 's': 'spades' };
-    const suit = suitMap[suitChar] || 'hearts';
-
-    const rankMap = {
-        'A': 'a', 'K': 'k', 'Q': 'q', 'J': 'j', 'T': '10',
-        '10': '10', '9': '9', '8': '8', '7': '7', '6': '6',
-        '5': '5', '4': '4', '3': '3', '2': '2'
-    };
-    const cardRank = rankMap[rank] || rank.toLowerCase();
-
-    return (
-        <motion.img
-            src={`/cards/${suit}_${cardRank}.png`}
-            alt={`${rank} of ${suit}`}
-            initial={{ scale: 0, rotate: rotation - 20 }}
-            animate={{ scale: 1, rotate: rotation }}
-            transition={{ duration: 0.3 }}
-            style={{
-                width: 55,
-                height: 77,
-                borderRadius: 6,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-            }}
-            onError={(e) => { e.target.style.opacity = 0.5; }}
-        />
-    );
-}
-
-// Player avatar with gold badge
-function PlayerSeat({ position, name, stack, avatarSrc, isHero }) {
-    const avatarSize = isHero ? 70 : 55;
-
-    return (
-        <div style={{
-            position: 'absolute',
-            left: `${position.x}%`,
-            top: `${position.y}%`,
-            transform: 'translate(-50%, -50%)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            zIndex: isHero ? 100 : 50,
-        }}>
-            {/* Avatar */}
-            <motion.img
-                src={avatarSrc}
-                alt={name}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                style={{
-                    width: avatarSize,
-                    height: avatarSize * 1.15,
-                    objectFit: 'contain',
-                }}
-                onError={(e) => { e.target.src = '/smarter-poker-logo.png'; }}
-            />
-            {/* Gold badge */}
-            <div style={{
-                background: 'linear-gradient(180deg, #f0c040 0%, #c4960a 100%)',
-                border: '2px solid #8b6914',
-                borderRadius: 5,
-                padding: '2px 10px',
-                marginTop: -6,
-                textAlign: 'center',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-            }}>
-                <div style={{ fontSize: 10, fontWeight: 'bold', color: '#1a1a00' }}>{name}</div>
-                <div style={{ fontSize: 11, fontWeight: 'bold', color: '#000' }}>{stack} BB</div>
-            </div>
-        </div>
-    );
-}
 
 export default function MTTDeepStackUI({
     question,
@@ -140,155 +55,170 @@ export default function MTTDeepStackUI({
     showFeedback,
     feedbackResult,
     explanation,
-    viewMode = 'standard',
-    timeLeft = 30,
 }) {
-    const scenario = question?.scenario || {};
-    const options = question?.options || [];
-    const correctAnswer = question?.correctAnswer;
+    const [timeLeft, setTimeLeft] = React.useState(30);
 
-    // Extract scenario data
-    const heroStack = scenario?.heroStack || 45;
-    const heroPosition = scenario?.heroPosition || 'BTN';
-    const heroHand = scenario?.heroHand || 'AhKh';
-    const pot = scenario?.pot || 0;
-    const gameType = scenario?.gameType || 'Blind vs Blind';
+    // Parse question data
+    const questionText = question?.question || question?.text || 'Loading question...';
+    const options = question?.options || question?.answers || ['Fold', 'Call', 'Raise', 'All-In'];
+    const correctAnswer = question?.correctAnswer || question?.correct || 'A';
 
-    const villainStacks = scenario?.villainStacks || [32, 28, 55, 41, 38, 62, 29, 51];
-
-    // Build question text
-    const buildQuestionText = () => {
-        const text = question?.question || '';
-        if (text && !text.includes('GTO play')) return text;
-
-        const posName = heroPosition === 'BTN' ? 'On The Button' :
-            heroPosition === 'SB' ? 'In The Small Blind' :
-                heroPosition === 'BB' ? 'In The Big Blind' :
-                    heroPosition === 'CO' ? 'CO' : heroPosition;
-        const action = scenario?.action || 'The Player To Your Right Bets 2.5 BB';
-        return `You Are ${posName}. ${action}. What Is Your Best Move?`;
-    };
-
-    // Parse hero cards
-    const parseCards = () => {
-        if (!heroHand) return ['Ah', 'Kh'];
-        const cards = [];
-        for (let i = 0; i < heroHand.length; i += 2) {
-            if (i + 1 < heroHand.length) cards.push(heroHand.substring(i, i + 2));
-        }
-        return cards.length > 0 ? cards : ['Ah', 'Kh'];
-    };
-
-    const heroCards = parseCards();
-
-    const handleAnswer = (optionLetter) => {
+    // Countdown timer
+    React.useEffect(() => {
         if (showFeedback) return;
-        onAnswer(optionLetter);
+        const timer = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [showFeedback, questionNumber]);
+
+    // Reset timer on new question
+    React.useEffect(() => {
+        setTimeLeft(30);
+    }, [questionNumber]);
+
+    const handleAnswer = (answer) => {
+        if (showFeedback) return;
+        onAnswer(answer);
     };
 
-    const getButtonStyle = (optionLetter) => {
-        if (!showFeedback) return styles.answerButton;
-        if (optionLetter === correctAnswer) return { ...styles.answerButton, ...styles.correctButton };
-        return { ...styles.answerButton, ...styles.wrongButton };
+    const getButtonStyle = (letter) => {
+        const baseStyle = { ...styles.answerButton };
+        if (showFeedback) {
+            if (letter === correctAnswer) {
+                return { ...baseStyle, ...styles.correctButton };
+            }
+            if (feedbackResult === 'incorrect') {
+                return { ...baseStyle, ...styles.incorrectButton };
+            }
+        }
+        return baseStyle;
     };
+
+    // Parse hero cards from question
+    const heroCards = question?.heroCards || question?.cards || 'AhKs';
+    const card1 = heroCards.substring(0, 2);
+    const card2 = heroCards.substring(2, 4);
 
     return (
         <div style={styles.container}>
-            {/* YELLOW/GOLD QUESTION BAR - matches reference */}
+            {/* LARGE QUESTION BAR - Top */}
             <div style={styles.questionBar}>
-                {buildQuestionText()}
+                <div style={styles.questionText}>{questionText}</div>
             </div>
 
-            {/* TABLE AREA - VERTICAL STADIUM */}
+            {/* TABLE AREA - Center */}
             <div style={styles.tableArea}>
-                {/* VERTICAL STADIUM TABLE */}
-                <div style={styles.table}>
-                    {/* Dark felt with gold border */}
-                    <div style={styles.outerRail}>
-                        <div style={styles.innerRail}>
-                            <div style={styles.felt}>
-                                {/* POT Display - center top */}
-                                <div style={styles.potDisplay}>
-                                    <span style={styles.potChip}>●</span>
-                                    <span style={styles.potText}>POT {pot}</span>
-                                </div>
+                {/* EXACT TABLE IMAGE */}
+                <img
+                    src="/images/training/table-vertical-stadium.jpg"
+                    alt="Poker Table"
+                    style={styles.tableImage}
+                />
 
-                                {/* Game Title - center */}
-                                <div style={styles.gameTitle}>
-                                    <div style={styles.gameName}>{gameType}</div>
-                                    <div style={styles.gameSubtitle}>Smarter.Poker</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                {/* PLAYER SEATS - Positioned over table */}
+                <div style={styles.seatsContainer}>
+                    {SEAT_POSITIONS.map((seat, index) => {
+                        const isHero = seat.isHero;
+                        const stackSize = isHero ? 45 : Math.floor(Math.random() * 50) + 20;
+                        const villainNumber = isHero ? null : index;
 
-                    {/* All 9 player positions */}
-                    {SEAT_POSITIONS.map((seat, index) => (
-                        <PlayerSeat
-                            key={seat.id}
-                            position={seat}
-                            name={seat.isHero ? 'Hero' : `Villain ${index}`}
-                            stack={seat.isHero ? heroStack : (villainStacks[index - 1] || 50)}
-                            avatarSrc={AVATARS[index] || '/avatars/default.png'}
-                            isHero={seat.isHero}
-                        />
-                    ))}
-
-                    {/* Hero's cards - positioned NEXT TO hero badge (right side) */}
-                    <div style={styles.heroCardsContainer}>
-                        {heroCards.map((card, i) => (
-                            <HeroCard key={i} card={card} rotation={i === 0 ? -8 : 8} />
-                        ))}
-                    </div>
-
-                    {/* Dealer button near hero */}
-                    <div style={styles.dealerButton}>D</div>
-                </div>
-            </div>
-
-            {/* BOTTOM CONTROLS */}
-            <div style={styles.bottomControls}>
-                {/* RED TIMER - bottom left */}
-                <div style={styles.timer}>{timeLeft}</div>
-
-                {/* 2x2 ANSWER GRID - center */}
-                <div style={styles.answersGrid}>
-                    {options.slice(0, 4).map((option, index) => {
-                        const letter = String.fromCharCode(65 + index);
-                        const text = typeof option === 'string' ? option : (option.text || option.label || 'Option');
                         return (
-                            <motion.button
-                                key={index}
-                                onClick={() => handleAnswer(letter)}
-                                disabled={showFeedback}
-                                style={getButtonStyle(letter)}
-                                whileHover={!showFeedback ? { scale: 1.02 } : {}}
-                                whileTap={!showFeedback ? { scale: 0.98 } : {}}
+                            <div
+                                key={seat.id}
+                                style={{
+                                    ...styles.seat,
+                                    left: `${seat.x}%`,
+                                    top: `${seat.y}%`,
+                                }}
                             >
-                                {text}
-                            </motion.button>
+                                {/* Avatar */}
+                                <img
+                                    src={AVATARS[index]}
+                                    alt={isHero ? 'Hero' : `Villain ${villainNumber}`}
+                                    style={styles.avatar}
+                                />
+
+                                {/* Badge */}
+                                <div style={styles.badge}>
+                                    <div style={styles.badgeLabel}>
+                                        {isHero ? 'Hero' : `Villain ${villainNumber}`}
+                                    </div>
+                                    <div style={styles.badgeStack}>{stackSize} BB</div>
+                                </div>
+
+                                {/* Hero Cards */}
+                                {isHero && (
+                                    <div style={styles.heroCards}>
+                                        <img src={`/cards/${card1}.svg`} alt={card1} style={styles.card} />
+                                        <img src={`/cards/${card2}.svg`} alt={card2} style={styles.card} />
+                                    </div>
+                                )}
+                            </div>
                         );
                     })}
                 </div>
 
-                {/* QUESTION COUNTER - bottom right */}
+                {/* POT - Center top */}
+                <div style={styles.pot}>POT 20</div>
+
+                {/* Tournament Label - Center */}
+                <div style={styles.tournamentLabel}>
+                    <div style={styles.tournamentTitle}>9-Max Tournament</div>
+                    <div style={styles.tournamentSubtitle}>(MTT)</div>
+                    <div style={styles.tournamentSmall}>Smarter.Poker</div>
+                </div>
+            </div>
+
+            {/* TIMER & COUNTER - Above buttons */}
+            <div style={styles.timerCounterRow}>
+                <div style={styles.timer}>{timeLeft}</div>
                 <div style={styles.questionCounter}>
                     Question {questionNumber} of {totalQuestions}
                 </div>
             </div>
 
+            {/* 2x2 ANSWER GRID - Full width bottom */}
+            <div style={styles.answersGrid}>
+                {options.slice(0, 4).map((option, index) => {
+                    const letter = String.fromCharCode(65 + index);
+                    const text = typeof option === 'string' ? option : (option.text || option.label || 'Option');
+                    return (
+                        <motion.button
+                            key={index}
+                            onClick={() => handleAnswer(letter)}
+                            disabled={showFeedback}
+                            style={getButtonStyle(letter)}
+                            whileHover={!showFeedback ? { scale: 1.02 } : {}}
+                            whileTap={!showFeedback ? { scale: 0.98 } : {}}
+                        >
+                            {text}
+                        </motion.button>
+                    );
+                })}
+            </div>
+
             {/* EXPLANATION OVERLAY */}
             {showFeedback && explanation && (
                 <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     style={styles.explanationOverlay}
                 >
                     <div style={styles.explanationBox}>
-                        <div style={{ color: feedbackResult === 'correct' ? '#22c55e' : '#ef4444', fontWeight: '700', marginBottom: 8 }}>
-                            {feedbackResult === 'correct' ? '✅ Correct!' : '❌ Incorrect'}
+                        <div style={{
+                            ...styles.explanationTitle,
+                            color: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
+                        }}>
+                            {feedbackResult === 'correct' ? '✓ Correct!' : '✗ Incorrect'}
                         </div>
-                        <p style={{ color: '#e5e7eb', margin: 0, fontSize: 14 }}>{explanation}</p>
+                        <div style={styles.explanationText}>{explanation}</div>
                     </div>
                 </motion.div>
             )}
@@ -297,7 +227,7 @@ export default function MTTDeepStackUI({
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STYLES - EXACT REFERENCE MATCH
+// STYLES - EXACT USER REQUIREMENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
 const styles = {
@@ -306,218 +236,250 @@ const styles = {
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: 'transparent', // Transparent to match page background
+        background: 'transparent',
         fontFamily: "'Inter', -apple-system, sans-serif",
         overflow: 'hidden',
     },
 
-    // Yellow/gold question bar (matches reference)
+    // LARGE QUESTION BAR (user requirement: "WAY TOO SMALL" - now MUCH larger)
     questionBar: {
         width: '100%',
-        padding: '10px 16px',
+        padding: '20px 24px', // Increased from 10px to 20px
         background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)',
-        color: '#fbbf24', // Gold/yellow text
-        fontSize: 13,
-        fontWeight: '500',
-        textAlign: 'center',
-        borderBottom: '1px solid rgba(251, 191, 36, 0.3)',
+        borderBottom: '2px solid #3b82f6',
         flexShrink: 0,
     },
 
-    // Table area - fills center
+    questionText: {
+        color: '#fbbf24',
+        fontSize: 18, // Increased from 13px to 18px
+        fontWeight: 'bold',
+        lineHeight: 1.4,
+        textAlign: 'center',
+    },
+
+    // TABLE AREA - Center (fills remaining space)
     tableArea: {
         flex: 1,
         position: 'relative',
-        padding: '10px 15px',
-        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 0,
+        padding: '20px',
     },
 
-    // Vertical stadium table
-    table: {
-        position: 'relative',
-        width: '100%',
+    // EXACT TABLE IMAGE (user requirement: "this table only")
+    tableImage: {
+        width: 'auto',
         height: '100%',
-        maxWidth: 420,
-        margin: '0 auto',
+        maxWidth: '100%',
+        maxHeight: '100%',
+        objectFit: 'contain',
+        position: 'relative',
+        zIndex: 1,
     },
 
-    // Outer gold rail
-    outerRail: {
+    // Seats container - overlays on table
+    seatsContainer: {
         position: 'absolute',
-        top: '5%',
-        left: '5%',
-        right: '5%',
-        bottom: '12%',
-        borderRadius: '50% / 40%',
-        background: 'linear-gradient(180deg, #d4a020 0%, #8b6914 50%, #553d0a 100%)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,215,0,0.3)',
-        padding: 6,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 2,
     },
 
-    // Inner gold rail
-    innerRail: {
-        width: '100%',
-        height: '100%',
-        borderRadius: '50% / 40%',
-        background: 'linear-gradient(180deg, #1a1a20 0%, #0d0d12 100%)',
-        padding: 5,
+    seat: {
+        position: 'absolute',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 4,
     },
 
-    // Dark felt
-    felt: {
-        width: '100%',
-        height: '100%',
-        borderRadius: '50% / 40%',
-        background: 'radial-gradient(ellipse at 50% 40%, #1a1a1a 0%, #0a0a0a 60%, #050505 100%)',
-        position: 'relative',
-        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.8)',
+    avatar: {
+        width: 50,
+        height: 50,
+        borderRadius: '50%',
+        border: '2px solid #fbbf24',
+        objectFit: 'cover',
     },
 
-    // POT display
-    potDisplay: {
+    badge: {
+        background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+        padding: '4px 10px',
+        borderRadius: 6,
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: '#000',
+        textAlign: 'center',
+        whiteSpace: 'nowrap',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+    },
+
+    badgeLabel: {
+        fontSize: 10,
+        opacity: 0.9,
+    },
+
+    badgeStack: {
+        fontSize: 11,
+        fontWeight: 'bold',
+    },
+
+    heroCards: {
+        display: 'flex',
+        gap: 4,
+        marginTop: 4,
+    },
+
+    card: {
+        width: 40,
+        height: 56,
+        borderRadius: 4,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+    },
+
+    pot: {
         position: 'absolute',
         top: '15%',
         left: '50%',
         transform: 'translateX(-50%)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        background: 'rgba(30,30,35,0.9)',
-        borderRadius: 12,
-        padding: '4px 12px',
-        border: '1px solid #333',
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 'bold',
+        zIndex: 3,
     },
-    potChip: { color: '#666', fontSize: 10 },
-    potText: { color: '#fff', fontSize: 11, fontWeight: '600' },
 
-    // Game title
-    gameTitle: {
+    tournamentLabel: {
         position: 'absolute',
-        top: '45%',
+        top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
         textAlign: 'center',
+        color: '#94a3b8',
+        zIndex: 3,
     },
-    gameName: {
-        fontSize: 18,
-        fontFamily: 'Georgia, serif',
+
+    tournamentTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        opacity: 0.6,
+    },
+
+    tournamentSubtitle: {
+        fontSize: 14,
         fontStyle: 'italic',
-        color: '#555',
-        letterSpacing: 1,
+        opacity: 0.5,
     },
-    gameSubtitle: {
+
+    tournamentSmall: {
         fontSize: 11,
-        color: '#c4960a',
         marginTop: 4,
+        opacity: 0.4,
     },
 
-    // Hero cards - positioned to RIGHT of hero
-    heroCardsContainer: {
-        position: 'absolute',
-        bottom: '6%',
-        left: '62%',
+    // TIMER & COUNTER ROW - Above buttons (user requirement)
+    timerCounterRow: {
         display: 'flex',
-        gap: -12,
-        zIndex: 150,
-    },
-
-    // Dealer button
-    dealerButton: {
-        position: 'absolute',
-        bottom: '18%',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 24,
-        height: 24,
-        borderRadius: '50%',
-        background: '#fff',
-        border: '2px solid #333',
-        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#000',
-        zIndex: 200,
-    },
-
-    // Bottom controls area
-    bottomControls: {
-        display: 'flex',
-        alignItems: 'flex-end',
-        padding: '8px 12px 12px',
+        padding: '12px 20px',
         flexShrink: 0,
-        gap: 8,
     },
 
-    // RED timer (matches reference exactly)
     timer: {
-        width: 48,
-        height: 48,
-        background: '#dc2626',
-        borderRadius: 8,
+        width: 50,
+        height: 50,
+        background: 'linear-gradient(135deg, #dc2626, #991b1b)',
+        color: '#fff',
+        fontSize: 20,
+        fontWeight: 'bold',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: '#fff',
-        flexShrink: 0,
-    },
-
-    // 2x2 answer grid
-    answersGrid: {
-        flex: 1,
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: 6,
-    },
-    answerButton: {
-        padding: '12px 10px',
-        background: 'linear-gradient(135deg, #1e3a5f 0%, #1a2d4a 100%)',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
         borderRadius: 8,
-        color: '#fff',
-        fontSize: 13,
-        fontWeight: '600',
-        cursor: 'pointer',
-    },
-    correctButton: {
-        background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
-        border: '1px solid #22c55e',
-    },
-    wrongButton: {
-        background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-        border: '1px solid #ef4444',
+        boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)',
     },
 
-    // Question counter
     questionCounter: {
-        background: 'rgba(30,30,40,0.9)',
-        border: '1px solid #444',
+        color: '#94a3b8',
+        fontSize: 13,
+        fontWeight: 'bold',
+        background: 'rgba(148, 163, 184, 0.1)',
+        padding: '8px 16px',
         borderRadius: 8,
-        padding: '10px 14px',
-        color: '#f0f0f0',
-        fontSize: 12,
-        whiteSpace: 'nowrap',
+    },
+
+    // 2x2 ANSWER GRID - ENTIRE BOTTOM WIDTH (user requirement)
+    answersGrid: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gridTemplateRows: '1fr 1fr',
+        gap: 12,
+        padding: '0 20px 20px 20px',
+        width: '100%',
         flexShrink: 0,
+    },
+
+    answerButton: {
+        padding: '20px',
+        fontSize: 16,
+        fontWeight: 'bold',
+        background: 'linear-gradient(135deg, #1e3a8a, #1e40af)',
+        border: '2px solid #3b82f6',
+        borderRadius: 12,
+        color: '#fff',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+    },
+
+    correctButton: {
+        background: 'linear-gradient(135deg, #16a34a, #22c55e)',
+        border: '2px solid #22c55e',
+    },
+
+    incorrectButton: {
+        background: 'linear-gradient(135deg, #991b1b, #dc2626)',
+        border: '2px solid #ef4444',
     },
 
     // Explanation overlay
     explanationOverlay: {
         position: 'absolute',
-        bottom: 100,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: '90%',
-        maxWidth: 500,
-        zIndex: 1000,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.85)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 100,
     },
+
     explanationBox: {
-        padding: '14px 18px',
-        background: 'rgba(15, 15, 25, 0.95)',
-        borderRadius: 10,
-        border: '2px solid rgba(251, 191, 36, 0.4)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+        background: 'linear-gradient(135deg, #1a2744, #0f1a2e)',
+        padding: '32px',
+        borderRadius: 16,
+        maxWidth: 500,
+        margin: '0 20px',
+        border: '2px solid #3b82f6',
+    },
+
+    explanationTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+
+    explanationText: {
+        fontSize: 15,
+        lineHeight: 1.6,
+        color: '#e2e8f0',
     },
 };

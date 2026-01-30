@@ -5,7 +5,6 @@
  * POST /api/commander/promotions/[id]/awards - Create award
  */
 import { createClient } from '@supabase/supabase-js';
-import { awardXP } from '../../../../../src/lib/commander/xp';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -155,10 +154,7 @@ async function createAward(req, res, promotionId) {
 
     // Award XP to player if they have a profile
     if (player_id) {
-      await awardXP(player_id, 'promotion_win', {
-        promotion_name: promotion.name,
-        prize_value
-      });
+      // XP system removed
     }
 
     return res.status(201).json({ award });

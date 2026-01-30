@@ -5,7 +5,7 @@
  * POST /api/commander/high-hands - Record new high hand
  */
 import { createClient } from '@supabase/supabase-js';
-import { awardXP } from '../../../../src/lib/commander/xp';
+
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -171,14 +171,7 @@ async function createHighHand(req, res) {
 
     if (error) throw error;
 
-    // Award XP if verified and has player_id
-    if (auto_verify && player_id && prize_amount) {
-      await awardXP(player_id, 'high_hand', {
-        venue_id: parseInt(venue_id),
-        hand_description,
-        prize_amount
-      });
-    }
+    // XP system removed
 
     return res.status(201).json({ high_hand: highHand });
   } catch (error) {

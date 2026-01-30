@@ -14,7 +14,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaGame from '../../../src/components/trivia/TriviaGame';
 import TriviaResult from '../../../src/components/trivia/TriviaResult';
 import LeaderboardDisplay from '../../../src/components/trivia/LeaderboardDisplay';
-import { TRIVIA_MODES, calculateXP, calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
+import { TRIVIA_MODES, calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
 
 const CATEGORY_MAP = {
     daily: null,
@@ -267,8 +267,7 @@ export default function TriviaModePage() {
     const handleComplete = async (gameResult) => {
         const { correctCount, totalQuestions, timeSpent, timeRemaining } = gameResult;
 
-        // Calculate rewards
-        const xpEarned = calculateXP(mode, correctCount, totalQuestions, userStreak);
+        // Calculate rewards - XP system removed
         const diamondsEarned = calculateDiamonds(mode, correctCount, totalQuestions, timeRemaining);
 
         // Update streak for daily mode
@@ -292,16 +291,15 @@ export default function TriviaModePage() {
                     correct_count: correctCount,
                     total_questions: totalQuestions,
                     time_spent: timeSpent,
-                    xp_earned: xpEarned,
                     diamonds_earned: diamondsEarned,
                     play_date: today
                 });
 
-                // Update profile with XP and diamonds
-                if (xpEarned > 0 || diamondsEarned > 0) {
+                // Update profile with diamonds only
+                if (diamondsEarned > 0) {
                     const { data: profile } = await supabase
                         .from('profiles')
-                        .select('xp, diamonds')
+                        .select('diamonds')
                         .eq('id', userId)
                         .single();
 
@@ -309,7 +307,6 @@ export default function TriviaModePage() {
                         await supabase
                             .from('profiles')
                             .update({
-                                xp: (profile.xp || 0) + xpEarned,
                                 diamonds: (profile.diamonds || 0) + diamondsEarned
                             })
                             .eq('id', userId);
@@ -344,7 +341,6 @@ export default function TriviaModePage() {
             totalQuestions,
             timeSpent,
             timeRemaining: timeRemaining || 0,
-            xpEarned,
             diamondsEarned,
             streak: newStreak
         });

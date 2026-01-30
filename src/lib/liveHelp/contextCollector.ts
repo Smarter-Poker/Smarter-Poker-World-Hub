@@ -9,7 +9,7 @@ export interface UserContext {
     currentPage: string;
     currentMode: string;
     userLevel: number;
-    userXP: number;
+
     diamondBalance: number;
     sessionDuration: number;
     recentActivity?: string[];
@@ -26,7 +26,7 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
         // Get user profile
         const { data: profile } = await supabase
             .from('profiles')
-            .select('level, xp, diamonds')
+            .select('level, diamonds')
             .eq('id', userId)
             .single();
 
@@ -70,7 +70,7 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
             currentPage,
             currentMode: determineMode(currentPath),
             userLevel: profile?.level || 1,
-            userXP: profile?.xp || 0,
+
             diamondBalance: profile?.diamonds || 0,
             sessionDuration,
             recentActivity,
@@ -86,7 +86,7 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
             currentPage: '/hub',
             currentMode: 'browsing',
             userLevel: 1,
-            userXP: 0,
+
             diamondBalance: 0,
             sessionDuration: 0
         };
@@ -141,7 +141,7 @@ export function formatContextForPrompt(context: UserContext): string {
     const parts = [
         `Location: ${context.currentOrb} (${context.currentPage})`,
         `Mode: ${context.currentMode}`,
-        `User Level: ${context.userLevel} (${context.userXP} XP)`,
+        `User Level: ${context.userLevel}`,
         `Diamonds: ${context.diamondBalance}`,
         `Session Duration: ${Math.floor(context.sessionDuration / 60)} minutes`
     ];

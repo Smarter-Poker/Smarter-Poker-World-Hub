@@ -4,7 +4,6 @@
  * DELETE /api/commander/tournaments/:id/register
  */
 import { createClient } from '@supabase/supabase-js';
-import { awardXP } from '../../../../../src/lib/commander/xp';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -159,14 +158,7 @@ async function handleRegister(req, res, tournamentId) {
 
     // Note: current_entries is auto-updated by the update_tournament_stats trigger
 
-    // Award XP for tournament registration
-    if (player_id) {
-      await awardXP(player_id, 'tournament.registered', {
-        tournament_id: tournamentId,
-        tournament_name: tournament.name,
-        buyin: tournament.buyin_amount
-      });
-    }
+    // XP system removed
 
     return res.status(201).json({
       success: true,

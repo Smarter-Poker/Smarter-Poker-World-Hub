@@ -6,7 +6,6 @@
  * DELETE /api/commander/home-games/events/[id] - Cancel event
  */
 import { createClient } from '@supabase/supabase-js';
-import { awardXP } from '../../../../../src/lib/commander/xp';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -195,10 +194,7 @@ async function updateEvent(req, res, id) {
 
       if (error) throw error;
 
-      // Award XP to host
-      await awardXP(event.host_id, 'home_game.hosted', {
-        game_id: id
-      });
+      // XP system removed
 
       // Award XP to attendees
       const { data: attendees } = await supabase
@@ -210,9 +206,7 @@ async function updateEvent(req, res, id) {
 
       for (const attendee of attendees || []) {
         if (attendee.user_id !== event.host_id) {
-          await awardXP(attendee.user_id, 'home_game.attended', {
-            game_id: id
-          });
+          // XP system removed
         }
       }
 
