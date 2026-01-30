@@ -912,21 +912,86 @@ export default function SettingsPage() {
                                             <h4 style={styles.dataTitle}>Export Hand History</h4>
                                             <p style={styles.dataDesc}>Download all your hand histories</p>
                                         </div>
-                                        <button style={styles.exportButton}>Export</button>
+                                        <button
+                                            style={styles.exportButton}
+                                            onClick={async () => {
+                                                if (!user?.id) { alert('Please log in to export data.'); return; }
+                                                try {
+                                                    const { data, error } = await supabase
+                                                        .from('hand_histories')
+                                                        .select('*')
+                                                        .eq('user_id', user.id);
+                                                    const rows = data || [];
+                                                    if (rows.length === 0) { alert('No hand history data found.'); return; }
+                                                    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
+                                                    const url = URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = url; a.download = 'hand-history-export.json'; a.click();
+                                                    URL.revokeObjectURL(url);
+                                                } catch (err) {
+                                                    console.error('Export error:', err);
+                                                    alert('Export failed. Please try again.');
+                                                }
+                                            }}
+                                        >Export</button>
                                     </div>
                                     <div style={styles.dataRow}>
                                         <div>
                                             <h4 style={styles.dataTitle}>Export Statistics</h4>
                                             <p style={styles.dataDesc}>Download your gameplay statistics</p>
                                         </div>
-                                        <button style={styles.exportButton}>Export</button>
+                                        <button
+                                            style={styles.exportButton}
+                                            onClick={async () => {
+                                                if (!user?.id) { alert('Please log in to export data.'); return; }
+                                                try {
+                                                    const { data, error } = await supabase
+                                                        .from('user_stats')
+                                                        .select('*')
+                                                        .eq('user_id', user.id);
+                                                    const rows = data || [];
+                                                    if (rows.length === 0) { alert('No statistics data found.'); return; }
+                                                    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
+                                                    const url = URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = url; a.download = 'statistics-export.json'; a.click();
+                                                    URL.revokeObjectURL(url);
+                                                } catch (err) {
+                                                    console.error('Export error:', err);
+                                                    alert('Export failed. Please try again.');
+                                                }
+                                            }}
+                                        >Export</button>
                                     </div>
                                     <div style={styles.dataRow}>
                                         <div>
                                             <h4 style={styles.dataTitle}>Export All Data</h4>
                                             <p style={styles.dataDesc}>Full GDPR-compliant data export</p>
                                         </div>
-                                        <button style={styles.exportButton}>Request</button>
+                                        <button
+                                            style={styles.exportButton}
+                                            onClick={async () => {
+                                                if (!user?.id) { alert('Please log in to export data.'); return; }
+                                                try {
+                                                    const allData = {};
+                                                    const tables = ['profiles', 'hand_histories', 'user_stats', 'user_settings'];
+                                                    for (const table of tables) {
+                                                        const { data } = await supabase.from(table).select('*').eq(table === 'profiles' ? 'id' : 'user_id', user.id);
+                                                        if (data && data.length > 0) allData[table] = data;
+                                                    }
+                                                    allData.email = user.email;
+                                                    allData.export_date = new Date().toISOString();
+                                                    const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
+                                                    const url = URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = url; a.download = 'smarter-poker-full-export.json'; a.click();
+                                                    URL.revokeObjectURL(url);
+                                                } catch (err) {
+                                                    console.error('Export error:', err);
+                                                    alert('Export failed. Please try again.');
+                                                }
+                                            }}
+                                        >Request</button>
                                     </div>
                                 </div>
 
@@ -935,7 +1000,42 @@ export default function SettingsPage() {
                                     <p style={styles.dangerDesc}>
                                         These actions are irreversible. Please proceed with caution.
                                     </p>
-                                    <button style={styles.dangerButton}>Delete Account</button>
+                                    <button
+                                        style={styles.dangerButton}
+                                        onClick={async () => {
+                                            if (!user?.id) { alert('Please log in first.'); return; }
+                                            const confirmed = confirm(
+                                                'Are you sure you want to delete your account?\n\n' +
+                                                'This action is PERMANENT and cannot be undone.\n' +
+                                                'All your data, avatars, and history will be deleted.'
+                                            );
+                                            if (!confirmed) return;
+                                            const doubleConfirm = confirm(
+                                                'This is your FINAL confirmation.\n\n' +
+                                                'Type OK to permanently delete your account and all associated data.'
+                                            );
+                                            if (!doubleConfirm) return;
+                                            try {
+                                                const { data: { session } } = await supabase.auth.getSession();
+                                                if (!session) { alert('Session expired. Please log in again.'); return; }
+                                                const response = await fetch('/api/auth/delete-account', {
+                                                    method: 'DELETE',
+                                                    headers: { 'Authorization': 'Bearer ' + session.access_token }
+                                                });
+                                                if (response.ok) {
+                                                    await supabase.auth.signOut();
+                                                    alert('Your account has been scheduled for deletion.');
+                                                    window.location.href = '/';
+                                                } else {
+                                                    const err = await response.json().catch(() => ({}));
+                                                    alert(err.error || 'Failed to delete account. Please contact support.');
+                                                }
+                                            } catch (err) {
+                                                console.error('Delete account error:', err);
+                                                alert('An error occurred. Please try again or contact support.');
+                                            }
+                                        }}
+                                    >Delete Account</button>
                                 </div>
                             </div>
                         )}

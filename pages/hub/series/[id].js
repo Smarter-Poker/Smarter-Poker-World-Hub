@@ -7,7 +7,7 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 
@@ -572,9 +572,8 @@ export default function SeriesDetailPage() {
                     var evtKey = evt.event_number || i + 1;
                     var isExpanded = expandedEvent === evtKey;
                     return (
-                      <>
+                      <Fragment key={'evt-' + evtKey}>
                         <tr
-                          key={evtKey}
                           className={'event-row-clickable' + (isExpanded ? ' expanded' : '')}
                           onClick={function() { setExpandedEvent(isExpanded ? null : evtKey); }}
                         >
@@ -589,7 +588,7 @@ export default function SeriesDetailPage() {
                           <td className="event-format">{evt.format || '--'}</td>
                         </tr>
                         {isExpanded && (
-                          <tr key={evtKey + '-detail'} className="event-detail-row">
+                          <tr className="event-detail-row">
                             <td colSpan="6">
                               <div className="event-detail-content">
                                 <div className="event-detail-grid">
@@ -658,7 +657,7 @@ export default function SeriesDetailPage() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </tbody>
